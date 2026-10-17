@@ -16,6 +16,8 @@ import 'institutional_page.dart';
 import 'pages/appearance_page.dart';
 import 'pages/login_page.dart';
 import 'pages/pending_page.dart';
+import 'pages/absences_page.dart';
+import 'pages/profile_page.dart';
 import 'pages/schools_page.dart';
 import 'pages/services_page.dart';
 import 'pages/side_menu.dart';
@@ -326,6 +328,28 @@ class _SigaAppState extends State<SigaApp> {
     GoRoute(
       path: 'transport',
       builder: (_, _) => subPage('Transporte escolar', const TransportPage()),
+    ),
+    GoRoute(
+      path: 'absences',
+      builder: (_, _) => subPage(
+        'Faltas',
+        AbsencesPage(key: ValueKey('$school:$role'), gateway: gateway),
+      ),
+    ),
+    GoRoute(
+      path: 'profile',
+      builder: (_, _) => subPage(
+        'Meu perfil',
+        ProfilePage(
+          name: '${session?['name'] ?? ''}',
+          schoolId: school,
+          role: role,
+          memberships: SchoolChoice.fromSession(session),
+          onNavigate: router.go,
+          onSwitchSchool: switchSchool,
+          onSignOut: () => auth.signOut(),
+        ),
+      ),
     ),
     for (final MapEntry(key: path, value: service) in pendingServices.entries)
       GoRoute(

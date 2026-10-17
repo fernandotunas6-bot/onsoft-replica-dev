@@ -17,7 +17,7 @@ const attendanceStatuses = [
 (String, String, Color) attendanceStatus(String code) => attendanceStatuses
     .firstWhere((s) => s.$1 == code, orElse: () => attendanceStatuses.first);
 
-/// Chamada do professor para uma disciplina, no dia de hoje (Luanda).
+/// Chamada do professor para uma disciplina, num dia (hoje por omissão).
 ///
 /// Grava nas mesmas tabelas do portal (sessão e registos de presença) e fecha
 /// a sessão. Depois de fechada, as correcções fazem-se no portal, como no SIGA.
@@ -29,8 +29,12 @@ class AttendancePage extends StatefulWidget {
     required this.subjectName,
     required this.className,
     required this.students,
+    this.day,
   });
   final MobileGateway gateway;
+
+  /// Dia da chamada (Luanda); por omissão, hoje. O servidor recusa o futuro.
+  final DateTime? day;
   final String classSubjectId;
   final String subjectName;
   final String className;
@@ -43,7 +47,12 @@ class AttendancePage extends StatefulWidget {
 }
 
 class _AttendancePageState extends State<AttendancePage> {
-  late final DateTime today = luandaClock(DateTime.now());
+  late final DateTime now = luandaClock(DateTime.now());
+  late final DateTime today = widget.day ?? now;
+  late final bool isToday =
+      today.year == now.year &&
+      today.month == now.month &&
+      today.day == now.day;
   late final String date =
       '${today.year}-${today.month.toString().padLeft(2, '0')}-'
       '${today.day.toString().padLeft(2, '0')}';
@@ -76,7 +85,7 @@ class _AttendancePageState extends State<AttendancePage> {
       String? reason;
       if (sessions.length > 1) {
         reason =
-            'Há mais de uma aula hoje nesta disciplina. Faça a chamada '
+            'Há mais de uma aula neste dia nesta disciplina. Faça a chamada '
             'no portal.';
       } else if (sessions.isNotEmpty) {
         final session = sessions.single;
@@ -90,16 +99,16 @@ class _AttendancePageState extends State<AttendancePage> {
         }
         if (session['status'] == 'completed') {
           reason =
-              'Chamada de hoje fechada e gravada no SIGA. Correcções '
+              'Chamada deste dia fechada e gravada no SIGA. Correcções '
               'fazem-se no portal.';
         } else if (session['status'] == 'cancelled') {
-          reason = 'A aula de hoje foi cancelada.';
+          reason = 'A aula deste dia foi cancelada.';
         }
       }
       if (mounted) setState(() => closedReason = reason);
     } catch (_) {
       if (mounted) {
-        setState(() => error = 'Não foi possível ler as presenças de hoje.');
+        setState(() => error = 'Não foi possível ler as presenças deste dia.');
       }
     } finally {
       if (mounted) setState(() => loading = false);
@@ -217,7 +226,7 @@ class _AttendancePageState extends State<AttendancePage> {
         padding: const EdgeInsets.fromLTRB(Siga.s3, 0, Siga.s3, Siga.s3),
         children: [
           Text(
-            '${widget.className} · Hoje, ${today.day} de ${months[today.month - 1]}',
+            '${widget.className} · ${isToday ? 'Hoje, ' : ''}${today.day} de ${months[today.month - 1]}',
             style: TextStyle(fontSize: 13, color: palette.ink2),
           ),
           const SizedBox(height: 6),

@@ -117,6 +117,8 @@ class MobileGateway {
           'finance',
           'documents',
           'results',
+          'gradebooks',
+          'lesson-plans',
         }.contains(collection) ||
         schoolId == null ||
         role == null) {
@@ -125,6 +127,10 @@ class MobileGateway {
     if ({'finance', 'documents', 'results'}.contains(collection) &&
         role != 'aluno') {
       throw StateError('Esta consulta é exclusiva do aluno.');
+    }
+    if ({'gradebooks', 'lesson-plans'}.contains(collection) &&
+        role != 'professor') {
+      throw StateError('Esta consulta é exclusiva do professor.');
     }
     final expectedSchool = schoolId;
     final expectedRole = role;
@@ -135,7 +141,12 @@ class MobileGateway {
     );
     if (result['schoolId'] != expectedSchool ||
         result['role'] != expectedRole ||
-        (!{'academic', 'results'}.contains(collection) &&
+        (!{
+              'academic',
+              'results',
+              'gradebooks',
+              'lesson-plans',
+            }.contains(collection) &&
             result['userId'] != expectedUser)) {
       throw StateError('Resposta fora do contexto autorizado.');
     }
@@ -187,12 +198,17 @@ class MobileGateway {
 
   /// Presenças de um dia (sessões e registos), para saber se a chamada de
   /// uma disciplina já foi feita ou fechada.
-  Future<Map<String, dynamic>> attendanceOn(String date) async {
+  Future<Map<String, dynamic>> attendanceOn(String date) =>
+      attendanceBetween(date, date);
+
+  /// Presenças entre duas datas (AAAA-MM-DD, no máximo 31 dias, regra do
+  /// servidor): sessões com os registos e, para o professor, as aulas dadas.
+  Future<Map<String, dynamic>> attendanceBetween(String from, String to) async {
     final school = _school();
     final expectedRole = role;
     final result = await _get(
       '/schools/$school/attendance?role=${Uri.encodeComponent(expectedRole!)}'
-      '&from=$date&to=$date',
+      '&from=$from&to=$to',
     );
     if (result['schoolId'] != schoolId ||
         result['role'] != expectedRole ||

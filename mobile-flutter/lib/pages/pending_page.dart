@@ -40,23 +40,11 @@ const pendingServices = {
         'instituição, turma ou aula. Links e credenciais são geridos pelo '
         'servidor da escola.',
   ),
-  'absences': PendingService(
-    FluentIcons.calendar_cancel_24_regular,
-    'Faltas',
-    'As presenças e faltas registadas pela escola, só para quem tem '
-        'permissão, quando o contrato de presenças estiver ligado a esta app.',
-  ),
   'student-only': PendingService(
     FluentIcons.person_search_24_regular,
     'Consulta do aluno',
     'Propinas, recibos, notas publicadas e documentos são consultas do '
         'próprio aluno. Entre com o perfil de aluno para as ver.',
-  ),
-  'profile': PendingService(
-    FluentIcons.person_24_regular,
-    'Meu perfil',
-    'Os dados pessoais são geridos pela secretaria da escola. A edição do '
-        'perfil nesta app ainda não está disponível.',
   ),
 };
 

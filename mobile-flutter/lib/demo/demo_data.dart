@@ -43,7 +43,8 @@ Map<String, dynamic> _academic(String school, String role) => {
       'classGroupId': 'turma-a',
       'subjectName': 'Língua Portuguesa',
       'className': '10.ª Classe · Turma A',
-      'teacher': {'name': 'Mariana Silva'},
+      'teacher': {'name': 'Mariana Silva', 'userId': demoUserId},
+      'students': _students,
     },
     {
       'classSubjectId': 'cn',
@@ -243,16 +244,11 @@ Map<String, dynamic> _response(Uri url) {
         ..._context(school, role),
         'from': url.queryParameters['from'],
         'to': url.queryParameters['to'],
-        'sessions': [
-          if (_attendanceDone)
-            {
-              'id': 'sessao-demo',
-              'classSubjectId': 'mat',
-              'status': 'completed',
-              'records': _attendanceRecords,
-            },
-        ],
-        'teacherLessons': [],
+        ..._attendanceMonth(
+          DateTime.parse(url.queryParameters['from']!),
+          DateTime.parse(url.queryParameters['to']!),
+          role,
+        ),
       };
     case 'finance':
       return {
@@ -310,6 +306,72 @@ Map<String, dynamic> _response(Uri url) {
       };
   }
   throw StateError('Serviço sem dados de demonstração.');
+}
+
+/// Presenças fictícias: dias úteis até hoje, Matemática e Língua Portuguesa,
+/// com faltas e atrasos em dias fixos para o padrão ser estável.
+Map<String, dynamic> _attendanceMonth(DateTime from, DateTime to, String role) {
+  final today = DateTime.now();
+  final sessions = <Map<String, dynamic>>[];
+  for (
+    var d = from;
+    !d.isAfter(to) && !d.isAfter(today);
+    d = d.add(const Duration(days: 1))
+  ) {
+    if (d.weekday > 5) continue;
+    final date =
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    for (final subject in ['mat', 'lp']) {
+      final isToday =
+          d.year == today.year && d.month == today.month && d.day == today.day;
+      if (subject == 'mat' && isToday && !_attendanceDone) {
+        sessions.add({
+          'id': 'sessao-$date-$subject',
+          'classSubjectId': subject,
+          'date': date,
+          'status': 'pending',
+          'records': [],
+        });
+        continue;
+      }
+      String status(int student) {
+        final key = d.day + student + (subject == 'lp' ? 3 : 0);
+        if (key % 11 == 0) return 'absent';
+        if (key % 13 == 0) return 'late';
+        if (key % 17 == 0) return 'excused';
+        return 'present';
+      }
+
+      final records = subject == 'mat' && isToday
+          ? _attendanceRecords
+          : [
+              for (var i = 0; i < _students.length; i++)
+                {'studentId': _students[i]['studentId'], 'status': status(i)},
+            ];
+      sessions.add({
+        'id': 'sessao-$date-$subject',
+        'classSubjectId': subject,
+        'date': date,
+        'status': d.day % 9 == 0 && subject == 'lp' ? 'pending' : 'completed',
+        // O aluno recebe só o seu registo, como no servidor.
+        'records': role == 'aluno' ? [records.first] : records,
+      });
+    }
+  }
+  return {
+    'sessions': sessions,
+    'teacherLessons': [
+      if (role == 'professor')
+        for (final s in sessions)
+          {
+            'id': 'aula-${s['id']}',
+            'classSubjectId': s['classSubjectId'],
+            'date': s['date'],
+            'status': s['status'] == 'completed' ? 'confirmed' : 'scheduled',
+          },
+    ],
+  };
 }
 
 // Estado das escritas da demonstração: só em memória, nunca sai do aparelho.
