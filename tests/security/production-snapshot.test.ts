@@ -159,6 +159,10 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
   "web_contact_messages",
   "web_faqs",
   "web_school_showcase",
+  // 20261015120000_tenant_billing_profiles.sql (cobrança por escola no ADMIN). O código
+  // funciona sem ela: lê-a tolerando a falta (`tableReady: false`) e as gravações
+  // respondem com a migração que falta. Sai daqui quando o retrato a mostrar.
+  "tenant_billing_profiles",
   // 20261012160000_siga_ai_module.sql (SIGA AI): sai daqui quando o retrato for
   // recapturado depois de aplicada.
   "siga_ai_settings",

@@ -38,7 +38,7 @@ export type Metric = {
 
 export function MetricGrid({ metrics, className }: { metrics: Metric[]; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-2.5", className)}>
+    <div className={cn("grid grid-cols-2 gap-3", className)}>
       {metrics.map((metric) => (
         <MetricCard key={metric.id} metric={metric} />
       ))}
@@ -51,17 +51,17 @@ export function MetricCard({ metric }: { metric: Metric }) {
   const content = (
     <div
       className={cn(
-        "flex h-full flex-col justify-between rounded-xl border border-border bg-card p-3.5",
+        "flex h-full flex-col justify-between rounded-xl border border-border bg-card p-4",
         metric.to &&
           "motion-safe:transition-colors motion-safe:duration-150 active:bg-secondary/60",
       )}
     >
-      <p className="text-[11px] font-medium text-muted-foreground">{metric.label}</p>
-      <div className="mt-1.5 flex items-end justify-between gap-2">
+      <p className="text-[12px] font-medium text-muted-foreground">{metric.label}</p>
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
         <span
           className={cn(
-            "tnum text-2xl leading-none tracking-tight",
-            metric.wide && "text-[1.75rem]",
+            "tnum min-w-0 break-words text-[22px] font-semibold leading-tight tracking-tight",
+            metric.wide && "text-[28px]",
             toneText[tone],
           )}
         >
@@ -70,12 +70,12 @@ export function MetricCard({ metric }: { metric: Metric }) {
         {metric.trend ? <TrendPill trend={metric.trend} /> : null}
       </div>
       {metric.hint ? (
-        <p className="mt-1.5 line-clamp-2 text-[11px] text-muted-foreground">{metric.hint}</p>
+        <p className="mt-1.5 line-clamp-2 text-[12px] text-muted-foreground">{metric.hint}</p>
       ) : null}
     </div>
   );
 
-  const wrapper = metric.wide ? "col-span-2" : "";
+  const wrapper = metric.wide ? "col-span-2 min-w-0" : "min-w-0";
 
   if (metric.to) {
     return (
@@ -97,7 +97,7 @@ function TrendPill({ trend }: { trend: NonNullable<Metric["trend"]> }) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
         trend.direction === "flat"
           ? "bg-muted text-muted-foreground"
           : trend.direction === "up"

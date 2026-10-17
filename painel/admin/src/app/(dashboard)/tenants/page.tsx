@@ -1,11 +1,26 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Building2, ExternalLink, RefreshCw } from "lucide-react"
+import { Building2, ExternalLink, MoreHorizontal, RefreshCw, Search } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -16,20 +31,28 @@ import {
 } from "@/components/ui/table"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { getCreateSchoolUrl, getSaasApiUrl, getSigaSchoolUrl } from "@/lib/ecosystem-urls"
-import { syncSaasUsage } from "@/lib/saas-api"
-import { TenantSubscriptionDialog } from "./components/tenant-subscription-dialog"
+import { setTenantStatus, syncSaasUsage } from "@/lib/saas-api"
+import {
+  TenantSubscriptionDialog,
+  type SubscriptionAction,
+} from "./components/tenant-subscription-dialog"
+import { TenantAdminAccessDialog } from "./components/tenant-admin-access-dialog"
 
 interface TenantRow {
   id: string
   name: string
   slug: string
   status: string
+  subscription_status?: string | null
   contact_email?: string
   trial_ends_at?: string
   active_students_count?: number
   max_students?: number
   usage_last_calculated_at?: string
   plans?: { name?: string; code?: string }
+  /** Cobranças pausadas ou escola pública isenta (mantido pelo servidor). */
+  billing_exempt?: boolean | null
+  billing_exempt_reason?: string | null
 }
 
 interface Stats {
@@ -37,8 +60,46 @@ interface Stats {
   activeTenants: number
   trialTenants: number
   suspendedTenants: number
+  pastDueTenants?: number
+  trialExpiredTenants?: number
+  exemptTenants?: number
   totalStudents: number
   mrrAoa: number
+}
+
+/** Trial terminado sem isenção: o SIGA não deixa a escola gravar. */
+function trialExpired(tenant: TenantRow, now = Date.now()) {
+  if (tenant.billing_exempt) return false
+  if (tenant.status !== "trial" && tenant.subscription_status !== "trialing") return false
+  const end = tenant.trial_ends_at ? Date.parse(tenant.trial_ends_at) : Number.NaN
+  return Number.isFinite(end) && end < now
+}
+
+type TenantFilter = "all" | "active" | "trial" | "trial_expired" | "past_due" | "suspended" | "exempt"
+
+const FILTERS: Array<{ id: TenantFilter; label: string }> = [
+  { id: "all", label: "Todas" },
+  { id: "active", label: "Activas" },
+  { id: "trial", label: "Em trial" },
+  { id: "trial_expired", label: "Trial expirado" },
+  { id: "past_due", label: "Em atraso" },
+  { id: "suspended", label: "Suspensas" },
+  { id: "exempt", label: "Isentas / pausadas" },
+]
+
+function matchesFilter(tenant: TenantRow, filter: TenantFilter) {
+  switch (filter) {
+    case "all":
+      return true
+    case "trial":
+      return tenant.status === "trial" && !trialExpired(tenant)
+    case "trial_expired":
+      return trialExpired(tenant)
+    case "exempt":
+      return Boolean(tenant.billing_exempt)
+    default:
+      return tenant.status === filter
+  }
 }
 
 function tenantStatusLabel(status: string) {
@@ -47,6 +108,10 @@ function tenantStatusLabel(status: string) {
     suspended: "Suspensa",
     trial: "Trial",
     past_due: "Em atraso",
+    cancelled: "Cancelada",
+    archived: "Arquivada",
+    provisioning: "A criar",
+    provisioning_failed: "Criação falhou",
   }
   return map[status] || status
 }
@@ -67,6 +132,10 @@ export default function TenantsPage() {
   const [needsAuth, setNeedsAuth] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [manageTenant, setManageTenant] = useState<TenantRow | null>(null)
+  const [manageAction, setManageAction] = useState<SubscriptionAction>("plan")
+  const [query, setQuery] = useState("")
+  const [filter, setFilter] = useState<TenantFilter>("all")
+  const [accessTenant, setAccessTenant] = useState<TenantRow | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -101,20 +170,36 @@ export default function TenantsPage() {
     void load()
   }, [load])
 
-  async function setStatus(tenantId: string, status: string) {
-    setError(null)
-    const headers = {
-      ...(await authHeader()),
-      "Content-Type": "application/json",
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return tenants.filter(
+      (tenant) =>
+        matchesFilter(tenant, filter) &&
+        (!q ||
+          tenant.name.toLowerCase().includes(q) ||
+          tenant.slug.toLowerCase().includes(q) ||
+          (tenant.contact_email ?? "").toLowerCase().includes(q)),
+    )
+  }, [tenants, query, filter])
+
+  function openSubscription(tenant: TenantRow, action: SubscriptionAction) {
+    setManageAction(action)
+    setManageTenant(tenant)
+  }
+
+  async function setStatus(tenant: TenantRow, status: "active" | "suspended") {
+    if (
+      status === "suspended" &&
+      !window.confirm(`Suspender «${tenant.name}»? A escola fica só de consulta até ser reactivada.`)
+    ) {
+      return
     }
-    const res = await fetch(getSaasApiUrl("/api/saas/tenants/status"), {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ tenantId, status }),
-    })
-    const data = (await res.json().catch(() => ({}))) as { error?: string }
-    if (!res.ok) {
-      setError(data.error || "Não foi possível actualizar o estado.")
+    setError(null)
+    const supabase = isSupabaseConfigured() ? createClient() : null
+    const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : null
+    const result = await setTenantStatus(token, tenant.id, status)
+    if (!result.ok) {
+      setError(result.error || "Não foi possível actualizar o estado.")
       return
     }
     await load()
@@ -169,11 +254,14 @@ export default function TenantsPage() {
       </div>
 
       <div className="@container/main px-4 lg:px-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Metric title="Escolas" value={stats?.totalTenants} icon={Building2} />
           <Metric title="Activas" value={stats?.activeTenants} />
-          <Metric title="Trial" value={stats?.trialTenants} />
+          <Metric title="Em trial" value={stats?.trialTenants} />
+          <Metric title="Trial expirado" value={stats?.trialExpiredTenants} tone="warning" />
+          <Metric title="Em atraso" value={stats?.pastDueTenants} tone="warning" />
           <Metric title="Suspensas" value={stats?.suspendedTenants} />
+          <Metric title="Isentas / pausadas" value={stats?.exemptTenants} />
           <Metric title="Alunos (uso)" value={stats?.totalStudents} />
         </div>
       </div>
@@ -198,6 +286,30 @@ export default function TenantsPage() {
 
         <Card>
           <CardContent className="pt-6">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Procurar por nome, slug ou e-mail"
+                  aria-label="Procurar escolas"
+                  className="pl-9"
+                />
+              </div>
+              <Select value={filter} onValueChange={(value) => setFilter(value as TenantFilter)}>
+                <SelectTrigger className="sm:w-56" aria-label="Filtrar por estado">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FILTERS.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -216,17 +328,24 @@ export default function TenantsPage() {
                       A carregar…
                     </TableCell>
                   </TableRow>
-                ) : tenants.length === 0 ? (
+                ) : visible.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-muted-foreground">
-                      Nenhuma escola registada.
+                      {tenants.length === 0
+                        ? "Nenhuma escola registada."
+                        : "Nenhuma escola corresponde à pesquisa ou ao filtro."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  tenants.map((tenant) => (
+                  visible.map((tenant) => (
                     <TableRow key={tenant.id}>
                       <TableCell>
-                        <div className="font-medium">{tenant.name}</div>
+                        <Link
+                          href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}
+                          className="font-medium hover:underline"
+                        >
+                          {tenant.name}
+                        </Link>
                         <div className="text-xs text-muted-foreground font-mono">{tenant.slug}</div>
                       </TableCell>
                       <TableCell>{tenant.plans?.name || tenant.plans?.code || "—"}</TableCell>
@@ -247,13 +366,27 @@ export default function TenantsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
+                          {trialExpired(tenant) ? (
+                            <Badge variant="destructive">Trial expirado</Badge>
+                          ) : null}
+                          {tenant.billing_exempt ? (
+                            <Badge variant="secondary" title={tenant.billing_exempt_reason ?? undefined}>
+                              {tenant.billing_exempt_reason?.startsWith("Escola pública")
+                                ? "Isenta"
+                                : "Cobrança pausada"}
+                            </Badge>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm">
                         <div>{tenant.contact_email || "—"}</div>
-                        {tenant.trial_ends_at ? (
+                        {tenant.trial_ends_at &&
+                        (tenant.status === "trial" || tenant.subscription_status === "trialing") ? (
                           <div className="text-xs text-muted-foreground">
-                            Trial até {new Date(tenant.trial_ends_at).toLocaleDateString("pt-AO")}
+                            {trialExpired(tenant) ? "Trial terminou a " : "Trial até "}
+                            {new Date(tenant.trial_ends_at).toLocaleDateString("pt-AO")}
                           </div>
                         ) : null}
                         {tenant.usage_last_calculated_at ? (
@@ -266,42 +399,74 @@ export default function TenantsPage() {
                           </div>
                         ) : null}
                       </TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/subscriptions?tenant=${encodeURIComponent(tenant.slug)}`}>
-                            Subscrição
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/domains?tenant=${encodeURIComponent(tenant.slug)}`}>
-                            Domínios
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setManageTenant(tenant)}>
-                          Gerir
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={getSigaSchoolUrl(tenant.slug)}>
-                            SIGA <ExternalLink className="size-3" />
-                          </a>
-                        </Button>
-                        {tenant.status !== "suspended" ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => void setStatus(tenant.id, "suspended")}
-                          >
-                            Suspender
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}>
+                              Configurações
+                            </Link>
                           </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => void setStatus(tenant.id, "active")}
-                          >
-                            Activar
-                          </Button>
-                        )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" aria-label={`Mais acções: ${tenant.name}`}>
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {tenant.status === "past_due" && !tenant.billing_exempt ? (
+                                <DropdownMenuItem onSelect={() => openSubscription(tenant, "payment")}>
+                                  Registar pagamento
+                                </DropdownMenuItem>
+                              ) : null}
+                              <DropdownMenuItem onSelect={() => openSubscription(tenant, "plan")}>
+                                Mudar plano
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => openSubscription(tenant, "trial")}>
+                                Prolongar trial
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => openSubscription(tenant, "payment")}>
+                                Pagamento recebido
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setAccessTenant(tenant)}>
+                                Acesso do administrador
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild>
+                                <Link href={`/subscriptions?tenant=${encodeURIComponent(tenant.slug)}`}>
+                                  Subscrição
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/domains?tenant=${encodeURIComponent(tenant.slug)}`}>
+                                  Domínios
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <a href={getSigaSchoolUrl(tenant.slug)}>
+                                  Abrir no SIGA <ExternalLink className="size-3" />
+                                </a>
+                              </DropdownMenuItem>
+                              {tenant.status === "cancelled" || tenant.status === "archived" ? null : (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  {tenant.status === "suspended" ||
+                                  (tenant.status === "past_due" && tenant.billing_exempt) ? (
+                                    <DropdownMenuItem onSelect={() => void setStatus(tenant, "active")}>
+                                      Reactivar
+                                    </DropdownMenuItem>
+                                  ) : tenant.status !== "past_due" ? (
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onSelect={() => void setStatus(tenant, "suspended")}
+                                    >
+                                      Suspender…
+                                    </DropdownMenuItem>
+                                  ) : null}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -311,6 +476,17 @@ export default function TenantsPage() {
           </CardContent>
         </Card>
 
+        {accessTenant ? (
+          <TenantAdminAccessDialog
+            tenant={accessTenant}
+            open={Boolean(accessTenant)}
+            onOpenChange={(open) => {
+              if (!open) setAccessTenant(null)
+            }}
+            onManageSubscription={() => openSubscription(accessTenant, "plan")}
+          />
+        ) : null}
+
         {manageTenant ? (
           <TenantSubscriptionDialog
             tenant={manageTenant}
@@ -319,6 +495,7 @@ export default function TenantsPage() {
               if (!open) setManageTenant(null)
             }}
             onUpdated={load}
+            initialAction={manageAction}
           />
         ) : null}
       </div>
@@ -330,19 +507,25 @@ function Metric({
   title,
   value,
   icon: Icon,
+  tone,
 }: {
   title: string
   value?: number
   icon?: typeof Building2
+  /** «warning» realça contagens que pedem acção (trial expirado, em atraso). */
+  tone?: "warning"
 }) {
+  const alert = tone === "warning" && (value ?? 0) > 0
   return (
-    <Card className="border">
+    <Card className={alert ? "border-amber-500/50" : "border"}>
       <CardContent className="space-y-2">
         <div className="flex items-center justify-between">
           {Icon ? <Icon className="text-muted-foreground size-6" /> : <span />}
         </div>
         <p className="text-muted-foreground text-sm font-medium">{title}</p>
-        <div className="text-2xl font-bold">{value ?? "—"}</div>
+        <div className={alert ? "text-2xl font-bold text-amber-600 dark:text-amber-400" : "text-2xl font-bold"}>
+          {value ?? "—"}
+        </div>
       </CardContent>
     </Card>
   )
