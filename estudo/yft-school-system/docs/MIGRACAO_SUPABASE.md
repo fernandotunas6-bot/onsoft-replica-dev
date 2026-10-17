@@ -26,7 +26,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
 | 3 | Leituras do encarregado: horário, faltas, recibos, boletim, saldo, disciplinas, turmas e calendário | feito |
-| 4 | Escritas do professor e mensagens. Feito: chamada por aula (`/api/mobile/attendance` no SIGA). Por fazer: notas, mensagens | em curso |
+| 4 | Escritas do professor e mensagens. Feito: chamada por aula e lançamento de notas (`/api/mobile/attendance`, `/api/mobile/grades` no SIGA). Por fazer: mensagens | em curso |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
 
 ## Modo SIGA na app
@@ -120,6 +120,22 @@ sem cópia de regras.
   a primeira. Ecrã: Marcar presenças (`sga_attendance_screen.dart`), P / A /
   F por aluno; por marcar conta como presente; justificadas e saídas
   antecipadas ficam como estão no SIGA.
+
+### Notas
+
+- Leitura no Worker, exacta: `GET /api/sga/teacher/classes` (disciplinas do
+  professor) e `GET /api/sga/teacher/grades?class_group_id=&subject_id=&term=`
+  (MAC/NPP/NPT de todos os matriculados activos/pendentes). Professor: só a
+  sua disciplina (`class_subjects.teacher_id` = a sua ficha de docente);
+  direcção/secretaria: qualquer uma. Não se usa `listTermGrades` do SIGA, que
+  corta a 200 linhas: notas por mostrar seriam sobrescritas.
+- Escrita no SIGA: `POST /api/mobile/grades`
+  `{subject_id, term, rows:[{enrollment_id, mac, npp, npt}]}` →
+  `upsertTermGradesBatch` (trimestre aberto, escala do modelo, disciplina da
+  turma, matrícula activa, pauta não oficial; na base, os triggers de
+  `20260903025000` limitam o professor à sua turma e disciplina).
+- App (`sga_grades_screen.dart`): só envia os alunos alterados, com as três
+  notas entre 0 e 20, em lotes de 80; pede confirmação antes de descartar.
 
 ## Pôr no ar (dono)
 

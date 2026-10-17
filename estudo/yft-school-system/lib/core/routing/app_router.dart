@@ -53,6 +53,7 @@ import 'package:yft_school_system/features/subjects/presentation/subjects_screen
 import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:yft_school_system/core/sga/sga_providers.dart';
 import 'package:yft_school_system/features/grading/presentation/sga_attendance_screen.dart';
+import 'package:yft_school_system/features/grading/presentation/sga_grades_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -216,7 +217,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/results-setup',
-      builder: (context, state) => const ResultsSetupScreen(),
+      // Modo SIGA: lançamento MAC/NPP/NPT por turma e disciplina (no SIGA).
+      builder: (context, state) =>
+          sgaMode ? const SgaGradesScreen() : const ResultsSetupScreen(),
     ),
     GoRoute(
       path: '/results-input',
