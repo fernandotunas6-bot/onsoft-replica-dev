@@ -187,6 +187,30 @@ class MobileGateway {
     return result;
   }
 
+  /// Avisos anteriores ao cursor `{date, id}` devolvido em `next`.
+  Future<Map<String, dynamic>> olderNotices(Map<String, dynamic> before) async {
+    final school = _school();
+    final expectedRole = role;
+    if (before['date'] is! String || before['id'] is! String) {
+      throw StateError('Cursor inválido.');
+    }
+    final query = Uri(
+      queryParameters: {
+        'role': expectedRole!,
+        'before': before['date'] as String,
+        'beforeId': before['id'] as String,
+      },
+    ).query;
+    final result = await _get('/schools/$school/notifications?$query');
+    if (result['schoolId'] != schoolId ||
+        result['role'] != expectedRole ||
+        result['userId'] != userId ||
+        result['items'] is! List) {
+      throw StateError('Resposta fora do contexto autorizado.');
+    }
+    return result;
+  }
+
   /// O servidor aceita envio de mensagens? (RPC activa no SIGA).
   Future<bool> chatWrites() async {
     final school = _school();

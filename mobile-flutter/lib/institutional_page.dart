@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'academic.dart' show luandaClock;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'design/portal.dart';
 import 'design/tokens.dart';
@@ -41,6 +42,101 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   /// Avisos marcados como lidos nesta visita (já gravados no SIGA).
   final readNow = <String>{};
 
+  /// Avisos mais antigos já carregados e o cursor da página seguinte.
+  final older = <Map<String, dynamic>>[];
+  Map<String, dynamic>? cursor;
+  bool loadingMore = false;
+
+  Future<void> loadOlder(Map<String, dynamic> before) async {
+    setState(() => loadingMore = true);
+    try {
+      final page = await widget.gateway.olderNotices(before);
+      if (!mounted) return;
+      setState(() {
+        older.addAll(rows(page, 'items'));
+        cursor = page['next'] is Map<String, dynamic>
+            ? page['next'] as Map<String, dynamic>
+            : <String, dynamic>{};
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível carregar mais avisos.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loadingMore = false);
+    }
+  }
+
+  /// Quando foi: «há 5 min», «hoje às 09:30», «ontem às 15:00», «12/10».
+  String when(dynamic iso) {
+    final parsed = iso is String ? DateTime.tryParse(iso) : null;
+    if (parsed == null) return '';
+    final diff = DateTime.now().difference(parsed);
+    if (diff.inMinutes < 60 && !diff.isNegative) {
+      return diff.inMinutes < 1 ? 'agora mesmo' : 'há ${diff.inMinutes} min';
+    }
+    final local = luandaClock(parsed);
+    final today = luandaClock(DateTime.now());
+    final days = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).difference(DateTime(local.year, local.month, local.day)).inDays;
+    final hour =
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+    return switch (days) {
+      0 => 'hoje às $hour',
+      1 => 'ontem às $hour',
+      _ => '${local.day}/${local.month}/${local.year}',
+    };
+  }
+
+  /// Grupo de um aviso pela data (Luanda): 0 hoje, 1 esta semana, 2 antes.
+  int age(dynamic iso) {
+    final parsed = iso is String ? DateTime.tryParse(iso) : null;
+    if (parsed == null) return 2;
+    final local = luandaClock(parsed);
+    final today = luandaClock(DateTime.now());
+    final days = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).difference(DateTime(local.year, local.month, local.day)).inDays;
+    return days <= 0 ? 0 : (days < 7 ? 1 : 2);
+  }
+
+  /// AAAA-MM-DD → 10/9/2026.
+  String shortDate(dynamic date) {
+    final parsed = date is String ? DateTime.tryParse(date) : null;
+    return parsed == null
+        ? text(date)
+        : '${parsed.day}/${parsed.month}/${parsed.year}';
+  }
+
+  /// Vencimento de uma factura (AAAA-MM-DD) em relação a hoje, em Luanda.
+  (String, bool) dueIn(dynamic date) {
+    final parsed = date is String ? DateTime.tryParse(date) : null;
+    if (parsed == null) return ('Sem vencimento indicado', false);
+    final today = luandaClock(DateTime.now());
+    final days = DateTime(
+      parsed.year,
+      parsed.month,
+      parsed.day,
+    ).difference(DateTime(today.year, today.month, today.day)).inDays;
+    return switch (days) {
+      < -1 => ('Venceu há ${-days} dias', true),
+      -1 => ('Venceu ontem', true),
+      0 => ('Vence hoje', true),
+      1 => ('Vence amanhã', false),
+      _ => ('Vence em $days dias · ${parsed.day}/${parsed.month}', false),
+    };
+  }
+
   /// Marca avisos como lidos no SIGA: os [ids], ou todos quando null.
   Future<void> markRead(List<String>? ids) async {
     try {
@@ -71,6 +167,8 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   }
 
   void reload() {
+    older.clear();
+    cursor = null;
     data = widget.gateway.read(widget.collection);
   }
 
@@ -278,9 +376,16 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
   List<Widget> content(Map<String, dynamic> result) {
     switch (widget.collection) {
       case 'notifications':
-        final items = rows(result, 'items');
+        final first = rows(result, 'items');
+        final next =
+            cursor ??
+            (result['next'] is Map<String, dynamic>
+                ? result['next'] as Map<String, dynamic>
+                : null);
+        final items = [...first, ...older];
         bool unread(Map<String, dynamic> r) =>
             r['read'] == false && !readNow.contains(r['id']);
+        const groups = ['Hoje', 'Esta semana', 'Anteriores'];
         return [
           if (items.any(unread))
             Align(
@@ -290,69 +395,150 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
                 child: const Text('Marcar todas como lidas'),
               ),
             ),
-          for (final r in items)
-            record(
-              icon: unread(r)
-                  ? FluentIcons.alert_badge_24_regular
-                  : FluentIcons.alert_24_regular,
-              title: text(r['title']),
-              lines: [text(r['body'])],
-              status: unread(r) ? 'Novo' : null,
-              highlight: unread(r),
-              onTap: unread(r) && r['id'] is String
-                  ? () => markRead([r['id'] as String])
-                  : null,
+          for (var g = 0; g < groups.length; g++)
+            if (items.where((r) => age(r['createdAt']) == g).toList()
+                case final list when list.isNotEmpty) ...[
+              SectionHeader(groups[g]),
+              for (final r in list)
+                record(
+                  icon: unread(r)
+                      ? FluentIcons.alert_badge_24_regular
+                      : FluentIcons.alert_24_regular,
+                  title: text(r['title']),
+                  lines: [
+                    text(r['body']),
+                    if (when(r['createdAt']).isNotEmpty) when(r['createdAt']),
+                  ],
+                  status: unread(r) ? 'Novo' : null,
+                  highlight: unread(r),
+                  onTap: unread(r) && r['id'] is String
+                      ? () => markRead([r['id'] as String])
+                      : null,
+                ),
+            ],
+          if (next != null && next.isNotEmpty)
+            Center(
+              child: TextButton(
+                onPressed: loadingMore ? null : () => loadOlder(next),
+                child: Text(
+                  loadingMore ? 'A carregar…' : 'Ver avisos anteriores',
+                ),
+              ),
             ),
         ];
       case 'documents':
+        final requests = rows(result, 'requests');
+        const done = {'fulfilled', 'rejected', 'cancelled'};
+        final available = [
+          for (final d in (result['available'] as List? ?? []))
+            if (d is Map && d['name'] is String) d['name'] as String,
+        ];
+        String day(dynamic iso) {
+          final d = iso is String ? DateTime.tryParse(iso) : null;
+          return d == null ? '' : '${d.day}/${d.month}/${d.year}';
+        }
+
+        Widget card(Map<String, dynamic> r) => record(
+          icon: FluentIcons.document_text_24_regular,
+          title: text(r['document']),
+          lines: [
+            if (r['details'] is String && (r['details'] as String).isNotEmpty)
+              r['details'] as String,
+            [
+              if (day(r['requestedAt']).isNotEmpty)
+                'Pedido a ${day(r['requestedAt'])}',
+              if (day(r['updatedAt']).isNotEmpty &&
+                  r['updatedAt'] != r['requestedAt'])
+                'actualizado a ${day(r['updatedAt'])}',
+            ].join(' · '),
+          ].where((l) => l.isNotEmpty).toList(),
+          status: label(documentStatusLabels, r['status']),
+          highlight: r['status'] == 'approved',
+        );
+        final active = requests.where((r) => !done.contains(r['status']));
+        final closed = requests.where((r) => done.contains(r['status']));
         return [
-          for (final r in rows(result, 'requests'))
-            record(
-              icon: FluentIcons.document_text_24_regular,
-              title: text(r['document']),
-              status: label(documentStatusLabels, r['status']),
-              highlight: r['status'] == 'approved',
+          if (active.isNotEmpty) ...[
+            const SectionHeader('Em curso'),
+            for (final r in active) card(r),
+          ],
+          if (closed.isNotEmpty) ...[
+            const SectionHeader('Concluídos'),
+            for (final r in closed) card(r),
+          ],
+          if (available.isNotEmpty) ...[
+            const SectionHeader('Pode pedir no portal'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final name in available)
+                  Chip(
+                    label: Text(name),
+                    side: BorderSide.none,
+                    backgroundColor: SigaPalette.of(context).surface2,
+                  ),
+              ],
             ),
+          ],
         ];
       case 'results':
         return [for (final r in rows(result, 'sheets')) resultCard(r)];
       case 'finance':
-        return [
-          for (final r in rows(result, 'invoices'))
-            record(
-              icon: FluentIcons.wallet_24_regular,
-              title: text(r['label']),
-              lines: [
-                'Factura ${text(r['number'])} · vence ${text(r['due'])}',
-                'Valor base: ${money(r['amountCents'])}',
-              ],
-              status: label(invoiceStatusLabels, r['status']),
-              highlight:
-                  r['status'] == 'open' || r['status'] == 'partially_paid',
-              footer: [
-                for (final receipt in rows(r, 'receipts'))
-                  Padding(
-                    padding: const EdgeInsets.only(top: Siga.s1, left: 56),
-                    child: Row(
-                      children: [
-                        const Icon(FluentIcons.receipt_24_regular, size: 18),
-                        const SizedBox(width: Siga.s1),
-                        Expanded(
-                          child: Text(
-                            'Recibo ${text(receipt['number'])} · '
-                            '${money(receipt['amountCents'])}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                        Text(
-                          label(receiptStatusLabels, receipt['status']),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+        final invoices = rows(result, 'invoices');
+        Widget invoice(Map<String, dynamic> r) => record(
+          icon: FluentIcons.wallet_24_regular,
+          title: text(r['label']),
+          lines: [
+            'Factura ${text(r['number'])} · '
+                '${{'paid', 'cancelled'}.contains(r['status']) ? 'vencia a ${shortDate(r['due'])}' : dueIn(r['due']).$1}',
+            'Valor base: ${money(r['amountCents'])}',
+          ],
+          status: label(invoiceStatusLabels, r['status']),
+          highlight: r['status'] == 'open' || r['status'] == 'partially_paid',
+          footer: [
+            for (final receipt in rows(r, 'receipts'))
+              Padding(
+                padding: const EdgeInsets.only(top: Siga.s1, left: 56),
+                child: Row(
+                  children: [
+                    const Icon(FluentIcons.receipt_24_regular, size: 18),
+                    const SizedBox(width: Siga.s1),
+                    Expanded(
+                      child: Text(
+                        'Recibo ${text(receipt['number'])} · '
+                        '${money(receipt['amountCents'])}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                    Text(
+                      label(receiptStatusLabels, receipt['status']),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+        const unpaid = {'open', 'partially_paid'};
+        final open = invoices.where((r) => unpaid.contains(r['status']));
+        final paid = invoices.where((r) => r['status'] == 'paid');
+        final other = invoices.where(
+          (r) => !unpaid.contains(r['status']) && r['status'] != 'paid',
+        );
+        return [
+          if (open.isNotEmpty) ...[
+            SectionHeader('Por pagar (${open.length})'),
+            for (final r in open) invoice(r),
+          ],
+          if (paid.isNotEmpty) ...[
+            SectionHeader('Pagas (${paid.length})'),
+            for (final r in paid) invoice(r),
+          ],
+          if (other.isNotEmpty) ...[
+            const SectionHeader('Anuladas'),
+            for (final r in other) invoice(r),
+          ],
         ];
       default:
         throw const FormatException('Serviço não suportado.');

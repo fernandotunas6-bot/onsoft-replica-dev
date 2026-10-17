@@ -32,6 +32,88 @@ Widget app(Widget child) => MaterialApp(
 const context = {'schoolId': 'school-a', 'role': 'aluno', 'userId': 'aluno-1'};
 
 void main() {
+  testWidgets('avisos: páginas anteriores pelo cursor do servidor', (
+    tester,
+  ) async {
+    final requests = <Uri>[];
+    await tester.pumpWidget(
+      app(
+        InstitutionalPage(
+          collection: 'notifications',
+          gateway: gateway((request) async {
+            requests.add(request.url);
+            final older = request.url.queryParameters.containsKey('before');
+            return json({
+              ...context,
+              'unread': 0,
+              'items': [
+                {
+                  'id': older ? 'n2' : 'n1',
+                  'title': older ? 'Aviso antigo' : 'Aviso recente',
+                  'body': 'Texto',
+                  'read': true,
+                  'createdAt': older
+                      ? '2026-01-10T10:00:00Z'
+                      : DateTime.now().toUtc().toIso8601String(),
+                },
+              ],
+              'next': older
+                  ? null
+                  : {'date': '2026-01-11T00:00:00.000000Z', 'id': 'n1'},
+            });
+          }),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Hoje'), findsOneWidget);
+    expect(find.text('Aviso antigo'), findsNothing);
+    await tester.tap(find.text('Ver avisos anteriores'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aviso antigo'), findsOneWidget);
+    expect(find.text('Anteriores'), findsOneWidget);
+    expect(find.text('Ver avisos anteriores'), findsNothing);
+    expect(requests.last.queryParameters['beforeId'], 'n1');
+  });
+
+  testWidgets('propinas: por pagar primeiro, depois pagas', (tester) async {
+    await tester.pumpWidget(
+      app(
+        InstitutionalPage(
+          collection: 'finance',
+          gateway: gateway(
+            (_) async => json({
+              ...context,
+              'invoices': [
+                {
+                  'label': 'Setembro',
+                  'number': 'F-1',
+                  'status': 'paid',
+                  'amountCents': 100,
+                  'due': '2026-09-10',
+                  'receipts': [],
+                },
+                {
+                  'label': 'Outubro',
+                  'number': 'F-2',
+                  'status': 'open',
+                  'amountCents': 100,
+                  'due': '2020-01-01',
+                  'receipts': [],
+                },
+              ],
+            }),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final unpaid = tester.getTopLeft(find.text('Por pagar (1)'));
+    final paid = tester.getTopLeft(find.text('Pagas (1)'));
+    expect(unpaid.dy, lessThan(paid.dy));
+    expect(find.textContaining('Venceu há'), findsOneWidget);
+  });
+
   testWidgets('notas publicadas: média, parciais e resultado em português', (
     tester,
   ) async {

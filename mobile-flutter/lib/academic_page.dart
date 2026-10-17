@@ -333,8 +333,46 @@ class _DataPageState extends State<DataPage> {
   }
 
   /// Aula no horário (ecrã 9): barra na cor da disciplina, nome, hora e sala.
-  Widget slotRow(Map<String, dynamic> slot, AcademicCatalog catalog) {
+  /// Aula do horário. Tocar abre a disciplina. Num dia de hoje, a aula a
+  /// decorrer leva «Agora» e as que já acabaram ficam esbatidas.
+  Widget slotRow(
+    Map<String, dynamic> slot,
+    AcademicCatalog catalog, {
+    DateTime? day,
+  }) {
     final legacy = slot['publication'] == 'legacy';
+    final now = luandaClock(DateTime.now());
+    final isToday =
+        day != null &&
+        day.year == now.year &&
+        day.month == now.month &&
+        day.day == now.day;
+    final minute = now.hour * 60 + now.minute;
+    final starts = minutes(slot['startsAt']) ?? 0;
+    final ends = minutes(slot['endsAt']) ?? 0;
+    final running = isToday && starts <= minute && minute < ends;
+    final over = isToday && minute >= ends;
+    final subject = catalog.classes.where(
+      (c) => c['classSubjectId'] == slot['classSubjectId'],
+    );
+    return Opacity(
+      opacity: over ? .5 : 1,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Siga.rSmall),
+        onTap: subject.isEmpty
+            ? null
+            : () => subjectDetail(subject.first, catalog),
+        child: slotBody(slot, catalog, legacy: legacy, running: running),
+      ),
+    );
+  }
+
+  Widget slotBody(
+    Map<String, dynamic> slot,
+    AcademicCatalog catalog, {
+    required bool legacy,
+    required bool running,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: IntrinsicHeight(
@@ -375,6 +413,11 @@ class _DataPageState extends State<DataPage> {
                 ],
               ),
             ),
+            if (running)
+              const Align(
+                alignment: Alignment.center,
+                child: StatusTag('Agora', accent: true),
+              ),
           ],
         ),
       ),
@@ -652,6 +695,14 @@ class _DataPageState extends State<DataPage> {
         .forDay(selected)
         .where((s) => matches(catalog.subject(s['classSubjectId'])))
         .toList();
+    // Entregas com prazo em cada dia (relógio de Luanda).
+    List<Map<String, dynamic>> dueOn(DateTime day) => [
+      for (final t in catalog.tasks)
+        if (t['due'] is String &&
+            same(luandaClock(DateTime.parse(t['due'] as String)), day))
+          t,
+    ];
+    final dueToday = dueOn(selected);
     return [
       titleRow('Calendário'),
       searchField('Pesquisar disciplina…'),
@@ -722,6 +773,18 @@ class _DataPageState extends State<DataPage> {
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            // Ponto: há entregas neste dia.
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: dueOn(day).isEmpty
+                                    ? Colors.transparent
+                                    : const Color(0xffe8890c),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -753,7 +816,11 @@ class _DataPageState extends State<DataPage> {
           ),
         ),
         if (slots.isEmpty) const EmptyState(message: 'Sem aulas neste dia.'),
-        for (final slot in slots) slotRow(slot, catalog),
+        for (final slot in slots) slotRow(slot, catalog, day: selected),
+        if (dueToday.isNotEmpty) ...[
+          SectionHeader('Entregas neste dia (${dueToday.length})'),
+          for (final task in dueToday) taskRow(task, catalog),
+        ],
       ] else ...[
         for (var d = 0; d < 5; d++) ...[
           SectionHeader(weekdays[d]),
@@ -770,14 +837,14 @@ class _DataPageState extends State<DataPage> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ]
-                : [for (final slot in list) slotRow(slot, catalog)];
+                : [for (final slot in list) slotRow(slot, catalog, day: day)];
           }(),
         ],
       ],
       const SizedBox(height: Siga.s2),
       Text(
-        'Horário previsto. Presenças e cancelamentos aparecem depois de '
-        'integrados os respectivos registos.',
+        'Horário publicado pela escola. Toque numa aula para abrir a '
+        'disciplina; o ponto laranja marca dias com entregas.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ];
@@ -1046,7 +1113,7 @@ class _DataPageState extends State<DataPage> {
       _ => sheet('Aulas de hoje', [
         if (todaySlots.isEmpty)
           const EmptyState(message: 'Sem aulas publicadas para hoje.'),
-        for (final slot in todaySlots) slotRow(slot, catalog),
+        for (final slot in todaySlots) slotRow(slot, catalog, day: today),
       ]),
     };
     return [
@@ -1138,7 +1205,7 @@ class _DataPageState extends State<DataPage> {
         () => sheet('Horário de hoje', [
           if (todaySlots.isEmpty)
             const EmptyState(message: 'Sem aulas publicadas para hoje.'),
-          for (final slot in todaySlots) slotRow(slot, catalog),
+          for (final slot in todaySlots) slotRow(slot, catalog, day: today),
         ]),
       ),
       row(

@@ -224,12 +224,20 @@ Map<String, dynamic> _response(Uri url) {
           'title': 'Reunião de encarregados',
           'body': 'Sexta-feira, às 15h, no salão da escola.',
           'read': _readNotices.contains('av-1'),
+          'createdAt': DateTime.now()
+              .subtract(const Duration(hours: 2))
+              .toUtc()
+              .toIso8601String(),
         },
         {
           'id': 'av-2',
           'title': 'Calendário de provas',
           'body': 'As provas do I trimestre começam na próxima semana.',
           'read': true,
+          'createdAt': DateTime.now()
+              .subtract(const Duration(days: 9))
+              .toUtc()
+              .toIso8601String(),
         },
       ];
       return {
@@ -379,9 +387,29 @@ Map<String, dynamic> _response(Uri url) {
       return {
         ..._context(school, role),
         'requests': [
-          {'document': 'Declaração de matrícula', 'status': 'approved'},
-          {'document': 'Certificado de habilitações', 'status': 'in_review'},
-          {'document': 'Histórico escolar', 'status': 'fulfilled'},
+          {
+            'document': 'Declaração de matrícula',
+            'status': 'approved',
+            'details': 'Para efeitos de bolsa de estudo.',
+            'requestedAt': '2026-10-06T09:00:00Z',
+            'updatedAt': '2026-10-09T14:00:00Z',
+          },
+          {
+            'document': 'Certificado de habilitações',
+            'status': 'in_review',
+            'requestedAt': '2026-10-12T09:00:00Z',
+            'updatedAt': '2026-10-12T09:00:00Z',
+          },
+          {
+            'document': 'Histórico escolar',
+            'status': 'fulfilled',
+            'requestedAt': '2026-09-02T09:00:00Z',
+            'updatedAt': '2026-09-10T11:00:00Z',
+          },
+        ],
+        'available': [
+          {'name': 'Declaração de frequência', 'kind': 'declaration'},
+          {'name': 'Certificado de habilitações', 'kind': 'certificate'},
         ],
       };
     case 'results':
