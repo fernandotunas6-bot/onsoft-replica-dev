@@ -91,7 +91,7 @@ class ServicesPage extends StatelessWidget {
           FluentIcons.hat_graduation_24_regular,
           FluentIcons.hat_graduation_24_filled,
         ),
-        student ? '/more/results' : '/more/student-only',
+        student ? '/more/results' : '/more/gradebooks',
       ),
     ];
     return ListView(

@@ -17,6 +17,8 @@ import 'pages/appearance_page.dart';
 import 'pages/login_page.dart';
 import 'pages/pending_page.dart';
 import 'pages/absences_page.dart';
+import 'pages/gradebooks_page.dart';
+import 'pages/lesson_plans_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/schools_page.dart';
 import 'pages/services_page.dart';
@@ -328,6 +330,20 @@ class _SigaAppState extends State<SigaApp> {
     GoRoute(
       path: 'transport',
       builder: (_, _) => subPage('Transporte escolar', const TransportPage()),
+    ),
+    GoRoute(
+      path: 'gradebooks',
+      builder: (_, _) => subPage(
+        'Notas e pautas',
+        GradebooksPage(key: ValueKey('$school:$role'), gateway: gateway),
+      ),
+    ),
+    GoRoute(
+      path: 'lesson-plans',
+      builder: (_, _) => subPage(
+        'Planos de aula',
+        LessonPlansPage(key: ValueKey('$school:$role'), gateway: gateway),
+      ),
     ),
     GoRoute(
       path: 'absences',

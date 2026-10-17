@@ -19,11 +19,11 @@ Map<String, dynamic> _context(String school, String role) => {
 };
 
 const _students = [
-  {'studentId': 'al-1', 'name': 'Ana Souza'},
-  {'studentId': 'al-2', 'name': 'Bruno Kiala'},
-  {'studentId': 'al-3', 'name': 'Carla Mateus'},
-  {'studentId': 'al-4', 'name': 'Daniel Neto'},
-  {'studentId': 'al-5', 'name': 'Esperança Lopes'},
+  {'studentId': 'al-1', 'enrollmentId': 'mat-1', 'name': 'Ana Souza'},
+  {'studentId': 'al-2', 'enrollmentId': 'mat-2', 'name': 'Bruno Kiala'},
+  {'studentId': 'al-3', 'enrollmentId': 'mat-3', 'name': 'Carla Mateus'},
+  {'studentId': 'al-4', 'enrollmentId': 'mat-4', 'name': 'Daniel Neto'},
+  {'studentId': 'al-5', 'enrollmentId': 'mat-5', 'name': 'Esperança Lopes'},
 ];
 
 Map<String, dynamic> _academic(String school, String role) => {
@@ -236,6 +236,97 @@ Map<String, dynamic> _response(Uri url) {
         ..._context(school, role),
         'unread': items.where((i) => i['read'] == false).length,
         'items': items,
+      };
+    case 'gradebooks':
+      List<Map<String, dynamic>> scores(List<num?> values, String status) => [
+        for (var i = 0; i < values.length; i++)
+          {
+            'enrollmentId': 'mat-${i + 1}',
+            'value': values[i],
+            'status': status,
+          },
+      ];
+      return {
+        ..._context(school, role),
+        'books': [
+          {
+            'id': 'pauta-mat-1',
+            'classSubjectId': 'mat',
+            'term': {'id': 't1', 'name': 'I Trimestre', 'sequence': 1},
+            'status': 'open',
+            'items': [
+              {
+                'id': 'mac1',
+                'code': 'MAC 1',
+                'name': 'Avaliação contínua 1',
+                'kind': 'continuous',
+                'maxScore': 20,
+                'sequence': 1,
+                'assessedOn': '2026-09-26',
+                'scores': scores([15, 12.5, 9, 17, 13], 'submitted'),
+              },
+              {
+                'id': 'pp1',
+                'code': 'PP',
+                'name': 'Prova do professor',
+                'kind': 'exam',
+                'maxScore': 20,
+                'sequence': 2,
+                'assessedOn': '2026-10-10',
+                'scores': scores([14, null, 8.5, 16, null], 'draft'),
+              },
+            ],
+          },
+          {
+            'id': 'pauta-lp-1',
+            'classSubjectId': 'lp',
+            'term': {'id': 't1', 'name': 'I Trimestre', 'sequence': 1},
+            'status': 'draft',
+            'items': [],
+          },
+        ],
+      };
+    case 'lesson-plans':
+      return {
+        ..._context(school, role),
+        'plans': [
+          {
+            'id': 'plano-1',
+            'classSubjectId': 'mat',
+            'term': 1,
+            'title': 'Equações do 2.º grau',
+            'content':
+                'Objectivos: resolver equações completas e incompletas e '
+                'interpretar o discriminante.\n\nMateriais: ficha de '
+                'exercícios, quadro e calculadora.',
+            'fileName': 'ficha-equacoes.pdf',
+            'status': 'published',
+            'updatedAt': '2026-10-05T10:00:00Z',
+            'components': [
+              {
+                'kind': 'avaliacao',
+                'name': 'Avaliação contínua',
+                'plannedCount': 2,
+              },
+              {
+                'kind': 'prova',
+                'name': 'Prova do professor',
+                'plannedCount': 1,
+              },
+            ],
+          },
+          {
+            'id': 'plano-2',
+            'classSubjectId': 'lp',
+            'term': 1,
+            'title': 'Texto narrativo',
+            'content': null,
+            'fileName': null,
+            'status': 'draft',
+            'updatedAt': '2026-10-08T10:00:00Z',
+            'components': [],
+          },
+        ],
       };
     case 'chat-capabilities':
       return {'writes': true};

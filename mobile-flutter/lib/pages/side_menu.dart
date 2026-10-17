@@ -45,8 +45,14 @@ class SideMenu extends StatelessWidget {
       (
         'Notas',
         i(FluentIcons.info_24_regular, FluentIcons.info_24_filled),
-        student ? '/more/results' : '/more/student-only',
+        student ? '/more/results' : '/more/gradebooks',
       ),
+      if (!student)
+        (
+          'Planos de aula',
+          i(FluentIcons.notebook_24_regular, FluentIcons.notebook_24_filled),
+          '/more/lesson-plans',
+        ),
       (
         'Faltas',
         i(FluentIcons.clock_24_regular, FluentIcons.clock_24_filled),
