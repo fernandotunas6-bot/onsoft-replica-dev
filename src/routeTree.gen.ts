@@ -70,6 +70,7 @@ import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
 import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/attendance'
+import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
 import { Route as ApiMobileGradesRouteImport } from './routes/api/mobile/grades'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
@@ -436,6 +437,11 @@ const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
 const ApiMobileAttendanceRoute = ApiMobileAttendanceRouteImport.update({
   id: '/api/mobile/attendance',
   path: '/api/mobile/attendance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileChatRoute = ApiMobileChatRouteImport.update({
+  id: '/api/mobile/chat',
+  path: '/api/mobile/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMobileGradesRoute = ApiMobileGradesRouteImport.update({
@@ -811,6 +817,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
@@ -932,6 +939,7 @@ export interface FileRoutesByTo {
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
@@ -1054,6 +1062,7 @@ export interface FileRoutesById {
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
@@ -1177,6 +1186,7 @@ export interface FileRouteTypes {
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
     | '/api/mobile/attendance'
+    | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
@@ -1298,6 +1308,7 @@ export interface FileRouteTypes {
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
     | '/api/mobile/attendance'
+    | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
@@ -1419,6 +1430,7 @@ export interface FileRouteTypes {
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
     | '/api/mobile/attendance'
+    | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
@@ -1528,6 +1540,7 @@ export interface RootRouteChildren {
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
   ApiMobileAttendanceRoute: typeof ApiMobileAttendanceRoute
+  ApiMobileChatRoute: typeof ApiMobileChatRoute
   ApiMobileGradesRoute: typeof ApiMobileGradesRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
@@ -1992,6 +2005,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/attendance'
       fullPath: '/api/mobile/attendance'
       preLoaderRoute: typeof ApiMobileAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/chat': {
+      id: '/api/mobile/chat'
+      path: '/api/mobile/chat'
+      fullPath: '/api/mobile/chat'
+      preLoaderRoute: typeof ApiMobileChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/grades': {
@@ -2657,6 +2677,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
   ApiMobileAttendanceRoute: ApiMobileAttendanceRoute,
+  ApiMobileChatRoute: ApiMobileChatRoute,
   ApiMobileGradesRoute: ApiMobileGradesRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
