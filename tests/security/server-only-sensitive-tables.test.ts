@@ -47,6 +47,8 @@ const MIGRATIONS = {
     "web_faqs",
     "web_school_showcase",
   ],
+  // Registo das acções do ADMIN: nem os administradores da plataforma o alteram.
+  "supabase/migrations/20261017100000_saas_audit_logs_server_only.sql": ["saas_audit_logs"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

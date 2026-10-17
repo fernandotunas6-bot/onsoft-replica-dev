@@ -103,6 +103,18 @@ export const nextSgaStatus: Record<string, string | null> = {
   cancelled: null,
 };
 
+/**
+ * Mudanças permitidas a partir de cada estado (vocabulário da base): o passo seguinte,
+ * ou recusar/cancelar enquanto o pedido está aberto. Antes, qualquer estado ia para
+ * qualquer outro — um pedido cancelado voltava a «aprovado» (e a declaração saía), um
+ * entregue voltava a «em análise», e dois cliques em «Avançar» saltavam um passo.
+ */
+export function canChangeDocumentRequestStatus(from: string, to: string): boolean {
+  const next = nextSgaStatus[from];
+  if (next == null) return false;
+  return to === next || to === "rejected" || to === "cancelled";
+}
+
 export const listDocumentWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listDocumentsInputSchema.parse(input))
@@ -248,6 +260,9 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
             student_name: student?.full_name ?? "Aluno",
             registration_number: student?.registration_number ?? "Sem processo",
             class_name: classNameByStudentId.get(request.student_id) ?? null,
+            // Matrícula activa: as declarações desta página dizem «é aluno(a) desta
+            // instituição no ano lectivo…».
+            enrolled: classNameByStudentId.has(request.student_id),
             request_number: request.purpose || request.id.slice(0, 8),
             status: statusToUi[request.status] ?? "queued",
             // Em vocabulário da interface, como o resto do que sai daqui.
@@ -338,6 +353,12 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       throw new Error(`Estado de pedido desconhecido: ${data.status}.`);
     }
 
+    if (!canChangeDocumentRequestStatus(existing.status, estadoSga)) {
+      throw new Error(
+        `O pedido está «${statusToUi[existing.status] ?? existing.status}» e não pode passar a «${data.status}». Actualize a lista.`,
+      );
+    }
+
     const agora = new Date().toISOString();
     const { data: updated, error } = await db
       .from("document_requests")
@@ -351,9 +372,12 @@ export const updateDocumentRequestStatus = createServerFn({ method: "POST" })
       })
       .eq("id", data.requestId)
       .eq("school_id", membership.schoolId)
+      // Só se ninguém o mudou entretanto (dois cliques, duas pessoas).
+      .eq("status", existing.status)
       .select("id, status")
-      .single();
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado do pedido.");
+    if (!updated) throw new Error("O pedido mudou entretanto. Actualize a lista.");
     return updated;
   });
 

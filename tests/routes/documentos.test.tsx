@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
 import {
   realtimeBindingsFor,
@@ -35,13 +35,14 @@ vi.mock("@/integrations/supabase/client", async () =>
 );
 
 const listDocumentWorkspaceMock = vi.fn();
+const updateStatusMock = vi.fn();
 const listPrintTemplatesMock = vi.fn();
 
 vi.mock("@/features/documents/server", () => ({
   listDocumentWorkspace: () => listDocumentWorkspaceMock(),
   listPrintTemplates: () => listPrintTemplatesMock(),
   createDocumentRequest: vi.fn(),
-  updateDocumentRequestStatus: vi.fn(),
+  updateDocumentRequestStatus: (input: unknown) => updateStatusMock(input),
 }));
 
 vi.mock("@/features/auth/use-school-settings", () => ({
@@ -84,6 +85,7 @@ const sampleWorkspace: DocumentWorkspace = {
       student_name: "Teresa Garcia",
       registration_number: "2025-0088",
       class_name: "11ª B",
+      enrolled: true,
       request_number: "PED-001",
       requested_at: "2026-03-02T10:00:00Z",
       assigned_to: null,
@@ -148,6 +150,28 @@ describe("/documentos — render", () => {
       expect(screen.getByText("2025-0088")).toBeDefined();
       expect(screen.getByText("Emitido")).toBeDefined();
     });
+  });
+
+  it("sem matrícula activa, a declaração não é emitida (nem o pedido aprovado)", async () => {
+    seed({
+      workspace: {
+        ...sampleWorkspace,
+        requests: [
+          {
+            ...sampleWorkspace.requests[0]!,
+            class_name: null,
+            enrolled: false,
+            status: "processing",
+            next_status: "ready",
+          },
+        ],
+      },
+    });
+    renderRoute(DocumentosRouteComponent);
+    const [emitir] = await screen.findAllByRole("button", { name: "Emitir" });
+    fireEvent.click(emitir!);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(updateStatusMock).not.toHaveBeenCalled();
   });
 
   it("apresenta o estado vazio com chamada para a secretaria quando não há pedidos", async () => {

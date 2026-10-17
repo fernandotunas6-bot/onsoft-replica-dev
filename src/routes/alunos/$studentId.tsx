@@ -97,6 +97,7 @@ import {
   overlayServico,
 } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { latestCertifiableYear } from "@/features/documents/certificate-year";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
 import {
@@ -759,27 +760,27 @@ function StudentDetail() {
   };
 
   const downloadCertificado = async () => {
-    // Certificado deriva do Histórico, mas certifica apenas o ano lectivo mais recente concluído
-    // (o Histórico completo mostra a trajectória multi-ano; ver historicoPeriods()).
-    // Só certifica o que está no histórico oficial: o ano mais recente com
-    // resultado registado. Sem registo, não há certificado.
-    const periods = historicoPeriods()
-      .filter((period) => period.official)
-      .slice(-1);
-    if (!periods.length) {
+    // Certifica o último ano concluído com aprovação registada no histórico oficial
+    // (Pedagógica → Exames → Resultado final), com a turma e a classe desse ano.
+    const year = latestCertifiableYear(historyQuery.data?.years ?? []);
+    if (!year) {
       throw new Error(
-        "O certificado só se emite com o resultado do ano registado no histórico (Pedagógica → Exames → Resultado final).",
+        "O certificado só se emite para um ano com aprovação registada no histórico (Pedagógica → Exames → Resultado final).",
       );
     }
-    const academicYear = periods[0].periodName || studentPrintSchool.academicYear || "";
+    const periods = historicoPeriods().filter(
+      (period) => period.official && period.periodName === year.academicYearName,
+    );
+    const academicYear = year.academicYearName;
+    const valid = (value: string) => (value && value !== "—" ? value : null);
     await issuePrintDocument({
       tipo: "Certificado de habilitações",
-      school: studentPrintSchool,
+      school: { ...studentPrintSchool, academicYear },
       student: {
         fullName: student.full_name,
         academicNumber: student.registration_number,
-        className: student.class_name,
-        programName: student.grade_name ?? student.course_name,
+        className: valid(year.classGroupName),
+        programName: valid(year.gradeName) ?? valid(year.courseName),
         validationCode: documentValidationCode([
           student.id,
           student.registration_number,
@@ -787,7 +788,7 @@ function StudentDetail() {
           academicYear,
         ]),
       },
-      overlay: overlayHistorico({ periods }),
+      overlay: overlayHistorico({ periods: periods.slice(-1) }),
     });
   };
 

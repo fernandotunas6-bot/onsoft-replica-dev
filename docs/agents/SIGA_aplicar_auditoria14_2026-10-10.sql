@@ -12,6 +12,8 @@
 --       (fica com a data de início do ano).
 -- + 1 índice (2026-10-13): a verificação pública de documentos (/verificar) deixa de
 --   percorrer a tabela de auditoria inteira a cada código.
+-- + 2026-10-17: o registo de auditoria do ADMIN (saas_audit_logs) fica só com o
+--   servidor: os administradores da plataforma deixam de o poder alterar ou apagar.
 -- Nenhuma mexe em dados. Ensaiadas em PGlite (tests/sql/timetable-room-placeholders.mjs,
 -- tests/sql/merge-people.mjs e tests/sql/early-enrollment.mjs): cada uma corre duas vezes.
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
@@ -710,6 +712,27 @@ CREATE INDEX IF NOT EXISTS audit_logs_issued_document_code_idx
   WHERE action = 'documents.issued';
 
 
+-- ══════════ 20261017100000_saas_audit_logs_server_only.sql ══════════
+-- Registo de auditoria do ADMIN (saas_audit_logs) só com o servidor.
+--
+-- Leitura de 2026-10-17: `authenticated` tinha todos os privilégios (incluindo UPDATE,
+-- DELETE e TRUNCATE) e a política `platform_admin_all_saas_audit_logs` (FOR ALL,
+-- `is_platform_admin()`) deixava qualquer um dos 4 administradores da plataforma
+-- alterar ou apagar, pela API, o registo que guarda as suas próprias acções
+-- (pagamentos confirmados, escolas suspensas, administradores criados). E ler sem 2FA.
+--
+-- Todo o código que lê ou escreve esta tabela é do servidor, com a chave de serviço
+-- (platform-ops.ts, tenant-billing.ts, subscription-server.ts, auth/*-server.ts…); o
+-- painel ADMIN lê pela API /api/saas/*. Fica o padrão das tabelas sensíveis
+-- (docs/agents/DATABASE_RULES.md, regra 5). Não mexe em dados. Idempotente.
+
+ALTER TABLE public.saas_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saas_audit_logs FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS platform_admin_all_saas_audit_logs ON public.saas_audit_logs;
+REVOKE ALL ON public.saas_audit_logs FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.saas_audit_logs TO service_role;
+
+
 -- ══════════ Confirmar ══════════
 SELECT
   CASE
@@ -747,4 +770,17 @@ SELECT
     WHEN to_regclass('public.audit_logs_issued_document_code_idx') IS NOT NULL
       THEN 'aplicada'
     ELSE 'por aplicar'
-  END AS "20261013100000 índice da verificação";
+  END AS "20261013100000 índice da verificação",
+  CASE
+    WHEN (SELECT relforcerowsecurity FROM pg_class
+          WHERE oid = to_regclass('public.saas_audit_logs'))
+     AND NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+                     AND tablename = 'saas_audit_logs'
+                     AND policyname = 'platform_admin_all_saas_audit_logs')
+     AND NOT EXISTS (SELECT 1 FROM pg_class c, aclexplode(c.relacl) a
+                     WHERE c.oid = to_regclass('public.saas_audit_logs')
+                       AND (a.grantee = 0 OR a.grantee IN (SELECT oid FROM pg_roles
+                            WHERE rolname IN ('anon', 'authenticated'))))
+      THEN 'aplicada'
+    ELSE 'por aplicar'
+  END AS "20261017100000 auditoria do ADMIN";

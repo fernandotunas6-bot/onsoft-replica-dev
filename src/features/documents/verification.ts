@@ -22,7 +22,12 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
-import { isPrintTemplateKey, type PrintTemplateKey } from "./print-catalog";
+import {
+  isPrintTemplateKey,
+  matchPrintTemplateKey,
+  PRINT_TEMPLATE_META,
+  type PrintTemplateKey,
+} from "./print-catalog";
 
 export const ISSUED_DOCUMENT_ACTION = "documents.issued";
 const ISSUER_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
@@ -100,6 +105,26 @@ export function maskHolderName(name: string | null | undefined): string {
   return parts.length ? parts.map((part) => `${part[0]!.toUpperCase()}.`).join(" ") : "—";
 }
 
+/**
+ * Título que a verificação pública mostra. O título vem do browser, e o código diz
+ * «autêntico» sobre ele: um professor (que só emite pautas e boletins) mandava
+ * «Certificado de habilitações» com o modelo de pauta, e `/verificar` confirmava um
+ * certificado. O título só fica se corresponder ao modelo (como na escolha do
+ * modelo, `matchPrintTemplateKey`); senão fica o nome do modelo. O documento de
+ * serviço é genérico (recibos, listas, relatórios): leva sempre o nome do modelo à
+ * frente, para não passar por outro documento.
+ */
+export function verifiedDocumentTitle(templateKey: PrintTemplateKey, title: string): string {
+  const modelTitle = PRINT_TEMPLATE_META[templateKey].title;
+  const given = title.trim();
+  if (templateKey === "service-document") {
+    return given && given.toLowerCase() !== modelTitle.toLowerCase()
+      ? `${modelTitle} — ${given}`
+      : modelTitle;
+  }
+  return given && matchPrintTemplateKey(given) === templateKey ? given : modelTitle;
+}
+
 const registerInputSchema = z.object({
   title: z.string().trim().min(2).max(160),
   holderName: z.string().trim().max(160).optional(),
@@ -154,7 +179,9 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
       entity_id: crypto.randomUUID(),
       metadata: {
         code,
-        title: data.title,
+        title: verifiedDocumentTitle(templateKey, data.title),
+        // O que o browser pediu, só para a auditoria (não aparece na verificação).
+        requested_title: data.title,
         holder: data.holderName ?? null,
         template: templateKey,
         issuer_role: issuerRole,

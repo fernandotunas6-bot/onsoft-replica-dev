@@ -235,6 +235,20 @@ export async function updateTenantStatus(input: {
   return { success: true };
 }
 
+/**
+ * Prolongar o trial grava `subscription_status = trialing` e põe o fim do período no
+ * fim do trial: numa escola que já paga, apagava o período pago (e a tarefa diária
+ * punha-a em atraso quando o «trial» acabasse). Só se prolonga um trial.
+ */
+export function trialExtensionAllowed(tenant: {
+  status: string;
+  subscription_status: string | null;
+}): boolean {
+  if (tenant.subscription_status === "trialing" || tenant.status === "trial") return true;
+  // Escola antiga sem estado de assinatura: só se ainda não estiver activa.
+  return !tenant.subscription_status && tenant.status !== "active";
+}
+
 export async function updateTenantSubscription(input: {
   tenantId: string;
   plan_code?: "start" | "professional" | "business" | "enterprise";
@@ -247,11 +261,43 @@ export async function updateTenantSubscription(input: {
   const db = await loadSgaAdminClient();
   const { data: tenant, error: tenantErr } = await db
     .from("tenants")
-    .select("id, status, trial_ends_at, plan_id")
+    .select("id, status, subscription_status, trial_ends_at, plan_id")
     .eq("id", input.tenantId)
     .maybeSingle();
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar a escola.");
   if (!tenant) throw new Error("Escola não encontrada.");
+  const paying = input.confirm_payment_months ?? input.confirm_payment_billing;
+  if (
+    input.extend_trial_days &&
+    !paying &&
+    !trialExtensionAllowed({
+      status: String(tenant.status ?? ""),
+      subscription_status: (tenant.subscription_status as string | null) ?? null,
+    })
+  ) {
+    throw new Error(
+      "A escola já tem assinatura paga: o trial não se prolonga (passaria a «em trial» e perdia o fim do período pago).",
+    );
+  }
+  if (paying && input.payment_reference?.trim()) {
+    // O mesmo pagamento registado duas vezes (repetição depois de um erro de rede)
+    // somava dois períodos pagos.
+    const { data: repeated, error: repeatedErr } = await db
+      .from("saas_audit_logs")
+      .select("id")
+      .eq("tenant_id", input.tenantId)
+      .eq("action", "TENANT_SUBSCRIPTION_UPDATED")
+      .eq("metadata->>payment_reference", input.payment_reference.trim())
+      .limit(1);
+    if (repeatedErr) {
+      throw publicDatabaseError(repeatedErr, "Não foi possível confirmar o pagamento.");
+    }
+    if (repeated?.length) {
+      throw new Error(
+        `O pagamento com a referência ${input.payment_reference.trim()} já foi registado.`,
+      );
+    }
+  }
 
   const patch: TablesUpdate<"tenants"> = { updated_at: new Date().toISOString() };
   const metadata: Record<string, unknown> = {};
@@ -312,7 +358,9 @@ export async function updateTenantSubscription(input: {
     metadata.payment_confirmed = true;
     metadata.billing = paidMonths === 12 ? "yearly" : paidMonths === 1 ? "monthly" : undefined;
     metadata.months = paidMonths;
-    if (input.payment_reference) metadata.payment_reference = input.payment_reference;
+    if (input.payment_reference?.trim()) {
+      metadata.payment_reference = input.payment_reference.trim();
+    }
     metadata.paid_until = paidUntil;
   }
 

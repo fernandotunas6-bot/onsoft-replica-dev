@@ -456,3 +456,53 @@ Por decidir (mudam o desenho do PayFlow ou exigem um segredo novo):
   servidor muda os PIN de todos os alunos — decisão do dono.
 - **PF8 (baixo):** um erro a meio da importação de um extracto devolve 500 sem dizer que linhas
   já foram aplicadas.
+
+## 19. Documentos oficiais e pedidos (2026-10-17)
+
+- **D1 (alto) — O título verificado vinha do browser.** `/verificar` confirmava como autêntico
+  o título que o cliente mandava: um professor (que só emite pautas e boletins) registava
+  «Certificado de habilitações» com o modelo de pauta. O título só fica se corresponder ao
+  modelo (a mesma regra de `matchPrintTemplateKey`); senão fica o nome do modelo. O documento
+  de serviço, genérico, leva sempre «Documento de serviço — …» à frente. O pedido original
+  fica em `requested_title`, só para auditoria (`verifiedDocumentTitle`, teste
+  `tests/documents/verified-title.test.ts`).
+- **D2 — Estados dos pedidos sem regras.** Qualquer estado ia para qualquer outro: um pedido
+  cancelado voltava a «aprovado» (e a declaração saía), e dois cliques em «Avançar» saltavam um
+  passo. Agora: um passo de cada vez, recusar/cancelar só com o pedido aberto, fechado não
+  reabre, e a gravação só acontece se o estado não mudou entretanto
+  (`canChangeDocumentRequestStatus`, teste `tests/documents/request-transitions.test.ts`).
+- **D3 — Certificado do ano errado.** Certificava o último ano com resultado registado, mesmo
+  reprovado, com a turma e a classe de hoje. Passa a certificar o último ano com aprovação
+  («Transitou», ou o texto importado «Aprovado», «Concluído com Êxito»), com a turma e a classe
+  desse ano (`certificate-year.ts`, teste `tests/documents/certificate-year.test.ts`).
+- **D4 — A alternativa imprimia o que o servidor recusara.** Se o registo para verificação
+  falhava (sem permissão para o modelo, escola bloqueada, limite), `issuePrintDocument` caía na
+  alternativa e imprimia o mesmo documento oficial, sem código. Uma recusa do registo chega
+  agora a quem emitiu; a alternativa fica para falhas do modelo
+  (teste `tests/documents/issue-fallback.test.ts`).
+- **D5 — Declaração sem matrícula.** Em Documentos, emitir um pedido imprime «é aluno(a) desta
+  instituição no ano lectivo…», também para quem já não tem matrícula activa. Sem matrícula
+  activa o pedido não passa a «pronto» (teste em `tests/routes/documentos.test.tsx`).
+- **D6 — Pormenores.** «Recusar» gravava «cancelado» (o estado «Recusado» nunca aparecia);
+  no portal de antigos alunos, um pedido entregue aparecia como `fulfilled`; as datas destes
+  ecrãs e da verificação passam a ser as de Luanda.
+
+## 20. ADMIN da plataforma (2026-10-17)
+
+A `main` trouxe a faturação dos tenants (`tenant-billing.ts`), e com ela a tarefa diária
+`suspendOverdueTenants`: o fim do período pago passa a contar, por escola, quando o perfil de
+cobrança o pede. O que ainda faltava:
+
+- **AD1 — Prolongar o trial apagava uma assinatura paga.** Gravava `subscription_status =
+  trialing` e punha o fim do período no fim do «trial»: a escola deixava de contar como paga e
+  a tarefa diária punha-a em atraso. Só se prolonga um trial (`trialExtensionAllowed`).
+- **AD2 — O mesmo pagamento duas vezes somava dois períodos** (repetição depois de um erro de
+  rede). Com referência, o segundo registo é recusado. Sem referência não se pode distinguir
+  de um segundo pagamento verdadeiro (teste `tests/saas/trial-extension.test.ts`).
+- **AD3 (migração) — Registo de auditoria do ADMIN alterável.** Leitura de 2026-10-17:
+  `authenticated` tinha todos os privilégios em `saas_audit_logs` e a política
+  `platform_admin_all_saas_audit_logs` (FOR ALL) deixava os 4 administradores da plataforma
+  alterar ou apagar pela API o registo das suas próprias acções, e ler sem 2FA. Todo o código
+  usa a chave de serviço, por isso a tabela fica só com o servidor
+  (`20261017100000_saas_audit_logs_server_only.sql`, no pacote; ensaio
+  `tests/sql/saas-audit-logs-server-only.mjs`). Sonda na produção: «por aplicar».
