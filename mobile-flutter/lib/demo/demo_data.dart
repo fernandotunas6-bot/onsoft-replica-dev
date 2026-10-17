@@ -103,6 +103,7 @@ Map<String, dynamic> _academic(String school, String role) => {
   ],
   'tasks': [
     {
+      'id': 'tarefa-1',
       'classSubjectId': 'mat',
       'title': 'Ficha de equações do 2.º grau',
       'instructions': 'Resolver os exercícios 1 a 12 da ficha.',
@@ -112,6 +113,7 @@ Map<String, dynamic> _academic(String school, String role) => {
           .toIso8601String(),
     },
     {
+      'id': 'tarefa-2',
       'classSubjectId': 'lp',
       'title': 'Resumo do capítulo 3',
       'instructions': 'Uma página, à mão ou digitada.',
@@ -121,6 +123,7 @@ Map<String, dynamic> _academic(String school, String role) => {
           .toIso8601String(),
     },
     {
+      'id': 'tarefa-3',
       'classSubjectId': 'cn',
       'title': 'Relatório da experiência',
       'due': DateTime.now()
@@ -336,6 +339,19 @@ Map<String, dynamic> _response(Uri url) {
           },
         ],
       };
+    case 'submissions':
+      final task = url.queryParameters['taskId'];
+      return {
+        ..._context(school, role),
+        'taskId': ?task,
+        'submissions': [
+          for (final s in _submissions.values)
+            if (task == null || s['taskId'] == task)
+              {...s, if (role == 'professor') 'studentName': demoName},
+        ],
+      };
+    case 'submission-file':
+      return {'url': 'https://demonstracao.siga.invalid/ficheiro.pdf'};
     case 'chat-capabilities':
       return {'writes': true};
     case 'attendance':
@@ -502,6 +518,7 @@ final _readNotices = <String>{};
 var _attendanceDone = false;
 var _attendanceRecords = <Map<String, dynamic>>[];
 var _sent = 0;
+final _submissions = <String, Map<String, dynamic>>{};
 
 Map<String, dynamic> _command(Uri url, Map<String, dynamic> body) {
   final parts = url.pathSegments;
@@ -527,6 +544,29 @@ Map<String, dynamic> _command(Uri url, Map<String, dynamic> body) {
         'count': _attendanceRecords.length,
         'status': 'completed',
       };
+    case 'submission-upload':
+      return {
+        ..._context(school, role),
+        'taskId': body['taskId'],
+        'path': '$school/2026/10/submissions/$demoUserId/${body['fileName']}',
+        'uploadUrl': 'https://demonstracao.siga.invalid/envio',
+        'maxBytes': 10485760,
+      };
+    case 'submission':
+      final taskId = body['taskId'] as String;
+      final previous = _submissions[taskId];
+      final saved = {
+        'id': 'entrega-$taskId',
+        'taskId': taskId,
+        'studentId': 'al-1',
+        'fileName': (body['path'] as String).split('/').last,
+        'sizeBytes': 245760,
+        'version': (previous?['version'] as int? ?? 0) + 1,
+        'status': 'submitted',
+        'submittedAt': DateTime.now().toUtc().toIso8601String(),
+      };
+      _submissions[taskId] = saved;
+      return {..._context(school, role), 'submission': saved};
     case 'chat-commands':
       final command = body['command'] as Map<String, dynamic>;
       return {
@@ -545,6 +585,8 @@ MobileGateway demoGateway() => MobileGateway(
   () async => 'demo',
   client: MockClient((request) async {
     await Future<void>.delayed(const Duration(milliseconds: 350));
+    // Envio do PDF para o «armazenamento»: na demonstração só se aceita.
+    if (request.method == 'PUT') return http.Response('{}', 200);
     final result = request.method == 'POST'
         ? _command(
             request.url,

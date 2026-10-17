@@ -226,6 +226,7 @@ class _DataPageState extends State<DataPage> with SyncedState {
         task,
         subject: catalog.subject(task['classSubjectId']),
         student: widget.gateway.role == 'aluno',
+        gateway: widget.gateway,
       );
 
   // ───────── Peças ─────────

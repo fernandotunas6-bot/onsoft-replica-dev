@@ -65,6 +65,17 @@ const commandMessages = {
   'CHAT_WRITES_NOT_READY':
       'O envio de mensagens ainda não está activo no servidor da escola.',
   'IDEMPOTENCY_CONFLICT': 'Pedido repetido com conteúdo diferente.',
+  'SUBMISSIONS_NOT_READY':
+      'A entrega pela app ainda não está activa nesta escola. Entregue no '
+      'portal SIGA Plus.',
+  'SUBMISSION_CLOSED': 'O prazo desta tarefa terminou.',
+  'PDF_REQUIRED': 'Só são aceites ficheiros PDF.',
+  'FILE_TOO_LARGE': 'O PDF tem mais de 10 MB.',
+  'TASK_FORBIDDEN': 'Esta tarefa não é de uma disciplina sua.',
+  'TASK_NOT_FOUND': 'A tarefa já não está publicada.',
+  'SUBMISSION_FILE_NOT_FOUND':
+      'O envio do PDF não chegou ao SIGA. Tente de novo.',
+  'SUBMISSION_FORBIDDEN': 'Sem acesso a esta entrega.',
 };
 
 /// Identificador aleatório (UUID v4) para tornar um envio idempotente.
@@ -273,6 +284,82 @@ class MobileGateway {
     'command': command,
   });
 
+  // ───────── Entregas em PDF ─────────
+
+  /// Entregas do aluno (todas, ou de uma tarefa) ou, para o professor, as
+  /// entregas de uma tarefa sua.
+  Future<List<Map<String, dynamic>>> submissions({String? taskId}) async {
+    final school = _school();
+    final expectedRole = role;
+    final query = Uri(
+      queryParameters: {'role': expectedRole!, 'taskId': ?taskId},
+    ).query;
+    final result = await _get('/schools/$school/submissions?$query');
+    final list = result['submissions'];
+    if (result['schoolId'] != schoolId ||
+        result['role'] != expectedRole ||
+        result['userId'] != userId ||
+        list is! List ||
+        list.any((s) => s is! Map<String, dynamic>)) {
+      throw StateError('Resposta fora do contexto autorizado.');
+    }
+    return list.cast<Map<String, dynamic>>();
+  }
+
+  /// Envia o PDF de uma tarefa: pede o URL assinado, envia os bytes
+  /// directamente para o armazenamento do SIGA e regista a entrega.
+  Future<Map<String, dynamic>> submitPdf({
+    required String taskId,
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final ticket = await _post('submission-upload', {
+      'taskId': taskId,
+      'fileName': fileName,
+      'sizeBytes': bytes.length,
+    });
+    final uploadUrl = Uri.tryParse('${ticket['uploadUrl']}');
+    final path = ticket['path'];
+    if (uploadUrl == null || uploadUrl.scheme != 'https' || path is! String) {
+      throw StateError('Resposta de envio inválida.');
+    }
+    final revision = _revision;
+    final sent = await client
+        .put(
+          uploadUrl,
+          headers: {'Content-Type': 'application/pdf', 'x-upsert': 'false'},
+          body: bytes,
+        )
+        .timeout(const Duration(minutes: 2));
+    if (revision != _revision) throw StateError('A sessão ou escola mudou.');
+    if (sent.statusCode != 200) {
+      throw const CommandError(
+        'UPLOAD_FAILED',
+        'O envio do PDF falhou. Verifique a ligação e tente de novo.',
+      );
+    }
+    final saved = await _post('submission', {'taskId': taskId, 'path': path});
+    final submission = saved['submission'];
+    if (submission is! Map<String, dynamic>) {
+      throw StateError('Resposta de entrega inválida.');
+    }
+    return submission;
+  }
+
+  /// URL de leitura (10 minutos) do PDF de uma entrega.
+  Future<Uri> submissionFile(String submissionId) async {
+    final school = _school();
+    final query = Uri(
+      queryParameters: {'role': role!, 'submissionId': submissionId},
+    ).query;
+    final result = await _get('/schools/$school/submission-file?$query');
+    final url = Uri.tryParse('${result['url']}');
+    if (url == null || url.scheme != 'https') {
+      throw StateError('Endereço do ficheiro inválido.');
+    }
+    return url;
+  }
+
   String _school() {
     if (schoolId == null || role == null) {
       throw StateError('Seleccione uma escola e um perfil.');
@@ -343,6 +430,17 @@ class MobileGateway {
         .timeout(const Duration(seconds: 20));
     if (revision != _revision) throw StateError('A sessão ou escola mudou.');
     if (response.statusCode != 200) {
+      // Código conhecido do servidor (ex.: SUBMISSIONS_NOT_READY): mensagem
+      // própria, para a página explicar o que se passa.
+      try {
+        final body = jsonDecode(response.body);
+        final code = body is Map ? body['error'] : null;
+        if (code is String && commandMessages.containsKey(code)) {
+          throw CommandError(code, commandMessages[code]!);
+        }
+      } on FormatException {
+        // Corpo sem JSON: cai na mensagem genérica.
+      }
       throw StateError(
         response.statusCode == 401
             ? 'Sessão expirada. Volte a entrar.'

@@ -311,6 +311,7 @@ class _SubjectPageState extends State<SubjectPage> {
             t,
             subject: '${widget.item['subjectName']}',
             student: student,
+            gateway: widget.gateway,
           ),
         ),
       if (past.isNotEmpty) ...[
@@ -324,6 +325,7 @@ class _SubjectPageState extends State<SubjectPage> {
               t,
               subject: '${widget.item['subjectName']}',
               student: student,
+              gateway: widget.gateway,
             ),
           ),
       ],
