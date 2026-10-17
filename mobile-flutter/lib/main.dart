@@ -11,6 +11,13 @@ import 'auth_errors.dart';
 import 'captcha.dart';
 import 'captcha_factory.dart';
 import 'identity_login.dart';
+import 'records_page.dart';
+
+/// Os endpoints de avisos e resultados (backend/records.ts) também não estão
+/// montados no Worker publicado: sem esta definição o menu não os oferece.
+const institutionalRecordsEnabled = bool.fromEnvironment(
+  'INSTITUTIONAL_RECORDS',
+);
 
 /// O endpoint móvel de login por B.I. (backend/identity.ts) ainda não está
 /// montado no Worker publicado. Sem esta definição a aplicação não oferece a
@@ -162,6 +169,16 @@ class _SigaAppState extends State<SigaApp> {
                               path: 'tasks',
                               builder: (_, _) =>
                                   servicePage('Tarefas', '/tasks'),
+                            ),
+                            GoRoute(
+                              path: 'notices',
+                              builder: (_, _) =>
+                                  recordsPage('Avisos', 'notices'),
+                            ),
+                            GoRoute(
+                              path: 'results',
+                              builder: (_, _) =>
+                                  recordsPage('Notas', 'results'),
                             ),
                             GoRoute(
                               path: 'classes/:id',
@@ -408,6 +425,20 @@ class _SigaAppState extends State<SigaApp> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => router.go('/more/tasks'),
           ),
+          if (institutionalRecordsEnabled) ...[
+            ListTile(
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('Avisos'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => router.go('/more/notices'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.grade_outlined),
+              title: const Text('Notas'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => router.go('/more/results'),
+            ),
+          ],
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Aparência'),
@@ -481,6 +512,22 @@ class _SigaAppState extends State<SigaApp> {
       name: '${session?['name'] ?? ''}',
     );
   }
+
+  Widget recordsPage(String title, String collection) => Scaffold(
+    appBar: AppBar(
+      title: Text(title),
+      leading: IconButton(
+        tooltip: 'Voltar',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => router.go('/more'),
+      ),
+    ),
+    body: RecordsPage(
+      key: ValueKey('$school:$role:$collection'),
+      gateway: gateway,
+      collection: collection,
+    ),
+  );
 
   Widget servicePage(String title, String path, {String? groupId}) => Scaffold(
     appBar: AppBar(

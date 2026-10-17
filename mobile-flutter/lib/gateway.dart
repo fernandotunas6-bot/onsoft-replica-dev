@@ -33,7 +33,13 @@ class MobileGateway {
   Future<Map<String, dynamic>> session() => _get('/session');
 
   Future<Map<String, dynamic>> read(String collection) async {
-    if (!{'academic', 'notifications', 'chat'}.contains(collection) ||
+    if (!{
+          'academic',
+          'notifications',
+          'chat',
+          'notices',
+          'results',
+        }.contains(collection) ||
         schoolId == null ||
         role == null) {
       throw StateError('Seleccione uma escola e um perfil.');

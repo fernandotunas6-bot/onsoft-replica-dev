@@ -165,6 +165,23 @@ continuam pendentes.
 28 testes Dart e 39 testes Node executados e aprovados neste ambiente; nenhuma
 entrada real contra o SGA de produção foi feita.
 
+## Incremento 5 — avisos e notas
+
+`/more/notices` e `/more/results`, com pesquisa, refresh, estados de
+carregamento, erro e vazio. `lib/records.dart` lê o contrato de
+docs/BACKEND.md com as mesmas duas regras do servidor: a escala é a que a
+escola envia (nada presume 0–20) e uma nota por publicar não mostra número
+nenhum. Um envelope fora do contrato dá erro visível — uma lista vazia diria
+«não há nada», que é outra coisa. Quando o servidor declara mais páginas, a
+página di-lo em vez de apresentar um fim que não é o fim.
+
+Marcar avisos como lidos, médias, pautas oficiais e pedidos de alteração
+continuam no portal: dependem de endpoints de escrita que este cliente não
+tem. As duas páginas só aparecem com `--dart-define=INSTITUTIONAL_RECORDS=true`,
+porque o endpoint não está montado em nenhum Worker publicado.
+
+41 testes Dart e 48 testes Node executados e aprovados neste ambiente.
+
 ## Limite do repositório: o servidor Mobile V4 não está aqui
 
 O cliente consome `/api/mobile-v4/...`, mas `src/features/mobile-v4/` —

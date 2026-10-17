@@ -163,3 +163,28 @@ Worker publicado — por isso o cliente só oferece a opção com
 
 11 testes Node novos (39 no total em `backend/`), executados e aprovados neste
 ambiente. Não houve pedido real ao Supabase nem a nenhum Worker.
+
+
+## Incremento 5 — avisos e resultados (17/10/2026)
+
+`backend/records.ts`: `GET /api/mobile-v4/schools/:schoolId/notices?role=` e
+`.../results?role=`, envelope `version: 1` com `schoolId`, `role`, `userId` e
+`items`. Os serviços canónicos destas duas áreas não fazem parte desta
+checkout, pelo que **este ficheiro é o contrato que o cliente lê, não um porte
+provado do de produção**. Duas regras de domínio decidem a forma:
+
+- A escala vem da escola. Nada presume 0–20; uma nota publicada sem `scaleMax`
+  utilizável, sem valor, acima do máximo ou sem data é 503 `RESULTS_INVALID` —
+  não se mostra um número que não se sabe ler.
+- Uma nota só existe para quem lê depois de publicada. Um registo `pending`
+  viaja sempre sem valor, sem escala e sem data, mesmo que o serviço os tenha.
+
+Além disso: allowlist explícita (nenhum autor, destinatário, nota interna ou
+userId de colegas), resposta fora do âmbito escola/papel é 503, falha de
+leitura nunca vira lista vazia, `nextCursor` é declarado para o cliente poder
+dizer que há mais em vez de apresentar um fim falso, e as guardas de sessão,
+método, origem e query são as mesmas de `api.ts`.
+
+9 testes Node novos (48 no total em `backend/`), executados e aprovados.
+Não montado em nenhum Worker; o cliente só oferece as páginas com
+`--dart-define=INSTITUTIONAL_RECORDS=true`.
