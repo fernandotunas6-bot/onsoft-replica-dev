@@ -48,10 +48,13 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
   após» e o aviso de atraso; «Activar» reactiva `past_due`. A lista mostra «Isenta» /
   «Cobrança pausada». O separador Acesso traz o diagnóstico embutido
   (`TenantAdminAccessPanel`).
-- **Por aplicar (dono):** `docs/agents/SIGA_aplicar_cobranca_escolas.sql`
-  (`20261015120000_tenant_billing_profiles.sql`). Sem ela o ADMIN mostra os valores de
-  omissão e não grava; nada mais parte. Depois recapturar o retrato e tirar a tabela de
-  `TABELAS_AUSENTES_DA_PRODUCAO`.
+- **Aplicada na produção (confirmado a 17/10):** `20261015120000_tenant_billing_profiles.sql`
+  — 36 colunas, 16 CHECK, RLS forçada, só `service_role`, trigger `siga_touch_updated_at`.
+  As tabelas `web_*` do site também já existiam. O retrato
+  (`supabase/PRODUCTION_SNAPSHOT.json`) foi completado para estas 5 tabelas com as mesmas
+  consultas do `capture-db-snapshot.mjs` (sem a CLI ligada neste ambiente) e os tipos
+  acrescentados a `types.ts`; `TABELAS_AUSENTES_DA_PRODUCAO` ficou vazia. Uma recaptura
+  completa (`npm run siga:db-snapshot`) continua recomendada quando houver CLI ligada.
 
 ## Smart School Onboarding: criação → acesso → ambiente (2026-10-15)
 
