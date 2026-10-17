@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -364,8 +365,8 @@ function AlumniPage() {
                                 <ShieldCheck className="size-4 shrink-0 text-primary" />
                               ) : null}
                             </div>
-                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              {row.student_number}
+                            <p className="mt-0.5 truncate text-xs">
+                              <IdentifierValue value={row.student_number} variant="plain" />
                             </p>
                           </div>
                           <ExternalLink className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -801,7 +802,7 @@ function DocumentosPage() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">{d.tipo}</p>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {d.aluno} · <span className="tnum">{d.processo}</span>
+                            {d.aluno} · <IdentifierValue value={d.processo} variant="plain" />
                           </p>
                           <p className="mt-0.5 text-[11px] text-muted-foreground">
                             Pedido {new Date(d.pedidoEm).toLocaleDateString("pt-PT")} ·{" "}
@@ -837,7 +838,7 @@ function DocumentosPage() {
                     <TableRow>
                       <TableHead>Documento</TableHead>
                       <TableHead>Aluno</TableHead>
-                      <TableHead>Processo</TableHead>
+                      <TableHead>Nº de aluno</TableHead>
                       <TableHead>Pedido em</TableHead>
                       <TableHead>Responsável</TableHead>
                       <TableHead>Estado</TableHead>
@@ -854,8 +855,8 @@ function DocumentosPage() {
                           </span>
                         </TableCell>
                         <TableCell>{d.aluno}</TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {d.processo}
+                        <TableCell>
+                          <IdentifierValue value={d.processo} />
                         </TableCell>
                         <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">

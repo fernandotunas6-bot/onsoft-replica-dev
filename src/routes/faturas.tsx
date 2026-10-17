@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1204,7 +1205,7 @@ function FaturasPage() {
                     <TableRow>
                       <TableHead>Número</TableHead>
                       <TableHead>Aluno</TableHead>
-                      <TableHead>Processo</TableHead>
+                      <TableHead>Nº de aluno</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead>Emitida</TableHead>
                       <TableHead>Vencimento</TableHead>
@@ -1223,8 +1224,8 @@ function FaturasPage() {
                           </span>
                         </TableCell>
                         <TableCell className="font-semibold">{f.aluno}</TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {f.processo}
+                        <TableCell>
+                          <IdentifierValue value={f.processo} />
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {f.descricao}

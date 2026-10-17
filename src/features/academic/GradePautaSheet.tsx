@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileBadge, FileDown, Lock, Save, Unlock } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -1159,8 +1160,8 @@ export function GradePautaSheet({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{student.student_name}</p>
-                        <p className="tnum mt-0.5 text-xs text-muted-foreground">
-                          {student.registration_number ?? "—"}
+                        <p className="mt-0.5 text-xs">
+                          <IdentifierValue value={student.registration_number} variant="plain" />
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
@@ -1226,7 +1227,7 @@ export function GradePautaSheet({
                   <TableRow>
                     <TableHead className="w-10">Nº</TableHead>
                     <TableHead>Aluno</TableHead>
-                    <TableHead>Proc.</TableHead>
+                    <TableHead>Nº de aluno</TableHead>
                     <TableHead
                       className="w-24 text-right"
                       title={angolaGradeScale.components[0].label}
@@ -1278,8 +1279,8 @@ export function GradePautaSheet({
                             <span className="font-semibold">{student.student_name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {student.registration_number ?? "—"}
+                        <TableCell>
+                          <IdentifierValue value={student.registration_number} />
                         </TableCell>
                         {(["mac", "npp", "npt"] as const).map((field) => (
                           <TableCell key={field} className="text-right">

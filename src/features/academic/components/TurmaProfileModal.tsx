@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { Link } from "@tanstack/react-router";
 import {
   BookOpen,
@@ -426,9 +427,7 @@ export function TurmaProfileModal({
                       <span className="min-w-0 truncate font-medium text-foreground">
                         {aluno.student_name}
                       </span>
-                      <span className="shrink-0 text-muted-foreground">
-                        {aluno.registration_number || "—"}
-                      </span>
+                      <IdentifierValue className="shrink-0" value={aluno.registration_number} />
                     </Link>
                   ))}
                 </div>

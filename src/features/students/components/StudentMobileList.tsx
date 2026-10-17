@@ -1,4 +1,5 @@
 import { Eye, FileText, GraduationCap, MessageCircle, Users } from "lucide-react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -84,7 +85,7 @@ export function StudentMobileList({
     title: student.full_name,
     subtitle: (
       <>
-        <span className="tnum">{student.registration_number}</span>
+        <IdentifierValue value={student.registration_number} variant="plain" />
         {student.grade_name ? ` · ${student.grade_name}` : ""}
         {student.class_name ? ` · Turma ${student.class_name}` : ""}
       </>

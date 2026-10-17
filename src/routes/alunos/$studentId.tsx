@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, type ReactNode } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -1020,7 +1021,7 @@ function StudentDetail() {
               {student.full_name}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {student.registration_number}
+              <IdentifierValue value={student.registration_number} size="sm" showLabel />
               {student.grade_name ? ` · ${student.grade_name} Classe` : ""}
               {student.class_name ? ` · Turma ${student.class_name}` : ""}
             </p>

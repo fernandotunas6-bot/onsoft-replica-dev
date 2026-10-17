@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1190,7 +1191,7 @@ function StudentsPage() {
                           }}
                         />
                       </TableHead>
-                      <SortHead label="Nº Estudante" colKey="processo" />
+                      <SortHead label="Nº de aluno" colKey="processo" />
                       <SortHead label="Nome" colKey="nome" />
                       <TableHead className="hidden lg:table-cell">Encarregado</TableHead>
                       <SortHead label="Email" colKey="email" />
@@ -1247,8 +1248,8 @@ function StudentsPage() {
                               }}
                             />
                           </TableCell>
-                          <TableCell className="font-mono text-xs font-semibold text-primary">
-                            {s.registration_number}
+                          <TableCell>
+                            <IdentifierValue value={s.registration_number} />
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">

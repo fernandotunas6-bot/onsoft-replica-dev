@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -533,8 +534,8 @@ export function AttendanceCallDialog({
                           <p className="truncate text-sm font-bold text-foreground">
                             {st.full_name}
                           </p>
-                          <p className="font-mono text-xs text-muted-foreground">
-                            Nº {st.student_number || "—"}
+                          <p className="text-xs text-muted-foreground">
+                            <IdentifierValue value={st.student_number} variant="plain" />
                             {current ? (
                               <span className={`ml-2 font-sans font-semibold ${current.text}`}>
                                 · {current.label}

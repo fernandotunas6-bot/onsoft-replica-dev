@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -231,10 +232,7 @@ export function StudentExtensiveModal({
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1 font-mono font-medium text-foreground">
-                <span className="text-muted-foreground font-normal">Nº Processo:</span>{" "}
-                {studentNumber}
-              </span>
+              <IdentifierValue value={studentNumber} size="sm" showLabel />
               {initialData?.grade_name || student?.grade_name ? (
                 <span className="inline-flex items-center gap-1">
                   <GraduationCap className="size-3.5 text-primary" />
