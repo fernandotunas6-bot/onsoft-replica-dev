@@ -492,7 +492,7 @@ export function FileUploadInquiryModal({
                 ? (studentsQuery.data?.students ?? []).map((student) => (
                     <option key={student.personId} value={student.personId}>
                       {student.name}
-                      {student.registrationNumber ? ` · ${student.registrationNumber}` : ""}
+                      {student.registrationNumber ? ` · Nº ${student.registrationNumber}` : ""}
                     </option>
                   ))
                 : (peopleQuery.data?.people ?? []).map((person) => (

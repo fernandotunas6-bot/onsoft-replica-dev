@@ -11,6 +11,7 @@ export type GatewayCharge = {
   id: string;
   invoice_id: string;
   student_name: string | null;
+  student_number: string | null;
   method: string;
   merchant_transaction_id: string;
   amount: number;
@@ -58,7 +59,17 @@ export const listGatewayCharges = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error("Não foi possível carregar as cobranças.");
-    return (data ?? []).map((r: GatewayCharge) => ({ ...r, amount: Number(r.amount) }));
+    const { studentNumbersForInvoices } = await import("./invoice-students");
+    const numbers = await studentNumbersForInvoices(
+      db,
+      schoolId,
+      (data ?? []).map((r: { invoice_id: string }) => r.invoice_id),
+    );
+    return (data ?? []).map((r: Omit<GatewayCharge, "student_number">) => ({
+      ...r,
+      amount: Number(r.amount),
+      student_number: numbers.get(r.invoice_id) ?? null,
+    }));
   });
 
 const createSchema = z.object({

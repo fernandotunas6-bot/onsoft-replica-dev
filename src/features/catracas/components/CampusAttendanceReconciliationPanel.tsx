@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle, Clock, ShieldAlert, Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -107,7 +108,15 @@ export function CampusAttendanceReconciliationPanel() {
                   <AlertTriangle className="size-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-extrabold text-foreground">{an.studentName}</h4>
+                  <h4 className="text-xs font-extrabold text-foreground">
+                    {an.studentName}{" "}
+                    <IdentifierValue
+                      value={an.studentNumber}
+                      variant="plain"
+                      emptyLabel=""
+                      className="font-normal text-muted-foreground"
+                    />
+                  </h4>
                   <p className="text-[11px] text-muted-foreground">{an.description}</p>
                 </div>
               </div>

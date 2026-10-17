@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
@@ -1158,6 +1159,7 @@ function FinanceiroPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Aluno</TableHead>
                   <TableHead>Canal</TableHead>
                   <TableHead>Prestações</TableHead>
                   <TableHead>Referência</TableHead>
@@ -1170,7 +1172,7 @@ function FinanceiroPage() {
                 {(plansQuery.data ?? []).length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-6 text-center text-sm text-muted-foreground"
                     >
                       Ainda sem planos. Use «Pagamento avançado» para criar um.
@@ -1179,6 +1181,15 @@ function FinanceiroPage() {
                 ) : (
                   (plansQuery.data ?? []).map((plan) => (
                     <TableRow key={plan.id}>
+                      <TableCell>
+                        <span className="block font-semibold">{plan.student_name ?? "—"}</span>
+                        <IdentifierValue
+                          value={plan.registration_number}
+                          variant="plain"
+                          emptyLabel=""
+                          className="text-muted-foreground"
+                        />
+                      </TableCell>
                       <TableCell className="font-semibold capitalize">
                         {String(plan.channel).replaceAll("_", " ")}
                       </TableCell>

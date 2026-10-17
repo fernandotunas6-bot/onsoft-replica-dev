@@ -1,3 +1,4 @@
+import { IdentifierValue } from "@/components/ui/identifier-value";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -153,8 +154,14 @@ export function AppyPayPanel() {
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <div className="min-w-0">
                 <p className="truncate">
-                  {c.student_name ?? "Aluno"} ·{" "}
-                  {c.method === "GPO" ? "Multicaixa Express" : "Referência"}
+                  {c.student_name ?? "Aluno"}{" "}
+                  <IdentifierValue
+                    value={c.student_number}
+                    variant="plain"
+                    emptyLabel=""
+                    className="text-muted-foreground"
+                  />{" "}
+                  · {c.method === "GPO" ? "Multicaixa Express" : "Referência"}
                   {c.reference_number ? ` ${c.reference_entity ?? ""}/${c.reference_number}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">

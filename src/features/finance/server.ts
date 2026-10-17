@@ -297,13 +297,19 @@ async function loadStudentDirectory(
   schoolId: string,
   studentIds?: string[],
 ) {
-  let query = db
-    .from("students")
-    .select("id, student_number, person_id, status")
-    .eq("school_id", schoolId);
-  if (studentIds?.length) query = query.in("id", studentIds);
-  const { data: students, error } = await query.limit(250);
+  const base = () =>
+    db.from("students").select("id, student_number, person_id, status").eq("school_id", schoolId);
+  // Com ids: todos, em lotes (o URL tem limite). Antes cortava nos 250 também aqui, e
+  // numa escola grande as facturas dos restantes alunos saíam «Aluno · Sem processo».
+  const batches = studentIds?.length
+    ? Array.from({ length: Math.ceil(studentIds.length / 150) }, (_, i) =>
+        base().in("id", studentIds.slice(i * 150, i * 150 + 150)),
+      )
+    : [base().limit(250)];
+  const results = await Promise.all(batches);
+  const error = results.find((r) => r.error)?.error;
   if (error) throw publicDatabaseError(error, "Não foi possível carregar os alunos.");
+  const students = results.flatMap((r) => r.data ?? []);
   const personIds = [
     ...new Set((students ?? []).map((row: { person_id: string }) => row.person_id)),
   ];
@@ -1575,7 +1581,7 @@ export const listPaymentPlans = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("finance_payment_plans")
-      .select("id, channel, installments, status, reference, created_at")
+      .select("id, student_id, channel, installments, status, reference, created_at")
       .eq("school_id", membership.schoolId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -1585,7 +1591,19 @@ export const listPaymentPlans = createServerFn({ method: "GET" })
       }
       throw publicDatabaseError(error, "Não foi possível carregar os planos de pagamento.");
     }
-    return data ?? [];
+    const studentIds = [...new Set((data ?? []).map((p) => p.student_id).filter(Boolean))];
+    const students = studentIds.length
+      ? await loadStudentDirectory(db, membership.schoolId, studentIds as string[]).catch(() => [])
+      : [];
+    const studentById = new Map(students.map((s) => [s.student_id, s]));
+    return (data ?? []).map((plan) => {
+      const student = plan.student_id ? studentById.get(plan.student_id) : undefined;
+      return {
+        ...plan,
+        student_name: student?.full_name ?? null,
+        registration_number: student?.registration_number ?? null,
+      };
+    });
   });
 
 export type GatewayWebhookEventSummary = {

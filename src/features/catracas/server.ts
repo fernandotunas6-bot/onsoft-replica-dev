@@ -721,10 +721,20 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
       (gateEntries ?? []).filter((g) => g.student_id).map((g) => g.student_id!),
     ).size;
 
+    const studentIds = [...new Set(anomalies.map((a) => a.studentId))];
+    const { data: numberRows } = studentIds.length
+      ? await db
+          .from("students")
+          .select("id, student_number")
+          .eq("school_id", membership.schoolId)
+          .in("id", studentIds)
+      : { data: [] };
+    const numberOf = new Map((numberRows ?? []).map((r) => [String(r.id), r.student_number]));
+
     return {
       date: todayStr,
       totalCampusEntriesToday,
       anomaliesFound: anomalies.length,
-      anomalies,
+      anomalies: anomalies.map((a) => ({ ...a, studentNumber: numberOf.get(a.studentId) ?? null })),
     };
   });
