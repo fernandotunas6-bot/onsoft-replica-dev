@@ -197,7 +197,7 @@ export function RightRail() {
       </aside>
 
       {/* Abaixo de lg o painel não cabe: dois botões flutuantes abrem o Sheet. */}
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
+      <div className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
         {suggestions.length > 0 ? (
           <button
             type="button"

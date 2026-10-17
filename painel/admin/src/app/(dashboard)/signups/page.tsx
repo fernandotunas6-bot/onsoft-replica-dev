@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { MessageCircle, RefreshCw, UserPlus } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -53,11 +53,17 @@ export default function SignupsPage() {
   const [filter, setFilter] = useState<Filter>("followup")
   const [days, setDays] = useState(30)
 
+  // Mudar de período depressa: a resposta mais lenta (de um período anterior)
+  // chegava depois e substituía a lista certa.
+  const requestId = useRef(0)
+
   const load = useCallback(async () => {
+    const id = ++requestId.current
     setLoading(true)
     setError(null)
     const token = await accessToken()
     const response = await fetchSignupLeads(token, days)
+    if (id !== requestId.current) return
     if (!token || response.error?.includes("Unauthorized") || response.error?.includes("Sem permissão")) {
       setNeedsAuth(true)
       setLoading(false)
