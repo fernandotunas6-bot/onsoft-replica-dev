@@ -236,6 +236,21 @@ export async function updateTenantStatus(input: {
 }
 
 /**
+ * Soma meses sem passar para o mês seguinte: `setMonth` levava 31 de Janeiro + 1 mês
+ * a 3 de Março, e cada renovação parte do fim anterior, por isso os dias a mais
+ * acumulavam-se. Fica no último dia do mês quando o dia não existe.
+ */
+export function addMonthsClamped(base: Date, months: number): Date {
+  const end = new Date(base);
+  const day = end.getUTCDate();
+  end.setUTCDate(1);
+  end.setUTCMonth(end.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0)).getUTCDate();
+  end.setUTCDate(Math.min(day, lastDay));
+  return end;
+}
+
+/**
  * Prolongar o trial grava `subscription_status = trialing` e põe o fim do período no
  * fim do trial: numa escola que já paga, apagava o período pago (e a tarefa diária
  * punha-a em atraso quando o «trial» acabasse). Só se prolonga um trial.
@@ -350,9 +365,7 @@ export async function updateTenantSubscription(input: {
         ? new Date(current.current_period_end)
         : null;
     const base = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
-    const end = new Date(base);
-    end.setMonth(end.getMonth() + paidMonths);
-    paidUntil = end.toISOString();
+    paidUntil = addMonthsClamped(base, paidMonths).toISOString();
     patch.subscription_status = "active";
     patch.status = "active";
     metadata.payment_confirmed = true;

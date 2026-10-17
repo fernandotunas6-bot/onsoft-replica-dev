@@ -506,3 +506,45 @@ cobrança o pede. O que ainda faltava:
   usa a chave de serviço, por isso a tabela fica só com o servidor
   (`20261017100000_saas_audit_logs_server_only.sql`, no pacote; ensaio
   `tests/sql/saas-audit-logs-server-only.mjs`). Sonda na produção: «por aplicar».
+
+## 21. Presenças e cobrança das escolas (2026-10-17)
+
+Presenças:
+
+- **PR1 — Atestado sem abrir.** A justificação de uma falta aceitava um anexo, mas quem decidia
+  via só o nome (vindo do browser, sem verificação) e não o conseguia abrir. O anexo passa a ser
+  validado ao enviar (tem de ser um ficheiro que quem envia abre nos Arquivos; o nome é o do
+  ficheiro) e quem decide abre-o (`openAttendanceJustificationFile`, com a mesma regra da
+  decisão: Direcção e Secretaria todas, o professor as das suas aulas).
+- **PR2 — Duas decisões ao mesmo tempo.** Aprovar e rejeitar em simultâneo gravavam ambas; a
+  falta ficava justificada com a justificação «rejeitada». A gravação só acontece se ainda
+  estiver pendente.
+- **PR3 — Saída antecipada.** A taxa de assiduidade da ficha contava-a como falta; a exclusão
+  por faltas (pauta) conta-a como presença. Passa a mesma regra nos dois.
+
+Cobrança das escolas (código novo da `main`, revisto):
+
+- **CB1 (alto) — Acesso grátis sem prazo.** Uma escola que escolhesse «pública» no registo
+  ficava com as cobranças pausadas sem data, isenta do fim do trial e do atraso, enquanto
+  ninguém a revisse. A pausa passa a durar 30 dias (`SELF_DECLARED_PUBLIC_PAUSE_DAYS`); depois
+  volta às regras do trial. O ADMIN aprova (isenção sem fim) ou prolonga.
+- **CB2 — Tarefas diárias.** `suspendOverdueTenants` lia `.limit(1000)` sem ordem: acima de
+  1000 perfis, uma parte nunca era avaliada. As duas tarefas leem tudo por páginas, e um erro
+  de leitura deixa de passar por «nada a fazer» (fica reportado, sem parar as outras). A
+  suspensão só conta quando a escola mudou mesmo de estado.
+- **CB3 — Cobrança PayFlow com valor antigo.** A chave de idempotência era só plano + período +
+  mês: mudado o preço (alunos, desconto), o PayFlow devolvia a referência com o montante
+  antigo. A chave leva o valor, e o mês é o de Luanda.
+- **CB4 — Desconto por período.** O ADMIN aplicava os descontos de `saas_billing_settings`; o
+  valor cobrado à escola e o que ela via usavam os do código. Passam a usar os mesmos.
+- **CB5 — Fim do período pago.** 31 de Janeiro + 1 mês dava 3 de Março, e os dias a mais
+  acumulavam a cada renovação (`addMonthsClamped`).
+
+Por decidir (dono):
+
+- **CB6:** `initBillingProfileForNewSchool` grava um perfil para todas as escolas novas, com
+  `auto_suspend` ligado por omissão; o comentário de `suspendOverdueTenants` diz que só as
+  escolas configuradas no ADMIN são suspensas. Hoje uma escola nova paga que atrase passa a só
+  consulta; as antigas, sem perfil, nunca. Qual das duas é a regra?
+- **AD4:** dois administradores da plataforma a retirarem-se um ao outro ao mesmo tempo podem
+  deixar a plataforma sem nenhum (a contagem é lida antes de apagar).

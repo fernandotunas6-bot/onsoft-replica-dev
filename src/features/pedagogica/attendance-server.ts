@@ -17,6 +17,7 @@ import {
 import { resolveUserLinkedEntities } from "@/features/auth/server";
 import { schoolTodayIso } from "@/lib/school-date";
 import { LOCKED_SHEET_STATUSES } from "@/features/academic/sga-grades";
+import { loadShareableSchoolFile, signChatAttachmentFile } from "@/features/arquivos/server";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -85,13 +86,20 @@ export const getStudentAttendanceHistoryInputSchema = z.object({
 });
 
 /**
- * Presente, dispensado (justificado) e atrasado contam a favor da assiduidade; só a ausência
- * sem justificação penaliza a taxa. "not_registered" já é excluído antes de chegar aqui.
+ * Presente, dispensado (justificado), atrasado e saída antecipada contam a favor da
+ * assiduidade; só a ausência sem justificação penaliza a taxa — a mesma regra da
+ * exclusão por faltas (`absencePercentageFromStatuses`). A saída antecipada contava
+ * aqui como falta: a ficha mostrava uma assiduidade pior do que a da pauta.
+ * "not_registered" já é excluído antes de chegar aqui.
  */
 export function computeAttendanceRate(records: Array<{ status: AttendanceStatus }>): number | null {
   if (records.length === 0) return null;
   const presentCount = records.filter(
-    (r) => r.status === "present" || r.status === "excused" || r.status === "late",
+    (r) =>
+      r.status === "present" ||
+      r.status === "excused" ||
+      r.status === "late" ||
+      r.status === "early_exit",
   ).length;
   return Math.round((presentCount / records.length) * 100);
 }
@@ -801,6 +809,19 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
       if (!record) throw new Error("Registo de presença não encontrado para este aluno.");
     }
 
+    // O anexo (atestado) tem de ser um ficheiro que quem envia consegue abrir nos
+    // Arquivos, e o nome é o do ficheiro: antes vinham os dois do browser, sem
+    // verificação, e quem decidia via só um nome.
+    const attachment = data.fileId
+      ? await loadShareableSchoolFile(
+          db,
+          membership.schoolId,
+          data.fileId,
+          context.userId,
+          membership.appRole,
+        )
+      : null;
+
     const { data: justification, error } = await db
       .from("siga_attendance_justifications")
       .insert({
@@ -809,8 +830,8 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
         session_id: data.sessionId ?? null,
         attendance_record_id: data.attendanceRecordId ?? null,
         reason: data.reason.trim(),
-        file_id: data.fileId ?? null,
-        file_name: data.fileName ?? null,
+        file_id: attachment?.id ?? null,
+        file_name: attachment?.name ?? null,
         status: "pending",
         submitted_by: context.userId,
       })
@@ -819,6 +840,72 @@ export const submitAttendanceJustification = createServerFn({ method: "POST" })
 
     if (error) throw publicDatabaseError(error, "Não foi possível enviar a justificativa.");
     return justification;
+  });
+
+type AttendanceDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
+
+/**
+ * Quem decide uma justificação: a Direcção e a Secretaria decidem todas; o professor
+ * só as das suas aulas.
+ */
+async function assertMayDecideJustification(
+  db: AttendanceDb,
+  membership: { schoolId: string; allAppRoles: string[] },
+  userId: string,
+  just: { session_id: string | null; attendance_record_id: string | null },
+) {
+  const managesAll = membership.allAppRoles.some(
+    (role) => role === "Administrador" || role === "Secretaria",
+  );
+  if (managesAll) return;
+  let sessionId = just.session_id ? String(just.session_id) : null;
+  if (!sessionId && just.attendance_record_id) {
+    const { data: record } = await db
+      .from("siga_attendance_records")
+      .select("session_id")
+      .eq("school_id", membership.schoolId)
+      .eq("id", just.attendance_record_id)
+      .maybeSingle();
+    sessionId = record?.session_id ? String(record.session_id) : null;
+  }
+  const { data: ownSession } = sessionId
+    ? await db
+        .from("siga_attendance_sessions")
+        .select("teacher_id")
+        .eq("school_id", membership.schoolId)
+        .eq("id", sessionId)
+        .maybeSingle()
+    : { data: null };
+  const linked = await resolveUserLinkedEntities(db, membership.schoolId, userId);
+  if (!teacherOwnsAttendanceSession(linked.teacher_id, ownSession?.teacher_id)) {
+    throw new Error(
+      "Só pode decidir justificativas das suas aulas. As restantes são da Direcção ou da Secretaria.",
+    );
+  }
+}
+
+/** Abre o anexo (atestado) de uma justificação, para quem a pode decidir. */
+export const openAttendanceJustificationFile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ justificationId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Não autenticado.");
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: just, error } = await db
+      .from("siga_attendance_justifications")
+      .select("id, session_id, attendance_record_id, file_id")
+      .eq("id", data.justificationId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
+    if (!just?.file_id) throw new Error("Esta justificativa não tem anexo.");
+    await assertMayDecideJustification(db, membership, context.userId, just);
+    return { url: await signChatAttachmentFile(db, membership.schoolId, String(just.file_id)) };
   });
 
 export const reviewAttendanceJustification = createServerFn({ method: "POST" })
@@ -851,35 +938,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
     // A justificação aprovada tira a falta da contagem (e da exclusão por
     // faltas). O professor só decide as das suas próprias aulas; as outras são
     // da Direcção ou da Secretaria.
-    const managesAll = membership.allAppRoles.some(
-      (role) => role === "Administrador" || role === "Secretaria",
-    );
-    if (!managesAll) {
-      let sessionId = just.session_id ? String(just.session_id) : null;
-      if (!sessionId && just.attendance_record_id) {
-        const { data: record } = await db
-          .from("siga_attendance_records")
-          .select("session_id")
-          .eq("school_id", membership.schoolId)
-          .eq("id", just.attendance_record_id)
-          .maybeSingle();
-        sessionId = record?.session_id ? String(record.session_id) : null;
-      }
-      const { data: ownSession } = sessionId
-        ? await db
-            .from("siga_attendance_sessions")
-            .select("teacher_id")
-            .eq("school_id", membership.schoolId)
-            .eq("id", sessionId)
-            .maybeSingle()
-        : { data: null };
-      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (!teacherOwnsAttendanceSession(linked.teacher_id, ownSession?.teacher_id)) {
-        throw new Error(
-          "Só pode decidir justificativas das suas aulas. As restantes são da Direcção ou da Secretaria.",
-        );
-      }
-    }
+    await assertMayDecideJustification(db, membership, context.userId, just);
 
     // Aprovar torna a falta justificada: a pauta oficial já não muda por aqui.
     if (data.status === "approved") {
@@ -904,7 +963,7 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
       }
     }
 
-    const { error: reviewError } = await db
+    const { data: decided, error: reviewError } = await db
       .from("siga_attendance_justifications")
       .update({
         status: data.status,
@@ -912,10 +971,16 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         reviewed_by: context.userId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", just.id);
+      .eq("id", just.id)
+      // Duas pessoas a decidir ao mesmo tempo (uma aprova, outra rejeita): só a
+      // primeira conta. Antes a rejeição gravava-se por cima e a falta ficava
+      // justificada com a justificação «rejeitada».
+      .eq("status", "pending")
+      .select("id");
     if (reviewError) {
       throw publicDatabaseError(reviewError, "Não foi possível registar a decisão.");
     }
+    if (!decided?.length) throw new Error("Esta justificativa já foi decidida.");
 
     if (data.status === "approved" && just.attendance_record_id) {
       const { error: excuseError } = await db

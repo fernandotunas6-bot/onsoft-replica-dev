@@ -23,3 +23,22 @@ describe("prolongar o trial no ADMIN", () => {
     expect(check).toBeLessThan(fn.indexOf('.from("tenants").update(patch)'));
   });
 });
+
+describe("fim do período pago", () => {
+  it("um mês a partir de 31 de Janeiro acaba no fim de Fevereiro", async () => {
+    const { addMonthsClamped } = await import("@/features/saas/platform-ops");
+    const iso = (d: Date) => d.toISOString();
+    expect(iso(addMonthsClamped(new Date("2026-01-31T10:00:00Z"), 1))).toBe(
+      "2026-02-28T10:00:00.000Z",
+    );
+    expect(iso(addMonthsClamped(new Date("2026-01-15T10:00:00Z"), 1))).toBe(
+      "2026-02-15T10:00:00.000Z",
+    );
+    expect(iso(addMonthsClamped(new Date("2026-08-31T10:00:00Z"), 6))).toBe(
+      "2027-02-28T10:00:00.000Z",
+    );
+    expect(iso(addMonthsClamped(new Date("2027-12-31T10:00:00Z"), 12))).toBe(
+      "2028-12-31T10:00:00.000Z",
+    );
+  });
+});
