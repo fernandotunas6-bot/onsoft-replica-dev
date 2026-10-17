@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
  * O número novo é «1» + ano + 4 dígitos (1260001). Lê-se melhor em dois grupos,
  * por isso o «126» (ano) fica em tom mais leve e há um pequeno intervalo antes
  * da ordem: a vista é «126 0001», mas copiar dá «1260001» (o intervalo é
- * margem, não um espaço). `tabular-nums` mantém a coluna alinhada. Números de
+ * margem, não um espaço). Inter com `tabular-nums` (como `MoneyValue`) mantém a
+ * coluna alinhada sem a letra de máquina de escrever do monoespaçado. Números de
  * outros formatos (séries fiscais, antigos por renumerar) aparecem tal como são.
  */
 export type IdentifierKind = "student" | "enrollment" | "document";
@@ -61,7 +62,7 @@ export function IdentifierValue({
       title={title}
       translate="no"
       className={cn(
-        "inline-flex items-baseline whitespace-nowrap font-mono tabular-nums tracking-tight",
+        "inline-flex items-baseline whitespace-nowrap tabular-nums tracking-normal",
         size === "xs" ? "text-xs" : "text-sm",
         variant === "chip" &&
           "rounded-md border border-border/70 bg-muted/50 px-1.5 py-0.5 leading-none",
@@ -70,9 +71,7 @@ export function IdentifierValue({
       {...props}
     >
       {showLabel ? (
-        <span className="mr-1.5 select-none font-sans font-medium text-muted-foreground">
-          {label}
-        </span>
+        <span className="mr-1.5 select-none font-medium text-muted-foreground">{label}</span>
       ) : (
         <span className="sr-only select-none">{label} </span>
       )}
