@@ -7,6 +7,13 @@ import 'gateway.dart';
 import 'identity.dart';
 import 'design.dart';
 import 'academic_page.dart';
+import 'auth_errors.dart';
+import 'captcha.dart';
+import 'captcha_factory.dart';
+
+/// Chave pública do hCaptcha, par da que o portal lê em VITE_HCAPTCHA_SITE_KEY.
+/// Vai no bundle; o segredo fica no Supabase e nunca neste cliente.
+const captchaSiteKey = String.fromEnvironment('HCAPTCHA_SITE_KEY');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -514,16 +521,30 @@ class _SigaAppState extends State<SigaApp> {
   ThemeData theme(Brightness brightness) => sigaTheme(brightness);
 }
 
+/// Entrada por senha. Injectável para que o teste não precise do Auth remoto.
+typedef PasswordSignIn =
+    Future<void> Function({
+      required String email,
+      required String password,
+      String? captchaToken,
+    });
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
     required this.auth,
     required this.onSync,
     this.factor,
+    this.siteKey = captchaSiteKey,
+    this.signIn,
+    this.buildGate = buildCaptchaGate,
   });
   final GoTrueClient auth;
   final Future<void> Function() onSync;
   final String? factor;
+  final String siteKey;
+  final PasswordSignIn? signIn;
+  final CaptchaGate Function(String, VoidCallback) buildGate;
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -534,6 +555,21 @@ class _LoginPageState extends State<LoginPage> {
   final code = TextEditingController();
   bool busy = false;
   String? error;
+  late final CaptchaGate captcha;
+
+  @override
+  void initState() {
+    super.initState();
+    captcha = widget.buildGate(widget.siteKey, () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  /// O desafio só se pode exigir onde é apresentável; onde não é, a recusa do
+  /// servidor é explicada em vez de se enviar um pedido sem sinal.
+  bool get demandsCaptcha =>
+      widget.factor == null && captcha.configured && captcha.supported;
+
   Future<void> submit() async {
     if (busy) return;
     if (widget.factor == null &&
@@ -550,6 +586,12 @@ class _LoginPageState extends State<LoginPage> {
       });
       return;
     }
+    if (demandsCaptcha && captcha.token == null) {
+      setState(() {
+        error = 'Confirme que não é um robô e tente novamente.';
+      });
+      return;
+    }
     final credential = password.text;
     password.clear();
     setState(() {
@@ -563,21 +605,29 @@ class _LoginPageState extends State<LoginPage> {
           code: code.text.trim(),
         );
       } else {
-        await widget.auth.signInWithPassword(
+        final signIn = widget.signIn ?? _authSignIn;
+        await signIn(
           email: email.text.trim(),
           password: credential,
+          captchaToken: captcha.token,
         );
       }
       password.clear();
       code.clear();
       await widget.onSync();
-    } catch (_) {
+    } catch (failure) {
       if (mounted) {
         setState(() {
-          error = 'Verifique os seus dados e tente novamente.';
+          error = authErrorMessage(
+            failure,
+            captchaConfigured: captcha.configured,
+          );
         });
       }
     } finally {
+      // Sinal de uso único: sem reset, a tentativa seguinte reenvia um sinal
+      // gasto e o Auth devolve captcha_failed.
+      if (widget.factor == null) captcha.reset();
       if (mounted) {
         setState(() {
           busy = false;
@@ -586,8 +636,19 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _authSignIn({
+    required String email,
+    required String password,
+    String? captchaToken,
+  }) => widget.auth.signInWithPassword(
+    email: email,
+    password: password,
+    captchaToken: captchaToken,
+  );
+
   @override
   void dispose() {
+    captcha.dispose();
     email.dispose();
     password.dispose();
     code.dispose();
@@ -664,6 +725,28 @@ class _LoginPageState extends State<LoginPage> {
                         prefixIcon: Icon(Icons.lock_outline),
                       ),
                     ),
+                    if (demandsCaptcha) ...[
+                      const SizedBox(height: 16),
+                      Builder(
+                        builder: (context) =>
+                            captcha.build(context) ?? const SizedBox.shrink(),
+                      ),
+                    ] else if (!captcha.configured) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'A verificação anti-robô pode estar activa no servidor '
+                        'e não está configurada nesta aplicação: o pedido '
+                        'seguirá sem sinal e pode ser recusado. Avise a '
+                        'administração: falta HCAPTCHA_SITE_KEY.',
+                      ),
+                    ] else if (!captcha.supported) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Este alvo ainda não apresenta a verificação '
+                        'anti-robô. Enquanto a protecção estiver activa no '
+                        'servidor, use o portal original para entrar.',
+                      ),
+                    ],
                   ],
                   const SizedBox(height: 24),
                   FilledButton(

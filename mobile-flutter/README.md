@@ -33,8 +33,14 @@ Flutter 3.35.7 / Dart 3.9.2:
 flutter pub get
 flutter analyze
 flutter test
-flutter run -d chrome --dart-define=SUPABASE_URL=<url-do-SGA> --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-publica>
+flutter run -d chrome --dart-define=SUPABASE_URL=<url-do-SGA> --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-publica> --dart-define=HCAPTCHA_SITE_KEY=<chave-do-site>
 ```
+
+`HCAPTCHA_SITE_KEY` é a chave pública par de `VITE_HCAPTCHA_SITE_KEY` no portal
+e do segredo guardado no Supabase. O projecto tem `security_captcha_enabled`:
+sem este sinal o `/auth/v1/token` recusa antes de olhar para a senha. Sem a
+chave o login apresenta o aviso de configuração em falta em vez de acusar os
+dados da pessoa.
 
 As duas definições são públicas; nunca incluir service_role ou segredos de
 servidor. A validação CI compila sem configurações de produção e mostra um
@@ -115,3 +121,43 @@ catálogo existente montados no Worker de staging local; guardas de transporte
 e integrações em backend/. 20 testes Node executados e aprovados. Não confundir
 com Flutter/Worker compilados ou Supabase remoto validado. O ZIP inclui os dois
 ficheiros de integração no repositório, além do cliente e backend isolado.
+
+
+## Incremento 5 — captcha e recusas do Auth (17/10/2026)
+
+**Validação executada neste ambiente**, pela primeira vez: SDK Flutter 3.35.7 /
+Dart 3.9.2 instalado, `flutter pub get` (85 dependências), `dart format`,
+`flutter analyze` sem problemas, `flutter test` com 19 testes aprovados,
+`flutter build web --release --no-web-resources-cdn --pwa-strategy=none`
+concluído e 28 testes Node em `backend/` aprovados. `pubspec.lock` fixado.
+
+Corrigido um bloqueio real: o cliente chamava `signInWithPassword` sem
+`captcha_token`. Com `security_captcha_enabled` activa no projecto Supabase, o
+`/auth/v1/token` recusa antes de olhar para a senha e a interface mostrava
+«verifique os seus dados» — a mesma confusão que o portal React documenta em
+`AuthCaptcha.tsx`. Agora: desafio hCaptcha com render explícito na Web
+(`lib/captcha_web.dart`), sinal de uso único com `reset()` após cada tentativa,
+recusa do Auth traduzida por código em `lib/auth_errors.dart` com as mensagens
+do `mapSignInError` do portal, e estado explícito quando falta a chave ou o
+alvo não apresenta o desafio (Android/iOS precisam de WebView próprio, não
+empacotado). Nenhum pedido segue sem sinal onde o desafio é apresentável.
+
+**Não validado:** nenhuma entrada real foi feita contra o SGA de produção; o
+desafio hCaptcha não foi exercido num browser com chave verdadeira. ID/B.I.,
+recuperação, OAuth e passkeys continuam pendentes — dependem de contrato móvel
+que não existe nesta cópia do repositório (ver abaixo).
+
+## Limite do repositório: o servidor Mobile V4 não está aqui
+
+O cliente consome `/api/mobile-v4/...`, mas `src/features/mobile-v4/` —
+`session-core.server.ts`, `academic-catalog.server.ts`, `results.server.ts`,
+`notifications.server.ts`, `chat.server.ts`, `http.server.ts` — não existe
+nesta checkout nem em nenhum commit do histórico desta cópia, e o mesmo vale
+para `mobile-v4/deployment/domain-worker.mjs` e para o worker de staging onde
+`backend/api.ts` diz estar montado. Os contratos citados na auditoria não são
+verificáveis a partir deste repositório. O que é verificável aqui, e foi lido:
+`src/features/access/bi-login.ts` (resolvedor B.I. e `passwordGrant`),
+`src/features/access/server.ts` (`signInWithIdentifierFn`, limites por IP e por
+conta) e `src/components/auth/AuthCaptcha.tsx`. Páginas de notas, avisos e chat
+completo exigem esses contratos: implementá-las aqui obrigaria a inventar
+nomes de campos, e um catálogo inventado falha em silêncio contra a API real.
