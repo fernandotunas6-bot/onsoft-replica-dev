@@ -64,6 +64,7 @@ jobs:
       SUPABASE_URL: ${{ vars.SIGA_SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SIGA_SUPABASE_PUBLISHABLE_KEY }}
       SIGA_API_ORIGIN: ${{ vars.SIGA_API_ORIGIN }}
+      SIGA_PORTAL_URL: ${{ vars.SIGA_PORTAL_URL }}
       SIGA_GOOGLE_LOGIN: ${{ vars.SIGA_GOOGLE_LOGIN }}
       SIGA_MICROSOFT_LOGIN: ${{ vars.SIGA_MICROSOFT_LOGIN }}
       SIGA_APPLE_LOGIN: ${{ vars.SIGA_APPLE_LOGIN }}
@@ -85,7 +86,7 @@ jobs:
       - name: .env a partir de .env.example e das variáveis do repositório
         run: |
           cp .env.example .env
-          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SIGA_API_ORIGIN \
+          for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SIGA_API_ORIGIN SIGA_PORTAL_URL \
             SIGA_GOOGLE_LOGIN SIGA_MICROSOFT_LOGIN SIGA_APPLE_LOGIN SIGA_AUTH_REDIRECT; do
             value="${!key}"
             if [ -n "$value" ]; then
@@ -94,7 +95,7 @@ jobs:
             fi
           done
           node scripts/check-env.mjs .env
-          grep -E '^(SUPABASE_URL|SIGA_API_ORIGIN|SIGA_[A-Z]+_LOGIN)=' .env
+          grep -E '^(SUPABASE_URL|SIGA_API_ORIGIN|SIGA_PORTAL_URL|SIGA_[A-Z]+_LOGIN)=' .env
       - run: flutter pub get
       - name: APK de demonstração (dados fictícios, sem servidor)
         run: |

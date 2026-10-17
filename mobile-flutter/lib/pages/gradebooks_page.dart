@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../academic.dart';
+import '../design/portal.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../gateway.dart';
@@ -101,11 +102,9 @@ class _GradebooksPageState extends State<GradebooksPage> {
               ),
             ),
         ],
-        const SizedBox(height: Siga.s2),
-        Text(
-          'Consulta das pautas do SIGA. Lançar e alterar notas faz-se no '
-          'portal.',
-          style: Theme.of(context).textTheme.bodySmall,
+        const PortalHint(
+          'Lançar e alterar notas, submeter e fechar pautas faz-se no portal '
+          'SIGA Plus ou no desktop.',
         ),
       ];
       return RefreshIndicator(
@@ -406,11 +405,15 @@ class _GradebookDetailPageState extends State<GradebookDetailPage> {
                 );
               }(),
           ],
-          const SizedBox(height: Siga.s2),
+          const SizedBox(height: Siga.s1),
           Text(
             'Notas abaixo de metade da escala a vermelho; cadeado nas já '
-            'bloqueadas. Lançar e alterar notas faz-se no portal.',
+            'bloqueadas.',
             style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const PortalHint(
+            'Para lançar ou corrigir notas desta pauta, use o portal SIGA Plus '
+            'ou o desktop.',
           ),
         ],
       ),

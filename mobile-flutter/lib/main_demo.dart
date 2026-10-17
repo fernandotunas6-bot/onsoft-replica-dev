@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'academic_page.dart';
 import 'demo/demo_data.dart';
 import 'design/floating_nav.dart';
+import 'design/portal.dart';
 import 'design/tokens.dart';
 import 'design/widgets.dart' show ActivityScope;
 import 'identity.dart';
@@ -403,7 +404,8 @@ class _DemoAppState extends State<DemoApp> {
               child: AppearanceScope(
                 backdrop: backdrop,
                 modernIcons: modernIcons,
-                child: child!,
+                // Sem portal na demonstração: o botão explica onde ir.
+                child: PortalScope(url: null, child: child!),
               ),
             ),
           ),

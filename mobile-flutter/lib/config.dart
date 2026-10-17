@@ -15,7 +15,13 @@ class AppConfig {
     required this.authRedirect,
     this.microsoftLogin = false,
     this.appleLogin = false,
+    this.portalUrl,
   });
+
+  /// Portal SIGA Plus web, para o trabalho que não se faz na app (lançar
+  /// notas, editar planos, pedidos…). Só HTTPS; sem valor, a app explica
+  /// sem botão.
+  final Uri? portalUrl;
 
   final String supabaseUrl;
   final String publishableKey;
@@ -40,7 +46,12 @@ class AppConfig {
     required Uri base,
     String microsoftLogin = '',
     String appleLogin = '',
+    String portalUrl = '',
   }) => AppConfig(
+    portalUrl: switch (Uri.tryParse(portalUrl.trim())) {
+      final Uri uri when uri.scheme == 'https' && uri.host.isNotEmpty => uri,
+      _ => null,
+    },
     supabaseUrl: supabaseUrl.trim(),
     publishableKey: publishableKey.trim(),
     apiOrigin: resolveApiOrigin(apiOrigin.trim(), web: web, base: base),
@@ -65,6 +76,7 @@ class AppConfig {
         authRedirect: const String.fromEnvironment('SIGA_AUTH_REDIRECT'),
         microsoftLogin: const String.fromEnvironment('SIGA_MICROSOFT_LOGIN'),
         appleLogin: const String.fromEnvironment('SIGA_APPLE_LOGIN'),
+        portalUrl: const String.fromEnvironment('SIGA_PORTAL_URL'),
         web: web,
         base: base,
       );

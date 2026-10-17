@@ -7,6 +7,7 @@ const allowed = new Set([
   "SUPABASE_URL",
   "SUPABASE_PUBLISHABLE_KEY",
   "SIGA_API_ORIGIN",
+  "SIGA_PORTAL_URL",
   "SIGA_GOOGLE_LOGIN",
   "SIGA_MICROSOFT_LOGIN",
   "SIGA_APPLE_LOGIN",
@@ -41,7 +42,7 @@ export function checkEnv(text) {
     !values.SUPABASE_PUBLISHABLE_KEY.startsWith("sb_publishable_")
   )
     problems.push("SUPABASE_PUBLISHABLE_KEY: tem de começar por sb_publishable_");
-  for (const key of ["SUPABASE_URL", "SIGA_API_ORIGIN"])
+  for (const key of ["SUPABASE_URL", "SIGA_API_ORIGIN", "SIGA_PORTAL_URL"])
     if (values[key] && !values[key].startsWith("https://"))
       problems.push(`${key}: tem de ser https://`);
   return problems;

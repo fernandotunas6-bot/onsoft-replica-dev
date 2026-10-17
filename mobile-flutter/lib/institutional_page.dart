@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'design/portal.dart';
 import 'design/tokens.dart';
 import 'design/widgets.dart';
 import 'gateway.dart';
@@ -254,16 +255,23 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
     }
   }
 
+  /// O que, a partir desta consulta, se faz no portal.
+  String? get portal => switch (widget.collection) {
+    'finance' =>
+      'Pagar propinas e obter referências faz-se no portal SIGA Plus '
+          '(Payflow) ou na tesouraria.',
+    'documents' =>
+      'Novos pedidos de documentos fazem-se no portal SIGA Plus ou na '
+          'secretaria.',
+    _ => null,
+  };
+
   String? get note => switch (widget.collection) {
     'notifications' =>
       'Sincronizado com o SIGA: toque num aviso novo para o marcar como '
           'lido, aqui e no portal.',
     'finance' =>
-      'Consulta de facturas e recibos. Pagamento e reconciliação permanecem '
-          'no Payflow; o valor base não representa o saldo em dívida.',
-    'documents' =>
-      'Consulta de pedidos. Novos pedidos são tratados no portal ou na '
-          'secretaria.',
+      'O valor base de cada factura não representa o saldo em dívida.',
     _ => null,
   };
 
@@ -318,6 +326,7 @@ class _InstitutionalPageState extends State<InstitutionalPage> {
               const SizedBox(height: Siga.s2),
               Text(note!, style: Theme.of(context).textTheme.bodySmall),
             ],
+            if (portal != null) PortalHint(portal!),
           ],
         ),
       );

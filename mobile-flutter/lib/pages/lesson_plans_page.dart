@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../academic.dart';
+import '../design/portal.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../gateway.dart';
@@ -195,11 +196,9 @@ class _LessonPlansPageState extends State<LessonPlansPage> {
               ),
             ),
         ],
-        const SizedBox(height: Siga.s2),
-        Text(
-          'Consulta dos planos do SIGA. Criar e editar planos faz-se no '
-          'portal.',
-          style: Theme.of(context).textTheme.bodySmall,
+        const PortalHint(
+          'Criar e editar planos, componentes e anexos faz-se no portal SIGA '
+          'Plus ou no desktop.',
         ),
       ];
       return RefreshIndicator(

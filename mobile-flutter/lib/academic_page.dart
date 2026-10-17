@@ -109,10 +109,29 @@ class _DataPageState extends State<DataPage> {
     super.dispose();
   }
 
+  /// Professor, no início: chamadas por fechar dos últimos 14 dias.
+  Future<int>? pendingCalls;
+
   void load() {
     data = widget.gateway.read(
       widget.path == '/messages' ? 'chat' : 'academic',
     );
+    if (widget.path == '/home' && widget.gateway.role == 'professor') {
+      final today = luandaClock(DateTime.now());
+      String day(DateTime d) =>
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
+      pendingCalls = widget.gateway
+          .attendanceBetween(
+            day(today.subtract(const Duration(days: 13))),
+            day(today),
+          )
+          .then(
+            (r) => (r['sessions'] as List)
+                .where((s) => s is Map && s['status'] == 'pending')
+                .length,
+          );
+    }
   }
 
   bool matches(String value) => value.toLowerCase().contains(query);
@@ -481,6 +500,38 @@ class _DataPageState extends State<DataPage> {
             ],
           ),
         ),
+      if (pendingCalls != null)
+        FutureBuilder<int>(
+          future: pendingCalls,
+          builder: (context, snapshot) {
+            final count = snapshot.data ?? 0;
+            if (count == 0) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: Siga.s1),
+              child: SigaCard(
+                onTap: () => context.go('/more/absences'),
+                child: Row(
+                  children: [
+                    const IconBadge(
+                      FluentIcons.clipboard_task_24_regular,
+                      accent: true,
+                    ),
+                    const SizedBox(width: Siga.s2),
+                    Expanded(
+                      child: Text(
+                        count == 1
+                            ? '1 chamada por fechar nos últimos 14 dias'
+                            : '$count chamadas por fechar nos últimos 14 dias',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Icon(FluentIcons.chevron_right_24_regular, size: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       SectionHeader(
         'Disciplinas',
         action: 'Ver todas',
@@ -511,6 +562,10 @@ class _DataPageState extends State<DataPage> {
     final subject = catalog.classes.firstWhere(
       (c) => c['classSubjectId'] == next['classSubjectId'],
     );
+    final teaches =
+        widget.gateway.role == 'professor' &&
+        subject['teacher'] is Map &&
+        (subject['teacher'] as Map)['userId'] == widget.gateway.userId;
     return SigaCard(
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
@@ -551,14 +606,17 @@ class _DataPageState extends State<DataPage> {
                       ),
                     ),
                     FilledButton(
-                      onPressed: () => subjectDetail(subject, catalog),
+                      // Professor da disciplina: a rotina é a chamada.
+                      onPressed: teaches
+                          ? () => takeAttendance([subject])
+                          : () => subjectDetail(subject, catalog),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(76, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(Siga.rSmall),
                         ),
                       ),
-                      child: const Text('Entrar'),
+                      child: Text(teaches ? 'Chamada' : 'Entrar'),
                     ),
                   ],
                 ),

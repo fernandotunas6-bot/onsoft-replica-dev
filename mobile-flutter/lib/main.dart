@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'academic_page.dart';
 import 'config.dart';
 import 'design/floating_nav.dart';
+import 'design/portal.dart';
 import 'design/tokens.dart';
 import 'design/widgets.dart' show ActivityScope;
 import 'gateway.dart';
@@ -696,7 +697,7 @@ class _SigaAppState extends State<SigaApp> {
       child: AppearanceScope(
         backdrop: backdrop,
         modernIcons: modernIcons,
-        child: child!,
+        child: PortalScope(url: widget.config.portalUrl, child: child!),
       ),
     ),
   );

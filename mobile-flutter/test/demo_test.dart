@@ -25,13 +25,8 @@ void main() {
     await tester.tap(find.text('Mais').last);
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(find.text('Serviços escolares'), findsOneWidget);
-    for (final tile in [
-      'WhatsApp',
-      'Google',
-      'Propinas',
-      'Biblioteca',
-      'Notas',
-    ]) {
+    // Aluno: a rotina em mosaicos, depois as consultas.
+    for (final tile in ['Do dia a dia', 'Tarefas', 'Faltas', 'Notas']) {
       expect(find.text(tile), findsOneWidget, reason: tile);
     }
     await tester.tap(find.text('Mensagens').last);

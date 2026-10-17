@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import '../academic.dart';
+import '../design/portal.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 import '../gateway.dart';
@@ -229,7 +230,6 @@ class _AbsencesPageState extends State<AbsencesPage> {
   // ───────── Professor ─────────
 
   List<Widget> teacher(AcademicCatalog catalog, Map<String, dynamic> day) {
-    final palette = SigaPalette.of(context);
     final mine = {
       for (final c in catalog.classes)
         if (c['teacher'] is Map &&
@@ -320,11 +320,9 @@ class _AbsencesPageState extends State<AbsencesPage> {
                 : null,
           );
         }(),
-      const SizedBox(height: Siga.s2),
-      Text(
-        'Chamadas por fechar de dias passados abrem-se aqui. Correcções a '
-        'chamadas fechadas fazem-se no portal.',
-        style: TextStyle(fontSize: 12, color: palette.ink2),
+      const PortalHint(
+        'Chamadas por fechar abrem-se aqui. Correcções a chamadas fechadas '
+        'fazem-se no portal SIGA Plus ou no desktop.',
       ),
     ];
   }

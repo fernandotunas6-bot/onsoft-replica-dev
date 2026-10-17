@@ -78,11 +78,20 @@ node scripts/check-env.mjs .env # recusa segredos
 flutter build apk --release --dart-define-from-file=.env
 ```
 
+## Âmbito da app
+
+A app é para a rotina de alunos e professores (aula do dia, chamada, tarefas,
+horário, faltas, mensagens, avisos e consultas). Trabalho complexo — lançar e
+alterar notas, editar planos, criar tarefas, corrigir chamadas fechadas,
+pedidos de documentos e pagamentos — faz-se no portal SIGA Plus web
+(`SIGA_PORTAL_URL`) ou no aplicativo desktop; a secção «No portal SIGA Plus»
+dos Serviços explica cada caso e abre o portal.
+
 ## Configuração (.env)
 
 O `.env` (fora do Git) só leva valores públicos, porque fica legível dentro do
-APK: URL e chave `sb_publishable_` do Supabase, origem da API e os
-interruptores de login social. A senha da base de dados, a chave
+APK: URL e chave `sb_publishable_` do Supabase, origem da API, o endereço do
+portal web (`SIGA_PORTAL_URL`) e os interruptores de login social. A senha da base de dados, a chave
 `service_role`/`sb_secret_` e a senha do Gmail/SMTP ficam só no servidor
 (segredos do Supabase e do Cloudflare); `check-env.mjs` recusa-as.
 

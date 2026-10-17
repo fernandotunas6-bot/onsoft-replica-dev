@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import '../design/portal.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
 
@@ -157,6 +158,16 @@ class SideMenu extends StatelessWidget {
               for (final (label, icon, path) in items)
                 MenuRow(icon: icon, title: label, onTap: () => go(path)),
               const SizedBox(height: Siga.s1),
+              MenuRow(
+                icon: FluentIcons.desktop_24_regular,
+                title: 'Portal SIGA Plus',
+                subtitle: 'Trabalho complexo, no web ou desktop',
+                trailing: const Icon(FluentIcons.open_24_regular, size: 18),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  openPortal(context);
+                },
+              ),
               MenuRow(
                 icon: i(
                   FluentIcons.weather_moon_24_regular,
