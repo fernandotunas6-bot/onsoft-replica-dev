@@ -147,6 +147,24 @@ desafio hCaptcha não foi exercido num browser com chave verdadeira. ID/B.I.,
 recuperação, OAuth e passkeys continuam pendentes — dependem de contrato móvel
 que não existe nesta cópia do repositório (ver abaixo).
 
+## Incremento 5 — login por B.I., telefone ou e-mail
+
+`lib/identity_login.dart` fala com `POST /api/mobile-v4/auth/identifier`
+(contrato e garantias em docs/BACKEND.md) e instala a sessão pelo refresh
+token devolvido, deixando a renovação ao SDK. O formulário ganha um selector
+E-mail / B.I. ou telefone, valida o identificador antes de gastar o limite do
+servidor e traduz `CAPTCHA_REQUIRED`, `INVALID_CREDENTIALS`, `RATE_LIMITED` e
+`SERVICE_UNAVAILABLE` pelas mensagens do portal. Um 200 sem sessão utilizável
+não é tratado como entrada.
+
+A opção só aparece com `--dart-define=IDENTIFIER_LOGIN=true`: o endpoint não
+está montado em nenhum Worker publicado, e oferecer um caminho que devolve 404
+seria pior do que não o oferecer. Recuperação de senha, OAuth e passkeys
+continuam pendentes.
+
+28 testes Dart e 39 testes Node executados e aprovados neste ambiente; nenhuma
+entrada real contra o SGA de produção foi feita.
+
 ## Limite do repositório: o servidor Mobile V4 não está aqui
 
 O cliente consome `/api/mobile-v4/...`, mas `src/features/mobile-v4/` —

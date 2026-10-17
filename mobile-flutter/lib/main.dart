@@ -10,6 +10,12 @@ import 'academic_page.dart';
 import 'auth_errors.dart';
 import 'captcha.dart';
 import 'captcha_factory.dart';
+import 'identity_login.dart';
+
+/// O endpoint móvel de login por B.I. (backend/identity.ts) ainda não está
+/// montado no Worker publicado. Sem esta definição a aplicação não oferece a
+/// opção, em vez de a apresentar e falhar com 404 na mão da pessoa.
+const identifierLoginEnabled = bool.fromEnvironment('IDENTIFIER_LOGIN');
 
 /// Chave pública do hCaptcha, par da que o portal lê em VITE_HCAPTCHA_SITE_KEY.
 /// Vai no bundle; o segredo fica no Supabase e nunca neste cliente.
@@ -529,6 +535,14 @@ typedef PasswordSignIn =
       String? captchaToken,
     });
 
+/// Entrada por B.I., telefone ou e-mail, resolvida pelo servidor.
+typedef IdentifierSignIn =
+    Future<void> Function({
+      required String identifier,
+      required String password,
+      String? captchaToken,
+    });
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
@@ -537,6 +551,8 @@ class LoginPage extends StatefulWidget {
     this.factor,
     this.siteKey = captchaSiteKey,
     this.signIn,
+    this.signInWithIdentifier,
+    this.allowIdentifier = identifierLoginEnabled,
     this.buildGate = buildCaptchaGate,
   });
   final GoTrueClient auth;
@@ -544,6 +560,8 @@ class LoginPage extends StatefulWidget {
   final String? factor;
   final String siteKey;
   final PasswordSignIn? signIn;
+  final IdentifierSignIn? signInWithIdentifier;
+  final bool allowIdentifier;
   final CaptchaGate Function(String, VoidCallback) buildGate;
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -551,11 +569,14 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final email = TextEditingController();
+  final identifier = TextEditingController();
   final password = TextEditingController();
   final code = TextEditingController();
   bool busy = false;
+  bool byIdentifier = false;
   String? error;
   late final CaptchaGate captcha;
+  late final IdentityLogin identityLogin = IdentityLogin(Uri.base);
 
   @override
   void initState() {
@@ -572,10 +593,27 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> submit() async {
     if (busy) return;
-    if (widget.factor == null &&
-        (email.text.trim().isEmpty || password.text.isEmpty)) {
+    if (widget.factor == null && password.text.isEmpty) {
+      setState(() {
+        error = byIdentifier
+            ? 'Preencha o identificador e a senha.'
+            : 'Preencha o e-mail e a senha.';
+      });
+      return;
+    }
+    if (widget.factor == null && !byIdentifier && email.text.trim().isEmpty) {
       setState(() {
         error = 'Preencha o e-mail e a senha.';
+      });
+      return;
+    }
+    // O servidor exige pelo menos três caracteres; recusar aqui evita gastar
+    // o limite por endereço com um pedido que nunca poderia entrar.
+    if (widget.factor == null &&
+        byIdentifier &&
+        identifier.text.trim().length < 3) {
+      setState(() {
+        error = 'Introduza o seu número de B.I., telefone ou e-mail.';
       });
       return;
     }
@@ -603,6 +641,13 @@ class _LoginPageState extends State<LoginPage> {
         await widget.auth.mfa.challengeAndVerify(
           factorId: widget.factor!,
           code: code.text.trim(),
+        );
+      } else if (byIdentifier) {
+        final signIn = widget.signInWithIdentifier ?? _identifierSignIn;
+        await signIn(
+          identifier: identifier.text.trim(),
+          password: credential,
+          captchaToken: captcha.token,
         );
       } else {
         final signIn = widget.signIn ?? _authSignIn;
@@ -636,6 +681,21 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// O servidor cria a sessão; o SDK instala-a a partir do refresh token e
+  /// passa a ser dono da renovação, como no login por e-mail.
+  Future<void> _identifierSignIn({
+    required String identifier,
+    required String password,
+    String? captchaToken,
+  }) async {
+    final token = await identityLogin.refreshToken(
+      identifier: identifier,
+      password: password,
+      captchaToken: captchaToken,
+    );
+    await widget.auth.setSession(token);
+  }
+
   Future<void> _authSignIn({
     required String email,
     required String password,
@@ -649,6 +709,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void dispose() {
     captcha.dispose();
+    identityLogin.dispose();
+    identifier.dispose();
     email.dispose();
     password.dispose();
     code.dispose();
@@ -706,15 +768,50 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     )
                   else ...[
-                    TextField(
-                      controller: email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.username],
-                      decoration: const InputDecoration(
-                        labelText: 'E-mail institucional',
-                        prefixIcon: Icon(Icons.mail_outline),
+                    if (widget.allowIdentifier) ...[
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: false,
+                            icon: Icon(Icons.mail_outline),
+                            label: Text('E-mail'),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            icon: Icon(Icons.badge_outlined),
+                            label: Text('B.I. ou telefone'),
+                          ),
+                        ],
+                        selected: {byIdentifier},
+                        onSelectionChanged: busy
+                            ? null
+                            : (selection) => setState(() {
+                                byIdentifier = selection.first;
+                                error = null;
+                              }),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (byIdentifier)
+                      TextField(
+                        controller: identifier,
+                        keyboardType: TextInputType.text,
+                        autofillHints: const [AutofillHints.username],
+                        decoration: const InputDecoration(
+                          labelText: 'N.º de B.I., telefone ou e-mail',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                      )
+                    else
+                      TextField(
+                        controller: email,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.username],
+                        decoration: const InputDecoration(
+                          labelText: 'E-mail institucional',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: password,

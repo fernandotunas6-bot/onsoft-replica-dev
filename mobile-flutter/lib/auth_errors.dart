@@ -33,6 +33,7 @@ String authErrorMessage(Object error, {required bool captchaConfigured}) {
   }
   if (value.contains('too many requests') ||
       value.contains('rate limit') ||
+      value.contains('rate_limited') ||
       value.contains('over_request_rate_limit') ||
       value.contains('429')) {
     return 'Demasiadas tentativas. Aguarde um momento e tente outra vez.';

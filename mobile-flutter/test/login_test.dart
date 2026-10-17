@@ -43,6 +43,8 @@ Future<void> pump(
   WidgetTester tester,
   FakeGate gate, {
   PasswordSignIn? signIn,
+  IdentifierSignIn? signInWithIdentifier,
+  bool allowIdentifier = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -52,6 +54,8 @@ Future<void> pump(
         siteKey: gate.configured ? 'chave-publica-de-teste' : '',
         buildGate: (_, _) => gate,
         signIn: signIn,
+        signInWithIdentifier: signInWithIdentifier,
+        allowIdentifier: allowIdentifier,
       ),
     ),
   );
@@ -121,5 +125,64 @@ void main() {
     await pump(tester, FakeGate(supported: false));
     expect(find.textContaining('portal original'), findsOneWidget);
     expect(find.text('desafio'), findsNothing);
+  });
+
+  testWidgets('the B.I. option only appears where the endpoint is mounted', (
+    tester,
+  ) async {
+    await pump(tester, FakeGate(value: 'sinal'));
+    expect(find.text('B.I. ou telefone'), findsNothing);
+    await pump(tester, FakeGate(value: 'sinal'), allowIdentifier: true);
+    expect(find.text('B.I. ou telefone'), findsOneWidget);
+  });
+
+  testWidgets('the identifier travels to the server, never an e-mail guess', (
+    tester,
+  ) async {
+    String? sentIdentifier;
+    var passwordCalls = 0;
+    await pump(
+      tester,
+      FakeGate(value: 'sinal'),
+      allowIdentifier: true,
+      signIn: ({required email, required password, captchaToken}) async =>
+          passwordCalls++,
+      signInWithIdentifier:
+          ({required identifier, required password, captchaToken}) async {
+            sentIdentifier = identifier;
+          },
+    );
+    await tester.tap(find.text('B.I. ou telefone'));
+    await tester.pump();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), ' 003456789LA042 ');
+    await tester.enterText(fields.at(1), 'senha-de-teste');
+    await submit(tester);
+    await tester.pumpAndSettle();
+    expect(sentIdentifier, '003456789LA042');
+    expect(passwordCalls, 0);
+  });
+
+  testWidgets('a short identifier does not spend the server allowance', (
+    tester,
+  ) async {
+    var calls = 0;
+    await pump(
+      tester,
+      FakeGate(value: 'sinal'),
+      allowIdentifier: true,
+      signInWithIdentifier:
+          ({required identifier, required password, captchaToken}) async =>
+              calls++,
+    );
+    await tester.tap(find.text('B.I. ou telefone'));
+    await tester.pump();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'ab');
+    await tester.enterText(fields.at(1), 'senha-de-teste');
+    await submit(tester);
+    await tester.pump();
+    expect(calls, 0);
+    expect(find.textContaining('número de B.I.'), findsOneWidget);
   });
 }
