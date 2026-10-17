@@ -41,6 +41,7 @@ const COMPLETO = {
   profiles: 1,
   school_memberships: 1,
   member_roles: 1,
+  role_permissions: 120,
   roles: 8,
 };
 
@@ -56,6 +57,7 @@ describe("findProvisioningGaps", () => {
       profiles: "perfil do administrador",
       school_memberships: "membership activa",
       member_roles: "papel atribuído",
+      role_permissions: "permissões dos papéis",
     };
 
     for (const [tabela, peca] of Object.entries(esperado)) {

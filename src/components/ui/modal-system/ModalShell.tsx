@@ -66,15 +66,15 @@ export function ModalShell({
       onOpenChange={(next) => (next ? onOpenChange(true) : handleRequestClose())}
     >
       <DialogPrimitive.Portal>
-        {/* Backdrop escuro com blur suave */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0" />
+        {/* Véu discreto, sem desfocar o conteúdo da página */}
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0" />
 
         <DialogPrimitive.Content
           onPointerDownOutside={handlePointerDownOutside}
           onEscapeKeyDown={handleEscapeKeyDown}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 flex max-h-[92dvh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-xl border border-border bg-card p-0 shadow-xl duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:zoom-out-95 motion-safe:data-[state=open]:zoom-in-95 focus:outline-hidden sm:w-full",
+            "fixed left-1/2 top-1/2 z-50 flex max-h-[92dvh] w-[calc(100%-32px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-[20px] border border-border bg-card p-0 shadow-xl duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out motion-safe:data-[state=closed]:fade-out-0 motion-safe:data-[state=open]:fade-in-0 motion-safe:data-[state=closed]:zoom-out-95 motion-safe:data-[state=open]:zoom-in-95 focus:outline-hidden",
             sizeClasses[size],
             className,
           )}
@@ -87,8 +87,8 @@ export function ModalShell({
       {showUnsavedWarning && (
         <DialogPrimitive.Root open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
           <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-xs" />
-            <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[80] max-h-[92dvh] overflow-y-auto w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4">
+            <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-black/50" />
+            <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[80] max-h-[92dvh] overflow-y-auto w-[calc(100%-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-border bg-card p-5 shadow-2xl space-y-4">
               <div className="space-y-1.5 text-left">
                 <DialogPrimitive.Title className="font-semibold text-[16px] lg:text-sm text-foreground">
                   Alterações não guardadas

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { DebouncedSearchInput } from "@/components/filters/debounced-search-input";
 
 const selectClass =
-  "h-9 rounded-md border border-input bg-background px-3 text-xs md:text-sm text-foreground";
+  "h-[44px] w-full min-w-0 rounded-xl border border-input bg-background px-3 text-[16px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-[14px]";
 
 export type ListFilterOption = { value: string; label: string };
 
@@ -40,9 +40,7 @@ export function ListFilterBar({
   className?: string;
 }) {
   return (
-    <div
-      className={cn("rounded-lg border border-border bg-card p-3 sm:p-3.5 shadow-soft", className)}
-    >
+    <div className={cn("rounded-2xl border border-border bg-card p-3 sm:p-4", className)}>
       <div className="flex flex-wrap items-end gap-2">
         {fields.map((field) => {
           const value = values[field.name] ?? "";
@@ -50,14 +48,14 @@ export function ListFilterBar({
             return (
               <label
                 key={field.name}
-                className="space-y-1 text-xs font-semibold text-muted-foreground"
+                className="flex min-w-0 flex-[1_1_100%] sm:flex-[1_1_140px] flex-col gap-1.5 text-[12px] font-medium text-muted-foreground"
               >
                 {field.label ?? "\u00a0"}
                 <select
                   value={value}
                   onChange={(event) => onChange(field.name, event.target.value)}
                   aria-label={field["aria-label"] ?? field.label ?? field.name}
-                  className={cn(selectClass, "min-w-[140px]")}
+                  className={selectClass}
                 >
                   {(field.options ?? []).map((option) => (
                     <option key={option.value} value={option.value}>
@@ -72,7 +70,7 @@ export function ListFilterBar({
             return (
               <label
                 key={field.name}
-                className="space-y-1 text-xs font-semibold text-muted-foreground"
+                className="flex min-w-0 flex-[1_1_100%] sm:flex-[1_1_140px] flex-col gap-1.5 text-[12px] font-medium text-muted-foreground"
               >
                 {field.label ?? "Data"}
                 <Input
@@ -80,7 +78,7 @@ export function ListFilterBar({
                   value={value}
                   onChange={(event) => onChange(field.name, event.target.value)}
                   aria-label={field["aria-label"] ?? field.label ?? field.name}
-                  className="h-9 w-[10.5rem]"
+                  className="h-[44px] w-full min-w-0 rounded-xl text-[16px] lg:min-h-[44px] lg:text-[14px]"
                 />
               </label>
             );
@@ -95,7 +93,13 @@ export function ListFilterBar({
           );
         })}
         {extras}
-        <Button variant="ghost" size="sm" onClick={onReset} disabled={!activeCount}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="min-h-[44px] text-[13px]"
+          onClick={onReset}
+          disabled={!activeCount}
+        >
           Limpar{activeCount ? ` (${activeCount})` : ""}
         </Button>
       </div>
@@ -106,10 +110,12 @@ export function ListFilterBar({
               key={chip.name}
               type="button"
               onClick={() => onChange(chip.name, chip.emptyValue ?? "")}
-              className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+              className="inline-flex min-h-[44px] max-w-full items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-left text-[12px] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {chip.label}: {chip.value}
-              <X className="size-3" />
+              <span className="min-w-0 break-words">
+                {chip.label}: {chip.value}
+              </span>
+              <X className="size-[16px] shrink-0" aria-hidden />
             </button>
           ))}
         </div>

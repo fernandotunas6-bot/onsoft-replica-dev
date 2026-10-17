@@ -59,7 +59,7 @@ export function MoreHub({
         description={currentUser.schoolName ?? undefined}
         onClose={() => onOpenChange(false)}
       />
-      <div className="shrink-0 px-4 pb-3">
+      <div className="shrink-0 px-5 pb-4">
         <MobileSearch value={query} onChange={setQuery} placeholder="Procurar módulo…" delay={80} />
       </div>
       <BottomSheetBody className="pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
@@ -67,7 +67,7 @@ export function MoreHub({
           <div className="space-y-5">
             {filtered.map((group) => (
               <section key={group.title}>
-                <h3 className="px-1 pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <h3 className="px-1 pb-2 text-[12px] font-medium leading-[20px] text-muted-foreground">
                   {group.title}
                 </h3>
                 <ul className="overflow-hidden rounded-xl border border-border bg-card">
@@ -82,14 +82,16 @@ export function MoreHub({
                           to={item.to}
                           search={item.search as never}
                           onClick={() => onOpenChange(false)}
-                          className="flex min-h-[var(--siga-control-md)] items-center gap-3 px-3 py-2.5 transition-colors active:bg-secondary"
+                          className="flex min-h-[56px] min-w-0 items-center gap-3 px-3 py-3 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary"
                         >
-                          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                            <Icon className="size-4" aria-hidden />
+                          <span className="inline-flex size-[36px] shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                            <Icon className="size-[18px]" aria-hidden />
                           </span>
-                          <span className="min-w-0 flex-1 truncate text-sm">{item.label}</span>
+                          <span className="min-w-0 flex-1 break-words text-[14px] leading-[20px]">
+                            {item.label}
+                          </span>
                           <ChevronRight
-                            className="size-4 shrink-0 text-muted-foreground"
+                            className="size-[18px] shrink-0 text-muted-foreground"
                             aria-hidden
                           />
                         </Link>
@@ -101,13 +103,13 @@ export function MoreHub({
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="break-words rounded-xl border border-border bg-card px-4 py-6 text-center text-[13px] leading-[20px] text-muted-foreground">
             Nenhum módulo com «{query}». Tente outro termo.
           </p>
         )}
 
         <section className="mt-5">
-          <h3 className="px-1 pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <h3 className="px-1 pb-2 text-[12px] font-medium leading-[20px] text-muted-foreground">
             Conta
           </h3>
           <ul className="overflow-hidden rounded-xl border border-border bg-card">
@@ -115,13 +117,15 @@ export function MoreHub({
               <Link
                 to="/perfil"
                 onClick={() => onOpenChange(false)}
-                className="flex min-h-[var(--siga-control-md)] items-center gap-3 px-3 py-2.5 active:bg-secondary"
+                className="flex min-h-[56px] min-w-0 items-center gap-3 px-3 py-3 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary"
               >
-                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                  <UserRound className="size-4" aria-hidden />
+                <span className="inline-flex size-[36px] shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                  <UserRound className="size-[18px]" aria-hidden />
                 </span>
-                <span className="flex-1 truncate text-sm">Meu perfil</span>
-                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 break-words text-[14px] leading-[20px]">
+                  Meu perfil
+                </span>
+                <ChevronRight className="size-[18px] shrink-0 text-muted-foreground" aria-hidden />
               </Link>
             </li>
             {onOpenSettings &&
@@ -133,13 +137,18 @@ export function MoreHub({
                     onOpenChange(false);
                     onOpenSettings();
                   }}
-                  className="flex min-h-[var(--siga-control-md)] w-full items-center gap-3 px-3 py-2.5 text-left active:bg-secondary"
+                  className="flex min-h-[56px] w-full min-w-0 items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary"
                 >
-                  <span className="inline-flex size-7 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                    <Settings className="size-4" aria-hidden />
+                  <span className="inline-flex size-[36px] shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                    <Settings className="size-[18px]" aria-hidden />
                   </span>
-                  <span className="flex-1 truncate text-sm">Definições</span>
-                  <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                  <span className="min-w-0 flex-1 break-words text-[14px] leading-[20px]">
+                    Definições
+                  </span>
+                  <ChevronRight
+                    className="size-[18px] shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
                 </button>
               </li>
             ) : null}
@@ -149,14 +158,14 @@ export function MoreHub({
                 disabled={signingOut}
                 onClick={() => void signOut()}
                 className={cn(
-                  "flex min-h-[var(--siga-control-md)] w-full items-center gap-3 px-3 py-2.5 text-left text-destructive-strong active:bg-secondary",
+                  "flex min-h-[56px] w-full min-w-0 items-center gap-3 px-3 py-3 text-left text-destructive-strong transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary",
                   signingOut && "opacity-60",
                 )}
               >
-                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-destructive/10">
-                  <LogOut className="size-4" aria-hidden />
+                <span className="inline-flex size-[36px] shrink-0 items-center justify-center rounded-lg bg-destructive/10">
+                  <LogOut className="size-[18px]" aria-hidden />
                 </span>
-                <span className="flex-1 truncate text-sm">
+                <span className="min-w-0 flex-1 break-words text-[14px] leading-[20px]">
                   {signingOut ? "A terminar sessão…" : "Terminar sessão"}
                 </span>
               </button>

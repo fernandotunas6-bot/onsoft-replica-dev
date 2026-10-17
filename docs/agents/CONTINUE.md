@@ -4,6 +4,111 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Painel ADMIN SaaS — auditoria e correcções (2026-10-17)
+
+Ponto de partida: auditoria às páginas de escolas, subscrições, fila, painel e login do ADMIN.
+
+- **Métricas** (`fetchSaasStats`): activas, trial, trial expirado, em atraso, suspensas e sem
+  cobrança contadas à parte. O MRR usa `monthlyRevenueOf` (só escolas activas e cobradas; preço
+  do perfil de cobrança quando existe, senão o do plano).
+- **Estado**: `resolveStatusChange` recusa «activar» uma escola em atraso e não isenta (é preciso
+  registar o pagamento ou pausar cobranças); suspensa em trial volta a `trial`.
+- **Pagamento recebido** sem comprovativo: `confirm_payment_months` (1/3/6/12) + referência. Mudar
+  o plano já não reescreve o fim do período pago nem acrescenta 14 dias de trial.
+- **ADMIN**: lista de escolas com pesquisa, filtros e menu de acções; página da escola com
+  «Registar pagamento» (meses do perfil); confirmações antes de suspender, aprovar plano,
+  confirmar pagamento e revogar operador; erros já não desaparecem ao recarregar; fila
+  operacional por escola (trial expirado, atraso, criação falhada; ignora isentas); gate envia
+  sessões sem MFA de volta ao 2.º passo e guarda a página de origem em `next`.
+- Testes: `tests/saas/admin-stats-rules.test.ts`.
+
+Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e epatuloko
+(trial expirado → «Prolongar trial» ou «Pausar cobranças»).
+
+## Desempenho do primeiro desenho — Lighthouse do main verde (2026-10-16)
+
+- O job Lighthouse (só corre no push do `main`) falhava desde 07/10 (0,80–0,87 para
+  mínimo 0,90). Passou a 0,94–0,97 em todas as páginas com o PR #163.
+- **Causa principal:** `/browser-check.js` era síncrono no `<head>`; em HTTP/1.1 ficava
+  na fila atrás de ~100 pré-carregamentos de JS e o primeiro desenho esperava por ele.
+  Agora `defer: true` em `__root.tsx` (a app desktop mantém-no síncrono).
+- **Também:** `SigaMascotIcon` usa `/brands/siga-plus-icon-256.webp` (13 KB) em vez do PNG
+  de 670 KB que era pré-carregado em todas as páginas; `vite.config.ts` agrupa os ícones
+  do lucide e o núcleo (React, TanStack Router/Query) em `icons` e `framework`; na
+  Pedagógica, os separadores que não são iniciais são `lazy`.
+- **Não fazer:** agrupar Radix ou módulos da app num só ficheiro (gerava 1–1,6 MB);
+  tornar `PickFileButton`/`InstallConsentModal` lazy (o peso é partilhado, não poupa nada).
+- Guarda: `tests/ui/first-paint-budget.test.ts`. Medir localmente: build, `npm run
+  preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
+  `CHROME_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome`. As notas variam
+  ±0,04 entre corridas; comparar várias.
+
+## Cobrança SaaS por escola e escolas públicas (2026-10-15)
+
+- **ADMIN → Escolas → clicar na escola** (`/tenants/escola?id=…`, exportação estática):
+  Visão geral, Plano e assinatura, Cobrança, Escola pública, Acesso, Domínios e registo.
+  Dados: `GET/POST /api/saas/tenants/billing` (platform admin + aal2, auditado).
+- **Cobrança** (`tenant-billing-rules.ts` puro, `tenant-billing.ts` servidor): tabela do
+  plano, por aluno activo (com mínimo facturável) ou valor fixo; mensal/trimestral/
+  semestral/anual com o desconto de `saas_billing_settings.periods`; desconto da escola;
+  dia de vencimento (1–28), prazo de emissão, tolerância e só-consulta automática; modos
+  de pagamento (IBAN, Multicaixa Express, referência, PayFlow, numerário); contacto e NIF
+  de facturação. O SIGA (Assinatura) cobra o valor nas condições da escola.
+- **Pausar cobranças** (qualquer escola, com motivo e data opcional; a tarefa diária
+  retoma as que acabaram). **Escola pública**: ao marcar como Pública (ou ao registar-se
+  como pública no WEB) abre a revisão e pausa as cobranças; aprovar exige os requisitos
+  obrigatórios (acto de criação, código oficial, tutela, nomeação do director, acordo de
+  dados — Lei 22/11) e deixa-a isenta; recusar exige motivo.
+- **Efeito no acesso** só por `tenants.billing_exempt` (já na produção): o servidor mantém-no
+  igual a «não cobrar». Isenta/pausada não é bloqueada por trial nem atraso; suspender,
+  cancelar e arquivar continuam a bloquear. Lembretes de fim de trial não vão para elas.
+- **Atraso (2026-10-16):** com «só consulta» ligado, a tarefa diária
+  (`suspendOverdueTenants` em `commercial-lifecycle.ts`, regra pura `overdueSuspensionDue`)
+  passa a `past_due` a escola activa e cobrada cujo período pago acabou há mais que a
+  tolerância; auditado `TENANT_BILLING_OVERDUE`. O ADMIN mostra «Pago até», «Só consulta
+  após» e o aviso de atraso; «Activar» reactiva `past_due`. A lista mostra «Isenta» /
+  «Cobrança pausada». O separador Acesso traz o diagnóstico embutido
+  (`TenantAdminAccessPanel`).
+- **Por aplicar (dono):** `docs/agents/SIGA_aplicar_cobranca_escolas.sql`
+  (`20261015120000_tenant_billing_profiles.sql`). Sem ela o ADMIN mostra os valores de
+  omissão e não grava; nada mais parte. Depois recapturar o retrato e tirar a tabela de
+  `TABELAS_AUSENTES_DA_PRODUCAO`.
+
+## Smart School Onboarding: criação → acesso → ambiente (2026-10-15)
+
+Três ambientes, uma conta: **Administração Global** (ADMIN, só `platform_admins`),
+**Administração Institucional** (SIGA, papel Administrador) e **Portal Escolar** (SIGA,
+gestão académica). Ser administrador da escola nunca dá a Administração Global.
+
+- **Causa encontrada na produção:** as três escolas do registo público tinham o trial de
+  14 dias expirado e o ecrã de bloqueio cobria o SIGA inteiro, também para o administrador
+  e para `/auth/*` (nem o link de entrada abria). Agora `TenantAccessBarrier`
+  (`src/features/saas/TenantAccessBarrier.tsx`): o Administrador entra em modo de consulta
+  com aviso e «Regularizar a assinatura»; os outros e a matrícula online continuam
+  bloqueados; `/auth`, `/verificar`, `/convite` já não. O servidor continua a recusar
+  gravações (`assertTenantAllowsWrites`).
+- **Diagnóstico e reparação** (`school-admin-access-rules.ts` puro + `school-admin-access.ts`):
+  escola/tenant bloqueado, sem administrador, conta apagada/bloqueada, e-mail por confirmar,
+  papel sem permissões, perfil em falta/sem escola, nunca entrou, sem 2FA. Repara só o
+  automático (perfil, e-mail, `role_permissions`) e gera links de definição de senha para
+  quem nunca entrou. Nunca mexe em senhas, `platform_admins`, vínculos ou assinatura.
+- **ADMIN** → Escolas → «Acesso»: `GET/POST /api/saas/tenants/admin-access`
+  (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
+  **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
+  nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
+- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada,
+  2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
+  automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
+  Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
+- **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em
+  telemóvel: só o Administrador (ambientes da escola) e `platform_admins` (mais a
+  Administração Global). Ambientes em `src/features/auth/environments.ts`.
+- **WEB** `/start`, fim do registo: os mesmos três passos, sem redireccionar sozinho; o
+  link de entrada directa leva `?next=` (`/auth/magic-link` aceita só caminho relativo,
+  `src/lib/safe-next-path.ts`; se o link falhar, «Entrar com e-mail e senha» no destino).
+- O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
+  `siga:audit-provisioning`).
+
 ## Numeração só com dígitos (2026-10-12) — POR APLICAR
 
 Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,

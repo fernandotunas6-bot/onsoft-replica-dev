@@ -10,7 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 
 /**
  * Confirmação de acção destrutiva (§55, §105).
@@ -43,25 +42,29 @@ export function ConfirmDestructive({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] rounded-2xl sm:max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
+      <AlertDialogContent className="max-w-[440px] rounded-2xl">
+        <AlertDialogHeader className="min-w-0 gap-2 text-left">
+          <AlertDialogTitle className="break-words text-[18px] leading-[24px]">
+            {title}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="space-y-3 text-[13px] leading-[24px]">
             {subject ? (
-              <span className="block rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm font-medium text-foreground">
+              <span className="block break-words rounded-xl border border-border bg-secondary px-3 py-3 text-[14px] font-medium leading-[24px] text-foreground">
                 {subject}
               </span>
             ) : null}
-            <span className="block">{description ?? "Esta acção não poderá ser desfeita."}</span>
+            <span className="block break-words">
+              {description ?? "Esta acção não poderá ser desfeita."}
+            </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="gap-2 sm:gap-2">
-          <AlertDialogCancel className="h-11 sm:h-10">Cancelar</AlertDialogCancel>
+          <AlertDialogCancel className="mt-0 h-auto min-h-[44px] whitespace-normal break-words rounded-xl px-4 py-3 text-[14px] leading-[20px] lg:min-h-[44px]">
+            Cancelar
+          </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className={cn(
-              "h-11 bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:h-10",
-            )}
+            className="h-auto min-h-[44px] whitespace-normal break-words rounded-xl bg-destructive px-4 py-3 text-[14px] leading-[20px] text-destructive-foreground hover:bg-destructive/90 lg:min-h-[44px]"
           >
             {confirmLabel}
           </AlertDialogAction>
