@@ -24,8 +24,12 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
 }));
 
 import { handleMobileV4Http, type MobileHttpDependencies } from "@/features/mobile-v4/http.server";
-// @ts-expect-error — módulo JS do script de publicação, sem tipos.
-import { verify, withPagesOrigin, readPagesOrigin } from "../../mobile-flutter/legacy-tools/publish.mjs";
+import {
+  verify,
+  withPagesOrigin,
+  readPagesOrigin,
+  // @ts-expect-error — módulo JS do script de publicação, sem tipos.
+} from "../../mobile-flutter/legacy-tools/publish.mjs";
 
 const BASE = "https://abcd1234.siga-plus-mobile-v4.pages.dev";
 const refuseAll = new Proxy({} as MobileHttpDependencies, {

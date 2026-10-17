@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:backend": "node --test backend/*.test.mjs",
+    "test:backend": "node --test backend/*.test.mjs scripts/*.test.mjs",
     "test:contracts": "vitest run --config vitest.config.ts",
     "typecheck:backend": "tsc --project tsconfig.backend.json"
   },

@@ -1,6 +1,9 @@
 import type { requireMobileAcademicAccess } from "./authorization";
 import type { MobileAcademicScope } from "./academic-scope.server";
-import { parseStudentFinance, type StudentFinance } from "../../../mobile-flutter/contracts/domain/finance";
+import {
+  parseStudentFinance,
+  type StudentFinance,
+} from "../../../mobile-flutter/contracts/domain/finance";
 import { MobileApiError } from "./errors";
 type Db = Awaited<ReturnType<typeof requireMobileAcademicAccess>>["db"];
 async function read<T>(
