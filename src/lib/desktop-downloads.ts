@@ -1,4 +1,4 @@
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { openExternalLink } from "@/lib/desktop-utils";
 
 /** Blobs lembrados de cada vez; os mais antigos saem (pré-visualizações nunca revogadas). */

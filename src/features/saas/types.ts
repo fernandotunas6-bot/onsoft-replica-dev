@@ -58,9 +58,6 @@ export interface Tenant {
   plan_id?: string;
   subscription_status?: SubscriptionLifecycle;
   trial_ends_at?: string;
-  /** Cobranças pausadas ou escola pública isenta (ver tenant-billing-rules.ts). */
-  billing_exempt?: boolean | null;
-  billing_exempt_reason?: string | null;
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;

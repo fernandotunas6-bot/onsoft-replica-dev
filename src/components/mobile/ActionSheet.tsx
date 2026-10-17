@@ -89,20 +89,18 @@ function ActionRow({
       onClick={() => onRun(action)}
       className={cn(
         "touch-feedback flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors",
-        "min-h-[52px] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-45",
+        "min-h-[var(--siga-control-md)] hover:bg-secondary disabled:pointer-events-none disabled:opacity-45",
         action.destructive ? "text-destructive-strong" : "text-foreground",
       )}
     >
-      {Icon ? <Icon className="size-[20px] shrink-0 opacity-80" aria-hidden /> : null}
+      {Icon ? <Icon className="size-4.5 shrink-0 opacity-80" aria-hidden /> : null}
       <span className="min-w-0 flex-1">
-        <span className="block break-words text-[14px] font-medium leading-5">{action.label}</span>
+        <span className="block truncate text-sm font-medium">{action.label}</span>
         {action.hint ? (
-          <span className="mt-1 block break-words text-[12px] leading-5 text-muted-foreground">
-            {action.hint}
-          </span>
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{action.hint}</span>
         ) : null}
       </span>
-      <ChevronRight className="size-[16px] shrink-0 opacity-30" aria-hidden />
+      <ChevronRight className="size-4 shrink-0 opacity-30" aria-hidden />
     </button>
   );
 }

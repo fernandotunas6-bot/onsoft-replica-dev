@@ -34,7 +34,7 @@ export function AuthHeroSlides() {
 
   return (
     <div className="relative max-w-xl">
-      <div className="grid items-end overflow-hidden py-2">
+      <div className="relative min-h-[15rem] overflow-hidden">
         {slides.map((s, i) => {
           const offset =
             i === index
@@ -46,15 +46,11 @@ export function AuthHeroSlides() {
             <div
               key={s.title}
               aria-hidden={i !== index}
-              className={`col-start-1 row-start-1 transition-all duration-700 ease-out ${offset}`}
+              className={`absolute inset-x-0 bottom-0 transition-all duration-700 ease-out ${offset}`}
             >
-              <p className="text-xs font-medium text-muted-foreground">{s.eyebrow}</p>
-              <h1 className="mt-4 font-display text-[clamp(28px,3vw,44px)] font-semibold leading-[1.12] tracking-tight">
-                {s.title}
-              </h1>
-              <p className="mt-5 max-w-lg text-sm leading-relaxed text-muted-foreground">
-                {s.text}
-              </p>
+              <p className="text-xs font-semibold opacity-80">{s.eyebrow}</p>
+              <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">{s.title}</h1>
+              <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">{s.text}</p>
             </div>
           );
         })}
@@ -66,12 +62,11 @@ export function AuthHeroSlides() {
             key={s.title}
             type="button"
             aria-label={`Mostrar: ${s.eyebrow}`}
-            aria-pressed={i === index}
             onClick={() => setIndex(i)}
             className="flex h-[24px] min-w-[24px] items-center justify-center"
           >
             <span
-              className={`block h-1.5 rounded-full bg-primary transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
+              className={`block h-1.5 rounded-full bg-primary-foreground transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
             />
           </button>
         ))}

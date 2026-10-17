@@ -1,6 +1,11 @@
+import { GradeSheetsBoard } from "@/features/academic/GradeSheetsBoard";
+import { GradeChangeRequestsPanel } from "@/features/academic/GradeChangeRequestsPanel";
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
+import { AssessmentModelsTab } from "@/features/academic/AssessmentModelsTab";
+import { ExamsTab } from "@/features/academic/ExamsTab";
+import { CompetenciesTab } from "@/features/academic/CompetenciesTab";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
-import { useEffect, useMemo, useRef, useState, lazy, Suspense, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -41,6 +46,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
+import { ScheduleWorkspace } from "@/features/academic/schedule/ScheduleWorkspace";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
@@ -69,76 +75,16 @@ import { cn } from "@/lib/utils";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { usePersistedListFilters } from "@/lib/list-filters";
+import { PautasWorkspaceModule } from "@/features/pedagogica/components/pautas/PautasWorkspaceModule";
+import { AttendanceWorkspaceModule } from "@/features/pedagogica/components/AttendanceWorkspaceModule";
 import { TurmasWorkspaceTab } from "@/features/pedagogica/components/TurmasWorkspaceTab";
+import { DisciplinasWorkspaceTab } from "@/features/pedagogica/components/DisciplinasWorkspaceTab";
+import { SalasWorkspaceTab } from "@/features/pedagogica/components/SalasWorkspaceTab";
+import { CurriculoWorkspaceTab } from "@/features/pedagogica/components/CurriculoWorkspaceTab";
 import { SchoolNowWidget } from "@/features/academic/components/SchoolNowWidget";
 import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
-
-// Os separadores que não abrem logo só se descarregam quando alguém os abre:
-// juntos pesavam ~300 KB no arranque da página. Estrutura e Turmas (os separadores
-// iniciais) continuam importados directamente.
-const GradeSheetsBoard = lazy(() =>
-  import("@/features/academic/GradeSheetsBoard").then((module) => ({
-    default: module.GradeSheetsBoard,
-  })),
-);
-const GradeChangeRequestsPanel = lazy(() =>
-  import("@/features/academic/GradeChangeRequestsPanel").then((module) => ({
-    default: module.GradeChangeRequestsPanel,
-  })),
-);
-const AssessmentModelsTab = lazy(() =>
-  import("@/features/academic/AssessmentModelsTab").then((module) => ({
-    default: module.AssessmentModelsTab,
-  })),
-);
-const ExamsTab = lazy(() =>
-  import("@/features/academic/ExamsTab").then((module) => ({ default: module.ExamsTab })),
-);
-const CompetenciesTab = lazy(() =>
-  import("@/features/academic/CompetenciesTab").then((module) => ({
-    default: module.CompetenciesTab,
-  })),
-);
-const ScheduleWorkspace = lazy(() =>
-  import("@/features/academic/schedule/ScheduleWorkspace").then((module) => ({
-    default: module.ScheduleWorkspace,
-  })),
-);
-const PautasWorkspaceModule = lazy(() =>
-  import("@/features/pedagogica/components/pautas/PautasWorkspaceModule").then((module) => ({
-    default: module.PautasWorkspaceModule,
-  })),
-);
-const AttendanceWorkspaceModule = lazy(() =>
-  import("@/features/pedagogica/components/AttendanceWorkspaceModule").then((module) => ({
-    default: module.AttendanceWorkspaceModule,
-  })),
-);
-const DisciplinasWorkspaceTab = lazy(() =>
-  import("@/features/pedagogica/components/DisciplinasWorkspaceTab").then((module) => ({
-    default: module.DisciplinasWorkspaceTab,
-  })),
-);
-const SalasWorkspaceTab = lazy(() =>
-  import("@/features/pedagogica/components/SalasWorkspaceTab").then((module) => ({
-    default: module.SalasWorkspaceTab,
-  })),
-);
-const CurriculoWorkspaceTab = lazy(() =>
-  import("@/features/pedagogica/components/CurriculoWorkspaceTab").then((module) => ({
-    default: module.CurriculoWorkspaceTab,
-  })),
-);
-
-function LazyTab({ children }: { children: ReactNode }) {
-  return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted/40" />}>
-      {children}
-    </Suspense>
-  );
-}
 
 const PedagogicaNotasCharts = lazy(() =>
   import("@/features/academic/PedagogicaNotasCharts").then((module) => ({
@@ -1017,9 +963,7 @@ function PedagogicaPage() {
           ) : null}
           {canReadAcademic ? (
             <TabsContent value="modelos" className="mt-5">
-              <LazyTab>
-                <AssessmentModelsTab />
-              </LazyTab>
+              <AssessmentModelsTab />
             </TabsContent>
           ) : null}
 
@@ -1049,26 +993,24 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="disciplinas" className="mt-5">
-            <LazyTab>
-              <DisciplinasWorkspaceTab
-                classroomOn={classroomOn}
-                moodleOn={moodleOn}
-                canManageAcademic={canManageAcademic}
-                subjectsAvailable={subjectsAvailable}
-                subjects={subjects}
-                workspace={workspace}
-                teacherOptions={teacherOptions}
-                turmaAssignOptions={turmaAssignOptions}
-                subjectOptions={subjectOptions}
-                classGroups={classGroups}
-                teachers={teachers}
-                teacherNameById={teacherNameById}
-                teachingLevels={teachingLevels}
-                subjectTypes={subjectTypesQuery.data ?? []}
-                curriculumAreas={curriculumAreasQuery.data ?? []}
-                onRefresh={refreshAcademic}
-              />
-            </LazyTab>
+            <DisciplinasWorkspaceTab
+              classroomOn={classroomOn}
+              moodleOn={moodleOn}
+              canManageAcademic={canManageAcademic}
+              subjectsAvailable={subjectsAvailable}
+              subjects={subjects}
+              workspace={workspace}
+              teacherOptions={teacherOptions}
+              turmaAssignOptions={turmaAssignOptions}
+              subjectOptions={subjectOptions}
+              classGroups={classGroups}
+              teachers={teachers}
+              teacherNameById={teacherNameById}
+              teachingLevels={teachingLevels}
+              subjectTypes={subjectTypesQuery.data ?? []}
+              curriculumAreas={curriculumAreasQuery.data ?? []}
+              onRefresh={refreshAcademic}
+            />
           </TabsContent>
 
           <TabsContent value="notas" className="mt-5 space-y-6">
@@ -1269,136 +1211,120 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="salas" className="mt-5 space-y-6">
-            <LazyTab>
-              <SalasWorkspaceTab canManage={canManageAcademic} />
-            </LazyTab>
+            <SalasWorkspaceTab canManage={canManageAcademic} />
           </TabsContent>
 
           <TabsContent value="curriculo" className="mt-5 space-y-6">
-            <LazyTab>
-              <CurriculoWorkspaceTab
-                canManage={canManageAcademic}
-                activeYearId={selectedYearId ?? undefined}
-                courses={courses.map((c) => ({ id: c.id, name: c.name, code: c.code }))}
-                gradeLevels={visibleGradeLevels.map((g) => ({
-                  id: g.id,
-                  name: g.name,
-                  code: g.code,
-                }))}
-                subjects={subjects.map((s) => ({
-                  id: s.id,
-                  name: s.name,
-                  code: s.code,
-                  subject_type_id: s.subject_type_id,
-                }))}
-                teachers={teachers.map((t) => ({ id: t.id, name: t.full_name || "Docente" }))}
-              />
-            </LazyTab>
+            <CurriculoWorkspaceTab
+              canManage={canManageAcademic}
+              activeYearId={selectedYearId ?? undefined}
+              courses={courses.map((c) => ({ id: c.id, name: c.name, code: c.code }))}
+              gradeLevels={visibleGradeLevels.map((g) => ({
+                id: g.id,
+                name: g.name,
+                code: g.code,
+              }))}
+              subjects={subjects.map((s) => ({
+                id: s.id,
+                name: s.name,
+                code: s.code,
+                subject_type_id: s.subject_type_id,
+              }))}
+              teachers={teachers.map((t) => ({ id: t.id, name: t.full_name || "Docente" }))}
+            />
           </TabsContent>
 
           <TabsContent value="horarios" className="mt-5 space-y-6">
-            <LazyTab>
-              <SchoolNowWidget />
-              <ScheduleWorkspace
-                activeYearLabel={activeYearLabel}
-                activeYearId={selectedYearId ?? undefined}
-                canManage={canManageAcademic}
-                scheduleAvailable={scheduleAvailable}
-                classGroups={classGroups}
-                subjects={subjects}
-                classSubjects={classSubjects}
-                rooms={classrooms.map((r) => ({
-                  id: r.id,
-                  name: r.name,
-                  code: r.code || r.name,
-                  capacity: r.capacity,
-                  room_type: r.room_type || "standard",
-                }))}
-                teachers={teachers.map((t) => ({
-                  id: t.id,
-                  name: t.full_name || "Docente",
-                }))}
-                slots={scheduleSlots}
-                virtualRooms={[]}
-                onCreateSlot={async (data) => {
-                  const { warnings } = await createAdvancedScheduleSlot({ data });
-                  for (const warning of warnings) {
-                    toast.warning(warning.message);
-                  }
-                  await refreshAcademic();
-                }}
-                onUpdateSlot={async (data) => {
-                  const { warnings } = await updateAdvancedScheduleSlot({ data });
-                  for (const warning of warnings) {
-                    toast.warning(warning.message);
-                  }
-                  await refreshAcademic();
-                }}
-                onDeleteSlot={async (slotId) => {
-                  await deleteScheduleSlot({ data: { slotId } });
-                  await refreshAcademic();
-                }}
-                onPublishSchedule={async (classGroupId) => {
-                  if (!selectedYearId) {
-                    throw new Error("Seleccione o ano lectivo antes de publicar o horário.");
-                  }
-                  const result = await publishAcademicSchedule({
-                    data: {
-                      classGroupId,
-                      academicYearId: selectedYearId,
-                      syncToCalendar: true,
-                    },
-                  });
-                  await refreshAcademic();
-                  return { notified: result.notified };
-                }}
-              />
-            </LazyTab>
+            <SchoolNowWidget />
+            <ScheduleWorkspace
+              activeYearLabel={activeYearLabel}
+              activeYearId={selectedYearId ?? undefined}
+              canManage={canManageAcademic}
+              scheduleAvailable={scheduleAvailable}
+              classGroups={classGroups}
+              subjects={subjects}
+              classSubjects={classSubjects}
+              rooms={classrooms.map((r) => ({
+                id: r.id,
+                name: r.name,
+                code: r.code || r.name,
+                capacity: r.capacity,
+                room_type: r.room_type || "standard",
+              }))}
+              teachers={teachers.map((t) => ({
+                id: t.id,
+                name: t.full_name || "Docente",
+              }))}
+              slots={scheduleSlots}
+              virtualRooms={[]}
+              onCreateSlot={async (data) => {
+                const { warnings } = await createAdvancedScheduleSlot({ data });
+                for (const warning of warnings) {
+                  toast.warning(warning.message);
+                }
+                await refreshAcademic();
+              }}
+              onUpdateSlot={async (data) => {
+                const { warnings } = await updateAdvancedScheduleSlot({ data });
+                for (const warning of warnings) {
+                  toast.warning(warning.message);
+                }
+                await refreshAcademic();
+              }}
+              onDeleteSlot={async (slotId) => {
+                await deleteScheduleSlot({ data: { slotId } });
+                await refreshAcademic();
+              }}
+              onPublishSchedule={async (classGroupId) => {
+                if (!selectedYearId) {
+                  throw new Error("Seleccione o ano lectivo antes de publicar o horário.");
+                }
+                const result = await publishAcademicSchedule({
+                  data: {
+                    classGroupId,
+                    academicYearId: selectedYearId,
+                    syncToCalendar: true,
+                  },
+                });
+                await refreshAcademic();
+                return { notified: result.notified };
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="presencas" className="mt-5 space-y-6">
-            <LazyTab>
-              <AttendanceWorkspaceModule
-                initialClassGroupId={turmaFromSearch}
-                initialSubjectId={disciplinaFromSearch}
-                initialDate={diaFromSearch}
-              />
-            </LazyTab>
+            <AttendanceWorkspaceModule
+              initialClassGroupId={turmaFromSearch}
+              initialSubjectId={disciplinaFromSearch}
+              initialDate={diaFromSearch}
+            />
           </TabsContent>
 
           <TabsContent value="chamada" className="mt-5 space-y-6">
-            <LazyTab>
-              <AttendanceWorkspaceModule
-                initialClassGroupId={turmaFromSearch}
-                initialSubjectId={disciplinaFromSearch}
-                initialDate={diaFromSearch}
-              />
-            </LazyTab>
+            <AttendanceWorkspaceModule
+              initialClassGroupId={turmaFromSearch}
+              initialSubjectId={disciplinaFromSearch}
+              initialDate={diaFromSearch}
+            />
           </TabsContent>
 
           {canReadAcademic ? (
             <TabsContent value="exames" className="mt-5">
-              <LazyTab>
-                <ExamsTab yearId={selectedYearId ?? null} />
-              </LazyTab>
+              <ExamsTab yearId={selectedYearId ?? null} />
             </TabsContent>
           ) : null}
           {canReadAcademic ? (
             <TabsContent value="competencias" className="mt-5">
-              <LazyTab>
-                <CompetenciesTab />
-              </LazyTab>
+              <CompetenciesTab />
             </TabsContent>
           ) : null}
 
           <TabsContent value="pautas" className="mt-5 space-y-6">
-            <LazyTab>
-              {canManageAcademic ? <GradeChangeRequestsPanel /> : null}
-              {canReadAcademic ? (
-                <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
-              ) : null}
-              <PautasWorkspaceModule workspace={workspace} />
-            </LazyTab>
+            {canManageAcademic ? <GradeChangeRequestsPanel /> : null}
+            {canReadAcademic ? (
+              <GradeSheetsBoard yearId={selectedYearId ?? null} canManage={canManageAcademic} />
+            ) : null}
+            <PautasWorkspaceModule workspace={workspace} />
           </TabsContent>
         </Tabs>
       </div>

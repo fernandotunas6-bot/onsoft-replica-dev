@@ -20,7 +20,6 @@ import {
   ListTodo,
   CalendarDays,
   Mail,
-  Library,
   type LucideIcon,
 } from "lucide-react"
 
@@ -144,7 +143,6 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: t("nav.platform_admins"), url: "/platform-admins", group: t("nav.saas"), icon: Shield },
     { title: t("nav.audit"), url: "/audit", group: t("nav.saas"), icon: ScrollText },
     { title: t("nav.gateway_webhooks"), url: "/gateway-webhooks", group: t("nav.saas"), icon: Activity },
-    { title: t("nav.education_catalog"), url: "/education-catalog", group: t("nav.saas"), icon: Library },
     { title: t("nav.domains"), url: "/domains", group: t("nav.saas"), icon: Globe },
     { title: t("nav.faqs"), url: "/faqs", group: t("nav.saas"), icon: HelpCircle },
     { title: t("nav.create_school"), url: getCreateSchoolUrl(), group: t("nav.saas"), icon: GraduationCap, external: true },

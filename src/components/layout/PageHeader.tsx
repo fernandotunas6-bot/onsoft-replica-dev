@@ -68,6 +68,8 @@ export function PageHeader({
 
   return (
     <div className="relative isolate space-y-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+      {/* Brilho na cor da área (tom em <html data-tone>, ver AreaToneSync). */}
+      <div aria-hidden="true" className="page-header-glow" />
       {!hideBreadcrumb ? (
         <Breadcrumb className="relative">
           <BreadcrumbList className="text-[11px] sm:text-xs">
@@ -98,7 +100,7 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="relative flex flex-wrap items-center justify-between gap-4">
+      <div className="relative flex flex-wrap items-end justify-between gap-3">
         <div className="flex items-center gap-3">
           {headerMark}
           <div>
@@ -107,12 +109,12 @@ export function PageHeader({
             {hideBreadcrumb ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
-            <h1 className="font-display text-[20px] font-semibold leading-tight tracking-tight md:text-[24px]">
+            <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">
               {title}
             </h1>
             <ShortDescription
               text={description}
-              className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground"
+              className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm"
             />
           </div>
         </div>
@@ -175,8 +177,9 @@ export function StatGrid({
         return (
           <div
             key={item.label}
-            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-card"
+            className="hover-lift group relative overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card hover:border-primary/30"
           >
+            <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
@@ -193,7 +196,7 @@ export function StatGrid({
                   tone={tone}
                   size="sm"
                   label={item.label}
-                  className="shrink-0"
+                  className="transition-transform duration-150 group-hover:scale-105"
                 />
               ) : null}
             </div>

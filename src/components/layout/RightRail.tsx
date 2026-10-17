@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,8 +9,6 @@ import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { ContextualActionsPanel } from "@/features/intelligence/components/ContextualActionsPanel";
 import { startDirectConversation } from "@/features/messages/chat-server";
 import { OPEN_DM_EVENT, type OpenConversationRequest } from "@/features/messages/unread";
-import { useInboxUnread } from "@/features/messages/use-inbox-unread";
-import { useBreakpoint } from "@/hooks/use-breakpoint";
 
 /* O chat é pesado (painel inteiro + realtime) e a maioria das sessões nunca
    abre o separador: só carrega quando alguém lá vai. */
@@ -33,15 +31,7 @@ export function RightRail() {
   const [showMore, setShowMore] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tab, setTab] = useState<RailTab>("relacionado");
-  // O contador vem do servidor (o mesmo do sino): com o chat fechado não há
-  // ChatDock montado para o dar.
-  const { unread: unreadRows } = useInboxUnread();
-  const unread = unreadRows.reduce((total, row) => total + row.unread, 0);
-  // Um só chat montado: a coluna no computador (lg), a folha abaixo disso.
-  // Antes os dois ficavam montados (um escondido), com dois canais de tempo
-  // real, e abrir pelo sino no computador abria também a folha do telemóvel.
-  const { breakpoint, ready } = useBreakpoint();
-  const isDesktop = breakpoint === "desktop";
+  const [unread, setUnread] = useState(0);
   const [openRequest, setOpenRequest] = useState<{
     conversationId: string;
     nonce: number;
@@ -65,8 +55,8 @@ export function RightRail() {
       const detail = (event as CustomEvent<OpenConversationRequest>).detail ?? {};
       if (!detail.peerId && !detail.conversationId) return;
       setTab("mensagens");
-      if (isDesktop) setPanelCollapsed(false);
-      else setMobileOpen(true);
+      setMobileOpen(true);
+      setPanelCollapsed(false);
       if (detail.conversationId) {
         open(detail.conversationId);
         return;
@@ -80,13 +70,15 @@ export function RightRail() {
     };
     window.addEventListener(OPEN_DM_EVENT, handler);
     return () => window.removeEventListener(OPEN_DM_EVENT, handler);
-  }, [isDesktop, setPanelCollapsed]);
+  }, [setPanelCollapsed]);
+
+  const handleUnread = useCallback((total: number) => setUnread(total), []);
 
   const chat = (
     <Suspense
       fallback={<div className="p-6 text-center text-sm text-muted-foreground">A abrir…</div>}
     >
-      <ChatDock openRequest={openRequest} />
+      <ChatDock openRequest={openRequest} onUnreadChange={handleUnread} />
     </Suspense>
   );
 
@@ -177,9 +169,7 @@ export function RightRail() {
             {tabs}
             <div className="min-h-0 flex-1">
               {activeTab === "mensagens" ? (
-                ready && isDesktop ? (
-                  chat
-                ) : null
+                chat
               ) : (
                 <ContextualActionsPanel
                   title={focusedEntity?.label ?? ""}
@@ -197,7 +187,7 @@ export function RightRail() {
       </aside>
 
       {/* Abaixo de lg o painel não cabe: dois botões flutuantes abrem o Sheet. */}
-      <div className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
+      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
         {suggestions.length > 0 ? (
           <button
             type="button"
@@ -230,7 +220,7 @@ export function RightRail() {
         </button>
       </div>
 
-      <Sheet open={mobileOpen && !isDesktop} onOpenChange={setMobileOpen}>
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         {/* Quase ecrã inteiro: uma conversa num Sheet de 75vh deixa duas
             mensagens visíveis acima do teclado num telemóvel. */}
         <SheetContent side="bottom" className="flex h-[92vh] flex-col gap-0 p-0">
@@ -240,9 +230,7 @@ export function RightRail() {
           {tabs}
           <div className="min-h-0 flex-1">
             {activeTab === "mensagens" ? (
-              isDesktop ? null : (
-                chat
-              )
+              chat
             ) : (
               <ContextualActionsPanel
                 title={focusedEntity?.label ?? ""}

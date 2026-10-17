@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { AlertTriangle, CheckCircle2, Copy, Info, KeyRound, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -73,46 +73,6 @@ export function TenantAdminAccessDialog({
   onOpenChange: (open: boolean) => void
   onManageSubscription: () => void
 }) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Acesso do administrador · {tenant.name}</DialogTitle>
-          <DialogDescription>
-            O administrador entra no painel administrativo e no portal escolar com a mesma conta. A
-            Administração Global continua reservada à equipa da plataforma.
-          </DialogDescription>
-        </DialogHeader>
-        <TenantAdminAccessPanel
-          tenant={tenant}
-          active={open}
-          onManageSubscription={() => {
-            onOpenChange(false)
-            onManageSubscription()
-          }}
-          footer={(children) => <DialogFooter className="gap-2 sm:gap-2">{children}</DialogFooter>}
-        />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/**
- * O diagnóstico e a reparação, sem moldura: no diálogo da lista de escolas e
- * embutido no separador «Acesso» da página da escola.
- */
-export function TenantAdminAccessPanel({
-  tenant,
-  active = true,
-  onManageSubscription,
-  footer = (children) => <div className="flex flex-wrap justify-end gap-2">{children}</div>,
-}: {
-  tenant: { id: string; name: string; slug: string }
-  /** Carrega quando fica activo (o diálogo abre ou o separador é mostrado). */
-  active?: boolean
-  onManageSubscription: () => void
-  footer?: (children: ReactNode) => ReactNode
-}) {
   const [report, setReport] = useState<AccessReport | null>(null)
   const [result, setResult] = useState<RepairResult | null>(null)
   const [issueLinks, setIssueLinks] = useState(true)
@@ -139,10 +99,10 @@ export function TenantAdminAccessPanel({
   }, [tenant.id])
 
   useEffect(() => {
-    if (!active) return
+    if (!open) return
     setResult(null)
     void load()
-  }, [active, load])
+  }, [open, load])
 
   async function repair() {
     setRepairing(true)
@@ -169,7 +129,16 @@ export function TenantAdminAccessPanel({
   const needsSubscription = issues.some((i) => i.fix === "subscription")
 
   return (
-    <div className="grid gap-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Acesso do administrador · {tenant.name}</DialogTitle>
+          <DialogDescription>
+            O administrador entra no painel administrativo e no portal escolar com a mesma conta. A
+            Administração Global continua reservada à equipa da plataforma.
+          </DialogDescription>
+        </DialogHeader>
+
         {loading && !report ? (
           <p className="text-sm text-muted-foreground">A verificar…</p>
         ) : report ? (
@@ -275,10 +244,16 @@ export function TenantAdminAccessPanel({
           </p>
         ) : null}
 
-        {footer(
-          <>
+        <DialogFooter className="gap-2 sm:gap-2">
           {needsSubscription ? (
-            <Button type="button" variant="outline" onClick={onManageSubscription}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false)
+                onManageSubscription()
+              }}
+            >
               Gerir assinatura
             </Button>
           ) : null}
@@ -286,8 +261,8 @@ export function TenantAdminAccessPanel({
             <Wrench className="size-4" />
             {repairing ? "A reparar…" : "Reparar acesso"}
           </Button>
-          </>,
-        )}
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

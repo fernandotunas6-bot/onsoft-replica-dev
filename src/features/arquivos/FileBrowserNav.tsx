@@ -1,5 +1,5 @@
 import { FolderOpen, HardDrive, Lock, Users } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fileAreaMeta, type FileArea } from "./kinds";
 

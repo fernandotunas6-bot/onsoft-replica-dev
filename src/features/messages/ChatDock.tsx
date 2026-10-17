@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  CalendarCheck,
   Check,
   CheckCheck,
   ClipboardList,
   Clock,
   CornerUpLeft,
   FileText,
+  Flag,
   GraduationCap,
   Plus,
   Search,
@@ -361,12 +363,15 @@ export function ChatDock({
 
   /* Atalhos do aluno: navegam nas rotas que já existem, em vez de abrirem um
      ecrã novo só para o chat. */
-  /* Atalho do aluno: a ficha tem o boletim, a frequência e as ocorrências.
-     Antes «Frequência» abria `?tab=presenca`, um separador que não existe. */
-  const openStudent = () => {
+  const studentAction = (action: "boletim" | "frequencia" | "ocorrencias") => {
     const studentId = conv?.student?.id;
     if (!studentId) return;
-    void navigate({ to: "/alunos/$studentId", params: { studentId } });
+    const target = {
+      boletim: { to: "/pedagogica", search: { tab: "notas", aluno: studentId } },
+      frequencia: { to: "/pedagogica", search: { tab: "presenca", aluno: studentId } },
+      ocorrencias: { to: "/alunos", search: { aluno: studentId } },
+    }[action];
+    void navigate(target as never);
     onClose?.();
   };
 
@@ -682,15 +687,24 @@ export function ChatDock({
               className="flex gap-2 overflow-x-auto px-2 py-2"
               style={{ background: "#fff", borderBottom: `1px solid ${T.line}` }}
             >
-              <button
-                type="button"
-                onClick={openStudent}
-                className="flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs"
-                style={{ border: `1px solid ${T.line}`, color: T.brandDark }}
-              >
-                <ClipboardList size={13} />
-                Ficha do aluno · boletim e frequência
-              </button>
+              {(
+                [
+                  ["boletim", "Boletim", ClipboardList],
+                  ["frequencia", "Frequência", CalendarCheck],
+                  ["ocorrencias", "Ocorrências", Flag],
+                ] as const
+              ).map(([k, l, I]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => studentAction(k)}
+                  className="flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs"
+                  style={{ border: `1px solid ${T.line}`, color: T.brandDark }}
+                >
+                  <I size={13} />
+                  {l}
+                </button>
+              ))}
             </div>
           ) : null}
 

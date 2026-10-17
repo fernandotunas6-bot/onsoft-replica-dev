@@ -1,6 +1,6 @@
 import { reportPossibleStepUp } from "@/lib/step-up";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,6 @@ export type QuickField = {
   full?: boolean | undefined;
   required?: boolean | undefined;
   defaultValue?: string | number | undefined;
-  /** Sugestões enquanto se escreve (lista nativa: teclado e telemóvel). Só campos de texto. */
-  suggestions?: readonly string[] | undefined;
 };
 
 /**
@@ -66,7 +64,6 @@ export function QuickFormModal({
   onSubmit,
   autoOpen = false,
   successDescription = "Registo guardado com sucesso.",
-  renderHint,
 }: {
   trigger: (open: () => void) => ReactNode;
   eyebrow?: string | undefined;
@@ -82,13 +79,10 @@ export function QuickFormModal({
   /** Abre o modal automaticamente (ex.: deep-link da sidebar). */
   autoOpen?: boolean;
   successDescription?: string;
-  /** Aviso calculado a partir do que está escrito (ex.: «já existe»), por baixo dos campos. */
-  renderHint?: (values: Record<string, string>) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [values, setValues] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
   const didAutoOpen = useRef(false);
 
@@ -99,20 +93,8 @@ export function QuickFormModal({
   }, [autoOpen]);
 
   useEffect(() => {
-    if (!open) {
-      setDirty(false);
-      setValues({});
-    }
+    if (!open) setDirty(false);
   }, [open]);
-
-  const readValues = () => {
-    const out: Record<string, string> = {};
-    if (!formRef.current) return out;
-    for (const [key, val] of new FormData(formRef.current).entries()) {
-      out[key] = String(val ?? "").trim();
-    }
-    return out;
-  };
 
   const guardedClose = () => {
     if (confirmDiscardChanges(dirty)) setOpen(false);
@@ -122,7 +104,11 @@ export function QuickFormModal({
     if (!formRef.current) return;
     if (!formRef.current.reportValidity()) return;
 
-    const values = readValues();
+    const data = new FormData(formRef.current);
+    const values: Record<string, string> = {};
+    for (const [key, val] of data.entries()) {
+      values[key] = String(val ?? "").trim();
+    }
 
     setSaving(true);
     try {
@@ -152,10 +138,7 @@ export function QuickFormModal({
               ref={formRef}
               className="grid gap-3 sm:grid-cols-2"
               onSubmit={(event) => event.preventDefault()}
-              onChange={() => {
-                setDirty(true);
-                if (renderHint) setValues(readValues());
-              }}
+              onChange={() => setDirty(true)}
             >
               {fields.map((field) => (
                 <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
@@ -215,24 +198,11 @@ export function QuickFormModal({
                       required={field.required ?? true}
                       defaultValue={field.defaultValue}
                       className="mt-1.5"
-                      {...(field.suggestions?.length ? { list: `${field.name}-suggestions` } : {})}
                     />
                   )}
-                  {field.suggestions?.length ? (
-                    <datalist id={`${field.name}-suggestions`}>
-                      {field.suggestions.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
-                  ) : null}
                 </div>
               ))}
             </form>
-            {renderHint ? (
-              <div aria-live="polite" className="mt-3 empty:hidden">
-                {renderHint(values)}
-              </div>
-            ) : null}
             {note ? <p className="mt-4 text-xs text-muted-foreground">{note}</p> : null}
           </ModalContent>
           <ModalFooter

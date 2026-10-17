@@ -31,9 +31,6 @@ interface TenantRow {
   max_students?: number
   usage_last_calculated_at?: string
   plans?: { name?: string; code?: string }
-  /** Cobranças pausadas ou escola pública isenta (mantido pelo servidor). */
-  billing_exempt?: boolean | null
-  billing_exempt_reason?: string | null
 }
 
 interface Stats {
@@ -51,9 +48,6 @@ function tenantStatusLabel(status: string) {
     suspended: "Suspensa",
     trial: "Trial",
     past_due: "Em atraso",
-    cancelled: "Cancelada",
-    archived: "Arquivada",
-    provisioning_failed: "Criação falhou",
   }
   return map[status] || status
 }
@@ -234,12 +228,7 @@ export default function TenantsPage() {
                   tenants.map((tenant) => (
                     <TableRow key={tenant.id}>
                       <TableCell>
-                        <Link
-                          href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}
-                          className="font-medium hover:underline"
-                        >
-                          {tenant.name}
-                        </Link>
+                        <div className="font-medium">{tenant.name}</div>
                         <div className="text-xs text-muted-foreground font-mono">{tenant.slug}</div>
                       </TableCell>
                       <TableCell>{tenant.plans?.name || tenant.plans?.code || "—"}</TableCell>
@@ -260,16 +249,7 @@ export default function TenantsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
-                          {tenant.billing_exempt ? (
-                            <Badge variant="secondary" title={tenant.billing_exempt_reason ?? undefined}>
-                              {tenant.billing_exempt_reason?.startsWith("Escola pública")
-                                ? "Isenta"
-                                : "Cobrança pausada"}
-                            </Badge>
-                          ) : null}
-                        </div>
+                        <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
                       </TableCell>
                       <TableCell className="text-sm">
                         <div>{tenant.contact_email || "—"}</div>
@@ -289,11 +269,6 @@ export default function TenantsPage() {
                         ) : null}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/tenants/escola?id=${encodeURIComponent(tenant.id)}`}>
-                            Configurações
-                          </Link>
-                        </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <Link href={`/subscriptions?tenant=${encodeURIComponent(tenant.slug)}`}>
                             Subscrição
@@ -315,7 +290,7 @@ export default function TenantsPage() {
                             SIGA <ExternalLink className="size-3" />
                           </a>
                         </Button>
-                        {tenant.status !== "suspended" && tenant.status !== "past_due" ? (
+                        {tenant.status !== "suspended" ? (
                           <Button
                             variant="ghost"
                             size="sm"

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { UserPlus } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";

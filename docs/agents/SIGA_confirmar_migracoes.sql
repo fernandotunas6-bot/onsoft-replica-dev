@@ -150,9 +150,5 @@ from (values
      and not exists (select 1 from pg_policies
                      where tablename = 'schools'
                        and policyname = 'Administrators can update their own school'))
-,
-  ('20261015120000_tenant_billing_profiles',
-     to_regclass('public.tenant_billing_profiles') is not null
-     and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
 ) as m(migracao, ok)
 order by migracao;

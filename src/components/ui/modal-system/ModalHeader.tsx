@@ -24,28 +24,24 @@ export function ModalHeader({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-start justify-between border-b border-border bg-card px-5 py-4",
+        "flex items-center justify-between border-b border-border bg-muted/20 px-5 py-3.5",
         className,
       )}
     >
-      <div className="flex min-w-0 flex-1 items-start gap-3 pr-2">
+      <div className="flex items-center gap-3 min-w-0 pr-2">
         {Icon && (
-          <div className="flex size-[36px] shrink-0 items-center justify-center rounded-lg border border-border bg-background text-foreground shadow-xs">
-            <Icon className="size-[20px] text-primary-strong" />
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-foreground shadow-xs">
+            <Icon className="size-4 text-emerald-600 dark:text-emerald-400" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="break-words text-[18px] font-semibold leading-[24px] text-foreground">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-sm tracking-tight text-foreground truncate">
               {title}
             </h2>
             {badge}
           </div>
-          {subtitle && (
-            <p className="mt-1.5 break-words text-[13px] leading-[20px] text-muted-foreground">
-              {subtitle}
-            </p>
-          )}
+          {subtitle && <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>}
         </div>
       </div>
 
@@ -55,10 +51,9 @@ export function ModalHeader({
             type="button"
             onClick={onHelp}
             title="Ajuda contextual"
-            aria-label="Ajuda contextual"
-            className="flex size-[44px] min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
-            <HelpCircle className="size-[18px]" />
+            <HelpCircle className="size-4" />
           </button>
         )}
         {onClose && (
@@ -66,10 +61,9 @@ export function ModalHeader({
             type="button"
             onClick={onClose}
             title="Fechar (Esc)"
-            aria-label="Fechar"
-            className="flex size-[44px] min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
-            <X className="size-[18px]" />
+            <X className="size-4" />
           </button>
         )}
       </div>

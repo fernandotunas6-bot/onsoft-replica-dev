@@ -80,27 +80,21 @@ export function EntityRow({
     <>
       {item.leading ? <span className="shrink-0">{item.leading}</span> : null}
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 break-words text-[14px] font-medium leading-snug text-foreground">
-          {item.title}
-        </span>
+        <span className="block truncate text-sm font-medium text-foreground">{item.title}</span>
         {item.subtitle ? (
-          <span className="mt-1 line-clamp-2 break-words text-[12px] leading-relaxed text-muted-foreground">
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
             {item.subtitle}
           </span>
         ) : null}
-        {item.meta || item.status ? (
-          <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] [&>*]:max-w-full">
-            {item.meta ? <span className="break-words">{item.meta}</span> : null}
-            {item.status ? <span className="max-w-full">{item.status}</span> : null}
-          </span>
-        ) : null}
+        {item.meta ? <span className="mt-1 block text-xs">{item.meta}</span> : null}
       </span>
+      {item.status ? <span className="shrink-0">{item.status}</span> : null}
     </>
   );
 
   const rowClass = cn(
     "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
-    "min-h-[64px] rounded-lg outline-none hover:bg-secondary/35 active:bg-secondary/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+    "min-h-[var(--siga-control-lg)] active:bg-secondary/70",
     item.selected && "bg-primary-soft/40",
   );
 

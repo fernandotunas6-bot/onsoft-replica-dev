@@ -8,31 +8,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 
 export default defineConfig({
-  vite: {
-    plugins: [mcpPlugin()],
-    environments: {
-      client: {
-        build: {
-          rolldownOptions: {
-            output: {
-              codeSplitting: {
-                groups: [
-                  // Cada ícone do lucide virava um ficheiro (~190 com menos de 2 KB);
-                  // em HTTP/1.1 dezenas de pedidos atrasam o primeiro conteúdo.
-                  { name: "icons", test: /node_modules[\\/]lucide-react/ },
-                  // O núcleo que todas as páginas carregam, num só ficheiro em vez de dezenas.
-                  {
-                    name: "framework",
-                    test: /node_modules[\\/](react|react-dom|scheduler|@tanstack[\\/](react-router|router-core|history|react-query|query-core|store|react-store)|clsx|tailwind-merge|tslib)[\\/]/,
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-  },
+  vite: { plugins: [mcpPlugin()] },
   react: {
     jsxRuntime: "automatic",
   },

@@ -43,7 +43,7 @@ import { detectScheduleConflicts } from "./utils/conflicts";
 import { gridRows } from "./utils/gridRows";
 import { schedulePublicationReadiness } from "./utils/publicationReadiness";
 import { assertValidScheduleTime, assertNoScheduleConflict } from "./utils/validation";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { errorMessage } from "@/lib/error-message";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"] as const;

@@ -19,7 +19,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";

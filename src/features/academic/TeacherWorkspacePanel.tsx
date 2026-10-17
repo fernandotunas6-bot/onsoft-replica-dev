@@ -15,7 +15,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayDiario } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 
 export function TeacherWorkspacePanel({
   teacherId,

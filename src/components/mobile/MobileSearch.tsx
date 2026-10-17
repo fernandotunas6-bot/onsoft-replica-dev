@@ -45,7 +45,7 @@ export function MobileSearch({
   return (
     <div className={cn("relative", className)}>
       <Search
-        className="pointer-events-none absolute left-[14px] top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden
       />
       <input
@@ -57,7 +57,7 @@ export function MobileSearch({
         onChange={(event) => push(event.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-[44px] min-h-[44px] w-full rounded-xl border border-border bg-card pl-[40px] pr-[48px] text-[16px] text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/20 [&::-webkit-search-cancel-button]:hidden"
+        className="h-11 w-full rounded-xl border border-border bg-card pl-9 pr-10 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary/50 [&::-webkit-search-cancel-button]:hidden"
       />
       {draft ? (
         <button
@@ -68,7 +68,7 @@ export function MobileSearch({
             onChange("");
           }}
           aria-label="Limpar pesquisa"
-          className="absolute right-0 top-1/2 inline-flex size-[44px] -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:bg-secondary"
+          className="absolute right-1.5 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
         >
           <X className="size-4" />
         </button>

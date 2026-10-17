@@ -103,7 +103,7 @@ export function OfflineBanner() {
       role="status"
       aria-live="polite"
       className={cn(
-        "flex min-h-[44px] items-start gap-2.5 px-4 py-3 text-[12px] leading-[20px]",
+        "flex items-center gap-2 px-4 py-1.5 text-[11px]",
         offline
           ? "bg-warning/15 text-warning-strong"
           : sending
@@ -111,11 +111,8 @@ export function OfflineBanner() {
             : "bg-success/10 text-success-strong",
       )}
     >
-      <Icon
-        className={cn("mt-px size-[18px] shrink-0", sending && "motion-safe:animate-spin")}
-        aria-hidden
-      />
-      <span className="min-w-0 break-words">{text}</span>
+      <Icon className={cn("size-3.5 shrink-0", sending && "animate-spin")} aria-hidden />
+      <span className="min-w-0">{text}</span>
     </div>
   );
 }

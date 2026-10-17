@@ -74,7 +74,7 @@ export async function loadSchoolAdminAccessSnapshot(
 
   const { data: tenant, error: tenantErr } = await db
     .from("tenants")
-    .select("id, name, slug, status, subscription_status, trial_ends_at, billing_exempt")
+    .select("id, name, slug, status, subscription_status, trial_ends_at")
     .eq("id", tenantId)
     .maybeSingle();
   if (tenantErr) throw new Error("Não foi possível ler o tenant.");
@@ -88,7 +88,6 @@ export async function loadSchoolAdminAccessSnapshot(
       status: tenant.status as TenantStatus,
       subscription_status: (tenant.subscription_status as SubscriptionLifecycle | null) ?? null,
       trial_ends_at: (tenant.trial_ends_at as string | null) ?? null,
-      billing_exempt: Boolean(tenant.billing_exempt),
     },
     school,
     admins: [],

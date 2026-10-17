@@ -28,15 +28,13 @@ export function MobileEmptyState({
   icon?: React.ElementType;
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-8 text-center">
+    <div className="flex flex-col items-center px-6 py-10 text-center">
       <span className="inline-flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground">
         <Icon className="size-5" aria-hidden />
       </span>
-      <p className="mt-4 text-[14px] font-semibold text-foreground">{title}</p>
+      <p className="mt-3 text-sm font-medium text-foreground">{title}</p>
       {description ? (
-        <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-muted-foreground">
-          {description}
-        </p>
+        <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">{description}</p>
       ) : null}
       {actionLabel && onAction ? (
         <Button type="button" className="mt-4 h-10" onClick={onAction}>
@@ -62,14 +60,12 @@ export function MobileErrorState({
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center px-6 py-8 text-center">
+    <div className="flex flex-col items-center px-6 py-10 text-center">
       <span className="inline-flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive-strong">
         <AlertTriangle className="size-5" aria-hidden />
       </span>
-      <p className="mt-4 text-[14px] font-semibold text-foreground">
-        Não foi possível carregar {what}.
-      </p>
-      <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-muted-foreground">
+      <p className="mt-3 text-sm font-medium text-foreground">Não foi possível carregar {what}.</p>
+      <p className="mt-1 max-w-xs text-xs text-muted-foreground">
         Verifique a ligação. Se continuar, a escola pode estar sem acesso a este módulo.
       </p>
       {onRetry ? (

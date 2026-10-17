@@ -15,7 +15,7 @@ import { validateTenantSlug, isReservedSubdomain } from "@/lib/saas/platform-dom
  * autenticadas.
  */
 const PUBLIC_TENANT_SELECT =
-  "id, name, slug, status, plan_id, subscription_status, trial_ends_at, billing_exempt, max_students, max_storage_gb, created_at, updated_at, plans(*), tenant_usage(active_students_count)" as const;
+  "id, name, slug, status, plan_id, subscription_status, trial_ends_at, max_students, max_storage_gb, created_at, updated_at, plans(*), tenant_usage(active_students_count)" as const;
 
 /** Tabela/relação em falta no SGA (42P01 / PGRST205 / PGRST200): tratar como "sem tenant". */
 function isMissingRelationError(error: { code?: string | null } | null | undefined): boolean {

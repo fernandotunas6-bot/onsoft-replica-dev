@@ -1,4 +1,4 @@
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MediaFrame } from "@/components/ui/media-frame";
 import { UserAvatar } from "@/components/ui/user-avatar";

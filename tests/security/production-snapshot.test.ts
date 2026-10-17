@@ -153,8 +153,12 @@ const ANON_POLICIES_ESPERADAS = [
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  // Vazia desde 2026-10-17: as migrações do site público (web_*) e da cobrança por escola
-  // (tenant_billing_profiles) foram aplicadas e as tabelas entraram no retrato.
+  // 20261007100000_web_site_content.sql (site público gerido no ADMIN): sai daqui
+  // quando o retrato for recapturado depois de aplicada.
+  "web_blog_posts",
+  "web_contact_messages",
+  "web_faqs",
+  "web_school_showcase",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

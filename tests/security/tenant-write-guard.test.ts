@@ -55,9 +55,7 @@ describe("escritas de uma escola bloqueada", () => {
   it("suspensa, em atraso, arquivada ou com falha de criação não grava", async () => {
     for (const status of ["suspended", "past_due", "archived", "provisioning_failed"]) {
       tenant = { status, subscription_status: "active", trial_ends_at: null };
-      await expect(assertTenantAllowsWrites("s1", NOW)).rejects.toThrow(
-        status === "past_due" ? /em atraso/ : /suspensa/,
-      );
+      await expect(assertTenantAllowsWrites("s1", NOW)).rejects.toThrow(/suspensa/);
     }
   });
 

@@ -13,7 +13,7 @@ import {
   type HrAbsenceReviewRow,
 } from "@/features/hr/absences";
 import { kwanza } from "@/lib/currency";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { toastActionError } from "@/lib/action-error-toast";
 
 export const Route = createFileRoute("/financeiro/rh/faltas")({

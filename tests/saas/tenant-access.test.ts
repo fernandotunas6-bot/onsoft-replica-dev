@@ -37,16 +37,6 @@ describe("getTenantAccessBlock", () => {
     });
   });
 
-  it("distingue o pagamento em atraso da suspensão", () => {
-    expect(getTenantAccessBlock({ status: "past_due" })).toEqual({
-      blocked: true,
-      reason: "past_due",
-    });
-    expect(getTenantAccessBlock({ status: "past_due", billing_exempt: true })).toEqual({
-      blocked: false,
-    });
-  });
-
   it("blocks cancelled subscription lifecycle", () => {
     expect(getTenantAccessBlock({ status: "active", subscription_status: "canceled" })).toEqual({
       blocked: true,
