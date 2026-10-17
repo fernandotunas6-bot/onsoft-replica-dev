@@ -427,12 +427,14 @@ function DocumentosPage() {
         {d.nextStatus ? (
           <>
             <ConfirmActionModal
-              title="Cancelar pedido"
-              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
-              confirmLabel="Cancelar pedido"
+              title="Recusar pedido"
+              description={`Recusa o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
+              confirmLabel="Recusar pedido"
               onConfirm={async () => {
+                // «Recusar» grava recusado (antes gravava cancelado e o pedido aparecia
+                // como «Cancelado»).
                 await updateDocumentRequestStatus({
-                  data: { requestId: d.id, status: "cancelled" },
+                  data: { requestId: d.id, status: "rejected" },
                 });
                 await Promise.all([
                   queryClient.invalidateQueries({

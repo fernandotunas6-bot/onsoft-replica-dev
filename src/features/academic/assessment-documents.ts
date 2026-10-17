@@ -16,6 +16,7 @@ import type {
   buildClassCourseMap,
   buildStudentDossier,
 } from "@/features/academic/assessment-views";
+import { boletimSummary } from "@/features/academic/assessment-views";
 import { exportCsv } from "@/lib/export-csv";
 import type { OfficialPautaMeta } from "@/lib/export-pdf";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
@@ -268,8 +269,17 @@ export function exportAssessmentDocument(
             mfa: formatScore(row.mfa),
             status: row.situacao.label,
           })),
-          status: selectedStudent.situacao.label,
-          average: formatScore(selectedStudent.average),
+          // Do aluno (todas as disciplinas), não da disciplina e período seleccionados.
+          ...(() => {
+            const summary = boletimSummary(
+              ctx.dossier.map((row) => ({ mfa: row.mfa, status: row.situacao.label })),
+            );
+            return {
+              status: summary.status,
+              approved: summary.approved,
+              ...(summary.average != null ? { average: formatScore(summary.average) } : {}),
+            };
+          })(),
         }),
         fallback: () =>
           exportOfficialPautaPdf(

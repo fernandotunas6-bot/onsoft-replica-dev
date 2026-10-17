@@ -121,97 +121,102 @@ export function isPrintTemplateKey(value: string): value is PrintTemplateKey {
   return (PRINT_TEMPLATE_KEYS as readonly string[]).includes(value);
 }
 
+/**
+ * O modelo que o título de um documento pede, só pelas palavras do título
+ * (sem as escolhas da escola). Null quando o título não diz qual é.
+ */
+export function printTemplateKeyFromTitle(tipo: string): PrintTemplateKey | null {
+  const normalized = tipo.trim().toLowerCase();
+  // Cartão de estudante: documento de serviço, não uma declaração de notas.
+  if (normalized.includes("cartão") || normalized.includes("cartao")) return "service-document";
+  if (normalized.includes("boletim")) return "boletim-escolar";
+  if (normalized.includes("certificado") || normalized.includes("habilita")) {
+    return "certificado-habilitacoes";
+  }
+  if (normalized.includes("histórico") || normalized.includes("historico")) {
+    return "historico-academico-individual";
+  }
+  if (normalized.includes("pauta") && normalized.includes("geral")) return "pauta-geral-turma";
+  if (
+    normalized.includes("pauta") &&
+    (normalized.includes("trimestral") ||
+      normalized.includes("anual") ||
+      normalized.includes("lista") ||
+      normalized.includes("relatório") ||
+      normalized.includes("relatorio"))
+  ) {
+    return "service-document";
+  }
+  if (normalized.includes("relação") || normalized.includes("relacao")) {
+    return "service-document";
+  }
+  if (normalized.includes("lista de notas")) return "service-document";
+  if (normalized.includes("pauta")) return "pauta-disciplinar";
+  if (normalized.includes("candidat")) return "talao-candidatura";
+  if (normalized.includes("credenc")) return "folha-credenciais";
+  if (normalized.includes("dossi") || normalized.includes("dossie")) return "dossie-academico";
+  if (normalized.includes("acta") || normalized.includes("conselho")) return "acta-conselho-notas";
+  if (normalized.includes("diário") || normalized.includes("diario")) {
+    return "diario-pedagogico-professor";
+  }
+  if (normalized.includes("mapa") || normalized.includes("estatist")) {
+    return "mapa-estatistico-aproveitamento";
+  }
+  if (normalized.includes("valida")) return "relatorio-validacao-notas";
+  if (
+    (normalized.includes("relatório") || normalized.includes("relatorio")) &&
+    !normalized.includes("valida")
+  ) {
+    return "service-document";
+  }
+  if (
+    normalized.includes("talão") ||
+    normalized.includes("talao") ||
+    normalized.includes("matrícul") ||
+    normalized.includes("matricul")
+  ) {
+    return "talao-matricula";
+  }
+  if (
+    normalized.includes("serviço") ||
+    normalized.includes("servico") ||
+    normalized.includes("recibo") ||
+    normalized.includes("fatura") ||
+    normalized.includes("caixa") ||
+    normalized.includes("plano") ||
+    normalized.includes("tesour") ||
+    normalized.includes("finance") ||
+    normalized.includes("comunicado") ||
+    normalized.includes("calendário") ||
+    normalized.includes("calendario") ||
+    normalized.includes("lista de alunos") ||
+    normalized.includes("lista de faturas") ||
+    normalized.includes("lista de turmas") ||
+    normalized.includes("lista de contas") ||
+    normalized.includes("contas de login") ||
+    normalized.includes("equipa escolar") ||
+    normalized.includes("pedidos de documento") ||
+    normalized.includes("registo de pessoas") ||
+    normalized.includes("movimentos de caixa") ||
+    normalized.includes("cobrança") ||
+    normalized.includes("cobranca") ||
+    normalized.includes("categoria") ||
+    normalized.includes("pessoas") ||
+    normalized.includes("professores")
+  ) {
+    return "service-document";
+  }
+  if (normalized.includes("declara")) return "declaracao-notas-simples";
+  return null;
+}
+
 export function matchPrintTemplateKey(
   tipo: string,
   active?: { issue?: string; byType?: Record<string, string> },
 ): PrintTemplateKey {
-  const normalized = tipo.trim().toLowerCase();
   const byType = active?.byType ?? {};
 
-  const fromKeywords = (): PrintTemplateKey | null => {
-    if (normalized.includes("boletim")) return "boletim-escolar";
-    if (normalized.includes("certificado") || normalized.includes("habilita")) {
-      return "certificado-habilitacoes";
-    }
-    if (normalized.includes("histórico") || normalized.includes("historico")) {
-      return "historico-academico-individual";
-    }
-    if (normalized.includes("pauta") && normalized.includes("geral")) return "pauta-geral-turma";
-    if (
-      normalized.includes("pauta") &&
-      (normalized.includes("trimestral") ||
-        normalized.includes("anual") ||
-        normalized.includes("lista") ||
-        normalized.includes("relatório") ||
-        normalized.includes("relatorio"))
-    ) {
-      return "service-document";
-    }
-    if (normalized.includes("relação") || normalized.includes("relacao")) {
-      return "service-document";
-    }
-    if (normalized.includes("lista de notas")) return "service-document";
-    if (normalized.includes("pauta")) return "pauta-disciplinar";
-    if (normalized.includes("candidat")) return "talao-candidatura";
-    if (normalized.includes("credenc")) return "folha-credenciais";
-    if (normalized.includes("dossi") || normalized.includes("dossie")) return "dossie-academico";
-    if (normalized.includes("acta") || normalized.includes("conselho"))
-      return "acta-conselho-notas";
-    if (normalized.includes("diário") || normalized.includes("diario")) {
-      return "diario-pedagogico-professor";
-    }
-    if (normalized.includes("mapa") || normalized.includes("estatist")) {
-      return "mapa-estatistico-aproveitamento";
-    }
-    if (normalized.includes("valida")) return "relatorio-validacao-notas";
-    if (
-      (normalized.includes("relatório") || normalized.includes("relatorio")) &&
-      !normalized.includes("valida")
-    ) {
-      return "service-document";
-    }
-    if (
-      normalized.includes("talão") ||
-      normalized.includes("talao") ||
-      normalized.includes("matrícul") ||
-      normalized.includes("matricul")
-    ) {
-      return "talao-matricula";
-    }
-    if (
-      normalized.includes("serviço") ||
-      normalized.includes("servico") ||
-      normalized.includes("recibo") ||
-      normalized.includes("fatura") ||
-      normalized.includes("caixa") ||
-      normalized.includes("plano") ||
-      normalized.includes("tesour") ||
-      normalized.includes("finance") ||
-      normalized.includes("comunicado") ||
-      normalized.includes("calendário") ||
-      normalized.includes("calendario") ||
-      normalized.includes("lista de alunos") ||
-      normalized.includes("lista de faturas") ||
-      normalized.includes("lista de turmas") ||
-      normalized.includes("lista de contas") ||
-      normalized.includes("contas de login") ||
-      normalized.includes("equipa escolar") ||
-      normalized.includes("pedidos de documento") ||
-      normalized.includes("registo de pessoas") ||
-      normalized.includes("movimentos de caixa") ||
-      normalized.includes("cobrança") ||
-      normalized.includes("cobranca") ||
-      normalized.includes("categoria") ||
-      normalized.includes("pessoas") ||
-      normalized.includes("professores")
-    ) {
-      return "service-document";
-    }
-    if (normalized.includes("declara")) return "declaracao-notas-simples";
-    return null;
-  };
-
-  const keyed = fromKeywords();
+  const keyed = printTemplateKeyFromTitle(tipo);
   if (keyed) {
     const override = byType[PRINT_TEMPLATE_META[keyed].type];
     return override && isPrintTemplateKey(override) ? override : keyed;

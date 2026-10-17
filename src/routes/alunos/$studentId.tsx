@@ -76,7 +76,11 @@ import {
 } from "@/features/students/server";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
-import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
+import {
+  boletimSummary,
+  buildStudentDossier,
+  documentValidationCode,
+} from "@/features/academic/assessment-views";
 import {
   listPedagogicalWorkspace,
   getStudentAcademicHistory,
@@ -656,13 +660,23 @@ function StudentDetail() {
       },
       overlay: overlayBoletim({
         subjects: rows,
-        ...(rows[0]?.mfa ? { average: rows[0].mfa } : {}),
+        // Média e situação de todas as disciplinas (antes: a MFA da primeira, e
+        // «Transita» mesmo com disciplinas sem nota).
+        ...(() => {
+          const summary = boletimSummary(
+            rows.map((row) => {
+              const mfa = Number(String(row.mfa).replace(",", "."));
+              return { mfa: Number.isFinite(mfa) ? mfa : null, status: row.status };
+            }),
+          );
+          return {
+            status: summary.status,
+            approved: summary.approved,
+            ...(summary.average != null ? { average: formatScore(summary.average) } : {}),
+          };
+        })(),
         attendance:
           student.attendance_rate != null ? `${Math.round(Number(student.attendance_rate))}%` : "—",
-        status: rows.every((row) => !/reprov|não trans/i.test(row.status))
-          ? "Transita"
-          : "Pendente",
-        approved: rows.filter((row) => !/reprov|não trans|pendente/i.test(row.status)).length,
       }),
       fallback: () =>
         exportOfficialPautaPdf(
@@ -799,14 +813,22 @@ function StudentDetail() {
       );
     }
     const academicYear = periods[0].periodName || studentPrintSchool.academicYear || "";
+    // O ano, a classe e a turma são os do ano certificado, não os da matrícula
+    // actual: um aluno já na 8ª saía «8ª Classe · 2026/2027» com o resultado da 7ª.
+    const certifiedYear = (historyQuery.data?.years ?? [])
+      .filter((year) => year.official && year.academicYearName === periods[0].periodName)
+      .at(-1);
     await issuePrintDocument({
       tipo: "Certificado de habilitações",
-      school: studentPrintSchool,
+      school: { ...studentPrintSchool, academicYear },
       student: {
         fullName: student.full_name,
         academicNumber: student.registration_number,
-        className: student.class_name,
-        programName: student.grade_name ?? student.course_name,
+        className: certifiedYear?.classGroupName ?? student.class_name,
+        programName:
+          certifiedYear?.gradeName ||
+          certifiedYear?.courseName ||
+          (student.grade_name ?? student.course_name),
         validationCode: documentValidationCode([
           student.id,
           student.registration_number,
