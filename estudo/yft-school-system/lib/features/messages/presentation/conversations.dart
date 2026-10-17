@@ -15,7 +15,6 @@ import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:yft_school_system/features/calendar/application/school_events.dart';
 import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
-import 'package:yft_school_system/core/sga/sga_config.dart';
 
 /// Lista das conversas 1:1 (separador "Conversas" de Mensagens).
 class ConversationsList extends ConsumerWidget {
@@ -25,13 +24,6 @@ class ConversationsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (sgaMode) {
-      return const EmptyHint(
-        icon: LucideIcons.messageCircle,
-        message: 'As conversas com a escola chegam numa próxima versão. '
-            'Por agora, use as mensagens do portal do SIGA.',
-      );
-    }
     final async = ref.watch(conversationsProvider);
     final pad = getResponsiveHorizontalPadding(context);
     final base = ref.read(dioProvider).options.baseUrl;

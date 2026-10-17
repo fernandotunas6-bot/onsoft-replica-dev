@@ -106,7 +106,8 @@ String contactRoleLabel(String role, {String? subjects, String? wards}) =>
       'admin' => 'Direcção',
       'teacher' => (subjects?.isNotEmpty ?? false) ? 'Professor · $subjects' : 'Professor',
       'parent' => (wards?.isNotEmpty ?? false) ? 'Encarregado de $wards' : 'Encarregado',
-      _ => '',
+      // Modo SIGA: o SIGA já dá o texto ("Professor", "Secretaria"…).
+      _ => role,
     };
 
 class ConversationsRepository {

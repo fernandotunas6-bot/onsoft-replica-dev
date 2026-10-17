@@ -23,6 +23,8 @@ import '../repositories/timetable_repository.dart';
 import '../repositories/user_repository.dart';
 import '../auth/auth_state.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_attendance.dart' show sgaPortalDioProvider;
+import 'package:yft_school_system/core/sga/sga_conversations.dart';
 
 // ── Repository providers ──
 
@@ -67,6 +69,8 @@ final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
 });
 
 final conversationsRepositoryProvider = Provider<ConversationsRepository>((ref) {
+  // Modo SIGA: o chat do SIGA, pelas rotas /api/mobile/chat do portal.
+  if (sgaMode) return SgaConversationsRepository(ref.watch(sgaPortalDioProvider));
   return ConversationsRepository(ref.watch(dioProvider));
 });
 
@@ -190,14 +194,11 @@ final studentAttendanceProvider =
 
 final conversationsProvider = FutureProvider<List<ConversationSummary>>((ref) {
   ref.watch(currentUidProvider);
-  // Modo SIGA: as conversas ainda não passaram para o SIGA (fase 4).
-  if (sgaMode) return const <ConversationSummary>[];
   return ref.read(conversationsRepositoryProvider).list();
 });
 
 final conversationsUnreadProvider = FutureProvider<int>((ref) {
   ref.watch(currentUidProvider);
-  if (sgaMode) return 0;
   return ref.read(conversationsRepositoryProvider).unreadCount();
 });
 

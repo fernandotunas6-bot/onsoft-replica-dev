@@ -26,7 +26,7 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | 1 | API de leitura do encarregado: `GET /api/sga/me`, `/wards`, `/notices` | feito (testes em `school-worker/test/sga.spec.ts`) |
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito na web (Educandos e Comunicados); Android à espera do captcha |
 | 3 | Leituras do encarregado: horário, faltas, recibos, boletim, saldo, disciplinas, turmas e calendário | feito |
-| 4 | Escritas do professor e mensagens. Feito: chamada por aula e lançamento de notas (`/api/mobile/attendance`, `/api/mobile/grades` no SIGA). Por fazer: mensagens | em curso |
+| 4 | Escritas e mensagens no próprio SIGA: chamada, notas e chat (`/api/mobile/attendance`, `/grades`, `/chat`) | feito |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
 
 ## Modo SIGA na app
@@ -81,8 +81,7 @@ antigas, para os ecrãs não mudarem.
   falta das facturas `open`/`partially_paid` depois dos recibos não anulados.
 - Calendário: o ano lectivo `active` da escola e os seus `terms` como
   "Term N"; o trimestre activo é o que contém hoje (Luanda).
-- Ainda no modo antigo: conversas (o separador diz que chegam numa próxima
-  versão) e dados pessoais (só leitura; alteram-se no portal do SIGA).
+- Dados pessoais: só leitura (alteram-se no portal do SIGA).
 - Recibos: matrícula → `finance_contracts` → `finance_invoices` →
   `finance_receipts` sem `reversed_at`. O SIGA não guarda saldos no recibo: o
   "saldo depois" é o que falta dessa factura (valor − desconto + multa) depois
@@ -136,6 +135,16 @@ sem cópia de regras.
   `20260903025000` limitam o professor à sua turma e disciplina).
 - App (`sga_grades_screen.dart`): só envia os alunos alterados, com as três
   notas entre 0 e 20, em lotes de 80; pede confirmação antes de descartar.
+
+### Mensagens
+
+- `GET/POST /api/mobile/chat` no SIGA, sobre o chat do SIGA
+  (`siga_chat_*`): conversas, contactos (`?contacts=1`), mensagens (60;
+  `?before=` ISO para as anteriores), enviar, marcar como lida, começar
+  conversa. Regras do SIGA: escola activa, só membros lêem, o encarregado só
+  escreve ao pessoal da escola.
+- App: `SgaConversationsRepository` com a mesma interface do antigo; abrir a
+  conversa marca-a como lida; o papel mostrado é o texto do SIGA.
 
 ## Pôr no ar (dono)
 
