@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {

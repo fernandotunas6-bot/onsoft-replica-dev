@@ -47,7 +47,7 @@ O super-admin fala com o Worker com uma chave partilhada
 | --- | --- |
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
 | `flutter test` | 1 teste, passa |
-| `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
+| `flutter build web` | compila com 3.41.5 e, desde 18/10/2026, também com 3.47.7 |
 | Worker `vitest` | 6 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
 | Worker `tsc --noEmit` | sem erros (o erro de `classes.ts:23` foi corrigido) |
@@ -104,3 +104,20 @@ alteração não está na cópia.
   para 6 testes, todos aprovados.
 - Ainda por resolver: os textos estão escritos à mão em inglês, sem i18n, e a
   moeda é a do Gana.
+
+## SDK destravado (18/10/2026)
+
+O projecto já não está preso ao Flutter 3.41.x. O pacote `lucide_icons` declara
+os ícones através de `LucideIconData extends IconData`, e o Flutter 3.47 tornou
+`IconData` uma classe `final`: a subclasse deixou de compilar. Os 80 ícones que
+a app usa passaram a estar em `lib/core/theme/lucide_icons.dart` como `IconData`
+simples, com os mesmos pontos de código e a mesma família de fonte. O pacote
+continua na `pubspec.yaml` — a fonte vem dele —, mas nenhuma biblioteca Dart
+dele é importada, e por isso a classe `final` já não afecta o build.
+
+Verificado aqui, não presumido: `flutter analyze` sem avisos, 1 teste a passar
+e `flutter build web` concluído **nas duas versões**, 3.41.5 e 3.47.7
+(Dart 3.13.5). O `pubspec.lock` commitado continua a ser o resolvido pelo
+3.41.5; o 3.47 resolve-o de novo quando corre `pub get`, e o 3.47 também
+acrescenta exclusões ao `analysis_options.yaml` — nenhuma dessas alterações
+automáticas foi commitada.

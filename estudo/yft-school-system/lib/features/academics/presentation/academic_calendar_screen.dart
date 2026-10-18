@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/models/school_academic_calendar.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
