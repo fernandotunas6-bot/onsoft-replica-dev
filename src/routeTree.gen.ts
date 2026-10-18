@@ -47,6 +47,7 @@ import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
+import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConfiguracoesMobileRouteImport } from './routes/configuracoes_.mobile'
@@ -108,6 +109,7 @@ import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domai
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
 import { Route as ApiSaasDomainsVerifyRouteImport } from './routes/api/saas/domains.verify'
+import { Route as ApiSaasEducationCatalogAdoptionRouteImport } from './routes/api/saas/education-catalog.adoption'
 import { Route as ApiSaasEducationCatalogSearchRouteImport } from './routes/api/saas/education-catalog.search'
 import { Route as ApiSaasEmailRoutesRouteImport } from './routes/api/saas/email.routes'
 import { Route as ApiSaasPlatformAdminsRevokeRouteImport } from './routes/api/saas/platform-admins.revoke'
@@ -123,6 +125,8 @@ import { Route as ApiSaasSiteMessagesRouteImport } from './routes/api/saas/site.
 import { Route as ApiSaasSitePostsRouteImport } from './routes/api/saas/site.posts'
 import { Route as ApiSaasSiteShowcaseRouteImport } from './routes/api/saas/site.showcase'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
+import { Route as ApiSaasTenantsAdminAccessRouteImport } from './routes/api/saas/tenants.admin-access'
+import { Route as ApiSaasTenantsBillingRouteImport } from './routes/api/saas/tenants.billing'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
@@ -339,6 +343,11 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
 const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
   id: '/configuracoes_/assinatura',
   path: '/configuracoes/assinatura',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesBoasVindasRoute = ConfiguracoesBoasVindasRouteImport.update({
+  id: '/configuracoes_/boas-vindas',
+  path: '/configuracoes/boas-vindas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesDiagnosticoRoute =
@@ -661,6 +670,12 @@ const ApiSaasDomainsVerifyRoute = ApiSaasDomainsVerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => ApiSaasDomainsRoute,
 } as any)
+const ApiSaasEducationCatalogAdoptionRoute =
+  ApiSaasEducationCatalogAdoptionRouteImport.update({
+    id: '/adoption',
+    path: '/adoption',
+    getParentRoute: () => ApiSaasEducationCatalogRoute,
+  } as any)
 const ApiSaasEducationCatalogSearchRoute =
   ApiSaasEducationCatalogSearchRouteImport.update({
     id: '/search',
@@ -741,6 +756,17 @@ const ApiSaasSubscriptionsBackfillRoute =
     path: '/backfill',
     getParentRoute: () => ApiSaasSubscriptionsRoute,
   } as any)
+const ApiSaasTenantsAdminAccessRoute =
+  ApiSaasTenantsAdminAccessRouteImport.update({
+    id: '/admin-access',
+    path: '/admin-access',
+    getParentRoute: () => ApiSaasTenantsRoute,
+  } as any)
+const ApiSaasTenantsBillingRoute = ApiSaasTenantsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => ApiSaasTenantsRoute,
+} as any)
 const ApiSaasTenantsLookupRoute = ApiSaasTenantsLookupRouteImport.update({
   id: '/lookup',
   path: '/lookup',
@@ -933,6 +959,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/configuracoes/mobile': typeof ConfiguracoesMobileRoute
@@ -995,6 +1022,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/adoption': typeof ApiSaasEducationCatalogAdoptionRoute
   '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
@@ -1010,6 +1038,8 @@ export interface FileRoutesByFullPath {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1075,6 +1105,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/configuracoes/mobile': typeof ConfiguracoesMobileRoute
@@ -1137,6 +1168,7 @@ export interface FileRoutesByTo {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/adoption': typeof ApiSaasEducationCatalogAdoptionRoute
   '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
@@ -1152,6 +1184,8 @@ export interface FileRoutesByTo {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1218,6 +1252,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/configuracoes_/mobile': typeof ConfiguracoesMobileRoute
@@ -1280,6 +1315,7 @@ export interface FileRoutesById {
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
   '/api/saas/domains/verify': typeof ApiSaasDomainsVerifyRoute
+  '/api/saas/education-catalog/adoption': typeof ApiSaasEducationCatalogAdoptionRoute
   '/api/saas/education-catalog/search': typeof ApiSaasEducationCatalogSearchRoute
   '/api/saas/email/routes': typeof ApiSaasEmailRoutesRoute
   '/api/saas/platform-admins/revoke': typeof ApiSaasPlatformAdminsRevokeRoute
@@ -1295,6 +1331,8 @@ export interface FileRoutesById {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1362,6 +1400,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes/assinatura'
+    | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/configuracoes/mobile'
@@ -1424,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/adoption'
     | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
@@ -1439,6 +1479,8 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1504,6 +1546,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes/assinatura'
+    | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/configuracoes/mobile'
@@ -1566,6 +1609,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/adoption'
     | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
@@ -1581,6 +1625,8 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1646,6 +1692,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes_/assinatura'
+    | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/configuracoes_/mobile'
@@ -1708,6 +1755,7 @@ export interface FileRouteTypes {
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
     | '/api/saas/domains/verify'
+    | '/api/saas/education-catalog/adoption'
     | '/api/saas/education-catalog/search'
     | '/api/saas/email/routes'
     | '/api/saas/platform-admins/revoke'
@@ -1723,6 +1771,8 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1779,6 +1829,7 @@ export interface RootRouteChildren {
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
+  ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConfiguracoesMobileRoute: typeof ConfiguracoesMobileRoute
@@ -2125,6 +2176,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/assinatura'
       fullPath: '/configuracoes/assinatura'
       preLoaderRoute: typeof ConfiguracoesAssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes_/boas-vindas': {
+      id: '/configuracoes_/boas-vindas'
+      path: '/configuracoes/boas-vindas'
+      fullPath: '/configuracoes/boas-vindas'
+      preLoaderRoute: typeof ConfiguracoesBoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes_/diagnostico': {
@@ -2554,6 +2612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasDomainsVerifyRouteImport
       parentRoute: typeof ApiSaasDomainsRoute
     }
+    '/api/saas/education-catalog/adoption': {
+      id: '/api/saas/education-catalog/adoption'
+      path: '/adoption'
+      fullPath: '/api/saas/education-catalog/adoption'
+      preLoaderRoute: typeof ApiSaasEducationCatalogAdoptionRouteImport
+      parentRoute: typeof ApiSaasEducationCatalogRoute
+    }
     '/api/saas/education-catalog/search': {
       id: '/api/saas/education-catalog/search'
       path: '/search'
@@ -2658,6 +2723,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/saas/subscriptions/backfill'
       preLoaderRoute: typeof ApiSaasSubscriptionsBackfillRouteImport
       parentRoute: typeof ApiSaasSubscriptionsRoute
+    }
+    '/api/saas/tenants/admin-access': {
+      id: '/api/saas/tenants/admin-access'
+      path: '/admin-access'
+      fullPath: '/api/saas/tenants/admin-access'
+      preLoaderRoute: typeof ApiSaasTenantsAdminAccessRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
+    '/api/saas/tenants/billing': {
+      id: '/api/saas/tenants/billing'
+      path: '/billing'
+      fullPath: '/api/saas/tenants/billing'
+      preLoaderRoute: typeof ApiSaasTenantsBillingRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
     }
     '/api/saas/tenants/lookup': {
       id: '/api/saas/tenants/lookup'
@@ -2975,11 +3054,13 @@ const ApiSaasDomainsRouteWithChildren = ApiSaasDomainsRoute._addFileChildren(
 )
 
 interface ApiSaasEducationCatalogRouteChildren {
+  ApiSaasEducationCatalogAdoptionRoute: typeof ApiSaasEducationCatalogAdoptionRoute
   ApiSaasEducationCatalogSearchRoute: typeof ApiSaasEducationCatalogSearchRoute
 }
 
 const ApiSaasEducationCatalogRouteChildren: ApiSaasEducationCatalogRouteChildren =
   {
+    ApiSaasEducationCatalogAdoptionRoute: ApiSaasEducationCatalogAdoptionRoute,
     ApiSaasEducationCatalogSearchRoute: ApiSaasEducationCatalogSearchRoute,
   }
 
@@ -3031,12 +3112,16 @@ const ApiSaasSubscriptionsRouteWithChildren =
   ApiSaasSubscriptionsRoute._addFileChildren(ApiSaasSubscriptionsRouteChildren)
 
 interface ApiSaasTenantsRouteChildren {
+  ApiSaasTenantsAdminAccessRoute: typeof ApiSaasTenantsAdminAccessRoute
+  ApiSaasTenantsBillingRoute: typeof ApiSaasTenantsBillingRoute
   ApiSaasTenantsLookupRoute: typeof ApiSaasTenantsLookupRoute
   ApiSaasTenantsStatusRoute: typeof ApiSaasTenantsStatusRoute
   ApiSaasTenantsSubscriptionRoute: typeof ApiSaasTenantsSubscriptionRoute
 }
 
 const ApiSaasTenantsRouteChildren: ApiSaasTenantsRouteChildren = {
+  ApiSaasTenantsAdminAccessRoute: ApiSaasTenantsAdminAccessRoute,
+  ApiSaasTenantsBillingRoute: ApiSaasTenantsBillingRoute,
   ApiSaasTenantsLookupRoute: ApiSaasTenantsLookupRoute,
   ApiSaasTenantsStatusRoute: ApiSaasTenantsStatusRoute,
   ApiSaasTenantsSubscriptionRoute: ApiSaasTenantsSubscriptionRoute,
@@ -3075,6 +3160,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
+  ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConfiguracoesMobileRoute: ConfiguracoesMobileRoute,

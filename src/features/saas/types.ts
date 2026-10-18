@@ -15,6 +15,12 @@ export interface SaaSStats {
   activeTenants: number;
   trialTenants: number;
   suspendedTenants: number;
+  /** Em atraso de pagamento (só consulta até confirmar o pagamento). */
+  pastDueTenants: number;
+  /** Trial terminado sem isenção: o SIGA não deixa gravar. */
+  trialExpiredTenants: number;
+  /** Cobrança pausada ou escola pública isenta (`billing_exempt`). */
+  exemptTenants: number;
   totalStudents: number;
   mrrAoa: number;
   arrAoa: number;
@@ -58,6 +64,9 @@ export interface Tenant {
   plan_id?: string;
   subscription_status?: SubscriptionLifecycle;
   trial_ends_at?: string;
+  /** Cobranças pausadas ou escola pública isenta (ver tenant-billing-rules.ts). */
+  billing_exempt?: boolean | null;
+  billing_exempt_reason?: string | null;
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;

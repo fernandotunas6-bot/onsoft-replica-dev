@@ -162,6 +162,10 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
   // 20261017140000_task_submissions.sql (entregas em PDF pela app): sai daqui
   // quando o retrato for recapturado depois de aplicada.
   "siga_task_submissions",
+  // 20261015120000_tenant_billing_profiles.sql (cobrança por escola no ADMIN). O código
+  // funciona sem ela: lê-a tolerando a falta (`tableReady: false`) e as gravações
+  // respondem com a migração que falta. Sai daqui quando o retrato a mostrar.
+  "tenant_billing_profiles",
 ]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

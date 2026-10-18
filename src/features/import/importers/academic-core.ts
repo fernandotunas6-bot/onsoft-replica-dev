@@ -3,6 +3,11 @@ import { canonicalEntityKey } from "../engine/dedupe";
 import { normalizeDate, normalizeText } from "../engine/normalize";
 import { schoolTodayIso } from "@/lib/school-date";
 import { selectAllPages } from "../engine/paged";
+import {
+  normalizeGrade as catalogGrade,
+  normalizePeriod,
+  subjectCatalogKey,
+} from "@/features/education-catalog/normalize";
 
 export type StudentRef = {
   id: string;
@@ -229,8 +234,27 @@ export function resolveClassGroup(value: unknown, groups: ClassGroupRef[]) {
   return uniqueExactMatch(value, groups, [(group) => group.code, (group) => group.name]);
 }
 
-export function resolveSubject(value: unknown, subjects: SubjectRef[]) {
-  return uniqueExactMatch(value, subjects, [(subject) => subject.code, (subject) => subject.name]);
+/**
+ * Disciplina da folha → disciplina da escola. Primeiro código ou nome exactos;
+ * se nada bater, a equivalência do catálogo («L. Portuguesa» → «Língua
+ * Portuguesa», «Inglês» → «Língua Estrangeira (Inglês)»), só por nome e só
+ * quando aponta para uma única disciplina da escola. `viaCatalog` permite ao
+ * importador avisar da associação.
+ */
+export function resolveSubject(
+  value: unknown,
+  subjects: SubjectRef[],
+): { row: SubjectRef | null; ambiguous: boolean; viaCatalog?: true } {
+  const exact = uniqueExactMatch(value, subjects, [
+    (subject) => subject.code,
+    (subject) => subject.name,
+  ]);
+  if (exact.row || exact.ambiguous) return exact;
+  const key = subjectCatalogKey(value);
+  if (!key) return exact;
+  const matches = subjects.filter((subject) => subjectCatalogKey(subject.name) === key);
+  if (matches.length === 1) return { row: matches[0]!, ambiguous: false, viaCatalog: true };
+  return { row: null, ambiguous: matches.length > 1 };
 }
 
 export function parseTerm(value: unknown): 1 | 2 | 3 | null {
@@ -240,7 +264,35 @@ export function parseTerm(value: unknown): 1 | 2 | 3 | null {
   if (/^(2|2º|2°|2o)(\b|\s|$)/.test(text) || text.includes("segundo")) return 2;
   if (/^(3|3º|3°|3o)(\b|\s|$)/.test(text) || text.includes("terceiro")) return 3;
   const numeric = Number(text.replace(/[^0-9]/g, ""));
-  return numeric === 1 || numeric === 2 || numeric === 3 ? numeric : null;
+  if (numeric === 1 || numeric === 2 || numeric === 3) return numeric;
+  // «I Trimestre», «III trimestre», «Segunda trimestre», «T2»: as mesmas regras
+  // do catálogo. Só com a palavra do período (ou T/S), nunca um número solto.
+  const period = normalizePeriod(text);
+  return period && period.n <= 3 ? (period.n as 1 | 2 | 3) : null;
+}
+
+type GradeLevelRef = { code: string; name: string };
+
+/**
+ * Classe da folha → classe da escola. Primeiro código ou nome exactos; se nada
+ * bater, a mesma classe escrita de outra forma («10a classe», «décima classe»,
+ * «10.ª Classe» → «10ª Classe»), pelo número e pela unidade (classe/ano), e só
+ * quando aponta para uma única classe da escola. `viaCatalog` permite avisar.
+ */
+export function resolveGradeLevel<T extends GradeLevelRef>(
+  value: unknown,
+  grades: T[],
+): { row: T | null; ambiguous: boolean; viaCatalog?: true } {
+  const exact = uniqueExactMatch(value, grades, [(g) => g.code, (g) => g.name]);
+  if (exact.row || exact.ambiguous) return exact;
+  const wanted = catalogGrade(normalizeText(value));
+  if (!wanted) return exact;
+  const matches = grades.filter((g) => {
+    const own = catalogGrade(g.name) ?? catalogGrade(g.code);
+    return own?.n === wanted.n && own.unit === wanted.unit;
+  });
+  if (matches.length === 1) return { row: matches[0]!, ambiguous: false, viaCatalog: true };
+  return { row: null, ambiguous: matches.length > 1 };
 }
 
 export function parseScore(value: unknown): number | null {

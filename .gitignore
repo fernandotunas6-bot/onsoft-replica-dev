@@ -51,7 +51,10 @@ __pycache__/
 # regressão visual (apenas baselines são versionadas)
 tests/visual/current/
 tests/visual/diff/
-reports/
+# Ancorado à raiz: sem a barra inicial, isto apanhava qualquer pasta
+# chamada reports/ em qualquer nível — foi assim que
+# estudo/yft-school-system/lib/features/reports/ ficou fora do Git.
+/reports/
 .e2e-ecosystem-pids.json
 test-results/
 playwright-report/

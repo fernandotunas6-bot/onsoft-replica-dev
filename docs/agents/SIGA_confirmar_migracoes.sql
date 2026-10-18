@@ -153,6 +153,9 @@ from (values
   -- Entregas em PDF pela app, no pacote docs/agents/SIGA_aplicar_entregas_pdf.sql.
   ('20261017140000_task_submissions',
      to_regclass('public.siga_task_submissions') is not null
-     and not has_table_privilege('authenticated', 'public.siga_task_submissions', 'SELECT'))
+     and not has_table_privilege('authenticated', 'public.siga_task_submissions', 'SELECT')),
+  ('20261015120000_tenant_billing_profiles',
+     to_regclass('public.tenant_billing_profiles') is not null
+     and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
 ) as m(migracao, ok)
 order by migracao;

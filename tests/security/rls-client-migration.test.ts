@@ -62,6 +62,20 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   "src/features/mobile-v4/authorization.ts",
   "src/features/mobile-v4/session-core.server.ts",
   "src/features/mobile-v4/http.server.ts",
+  // Acesso do administrador da escola (Smart School Onboarding, 2026-10-15): lê o
+  // estado da conta no Supabase Auth (e-mail confirmado, último acesso, 2FA), os
+  // papéis e permissões da escola e o tenant — nada disso é legível pelo JWT. A
+  // reparação só mexe no perfil e nas permissões dos papéis da própria escola.
+  // A lógica vive em src/features/saas/school-admin-access.ts, que recebe o
+  // cliente de quem chama: a rota do ADMIN (platform_admins + aal2) e a página de
+  // boas-vindas (Administrador da escola, só a própria conta).
+  "src/routes/api/saas/tenants.admin-access.tsx",
+  // Cobrança por escola (2026-10-15): `tenant_billing_profiles` é só do servidor
+  // (FORCE RLS, sem políticas) e `tenants`/`saas_audit_logs` só têm política para a
+  // equipa da plataforma. A rota exige platform_admins + aal2; a lógica está em
+  // src/features/saas/tenant-billing.ts, que recebe o cliente de quem chama.
+  "src/routes/api/saas/tenants.billing.tsx",
+  "src/features/school/admin-welcome.ts",
   // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
   // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
   // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar

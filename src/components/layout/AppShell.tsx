@@ -24,6 +24,7 @@ import {
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
+import { EnvironmentSwitcher } from "./EnvironmentSwitcher";
 import { DesktopNotifications } from "./DesktopNotifications";
 import { CommandPalette, requestOpenCommandPalette } from "./CommandPalette";
 import { TopbarCalendar } from "./TopbarCalendar";
@@ -284,7 +285,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-background/95 backdrop-blur-xs px-5 lg:flex">
+          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-card px-5 lg:flex">
             <Button
               variant="ghost"
               size="icon"
@@ -294,6 +295,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             >
               <Menu className="size-5" />
             </Button>
+
+            <EnvironmentSwitcher />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
