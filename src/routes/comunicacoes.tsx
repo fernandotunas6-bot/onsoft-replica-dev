@@ -370,6 +370,77 @@ function ComunicacoesPage() {
     ]);
   };
 
+  /** Envia pelo canal do comunicado (e-mail, WhatsApp, SMS); o portal não envia nada. */
+  const dispatchAnnouncement = async (values: {
+    title: string;
+    body: string;
+    audience: Audience;
+    channel: Channel;
+  }): Promise<string | undefined> => {
+    let dispatchNote: string | undefined;
+    const text = `${values.title}\n\n${values.body}`;
+    if (values.channel === "email" && resendOn) {
+      const dispatch = await sendSchoolResendEmail({
+        data: {
+          subject: values.title,
+          text: values.body,
+          audience: values.audience,
+        },
+      });
+      if (dispatch.mode === "sent") {
+        dispatchNote = `E-mail enviado via Resend a ${dispatch.recipientCount} destinatário(s).`;
+      } else {
+        await navigator.clipboard.writeText(text);
+        dispatchNote = `${dispatch.reason} Texto copiado para colar no Resend.`;
+      }
+    }
+    if (values.channel === "whatsapp" && whatsappNotices) {
+      const dispatch = await sendSchoolWhatsAppMessage({
+        data: { text, audience: values.audience },
+      });
+      if (dispatch.mode === "sent") {
+        dispatchNote = [
+          dispatchNote,
+          `WhatsApp Cloud API: ${dispatch.recipientCount} destinatário(s).`,
+        ]
+          .filter(Boolean)
+          .join(" ");
+      } else {
+        await navigator.clipboard.writeText(text);
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(text)}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
+        dispatchNote = [
+          dispatchNote,
+          `${dispatch.reason} Abriu wa.me (sem token ou sem telemóveis).`,
+        ]
+          .filter(Boolean)
+          .join(" ");
+      }
+    }
+    // O canal "sms" chamava sendSchoolWhatsAppMessage por engano -- um director via
+    // "SMS" na interface e a mensagem saía por WhatsApp. Passa a chamar Twilio de
+    // facto (credenciais globais no servidor, sem UI de instalação por escola).
+    if (values.channel === "sms") {
+      const dispatch = await sendSchoolSmsMessage({
+        data: { text, audience: values.audience },
+      });
+      if (dispatch.mode === "sent") {
+        dispatchNote = [dispatchNote, `SMS via Twilio: ${dispatch.recipientCount} destinatário(s).`]
+          .filter(Boolean)
+          .join(" ");
+      } else {
+        await navigator.clipboard.writeText(text);
+        dispatchNote = [dispatchNote, `${dispatch.reason} Texto copiado para colar manualmente.`]
+          .filter(Boolean)
+          .join(" ");
+      }
+    }
+    return dispatchNote;
+  };
+
   const saveAnnouncement = async (
     form: HTMLFormElement,
     status: Extract<Status, "sent" | "draft" | "scheduled">,
@@ -387,70 +458,7 @@ function ComunicacoesPage() {
       form.reset();
       setDraftAttachment(null);
       await invalidate();
-      let dispatchNote: string | undefined;
-      const text = `${values.title}\n\n${values.body}`;
-      if (status === "sent" && values.channel === "email" && resendOn) {
-        const dispatch = await sendSchoolResendEmail({
-          data: {
-            subject: values.title,
-            text: values.body,
-            audience: values.audience,
-          },
-        });
-        if (dispatch.mode === "sent") {
-          dispatchNote = `E-mail enviado via Resend a ${dispatch.recipientCount} destinatário(s).`;
-        } else {
-          await navigator.clipboard.writeText(text);
-          dispatchNote = `${dispatch.reason} Texto copiado para colar no Resend.`;
-        }
-      }
-      if (status === "sent" && values.channel === "whatsapp" && whatsappNotices) {
-        const dispatch = await sendSchoolWhatsAppMessage({
-          data: { text, audience: values.audience },
-        });
-        if (dispatch.mode === "sent") {
-          dispatchNote = [
-            dispatchNote,
-            `WhatsApp Cloud API: ${dispatch.recipientCount} destinatário(s).`,
-          ]
-            .filter(Boolean)
-            .join(" ");
-        } else {
-          await navigator.clipboard.writeText(text);
-          window.open(
-            `https://wa.me/?text=${encodeURIComponent(text)}`,
-            "_blank",
-            "noopener,noreferrer",
-          );
-          dispatchNote = [
-            dispatchNote,
-            `${dispatch.reason} Abriu wa.me (sem token ou sem telemóveis).`,
-          ]
-            .filter(Boolean)
-            .join(" ");
-        }
-      }
-      // O canal "sms" chamava sendSchoolWhatsAppMessage por engano -- um director via
-      // "SMS" na interface e a mensagem saía por WhatsApp. Passa a chamar Twilio de
-      // facto (credenciais globais no servidor, sem UI de instalação por escola).
-      if (status === "sent" && values.channel === "sms") {
-        const dispatch = await sendSchoolSmsMessage({
-          data: { text, audience: values.audience },
-        });
-        if (dispatch.mode === "sent") {
-          dispatchNote = [
-            dispatchNote,
-            `SMS via Twilio: ${dispatch.recipientCount} destinatário(s).`,
-          ]
-            .filter(Boolean)
-            .join(" ");
-        } else {
-          await navigator.clipboard.writeText(text);
-          dispatchNote = [dispatchNote, `${dispatch.reason} Texto copiado para colar manualmente.`]
-            .filter(Boolean)
-            .join(" ");
-        }
-      }
+      const dispatchNote = status === "sent" ? await dispatchAnnouncement(values) : undefined;
       toast.success(
         status === "sent"
           ? "Comunicado registado como enviado"
@@ -459,7 +467,11 @@ function ComunicacoesPage() {
             : "Rascunho guardado",
         {
           description:
-            status === "sent" ? (dispatchNote ?? "Registo interno guardado.") : undefined,
+            status === "sent"
+              ? (dispatchNote ?? "Registo interno guardado.")
+              : status === "scheduled" && values.channel !== "portal"
+                ? "Não há envio automático: na data, carregue em «Publicar agora» para enviar."
+                : undefined,
         },
       );
     } catch (error) {
@@ -813,7 +825,26 @@ function ComunicacoesPage() {
                                               data: { id: c.id, status: "sent" },
                                             });
                                             await invalidate();
-                                            toast.success("Comunicado marcado como enviado");
+                                            // «Publicar agora» de um agendado envia pelo
+                                            // canal; antes só mudava o estado e o e-mail,
+                                            // SMS ou WhatsApp nunca saía.
+                                            const dispatchNote =
+                                              status === "scheduled"
+                                                ? await dispatchAnnouncement({
+                                                    title: c.title,
+                                                    body: c.body,
+                                                    audience: c.audience as Audience,
+                                                    channel: c.channel as Channel,
+                                                  })
+                                                : undefined;
+                                            toast.success(
+                                              status === "scheduled"
+                                                ? "Comunicado publicado"
+                                                : "Comunicado marcado como enviado",
+                                              dispatchNote
+                                                ? { description: dispatchNote }
+                                                : undefined,
+                                            );
                                           } catch (error) {
                                             toast.error("Falha ao actualizar", {
                                               description:

@@ -203,7 +203,7 @@ export async function studentNames(db: Db, schoolId: string, enrollmentIds: stri
 export async function absenceByEnrollment(
   db: Db,
   schoolId: string,
-  yearId: string,
+  _yearId: string,
   classGroupId: string,
   enrollmentIds: string[],
 ): Promise<Map<string, number>> {
@@ -219,15 +219,23 @@ export async function absenceByEnrollment(
   );
   if (!enrollmentOfStudent.size) return result;
 
-  const { data: sessions, error: sessionsError } = await db
-    .from("siga_attendance_sessions")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("academic_year_id", yearId)
-    .eq("class_group_id", classGroupId)
-    .limit(5000);
-  if (sessionsError || !sessions?.length) return result;
-  const sessionIds = (sessions as Row[]).map((s) => str(s.id));
+  // Sem filtro pelo ano: a chamada não grava `academic_year_id` nas sessões (só
+  // a turma), e a turma já é de um único ano. Com o filtro, quase todas as aulas
+  // ficavam de fora e a % de faltas saía 0. Em páginas: o PostgREST corta em 1000.
+  const sessionIds: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: sessions, error: sessionsError } = await db
+      .from("siga_attendance_sessions")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("class_group_id", classGroupId)
+      .order("id")
+      .range(from, from + 999);
+    if (sessionsError) return result;
+    for (const s of (sessions ?? []) as Row[]) sessionIds.push(str(s.id));
+    if (!sessions || sessions.length < 1000) break;
+  }
+  if (!sessionIds.length) return result;
 
   const statuses = new Map<string, string[]>();
   for (let i = 0; i < sessionIds.length; i += 200) {

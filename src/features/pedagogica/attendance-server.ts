@@ -390,15 +390,22 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       sessionRow = s;
     } else if (data.classGroupId && data.subjectId) {
       const today = data.date || schoolTodayIso();
-      const { data: s } = await db
+      // Com dois tempos da disciplina no mesmo dia já há duas sessões: o
+      // maybeSingle dava erro, ficava sem sessão e abria uma terceira (sem
+      // tempo, fora do índice único), a cada vez que se abria a chamada.
+      const { data: sessions, error: sessionError } = await db
         .from("siga_attendance_sessions")
         .select("*")
         .eq("school_id", membership.schoolId)
         .eq("class_group_id", data.classGroupId)
         .eq("subject_id", data.subjectId)
         .eq("lesson_date", today)
-        .maybeSingle();
-      sessionRow = s;
+        .order("starts_at", { ascending: true, nullsFirst: false })
+        .limit(1);
+      if (sessionError) {
+        throw publicDatabaseError(sessionError, "Não foi possível carregar a chamada.");
+      }
+      sessionRow = sessions?.[0] ?? null;
 
       if (!sessionRow) {
         // Só se abre sessão para uma disciplina realmente atribuída à turma.
@@ -419,7 +426,7 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
           }
         }
 
-        const { data: created } = await db
+        const { data: created, error: createError } = await db
           .from("siga_attendance_sessions")
           .insert({
             school_id: membership.schoolId,
@@ -432,6 +439,9 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
           })
           .select("*")
           .single();
+        if (createError) {
+          throw publicDatabaseError(createError, "Não foi possível abrir a chamada.");
+        }
         sessionRow = created;
       }
     }
@@ -970,8 +980,25 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       .select("id, session_id, status, notes, created_at")
       .eq("school_id", membership.schoolId)
       .eq("student_id", targetStudentId)
+      .neq("status", "not_registered")
       .order("created_at", { ascending: false })
       .limit(100);
+
+    // As contagens são de todo o histórico (a lista mostra só os últimos 100) e
+    // sem «não registado» — o aluno deixado por marcar na chamada não é falta,
+    // como em computeAttendanceRate.
+    const countStatus = async (status: AttendanceStatus) => {
+      const { count } = await db
+        .from("siga_attendance_records")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", targetStudentId)
+        .eq("status", status);
+      return count ?? 0;
+    };
+    const [present, absent, excused, late] = await Promise.all(
+      (["present", "absent", "excused", "late"] as const).map(countStatus),
+    );
 
     const sessionIds = [
       ...new Set((records ?? []).map((r: { session_id: string }) => r.session_id)),
@@ -1011,11 +1038,6 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       ),
     );
 
-    let present = 0;
-    let absent = 0;
-    let excused = 0;
-    let late = 0;
-
     const formattedRecords = (records ?? []).map(
       (r: {
         id: string;
@@ -1027,11 +1049,6 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
         const sess = sessionMap.get(r.session_id);
         const subjectName = sess ? (subjectMap.get(sess.subject_id) ?? "Disciplina") : "Aula";
         const status = r.status as AttendanceStatus;
-
-        if (status === "present") present += 1;
-        else if (status === "absent") absent += 1;
-        else if (status === "excused") excused += 1;
-        else if (status === "late") late += 1;
 
         return {
           id: r.id,
@@ -1045,7 +1062,7 @@ export const getStudentAttendanceHistory = createServerFn({ method: "GET" })
       },
     );
 
-    const total = formattedRecords.length;
+    const total = present + absent + excused + late;
     const rate = total > 0 ? Math.round(((present + excused + late) / total) * 100) : 100;
 
     return {

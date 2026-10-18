@@ -87,14 +87,17 @@ export const listSchoolAnnouncements = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem membership activa nesta escola.");
     const db = await loadSgaAdminClient();
 
-    // Não há tarefa agendada: os comunicados cuja hora já passou são publicados
-    // quando alguém abre a lista, para não ficarem "agendados" para sempre.
+    // Não há tarefa agendada: os comunicados do portal cuja hora já passou são
+    // publicados quando alguém abre a lista, para não ficarem "agendados" para
+    // sempre. Os de e-mail, SMS e WhatsApp não: marcá-los como enviados aqui não
+    // enviava nada. Ficam agendados até alguém carregar em «Publicar agora».
     const nowIso = new Date().toISOString();
     await db
       .from("school_announcements")
       .update({ status: "sent", published_at: nowIso })
       .eq("school_id", membership.schoolId)
       .eq("status", "scheduled")
+      .eq("channel", "portal")
       .lte("scheduled_for", nowIso)
       .is("deleted_at", null);
 

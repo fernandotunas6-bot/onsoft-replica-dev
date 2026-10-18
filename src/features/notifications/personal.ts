@@ -54,7 +54,15 @@ export const listMyNotifications = createServerFn({ method: "GET" })
       createdAt: String(row.created_at),
       href: safeNotificationHref(row.payload),
     }));
-    return { items, unread: items.filter((item) => !item.read).length };
+    // O número de por ler é de todas, não só das 20 mostradas.
+    const { count } = await db
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("channel", "in_app")
+      .is("read_at", null);
+    const shownUnread = items.filter((item) => !item.read).length;
+    return { items, unread: Math.max(count ?? 0, shownUnread) };
   });
 
 export const markMyNotificationsRead = createServerFn({ method: "POST" })

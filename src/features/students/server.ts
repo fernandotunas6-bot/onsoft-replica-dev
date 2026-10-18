@@ -1063,6 +1063,33 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
     }
 
     if (existing) {
+      // Mudar de turma valida a turma como o RPC enroll_student valida a
+      // primeira matrícula: desta escola, activa, do mesmo ano e com lugar.
+      const { data: target, error: targetError } = await db
+        .from("class_groups")
+        .select("id, name, academic_year_id, status, capacity")
+        .eq("id", data.classGroupId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (targetError) throw publicDatabaseError(targetError, "Não foi possível validar a turma.");
+      if (!target) throw new Error("Turma não encontrada nesta escola.");
+      if (target.status !== "active") throw new Error("Esta turma não está activa.");
+      if (target.academic_year_id !== data.academicYearId) {
+        throw new Error("A turma não pertence a este ano lectivo.");
+      }
+      const capacity = typeof target.capacity === "number" ? target.capacity : null;
+      if (capacity && capacity > 0) {
+        const { count, error: countError } = await db
+          .from("enrollments")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", membership.schoolId)
+          .eq("class_group_id", target.id)
+          .in("status", ["pending", "active"])
+          .neq("id", existing.id);
+        if (countError) throw publicDatabaseError(countError, "Não foi possível ler a lotação.");
+        if ((count ?? 0) >= capacity) throw new Error(`A turma ${target.name} está cheia.`);
+      }
+
       const { data: beforeStudent } = await db
         .from("students")
         .select("status")

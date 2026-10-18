@@ -400,18 +400,39 @@ async function onlySchoolPhones(
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: people } = await db
-    .from("people")
-    .select("phone")
-    .eq("school_id", schoolId)
-    .not("phone", "is", null)
-    .limit(20000);
   const known = new Set(
-    (people ?? [])
-      .map((row) => phoneKey(String(row.phone ?? "")))
+    (await schoolPeopleColumn(db, schoolId, "phone"))
+      .map(phoneKey)
       .filter((key) => key.length === 9),
   );
   return recipients.filter((phone) => known.has(phoneKey(phone)));
+}
+
+/**
+ * Telefones ou e-mails de todas as pessoas da escola, em páginas: o PostgREST
+ * corta em 1000 linhas e, numa escola maior, os contactos a seguir eram
+ * tratados como «de fora» e ficavam sem mensagem.
+ */
+async function schoolPeopleColumn(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  column: "phone" | "email",
+): Promise<string[]> {
+  const values: string[] = [];
+  for (let from = 0; from < 50_000; from += 1000) {
+    const { data, error } = await db
+      .from("people")
+      .select(`id, ${column}`)
+      .eq("school_id", schoolId)
+      .not(column, "is", null)
+      .order("id")
+      .range(from, from + 999);
+    if (error) break;
+    const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+    for (const row of rows) values.push(String(row[column] ?? ""));
+    if (rows.length < 1000) break;
+  }
+  return values;
 }
 
 /** Limite por escola e por hora, partilhado entre instâncias do Worker. */
@@ -525,12 +546,13 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
         };
       }
       // Só para contactos desta escola, e com o remetente do sistema.
-      const { data: known } = await db
-        .from("people")
-        .select("email")
-        .eq("school_id", membership.schoolId)
-        .in("email", recipients);
-      const allowed = new Set((known ?? []).map((row) => String(row.email ?? "").toLowerCase()));
+      // Sem distinguir maiúsculas: os destinatários vêm em minúsculas e um
+      // «Maria@Gmail.com» guardado assim ficava de fora com `.in("email")`.
+      const allowed = new Set(
+        (await schoolPeopleColumn(db, membership.schoolId, "email")).map((email) =>
+          email.trim().toLowerCase(),
+        ),
+      );
       recipients = recipients.filter((email) => allowed.has(email));
       if (!recipients.length) {
         return {
