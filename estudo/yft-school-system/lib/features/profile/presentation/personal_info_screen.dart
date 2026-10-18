@@ -12,7 +12,9 @@ import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/sga/sga_attendance.dart' show SgaRejected;
 import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_profile.dart';
 
 /// Dados pessoais: o utilizador corrige nome, telefone e morada. O e-mail é
 /// o da conta de entrada e só a administração o muda.
@@ -290,50 +292,161 @@ class _PhotoPickerState extends ConsumerState<_PhotoPicker> {
   }
 }
 
-/// Modo SIGA: os dados pessoais são os da ficha no SIGA; aqui só se mostram.
-class _SgaPersonalInfo extends ConsumerWidget {
+/// Modo SIGA: nome e telefone gravam-se no perfil do SIGA (/api/mobile/profile,
+/// com as regras do SIGA: telefone angolano e conflito se mudou noutro
+/// aparelho). A escola e o e-mail vêm da conta.
+class _SgaPersonalInfo extends ConsumerStatefulWidget {
   const _SgaPersonalInfo();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authProvider);
-    Widget row(IconData icon, String label, String value) => SoftCard(
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  ConsumerState<_SgaPersonalInfo> createState() => _SgaPersonalInfoState();
+}
+
+class _SgaPersonalInfoState extends ConsumerState<_SgaPersonalInfo> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  String? _version;
+  String? _school;
+  String? _loadError;
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final p = await ref.read(sgaProfileRepositoryProvider).load();
+      if (!mounted) return;
+      setState(() {
+        _name.text = p.fullName;
+        _phone.text = p.phone ?? '';
+        _version = p.updatedAt;
+        _school = p.schoolName;
+        _loading = false;
+      });
+    } on SgaRejected catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadError = e.message;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(sgaProfileRepositoryProvider).save(
+            fullName: _name.text.trim(),
+            phone: _phone.text.trim(),
+            expectedUpdatedAt: _version,
+          );
+      // O nome também aparece no Início e no menu.
+      await ref.read(authProvider.notifier).refreshProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dados guardados.')));
+      Navigator.pop(context);
+    } on SgaRejected catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: AppColors.error, content: Text(e.message)),
+      );
+      // Mudou noutro aparelho: recarregar para ter a versão actual.
+      if (e.message.contains('noutro dispositivo')) _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    InputDecoration deco(String label, IconData icon) =>
+        InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20));
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Dados pessoais', style: TextStyle(fontWeight: FontWeight.w600)),
       ),
-      body: ListView(
-        padding: getResponsiveHorizontalPadding(context).copyWith(top: 16, bottom: 40),
-        children: [
-          row(LucideIcons.user, 'Nome', session?.userName ?? '—'),
-          const SizedBox(height: 10),
-          row(LucideIcons.school, 'Escola', session?.schoolName ?? '—'),
-          const SizedBox(height: 16),
-          Text(
-            'Os seus dados vêm da ficha da escola no SIGA. Para os corrigir, '
-            'use o portal do SIGA ou fale com a secretaria.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-          ),
-        ],
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+              ? EmptyHint(
+                  icon: LucideIcons.wifiOff,
+                  message: _loadError!,
+                  action: TextButton(onPressed: _load, child: const Text('Tentar de novo')),
+                )
+              : SingleChildScrollView(
+                  padding: getResponsiveHorizontalPadding(context).copyWith(top: 16, bottom: 40),
+                  child: ResponsiveConstrainedContent(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextFormField(
+                            controller: _name,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: deco('Nome completo', LucideIcons.user),
+                            validator: (v) =>
+                                (v ?? '').trim().length < 2 ? 'Escreva o nome completo.' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _phone,
+                            keyboardType: TextInputType.phone,
+                            decoration: deco('Telefone (+244 9XX XXX XXX)', LucideIcons.phone),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            initialValue: _school ?? '—',
+                            enabled: false,
+                            decoration: deco('Escola', LucideIcons.school),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Os dados ficam no seu perfil do SIGA. A ficha de aluno ou de '
+                            'encarregado da escola corrige-se na secretaria.',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                          ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: _saving ? null : _save,
+                              child: _saving
+                                  ? SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.onPrimary,
+                                      ),
+                                    )
+                                  : const Text('Guardar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
     );
   }
 }

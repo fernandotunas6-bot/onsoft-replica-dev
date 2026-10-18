@@ -72,6 +72,7 @@ import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas
 import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/attendance'
 import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
 import { Route as ApiMobileGradesRouteImport } from './routes/api/mobile/grades'
+import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profile'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
@@ -449,6 +450,11 @@ const ApiMobileGradesRoute = ApiMobileGradesRouteImport.update({
   path: '/api/mobile/grades',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileProfileRoute = ApiMobileProfileRouteImport.update({
+  id: '/api/mobile/profile',
+  path: '/api/mobile/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
   id: '/api/saas/audit-logs',
   path: '/api/saas/audit-logs',
@@ -819,6 +825,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -941,6 +948,7 @@ export interface FileRoutesByTo {
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1064,6 +1072,7 @@ export interface FileRoutesById {
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1188,6 +1197,7 @@ export interface FileRouteTypes {
     | '/api/mobile/attendance'
     | '/api/mobile/chat'
     | '/api/mobile/grades'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1310,6 +1320,7 @@ export interface FileRouteTypes {
     | '/api/mobile/attendance'
     | '/api/mobile/chat'
     | '/api/mobile/grades'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1432,6 +1443,7 @@ export interface FileRouteTypes {
     | '/api/mobile/attendance'
     | '/api/mobile/chat'
     | '/api/mobile/grades'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1542,6 +1554,7 @@ export interface RootRouteChildren {
   ApiMobileAttendanceRoute: typeof ApiMobileAttendanceRoute
   ApiMobileChatRoute: typeof ApiMobileChatRoute
   ApiMobileGradesRoute: typeof ApiMobileGradesRoute
+  ApiMobileProfileRoute: typeof ApiMobileProfileRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
@@ -2019,6 +2032,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/grades'
       fullPath: '/api/mobile/grades'
       preLoaderRoute: typeof ApiMobileGradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/profile': {
+      id: '/api/mobile/profile'
+      path: '/api/mobile/profile'
+      fullPath: '/api/mobile/profile'
+      preLoaderRoute: typeof ApiMobileProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/audit-logs': {
@@ -2679,6 +2699,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileAttendanceRoute: ApiMobileAttendanceRoute,
   ApiMobileChatRoute: ApiMobileChatRoute,
   ApiMobileGradesRoute: ApiMobileGradesRoute,
+  ApiMobileProfileRoute: ApiMobileProfileRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,

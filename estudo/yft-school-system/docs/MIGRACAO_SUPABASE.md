@@ -90,7 +90,9 @@ antigas, para os ecrãs não mudarem.
   falta das facturas `open`/`partially_paid` depois dos recibos não anulados.
 - Calendário: o ano lectivo `active` da escola e os seus `terms` como
   "Term N"; o trimestre activo é o que contém hoje (Luanda).
-- Dados pessoais: só leitura (alteram-se no portal do SIGA).
+- Dados pessoais: nome e telefone gravam-se no perfil do SIGA por `/api/mobile/profile`
+  (`getCurrentAccountContext`/`updateCurrentProfile`: telefone angolano normalizado e
+  recusa se o perfil mudou noutro aparelho).
 - Recibos: matrícula → `finance_contracts` → `finance_invoices` →
   `finance_receipts` sem `reversed_at`. O SIGA não guarda saldos no recibo: o
   "saldo depois" é o que falta dessa factura (valor − desconto + multa) depois

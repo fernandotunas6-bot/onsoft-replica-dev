@@ -44,7 +44,15 @@ export async function mobileRespond(
       );
     }
     if (error instanceof ZodError) {
-      return jsonWithCors(request, { error: "INVALID_INPUT" }, { status: 422 });
+      // A mensagem do esquema do SIGA (ex.: «Telefone inválido…»), se houver.
+      const issue = error.issues.find(
+        (i) => i.message && !/^(Required|Expected|Invalid)/.test(i.message),
+      );
+      return jsonWithCors(
+        request,
+        { error: "INVALID_INPUT", ...(issue ? { message: issue.message } : {}) },
+        { status: 422 },
+      );
     }
     // Falta de configuração do servidor (variáveis de ambiente): não é para a pessoa.
     const config = /environment variable|SUPABASE_|Lovable Cloud/i.test(message);

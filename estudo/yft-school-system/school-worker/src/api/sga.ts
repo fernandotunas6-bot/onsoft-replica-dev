@@ -76,7 +76,7 @@ sga.get('/me', async (c) => {
   });
   return c.json({
     user_id: user.id,
-    name: profile?.display_name || profile?.full_name || null,
+    name: profile?.full_name || profile?.display_name || null,
     school: { id: m.schoolId, name: m.schoolName },
     roles: m.roles,
     role: appRole(m.roles),
