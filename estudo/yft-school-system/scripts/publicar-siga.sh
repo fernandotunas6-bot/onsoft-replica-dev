@@ -37,7 +37,13 @@ fi
 
 # 1. Firebase: lib/firebase_options.dart tem de vir do flutterfire configure.
 OPTIONS="$ROOT/lib/firebase_options.dart"
-if ! grep -q "projectId: '$FIREBASE_PROJECT'" "$OPTIONS" || grep -q "YOUR_WEB_API_KEY" "$OPTIONS"; then
+# O bloco web é o que vai no build: a apiKey tem de ser real (é pública por
+# desenho) e o projecto o certo. Os outros alvos podem continuar com
+# marcadores — não são empacotados aqui.
+WEB_API_KEY="$(sed -n '/FirebaseOptions web = FirebaseOptions(/,/);/p' "$OPTIONS" |
+  sed -n "s/.*apiKey: '\([^']*\)'.*/\1/p")"
+if ! grep -q "projectId: '$FIREBASE_PROJECT'" "$OPTIONS" ||
+  [[ -z "$WEB_API_KEY" || "$WEB_API_KEY" == YOUR_* || "$WEB_API_KEY" != AIza* ]]; then
   echo "lib/firebase_options.dart não é do projecto $FIREBASE_PROJECT." >&2
   echo "Correr: dart pub global activate flutterfire_cli && flutterfire configure --project=$FIREBASE_PROJECT" >&2
   exit 1
@@ -56,12 +62,19 @@ else
 fi
 echo "Origem: $ORIGIN"
 
-# 3. App Flutter (versão do autor: com 3.47 o lucide_icons não compila).
+# 3. App Flutter. Já não está presa ao 3.41.x: os ícones Lucide passaram a
+# IconData simples em lib/core/theme/lucide_icons.dart, e o build web foi
+# verificado com 3.41.5 e com 3.47.7. Exige-se 3.41 ou mais recente.
 cd "$ROOT"
-flutter --version | head -1 | grep -q "Flutter 3.41" || {
-  echo "Usar Flutter 3.41.x (ver .metadata)." >&2
+VERSION="$(flutter --version | head -1 | sed -n 's/^Flutter \([0-9]*\.[0-9]*\).*/\1/p')"
+if [[ -z "$VERSION" ]]; then
+  echo "Não foi possível ler a versão do Flutter." >&2
   exit 1
-}
+fi
+if [[ "$(printf '%s\n' 3.41 "$VERSION" | sort -V | head -1)" != "3.41" ]]; then
+  echo "Usar Flutter 3.41 ou mais recente (tem $VERSION)." >&2
+  exit 1
+fi
 flutter pub get
 flutter build web --release --no-web-resources-cdn --dart-define=API_BASE_URL="$ORIGIN"
 
