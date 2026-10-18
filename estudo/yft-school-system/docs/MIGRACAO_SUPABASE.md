@@ -181,3 +181,22 @@ npx wrangler deploy --config wrangler.siga.jsonc
 
 Ou, com o script, exportar `SGA_SUPABASE_SECRET_KEY` antes de
 `scripts/publicar-siga.sh teste`.
+
+## Verificar depois de publicar
+
+`scripts/verificar-modo-siga.mjs` faz só leituras (nada é gravado) e diz,
+endpoint a endpoint, o que responde, para a conta do token:
+
+```sh
+SGA_TOKEN=<access_token da conta> \
+WORKER_URL=https://siga-yft.<conta>.workers.dev \
+PORTAL_URL=https://portal-siga.com \
+node scripts/verificar-modo-siga.mjs
+```
+
+O token tira-se do portal do SIGA com a conta a testar (Local Storage →
+`sb-…-auth-token` → `access_token`; dura 1 hora e é pessoal). Correr com uma
+conta de encarregado, uma de professor e uma da direcção. Não chama a lista
+de aulas da chamada (cria as sessões do dia) nem rotas de escrita: a chamada
+e as notas testam-se na app, numa turma de teste.
+
