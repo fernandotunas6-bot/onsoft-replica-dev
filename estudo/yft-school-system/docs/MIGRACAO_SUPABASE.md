@@ -181,8 +181,18 @@ npx wrangler secret put SGA_SUPABASE_SECRET_KEY --config wrangler.siga.jsonc
 npx wrangler deploy --config wrangler.siga.jsonc
 ```
 
-Ou, com o script, exportar `SGA_SUPABASE_SECRET_KEY` antes de
-`scripts/publicar-siga.sh teste`.
+Ou tudo de uma vez com o script (Worker, segredo e app já no modo SIGA):
+
+```sh
+export CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=…
+export SGA_SUPABASE_SECRET_KEY=…          # nunca no Git
+export HCAPTCHA_SITE_KEY=…                # a VITE_HCAPTCHA_SITE_KEY do SIGA
+export SGA_PORTAL_URL=https://portal-siga.com
+MODO=siga scripts/publicar-siga.sh teste  # ou: dominio
+```
+
+O URL e a chave publicável do SGA vêm do `wrangler.siga.jsonc`. Sem `MODO=siga`
+o script continua a publicar a versão Firebase, como antes.
 
 ## Verificar depois de publicar
 
