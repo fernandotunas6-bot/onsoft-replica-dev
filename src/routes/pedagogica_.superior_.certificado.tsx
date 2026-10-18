@@ -78,7 +78,8 @@ function CertificatePage() {
         }
       : null;
   const final =
-    issuedFinal ?? (data?.progress.completed ? finalClassification(data.progress.average) : null);
+    issuedFinal ??
+    (data?.progress.completed ? finalClassification(data.progress.rawAverage) : null);
   const juryMention = (certificate?.mention ?? data?.juryMention) as
     keyof typeof DOCTORAL_MENTIONS | null | undefined;
   // Doutoramento: sem nota numérica, conta a decisão do júri (Decreto 257/25).
