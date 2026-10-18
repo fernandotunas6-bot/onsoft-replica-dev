@@ -56,7 +56,7 @@ describe("tipos gerados vs produção", () => {
       semTipos,
       `Estas tabelas existem na base e não estão nos tipos: ${semTipos.join(", ")}. ` +
         `Depois de aplicar uma migração, regenerar: ` +
-      `npm run siga:gen-types ` +
+        `npm run siga:gen-types ` +
         `(e npm run siga:db-snapshot para o retrato).`,
     ).toEqual([]);
   });

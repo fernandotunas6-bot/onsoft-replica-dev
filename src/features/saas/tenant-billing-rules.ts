@@ -571,6 +571,8 @@ export function describeTenantBilling(
 export function monthlyRevenueOf(
   input: {
     tenantStatus: string;
+    /** Assinatura ainda em trial (escola «activa» mas sem pagar). */
+    subscriptionStatus?: string | null;
     billingExempt: boolean;
     profile: TenantBillingProfile | null;
     plan: PlanPrices | null;
@@ -579,6 +581,7 @@ export function monthlyRevenueOf(
   now: Date = new Date(),
 ): number {
   if (input.tenantStatus !== "active" || input.billingExempt) return 0;
+  if (input.subscriptionStatus === "trialing") return 0;
   if (!input.profile) return Math.max(0, Number(input.plan?.price_aoa_monthly) || 0);
   const state = billingStateOf(input.profile, now);
   if (!state.charging) return 0;
@@ -589,6 +592,18 @@ export function monthlyRevenueOf(
     state,
   });
   return round2(charge.total / Math.max(1, charge.months));
+}
+
+/**
+ * A escola ainda não paga: estado `trial`, ou `active` com a assinatura em
+ * `trialing` (as escolas criadas pelo WEB ficam assim). Contar estas como activas
+ * punha o preço de tabela delas na receita mensal sem terem pago nada.
+ */
+export function isInTrial(tenant: { status: string; subscription_status?: string | null }) {
+  return (
+    tenant.status === "trial" ||
+    (tenant.status === "active" && tenant.subscription_status === "trialing")
+  );
 }
 
 /** Trial terminado sem isenção: o SIGA bloqueia as gravações. */

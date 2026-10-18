@@ -75,11 +75,19 @@ function trialExpired(tenant: TenantRow, now = Date.now()) {
   return Number.isFinite(end) && end < now
 }
 
+/** Ainda não paga: `trial`, ou `active` com a assinatura em `trialing` (mesma regra do servidor). */
+function inTrial(tenant: TenantRow) {
+  return (
+    tenant.status === "trial" ||
+    (tenant.status === "active" && tenant.subscription_status === "trialing")
+  )
+}
+
 type TenantFilter = "all" | "active" | "trial" | "trial_expired" | "past_due" | "suspended" | "exempt"
 
 const FILTERS: Array<{ id: TenantFilter; label: string }> = [
   { id: "all", label: "Todas" },
-  { id: "active", label: "Activas" },
+  { id: "active", label: "Activas (a pagar)" },
   { id: "trial", label: "Em trial" },
   { id: "trial_expired", label: "Trial expirado" },
   { id: "past_due", label: "Em atraso" },
@@ -91,8 +99,10 @@ function matchesFilter(tenant: TenantRow, filter: TenantFilter) {
   switch (filter) {
     case "all":
       return true
+    case "active":
+      return tenant.status === "active" && !inTrial(tenant) && !tenant.billing_exempt
     case "trial":
-      return tenant.status === "trial" && !trialExpired(tenant)
+      return inTrial(tenant) && !trialExpired(tenant)
     case "trial_expired":
       return trialExpired(tenant)
     case "exempt":
