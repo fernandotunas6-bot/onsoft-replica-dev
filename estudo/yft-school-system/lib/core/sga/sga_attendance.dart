@@ -151,8 +151,7 @@ class SgaAttendanceRepository {
       final message = data is Map ? data['message'] as String? : null;
       throw SgaRejected(switch (e.response?.statusCode) {
         401 => 'A sessão terminou. Entre de novo.',
-        403 when message != null => message,
-        400 when message != null => message,
+        400 || 403 || 409 when message != null => message,
         422 => 'Pedido inválido. Actualize e tente de novo.',
         null => 'Sem ligação. Tente de novo.',
         _ => 'O SIGA não respondeu. Tente mais tarde.',

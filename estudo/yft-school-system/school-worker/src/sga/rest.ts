@@ -57,6 +57,34 @@ export class SgaDb {
     if (!res.ok) throw new SgaError(503, 'SGA_READ_FAILED');
     return (await res.json()) as T[];
   }
+
+  /**
+   * Todas as linhas, por páginas de 1000 (o máximo que o PostgREST devolve):
+   * sem isto, um aluno com mais de 1000 registos ficava com contas curtas.
+   * `order` tem de ser estável (ex.: `id.asc`).
+   */
+  async selectAll<T>(table: string, query: Record<string, string>, max = 20000): Promise<T[]> {
+    const out: T[] = [];
+    for (let offset = 0; offset < max; offset += 1000) {
+      const page = await this.select<T>(table, { ...query, limit: '1000', offset: String(offset) });
+      out.push(...page);
+      if (page.length < 1000) break;
+    }
+    return out;
+  }
+
+  /** O mesmo filtro `in` dividido em blocos, com os resultados juntos. */
+  async selectIn<T>(table: string, column: string, ids: readonly string[], query: Record<string, string>): Promise<T[]> {
+    const parts = await Promise.all(chunks([...new Set(ids)]).map((part) => this.select<T>(table, { ...query, [column]: inList(part) })));
+    return parts.flat();
+  }
+}
+
+/** Divide uma lista de ids em blocos (um `in.(…)` gigante parte o URL). */
+export function chunks<T>(list: readonly T[], size = 150): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
 }
 
 /** Dia de hoje em Luanda (YYYY-MM-DD), como o SIGA (`schoolTodayIso`). */

@@ -65,26 +65,35 @@ class SgaAuthClient {
   final Dio _dio;
 
   SgaAuthClient(this.config, {Dio? dio})
-    : _dio = dio ??
-          Dio(BaseOptions(
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 15),
-          ));
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 15),
+            ),
+          );
 
-  Options get _options => Options(headers: {
-    'apikey': config.publishableKey,
-    'Content-Type': 'application/json',
+  Options get _options => Options(
+    headers: {
+      'apikey': config.publishableKey,
+      'Content-Type': 'application/json',
+    },
+  );
+
+  String _url(String path) =>
+      '${config.supabaseUrl.replaceAll(RegExp(r'/+$'), '')}/auth/v1$path';
+
+  Future<SgaTokens> signIn(
+    String email,
+    String password, {
+    String? captchaToken,
+  }) => _token('password', {
+    'email': email.trim(),
+    'password': password,
+    if (captchaToken != null && captchaToken.isNotEmpty)
+      'gotrue_meta_security': {'captcha_token': captchaToken},
   });
-
-  String _url(String path) => '${config.supabaseUrl.replaceAll(RegExp(r'/+$'), '')}/auth/v1$path';
-
-  Future<SgaTokens> signIn(String email, String password, {String? captchaToken}) =>
-      _token('password', {
-        'email': email.trim(),
-        'password': password,
-        if (captchaToken != null && captchaToken.isNotEmpty)
-          'gotrue_meta_security': {'captcha_token': captchaToken},
-      });
 
   Future<SgaTokens> refresh(String refreshToken) =>
       _token('refresh_token', {'refresh_token': refreshToken});
@@ -94,10 +103,12 @@ class SgaAuthClient {
     try {
       await _dio.post(
         _url('/logout'),
-        options: _options.copyWith(headers: {
-          ..._options.headers!,
-          'Authorization': 'Bearer $accessToken',
-        }),
+        options: _options.copyWith(
+          headers: {
+            ..._options.headers!,
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
       );
     } catch (_) {}
   }
@@ -121,26 +132,49 @@ class SgaAuthClient {
 SgaAuthException mapAuthError(int? status, Object? data) {
   final map = data is Map ? data : const {};
   final code = (map['error_code'] ?? map['error'] ?? '').toString();
-  final text = (map['msg'] ?? map['error_description'] ?? map['message'] ?? '').toString().toLowerCase();
+  final text = (map['msg'] ?? map['error_description'] ?? map['message'] ?? '')
+      .toString()
+      .toLowerCase();
   if (status == null) {
     return const SgaAuthException('network', 'Sem ligação. Tente de novo.');
   }
   if (code == 'captcha_failed' || text.contains('captcha')) {
-    return const SgaAuthException('captcha', 'Confirme que não é um robô e tente de novo.');
+    return const SgaAuthException(
+      'captcha',
+      'Confirme que não é um robô e tente de novo.',
+    );
   }
-  if (code == 'invalid_credentials' || text.contains('invalid login credentials')) {
-    return const SgaAuthException('credentials', 'E-mail ou palavra-passe incorrectos.');
+  if (code == 'invalid_credentials' ||
+      text.contains('invalid login credentials')) {
+    return const SgaAuthException(
+      'credentials',
+      'E-mail ou palavra-passe incorrectos.',
+    );
   }
   if (code == 'email_not_confirmed' || text.contains('email not confirmed')) {
-    return const SgaAuthException('unconfirmed', 'Confirme primeiro o e-mail (veja a caixa de correio).');
+    return const SgaAuthException(
+      'unconfirmed',
+      'Confirme primeiro o e-mail (veja a caixa de correio).',
+    );
   }
   if (status == 429 || code.startsWith('over_')) {
-    return const SgaAuthException('rate', 'Demasiadas tentativas. Tente mais tarde.');
+    return const SgaAuthException(
+      'rate',
+      'Demasiadas tentativas. Tente mais tarde.',
+    );
   }
-  if (code == 'refresh_token_not_found' || code == 'refresh_token_already_used' || code == 'session_not_found') {
-    return const SgaAuthException('expired', 'A sessão terminou. Entre de novo.');
+  if (code == 'refresh_token_not_found' ||
+      code == 'refresh_token_already_used' ||
+      code == 'session_not_found') {
+    return const SgaAuthException(
+      'expired',
+      'A sessão terminou. Entre de novo.',
+    );
   }
-  return SgaAuthException(code.isEmpty ? 'unknown' : code, 'Não foi possível entrar. Tente de novo.');
+  return SgaAuthException(
+    code.isEmpty ? 'unknown' : code,
+    'Não foi possível entrar. Tente de novo.',
+  );
 }
 
 /// Onde a sessão fica guardada (armazenamento seguro; um falso nos testes).
@@ -179,12 +213,18 @@ class SgaSession {
   SgaTokens? get tokens => _tokens;
   bool get signedIn => _tokens != null;
 
-  Future<void> signIn(String email, String password, {String? captchaToken}) async {
+  Future<void> signIn(
+    String email,
+    String password, {
+    String? captchaToken,
+  }) async {
     _tokens = await client.signIn(email, password, captchaToken: captchaToken);
     await _persist();
   }
 
-  /// Retoma a sessão guardada; false se não houver ou já não for válida.
+  /// Retoma a sessão guardada; false se não houver ou se o servidor a
+  /// recusou. Sem rede (ou com o Auth momentaneamente em baixo) a sessão
+  /// fica e conta como retomada: a app abre e tenta de novo depois.
   Future<bool> restore() async {
     final raw = await storage.read();
     if (raw == null) return false;
@@ -196,7 +236,8 @@ class SgaSession {
       await clear();
       return false;
     }
-    return await accessToken() != null;
+    await accessToken();
+    return signedIn;
   }
 
   /// Token de acesso válido, ou null se a sessão terminou.
@@ -204,7 +245,9 @@ class SgaSession {
     final t = _tokens;
     if (t == null) return null;
     if (!t.expiresWithin(const Duration(seconds: 60))) return t.accessToken;
-    final renewed = await (_refreshing ??= _renew(t).whenComplete(() => _refreshing = null));
+    final renewed = await (_refreshing ??= _renew(
+      t,
+    ).whenComplete(() => _refreshing = null));
     return renewed?.accessToken;
   }
 
@@ -214,10 +257,9 @@ class SgaSession {
       await _persist();
       return _tokens;
     } on SgaAuthException catch (e) {
-      // Sem rede, mantém-se a sessão para tentar mais tarde; se o servidor
-      // recusou o token de renovação, a sessão acabou.
-      if (e.code == 'network') return null;
-      await clear();
+      // Só acaba a sessão se o servidor recusou o token de renovação (ou a
+      // conta). Sem rede, 429 ou erro do servidor: fica para tentar depois.
+      if (e.code == 'expired' || e.code == 'credentials') await clear();
       return null;
     }
   }

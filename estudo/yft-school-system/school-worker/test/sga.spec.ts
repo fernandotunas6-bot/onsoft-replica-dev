@@ -82,18 +82,22 @@ const tables: Record<string, Row[]> = {
 		{ id: "ts-7b", school_id: S1, class_subject_id: "cs-other", weekday: 1, starts_at: "07:30:00", ends_at: "08:15:00", room: null, status: "active" },
 	],
 	siga_attendance_sessions: [
-		{ id: "ss-1", school_id: S1, lesson_date: "2026-10-05" },
-		{ id: "ss-2", school_id: S1, lesson_date: "2026-10-05" },
-		{ id: "ss-3", school_id: S1, lesson_date: "2026-10-06" },
-		{ id: "ss-4", school_id: S1, lesson_date: "2026-10-07" },
-		{ id: "ss-5", school_id: S1, lesson_date: "2026-10-08" },
+		{ id: "ss-1", school_id: S1, lesson_date: "2026-10-05", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-2", school_id: S1, lesson_date: "2026-10-05", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-3", school_id: S1, lesson_date: "2026-10-06", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-4", school_id: S1, lesson_date: "2026-10-07", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-5", school_id: S1, lesson_date: "2026-10-08", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-cancel", school_id: S1, lesson_date: "2026-10-09", academic_year_id: "ay-1", status: "cancelled" },
+		{ id: "ss-old", school_id: S1, lesson_date: "2025-10-09", academic_year_id: "ay-0", status: "completed" },
 	],
 	siga_attendance_records: [
-		{ school_id: S1, session_id: "ss-1", student_id: "st-ana", status: "present" },
+		{ id: "ar-01", school_id: S1, session_id: "ss-1", student_id: "st-ana", status: "present" },
 		{ school_id: S1, session_id: "ss-2", student_id: "st-ana", status: "absent" },
 		{ school_id: S1, session_id: "ss-3", student_id: "st-ana", status: "late" },
 		{ school_id: S1, session_id: "ss-4", student_id: "st-ana", status: "excused" },
 		{ school_id: S1, session_id: "ss-5", student_id: "st-ana", status: "not_registered" },
+		{ school_id: S1, session_id: "ss-cancel", student_id: "st-ana", status: "absent" },
+		{ school_id: S1, session_id: "ss-old", student_id: "st-ana", status: "absent" },
 		{ school_id: S1, session_id: "ss-3", student_id: "st-rui", status: "absent" },
 	],
 	finance_contracts: [{ id: "fc-rui", school_id: S1, enrollment_id: "e-rui" }],
@@ -193,13 +197,15 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
 	seen.push(table);
 	let rows = [...(tables[table] ?? [])];
 	for (const [k, v] of url.searchParams) {
-		if (["select", "order", "limit"].includes(k)) continue;
+		if (["select", "order", "limit", "offset"].includes(k)) continue;
 		rows = k === "or" ? rows.filter((r) => orMatches(r, v)) : rows.filter((r) => matches(r, k, v));
 	}
 	if (table === "member_roles") {
 		rows = rows.map((r) => ({ ...r, roles: tables.roles.find((x) => x.id === r.role_id) ?? null }));
 	}
+	const offset = Number(url.searchParams.get("offset") ?? 0);
 	const limit = url.searchParams.get("limit");
+	rows = rows.slice(offset);
 	return Response.json(limit ? rows.slice(0, Number(limit)) : rows);
 }
 
@@ -233,8 +239,10 @@ describe("API SGA", () => {
 		expect((me.schools as unknown[]).length).toBe(2);
 		const other = (await (await get("/me", "tok-guardian", S2)).json()) as { school: { id: string } };
 		expect(other.school.id).toBe(S2);
-		const teacher = (await (await get("/me", "tok-teacher", S2)).json()) as { school: { id: string }; role: string };
-		expect(teacher).toMatchObject({ school: { id: S1 }, role: "teacher" });
+		// Escola pedida sem vínculo activo: recusa, como o SIGA (não muda em silêncio).
+		const teacher = await get("/me", "tok-teacher", S2);
+		expect(teacher.status).toBe(409);
+		expect(await teacher.json()).toEqual({ error: "ACTIVE_SCHOOL_UNAVAILABLE" });
 	});
 
 	it("/wards: só educandos com ligação em vigor, desta escola, com a turma activa", async () => {
@@ -409,5 +417,20 @@ describe("API SGA", () => {
 		const admin = (await (await get("/teacher/grades?class_group_id=cg-10a&subject_id=sub-por&term=1", "tok-admin")).json()) as { provisional: boolean; students: { mac: number | null }[] };
 		expect(admin.provisional).toBe(false);
 		expect(admin.students[0].mac).toBe(11);
+	});
+
+	it("/attendance: lê por páginas de 1000 (aluno com muitos registos)", async () => {
+		const extra = Array.from({ length: 1500 }, (_, i) => ({ school_id: S1, session_id: `bulk-${i}`, student_id: "st-ana", status: i === 1499 ? "absent" : "present" }));
+		const extraSessions = Array.from({ length: 1500 }, (_, i) => ({ id: `bulk-${i}`, school_id: S1, lesson_date: `2027-${String(1 + Math.floor(i / 28) % 12).padStart(2, "0")}-${String(1 + (i % 28)).padStart(2, "0")}`, academic_year_id: "ay-1", status: "completed" }));
+		tables.siga_attendance_records.push(...extra);
+		tables.siga_attendance_sessions.push(...extraSessions);
+		try {
+			const body = (await (await get("/attendance/student/st-ana", "tok-guardian")).json()) as { absent_days: number };
+			// A falta do registo 1500 só aparece se a 2.ª página for lida.
+			expect(body.absent_days).toBe(2);
+		} finally {
+			tables.siga_attendance_records.splice(-1500);
+			tables.siga_attendance_sessions.splice(-1500);
+		}
 	});
 });

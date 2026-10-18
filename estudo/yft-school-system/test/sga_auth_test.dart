@@ -102,7 +102,7 @@ void main() {
   test('renovação recusada termina a sessão; sem rede mantém-na', () async {
     final storage = _MemoryStorage();
     var status = 400;
-    final gotrue = _Gotrue((o, b) => (status, {'error_code': 'refresh_token_not_found'}));
+    final gotrue = _Gotrue((o, b) => (status, status == 400 ? {'error_code': 'refresh_token_not_found'} : <String, dynamic>{}));
     final dio = Dio()..httpClientAdapter = gotrue;
     final session = SgaSession(SgaAuthClient(_cfg, dio: dio), storage);
     void seed() => storage.value = jsonEncode({
@@ -122,9 +122,18 @@ void main() {
       SgaAuthClient(_cfg, dio: Dio()..httpClientAdapter = _Offline()),
       storage,
     );
-    expect(await offline.restore(), isFalse);
+    expect(await offline.restore(), isTrue);
     expect(offline.signedIn, isTrue);
     expect(storage.value, isNotNull);
+
+    // Auth momentaneamente em baixo (500) ou limite (429): a sessão fica.
+    for (final code in [500, 429]) {
+      seed();
+      status = code;
+      final flaky = SgaSession(SgaAuthClient(_cfg, dio: dio), storage);
+      expect(await flaky.restore(), isTrue);
+      expect(storage.value, isNotNull, reason: 'HTTP $code não termina a sessão');
+    }
   });
 
   test('sair apaga a sessão do aparelho e avisa o servidor', () async {

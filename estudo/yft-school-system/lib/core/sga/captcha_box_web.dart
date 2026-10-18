@@ -13,6 +13,7 @@ external _HCaptcha? get _hcaptcha;
 
 extension type _HCaptcha._(JSObject _) implements JSObject {
   external JSAny render(web.HTMLElement container, JSObject params);
+  external void remove(JSAny widgetId);
 }
 
 Completer<void>? _loading;
@@ -55,6 +56,15 @@ class _CaptchaViewState extends State<_CaptchaView> {
   /// O script não carregou (sem rede, bloqueado): mostra-se porquê.
   bool _failed = false;
 
+  /// Id do widget no hCaptcha, para o tirar quando este é substituído.
+  JSAny? _widgetId;
+
+  /// Só a instância à vista fala com o ecrã: um widget substituído (depois de
+  /// uma tentativa falhada) não pode apagar o token do novo ao expirar.
+  void _emit(String? token) {
+    if (mounted) widget.onToken(token);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,17 +85,30 @@ class _CaptchaViewState extends State<_CaptchaView> {
         await Future<void>.delayed(const Duration(milliseconds: 50));
       }
       if (!mounted) return;
-      final params = {
-        'sitekey': widget.siteKey,
-        'callback': ((JSString token) => widget.onToken(token.toDart)).toJS,
-        'expired-callback': (() => widget.onToken(null)).toJS,
-        'error-callback': (() => widget.onToken(null)).toJS,
-      }.jsify()! as JSObject;
-      _hcaptcha?.render(_box, params);
+      final params =
+          {
+                'sitekey': widget.siteKey,
+                'callback': ((JSString token) => _emit(token.toDart)).toJS,
+                'expired-callback': (() => _emit(null)).toJS,
+                'error-callback': (() => _emit(null)).toJS,
+              }.jsify()!
+              as JSObject;
+      _widgetId = _hcaptcha?.render(_box, params);
     } catch (_) {
-      widget.onToken(null);
+      _emit(null);
       if (mounted) setState(() => _failed = true);
     }
+  }
+
+  @override
+  void dispose() {
+    final id = _widgetId;
+    if (id != null) {
+      try {
+        _hcaptcha?.remove(id);
+      } catch (_) {}
+    }
+    super.dispose();
   }
 
   void _retry() {

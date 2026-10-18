@@ -97,7 +97,6 @@ describe("/api/mobile/attendance", () => {
       status: 401,
       body: { error: "SESSION_INVALID" },
     });
-    expect((await call(Object.assign(new Error("x"), { sessionMfa: true }))).status).toBe(403);
     const { ZodError } = await import("zod");
     expect((await call(new ZodError([]))).status).toBe(422);
     expect(await call(new Error("A pauta deste período já é oficial."))).toEqual({
@@ -112,5 +111,29 @@ describe("/api/mobile/attendance", () => {
     );
     const bad = await h.POST!({ request: req("", { method: "POST", body: "não é json" }) });
     expect(bad.status).toBe(422);
+    // Sem alunos não fecha a chamada.
+    for (const body of [
+      { session_id: "s-1" },
+      { session_id: "s-1", records: [] },
+      { session_id: "s-1", records: "x" },
+    ]) {
+      const res = await h.POST!({
+        request: req("", { method: "POST", body: JSON.stringify(body) }),
+      });
+      expect(res.status).toBe(422);
+    }
+    expect(fns.submitAttendanceCallBatch).not.toHaveBeenCalled();
+    // 2FA vem com statusCode 401: tem de ser reconhecido como MFA.
+    const mfa = await call(Object.assign(new Error("x"), { statusCode: 401, sessionMfa: true }));
+    expect(mfa.status).toBe(403);
+    expect(mfa.body.error).toBe("MFA_REQUIRED");
+    expect((await call(new Error("Não autenticado."))).status).toBe(401);
+    expect((await call(new Error("ACTIVE_SCHOOL_UNAVAILABLE"))).status).toBe(409);
+    expect(await call(new Error("Missing Supabase environment variable(s): SUPABASE_URL"))).toEqual(
+      {
+        status: 500,
+        body: { error: "FAILURE" },
+      },
+    );
   });
 });

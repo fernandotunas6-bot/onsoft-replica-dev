@@ -96,9 +96,18 @@ export async function loadMemberships(db: SgaDb, userId: string): Promise<SgaMem
   });
 }
 
+/**
+ * A escola do pedido: a pedida (X-School-Id) se for um vínculo activo; sem
+ * pedido, a primeira por antiguidade — o mesmo critério do SIGA sem o cookie
+ * da escola activa, para leituras daqui e escritas no SIGA irem à mesma
+ * escola. Pedida mas indisponível: recusa, como o SIGA
+ * (ACTIVE_SCHOOL_UNAVAILABLE), em vez de mudar de escola em silêncio.
+ */
 export function pickMembership(all: SgaMembership[], preferred?: string | null): SgaMembership {
-  const chosen = (preferred && all.find((m) => m.schoolId === preferred)) || all[0];
-  if (!chosen) throw new SgaError(403, 'NO_ACTIVE_MEMBERSHIP');
+  if (!all.length) throw new SgaError(403, 'NO_ACTIVE_MEMBERSHIP');
+  if (!preferred) return all[0];
+  const chosen = all.find((m) => m.schoolId === preferred);
+  if (!chosen) throw new SgaError(409, 'ACTIVE_SCHOOL_UNAVAILABLE');
   return chosen;
 }
 

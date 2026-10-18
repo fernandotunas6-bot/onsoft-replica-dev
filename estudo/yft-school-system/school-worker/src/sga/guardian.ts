@@ -103,30 +103,69 @@ export async function loadWards(db: SgaDb, schoolId: string, user: SgaUser): Pro
     .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
 }
 
-/** Há factura vencida por pagar de algum educando (público «encarregados em dívida»). */
-export async function hasOverdueInvoice(db: SgaDb, schoolId: string, studentIds: string[]): Promise<boolean> {
-  if (!studentIds.length) return false;
-  const enrollments = await db.select<{ id: string }>('enrollments', {
-    select: 'id',
+/** Arredonda ao cêntimo. */
+const money = (n: unknown) => Math.round(Number(n ?? 0) * 100) / 100;
+
+type Invoice = {
+  id: string;
+  contract_id: string;
+  fee_item_id: string | null;
+  invoice_number: string | null;
+  competence_month: string | null;
+  amount: number;
+  discount_amount: number | null;
+  penalty_amount: number | null;
+};
+
+/** Total de uma factura: valor − desconto + multa (como o SIGA). */
+export const invoiceTotal = (i: Pick<Invoice, 'amount' | 'discount_amount' | 'penalty_amount'>) =>
+  money(i.amount) - money(i.discount_amount) + money(i.penalty_amount);
+
+/**
+ * Matrículas → contratos → facturas dos alunos indicados: a mesma cadeia que o
+ * SIGA usa (features/communications/server.ts). [invoiceFilter] acrescenta
+ * filtros às facturas (estado, vencimento…).
+ */
+export async function wardInvoices(
+  db: SgaDb,
+  schoolId: string,
+  studentIds: string[],
+  invoiceFilter: Record<string, string> = {},
+) {
+  const none = { enrollments: [], contracts: [], invoices: [] } as {
+    enrollments: { id: string; student_id: string; academic_year_id: string | null }[];
+    contracts: { id: string; enrollment_id: string }[];
+    invoices: Invoice[];
+  };
+  if (!studentIds.length) return none;
+  const enrollments = await db.select<{ id: string; student_id: string; academic_year_id: string | null }>('enrollments', {
+    select: 'id,student_id,academic_year_id',
     school_id: `eq.${schoolId}`,
     student_id: inList(studentIds),
   });
-  if (!enrollments.length) return false;
-  const contracts = await db.select<{ id: string }>('finance_contracts', {
-    select: 'id',
+  if (!enrollments.length) return none;
+  const contracts = await db.select<{ id: string; enrollment_id: string }>('finance_contracts', {
+    select: 'id,enrollment_id',
     school_id: `eq.${schoolId}`,
     enrollment_id: inList(enrollments.map((e) => e.id)),
   });
-  if (!contracts.length) return false;
-  const overdue = await db.select<{ id: string }>('finance_invoices', {
-    select: 'id',
+  if (!contracts.length) return { ...none, enrollments };
+  const invoices = await db.select<Invoice>('finance_invoices', {
+    select: 'id,contract_id,fee_item_id,invoice_number,competence_month,amount,discount_amount,penalty_amount',
     school_id: `eq.${schoolId}`,
     contract_id: inList(contracts.map((c) => c.id)),
+    ...invoiceFilter,
+  });
+  return { enrollments, contracts, invoices };
+}
+
+/** Há factura vencida por pagar de algum educando (público «encarregados em dívida»). */
+export async function hasOverdueInvoice(db: SgaDb, schoolId: string, studentIds: string[]): Promise<boolean> {
+  const { invoices } = await wardInvoices(db, schoolId, studentIds, {
     status: 'in.(open,partially_paid)',
     due_date: `lt.${luandaToday()}`,
-    limit: '1',
   });
-  return overdue.length > 0;
+  return invoices.length > 0;
 }
 
 /** "08:30:00" → "08:30". */
@@ -216,18 +255,36 @@ export async function loadClassTimetable(db: SgaDb, schoolId: string, classGroup
  * um dia só com presenças (ou atrasos e faltas justificadas) é de presença.
  */
 export async function loadStudentAttendance(db: SgaDb, schoolId: string, studentId: string) {
-  const records = await db.select<{ session_id: string; status: string }>('siga_attendance_records', {
+  const empty = { present_days: 0, absent_days: 0, absences: [] as string[] };
+  // Só o ano lectivo da matrícula activa (sem ela, nada a mostrar).
+  const [enrollment] = await db.select<{ academic_year_id: string | null }>('enrollments', {
+    select: 'academic_year_id',
+    school_id: `eq.${schoolId}`,
+    student_id: `eq.${studentId}`,
+    status: 'eq.active',
+    limit: '1',
+  });
+  if (!enrollment?.academic_year_id) return empty;
+  const records = await db.selectAll<{ session_id: string; status: string }>('siga_attendance_records', {
     select: 'session_id,status',
     school_id: `eq.${schoolId}`,
     student_id: `eq.${studentId}`,
     status: 'neq.not_registered',
+    order: 'id.asc',
   });
-  if (!records.length) return { present_days: 0, absent_days: 0, absences: [] as string[] };
-  const sessions = await db.select<{ id: string; lesson_date: string }>('siga_attendance_sessions', {
-    select: 'id,lesson_date',
-    school_id: `eq.${schoolId}`,
-    id: inList([...new Set(records.map((r) => r.session_id))]),
-  });
+  if (!records.length) return empty;
+  // Aulas canceladas não contam; aulas de outro ano também não.
+  const sessions = await db.selectIn<{ id: string; lesson_date: string }>(
+    'siga_attendance_sessions',
+    'id',
+    records.map((r) => r.session_id),
+    {
+      select: 'id,lesson_date',
+      school_id: `eq.${schoolId}`,
+      academic_year_id: `eq.${enrollment.academic_year_id}`,
+      status: 'neq.cancelled',
+    },
+  );
   const dateOf = new Map(sessions.map((s) => [s.id, s.lesson_date.slice(0, 10)]));
   const absent = new Set<string>();
   const seen = new Set<string>();
@@ -245,7 +302,6 @@ export async function loadStudentAttendance(db: SgaDb, schoolId: string, student
 }
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-const money = (n: unknown) => Math.round(Number(n ?? 0) * 100) / 100;
 
 /**
  * Recibos dos educandos, no formato de GET /api/finance/receipts. O SIGA não
@@ -253,33 +309,7 @@ const money = (n: unknown) => Math.round(Number(n ?? 0) * 100) / 100;
  * (valor − desconto + multa) depois deste recibo e dos anteriores não anulados.
  */
 export async function loadReceipts(db: SgaDb, schoolId: string, wards: { id: string; name: string }[]) {
-  if (!wards.length) return [];
-  const enrollments = await db.select<{ id: string; student_id: string; academic_year_id: string | null }>('enrollments', {
-    select: 'id,student_id,academic_year_id',
-    school_id: `eq.${schoolId}`,
-    student_id: inList(wards.map((w) => w.id)),
-  });
-  if (!enrollments.length) return [];
-  const contracts = await db.select<{ id: string; enrollment_id: string }>('finance_contracts', {
-    select: 'id,enrollment_id',
-    school_id: `eq.${schoolId}`,
-    enrollment_id: inList(enrollments.map((e) => e.id)),
-  });
-  if (!contracts.length) return [];
-  const invoices = await db.select<{
-    id: string;
-    contract_id: string;
-    fee_item_id: string | null;
-    invoice_number: string | null;
-    competence_month: string | null;
-    amount: number;
-    discount_amount: number | null;
-    penalty_amount: number | null;
-  }>('finance_invoices', {
-    select: 'id,contract_id,fee_item_id,invoice_number,competence_month,amount,discount_amount,penalty_amount',
-    school_id: `eq.${schoolId}`,
-    contract_id: inList(contracts.map((c) => c.id)),
-  });
+  const { enrollments, contracts, invoices } = await wardInvoices(db, schoolId, wards.map((w) => w.id));
   if (!invoices.length) return [];
   const receipts = await db.select<{
     id: string;
@@ -327,7 +357,7 @@ export async function loadReceipts(db: SgaDb, schoolId: string, wards: { id: str
     const inv = invoice.get(invoiceId)!;
     const enr = enrollment.get(contract.get(inv.contract_id)?.enrollment_id ?? '');
     if (!enr) continue;
-    const total = money(inv.amount) - money(inv.discount_amount) + money(inv.penalty_amount);
+    const total = invoiceTotal(inv);
     const month = inv.competence_month ? MONTHS[Number(inv.competence_month.slice(5, 7)) - 1] : null;
     const label = [inv.fee_item_id ? feeName.get(inv.fee_item_id) : null, month].filter(Boolean).join(' · ') || 'Pagamento';
     let paid = 0;
@@ -430,34 +460,12 @@ export async function loadWardSubjects(db: SgaDb, schoolId: string, classGroupId
 
 /**
  * Saldo de cada educando, com o sinal do app: negativo = em dívida. É o que
- * falta pagar das facturas em aberto (valor − desconto + multa − recibos não
- * anulados), as mesmas que o SIGA conta como «por pagar».
+ * falta pagar das facturas em aberto (total − recibos não anulados), as
+ * mesmas que o SIGA conta como «por pagar».
  */
 export async function wardBalances(db: SgaDb, schoolId: string, studentIds: string[]): Promise<Map<string, number>> {
   const balances = new Map(studentIds.map((id) => [id, 0]));
-  if (!studentIds.length) return balances;
-  const enrollments = await db.select<{ id: string; student_id: string }>('enrollments', {
-    select: 'id,student_id',
-    school_id: `eq.${schoolId}`,
-    student_id: inList(studentIds),
-  });
-  if (!enrollments.length) return balances;
-  const contracts = await db.select<{ id: string; enrollment_id: string }>('finance_contracts', {
-    select: 'id,enrollment_id',
-    school_id: `eq.${schoolId}`,
-    enrollment_id: inList(enrollments.map((e) => e.id)),
-  });
-  if (!contracts.length) return balances;
-  const invoices = await db.select<{
-    id: string;
-    contract_id: string;
-    amount: number;
-    discount_amount: number | null;
-    penalty_amount: number | null;
-  }>('finance_invoices', {
-    select: 'id,contract_id,amount,discount_amount,penalty_amount',
-    school_id: `eq.${schoolId}`,
-    contract_id: inList(contracts.map((c) => c.id)),
+  const { enrollments, contracts, invoices } = await wardInvoices(db, schoolId, studentIds, {
     status: 'in.(open,partially_paid)',
   });
   if (!invoices.length) return balances;
@@ -469,13 +477,12 @@ export async function wardBalances(db: SgaDb, schoolId: string, studentIds: stri
   });
   const paid = new Map<string, number>();
   for (const r of receipts) paid.set(r.invoice_id, (paid.get(r.invoice_id) ?? 0) + money(r.amount));
-  const studentOfContract = new Map(
-    contracts.map((c) => [c.id, enrollments.find((e) => e.id === c.enrollment_id)?.student_id]),
-  );
+  const studentOfEnrollment = new Map(enrollments.map((e) => [e.id, e.student_id]));
+  const studentOfContract = new Map(contracts.map((c) => [c.id, studentOfEnrollment.get(c.enrollment_id)]));
   for (const inv of invoices) {
     const student = studentOfContract.get(inv.contract_id);
     if (!student) continue;
-    const due = money(inv.amount) - money(inv.discount_amount) + money(inv.penalty_amount) - (paid.get(inv.id) ?? 0);
+    const due = invoiceTotal(inv) - (paid.get(inv.id) ?? 0);
     if (due > 0) balances.set(student, money((balances.get(student) ?? 0) - due));
   }
   return balances;

@@ -39,7 +39,10 @@ export const Route = createFileRoute("/api/mobile/attendance")({
         mobileRespond(request, "api/mobile/attendance", async () => {
           const body = (await request.json().catch(() => null)) as MobileAttendanceBody | null;
           if (!body || typeof body !== "object") throw new ZodError([]);
-          const records = (Array.isArray(body.records) ? body.records : []).map((r) => ({
+          // Sem lista de alunos não se grava: uma chamada vazia ficaria fechada
+          // sem ninguém marcado (e só se corrigiria com motivo).
+          if (!Array.isArray(body.records) || body.records.length === 0) throw new ZodError([]);
+          const records = body.records.map((r) => ({
             studentId: r?.student_id,
             status: r?.status,
             notes: r?.notes ?? undefined,

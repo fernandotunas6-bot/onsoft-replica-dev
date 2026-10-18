@@ -59,6 +59,14 @@ flutter build web --release \
 
 ## Regras de acesso de `/api/sga` (iguais às do SIGA)
 
+- Escola: sem `X-School-Id`, a primeira escola activa por antiguidade — o
+  mesmo critério do SIGA sem o cookie da escola activa, para as leituras aqui
+  e as escritas em `/api/mobile/*` irem à mesma escola. Pedida e indisponível:
+  409 `ACTIVE_SCHOOL_UNAVAILABLE`, como o SIGA. A app ainda não escolhe escola.
+- Escola suspensa ou arquivada: as leituras continuam, como no SIGA ("os
+  dados podem ser consultados, mas não alterados"); as escritas são recusadas
+  pelo próprio SIGA.
+
 Rotas: `GET /api/sga/me`, `/wards`, `/notices`, `/timetable?class_id=`,
 `/attendance/student/:id`, `/finance/receipts`, `/grades?student_id=&term=Term N[&academic_year=]`,
 `/grades/years?student_id=`, `/subjects`, `/classes`, `/academic-calendar`. Todas no formato das rotas

@@ -143,7 +143,7 @@ class SgaGradesRepository {
       final message = data is Map ? data['message'] as String? : null;
       throw SgaRejected(switch (e.response?.statusCode) {
         401 => 'A sessão terminou. Entre de novo.',
-        400 || 403 when message != null => message,
+        400 || 403 || 409 when message != null => message,
         403 => 'Esta conta não pode lançar notas.',
         404 => 'Esta disciplina não é sua nesta turma.',
         422 => 'Verifique as notas: têm de estar entre 0 e 20.',

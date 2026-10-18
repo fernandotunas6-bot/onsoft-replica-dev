@@ -173,6 +173,7 @@ class AuthStateNotifier extends Notifier<AppSession?> {
       return switch (e.response?.statusCode) {
         401 => 'A sessão terminou. Entre de novo.',
         403 => 'Esta conta não tem vínculo activo numa escola.',
+        409 => 'Já não tem acesso activo a esta escola. Entre de novo.',
         503 => 'O serviço da escola está indisponível. Tente mais tarde.',
         null => 'Sem ligação. Tente de novo.',
         _ => 'Não foi possível entrar. Tente de novo.',

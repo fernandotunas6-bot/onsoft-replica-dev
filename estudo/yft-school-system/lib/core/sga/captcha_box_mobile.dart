@@ -56,26 +56,34 @@ class _CaptchaWebViewState extends State<_CaptchaWebView> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
-      ..addJavaScriptChannel('Captcha', onMessageReceived: (m) {
-        if (m.message == '__failed__') {
-          widget.onToken(null);
-          if (mounted) setState(() => _failed = true);
-          return;
-        }
-        widget.onToken(m.message.isEmpty ? null : m.message);
-      })
-      ..setNavigationDelegate(NavigationDelegate(
-        onWebResourceError: (e) {
-          if (e.isForMainFrame ?? false) {
+      ..addJavaScriptChannel(
+        'Captcha',
+        onMessageReceived: (m) {
+          // Uma instância substituída não fala com o ecrã.
+          if (!mounted) return;
+          if (m.message == '__failed__') {
             widget.onToken(null);
             if (mounted) setState(() => _failed = true);
+            return;
           }
+          widget.onToken(m.message.isEmpty ? null : m.message);
         },
-      ));
+      )
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (e) {
+            if (e.isForMainFrame ?? false) {
+              widget.onToken(null);
+              if (mounted) setState(() => _failed = true);
+            }
+          },
+        ),
+      );
     _load();
   }
 
-  void _load() => _controller.loadHtmlString(captchaPage(widget.siteKey), baseUrl: _origin);
+  void _load() =>
+      _controller.loadHtmlString(captchaPage(widget.siteKey), baseUrl: _origin);
 
   @override
   Widget build(BuildContext context) {
