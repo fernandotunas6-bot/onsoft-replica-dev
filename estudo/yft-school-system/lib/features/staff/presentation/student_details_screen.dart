@@ -57,18 +57,15 @@ class StudentDetailsScreen extends ConsumerWidget {
       ref.invalidate(studentsProvider((classId: null, page: 1)));
       ref.invalidate(studentsProvider((classId: student.classId, page: 1)));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aluno removido')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Aluno removido')));
         context.pop();
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$e'),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -81,10 +78,9 @@ class StudentDetailsScreen extends ConsumerWidget {
     bool active,
   ) async {
     try {
-      await ref.read(studentRepositoryProvider).updateStudent(
-            student.id,
-            isActive: active,
-          );
+      await ref
+          .read(studentRepositoryProvider)
+          .updateStudent(student.id, isActive: active);
       ref.invalidate(studentByIdProvider(student.id));
       ref.invalidate(studentsProvider((classId: null, page: 1)));
       ref.invalidate(studentsProvider((classId: student.classId, page: 1)));
@@ -98,10 +94,7 @@ class StudentDetailsScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$e'),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -116,12 +109,16 @@ class StudentDetailsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: async.when(
-          data: (s) => Text(s.name,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          loading: () => const Text('Perfil do aluno',
-              style: TextStyle(fontWeight: FontWeight.w600)),
-          error: (e, s) => const Text('Perfil do aluno',
-              style: TextStyle(fontWeight: FontWeight.w600)),
+          data: (s) =>
+              Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          loading: () => const Text(
+            'Perfil do aluno',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          error: (e, s) => const Text(
+            'Perfil do aluno',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -135,20 +132,28 @@ class StudentDetailsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(LucideIcons.alertTriangle,
-                    size: 48, color: AppColors.error),
+                Icon(
+                  LucideIcons.alertTriangle,
+                  size: 48,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 16),
-                Text('Não foi possível carregar o aluno',
-                    style: TextStyle(color: AppColors.error)),
+                Text(
+                  'Não foi possível carregar o aluno',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 const SizedBox(height: 8),
-                Text('$e',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
+                Text(
+                  '$e',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(studentByIdProvider(id)),
+                  onPressed: () => ref.invalidate(studentByIdProvider(id)),
                   child: const Text('Tentar de novo'),
                 ),
               ],
@@ -162,8 +167,9 @@ class StudentDetailsScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: getResponsiveHorizontalPadding(context)
-                      .copyWith(top: 8, bottom: 16),
+                  padding: getResponsiveHorizontalPadding(
+                    context,
+                  ).copyWith(top: 8, bottom: 16),
                   child: ResponsiveConstrainedContent(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -176,11 +182,15 @@ class StudentDetailsScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(12),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.pause_circle_outline,
-                                        color: Colors.orange.shade800),
+                                    Icon(
+                                      Icons.pause_circle_outline,
+                                      color: Colors.orange.shade800,
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
@@ -211,8 +221,9 @@ class StudentDetailsScreen extends ConsumerWidget {
                 SafeArea(
                   top: false,
                   child: Padding(
-                    padding: getResponsiveHorizontalPadding(context)
-                        .copyWith(bottom: 16, top: 8),
+                    padding: getResponsiveHorizontalPadding(
+                      context,
+                    ).copyWith(bottom: 16, top: 8),
                     child: ResponsiveConstrainedContent(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -220,8 +231,8 @@ class StudentDetailsScreen extends ConsumerWidget {
                           Row(
                             children: [
                               IconButton.filledTonal(
-                                onPressed: () => context
-                                    .push('/admission?id=${student.id}'),
+                                onPressed: () =>
+                                    context.push('/admission?id=${student.id}'),
                                 icon: const Icon(LucideIcons.pencil, size: 22),
                                 tooltip: 'Editar',
                               ),
@@ -240,9 +251,11 @@ class StudentDetailsScreen extends ConsumerWidget {
                                         : LucideIcons.userCheck,
                                     size: 20,
                                   ),
-                                  label: Text(student.isActive
-                                      ? 'Deactivate'
-                                      : 'Activate'),
+                                  label: Text(
+                                    student.isActive
+                                        ? 'Deactivate'
+                                        : 'Activate',
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -251,11 +264,15 @@ class StudentDetailsScreen extends ConsumerWidget {
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.error,
                                     side: const BorderSide(
-                                        color: AppColors.error),
+                                      color: AppColors.error,
+                                    ),
                                   ),
                                   onPressed: () =>
                                       _confirmDelete(context, ref, student),
-                                  icon: const Icon(LucideIcons.trash2, size: 20),
+                                  icon: const Icon(
+                                    LucideIcons.trash2,
+                                    size: 20,
+                                  ),
                                   label: const Text('Eliminar'),
                                 ),
                               ),
@@ -292,8 +309,8 @@ class _StudentProfileBody extends StatelessWidget {
     final initials = student.name.length >= 2
         ? student.name.substring(0, 2).toUpperCase()
         : student.name.isEmpty
-            ? '?'
-            : student.name[0].toUpperCase();
+        ? '?'
+        : student.name[0].toUpperCase();
 
     final photoUrl = profilePhotoUrlFromKey(student.photoUrl, apiBaseUrl);
 
@@ -304,8 +321,7 @@ class _StudentProfileBody extends StatelessWidget {
           child: CircleAvatar(
             radius: 52,
             backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-            backgroundImage:
-                photoUrl != null ? NetworkImage(photoUrl) : null,
+            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
             onBackgroundImageError: photoUrl != null
                 ? (Object error, StackTrace? stackTrace) {}
                 : null,
@@ -333,27 +349,49 @@ class _StudentProfileBody extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         _section(context, 'Student', [
-          _row(LucideIcons.bookOpen, 'Class',
-              student.className ?? student.classId),
+          _row(
+            LucideIcons.bookOpen,
+            'Class',
+            student.className ?? student.classId,
+          ),
           _row(LucideIcons.users, 'Gender', student.gender ?? '—'),
-          _row(LucideIcons.calendar, 'Data de nascimento', formatDob(student.dob)),
-          _row(LucideIcons.school, 'Escola anterior',
-              student.previousSchool ?? '—'),
+          _row(
+            LucideIcons.calendar,
+            'Data de nascimento',
+            formatDob(student.dob),
+          ),
+          _row(
+            LucideIcons.school,
+            'Escola anterior',
+            student.previousSchool ?? '—',
+          ),
           _row(LucideIcons.mapPin, 'Address', student.address ?? '—'),
         ]),
         const SizedBox(height: 16),
         _section(context, 'Emergency', [
-          _row(LucideIcons.alertCircle, 'Nome do contacto',
-              student.emergencyContactName ?? '—'),
-          _row(LucideIcons.phone, 'Telefone do contacto',
-              student.emergencyContactPhone ?? '—'),
+          _row(
+            LucideIcons.alertCircle,
+            'Nome do contacto',
+            student.emergencyContactName ?? '—',
+          ),
+          _row(
+            LucideIcons.phone,
+            'Telefone do contacto',
+            student.emergencyContactPhone ?? '—',
+          ),
         ]),
         const SizedBox(height: 16),
         _section(context, 'Health', [
-          _row(LucideIcons.droplet, 'Grupo sanguíneo',
-              student.bloodGroup ?? '—'),
-          _row(LucideIcons.heartHandshake, 'Observações médicas',
-              student.medicalNotes ?? '—'),
+          _row(
+            LucideIcons.droplet,
+            'Grupo sanguíneo',
+            student.bloodGroup ?? '—',
+          ),
+          _row(
+            LucideIcons.heartHandshake,
+            'Observações médicas',
+            student.medicalNotes ?? '—',
+          ),
         ]),
         const SizedBox(height: 16),
         _section(context, 'Parent / guardian', [
@@ -369,13 +407,13 @@ class _StudentProfileBody extends StatelessWidget {
             student.hasDebt
                 ? '$currency ${student.balance.abs().toStringAsFixed(2)} (owing)'
                 : student.isOverpaid
-                    ? '+$currency ${student.balance.toStringAsFixed(2)} (credit)'
-                    : '$currency 0.00 (cleared)',
+                ? '+$currency ${student.balance.toStringAsFixed(2)} (credit)'
+                : '$currency 0.00 (cleared)',
             valueColor: student.hasDebt
                 ? Colors.red.shade700
                 : student.isOverpaid
-                    ? Colors.green.shade700
-                    : AppColors.textPrimary,
+                ? Colors.green.shade700
+                : AppColors.textPrimary,
           ),
         ]),
       ],
@@ -416,8 +454,7 @@ class _StudentProfileBody extends StatelessWidget {
     );
   }
 
-  Widget _row(IconData icon, String label, String value,
-      {Color? valueColor}) {
+  Widget _row(IconData icon, String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(

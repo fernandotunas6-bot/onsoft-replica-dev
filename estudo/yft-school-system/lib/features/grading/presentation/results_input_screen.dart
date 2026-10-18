@@ -69,13 +69,12 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     });
 
     try {
-      final subjects = await ref.read(subjectRepositoryProvider).getSubjects(
-            classId: classId,
-          );
-      final gradeMap = await ref.read(gradesRepositoryProvider).getGradesForStudent(
-            studentId: studentId,
-            term: term,
-          );
+      final subjects = await ref
+          .read(subjectRepositoryProvider)
+          .getSubjects(classId: classId);
+      final gradeMap = await ref
+          .read(gradesRepositoryProvider)
+          .getGradesForStudent(studentId: studentId, term: term);
 
       if (!mounted) return;
 
@@ -135,11 +134,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       cVal = cVal.clamp(0, 100);
       eVal = eVal.clamp(0, 100);
       rows.add(
-        GradeUpsertRow(
-          subjectId: s.id,
-          classScore: cVal,
-          examScore: eVal,
-        ),
+        GradeUpsertRow(subjectId: s.id, classScore: cVal, examScore: eVal),
       );
     }
 
@@ -155,11 +150,9 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
 
     setState(() => _saveBusy = true);
     try {
-      await ref.read(gradesRepositoryProvider).saveGrades(
-            studentId: studentId,
-            term: term,
-            grades: rows,
-          );
+      await ref
+          .read(gradesRepositoryProvider)
+          .saveGrades(studentId: studentId, term: term, grades: rows);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -181,10 +174,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$e'),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) setState(() => _saveBusy = false);
@@ -230,13 +220,15 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               decoration: BoxDecoration(
                 color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(LucideIcons.lock, size: 18, color: Colors.orange.shade700),
+                  Icon(
+                    LucideIcons.lock,
+                    size: 18,
+                    color: Colors.orange.shade700,
+                  ),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -307,44 +299,44 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _loadError != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            _loadError!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      )
-                    : _subjects.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Esta turma não tem disciplinas.',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 8,
-                            ),
-                            itemCount: _subjects.length,
-                            itemBuilder: (context, index) {
-                              final sub = _subjects[index];
-                              final cc = _classControllers[sub.id];
-                              final ec = _examControllers[sub.id];
-                              if (cc == null || ec == null) {
-                                return const SizedBox.shrink();
-                              }
-                              return _buildSubjectGradeCard(
-                                sub.name,
-                                isReadOnly,
-                                cc,
-                                ec,
-                              );
-                            },
-                          ),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _loadError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  )
+                : _subjects.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Esta turma não tem disciplinas.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
+                    itemCount: _subjects.length,
+                    itemBuilder: (context, index) {
+                      final sub = _subjects[index];
+                      final cc = _classControllers[sub.id];
+                      final ec = _examControllers[sub.id];
+                      if (cc == null || ec == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return _buildSubjectGradeCard(
+                        sub.name,
+                        isReadOnly,
+                        cc,
+                        ec,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -441,10 +433,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 8),
         Container(

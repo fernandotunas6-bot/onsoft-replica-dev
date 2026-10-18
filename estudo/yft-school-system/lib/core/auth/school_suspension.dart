@@ -8,8 +8,9 @@ class SchoolSuspended extends Notifier<bool> {
 }
 
 /// Set true when API returns 403 with `code: school_suspended`.
-final schoolSuspendedProvider =
-    NotifierProvider<SchoolSuspended, bool>(SchoolSuspended.new);
+final schoolSuspendedProvider = NotifierProvider<SchoolSuspended, bool>(
+  SchoolSuspended.new,
+);
 
 /// Wired from [AppRoot] so [api_client] can trigger without a [WidgetRef].
 void Function()? notifySchoolSuspended;

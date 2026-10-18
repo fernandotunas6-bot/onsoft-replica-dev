@@ -44,10 +44,9 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       final safeId = widget.receipt.id.replaceAll(RegExp(r'[^\w\-]+'), '_');
       final file = File('${dir.path}/fee_receipt_$safeId.pdf');
       await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Fee receipt ${widget.receipt.id}',
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], subject: 'Fee receipt ${widget.receipt.id}');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,13 +104,10 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: getResponsiveHorizontalPadding(context).copyWith(
-          top: 24,
-          bottom: 40,
-        ),
-        child: Center(
-          child: FeeReceiptTemplate(data: data),
-        ),
+        padding: getResponsiveHorizontalPadding(
+          context,
+        ).copyWith(top: 24, bottom: 40),
+        child: Center(child: FeeReceiptTemplate(data: data)),
       ),
     );
   }

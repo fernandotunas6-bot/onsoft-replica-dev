@@ -137,24 +137,28 @@ class _SecuritySettingsScreenState
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Controlo de acessos',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
+                      // Sem Expanded, a Column pedia a largura natural do
+                      // texto e a Row transbordava 88 px num ecrã de 390.
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Controlo de acessos',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Gerir as permissões da aplicação',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
+                            Text(
+                              'Gerir as permissões da aplicação',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

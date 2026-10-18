@@ -25,7 +25,8 @@ class StudentAdmissionScreen extends ConsumerStatefulWidget {
       _StudentAdmissionScreenState();
 }
 
-class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen> {
+class _StudentAdmissionScreenState
+    extends ConsumerState<StudentAdmissionScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _studentNameController = TextEditingController();
@@ -60,16 +61,19 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
   void initState() {
     super.initState();
     if (widget.studentId != null) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _loadExistingStudent());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _loadExistingStudent(),
+      );
     } else {
       _existingHydrated = true;
     }
   }
 
   static const _fieldStyle = TextStyle(fontSize: 16, height: 1.35);
-  static const _contentPadding =
-      EdgeInsets.symmetric(vertical: 18, horizontal: 16);
+  static const _contentPadding = EdgeInsets.symmetric(
+    vertical: 18,
+    horizontal: 16,
+  );
 
   Future<void> _loadExistingStudent() async {
     final id = widget.studentId;
@@ -173,8 +177,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
 
   String _formatSelectedParentSubtitle(ParentUser p) {
     final email = p.email?.trim();
-    final emailBit =
-        (email != null && email.isNotEmpty) ? ' · $email' : '';
+    final emailBit = (email != null && email.isNotEmpty) ? ' · $email' : '';
     return '${p.phone}$emailBit\n'
         '${p.studentCount} child(ren) at this school';
   }
@@ -230,7 +233,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
 
     final classes = await ref.read(classesProvider.future);
     final sorted = _sortClasses(classes);
-    final classId = (_selectedClassId != null &&
+    final classId =
+        (_selectedClassId != null &&
             sorted.any((c) => c.id == _selectedClassId))
         ? _selectedClassId!
         : (sorted.isEmpty ? null : sorted.first.id);
@@ -253,7 +257,9 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       return;
     }
 
-    if (_isNewAdmission && _useLinkedParent && _selectedExistingParent == null) {
+    if (_isNewAdmission &&
+        _useLinkedParent &&
+        _selectedExistingParent == null) {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Escolha um encarregado da lista'),
@@ -274,7 +280,9 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
 
       final editId = widget.studentId;
       if (editId != null) {
-        await ref.read(studentRepositoryProvider).updateStudent(
+        await ref
+            .read(studentRepositoryProvider)
+            .updateStudent(
               editId,
               name: _studentNameController.text.trim(),
               classId: classId,
@@ -289,12 +297,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   : _residentialAddressController.text.trim(),
               emergencyContactName:
                   _emergencyContactNameController.text.trim().isEmpty
-                      ? null
-                      : _emergencyContactNameController.text.trim(),
+                  ? null
+                  : _emergencyContactNameController.text.trim(),
               emergencyContactPhone:
                   _emergencyContactPhoneController.text.trim().isEmpty
-                      ? null
-                      : _emergencyContactPhoneController.text.trim(),
+                  ? null
+                  : _emergencyContactPhoneController.text.trim(),
               bloodGroup: _bloodGroupController.text.trim().isEmpty
                   ? null
                   : _bloodGroupController.text.trim(),
@@ -310,7 +318,9 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
         ref.invalidate(studentByIdProvider(editId));
       } else {
         final linked = _selectedExistingParent;
-        await ref.read(studentRepositoryProvider).createStudent(
+        await ref
+            .read(studentRepositoryProvider)
+            .createStudent(
               name: _studentNameController.text.trim(),
               classId: classId,
               dob: _dobIso(),
@@ -318,13 +328,17 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
               parentUid: (_useLinkedParent && linked != null)
                   ? linked.uid
                   : null,
-              parentName: _useLinkedParent ? null : _parentNameController.text.trim(),
-              parentPhone: _useLinkedParent ? null : _phoneController.text.trim(),
+              parentName: _useLinkedParent
+                  ? null
+                  : _parentNameController.text.trim(),
+              parentPhone: _useLinkedParent
+                  ? null
+                  : _phoneController.text.trim(),
               parentEmail: _useLinkedParent
                   ? null
                   : (_emailController.text.trim().isEmpty
-                      ? null
-                      : _emailController.text.trim()),
+                        ? null
+                        : _emailController.text.trim()),
               photoUrl: photoKey,
               previousSchool: _previousSchoolController.text.trim().isEmpty
                   ? null
@@ -334,12 +348,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   : _residentialAddressController.text.trim(),
               emergencyContactName:
                   _emergencyContactNameController.text.trim().isEmpty
-                      ? null
-                      : _emergencyContactNameController.text.trim(),
+                  ? null
+                  : _emergencyContactNameController.text.trim(),
               emergencyContactPhone:
                   _emergencyContactPhoneController.text.trim().isEmpty
-                      ? null
-                      : _emergencyContactPhoneController.text.trim(),
+                  ? null
+                  : _emergencyContactPhoneController.text.trim(),
               bloodGroup: _bloodGroupController.text.trim().isEmpty
                   ? null
                   : _bloodGroupController.text.trim(),
@@ -349,18 +363,16 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             );
       }
 
-      ref.invalidate(
-        studentsProvider((classId: classId, page: 1)),
-      );
+      ref.invalidate(studentsProvider((classId: classId, page: 1)));
       ref.invalidate(studentsProvider((classId: null, page: 1)));
       ref.invalidate(arrearsProvider);
 
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(editId != null
-              ? 'Aluno actualizado'
-              : 'Admissão concluída'),
+          content: Text(
+            editId != null ? 'Aluno actualizado' : 'Admissão concluída',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -368,10 +380,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(
-          content: Text('$e'),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -631,7 +640,9 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                     ),
                     validator: (v) {
                       if (_useLinkedParent) return null;
-                      return v == null || v.trim().isEmpty ? 'Obrigatório' : null;
+                      return v == null || v.trim().isEmpty
+                          ? 'Obrigatório'
+                          : null;
                     },
                   ),
                   const SizedBox(height: 18),
@@ -645,7 +656,9 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                     ),
                     validator: (v) {
                       if (_useLinkedParent) return null;
-                      return v == null || v.trim().isEmpty ? 'Obrigatório' : null;
+                      return v == null || v.trim().isEmpty
+                          ? 'Obrigatório'
+                          : null;
                     },
                   ),
                   const SizedBox(height: 18),
@@ -664,10 +677,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   controller: _residentialAddressController,
                   style: _fieldStyle,
                   maxLines: 3,
-                  decoration: _decoration(
-                    'Morada',
-                    LucideIcons.mapPin,
-                  ),
+                  decoration: _decoration('Morada', LucideIcons.mapPin),
                 ),
                 const SizedBox(height: 36),
                 const Text(
@@ -749,14 +759,15 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _isNewAdmission && _parentMode == _ParentAdmissionMode.linkExisting
+                  _isNewAdmission &&
+                          _parentMode == _ParentAdmissionMode.linkExisting
                       ? 'O aluno fica ligado ao encarregado escolhido — não se cria um encarregado repetido.'
                       : 'A conta do encarregado é criada ou associada pelo telemóvel, quando é preciso.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -809,21 +820,22 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
         TextField(
           controller: _parentSearchController,
           style: _fieldStyle,
-          decoration: _decoration(
-            'Procurar encarregado por nome ou telemóvel',
-            LucideIcons.search,
-          ).copyWith(
-            suffixIcon: _searchingParents
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : null,
-          ),
+          decoration:
+              _decoration(
+                'Procurar encarregado por nome ou telemóvel',
+                LucideIcons.search,
+              ).copyWith(
+                suffixIcon: _searchingParents
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : null,
+              ),
           onChanged: _onParentSearchTextChanged,
         ),
         const SizedBox(height: 12),
@@ -977,7 +989,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       );
     }
 
-    final viable = (_selectedClassId != null &&
+    final viable =
+        (_selectedClassId != null &&
             sorted.any((c) => c.id == _selectedClassId))
         ? _selectedClassId!
         : sorted.first.id;
@@ -992,12 +1005,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
         contentPadding: _contentPadding,
       ),
       items: sorted
-          .map(
-            (c) => DropdownMenuItem(
-              value: c.id,
-              child: Text(c.className),
-            ),
-          )
+          .map((c) => DropdownMenuItem(value: c.id, child: Text(c.className)))
           .toList(),
       onChanged: (v) => setState(() => _selectedClassId = v),
     );

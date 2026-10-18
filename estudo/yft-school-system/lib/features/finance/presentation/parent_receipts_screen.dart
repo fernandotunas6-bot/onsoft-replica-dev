@@ -92,9 +92,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                 formatMoneyDisplay(r.currency, r.balanceAfter),
                 valueColor: r.balanceAfter < 0
                     ? AppColors.error
-                    : (r.balanceAfter > 0
-                        ? AppColors.primaryOnLight
-                        : null),
+                    : (r.balanceAfter > 0 ? AppColors.primaryOnLight : null),
               ),
               if (r.balanceAfter < 0)
                 _detailRow(
@@ -152,19 +150,13 @@ class ParentReceiptsScreen extends ConsumerWidget {
             width: 148,
             child: Text(
               label,
-              style: TextStyle(
-                color: lc,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: lc, fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
             child: SelectableText(
               value,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: vc,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600, color: vc),
             ),
           ),
         ],

@@ -84,7 +84,11 @@ class PersonalInfoScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 32),
-                _buildInputField('Nome completo', 'Nome completo', LucideIcons.user),
+                _buildInputField(
+                  'Nome completo',
+                  'Nome completo',
+                  LucideIcons.user,
+                ),
                 const SizedBox(height: 20),
                 _buildInputField(
                   'Endereço de e-mail',

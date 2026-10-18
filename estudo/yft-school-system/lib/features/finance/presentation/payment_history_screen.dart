@@ -105,13 +105,13 @@ class PaymentHistoryScreen extends ConsumerWidget {
                   final statusText = due > 0
                       ? 'Outstanding'
                       : credit > 0
-                          ? 'In credit'
-                          : 'Cleared';
+                      ? 'In credit'
+                      : 'Cleared';
                   final statusColor = due > 0
                       ? AppColors.error
                       : credit > 0
-                          ? Colors.blue.shade700
-                          : Colors.green;
+                      ? Colors.blue.shade700
+                      : Colors.green;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -176,8 +176,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                               due > 0
                                   ? 'Valor em dívida'
                                   : credit > 0
-                                      ? 'Saldo a favor'
-                                      : 'Valor em dívida',
+                                  ? 'Saldo a favor'
+                                  : 'Valor em dívida',
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                               ),
@@ -186,8 +186,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                               due > 0
                                   ? '$currency ${due.toStringAsFixed(2)}'
                                   : credit > 0
-                                      ? '$currency ${credit.toStringAsFixed(2)}'
-                                      : '$currency 0.00',
+                                  ? '$currency ${credit.toStringAsFixed(2)}'
+                                  : '$currency 0.00',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: statusColor,

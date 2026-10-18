@@ -234,8 +234,9 @@ class NoticesScreen extends ConsumerWidget {
                                 Text(
                                   _formatWhen(n.createdAt),
                                   style: TextStyle(
-                                    color: AppColors.textSecondary
-                                        .withValues(alpha: 0.85),
+                                    color: AppColors.textSecondary.withValues(
+                                      alpha: 0.85,
+                                    ),
                                     fontSize: 12,
                                   ),
                                 ),

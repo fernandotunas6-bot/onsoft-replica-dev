@@ -65,8 +65,8 @@ class WardProfileScreen extends ConsumerWidget {
       final balanceText = hasDebt
           ? 'Outstanding: $currency ${w.balance.abs().toStringAsFixed(2)}'
           : isCleared
-              ? 'Propinas em dia'
-              : 'Credit balance: $currency ${w.balance.toStringAsFixed(2)}';
+          ? 'Propinas em dia'
+          : 'Credit balance: $currency ${w.balance.toStringAsFixed(2)}';
       final balanceColor = hasDebt
           ? AppColors.error
           : (isCleared ? Colors.green : Colors.blueAccent);
@@ -74,8 +74,8 @@ class WardProfileScreen extends ConsumerWidget {
       final statusHint = hasDebt
           ? 'Regularize as propinas em dívida para evitar transtornos.'
           : isCleared
-              ? 'A conta está regularizada.'
-              : 'Este crédito será usado em propinas futuras.';
+          ? 'A conta está regularizada.'
+          : 'Este crédito será usado em propinas futuras.';
 
       return Scaffold(
         backgroundColor: AppColors.background,

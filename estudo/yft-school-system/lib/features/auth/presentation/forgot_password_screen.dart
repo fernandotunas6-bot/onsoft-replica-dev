@@ -50,7 +50,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Não foi possível enviar o e-mail de recuperação')),
+          SnackBar(
+            content: Text(
+              e.message ?? 'Não foi possível enviar o e-mail de recuperação',
+            ),
+          ),
         );
       }
     } catch (_) {

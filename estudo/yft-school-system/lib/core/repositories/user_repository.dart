@@ -18,10 +18,7 @@ class UserRepository {
   Future<void> storeFcmToken(String token, {String? platform}) async {
     await _dio.put(
       ApiEndpoints.usersMeFcmToken,
-      data: {
-        'token': token,
-        'platform': ?platform,
-      },
+      data: {'token': token, 'platform': ?platform},
     );
   }
 

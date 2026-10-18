@@ -18,6 +18,7 @@ class AppSession {
   final String? schoolEmail;
   final String? schoolPhone;
   final String? schoolMotto;
+
   /// When true, teachers may PUT `/api/grades` for their school.
   final bool teacherCanEditResults;
 
@@ -100,14 +101,13 @@ class AuthStateNotifier extends Notifier<AppSession?> {
       if (schoolId == null || role == null) return (null, null);
 
       final tcer = profile['teacher_can_edit_results'];
-      final teacherCanEdit = tcer == true ||
-          tcer == 1 ||
-          tcer == '1' ||
-          tcer == 'true';
+      final teacherCanEdit =
+          tcer == true || tcer == 1 || tcer == '1' || tcer == 'true';
 
       final session = AppSession(
         role: _parseRole(role),
-        userName: (profile['name'] as String?) ??
+        userName:
+            (profile['name'] as String?) ??
             user.displayName ??
             user.email ??
             'User',

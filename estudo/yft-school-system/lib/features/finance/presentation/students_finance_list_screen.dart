@@ -58,8 +58,7 @@ class _StudentsFinanceListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final studentsAsync =
-        ref.watch(studentsProvider((classId: null, page: 1)));
+    final studentsAsync = ref.watch(studentsProvider((classId: null, page: 1)));
     final classesAsync = ref.watch(classesProvider);
     final currency = ref.watch(academicYearProvider).currency;
 
@@ -80,12 +79,14 @@ class _StudentsFinanceListScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Não foi possível carregar os alunos',
-                  style: TextStyle(color: AppColors.error)),
+              Text(
+                'Não foi possível carregar os alunos',
+                style: TextStyle(color: AppColors.error),
+              ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => ref.invalidate(
-                    studentsProvider((classId: null, page: 1))),
+                onPressed: () =>
+                    ref.invalidate(studentsProvider((classId: null, page: 1))),
                 child: const Text('Tentar de novo'),
               ),
             ],
@@ -93,9 +94,12 @@ class _StudentsFinanceListScreenState
         ),
         data: (paginated) {
           final allStudents = paginated.data;
-          final classNames = classesAsync.whenOrNull(
-                  data: (classes) =>
-                      Map.fromEntries(classes.map((c) => MapEntry(c.id, c.className)))) ??
+          final classNames =
+              classesAsync.whenOrNull(
+                data: (classes) => Map.fromEntries(
+                  classes.map((c) => MapEntry(c.id, c.className)),
+                ),
+              ) ??
               {};
 
           final filteredList = allStudents.where((s) {
@@ -103,9 +107,11 @@ class _StudentsFinanceListScreenState
             final matchesStatus = _filter == 'All' || _filter == status;
             final displayClass = s.className ?? classNames[s.classId] ?? '';
             final matchesClass =
-                _classFilter == 'Todas as turmas' || displayClass == _classFilter;
-            final matchesSearch =
-                s.name.toLowerCase().contains(_searchQuery.toLowerCase());
+                _classFilter == 'Todas as turmas' ||
+                displayClass == _classFilter;
+            final matchesSearch = s.name.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
             return matchesStatus && matchesClass && matchesSearch;
           }).toList();
 
@@ -119,8 +125,10 @@ class _StudentsFinanceListScreenState
           return Column(
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 8.0,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -132,20 +140,20 @@ class _StudentsFinanceListScreenState
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.3)),
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.3)),
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                            ),
                           ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 0),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 0,
+                          ),
                         ),
-                        onChanged: (val) =>
-                            setState(() => _searchQuery = val),
+                        onChanged: (val) => setState(() => _searchQuery = val),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -153,7 +161,8 @@ class _StudentsFinanceListScreenState
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3)),
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: DropdownButton<String>(
@@ -169,8 +178,10 @@ class _StudentsFinanceListScreenState
                           }
                         },
                         underline: const SizedBox(),
-                        icon: const Icon(Icons.arrow_drop_down,
-                            color: AppColors.primary),
+                        icon: const Icon(
+                          Icons.arrow_drop_down,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -178,8 +189,10 @@ class _StudentsFinanceListScreenState
               ),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: ['All', 'Paid', 'Credit', 'Owing'].map((filter) {
                     final isSelected = _filter == filter;
@@ -209,8 +222,10 @@ class _StudentsFinanceListScreenState
               if (filteredList.isEmpty)
                 const Expanded(
                   child: Center(
-                    child: Text('Não há alunos',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    child: Text(
+                      'Não há alunos',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
                   ),
                 )
               else
@@ -220,11 +235,16 @@ class _StudentsFinanceListScreenState
                     itemCount: filteredList.length,
                     itemBuilder: (context, index) {
                       final student = filteredList[index];
-                      final displayClass = student.className ??
+                      final displayClass =
+                          student.className ??
                           classNames[student.classId] ??
                           '';
                       return _buildStudentCard(
-                          context, student, displayClass, currency);
+                        context,
+                        student,
+                        displayClass,
+                        currency,
+                      );
                     },
                   ),
                 ),
@@ -255,8 +275,7 @@ class _StudentsFinanceListScreenState
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
-          border:
-              Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
         ),
         child: Row(
           children: [
@@ -265,7 +284,9 @@ class _StudentsFinanceListScreenState
               child: Text(
                 student.name.isNotEmpty ? student.name[0] : '?',
                 style: const TextStyle(
-                    color: AppColors.secondary, fontWeight: FontWeight.w600),
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -273,22 +294,32 @@ class _StudentsFinanceListScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(student.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(displayClass,
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
+                  Text(
+                    student.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    displayClass,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(displayAmount,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  displayAmount,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -296,9 +327,10 @@ class _StudentsFinanceListScreenState
                   child: Text(
                     status,
                     style: TextStyle(
-                        color: statusColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600),
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -329,7 +361,11 @@ class _StudentsFinanceListScreenState
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         padding: EdgeInsets.fromLTRB(
-            32, 32, 32, MediaQuery.of(context).padding.bottom + 32),
+          32,
+          32,
+          32,
+          MediaQuery.of(context).padding.bottom + 32,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,12 +377,16 @@ class _StudentsFinanceListScreenState
                   child: Text(
                     'Propinas de ${student.name}',
                     style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w600),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -354,9 +394,10 @@ class _StudentsFinanceListScreenState
                   child: Text(
                     status,
                     style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12),
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -415,13 +456,17 @@ class _StudentsFinanceListScreenState
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500)),
-        Text(value,
-            style:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
       ],
     );
   }

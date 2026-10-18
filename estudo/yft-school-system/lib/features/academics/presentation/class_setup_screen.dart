@@ -261,7 +261,9 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('O módulo de disciplinas está em preparação'),
+                                content: Text(
+                                  'O módulo de disciplinas está em preparação',
+                                ),
                               ),
                             );
                           },
@@ -421,8 +423,9 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
 
                                 List<SchoolClass> freshClasses = const [];
                                 try {
-                                  freshClasses =
-                                      await ref.read(classesProvider.future);
+                                  freshClasses = await ref.read(
+                                    classesProvider.future,
+                                  );
                                 } catch (_) {
                                   freshClasses = const [];
                                 }

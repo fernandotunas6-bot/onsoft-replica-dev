@@ -140,7 +140,10 @@ class FeeReceiptTemplate extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 28),
-                        Container(height: 1, color: _border.withValues(alpha: 0.35)),
+                        Container(
+                          height: 1,
+                          color: _border.withValues(alpha: 0.35),
+                        ),
                         const SizedBox(height: 20),
                         Text(
                           'RECIBO OFICIAL DE PROPINA',
@@ -156,17 +159,15 @@ class FeeReceiptTemplate extends StatelessWidget {
                         Text(
                           'Este documento comprova um pagamento de propina registado.',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: _muted,
-                          ),
+                          style: GoogleFonts.inter(fontSize: 11, color: _muted),
                         ),
                         const SizedBox(height: 24),
                         _line('Número do recibo', r.id),
                         _line('Date & time', _formatWhen(r.createdAt)),
                         _line('Ano lectivo', data.displayAcademicYear),
                         _line('Período', data.displayFeeTerm),
-                        if (r.studentName != null && r.studentName!.trim().isNotEmpty)
+                        if (r.studentName != null &&
+                            r.studentName!.trim().isNotEmpty)
                           _line('Student', r.studentName!.trim()),
                         _line(
                           'Valor recebido',
@@ -197,8 +198,8 @@ class FeeReceiptTemplate extends StatelessWidget {
                           valueColor: r.balanceAfter < 0
                               ? AppColors.error
                               : (r.balanceAfter > 0
-                                  ? AppColors.primaryOnLight
-                                  : _border),
+                                    ? AppColors.primaryOnLight
+                                    : _border),
                           accentRow: r.balanceAfter != 0,
                         ),
                         if (r.balanceAfter < 0)
@@ -212,7 +213,8 @@ class FeeReceiptTemplate extends StatelessWidget {
                             valueColor: AppColors.error,
                           ),
                         _line('Referência da transacção', r.transactionId),
-                        if (r.description != null && r.description!.trim().isNotEmpty)
+                        if (r.description != null &&
+                            r.description!.trim().isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Column(
@@ -325,8 +327,7 @@ class FeeReceiptTemplate extends StatelessWidget {
               value,
               style: GoogleFonts.inter(
                 fontSize: accentRow ? 14 : 12,
-                fontWeight:
-                    accentRow ? FontWeight.w600 : FontWeight.w600,
+                fontWeight: accentRow ? FontWeight.w600 : FontWeight.w600,
                 color: vc,
                 height: 1.35,
               ),

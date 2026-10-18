@@ -12,8 +12,10 @@ class StudentDetailView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Ficha do aluno',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Ficha do aluno',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -24,15 +26,20 @@ class StudentDetailView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(LucideIcons.users,
-                  size: 56,
-                  color: AppColors.textSecondary.withValues(alpha: 0.35)),
+              Icon(
+                LucideIcons.users,
+                size: 56,
+                color: AppColors.textSecondary.withValues(alpha: 0.35),
+              ),
               const SizedBox(height: 20),
               const Text(
                 'Abra um aluno na lista para ver a ficha completa.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: AppColors.textSecondary, fontSize: 15, height: 1.4),
+                  color: AppColors.textSecondary,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 28),
               FilledButton.icon(

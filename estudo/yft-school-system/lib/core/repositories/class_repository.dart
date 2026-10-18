@@ -21,10 +21,7 @@ class ClassRepository {
   }) async {
     final response = await _dio.post(
       ApiEndpoints.classes,
-      data: {
-        'class_name': className,
-        'level': ?level,
-      },
+      data: {'class_name': className, 'level': ?level},
     );
     return SchoolClass.fromJson(response.data as Map<String, dynamic>);
   }

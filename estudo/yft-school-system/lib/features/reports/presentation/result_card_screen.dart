@@ -10,7 +10,10 @@ class ResultCardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Relatórios académicos', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Relatórios académicos',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -19,9 +22,16 @@ class ResultCardScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(LucideIcons.fileText, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
+            Icon(
+              LucideIcons.fileText,
+              size: 56,
+              color: AppColors.textSecondary.withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 16),
-            const Text('Ainda não há relatórios.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            const Text(
+              'Ainda não há relatórios.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
           ],
         ),
       ),

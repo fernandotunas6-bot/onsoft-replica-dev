@@ -44,8 +44,10 @@ class _TeacherRegistrationScreenState
   bool _submitting = false;
 
   static const _fieldStyle = TextStyle(fontSize: 16, height: 1.35);
-  static const _contentPadding =
-      EdgeInsets.symmetric(vertical: 18, horizontal: 16);
+  static const _contentPadding = EdgeInsets.symmetric(
+    vertical: 18,
+    horizontal: 16,
+  );
 
   @override
   void dispose() {
@@ -130,7 +132,9 @@ class _TeacherRegistrationScreenState
 
       final years = int.tryParse(_yearsOfExperienceController.text.trim());
 
-      await ref.read(userRepositoryProvider).registerTeacher(
+      await ref
+          .read(userRepositoryProvider)
+          .registerTeacher(
             name: fullName,
             phone: _phoneController.text.trim(),
             email: _emailController.text.trim().isEmpty
@@ -140,12 +144,11 @@ class _TeacherRegistrationScreenState
             photoUrl: photoKey,
             residentialAddress:
                 _residentialAddressController.text.trim().isEmpty
-                    ? null
-                    : _residentialAddressController.text.trim(),
-            qualification:
-                _primaryQualificationController.text.trim().isEmpty
-                    ? null
-                    : _primaryQualificationController.text.trim(),
+                ? null
+                : _residentialAddressController.text.trim(),
+            qualification: _primaryQualificationController.text.trim().isEmpty
+                ? null
+                : _primaryQualificationController.text.trim(),
             yearsExperience: years,
             subjectsText: _subjectsController.text.trim().isEmpty
                 ? null
@@ -158,12 +161,12 @@ class _TeacherRegistrationScreenState
                 : _maritalStatusController.text.trim(),
             emergencyContactName:
                 _emergencyContactNameController.text.trim().isEmpty
-                    ? null
-                    : _emergencyContactNameController.text.trim(),
+                ? null
+                : _emergencyContactNameController.text.trim(),
             emergencyContactPhone:
                 _emergencyContactPhoneController.text.trim().isEmpty
-                    ? null
-                    : _emergencyContactPhoneController.text.trim(),
+                ? null
+                : _emergencyContactPhoneController.text.trim(),
             bankName: _bankNameController.text.trim().isEmpty
                 ? null
                 : _bankNameController.text.trim(),
@@ -188,10 +191,7 @@ class _TeacherRegistrationScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$e'),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -353,10 +353,13 @@ class _TeacherRegistrationScreenState
                         child: TextFormField(
                           controller: _firstNameController,
                           style: _fieldStyle,
-                          decoration:
-                              _decoration('Nome próprio', LucideIcons.user),
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Obrigatório' : null,
+                          decoration: _decoration(
+                            'Nome próprio',
+                            LucideIcons.user,
+                          ),
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? 'Obrigatório'
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -364,10 +367,10 @@ class _TeacherRegistrationScreenState
                         child: TextFormField(
                           controller: _lastNameController,
                           style: _fieldStyle,
-                          decoration:
-                              _decoration('Apelido', LucideIcons.user),
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Obrigatório' : null,
+                          decoration: _decoration('Apelido', LucideIcons.user),
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? 'Obrigatório'
+                              : null,
                         ),
                       ),
                     ],
@@ -401,10 +404,7 @@ class _TeacherRegistrationScreenState
                   controller: _phoneController,
                   style: _fieldStyle,
                   keyboardType: TextInputType.phone,
-                  decoration: _decoration(
-                    'Telemóvel',
-                    LucideIcons.phone,
-                  ),
+                  decoration: _decoration('Telemóvel', LucideIcons.phone),
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                 ),
@@ -413,10 +413,7 @@ class _TeacherRegistrationScreenState
                   controller: _residentialAddressController,
                   style: _fieldStyle,
                   maxLines: 3,
-                  decoration: _decoration(
-                    'Morada',
-                    LucideIcons.mapPin,
-                  ),
+                  decoration: _decoration('Morada', LucideIcons.mapPin),
                 ),
                 const SizedBox(height: 36),
                 const Text(
@@ -572,9 +569,9 @@ class _TeacherRegistrationScreenState
                   'Os dados de acesso vão por e-mail, ou são gerados a partir do telemóvel quando não há e-mail.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

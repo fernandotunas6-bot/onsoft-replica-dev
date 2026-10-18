@@ -84,9 +84,15 @@ class _AcademicCalendarScreenState
       });
     } catch (e) {
       if (!mounted) return;
+      // A excepção do Dio ia inteira para o ecrã, com o texto interno sobre
+      // validateStatus. Quem usa a app não tem nada a fazer com isso: fica a
+      // mensagem, e o detalhe vai para os logs.
+      debugPrint('Falha ao carregar o calendário académico: $e');
       setState(() {
         _isLoading = false;
-        _loadError = '$e';
+        _loadError =
+            'Não foi possível carregar o calendário académico. '
+            'Verifique a ligação e tente de novo.';
       });
     }
   }
@@ -108,7 +114,7 @@ class _AcademicCalendarScreenState
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'Select...';
+    if (date == null) return 'Escolher…';
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
@@ -399,7 +405,8 @@ class _AcademicCalendarScreenState
                           final termDates = [
                             (_term1Start, _term1End, 'I Trimestre'),
                             (_term2Start, _term2End, 'II Trimestre'),
-                            if (_isTriTerm) (_term3Start, _term3End, 'III Trimestre'),
+                            if (_isTriTerm)
+                              (_term3Start, _term3End, 'III Trimestre'),
                           ];
 
                           if (termDates.length != requiredTermCount ||

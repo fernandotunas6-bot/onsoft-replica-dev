@@ -18,9 +18,9 @@ List<String> getAcademicYears({
 /// ser em Setembro, a convenção que os próprios dados usam. Se a escola seguir
 /// o ano lectivo angolano, que começa em Fevereiro e cabe num só ano civil,
 /// esta convenção tem de ser decidida antes de a app ser usada.
-String getCurrentAcademicYear({int startMonth = 9}) {
-  final now = DateTime.now();
-  final firstYear = now.month >= startMonth ? now.year : now.year - 1;
+String getCurrentAcademicYear({int startMonth = 9, DateTime? now}) {
+  final today = now ?? DateTime.now();
+  final firstYear = today.month >= startMonth ? today.year : today.year - 1;
   return '$firstYear/${firstYear + 1}';
 }
 

@@ -13,6 +13,7 @@ class FeeReceipt {
   final String? studentName;
   final String? description;
   final String createdAt;
+
   /// From school calendar when the payment was recorded.
   final String? academicYear;
   final String? feeTerm;

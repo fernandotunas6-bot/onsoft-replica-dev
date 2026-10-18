@@ -29,6 +29,7 @@ class FinanceRepository {
     required String studentId,
     required double amount,
     String? description,
+
     /// Must match server record when provided (same student the UI showed).
     String? verifyStudentName,
     String? verifyClassId,
@@ -43,10 +44,7 @@ class FinanceRepository {
       if (verifyClassId != null && verifyClassId.trim().isNotEmpty)
         'verify_class_id': verifyClassId.trim(),
     };
-    final response = await _dio.post(
-      ApiEndpoints.financePayment,
-      data: data,
-    );
+    final response = await _dio.post(ApiEndpoints.financePayment, data: data);
     return PaymentResult.fromJson(response.data as Map<String, dynamic>);
   }
 

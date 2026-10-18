@@ -14,29 +14,56 @@ class TotalAttendanceScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Total de presenças', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Total de presenças',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
       ),
       body: classesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Não foi possível carregar', style: TextStyle(color: AppColors.error))),
+        error: (e, _) => Center(
+          child: Text(
+            'Não foi possível carregar',
+            style: TextStyle(color: AppColors.error),
+          ),
+        ),
         data: (classes) {
           if (classes.isEmpty) {
-            return const Center(child: Text('Sem turmas configuradas.', style: TextStyle(color: AppColors.textSecondary)));
+            return const Center(
+              child: Text(
+                'Sem turmas configuradas.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            );
           }
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(LucideIcons.barChart3, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
+                Icon(
+                  LucideIcons.barChart3,
+                  size: 56,
+                  color: AppColors.textSecondary.withValues(alpha: 0.3),
+                ),
                 const SizedBox(height: 16),
-                const Text('Os relatórios de presenças aparecem aqui.',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                const Text(
+                  'Os relatórios de presenças aparecem aqui.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('${classes.length} class(es) configured',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(
+                  '${classes.length} class(es) configured',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           );

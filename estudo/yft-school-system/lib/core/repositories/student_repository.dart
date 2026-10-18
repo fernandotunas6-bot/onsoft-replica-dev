@@ -16,11 +16,7 @@ class StudentRepository {
   }) async {
     final response = await _dio.get(
       ApiEndpoints.students,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        'class_id': ?classId,
-      },
+      queryParameters: {'page': page, 'limit': limit, 'class_id': ?classId},
     );
     return PaginatedResponse.fromJson(
       response.data as Map<String, dynamic>,
@@ -79,9 +75,7 @@ class StudentRepository {
   Future<List<ParentUser>> searchParents({String query = ''}) async {
     final response = await _dio.get(
       ApiEndpoints.parents,
-      queryParameters: {
-        if (query.isNotEmpty) 'q': query,
-      },
+      queryParameters: {if (query.isNotEmpty) 'q': query},
     );
     final list = response.data['data'] as List;
     return list

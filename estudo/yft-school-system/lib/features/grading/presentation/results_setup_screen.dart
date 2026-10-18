@@ -31,7 +31,10 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Preparar o lançamento', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Preparar o lançamento',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -44,43 +47,77 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(LucideIcons.calendarDays, color: AppColors.primary, size: 20),
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      LucideIcons.calendarDays,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const Text(
+                        'Ano lectivo',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${academicYear.academicYear} • ${academicYear.activeTerm}',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
+                      Text(
+                        '${academicYear.academicYear} • ${academicYear.activeTerm}',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Escolha os parâmetros para lançar ou consultar notas.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            const Text(
+              'Escolha os parâmetros para lançar ou consultar notas.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
             const SizedBox(height: 32),
 
-            const Text('Escolher turma',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
+            const Text(
+              'Escolher turma',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.secondary,
+              ),
+            ),
             const SizedBox(height: 8),
             classesAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => const Text('Não foi possível carregar as turmas'),
+              error: (e, _) =>
+                  const Text('Não foi possível carregar as turmas'),
               data: (classes) => _buildDropdown(
                 icon: LucideIcons.graduationCap,
                 value: _selectedClassId,
-                items: classes.map((c) => DropdownMenuItem(value: c.id, child: Text(c.className))).toList(),
+                items: classes
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c.id,
+                        child: Text(c.className),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (val) => setState(() {
                   _selectedClassId = val;
                   _selectedStudentId = null;
@@ -89,19 +126,33 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Text('Escolher trimestre',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
+            const Text(
+              'Escolher trimestre',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.secondary,
+              ),
+            ),
             const SizedBox(height: 8),
             _buildDropdown(
               icon: LucideIcons.calendarDays,
               value: _selectedTerm,
-              items: _terms.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              items: _terms
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
               onChanged: (val) => setState(() => _selectedTerm = val),
             ),
 
             const SizedBox(height: 24),
-            const Text('Escolher aluno',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
+            const Text(
+              'Escolher aluno',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.secondary,
+              ),
+            ),
             const SizedBox(height: 8),
             if (studentsAsync == null)
               _buildDropdown<String>(
@@ -118,7 +169,10 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                   icon: LucideIcons.user,
                   value: _selectedStudentId,
                   items: paginated.data
-                      .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                      .map(
+                        (s) =>
+                            DropdownMenuItem(value: s.id, child: Text(s.name)),
+                      )
                       .toList(),
                   onChanged: (val) => setState(() => _selectedStudentId = val),
                 ),
@@ -129,22 +183,35 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _selectedClassId != null && _selectedTerm != null && _selectedStudentId != null
+                onPressed:
+                    _selectedClassId != null &&
+                        _selectedTerm != null &&
+                        _selectedStudentId != null
                     ? () {
-                        context.push('/results-input', extra: {
-                          'studentId': _selectedStudentId,
-                          'className': _selectedClassId,
-                          'term': _selectedTerm,
-                        });
+                        context.push(
+                          '/results-input',
+                          extra: {
+                            'studentId': _selectedStudentId,
+                            'className': _selectedClassId,
+                            'term': _selectedTerm,
+                          },
+                        );
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.3),
+                  disabledBackgroundColor: AppColors.primary.withValues(
+                    alpha: 0.3,
+                  ),
                   foregroundColor: AppColors.secondary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                child: const Text(
+                  'Continuar',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
               ),
             ),
           ],
@@ -170,8 +237,16 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary),
-          hint: Text('Escolher…', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5))),
+          icon: const Icon(
+            LucideIcons.chevronDown,
+            color: AppColors.textSecondary,
+          ),
+          hint: Text(
+            'Escolher…',
+            style: TextStyle(
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+          ),
           items: items,
           onChanged: onChanged,
         ),

@@ -10,8 +10,10 @@ class MediaRepository {
   /// Uploads a profile image; returns the R2 object key (store on student/user row).
   Future<String> uploadProfilePhoto(String filePath) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath,
-          filename: filePath.split(RegExp(r'[/\\]')).last),
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: filePath.split(RegExp(r'[/\\]')).last,
+      ),
     });
     final response = await _dio.post(
       ApiEndpoints.mediaProfilePhoto,

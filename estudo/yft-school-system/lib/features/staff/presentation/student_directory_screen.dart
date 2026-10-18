@@ -32,9 +32,11 @@ class _StudentDirectoryScreenState
     final q = _searchController.text.trim().toLowerCase();
     if (q.isEmpty) return students;
     return students
-        .where((s) =>
-            s.name.toLowerCase().contains(q) ||
-            s.id.toLowerCase().contains(q))
+        .where(
+          (s) =>
+              s.name.toLowerCase().contains(q) ||
+              s.id.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -69,20 +71,26 @@ class _StudentDirectoryScreenState
           _buildFilters(context, classesAsync),
           Expanded(
             child: studentsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(LucideIcons.alertTriangle,
-                        size: 48, color: AppColors.error),
+                    const Icon(
+                      LucideIcons.alertTriangle,
+                      size: 48,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(height: 16),
                     const Text('Não foi possível carregar os alunos'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(studentsProvider(
-                          (classId: _selectedClassId, page: _currentPage))),
+                      onPressed: () => ref.invalidate(
+                        studentsProvider((
+                          classId: _selectedClassId,
+                          page: _currentPage,
+                        )),
+                      ),
                       child: const Text('Tentar de novo'),
                     ),
                   ],
@@ -95,15 +103,18 @@ class _StudentDirectoryScreenState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(LucideIcons.graduationCap,
-                            size: 56,
-                            color: AppColors.textSecondary
-                                .withValues(alpha: 0.3)),
+                        Icon(
+                          LucideIcons.graduationCap,
+                          size: 56,
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'Não há alunos.',
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 14),
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -116,15 +127,18 @@ class _StudentDirectoryScreenState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(LucideIcons.search,
-                            size: 56,
-                            color: AppColors.textSecondary
-                                .withValues(alpha: 0.3)),
+                        Icon(
+                          LucideIcons.search,
+                          size: 56,
+                          color: AppColors.textSecondary.withValues(alpha: 0.3),
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'Nada corresponde à pesquisa.',
                           style: TextStyle(
-                              color: AppColors.textSecondary, fontSize: 14),
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -132,89 +146,100 @@ class _StudentDirectoryScreenState
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () async => ref.invalidate(studentsProvider(
-                      (classId: _selectedClassId, page: _currentPage))),
+                  onRefresh: () async => ref.invalidate(
+                    studentsProvider((
+                      classId: _selectedClassId,
+                      page: _currentPage,
+                    )),
+                  ),
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
                       SliverPadding(
-                        padding: getResponsiveHorizontalPadding(context)
-                            .copyWith(top: 8, bottom: 120),
+                        padding: getResponsiveHorizontalPadding(
+                          context,
+                        ).copyWith(top: 8, bottom: 120),
                         sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
                             final student = visible[index];
                             final balanceText = student.hasDebt
                                 ? '$currency ${student.balance.abs().toStringAsFixed(2)}'
                                 : student.isOverpaid
-                                    ? '+$currency ${student.balance.toStringAsFixed(2)}'
-                                    : 'Limpo';
+                                ? '+$currency ${student.balance.toStringAsFixed(2)}'
+                                : 'Limpo';
                             final balanceColor = student.hasDebt
                                 ? Colors.red.shade700
                                 : student.isOverpaid
-                                    ? Colors.green.shade700
-                                    : AppColors.textSecondary;
+                                ? Colors.green.shade700
+                                : AppColors.textSecondary;
 
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Material(
-                              color: AppColors.background,
-                              child: InkWell(
-                                onTap: () => context.push(
-                                    '/student-details/${student.id}'),
-                                child: ListTile(
-                                    contentPadding: const EdgeInsets
-                                        .symmetric(horizontal: 4),
-                                    leading: CircleAvatar(
-                                      radius: 22,
-                                      backgroundColor: AppColors.primary
-                                          .withValues(alpha: 0.12),
-                                      child: Text(
-                                        _initials(student),
-                                        style: const TextStyle(
-                                          color: AppColors.secondary,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
+                                  color: AppColors.background,
+                                  child: InkWell(
+                                    onTap: () => context.push(
+                                      '/student-details/${student.id}',
+                                    ),
+                                    child: ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                          ),
+                                      leading: CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor: AppColors.primary
+                                            .withValues(alpha: 0.12),
+                                        child: Text(
+                                          _initials(student),
+                                          style: const TextStyle(
+                                            color: AppColors.secondary,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    title: Text(
-                                      student.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      '${student.id} • ${student.className ?? student.classId}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                    trailing: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                          maxWidth: 110),
-                                      child: Text(
-                                        balanceText,
-                                        textAlign: TextAlign.end,
+                                      title: Text(
+                                        student.name,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                          color: balanceColor,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        '${student.id} • ${student.className ?? student.classId}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      trailing: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 110,
+                                        ),
+                                        child: Text(
+                                          balanceText,
+                                          textAlign: TextAlign.end,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                            color: balanceColor,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
                                 if (index < visible.length - 1)
                                   const Divider(
                                     height: 1,
@@ -223,10 +248,8 @@ class _StudentDirectoryScreenState
                                   ),
                               ],
                             );
-                          },
-                          childCount: visible.length,
+                          }, childCount: visible.length),
                         ),
-                      ),
                       ),
                       if (paginated.totalPages > 1)
                         SliverToBoxAdapter(
@@ -237,23 +260,25 @@ class _StudentDirectoryScreenState
                               children: [
                                 if (_currentPage > 1)
                                   TextButton(
-                                    onPressed: () => setState(
-                                        () => _currentPage--),
+                                    onPressed: () =>
+                                        setState(() => _currentPage--),
                                     child: const Text('Anterior'),
                                   ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
+                                    horizontal: 16,
+                                  ),
                                   child: Text(
                                     'Página $_currentPage de ${paginated.totalPages}',
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.w600),
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                                 if (paginated.hasNextPage)
                                   TextButton(
-                                    onPressed: () => setState(
-                                        () => _currentPage++),
+                                    onPressed: () =>
+                                        setState(() => _currentPage++),
                                     child: const Text('Seguinte'),
                                   ),
                               ],
@@ -282,8 +307,9 @@ class _StudentDirectoryScreenState
 
   Widget _buildFilters(BuildContext context, AsyncValue classesAsync) {
     return Container(
-      padding: getResponsiveHorizontalPadding(context)
-          .copyWith(top: 16, bottom: 16),
+      padding: getResponsiveHorizontalPadding(
+        context,
+      ).copyWith(top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         boxShadow: [
@@ -305,8 +331,7 @@ class _StudentDirectoryScreenState
                 decoration: InputDecoration(
                   hintText: 'Procurar por número ou nome…',
                   prefixIcon: const Icon(LucideIcons.search, size: 20),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -328,19 +353,22 @@ class _StudentDirectoryScreenState
                   loading: () => const SizedBox(
                     height: 48,
                     child: Center(
-                        child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2))),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                   ),
                   error: (_, _) =>
                       const Text('Erro', style: TextStyle(fontSize: 12)),
                   data: (classes) => DropdownButtonHideUnderline(
                     child: DropdownButton<String?>(
                       value: _selectedClassId,
-                      hint: const Text('Todas as turmas',
-                          style: TextStyle(fontSize: 14)),
+                      hint: const Text(
+                        'Todas as turmas',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       isExpanded: true,
                       items: [
                         const DropdownMenuItem<String?>(

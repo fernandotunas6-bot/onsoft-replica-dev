@@ -13,8 +13,8 @@ class SelectedClassNotifier extends Notifier<SchoolClass?> {
 
 final selectedClassProvider =
     NotifierProvider<SelectedClassNotifier, SchoolClass?>(() {
-  return SelectedClassNotifier();
-});
+      return SelectedClassNotifier();
+    });
 
 final assignedClassesProvider = FutureProvider<List<SchoolClass>>((ref) {
   return ref.read(classRepositoryProvider).getClasses();

@@ -6,9 +6,7 @@ class SettingsRepository {
 
   SettingsRepository(this._dio);
 
-  Future<void> patchAccessControl({
-    required bool teacherCanEditResults,
-  }) async {
+  Future<void> patchAccessControl({required bool teacherCanEditResults}) async {
     await _dio.patch(
       ApiEndpoints.accessControl,
       data: {'teacher_can_edit_results': teacherCanEditResults},

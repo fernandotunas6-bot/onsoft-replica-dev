@@ -223,7 +223,8 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                     valueBold: true,
                   ),
                 _rowStyled('Referência da transacção', r.transactionId),
-                if (r.description != null && r.description!.trim().isNotEmpty) ...[
+                if (r.description != null &&
+                    r.description!.trim().isNotEmpty) ...[
                   pw.SizedBox(height: 6),
                   pw.Text(
                     'OBSERVAÇÕES',

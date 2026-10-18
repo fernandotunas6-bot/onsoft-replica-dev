@@ -10,9 +10,7 @@ class SubjectRepository {
   Future<List<Subject>> getSubjects({String? classId}) async {
     final response = await _dio.get(
       ApiEndpoints.subjects,
-      queryParameters: {
-        'class_id': ?classId,
-      },
+      queryParameters: {'class_id': ?classId},
     );
     final data = response.data['data'] as List;
     return data
@@ -26,10 +24,7 @@ class SubjectRepository {
   }) async {
     final response = await _dio.post(
       ApiEndpoints.subjects,
-      data: {
-        'name': name,
-        'class_ids': classIds,
-      },
+      data: {'name': name, 'class_ids': classIds},
     );
     return Subject.fromJson(response.data as Map<String, dynamic>);
   }
@@ -41,10 +36,7 @@ class SubjectRepository {
   }) async {
     final response = await _dio.patch(
       '${ApiEndpoints.subjects}/$subjectId',
-      data: {
-        'name': ?name,
-        'class_ids': ?classIds,
-      },
+      data: {'name': ?name, 'class_ids': ?classIds},
     );
     return Subject.fromJson(response.data as Map<String, dynamic>);
   }

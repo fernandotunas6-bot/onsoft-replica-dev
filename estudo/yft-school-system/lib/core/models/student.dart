@@ -19,6 +19,7 @@ class Student {
   final String? emergencyContactPhone;
   final String? bloodGroup;
   final String? medicalNotes;
+
   /// When false, student is hidden from parent app wards list.
   final bool isActive;
 
@@ -85,17 +86,17 @@ class Student {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'class_id': classId,
-        if (dob != null) 'dob': dob,
-        if (gender != null) 'gender': gender,
-        if (balance != 0) 'balance': balance,
-        'parent': {
-          'name': parentName ?? '',
-          'phone': parentPhone ?? '',
-          if (parentEmail != null) 'email': parentEmail,
-        },
-      };
+    'name': name,
+    'class_id': classId,
+    if (dob != null) 'dob': dob,
+    if (gender != null) 'gender': gender,
+    if (balance != 0) 'balance': balance,
+    'parent': {
+      'name': parentName ?? '',
+      'phone': parentPhone ?? '',
+      if (parentEmail != null) 'email': parentEmail,
+    },
+  };
 
   bool get hasDebt => balance < 0;
   bool get isOverpaid => balance > 0;

@@ -376,10 +376,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          'Valor pago',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        const Text('Valor pago', style: TextStyle(fontWeight: FontWeight.w600)),
         Text(
           amount ?? '—',
           style: const TextStyle(

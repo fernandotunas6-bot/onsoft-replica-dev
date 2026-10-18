@@ -18,10 +18,10 @@ class AcademicCalendarTerm {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'start_date': startDate.toIso8601String().split('T').first,
-        'end_date': endDate.toIso8601String().split('T').first,
-      };
+    'name': name,
+    'start_date': startDate.toIso8601String().split('T').first,
+    'end_date': endDate.toIso8601String().split('T').first,
+  };
 }
 
 class SchoolAcademicCalendar {
@@ -45,8 +45,10 @@ class SchoolAcademicCalendar {
     final rawTerms = json['terms'];
     final terms = rawTerms is List
         ? rawTerms
-            .map((e) => AcademicCalendarTerm.fromJson(e as Map<String, dynamic>))
-            .toList()
+              .map(
+                (e) => AcademicCalendarTerm.fromJson(e as Map<String, dynamic>),
+              )
+              .toList()
         : <AcademicCalendarTerm>[];
 
     return SchoolAcademicCalendar(
@@ -60,12 +62,12 @@ class SchoolAcademicCalendar {
   }
 
   Map<String, dynamic> toJson() => {
-        'academic_year': academicYear,
-        'active_term': activeTerm,
-        'currency': currency,
-        'term_system': termSystem,
-        'terms': terms.map((term) => term.toJson()).toList(),
-      };
+    'academic_year': academicYear,
+    'active_term': activeTerm,
+    'currency': currency,
+    'term_system': termSystem,
+    'terms': terms.map((term) => term.toJson()).toList(),
+  };
 
   bool get isConfigured =>
       academicYear.isNotEmpty && activeTerm.isNotEmpty && terms.isNotEmpty;

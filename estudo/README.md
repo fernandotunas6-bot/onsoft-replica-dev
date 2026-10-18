@@ -193,3 +193,33 @@ conta dele. A correcção muda o percurso de quem usa a app — senha temporári
 conta, mostrada uma vez, mais troca obrigatória na primeira entrada — e por isso
 não foi feita sem a sua decisão. A seguir: `/media/*` é público e serve
 fotografias de alunos com validade de um ano.
+
+
+## Testes de ecrã e três defeitos que eles apanharam (18/10/2026)
+
+O português é mais comprido do que o inglês, e `flutter analyze` não vê
+transbordos de layout — só o desenho os mostra. `test/screens_layout_test.dart`
+rende dez ecrãs a 390×844 (o tamanho das capturas em `yft-estudo-capturas`),
+com sessão fixa e com a API a responder 503, que é o estado em que os ecrãs mais
+esticam texto. Um transbordo levanta `FlutterError` e faz o teste falhar: é essa
+a verificação. A suite passou de **1 para 16 testes**.
+
+Defeitos reais encontrados assim, e corrigidos:
+
+1. **Segurança, cabeçalho «Controlo de acessos»**: uma `Row` com uma `Column`
+   sem `Expanded` pedia a largura natural do texto e transbordava **88 px**. Em
+   inglês passava à justa; «Gerir as permissões da aplicação» não.
+2. **Painel, cartões de acção**: os rótulos tinham o corte de linha escrito à
+   mão (`'Registo de\nprofessores'`), medido para as palavras inglesas, e a
+   grelha dava aos cartões 0,85 da largura em altura. Com os rótulos
+   portugueses, transbordavam **12 px**. Os cortes à mão saíram — o texto flui —
+   e a grelha de acções passou a ter proporção explícita.
+3. **Calendário académico**: quando a API falha, o ecrã mostrava a excepção do
+   Dio inteira, incluindo o texto interno sobre `validateStatus`. Passa a mostrar
+   uma frase em português, com o detalhe a ir para os logs. De passagem, o último
+   `'Select...'` em inglês foi traduzido.
+
+`getCurrentAcademicYear()` passou a aceitar `now`, para a viragem de Setembro
+poder ser testada nas duas pontas em vez de depender do dia em que a suite corre.
+Novos testes também para a moeda por omissão (`Kz`), para o código ISO no PDF
+(`AOA` só quando o símbolo não é ASCII) e para os meses em português.

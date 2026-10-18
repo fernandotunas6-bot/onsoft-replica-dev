@@ -10,7 +10,10 @@ class ScheduleScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('O meu horário de hoje', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'O meu horário de hoje',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -19,10 +22,16 @@ class ScheduleScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(LucideIcons.calendarClock, size: 56, color: AppColors.textSecondary.withValues(alpha: 0.3)),
+            Icon(
+              LucideIcons.calendarClock,
+              size: 56,
+              color: AppColors.textSecondary.withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 16),
-            const Text('O horário ainda não está configurado.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+            const Text(
+              'O horário ainda não está configurado.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
           ],
         ),
       ),
