@@ -11,7 +11,7 @@ class HelpSupportScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Help & Support',
+          'Ajuda e apoio',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -60,7 +60,7 @@ class HelpSupportScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'How can we help you?',
+                              'Como podemos ajudar?',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -70,7 +70,7 @@ class HelpSupportScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Our support team is available 24/7.',
+                              'O apoio está disponível todos os dias, a toda a hora.',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,
@@ -93,7 +93,7 @@ class HelpSupportScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Contact Support',
+                      'Contactar o apoio',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -103,14 +103,14 @@ class HelpSupportScreen extends StatelessWidget {
 
             const SizedBox(height: 40),
             const Text(
-              'Frequently Asked Questions',
+              'Perguntas frequentes',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
             _buildFAQItem(
               'How do I reset my password?',
-              'You can reset your password by going to Profile > Security & Password, or by tapping "Forgot Password" on the login screen.',
+              'You can reset your password by going to Profile > Security & Password, or by tapping "Esqueci-me da palavra-passe" on the login screen.',
             ),
             _buildFAQItem(
               'Where can I see child\'s grades?',
@@ -118,10 +118,10 @@ class HelpSupportScreen extends StatelessWidget {
             ),
             _buildFAQItem(
               'How do I contact a teacher?',
-              'Teachers can be contacted via the official school email directory provided by the admin, or through the upcoming messaging portal.',
+              'Os professores são contactados pelos e-mails oficiais da escola, fornecidos pela administração, ou pelas mensagens quando estiverem disponíveis.',
             ),
             _buildFAQItem(
-              'Why are the fees not updating?',
+              'Porque é que as propinas não actualizam?',
               'Fee payments take up to 24 hours to clear in the school\'s accounting backend. If it still doesn\'t reflect, please use the Contact Support button.',
             ),
           ],

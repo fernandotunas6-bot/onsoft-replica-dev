@@ -57,7 +57,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     if (studentId.isEmpty || classId.isEmpty || term.isEmpty) {
       setState(() {
         _loading = false;
-        _loadError = 'Missing student, class, or term.';
+        _loadError = 'Falta o aluno, a turma ou o trimestre.';
       });
       return;
     }
@@ -146,7 +146,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     if (rows.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No subjects to save.'),
+          content: Text('Não há disciplinas para guardar.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -164,7 +164,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Results saved',
+            'Notas guardadas',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.green,
@@ -200,7 +200,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Input results',
+          'Lançar notas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -240,7 +240,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'View-only: enable “Allow teachers to enter results” in Security for teacher editing.',
+                      'Só leitura: active «Permitir que os professores lancem notas» em Segurança para o professor poder editar.',
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.secondary,
@@ -320,7 +320,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                     : _subjects.isEmpty
                         ? const Center(
                             child: Text(
-                              'No subjects for this class.',
+                              'Esta turma não tem disciplinas.',
                               style: TextStyle(color: AppColors.textSecondary),
                             ),
                           )

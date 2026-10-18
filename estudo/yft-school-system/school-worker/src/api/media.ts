@@ -15,22 +15,22 @@ media.post('/profile-photo', requireAdmin, async (c) => {
   try {
     form = await c.req.formData();
   } catch {
-    return jsonError(c, 'Expected multipart form data', 400);
+    return jsonError(c, 'O pedido devia vir em multipart/form-data', 400);
   }
 
   const file = form.get('file');
   if (!file || typeof file === 'string') {
-    return jsonError(c, 'Missing file field', 400);
+    return jsonError(c, 'Falta o campo do ficheiro', 400);
   }
 
   const mime = (file as File).type || 'application/octet-stream';
   if (!ALLOWED_UPLOAD_TYPES.has(mime)) {
-    return jsonError(c, 'Only JPEG, PNG, or WebP images are allowed', 400);
+    return jsonError(c, 'Só são aceites imagens JPEG, PNG ou WebP', 400);
   }
 
   const buf = new Uint8Array(await (file as File).arrayBuffer());
   if (buf.byteLength === 0 || buf.byteLength > MAX_BYTES) {
-    return jsonError(c, 'Image must be between 1 byte and 2 MB', 400);
+    return jsonError(c, 'A imagem tem de ter entre 1 byte e 2 MB', 400);
   }
 
   const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';

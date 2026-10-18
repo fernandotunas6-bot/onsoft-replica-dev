@@ -52,7 +52,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not prepare PDF: $e'),
+          content: Text('Não foi possível preparar o PDF: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -78,7 +78,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       backgroundColor: const Color(0xFFE2E8F0),
       appBar: AppBar(
         title: const Text(
-          'Fee receipt',
+          'Recibo de propina',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: AppColors.background,
@@ -98,7 +98,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
             )
           else
             IconButton(
-              tooltip: 'Download / share PDF',
+              tooltip: 'Descarregar ou partilhar o PDF',
               onPressed: () => _sharePdf(data),
               icon: const Icon(LucideIcons.download),
             ),

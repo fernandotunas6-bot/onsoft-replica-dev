@@ -19,7 +19,7 @@ class MediaRepository {
     );
     final key = (response.data as Map<String, dynamic>)['key'] as String?;
     if (key == null || key.isEmpty) {
-      throw StateError('Upload response missing key');
+      throw StateError('A resposta do envio não traz a chave do ficheiro');
     }
     return key;
   }
@@ -37,7 +37,7 @@ class MediaRepository {
     );
     final key = (response.data as Map<String, dynamic>)['key'] as String?;
     if (key == null || key.isEmpty) {
-      throw StateError('Upload response missing key');
+      throw StateError('A resposta do envio não traz a chave do ficheiro');
     }
     return key;
   }

@@ -133,7 +133,7 @@ users.get('/teachers/:targetUid', requireRoles('admin', 'teacher'), async (c) =>
   const user = c.get('user');
   const targetUid = c.req.param('targetUid');
   if (user.role !== 'admin' && user.uid !== targetUid) {
-    return jsonError(c, 'Forbidden', 403);
+    return jsonError(c, 'Sem autorização', 403);
   }
 
   const row = await c.env.DB.prepare(
@@ -145,7 +145,7 @@ users.get('/teachers/:targetUid', requireRoles('admin', 'teacher'), async (c) =>
   ).bind(targetUid, user.schoolId).first();
 
   if (!row) {
-    return jsonError(c, 'Teacher not found', 404);
+    return jsonError(c, 'Professor não encontrado', 404);
   }
 
   return jsonOk(c, { data: row });
@@ -182,7 +182,7 @@ users.patch('/me/academic-calendar', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = academicCalendarSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid academic calendar payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do calendário académico inválidos', 400, parsed.error.flatten());
   }
 
   let payload;
@@ -206,7 +206,7 @@ users.patch('/me/academic-calendar', requireAdmin, async (c) => {
   ).run();
 
   if (result.meta.changes === 0) {
-    return jsonError(c, 'School not found', 404);
+    return jsonError(c, 'Escola não encontrada', 404);
   }
 
   return jsonOk(c, {
@@ -221,7 +221,7 @@ users.post('/register-teacher', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = registerTeacherSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid teacher payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do professor inválidos', 400, parsed.error.flatten());
   }
 
   const schoolConfig = await c.env.DB.prepare(
@@ -238,7 +238,7 @@ users.post('/register-teacher', requireAdmin, async (c) => {
   ).bind(user.schoolId, parsed.data.phone, 'teacher').first<{ uid: string }>();
 
   if (existing) {
-    return jsonError(c, 'A teacher with this phone number already exists', 409);
+    return jsonError(c, 'Já existe um professor com este telefone', 409);
   }
 
   const firebaseUser = await createFirebaseEmailUser(c.env, {
@@ -290,7 +290,7 @@ users.put('/me/fcm-token', requireRoles('admin', 'teacher', 'parent'), async (c)
   const user = c.get('user');
   const parsed = tokenSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid token payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Credencial inválida', 400, parsed.error.flatten());
   }
 
   const tokenId = createPrefixedId('tok');

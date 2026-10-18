@@ -218,7 +218,7 @@ class _TeacherProfileBody extends StatelessWidget {
             const SizedBox(height: 16),
             _section(context, 'Other', [
               _row(LucideIcons.creditCard, 'SSNIT', ssnitNumber ?? '—'),
-              _row(LucideIcons.heart, 'Marital status', maritalStatus ?? '—'),
+              _row(LucideIcons.heart, 'Estado civil', maritalStatus ?? '—'),
             ]),
             const SizedBox(height: 16),
             _section(context, 'Emergency', [

@@ -11,7 +11,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Privacy Policy',
+          'Política de privacidade',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -39,7 +39,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             const Text(
-              'Your Privacy is Important to Us',
+              'A sua privacidade é importante',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 24,
@@ -47,10 +47,17 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+            // Texto genérico do autor, traduzido. Não é um aviso de
+            // privacidade da escola: antes de ir para produção tem de ser
+            // substituído pelo aviso da própria escola, com o responsável
+            // pelo tratamento, o contacto real e a base legal — e revisto por
+            // quem responde juridicamente por ele.
             const Text(
-              'Last updated: October 10, 2026\n\n'
-              'Edu Manager ("we", "our", or "us") is committed to protecting your personal information and your right to privacy. '
-              'If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us at privacy@edumanager.app.',
+              'Última actualização: 10 de Outubro de 2026\n\n'
+              'A Edu Manager («nós») compromete-se a proteger os seus dados '
+              'pessoais e o seu direito à privacidade. Se tiver dúvidas sobre '
+              'este aviso ou sobre a forma como tratamos os seus dados, '
+              'contacte-nos.',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -59,24 +66,33 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _buildSection(
-              '1. Information We Collect',
-              'We collect personal information that you voluntarily provide to us when you register on the application, express an interest in obtaining school updates, or otherwise when you contact us.\n\n'
-                  'The personal information that we collect depends on the context of your interactions with us and the school administration.',
+              '1. Que dados recolhemos',
+              'Recolhemos os dados pessoais que nos fornece ao registar-se na '
+                  'aplicação, ao pedir informações da escola ou quando nos '
+                  'contacta.\n\n'
+                  'Os dados recolhidos dependem do contexto da sua relação '
+                  'com a escola e com a administração.',
             ),
             _buildSection(
-              '2. How We Use Your Information',
-              'We use personal information collected via our application for a variety of academic and administrative purposes described below. We process your personal information for these purposes in reliance on our legitimate school administrative interests.',
+              '2. Para que usamos os seus dados',
+              'Usamos os dados recolhidos na aplicação para fins académicos e '
+                  'administrativos. O tratamento assenta no interesse '
+                  'legítimo da administração escolar.',
             ),
             _buildSection(
-              '3. Will Your Information Be Shared?',
-              'We only share information with your consent, to comply with laws, to provide you with services, to protect your rights, or to fulfill academic obligations (such as sharing grades with parents).',
+              '3. Com quem partilhamos os seus dados',
+              'Só partilhamos dados com o seu consentimento, para cumprir a '
+                  'lei, para lhe prestar o serviço, para defender os seus '
+                  'direitos ou para cumprir obrigações académicas — por '
+                  'exemplo, dar a conhecer as notas ao encarregado de '
+                  'educação.',
             ),
             const SizedBox(height: 24),
             Center(
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'I Understand',
+                  'Compreendi',
                   style: TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w600,

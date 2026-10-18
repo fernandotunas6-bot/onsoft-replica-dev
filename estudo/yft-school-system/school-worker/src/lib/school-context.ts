@@ -69,7 +69,7 @@ export async function resolveTenantUser(c: Context<AppEnv>, tokenClaims: Record<
 export function requireSchoolUser(c: Context<AppEnv>) {
   const user = c.get('user');
   if (!user.schoolId || !user.role) {
-    return jsonError(c, 'Forbidden: Missing tenant context', 403);
+    return jsonError(c, 'Sem autorização: falta o contexto da escola', 403);
   }
 
   return user;

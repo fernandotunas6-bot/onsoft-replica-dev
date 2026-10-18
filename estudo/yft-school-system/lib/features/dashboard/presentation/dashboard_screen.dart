@@ -218,7 +218,7 @@ class DashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'SYSTEM',
+                    'SISTEMA',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -520,36 +520,36 @@ class DashboardScreen extends ConsumerWidget {
     return [
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.home),
-        label: 'Home',
+        label: 'Início',
       ),
       if (role == UserRole.admin)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.users),
-          label: 'Staff',
+          label: 'Funcionários',
         ),
       if (role == UserRole.teacher)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.bookOpen),
-          label: 'Classes',
+          label: 'Turmas',
         ),
       if (role == UserRole.parent)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.baby),
-          label: 'Wards',
+          label: 'Educandos',
         ),
       if (role == UserRole.parent)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.receipt),
-          label: 'Receipts',
+          label: 'Recibos',
         ),
       if (role == UserRole.admin || role == UserRole.teacher)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clipboardList),
-          label: 'Results',
+          label: 'Notas',
         ),
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.userCircle),
-        label: 'Profile',
+        label: 'Perfil',
       ),
     ];
   }
@@ -583,7 +583,7 @@ class AdminDashboard extends ConsumerWidget {
           title: 'Resumo',
           rows: [
             _SummaryRow(label: 'Total de alunos', value: '$studentCount'),
-            _SummaryRow(label: 'Classes', value: '$classCount'),
+            _SummaryRow(label: 'Turmas', value: '$classCount'),
             _SummaryRow(
               label: 'Dívidas em atraso',
               value: arrearsDisplay,
@@ -664,7 +664,7 @@ class TeacherDashboard extends ConsumerWidget {
         _SummaryCard(
           title: '${selectedClass?.className ?? "Class"} Summary',
           rows: [
-            const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
+            const _SummaryRow(label: 'Bem-vindo', value: 'Dashboard'),
           ],
         ),
         const SizedBox(height: 32),
@@ -717,7 +717,7 @@ class ParentDashboard extends ConsumerWidget {
         _SummaryCard(
           title: 'Resumo do educando',
           rows: [
-            const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
+            const _SummaryRow(label: 'Bem-vindo', value: 'Dashboard'),
           ],
         ),
         const SizedBox(height: 32),
@@ -745,7 +745,7 @@ class ParentDashboard extends ConsumerWidget {
               onTap: () => context.push('/notices'),
             ),
             _ActionCard(
-              title: 'Messages',
+              title: 'Mensagens',
               icon: LucideIcons.messageSquare,
               color: AppColors.surface,
               onTap: () {},

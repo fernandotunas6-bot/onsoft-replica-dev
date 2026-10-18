@@ -18,7 +18,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
   String? _selectedTerm;
   String? _selectedStudentId;
 
-  final List<String> _terms = ['Term 1', 'Term 2', 'Term 3'];
+  final List<String> _terms = ['I Trimestre', 'II Trimestre', 'III Trimestre'];
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Results Setup', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Preparar o lançamento', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -57,7 +57,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Academic Year', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       const SizedBox(height: 4),
                       Text('${academicYear.academicYear} • ${academicYear.activeTerm}',
                           style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
@@ -67,16 +67,16 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Select parameters to input or view student results.',
+            const Text('Escolha os parâmetros para lançar ou consultar notas.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             const SizedBox(height: 32),
 
-            const Text('Select Class',
+            const Text('Escolher turma',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             classesAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (e, _) => const Text('Failed to load classes'),
+              error: (e, _) => const Text('Não foi possível carregar as turmas'),
               data: (classes) => _buildDropdown(
                 icon: LucideIcons.graduationCap,
                 value: _selectedClassId,
@@ -89,7 +89,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Text('Select Term',
+            const Text('Escolher trimestre',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             _buildDropdown(
@@ -100,7 +100,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Text('Select Student',
+            const Text('Escolher aluno',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             if (studentsAsync == null)
@@ -113,7 +113,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             else
               studentsAsync.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (e, _) => const Text('Failed to load'),
+                error: (e, _) => const Text('Não foi possível carregar'),
                 data: (paginated) => _buildDropdown(
                   icon: LucideIcons.user,
                   value: _selectedStudentId,
@@ -144,7 +144,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                   foregroundColor: AppColors.secondary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text('Proceed', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
               ),
             ),
           ],
@@ -171,7 +171,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
           value: value,
           isExpanded: true,
           icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary),
-          hint: Text('Choose...', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5))),
+          hint: Text('Escolher…', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5))),
           items: items,
           onChanged: onChanged,
         ),

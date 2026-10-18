@@ -120,7 +120,7 @@ class NoticesScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => ref.invalidate(parentNoticesProvider),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar de novo'),
                 ),
               ],
             ),

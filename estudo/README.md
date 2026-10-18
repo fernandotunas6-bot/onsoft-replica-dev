@@ -102,8 +102,9 @@ alteração não está na cópia.
 - O `tsc` dava um erro (`classes.ts:23`, `c: any`). **Corrigido**, com tipos.
 - Testes novos em `school-worker/test/security.spec.ts`: o Worker passa de 2
   para 6 testes, todos aprovados.
-- Ainda por resolver: os textos estão escritos à mão em inglês, sem i18n, e a
-  moeda é a do Gana.
+- Os textos estão escritos à mão, sem i18n. Em 18/10/2026 passaram a português
+  e a moeda passou a kwanza (ver abaixo); a falta de i18n mantém-se — trocar de
+  idioma obriga a mexer no código.
 
 ## SDK destravado (18/10/2026)
 
@@ -121,3 +122,52 @@ e `flutter build web` concluído **nas duas versões**, 3.41.5 e 3.47.7
 3.41.5; o 3.47 resolve-o de novo quando corre `pub get`, e o 3.47 também
 acrescenta exclusões ao `analysis_options.yaml` — nenhuma dessas alterações
 automáticas foi commitada.
+
+
+## Português e kwanza (18/10/2026)
+
+A app e o Worker falavam inglês e cobravam em cedis do Gana. Agora:
+
+- **Interface**: 337 literais traduzidos para português europeu em 41 ficheiros,
+  incluindo as mensagens de erro do Firebase Auth, os ecrãs de propinas, notas,
+  presenças, perfil, segurança e notificações, e as etiquetas do recibo em PDF.
+- **Moeda**: por omissão `Kz`, com dólar e euro à escolha no calendário
+  académico. O código ISO de reserva para o PDF passou de `GHS` a `AOA`. `Kz` é
+  ASCII, por isso não quebra as fontes do PDF — era por isso que existia a
+  conversão para código ISO.
+- **Períodos**: `Term 1/2/3` passou a `I/II/III Trimestre`. **Atenção:** isto é
+  um valor guardado, não só uma etiqueta — vai para `Grades.term` e
+  `Receipts.fee_term` no D1. Numa base nova (o caso do SIGA) não há problema;
+  numa escola com dados antigos, as notas e os recibos anteriores ficam presos
+  ao nome antigo e precisam de migração.
+- **Worker**: as 52 mensagens de erro da API, o título e o corpo do aviso de
+  pagamento que o encarregado lê, e a descrição «Propina da turma» passaram a
+  português. A moeda de reserva do Worker passou de `GHS` a `Kz`.
+- **Datas**: os meses abreviados passaram a português. Corrigido de passagem um
+  erro real: `getCurrentAcademicYear()` devolvia sempre `ano/ano+1` sem olhar ao
+  mês, pelo que em Março de 2026 dizia «2026/2027» — um ano lectivo que ainda não
+  tinha começado. A viragem passou a ser em Setembro.
+
+Verificado aqui: `flutter analyze` sem avisos, 1 teste a passar (o do splash foi
+actualizado para o texto novo), `flutter build web` concluído, e no Worker
+`tsc --noEmit` sem erros com os 6 testes `vitest` a passar.
+
+**Decisões que ficam para o utilizador**, e que não foram inventadas:
+
+1. **Ano lectivo angolano.** Em Angola o ano lectivo começa em Fevereiro e cabe
+   num só ano civil; o código mantém a convenção `2025/2026` com viragem em
+   Setembro, que é a dos dados do autor. Se as escolas usarem a convenção
+   angolana, é uma mudança de formato a decidir antes de haver dados.
+2. **Aviso de privacidade.** O texto foi traduzido, mas é o texto genérico do
+   autor, com o nome «Edu Manager» e sem responsável pelo tratamento nem base
+   legal. Antes de produção tem de ser substituído pelo aviso da própria escola
+   e revisto por quem responde por ele juridicamente. Ficou um comentário no
+   código a dizê-lo.
+3. **Marca.** `Edu Manager` continua como nome de reserva em três ecrãs (splash,
+   login e painel, quando a API não devolve o nome da escola), e o recibo não
+   usado mostra «YFT School System». Mudar a marca é decisão do utilizador.
+4. **Ecrã morto.** `receipt_preview_screen.dart` não é instanciado em nenhum
+   sítio e mostra dados inventados num recibo («Accra, Ghana», turma «Basic
+   4A»). Os valores do Gana foram retirados, mas o ecrã devia ser apagado: um
+   recibo com dados inventados é uma armadilha. O caminho vivo é
+   `fee_receipt_view_screen` com `FeeReceiptTemplate` e `buildFeeReceiptPdf`.

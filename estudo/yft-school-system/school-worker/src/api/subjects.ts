@@ -70,13 +70,13 @@ subjects.post('/', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = subjectSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid subject payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da disciplina inválidos', 400, parsed.error.flatten());
   }
 
   const classIds = parsed.data.class_ids ?? (parsed.data.class_id ? [parsed.data.class_id] : []);
   const distinctClassIds = [...new Set(classIds)];
   if (distinctClassIds.length === 0) {
-    return jsonError(c, 'At least one class is required', 400);
+    return jsonError(c, 'É preciso indicar pelo menos uma turma', 400);
   }
 
   const placeholders = distinctClassIds.map(() => '?').join(',');
@@ -85,7 +85,7 @@ subjects.post('/', requireAdmin, async (c) => {
   ).bind(user.schoolId, ...distinctClassIds).all<{ id: string }>();
 
   if (existingClasses.results.length !== distinctClassIds.length) {
-    return jsonError(c, 'One or more classes do not exist in this school', 400);
+    return jsonError(c, 'Uma ou mais turmas não existem nesta escola', 400);
   }
 
   const subjectId = createPrefixedId('sub');
@@ -111,14 +111,14 @@ subjects.patch('/:subjectId', requireAdmin, async (c) => {
   const subjectId = c.req.param('subjectId');
   const parsed = updateSubjectSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid subject payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da disciplina inválidos', 400, parsed.error.flatten());
   }
 
   const classIds = parsed.data.class_ids ?? (parsed.data.class_id ? [parsed.data.class_id] : []);
   const distinctClassIds = [...new Set(classIds)];
 
   if (!parsed.data.name && distinctClassIds.length === 0) {
-    return jsonError(c, 'At least one field must be provided', 400);
+    return jsonError(c, 'É preciso preencher pelo menos um campo', 400);
   }
 
   const existingSubject = await c.env.DB.prepare(
@@ -126,7 +126,7 @@ subjects.patch('/:subjectId', requireAdmin, async (c) => {
   ).bind(subjectId, user.schoolId).first<{ id: string }>();
 
   if (!existingSubject) {
-    return jsonError(c, 'Subject not found', 404);
+    return jsonError(c, 'Disciplina não encontrada', 404);
   }
 
   if (distinctClassIds.length > 0) {
@@ -136,7 +136,7 @@ subjects.patch('/:subjectId', requireAdmin, async (c) => {
     ).bind(user.schoolId, ...distinctClassIds).all<{ id: string }>();
 
     if (existingClasses.results.length !== distinctClassIds.length) {
-      return jsonError(c, 'One or more classes do not exist in this school', 400);
+      return jsonError(c, 'Uma ou mais turmas não existem nesta escola', 400);
     }
   }
 
@@ -187,7 +187,7 @@ subjects.patch('/:subjectId', requireAdmin, async (c) => {
   } | undefined;
 
   if (!row) {
-    return jsonError(c, 'Subject not found', 404);
+    return jsonError(c, 'Disciplina não encontrada', 404);
   }
 
   return jsonOk(c, {

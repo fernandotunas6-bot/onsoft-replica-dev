@@ -27,7 +27,7 @@ settings.patch('/access-control', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = accessPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados inválidos', 400, parsed.error.flatten());
   }
 
   const flag = parsed.data.teacher_can_edit_results ? 1 : 0;
@@ -36,7 +36,7 @@ settings.patch('/access-control', requireAdmin, async (c) => {
   ).bind(flag, user.schoolId).run();
 
   if (result.meta.changes === 0) {
-    return jsonError(c, 'School not found', 404);
+    return jsonError(c, 'Escola não encontrada', 404);
   }
 
   return jsonOk(c, {

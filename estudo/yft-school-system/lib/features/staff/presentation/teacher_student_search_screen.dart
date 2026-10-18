@@ -28,7 +28,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Search Students', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Procurar alunos', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -40,7 +40,7 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by name...',
+                hintText: 'Procurar por nome…',
                 prefixIcon: const Icon(LucideIcons.search, size: 20),
                 fillColor: AppColors.surface,
                 filled: true,
@@ -52,11 +52,11 @@ class _TeacherStudentSearchScreenState extends ConsumerState<TeacherStudentSearc
           Expanded(
             child: studentsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Failed to load', style: TextStyle(color: AppColors.error))),
+              error: (e, _) => Center(child: Text('Não foi possível carregar', style: TextStyle(color: AppColors.error))),
               data: (paginated) {
                 final filtered = paginated.data.where((s) => s.name.toLowerCase().contains(_query)).toList();
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No students found.', style: TextStyle(color: AppColors.textSecondary)));
+                  return const Center(child: Text('Não há alunos.', style: TextStyle(color: AppColors.textSecondary)));
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24),

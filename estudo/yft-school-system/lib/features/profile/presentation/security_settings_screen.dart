@@ -33,7 +33,7 @@ class _SecuritySettingsScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Security & Password',
+          'Segurança e palavra-passe',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -49,7 +49,7 @@ class _SecuritySettingsScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Update your password and secure your account.',
+                  'Altere a palavra-passe e proteja a sua conta.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -58,8 +58,8 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 32),
 
                 _buildPasswordField(
-                  'Current Password',
-                  'Enter current password',
+                  'Palavra-passe actual',
+                  'Escreva a palavra-passe actual',
                   _obscureCurrent,
                   () {
                     setState(() => _obscureCurrent = !_obscureCurrent);
@@ -68,8 +68,8 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
-                  'New Password',
-                  'Create new password',
+                  'Nova palavra-passe',
+                  'Escreva a nova palavra-passe',
                   _obscureNew,
                   () {
                     setState(() => _obscureNew = !_obscureNew);
@@ -78,8 +78,8 @@ class _SecuritySettingsScreenState
                 const SizedBox(height: 20),
 
                 _buildPasswordField(
-                  'Repeat New Password',
-                  'Confirm new password',
+                  'Repetir a nova palavra-passe',
+                  'Repita a nova palavra-passe',
                   _obscureRepeat,
                   () {
                     setState(() => _obscureRepeat = !_obscureRepeat);
@@ -100,11 +100,11 @@ class _SecuritySettingsScreenState
                   child: SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text(
-                      'Two-Factor Authentication',
+                      'Autenticação em dois passos',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: const Text(
-                      'Add an extra layer of security.',
+                      'Acrescenta uma camada de segurança.',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -141,14 +141,14 @@ class _SecuritySettingsScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Access Control',
+                            'Controlo de acessos',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
-                            'Manage app-wide permissions',
+                            'Gerir as permissões da aplicação',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -182,13 +182,13 @@ class _SecuritySettingsScreenState
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text(
-                            'Allow Teachers to Enter Results',
+                            'Permitir que os professores lancem notas',
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
                             teacherCanEditResults
-                                ? 'Teachers can currently input and edit student results.'
-                                : 'Teachers can only view results. Editing is disabled.',
+                                ? 'Neste momento os professores podem lançar e alterar notas.'
+                                : 'Os professores só podem consultar notas. A edição está desligada.',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -232,8 +232,8 @@ class _SecuritySettingsScreenState
                                       SnackBar(
                                         content: Text(
                                           val
-                                              ? 'Teachers can now enter results.'
-                                              : 'Teacher result editing has been disabled.',
+                                              ? 'Os professores passam a poder lançar notas.'
+                                              : 'O lançamento de notas pelos professores foi desligado.',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -272,7 +272,7 @@ class _SecuritySettingsScreenState
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Security settings updated successfully!',
+                            'Definições de segurança actualizadas.',
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -287,7 +287,7 @@ class _SecuritySettingsScreenState
                       ),
                     ),
                     child: const Text(
-                      'Update Password',
+                      'Alterar a palavra-passe',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
