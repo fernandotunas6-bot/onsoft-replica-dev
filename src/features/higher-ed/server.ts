@@ -77,7 +77,7 @@ import {
   type UnitRecord,
 } from "./engine";
 import { schoolTodayIso } from "@/lib/school-date";
-import { allPages, allPagesIn } from "./paged-in";
+import { allPages, allPagesIn } from "@/integrations/supabase/paged-in";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;

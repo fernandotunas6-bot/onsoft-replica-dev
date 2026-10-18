@@ -1,4 +1,4 @@
-import { allPagesIn } from "./paged-in";
+import { allPagesIn } from "@/integrations/supabase/paged-in";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";

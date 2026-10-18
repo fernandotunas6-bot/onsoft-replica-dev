@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
 import { selectAllPages } from "../engine/paged";
+import { allPages, allPagesIn } from "@/integrations/supabase/paged-in";
 import { categoryToFeeKind } from "@/features/finance/server";
 import { formatInvoiceNumber } from "@/features/finance/invoice-numbering";
 
@@ -283,24 +284,37 @@ export async function loadOpenInvoiceRefs(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<OpenInvoiceRef[]> {
-  const { data: invoices, error: invoicesError } = await db
-    .from("finance_invoices")
-    .select(
-      "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
-    )
-    .eq("school_id", schoolId)
-    .in("status", ["open", "partially_paid"]);
+  // Tudo em páginas e as listas de ids em blocos: cortadas em 1000, as faturas
+  // seguintes não existiam para a importação («sem fatura em aberto»), e com
+  // umas centenas o `.in()` passava o tamanho do URL e a importação falhava.
+  const { data: invoices, error: invoicesError } = await allPages((from, to) =>
+    db
+      .from("finance_invoices")
+      .select(
+        "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
+      )
+      .eq("school_id", schoolId)
+      .in("status", ["open", "partially_paid"])
+      .order("id")
+      .range(from, to),
+  );
   if (invoicesError) {
     throw new Error(`Não foi possível carregar faturas em aberto: ${invoicesError.message}`);
   }
   if (!invoices?.length) return [];
 
   const contractIds = [...new Set(invoices.map((row) => String(row.contract_id)))];
-  const { data: contracts, error: contractsError } = await db
-    .from("finance_contracts")
-    .select("id, enrollment_id")
-    .eq("school_id", schoolId)
-    .in("id", contractIds);
+  const { data: contracts, error: contractsError } = await allPagesIn(
+    contractIds,
+    (chunk, from, to) =>
+      db
+        .from("finance_contracts")
+        .select("id, enrollment_id")
+        .eq("school_id", schoolId)
+        .in("id", chunk)
+        .order("id")
+        .range(from, to),
+  );
   if (contractsError) {
     throw new Error(`Não foi possível carregar contratos financeiros: ${contractsError.message}`);
   }
@@ -309,13 +323,17 @@ export async function loadOpenInvoiceRefs(
   );
 
   const enrollmentIds = [...new Set([...enrollmentIdByContract.values()])];
-  const { data: enrollments, error: enrollmentsError } = enrollmentIds.length
-    ? await db
+  const { data: enrollments, error: enrollmentsError } = await allPagesIn(
+    enrollmentIds,
+    (chunk, from, to) =>
+      db
         .from("enrollments")
         .select("id, student_id")
         .eq("school_id", schoolId)
-        .in("id", enrollmentIds)
-    : { data: [], error: null };
+        .in("id", chunk)
+        .order("id")
+        .range(from, to),
+  );
   if (enrollmentsError) {
     throw new Error(
       `Não foi possível carregar matrículas das faturas: ${enrollmentsError.message}`,
@@ -326,12 +344,16 @@ export async function loadOpenInvoiceRefs(
   );
 
   const invoiceIds = invoices.map((row) => String(row.id));
-  const { data: receipts, error: receiptsError } = await db
-    .from("finance_receipts")
-    .select("invoice_id, amount")
-    .eq("school_id", schoolId)
-    .eq("status", "issued")
-    .in("invoice_id", invoiceIds);
+  const { data: receipts, error: receiptsError } = await allPagesIn(invoiceIds, (chunk, from, to) =>
+    db
+      .from("finance_receipts")
+      .select("id, invoice_id, amount")
+      .eq("school_id", schoolId)
+      .eq("status", "issued")
+      .in("invoice_id", chunk)
+      .order("id")
+      .range(from, to),
+  );
   if (receiptsError) {
     throw new Error(`Não foi possível carregar recibos existentes: ${receiptsError.message}`);
   }
@@ -516,4 +538,16 @@ export async function registerReceiptDirect(
   if (updateError) throw new Error(`Não foi possível actualizar a fatura: ${updateError.message}`);
 
   return { receiptId: created.id, receiptNumber, invoiceStatus };
+}
+
+/** Números de todas as faturas da escola, em páginas (cortados em 1000, os seguintes não contavam como duplicados). */
+export function loadInvoiceNumbers(db: SupabaseClient, schoolId: string) {
+  return allPages((from, to) =>
+    db
+      .from("finance_invoices")
+      .select("id, invoice_number")
+      .eq("school_id", schoolId)
+      .order("id")
+      .range(from, to),
+  );
 }

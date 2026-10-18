@@ -544,6 +544,19 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       throw new Error("Caminho do ficheiro inválido.");
     }
     const db = await loadSgaAdminClient();
+    // O tamanho declarado pelo browser não chega: um «sizeBytes: 1» para um
+    // ficheiro de 50 MB passava a quota. Lê-se o tamanho real do objecto
+    // enviado; se o armazenamento não o devolver, fica o declarado.
+    let sizeBytes = data.sizeBytes;
+    if (data.storageBackend === "sga") {
+      const { data: stored } = await db.storage
+        .from(FILES_BUCKET)
+        .info(data.storagePath)
+        .catch(() => ({ data: null }));
+      if (typeof stored?.size === "number" && stored.size >= 0) {
+        sizeBytes = Math.max(sizeBytes, stored.size);
+      }
+    }
     // Quota de arquivo do plano. O ficheiro já foi enviado pelo browser: se não
     // cabe, sai do armazenamento para não ocupar espaço sem registo.
     if (data.storageBackend === "sga") {
@@ -554,7 +567,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
           relatedPersonId: data.relatedPersonId,
           relatedUserId: data.relatedUserId?.trim() || null,
         });
-        await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
+        await assertCanStoreBytesForSchool(membership.schoolId, sizeBytes);
       } catch (error) {
         await db.storage
           .from(FILES_BUCKET)
@@ -577,7 +590,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       owner_user_id: userId,
       name: data.name,
       mime: data.mime,
-      size_bytes: data.sizeBytes,
+      size_bytes: sizeBytes,
       area: data.area,
       visibility: data.visibility,
       storage_backend: data.storageBackend,
@@ -1394,6 +1407,19 @@ export const deleteSchoolFile = createServerFn({ method: "POST" })
       (area === "secretaria" && membership.appRole === "Secretaria");
     if (!canDelete || !canWriteFileArea(membership.appRole, area)) {
       throw new Error("Sem permissão para apagar este ficheiro.");
+    }
+    // Uma pasta só se apaga vazia. A base apaga em cascata o que está dentro
+    // (parent_id ON DELETE CASCADE): ficheiros de outras pessoas, privados ou
+    // do sistema, que este utilizador não podia apagar um a um, e cujos
+    // ficheiros ficavam no armazenamento sem registo.
+    const { count: childCount, error: childError } = await db
+      .from("siga_files")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", membership.schoolId)
+      .eq("parent_id", data.id);
+    if (childError) throw publicDatabaseError(childError, "Não foi possível apagar o ficheiro.");
+    if (childCount) {
+      throw new Error("A pasta não está vazia: mova ou apague primeiro o que está dentro.");
     }
     try {
       await recordFileEvent(db, {

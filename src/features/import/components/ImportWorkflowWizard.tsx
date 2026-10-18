@@ -372,7 +372,13 @@ export function ImportWorkflowWizard({
       }
       setResult(totals);
       setStep(7);
-      toast.success("Importação concluída.");
+      if (totals.failed > 0) {
+        toast.warning(`Importação concluída com ${totals.failed} linha(s) com erro.`, {
+          description: "Veja as linhas com erro no relatório.",
+        });
+      } else {
+        toast.success("Importação concluída.");
+      }
       onComplete?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha durante a importação.");

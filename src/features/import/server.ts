@@ -525,17 +525,26 @@ export const commitImportBatch = createServerFn({ method: "POST" })
         }
         throw error;
       }
-      if (result.status === "imported") inserted += 1;
-      else if (result.status === "will_update") updated += 1;
-      else if (result.status === "ignored") ignored += 1;
-      else if (result.status === "error") failed += 1;
+      // Numa importação real, uma linha que volta «duplicate» (o registo já
+      // existe e foi reaproveitado) ou noutro estado pendente fica «ignored».
+      // Se ficasse pendente, o lote seguinte (ordenado por linha) apanhava-a
+      // outra vez: com 50 já existentes no topo da folha, a importação andava às
+      // voltas nas mesmas linhas e nunca chegava às novas.
+      const finalStatus =
+        !data.dry_run && (PENDING_STATUSES as readonly string[]).includes(result.status)
+          ? ("ignored" as const)
+          : result.status;
+      if (finalStatus === "imported") inserted += 1;
+      else if (finalStatus === "will_update") updated += 1;
+      else if (finalStatus === "ignored") ignored += 1;
+      else if (finalStatus === "error") failed += 1;
 
       if (!data.dry_run) {
         // A linha tem de ficar marcada: é o que impede o lote seguinte de a
         // importar outra vez (um aluno criado duas vezes). Tenta-se duas vezes e,
         // se falhar, pára-se o lote em vez de continuar às cegas.
         const rowPatch = {
-          status: result.status,
+          status: finalStatus,
           target_record_id: result.target_record_id ?? null,
           warnings: result.warnings,
           errors: result.errors,

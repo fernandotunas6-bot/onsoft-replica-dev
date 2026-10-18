@@ -1,9 +1,11 @@
 /**
- * Leituras completas para o Superior. O PostgREST corta cada resposta em 1000
- * linhas sem erro, e um `.in()` com centenas de ids passa o tamanho do URL.
- * Numa universidade real (mais de mil matrículas, dez ou mais registos por
- * estudante) as pautas, a inscrição em lote e os mapas oficiais ficavam com
- * estudantes a menos.
+ * Leituras completas. O PostgREST corta cada resposta em 1000 linhas sem erro,
+ * e um `.in()` com centenas de ids passa o tamanho do URL. Numa escola ou
+ * universidade real as pautas, a inscrição em lote, os mapas oficiais e as
+ * importações ficavam com linhas a menos (ou falhavam).
+ *
+ * Devolve `{ data, error }`, como uma consulta do Supabase, para quem chama
+ * tratar o erro como já fazia.
  */
 type Page<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
 

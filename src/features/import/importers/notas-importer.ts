@@ -1,3 +1,4 @@
+import { allPages, allPagesIn } from "@/integrations/supabase/paged-in";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadStudentRefs,
@@ -99,12 +100,16 @@ export const notasImporter: RowImporter = {
         loadStudentRefs(ctx.db, ctx.schoolId),
         loadSubjectRefs(ctx.db, ctx.schoolId),
         ctx.academicYearId
-          ? ctx.db
-              .from("enrollments")
-              .select("id, student_id, class_group_id, academic_year_id, status")
-              .eq("school_id", ctx.schoolId)
-              .eq("academic_year_id", ctx.academicYearId)
-              .in("status", ["active", "pending"])
+          ? allPages((from, to) =>
+              ctx.db
+                .from("enrollments")
+                .select("id, student_id, class_group_id, academic_year_id, status")
+                .eq("school_id", ctx.schoolId)
+                .eq("academic_year_id", ctx.academicYearId!)
+                .in("status", ["active", "pending"])
+                .order("id")
+                .range(from, to),
+            )
           : Promise.resolve({ data: [], error: null }),
         ctx.academicYearId
           ? ctx.db
@@ -113,11 +118,15 @@ export const notasImporter: RowImporter = {
               .eq("school_id", ctx.schoolId)
               .eq("academic_year_id", ctx.academicYearId)
           : Promise.resolve({ data: [], error: null }),
-        ctx.db
-          .from("class_subjects")
-          .select("id, class_group_id, subject_id, teacher_id, status")
-          .eq("school_id", ctx.schoolId)
-          .eq("status", "active"),
+        allPages((from, to) =>
+          ctx.db
+            .from("class_subjects")
+            .select("id, class_group_id, subject_id, teacher_id, status")
+            .eq("school_id", ctx.schoolId)
+            .eq("status", "active")
+            .order("id")
+            .range(from, to),
+        ),
       ]);
     if (enrollmentsResult.error)
       throw new Error(`Não foi possível carregar matrículas: ${enrollmentsResult.error.message}`);
@@ -145,33 +154,43 @@ export const notasImporter: RowImporter = {
         teacher_id: row.teacher_id ? String(row.teacher_id) : null,
       }));
     const classSubjectIds = assignments.map((row) => row.id);
+    const classSubjectSet = new Set(classSubjectIds);
+    // Do ano inteiro, em páginas, filtrado aqui: a lista de ids no `.in()`
+    // passava o tamanho do URL e a importação inteira falhava.
     const gradebooksResult =
       classSubjectIds.length && ctx.academicYearId
-        ? await ctx.db
-            .from("gradebooks")
-            .select("id, term_id, class_subject_id, class_group_id")
-            .eq("school_id", ctx.schoolId)
-            .eq("academic_year_id", ctx.academicYearId)
-            .in("class_subject_id", classSubjectIds)
+        ? await allPages((from, to) =>
+            ctx.db
+              .from("gradebooks")
+              .select("id, term_id, class_subject_id, class_group_id")
+              .eq("school_id", ctx.schoolId)
+              .eq("academic_year_id", ctx.academicYearId!)
+              .order("id")
+              .range(from, to),
+          )
         : { data: [], error: null };
     if (gradebooksResult.error)
       throw new Error(
         `Não foi possível carregar diários de notas: ${gradebooksResult.error.message}`,
       );
-    const gradebooks = (gradebooksResult.data ?? []).map((row) => ({
-      id: String(row.id),
-      term_id: String(row.term_id),
-      class_subject_id: String(row.class_subject_id),
-      class_group_id: String(row.class_group_id),
-    }));
+    const gradebooks = (gradebooksResult.data ?? [])
+      .filter((row) => classSubjectSet.has(String(row.class_subject_id)))
+      .map((row) => ({
+        id: String(row.id),
+        term_id: String(row.term_id),
+        class_subject_id: String(row.class_subject_id),
+        class_group_id: String(row.class_group_id),
+      }));
     const gradebookIds = gradebooks.map((row) => row.id);
-    const itemsResult = gradebookIds.length
-      ? await ctx.db
-          .from("grade_items")
-          .select("id, gradebook_id, code")
-          .eq("school_id", ctx.schoolId)
-          .in("gradebook_id", gradebookIds)
-      : { data: [], error: null };
+    const itemsResult = await allPagesIn(gradebookIds, (chunk, from, to) =>
+      ctx.db
+        .from("grade_items")
+        .select("id, gradebook_id, code")
+        .eq("school_id", ctx.schoolId)
+        .in("gradebook_id", chunk)
+        .order("id")
+        .range(from, to),
+    );
     if (itemsResult.error)
       throw new Error(
         `Não foi possível carregar componentes MAC/NPP/NPT: ${itemsResult.error.message}`,
@@ -183,15 +202,23 @@ export const notasImporter: RowImporter = {
     }));
     const itemIds = items.map((row) => row.id);
     const enrollmentIds = enrollments.map((row) => row.id);
-    const scoresResult =
-      itemIds.length && enrollmentIds.length
-        ? await ctx.db
+    // Notas já lançadas: por blocos de componentes, em páginas. Cortadas em 1000,
+    // as existentes não eram encontradas e a inserção batia na chave única.
+    const enrollmentSet = new Set(enrollmentIds);
+    const scoresResult = enrollmentIds.length
+      ? await allPagesIn(itemIds, (chunk, from, to) =>
+          ctx.db
             .from("grade_scores")
             .select("id, grade_item_id, enrollment_id, score, status")
             .eq("school_id", ctx.schoolId)
-            .in("grade_item_id", itemIds)
-            .in("enrollment_id", enrollmentIds)
-        : { data: [], error: null };
+            .in("grade_item_id", chunk)
+            .order("id")
+            .range(from, to),
+        ).then((result) => ({
+          ...result,
+          data: result.data.filter((row) => enrollmentSet.has(String(row.enrollment_id))),
+        }))
+      : { data: [], error: null };
     if (scoresResult.error)
       throw new Error(`Não foi possível carregar notas existentes: ${scoresResult.error.message}`);
 

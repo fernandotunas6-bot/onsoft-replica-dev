@@ -138,6 +138,39 @@ describe("Motor de Importação — deduplicação de pessoas", () => {
     );
     expect(match?.record.id).toBe("p1");
   });
+
+  it("«Ana Silva» não é a mesma pessoa que «Joana Silva»", () => {
+    expect(
+      findBestPersonMatch({ full_name: "Ana Silva" }, [{ id: "j", full_name: "Joana Silva" }]),
+    ).toBeNull();
+    // Palavras inteiras continuam a contar como nome semelhante.
+    expect(
+      findBestPersonMatch({ full_name: "Ana Silva" }, [{ id: "a", full_name: "Ana Silva Costa" }])
+        ?.record.id,
+    ).toBe("a");
+  });
+
+  it("documento ou data de nascimento diferentes: nunca junta", () => {
+    const people = [
+      {
+        id: "x",
+        full_name: "Pedro Neto",
+        national_id: "004567890LA041",
+        date_of_birth: "2010-01-02",
+      },
+    ];
+    expect(
+      findBestPersonMatch({ full_name: "Pedro Neto", national_id: "009999999LA041" }, people),
+    ).toBeNull();
+    expect(
+      findBestPersonMatch({ full_name: "Pedro Neto", date_of_birth: "2011-05-06" }, people),
+    ).toBeNull();
+    // O mesmo BI escrito com espaços continua a ser o mesmo.
+    expect(
+      findBestPersonMatch({ full_name: "Pedro Neto", national_id: "004 567 890 LA 041" }, people)
+        ?.record.id,
+    ).toBe("x");
+  });
 });
 
 describe("Motor de Importação — correspondência de turmas/entidades", () => {
