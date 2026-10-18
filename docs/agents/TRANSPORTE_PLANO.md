@@ -1,13 +1,14 @@
 # Transporte escolar — plano (portal + app), a fazer com o Lovable
 
-Estado: **plano, por aprovar**. Nada disto está na base de produção.
+Estado: **aprovado a 2026-10-18; servidor e app feitos, migração por aplicar.** Nada disto
+está ainda na base de produção (pacote: `docs/agents/SIGA_aplicar_transporte.sql`).
 
 ## O que entra na primeira versão
 
 Rotina, sem GPS em tempo real (fica para depois: as guardas de posição já existem em
 `mobile-flutter/backend/transport.ts`).
 
-**Portal (Administrador / Secretaria, módulo `transporte`):**
+**Portal (Administrador / Secretaria, ou a permissão «Gestão»):**
 
 - **Viaturas:** matrícula, nome curto («Autocarro 2»), lugares, motorista (nome e
   telefone), activa/inactiva.
@@ -53,21 +54,26 @@ e sonda em `SIGA_confirmar_migracoes.sql`.
 
 - `schemas.ts` (zod estrito) e `server.ts` com server functions:
   `listTransport` (viaturas, rotas, paragens, contagem de alunos, estado de hoje),
-  `saveVehicle`, `saveRoute`, `saveStops` (lista inteira, por ordem, numa transacção),
+  `saveVehicle`, `saveRoute`, `saveStops` (lista inteira, por ordem; as que saem são
+  apagadas, recusado se tiverem alunos),
   `assignStudents` / `endAssignment`, `setDayStatus`.
-- Leitura: Administrador, Secretaria ou quem tiver `staff_module_grants.module_key =
-'transporte'`. Escrita: `requireSgaWriterForWrite` + o mesmo critério, com 2FA como o
-  resto do portal. Sem a migração: `{ available: false }` e as gravações respondem
-  `TRANSPORT_NOT_READY` (como as entregas em PDF).
-- Módulo instalável em `school_modules` (`module_code = 'transporte'`): sem ele, a página
-  e a app não mostram transporte.
+- Leitura: Administrador, Secretaria ou a permissão do módulo «Gestão»
+  (`staff_module_grants.module_key = 'gestao'`, Leitura) — `requireSgaWriterFor`.
+  Escrita: `requireSgaWriterForWrite("gestao", …)` (Escrita/Total; escola com a assinatura
+  em dia). Não se criou uma chave de módulo nova para não mexer nos valores aceites
+  em `staff_module_grants`. Sem a migração: `{ available: false }` e as gravações
+  respondem `TRANSPORT_NOT_READY` (como as entregas em PDF).
+- Lógica em `transport-core.server.ts` (testada em `tests/transport/`); `server.ts` só
+  confirma a sessão e a escola.
+- Sem `school_modules` nesta versão: a página aparece a quem tem acesso e a app só mostra
+  transporte ao aluno que tem uma rota atribuída.
 
 ## Mobile V4
 
 - `GET /api/mobile-v4/schools/:id/transport`: só `aluno`; devolve a(s) sua(s) rota(s)
   activas com a paragem, as horas, a viatura, o motorista e o estado de hoje (hora de
-  Luanda). Nada de outros alunos. 503 `TRANSPORT_NOT_READY` sem a migração; `{ enabled:
-false }` sem o módulo.
+  Luanda). Nada de outros alunos. 503 `TRANSPORT_NOT_READY` sem a migração; o professor
+  recebe `routes: []`.
 
 ## Quem faz o quê
 

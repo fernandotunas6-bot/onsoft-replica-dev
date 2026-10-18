@@ -1,6 +1,7 @@
 import { parseAcademicAttendance } from "../../../mobile-flutter/contracts/domain/attendance-validation";
 import { requireMobileAcademicAccess } from "./authorization";
 import { MobileApiError } from "./errors";
+import { schoolTodayIso } from "@/lib/school-date";
 import {
   mobileCommandRequestSchema,
   mobileScopeSchema,
@@ -272,4 +273,31 @@ export async function loadMobileV4SubmissionFile(userId: string, input: unknown)
   const scope = await resolveMobileAcademicScope(db, userId, s.schoolId, s.role);
   const { signMobileSubmissionFile } = await import("./submissions.server");
   return signMobileSubmissionFile(db, scope, s.submissionId);
+}
+
+/**
+ * Aluno: as suas rotas de transporte em vigor hoje (paragem, horas, viatura,
+ * motorista e estado do dia). O professor não tem transporte na app.
+ */
+export async function loadMobileV4Transport(userId: string, input: unknown) {
+  const s = mobileScopeSchema.parse(input);
+  const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
+  if (s.role !== "aluno") return { available: true, routes: [] };
+  const scope = await resolveMobileAcademicScope(db, userId, s.schoolId, s.role);
+  if (!scope.studentId) return { available: true, routes: [] };
+  const { readStudentTransport, TransportError } =
+    await import("@/features/transport/transport-core.server");
+  try {
+    const out = await readStudentTransport(
+      db as never,
+      s.schoolId,
+      scope.studentId,
+      schoolTodayIso(),
+    );
+    if (!out.available) throw new MobileApiError(503, "TRANSPORT_NOT_READY");
+    return { routes: out.routes };
+  } catch (error) {
+    if (error instanceof TransportError) throw new MobileApiError(503, error.code);
+    throw error;
+  }
 }

@@ -24,6 +24,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   applyMobileV4Submission: vi.fn(),
   loadMobileV4Submissions: vi.fn(),
   loadMobileV4SubmissionFile: vi.fn(),
+  loadMobileV4Transport: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 
@@ -77,6 +78,7 @@ beforeEach(() => {
     submission: vi.fn().mockResolvedValue({ submission: { id: "s" } }),
     submissions: vi.fn().mockResolvedValue({ submissions: [] }),
     submissionFile: vi.fn().mockResolvedValue({ url: "https://f.test" }),
+    transport: vi.fn().mockResolvedValue({ routes: [] }),
     academic: vi.fn().mockResolvedValue({
       schoolId: school,
       role: "aluno",
@@ -591,5 +593,17 @@ it("PDF submissions: list and open by GET with the route school", async () => {
   expect(
     (await handleMobileV4Http(request(`/schools/${school}/submissions?role=aluno`, {}), deps))
       .status,
+  ).toBe(405);
+});
+
+it("transport: only by GET, with the route school and a known role", async () => {
+  const ok = await handleMobileV4Http(request(`/schools/${school}/transport?role=aluno`), deps);
+  expect(ok.status).toBe(200);
+  expect(deps.transport).toHaveBeenCalledWith("verified-user", { schoolId: school, role: "aluno" });
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/transport?role=director`), deps)).status,
+  ).toBe(422);
+  expect(
+    (await handleMobileV4Http(request(`/schools/${school}/transport?role=aluno`, {}), deps)).status,
   ).toBe(405);
 });

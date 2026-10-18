@@ -24,6 +24,7 @@ import {
   applyMobileV4Submission,
   loadMobileV4Submissions,
   loadMobileV4SubmissionFile,
+  loadMobileV4Transport,
 } from "./operations-core.server";
 import { MobileApiError } from "./errors";
 import {
@@ -67,6 +68,7 @@ export type MobileHttpDependencies = {
   submission: (userId: string, input: unknown) => Promise<unknown>;
   submissions: (userId: string, scope: unknown) => Promise<unknown>;
   submissionFile: (userId: string, scope: unknown) => Promise<unknown>;
+  transport: (userId: string, scope: unknown) => Promise<unknown>;
   command: (userId: string, input: unknown) => Promise<unknown>;
   logout: (token: string) => Promise<void>;
 };
@@ -94,6 +96,7 @@ const dependencies: MobileHttpDependencies = {
   submission: applyMobileV4Submission,
   submissions: loadMobileV4Submissions,
   submissionFile: loadMobileV4SubmissionFile,
+  transport: loadMobileV4Transport,
   logout: async (token) => {
     const db = await loadSgaAdminClient();
     const { error } = await db.auth.admin.signOut(token, "local");
@@ -161,7 +164,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
     const url = new URL(request.url);
     const path = url.pathname;
     const schoolRoute =
-      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|lesson-plans|documents|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands|submissions|submission-file|submission-upload|submission)$/i.exec(
+      /^\/api\/mobile-v4\/schools\/([0-9a-f-]+)\/(workspace|academic|attendance|results|gradebooks|lesson-plans|documents|finance|notifications|notifications-read|attendance-call|chat|contacts|attachment|chat-capabilities|chat-commands|commands|submissions|submission-file|submission-upload|submission|transport)$/i.exec(
         path,
       );
     const operation =
@@ -188,6 +191,7 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
       "chat",
       "submissions",
       "submission-file",
+      "transport",
     ].includes(operation)
       ? "GET"
       : "POST";
@@ -236,6 +240,13 @@ export async function handleMobileV4Http(request: Request, deps = dependencies):
             role: url.searchParams.get("role"),
             messageId: url.searchParams.get("messageId"),
           }),
+        ),
+      );
+    if (operation === "transport")
+      return respond(
+        await deps.transport(
+          identity.userId,
+          mobileScopeSchema.parse({ schoolId, role: url.searchParams.get("role") }),
         ),
       );
     if (operation === "submissions")

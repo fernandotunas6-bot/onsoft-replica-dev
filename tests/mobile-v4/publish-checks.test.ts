@@ -24,6 +24,7 @@ vi.mock("@/features/mobile-v4/operations-core.server", () => ({
   applyMobileV4Submission: vi.fn(),
   loadMobileV4Submissions: vi.fn(),
   loadMobileV4SubmissionFile: vi.fn(),
+  loadMobileV4Transport: vi.fn(),
   applyMobileV4Command: vi.fn(),
 }));
 

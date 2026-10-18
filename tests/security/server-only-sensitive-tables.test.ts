@@ -53,6 +53,14 @@ const MIGRATIONS = {
   ],
   // Entregas de trabalhos (PDF) dos alunos pela app.
   "supabase/migrations/20261017140000_task_submissions.sql": ["siga_task_submissions"],
+  // Transporte escolar: paragem + hora + aluno é a morada de um menor.
+  "supabase/migrations/20261018120000_school_transport.sql": [
+    "siga_transport_vehicles",
+    "siga_transport_routes",
+    "siga_transport_stops",
+    "siga_transport_assignments",
+    "siga_transport_day_status",
+  ],
 };
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");

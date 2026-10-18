@@ -162,6 +162,13 @@ const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
   // 20261017140000_task_submissions.sql (entregas em PDF pela app): sai daqui
   // quando o retrato for recapturado depois de aplicada.
   "siga_task_submissions",
+  // 20261018120000_school_transport.sql (transporte escolar): sai daqui quando o
+  // retrato for recapturado depois de aplicada.
+  "siga_transport_vehicles",
+  "siga_transport_routes",
+  "siga_transport_stops",
+  "siga_transport_assignments",
+  "siga_transport_day_status",
   // 20261015120000_tenant_billing_profiles.sql (cobrança por escola no ADMIN). O código
   // funciona sem ela: lê-a tolerando a falta (`tableReady: false`) e as gravações
   // respondem com a migração que falta. Sai daqui quando o retrato a mostrar.
