@@ -23,7 +23,7 @@ import { resolve } from "node:path";
 const REPO = resolve(__dirname, "../..");
 
 function tabelasDosTipos(): Set<string> {
-  const código = readFileSync(resolve(REPO, "src/integrations/supabase/types.ts"), "utf8");
+  const código = readFileSync(resolve(REPO, "src/integrations/supabase/types.sga.ts"), "utf8");
   const início = código.indexOf("\n  public: {");
   const tabelas = código.indexOf("Tables: {", início);
   const views = código.indexOf("\n    Views: {", tabelas);
@@ -56,7 +56,7 @@ describe("tipos gerados vs produção", () => {
       semTipos,
       `Estas tabelas existem na base e não estão nos tipos: ${semTipos.join(", ")}. ` +
         `Depois de aplicar uma migração, regenerar: ` +
-        `npx supabase gen types typescript --linked > src/integrations/supabase/types.ts ` +
+        `npm run siga:gen-types ` +
         `(e npm run siga:db-snapshot para o retrato).`,
     ).toEqual([]);
   });
@@ -74,7 +74,7 @@ describe("tipos gerados vs produção", () => {
   it("o ficheiro diz que é gerado", () => {
     // Sem esta marca, alguém volta a editá-lo à mão e a divergência recomeça.
     const cabeçalho = readFileSync(
-      resolve(REPO, "src/integrations/supabase/types.ts"),
+      resolve(REPO, "src/integrations/supabase/types.sga.ts"),
       "utf8",
     ).slice(0, 400);
     expect(cabeçalho).toMatch(/gerados|não editar à mão/i);

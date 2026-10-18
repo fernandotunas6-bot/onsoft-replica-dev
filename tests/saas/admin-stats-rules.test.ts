@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   defaultBillingProfile,
+  isInTrial,
   isTrialExpired,
   monthlyRevenueOf,
   resolveStatusChange,
@@ -23,6 +24,10 @@ describe("monthlyRevenueOf (MRR do painel)", () => {
       },
       NOW,
     );
+
+  it("escola activa com a assinatura ainda em trial não conta (não pagou)", () => {
+    expect(revenue({ subscriptionStatus: "trialing" })).toBe(0);
+  });
 
   it("escola activa sem perfil: preço mensal de tabela", () => {
     expect(revenue({})).toBe(50_000);
@@ -103,5 +108,14 @@ describe("resolveStatusChange", () => {
       resolveStatusChange({ status: "suspended", subscription_status: "active" }, "active"),
     ).toEqual({ status: "active" });
     expect(resolveStatusChange({ status: "active" }, "suspended")).toEqual({ status: "suspended" });
+  });
+});
+
+describe("isInTrial", () => {
+  it("trial, ou activa com a assinatura em trialing", () => {
+    expect(isInTrial({ status: "trial" })).toBe(true);
+    expect(isInTrial({ status: "active", subscription_status: "trialing" })).toBe(true);
+    expect(isInTrial({ status: "active", subscription_status: "active" })).toBe(false);
+    expect(isInTrial({ status: "suspended", subscription_status: "trialing" })).toBe(false);
   });
 });
