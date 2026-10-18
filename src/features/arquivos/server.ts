@@ -728,6 +728,34 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
     return { storage: "sga" as const, record: mapRow(inserted as Record<string, unknown>) };
   });
 
+/**
+ * A pasta e todas as que a contêm, até à raiz. Com limite: um ciclo antigo não
+ * prende o pedido.
+ */
+export async function folderAncestorIds(
+  db: AdminDb,
+  schoolId: string,
+  folderId: string,
+): Promise<Set<string>> {
+  const seen = new Set<string>();
+  let current: string | null = folderId;
+  while (current && !seen.has(current) && seen.size < 256) {
+    seen.add(current);
+    const result: { data: { parent_id: unknown } | null; error: { message: string } | null } =
+      await db
+        .from("siga_files")
+        .select("parent_id")
+        .eq("id", current)
+        .eq("school_id", schoolId)
+        .maybeSingle();
+    if (result.error) {
+      throw publicDatabaseError(result.error, "Não foi possível validar a pasta de destino.");
+    }
+    current = result.data?.parent_id ? String(result.data.parent_id) : null;
+  }
+  return seen;
+}
+
 export const moveSchoolFiles = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => moveSchoolFilesInputSchema.parse(input))
@@ -790,6 +818,13 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       }
       if (data.area && String(parent.area) !== data.area) {
         throw new Error("A pasta de destino pertence a outra área.");
+      }
+      // Só o caso directo (pasta para dentro de si) era recusado: com A/B, mover A
+      // para B fazia um ciclo (A dentro de B dentro de A) e as duas pastas, com tudo
+      // o que tinham, deixavam de aparecer a partir da raiz.
+      const ancestors = await folderAncestorIds(db, membership.schoolId, data.parentId);
+      if (data.ids.some((id) => ancestors.has(id))) {
+        throw new Error("Não é possível mover uma pasta para dentro de uma das suas subpastas.");
       }
     }
     const now = new Date().toISOString();
