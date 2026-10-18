@@ -29,6 +29,8 @@ export default tseslint.config(
       // Ficheiros gerados: nunca editados à mão, não há nada a corrigir neles.
       "**/*.gen.ts",
       "src/integrations/supabase/types.ts",
+      // Tipos da base SIGA (npm run siga:gen-types), separados do types.ts do Lovable.
+      "src/integrations/supabase/types.sga.ts",
       // Gerado pela integração Lovable Cloud.
       "src/integrations/supabase/previewAuthStorage.ts",
       ".claude/**",
