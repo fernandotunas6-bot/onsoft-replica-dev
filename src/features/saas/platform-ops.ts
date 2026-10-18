@@ -15,7 +15,9 @@ import type {
 } from "@/features/saas/types";
 import { isMissingTableError, profileFromRow } from "@/features/saas/tenant-billing";
 import {
+  addMonthsClamped,
   isInTrial,
+  trialExtensionError,
   isTrialExpired,
   monthlyRevenueOf,
   resolveStatusChange,
@@ -251,11 +253,18 @@ export async function updateTenantSubscription(input: {
   const db = await loadSgaAdminClient();
   const { data: tenant, error: tenantErr } = await db
     .from("tenants")
-    .select("id, status, trial_ends_at, plan_id")
+    .select("id, status, subscription_status, trial_ends_at, plan_id")
     .eq("id", input.tenantId)
     .maybeSingle();
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar a escola.");
   if (!tenant) throw new Error("Escola não encontrada.");
+  if (input.extend_trial_days && !input.confirm_payment_months && !input.confirm_payment_billing) {
+    const refusal = trialExtensionError({
+      status: String(tenant.status),
+      subscription_status: tenant.subscription_status as string | null,
+    });
+    if (refusal) throw new Error(refusal);
+  }
 
   const patch: TablesUpdate<"tenants"> = { updated_at: new Date().toISOString() };
   const metadata: Record<string, unknown> = {};
@@ -308,9 +317,7 @@ export async function updateTenantSubscription(input: {
         ? new Date(current.current_period_end)
         : null;
     const base = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
-    const end = new Date(base);
-    end.setMonth(end.getMonth() + paidMonths);
-    paidUntil = end.toISOString();
+    paidUntil = addMonthsClamped(base, paidMonths).toISOString();
     patch.subscription_status = "active";
     patch.status = "active";
     metadata.payment_confirmed = true;
