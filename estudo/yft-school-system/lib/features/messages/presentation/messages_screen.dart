@@ -14,6 +14,7 @@ import 'package:yft_school_system/features/dashboard/presentation/notices_screen
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 import 'package:yft_school_system/features/messages/application/favorite_notices.dart';
 import 'package:yft_school_system/features/messages/presentation/conversations.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 /// Mensagens: conversas 1:1 com a escola e a caixa dos comunicados (com
 /// pesquisa, não lidas e favoritas).
@@ -70,7 +71,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                         style: Theme.of(context).textTheme.displayMedium,
                       ),
                     ),
-                    if (role == UserRole.admin)
+                    // Modo SIGA: os comunicados criam-se no portal do SIGA.
+                    if (role == UserRole.admin && !sgaMode)
                       IconButton(
                         tooltip: 'Novo comunicado',
                         onPressed: () => context.push('/create-notice'),

@@ -107,6 +107,22 @@ antigas, para os ecrãs não mudarem.
   algum educando tiver factura vencida por pagar, `guardians_with_debt`.
 - Uma leitura falhada responde 503, nunca uma lista vazia.
 
+## Professor e direcção no modo SIGA
+
+- Turmas, horário e disciplinas por papel (`school-worker/src/sga/scope.ts`):
+  direcção/secretaria/tesouraria vêem as turmas do ano lectivo activo;
+  professor, as turmas onde tem disciplinas (e só essas disciplinas;
+  `/timetable?mine=1` dá os seus tempos); encarregado, as dos educandos.
+- Comunicados: o pessoal (incluindo professores) vê os publicados de todos
+  os públicos, como no SIGA; o encarregado só os do seu público.
+- Faltas da turma: `GET /api/sga/attendance/summary?class_id=` (professor das
+  suas turmas, direcção de qualquer uma), por dia como nas faltas do aluno.
+- Gestão (alunos, professores, turmas, propinas, calendário, criar
+  comunicados): no portal do SIGA. A app esconde essas entradas e mostra
+  «Gestão no portal do SIGA» (`/portal-siga`); o Início da direcção mostra o
+  resumo e as acções que funcionam na app; no do professor, «Lista de alunos»
+  dá lugar a «Lançar notas».
+
 ## Escritas: no próprio SIGA
 
 As escritas não passam pelo `school-worker`: vão para rotas `/api/mobile/*`

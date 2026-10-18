@@ -10,6 +10,7 @@ import 'app_icons.dart';
 import 'profile_photo_avatar.dart';
 import '../network/api_client.dart';
 import '../utils/media_url.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
 
 /// Os quatro separadores da barra inferior; "Mais" abre o menu lateral.
 enum AppTab { home, subjects, calendar, messages }
@@ -169,7 +170,29 @@ class _MenuEntry {
   const _MenuEntry(this.icon, this.label, this.route);
 }
 
+/// Modo SIGA: rotas que ainda usam a API antiga (gestão da escola) e que no
+/// SIGA se fazem no portal. Escondem-se do menu.
+const _legacyOnlyRoutes = {
+  '/teachers',
+  '/admin-student-classes',
+  '/classes',
+  '/finance',
+  '/students-finance',
+  '/academic-calendar',
+};
+
 List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i) {
+  final all = _allEntriesFor(role, i);
+  if (!sgaMode) return all;
+  return [
+    for (final e in all)
+      if (!_legacyOnlyRoutes.contains(e.route)) e,
+    if (role == UserRole.admin)
+      _MenuEntry(i.portal, 'Gestão no portal do SIGA', '/portal-siga'),
+  ];
+}
+
+List<_MenuEntry> _allEntriesFor(UserRole? role, AppIcons i) {
   return [
     _MenuEntry(i.profile, 'Meu perfil', '/personal-info'),
     if (role == UserRole.parent) ...[

@@ -54,6 +54,7 @@ import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:yft_school_system/core/sga/sga_providers.dart';
 import 'package:yft_school_system/features/grading/presentation/sga_attendance_screen.dart';
 import 'package:yft_school_system/features/grading/presentation/sga_grades_screen.dart';
+import 'package:yft_school_system/features/profile/presentation/sga_portal_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -184,6 +185,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/payment-history',
       builder: (context, state) => const PaymentHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/portal-siga',
+      builder: (context, state) => const SgaPortalScreen(),
     ),
     GoRoute(
       path: '/notices',

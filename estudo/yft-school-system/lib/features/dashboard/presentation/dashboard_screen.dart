@@ -16,6 +16,8 @@ import 'package:yft_school_system/features/dashboard/presentation/widgets/home_s
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/utils/media_url.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/widgets/section_widgets.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -55,7 +57,7 @@ class DashboardScreen extends ConsumerWidget {
                   const _HomeHeader(),
                   const SizedBox(height: 20),
                   if (role == UserRole.admin)
-                    const AdminDashboard()
+                    sgaMode ? const SgaAdminDashboard() : const AdminDashboard()
                   else if (role == UserRole.teacher)
                     const TeacherDashboard()
                   else
@@ -269,12 +271,21 @@ class TeacherDashboard extends ConsumerWidget {
               color: AppColors.surface,
               onTap: () => context.push('/attendance'),
             ),
-            _ActionCard(
-              title: 'Lista de\nalunos',
-              icon: LucideIcons.users,
-              color: AppColors.primary,
-              onTap: () => context.push('/student-search'),
-            ),
+            // Modo SIGA: a lista de alunos é do portal; aqui, as notas.
+            if (sgaMode)
+              _ActionCard(
+                title: 'Lançar\nnotas',
+                icon: LucideIcons.award,
+                color: AppColors.primary,
+                onTap: () => context.push('/results-setup'),
+              )
+            else
+              _ActionCard(
+                title: 'Lista de\nalunos',
+                icon: LucideIcons.users,
+                color: AppColors.primary,
+                onTap: () => context.push('/student-search'),
+              ),
             _ActionCard(
               title: 'Total de\npresenças',
               icon: LucideIcons.barChart3,
@@ -286,6 +297,73 @@ class TeacherDashboard extends ConsumerWidget {
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               onTap: () => context.push('/notices'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Modo SIGA: a direcção gere a escola no portal do SIGA; na app vê o resumo
+/// e o que se faz daqui (faltas, comunicados, mensagens, calendário).
+class SgaAdminDashboard extends ConsumerWidget {
+  const SgaAdminDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final classCount = ref.watch(classesProvider).whenOrNull(data: (d) => d.length);
+    return Column(
+      children: [
+        _SummaryCard(
+          title: 'Resumo',
+          rows: [_SummaryRow(label: 'Turmas do ano lectivo', value: classCount?.toString() ?? '…')],
+        ),
+        const SizedBox(height: 16),
+        SoftCard(
+          onTap: () => context.push('/portal-siga'),
+          child: Row(
+            children: [
+              Icon(LucideIcons.externalLink, size: 20, color: AppColors.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Alunos, professores, turmas e propinas geram-se no portal do SIGA.',
+                  style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        ResponsiveGrid(
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          children: [
+            _ActionCard(
+              title: 'Faltas\ndas turmas',
+              icon: LucideIcons.barChart3,
+              color: AppColors.primary,
+              onTap: () => context.push('/total-attendance'),
+            ),
+            _ActionCard(
+              title: 'Comunicados\nda escola',
+              icon: LucideIcons.megaphone,
+              color: AppColors.surface,
+              onTap: () => context.push('/notices'),
+            ),
+            _ActionCard(
+              title: 'Mensagens',
+              icon: LucideIcons.messageCircle,
+              color: AppColors.surface,
+              onTap: () => context.go('/mensagens'),
+            ),
+            _ActionCard(
+              title: 'Calendário',
+              icon: LucideIcons.calendarDays,
+              color: AppColors.surface,
+              onTap: () => context.go('/calendario'),
             ),
           ],
         ),

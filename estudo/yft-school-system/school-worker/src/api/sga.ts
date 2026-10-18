@@ -28,6 +28,7 @@ import {
   type SgaUser,
 } from '../sga/identity';
 import { loadGradeYears, loadReportCard } from '../sga/grades';
+import { classScope, loadClassAttendanceSummary } from '../sga/scope';
 import { loadClassSubjectGrades, loadTeacherAssignments } from '../sga/teacher';
 import { SgaDb, SgaError, inList } from '../sga/rest';
 
@@ -106,17 +107,43 @@ sga.get('/wards', async (c) => {
   });
 });
 
-/** Horário da turma de um educando (?class_id=); sem turma, o da primeira. */
+/**
+ * Horário de uma turma visível (?class_id=; sem turma, a primeira). Com
+ * ?mine=1, o professor recebe os seus tempos em todas as turmas.
+ */
 sga.get('/timetable', async (c) => {
-  requireGuardian(c);
+  const db = c.get('sgaDb');
   const { schoolId } = c.get('membership');
-  const wards = await loadWards(c.get('sgaDb'), schoolId, c.get('sgaUser'));
-  const classes = [...new Set(wards.map((w) => w.classGroupId).filter((x): x is string => !!x))];
+  const scope = await classScope(db, c.get('membership'), c.get('sgaUser'));
+  if (scope.kind === 'none') throw new SgaError(403, 'NO_ROLE');
+  if (c.req.query('mine') === '1') {
+    if (scope.kind !== 'teacher') return c.json({ data: [] });
+    const all = await Promise.all(
+      scope.classes.map(async (cl) => {
+        const mineHere = scope.teacherSubjects?.get(cl.id) ?? new Set<string>();
+        return (await loadClassTimetable(db, schoolId, cl.id)).filter((s) => s.subject_id && mineHere.has(s.subject_id));
+      }),
+    );
+    return c.json({
+      data: all.flat().sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time)),
+    });
+  }
+  const ids = scope.classes.map((cl) => cl.id);
   const requested = c.req.query('class_id')?.trim();
-  if (requested && !classes.includes(requested)) throw new SgaError(404, 'CLASS_NOT_FOUND');
-  const classId = requested || classes[0];
+  if (requested && !ids.includes(requested)) throw new SgaError(404, 'CLASS_NOT_FOUND');
+  const classId = requested || ids[0];
   if (!classId) return c.json({ data: [] });
-  return c.json({ data: await loadClassTimetable(c.get('sgaDb'), schoolId, classId) });
+  return c.json({ data: await loadClassTimetable(db, schoolId, classId) });
+});
+
+/** Faltas da turma por aluno: professor das suas turmas, direcção de qualquer uma. */
+sga.get('/attendance/summary', async (c) => {
+  const classId = c.req.query('class_id')?.trim();
+  if (!classId) throw new SgaError(422, 'INVALID_INPUT');
+  const scope = await classScope(c.get('sgaDb'), c.get('membership'), c.get('sgaUser'));
+  if (scope.kind !== 'teacher' && scope.kind !== 'manager') throw new SgaError(403, 'STAFF_ONLY');
+  if (!scope.classes.some((cl) => cl.id === classId)) throw new SgaError(404, 'CLASS_NOT_FOUND');
+  return c.json(await loadClassAttendanceSummary(c.get('sgaDb'), c.get('membership').schoolId, classId));
 });
 
 /** Faltas de um educando. Outro aluno responde 404, como um que não existe. */
@@ -149,15 +176,13 @@ sga.get('/grades/years', async (c) => {
   return c.json(await loadGradeYears(c.get('sgaDb'), c.get('membership').schoolId, studentId));
 });
 
-/** Turmas activas dos educandos, no formato de GET /api/classes. */
+/** Turmas visíveis à conta (ver sga/scope.ts), no formato de GET /api/classes. */
 sga.get('/classes', async (c) => {
-  requireGuardian(c);
   const { schoolId } = c.get('membership');
-  const wards = await loadWards(c.get('sgaDb'), schoolId, c.get('sgaUser'));
-  const seen = new Map<string, string>();
-  for (const w of wards) if (w.classGroupId) seen.set(w.classGroupId, w.className ?? 'Turma');
+  const scope = await classScope(c.get('sgaDb'), c.get('membership'), c.get('sgaUser'));
+  if (scope.kind === 'none') throw new SgaError(403, 'NO_ROLE');
   return c.json({
-    data: [...seen].map(([id, name]) => ({ id, school_id: schoolId, class_name: name, level: null })),
+    data: scope.classes.map((cl) => ({ id: cl.id, school_id: schoolId, class_name: cl.name, level: null })),
   });
 });
 
@@ -166,14 +191,28 @@ sga.get('/academic-calendar', async (c) => {
   return c.json({ data: await loadAcademicCalendar(c.get('sgaDb'), c.get('membership').schoolId) });
 });
 
-/** Disciplinas das turmas dos educandos (?class_id= para uma delas). */
+/**
+ * Disciplinas das turmas visíveis (?class_id= para uma delas). O professor
+ * vê só as que lhe estão atribuídas.
+ */
 sga.get('/subjects', async (c) => {
-  requireGuardian(c);
   const db = c.get('sgaDb');
   const { schoolId } = c.get('membership');
-  const wards = await loadWards(db, schoolId, c.get('sgaUser'));
-  const classes = [...new Set(wards.map((w) => w.classGroupId).filter((x): x is string => !!x))];
-  return c.json({ data: await loadWardSubjects(db, schoolId, classes, c.req.query('class_id')?.trim() || undefined) });
+  const scope = await classScope(db, c.get('membership'), c.get('sgaUser'));
+  if (scope.kind === 'none') throw new SgaError(403, 'NO_ROLE');
+  const subjects = await loadWardSubjects(
+    db,
+    schoolId,
+    scope.classes.map((cl) => cl.id),
+    c.req.query('class_id')?.trim() || undefined,
+  );
+  if (scope.kind !== 'teacher') return c.json({ data: subjects });
+  const mine = scope.teacherSubjects ?? new Map<string, Set<string>>();
+  return c.json({
+    data: subjects
+      .map((s) => ({ ...s, class_ids: s.class_ids.filter((cl) => mine.get(cl)?.has(s.id)) }))
+      .filter((s) => s.class_ids.length > 0),
+  });
 });
 
 /** Turmas e disciplinas que o professor lecciona. */
@@ -203,13 +242,22 @@ sga.get('/finance/receipts', async (c) => {
   return c.json({ data: await loadReceipts(db, schoolId, wards) });
 });
 
-/** Comunicados publicados para encarregados (e, com dívida vencida, os de cobrança). */
+/** Pessoal da escola: vê os comunicados de todos os públicos, como no SIGA. */
+const ANNOUNCEMENT_STAFF = ['Administrador', 'Secretaria', 'Tesouraria', 'Professor'];
+
+/**
+ * Comunicados publicados (rascunhos e agendados ficam no SIGA). O pessoal vê
+ * todos os públicos; o encarregado vê os dos encarregados e, com dívida
+ * vencida, os de cobrança.
+ */
 sga.get('/notices', async (c) => {
-  requireGuardian(c);
   const db = c.get('sgaDb');
-  const { schoolId } = c.get('membership');
+  const membership = c.get('membership');
+  const { schoolId } = membership;
+  const staff = membership.roles.some((r) => ANNOUNCEMENT_STAFF.includes(r));
+  if (!staff) requireGuardian(c);
   const audiences = ['all_guardians'];
-  if (await hasOverdueInvoice(db, schoolId, await wardIds(db, schoolId, c.get('sgaUser')))) {
+  if (!staff && (await hasOverdueInvoice(db, schoolId, await wardIds(db, schoolId, c.get('sgaUser'))))) {
     audiences.push('guardians_with_debt');
   }
   const rows = await db.select<{
@@ -224,7 +272,7 @@ sga.get('/notices', async (c) => {
     school_id: `eq.${schoolId}`,
     status: 'eq.sent',
     deleted_at: 'is.null',
-    audience: inList(audiences),
+    ...(staff ? {} : { audience: inList(audiences) }),
     order: 'published_at.desc.nullslast,created_at.desc',
     limit: '100',
   });

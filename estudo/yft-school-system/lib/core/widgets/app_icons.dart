@@ -31,4 +31,5 @@ class AppIcons {
   IconData get academicCalendar => modern ? LucideIcons.calendarRange : Icons.date_range_rounded;
   IconData get bell => modern ? LucideIcons.bell : Icons.notifications_none_rounded;
   IconData get search => modern ? LucideIcons.search : Icons.search_rounded;
+  IconData get portal => modern ? LucideIcons.externalLink : Icons.open_in_new_rounded;
 }

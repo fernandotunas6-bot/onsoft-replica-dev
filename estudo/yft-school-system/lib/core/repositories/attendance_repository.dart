@@ -103,7 +103,7 @@ class AttendanceRepository {
 
   Future<AttendanceSummary> summary(String classId) async {
     final res = await _dio.get(
-      ApiEndpoints.attendanceSummary,
+      sgaMode ? ApiEndpoints.sgaAttendanceSummary : ApiEndpoints.attendanceSummary,
       queryParameters: {'class_id': classId},
     );
     final list = (res.data['data'] as List).cast<Map<String, dynamic>>();

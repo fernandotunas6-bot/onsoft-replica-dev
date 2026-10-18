@@ -82,12 +82,12 @@ const tables: Record<string, Row[]> = {
 		{ id: "ts-7b", school_id: S1, class_subject_id: "cs-other", weekday: 1, starts_at: "07:30:00", ends_at: "08:15:00", room: null, status: "active" },
 	],
 	siga_attendance_sessions: [
-		{ id: "ss-1", school_id: S1, lesson_date: "2026-10-05", academic_year_id: "ay-1", status: "completed" },
-		{ id: "ss-2", school_id: S1, lesson_date: "2026-10-05", academic_year_id: "ay-1", status: "completed" },
-		{ id: "ss-3", school_id: S1, lesson_date: "2026-10-06", academic_year_id: "ay-1", status: "completed" },
-		{ id: "ss-4", school_id: S1, lesson_date: "2026-10-07", academic_year_id: "ay-1", status: "completed" },
-		{ id: "ss-5", school_id: S1, lesson_date: "2026-10-08", academic_year_id: "ay-1", status: "completed" },
-		{ id: "ss-cancel", school_id: S1, lesson_date: "2026-10-09", academic_year_id: "ay-1", status: "cancelled" },
+		{ id: "ss-1", school_id: S1, class_group_id: "cg-10a", lesson_date: "2026-10-05", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-2", school_id: S1, class_group_id: "cg-10a", lesson_date: "2026-10-05", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-3", school_id: S1, class_group_id: "cg-10a", lesson_date: "2026-10-06", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-4", school_id: S1, class_group_id: "cg-10a", lesson_date: "2026-10-07", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-5", school_id: S1, class_group_id: "cg-10a", lesson_date: "2026-10-08", academic_year_id: "ay-1", status: "completed" },
+		{ id: "ss-cancel", school_id: S1, class_group_id: "cg-10a", lesson_date: "2026-10-09", academic_year_id: "ay-1", status: "cancelled" },
 		{ id: "ss-old", school_id: S1, lesson_date: "2025-10-09", academic_year_id: "ay-0", status: "completed" },
 	],
 	siga_attendance_records: [
@@ -266,7 +266,9 @@ describe("API SGA", () => {
 
 	it("/wards e /notices são só para encarregados", async () => {
 		expect((await get("/wards", "tok-teacher")).status).toBe(403);
-		expect((await get("/notices", "tok-teacher")).status).toBe(403);
+		// O professor vê os comunicados publicados de todos os públicos, desta escola.
+		const t = (await (await get("/notices", "tok-teacher")).json()) as { data: { id: string }[] };
+		expect(t.data.map((n) => n.id).sort()).toEqual(["n-all", "n-debt", "n-staff"]);
 	});
 
 	it("/notices: publicados para encarregados, os de dívida só com factura vencida, só desta escola", async () => {
@@ -299,7 +301,8 @@ describe("API SGA", () => {
 		]);
 		// Turma que não é de nenhum educando desta conta.
 		expect((await get("/timetable?class_id=cg-9a", "tok-email")).status).toBe(404);
-		expect((await get("/timetable", "tok-teacher")).status).toBe(403);
+		// Turma onde o professor não dá aulas.
+		expect((await get("/timetable?class_id=cg-7b", "tok-teacher")).status).toBe(404);
 	});
 
 	it("/attendance: dias com falta e dias de presença; outro aluno é 404", async () => {
@@ -395,7 +398,8 @@ describe("API SGA", () => {
 			{ id: "cg-10a", school_id: S1, class_name: "10.ª A", level: null },
 			{ id: "cg-7b", school_id: S1, class_name: "7.ª B", level: null },
 		]);
-		expect((await get("/classes", "tok-teacher")).status).toBe(403);
+		const teacher = (await (await get("/classes", "tok-teacher")).json()) as { data: { id: string }[] };
+		expect(teacher.data.map((c) => c.id)).toEqual(["cg-10a"]);
 	});
 
 	it("/teacher/classes: as disciplinas que o professor dá, com a turma", async () => {
@@ -432,5 +436,31 @@ describe("API SGA", () => {
 			tables.siga_attendance_records.splice(-1500);
 			tables.siga_attendance_sessions.splice(-1500);
 		}
+	});
+
+	it("professor: os seus tempos (mine=1), só as suas disciplinas; direcção: turmas do ano activo", async () => {
+		const mine = (await (await get("/timetable?mine=1", "tok-teacher")).json()) as { data: { id: string; subject_name: string }[] };
+		// Na 10.ª A dá Matemática, não Português (ts-2); a 7.ª B não é sua.
+		expect(mine.data.map((s) => s.id)).toEqual(["ts-1"]);
+		const subjects = (await (await get("/subjects", "tok-teacher")).json()) as { data: { id: string; class_ids: string[] }[] };
+		expect(subjects.data).toEqual([expect.objectContaining({ id: "sub-mat", class_ids: ["cg-10a"] })]);
+		// Encarregado com mine=1: nada (não é professor).
+		expect(((await (await get("/timetable?mine=1", "tok-guardian")).json()) as { data: unknown[] }).data).toEqual([]);
+
+		const admin = (await (await get("/classes", "tok-admin")).json()) as { data: { id: string }[] };
+		expect(admin.data.map((c) => c.id)).toEqual(["cg-10a"]);
+		const adminTt = (await (await get("/timetable?class_id=cg-10a", "tok-admin")).json()) as { data: unknown[] };
+		expect(adminTt.data).toHaveLength(2);
+		const adminSubjects = (await (await get("/subjects", "tok-admin")).json()) as { data: { id: string }[] };
+		expect(adminSubjects.data.map((s) => s.id)).toEqual(["sub-fis", "sub-mat", "sub-por"]);
+	});
+
+	it("/attendance/summary: faltas por aluno da turma, só para o professor dela e a direcção", async () => {
+		const body = (await (await get("/attendance/summary?class_id=cg-10a", "tok-teacher")).json()) as Record<string, unknown>;
+		// Ana: dia 05 com falta; 06 (atraso) e 07 (justificada) presentes; cancelada e de outro ano não contam.
+		expect(body).toEqual({ data: [{ student_id: "st-ana", name: "Ana Silva", present_days: 2, absent_days: 1 }], days_marked: 3 });
+		expect((await get("/attendance/summary?class_id=cg-7b", "tok-teacher")).status).toBe(404);
+		expect((await get("/attendance/summary?class_id=cg-10a", "tok-guardian")).status).toBe(403);
+		expect((await get("/attendance/summary?class_id=cg-10a", "tok-admin")).status).toBe(200);
 	});
 });
