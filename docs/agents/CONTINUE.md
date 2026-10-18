@@ -4,6 +4,19 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Lovable e o main (2026-10-17/18) — ler antes de mexer em tipos ou fazer merge
+
+- **Tipos**: o código usa `src/integrations/supabase/types.sga.ts` (produção, gerado por
+  `npm run siga:gen-types`). O `types.ts` é do Lovable e pode descrever outra base — não o
+  usar nem «corrigir». `tsconfig.json` mapeia `@/integrations/supabase/types` para o `.sga`.
+- **Merge destrutivo**: a 17/10 o Lovable uniu uma cópia de 15/10 (`cbc5f322`) e ficou só com
+  esse lado (733 ficheiros, 45 commits). Reposto no #174 com um merge `ours` aprovado pelo
+  dono. Antes de cada PR, `git log origin/main` e confirmar que o diff do main não apaga
+  trabalho.
+- **#148** (número de aluno + numeração 1+ano+4 dígitos): actualizado com o main, CI verde,
+  sem merge — espera decisão do dono. A migração `20261012140000_numbering_one_year_digits.sql`
+  renumera alunos reais: só depois do ensaio em cópia (ver `NUMBERING_148_VALIDATION.md`).
+
 ## Painel ADMIN SaaS — auditoria e correcções (2026-10-17)
 
 Ponto de partida: auditoria às páginas de escolas, subscrições, fila, painel e login do ADMIN.
@@ -21,6 +34,9 @@ Ponto de partida: auditoria às páginas de escolas, subscrições, fila, painel
   operacional por escola (trial expirado, atraso, criação falhada; ignora isentas); gate envia
   sessões sem MFA de volta ao 2.º passo e guarda a página de origem em `next`.
 - Testes: `tests/saas/admin-stats-rules.test.ts`.
+- #175: páginas de erro do ADMIN num só ecrã (pt-PT); auditoria com filtro; demos do
+  template redireccionam no navegador (`AliveBridgeGate`), porque o ADMIN publicado é
+  estático e o proxy não corre.
 
 Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e epatuloko
 (trial expirado → «Prolongar trial» ou «Pausar cobranças»).
