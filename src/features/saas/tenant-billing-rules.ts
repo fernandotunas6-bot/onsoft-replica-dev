@@ -606,6 +606,37 @@ export function isInTrial(tenant: { status: string; subscription_status?: string
   );
 }
 
+/**
+ * Soma meses sem transbordar: 31/01 + 1 mês é 28/02 (ou 29), não 03/03.
+ * `Date#setMonth` transbordava e um mês pago virava um mês e três dias.
+ */
+export function addMonthsClamped(date: Date, months: number): Date {
+  const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
+}
+
+/**
+ * Prolongar o trial só serve a quem ainda não paga. Numa escola com a assinatura
+ * activa, a extensão punha-a de volta em `trialing` e, no fim desse trial, o
+ * SIGA bloqueava uma escola que tinha pago.
+ */
+export function trialExtensionError(tenant: {
+  status: string;
+  subscription_status?: string | null;
+}): string | null {
+  if (tenant.status === "active" && tenant.subscription_status === "active") {
+    return "Esta escola já paga: para dar mais tempo, registe o pagamento recebido (Gerir → Pagamento recebido) ou pause as cobranças.";
+  }
+  return null;
+}
+
 /** Trial terminado sem isenção: o SIGA bloqueia as gravações. */
 export function isTrialExpired(
   tenant: {
