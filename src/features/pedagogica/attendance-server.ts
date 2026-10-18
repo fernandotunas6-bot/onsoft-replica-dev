@@ -603,6 +603,9 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
     if (session.status === "completed") {
       throw new Error("Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.");
     }
+    if (session.status === "cancelled") {
+      throw new Error("Esta aula foi cancelada: não tem chamada.");
+    }
 
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
@@ -925,7 +928,9 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         .from("siga_attendance_records")
         .update({ status: "excused", updated_at: new Date().toISOString() })
         .eq("school_id", membership.schoolId)
-        .eq("id", just.attendance_record_id);
+        .eq("id", just.attendance_record_id)
+        // Justificar não apaga uma presença: um registo «presente» fica como está.
+        .neq("status", "present");
       if (excuseError) {
         throw publicDatabaseError(excuseError, "Justificação aprovada, mas a falta não mudou.");
       }

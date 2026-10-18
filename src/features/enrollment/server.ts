@@ -587,16 +587,34 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
 
         const guardianName = String(payload.guardianName ?? "").trim();
         let guardianPersonId: string | null = null;
-        if (guardianName) {
+        const guardianPhone = payload.guardianPhone
+          ? (normalizeStoredPhone(payload.guardianPhone) ?? payload.guardianPhone)
+          : null;
+        // Irmãos com o mesmo encarregado: reaproveita a pessoa desta escola com o
+        // mesmo telefone e o mesmo nome, em vez de criar outra a cada candidatura.
+        if (guardianName && guardianPhone) {
+          const { data: sameGuardian } = await db
+            .from("people")
+            .select("id, full_name")
+            .eq("school_id", membership.schoolId)
+            .eq("phone", guardianPhone)
+            .is("deleted_at", null)
+            .limit(10);
+          const sameName = (value: string) =>
+            value.normalize("NFD").replace(/\p{M}/gu, "").replace(/\s+/g, " ").trim().toLowerCase();
+          const match = (sameGuardian ?? []).find(
+            (row) => sameName(String(row.full_name ?? "")) === sameName(guardianName),
+          );
+          if (match) guardianPersonId = String(match.id);
+        }
+        if (guardianName && !guardianPersonId) {
           const { data: guardianPerson, error: guardianError } = await db
             .from("people")
             .insert({
               school_id: membership.schoolId,
               full_name: guardianName,
               preferred_name: guardianName.split(/\s+/)[0],
-              phone: payload.guardianPhone
-                ? (normalizeStoredPhone(payload.guardianPhone) ?? payload.guardianPhone)
-                : null,
+              phone: guardianPhone,
               status: "active",
               created_by: context.userId,
               updated_by: context.userId,
