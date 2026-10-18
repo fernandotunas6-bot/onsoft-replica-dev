@@ -3,6 +3,7 @@ import type { AppEnv } from '../app-env';
 import { requireSuperAdminKey } from '../lib/auth-guards';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
+import { detectImageKind } from '../lib/media-type';
 import { createTempPassword } from '../lib/password';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
@@ -312,27 +313,31 @@ superAdmin.post('/upload-logo', async (c) => {
     return jsonError(c, 'Falta o ficheiro no campo "logo"', 400);
   }
 
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
-  if (!allowedTypes.includes(file.type)) {
-    return jsonError(c, `Invalid file type "${file.type}". Allowed: png, jpeg, webp, svg`, 400);
-  }
-
   const maxSize = 2 * 1024 * 1024;
   if (file.size > maxSize) {
     return jsonError(c, 'Ficheiro demasiado grande. O máximo é 2 MB', 400);
   }
 
-  const mimeToExt: Record<string, string> = {
-    'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg',
-  };
-  const ext = mimeToExt[file.type] ?? 'png';
-  const key = `logos/${createPrefixedId('logo')}.${ext}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.byteLength === 0 || bytes.byteLength > maxSize) {
+    return jsonError(c, 'Ficheiro demasiado grande. O máximo é 2 MB', 400);
+  }
 
-  await c.env.MEDIA_BUCKET.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type },
+  // O tipo é decidido pelo conteúdo. Antes bastava anunciar `image/png` para o
+  // ficheiro ser guardado e devolvido com esse Content-Type. O SVG é aceite no
+  // logótipo, mas é servido com Content-Security-Policy em index.ts.
+  const kind = detectImageKind(bytes, true);
+  if (!kind) {
+    // Sem repetir o que o cliente enviou: o que ele declara não interessa.
+    return jsonError(c, 'Só são aceites imagens PNG, JPEG, WebP ou SVG', 400);
+  }
+  const key = `logos/${createPrefixedId('logo')}.${kind.extension}`;
+
+  await c.env.MEDIA_BUCKET.put(key, bytes, {
+    httpMetadata: { contentType: kind.contentType },
   });
 
-  return jsonOk(c, { key, content_type: file.type }, 201);
+  return jsonOk(c, { key, content_type: kind.contentType }, 201);
 });
 
 superAdmin.post('/onboard-school', async (c) => {

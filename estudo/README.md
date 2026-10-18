@@ -171,3 +171,25 @@ actualizado para o texto novo), `flutter build web` concluído, e no Worker
    4A»). Os valores do Gana foram retirados, mas o ecrã devia ser apagado: um
    recibo com dados inventados é uma armadilha. O caminho vivo é
    `fee_receipt_view_screen` com `FeeReceiptTemplate` e `buildFeeReceiptPdf`.
+
+
+## Revisão de segurança (18/10/2026)
+
+Relatório em `yft-school-system/docs/REVISAO_SEGURANCA.md`. Resumo:
+
+Corrigido: (1) uma conta apagada da base continuava a entrar com o `school_id`
+e o `role` das claims do token — a identidade passa a vir sempre da tabela
+`Users`; (2) o tipo das imagens enviadas era o que o cliente declarava, e era
+esse o `Content-Type` com que `GET /media/*` as devolvia — passa a ser decidido
+pela assinatura dos bytes; (3) as mensagens de erro do middleware e do `/media`
+estavam em inglês. Dez testes `vitest` a passar (eram seis), `tsc` sem erros e
+`wrangler deploy --dry-run` a empacotar.
+
+Por decidir, com a mais grave em primeiro: `Schools.default_password` nasce
+`'Welcome@123'`, é igual para toda a escola, fica em texto limpo na base e é a
+senha real com que as contas de professores e encarregados são criadas, sem
+obrigar a trocá-la. Conhecer o e-mail de um encarregado basta para entrar na
+conta dele. A correcção muda o percurso de quem usa a app — senha temporária por
+conta, mostrada uma vez, mais troca obrigatória na primeira entrada — e por isso
+não foi feita sem a sua decisão. A seguir: `/media/*` é público e serve
+fotografias de alunos com validade de um ano.
