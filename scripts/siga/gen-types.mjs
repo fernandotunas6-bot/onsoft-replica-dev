@@ -20,7 +20,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const DESTINO = resolve(root, "src/integrations/supabase/types.ts");
+const DESTINO = resolve(root, "src/integrations/supabase/types.sga.ts");
 
 export const CABECALHO = `/**
  * Tipos gerados a partir da produção — não editar à mão.
