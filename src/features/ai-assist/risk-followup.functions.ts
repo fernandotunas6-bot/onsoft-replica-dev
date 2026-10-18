@@ -41,7 +41,25 @@ async function ctx(userId: string, mode: "read" | "write" = "read") {
     [...ROLES],
   );
   const db = await loadSgaAdminClient();
-  return { schoolId: membership.schoolId, db };
+  // Quem é só professor vê e grava os casos das turmas que lecciona (ou de que é
+  // director de turma). Antes via e alterava os casos de risco de toda a escola,
+  // com intervenções como «acompanhamento psicológico».
+  const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+  let classScope: Set<string> | null = null;
+  if (!roles.some((role) => role === "Administrador" || role === "Secretaria")) {
+    const { ownTeacherId } = await import("@/features/academic/own-teacher");
+    const { teacherClassGroupIds } = await import("@/features/students/student-scope");
+    const teacherId = await ownTeacherId(db, membership.schoolId, userId);
+    classScope = new Set(
+      teacherId ? await teacherClassGroupIds(db, membership.schoolId, teacherId) : [],
+    );
+  }
+  const assertClassInScope = (classGroupId: string | null | undefined) => {
+    if (classScope && (!classGroupId || !classScope.has(classGroupId))) {
+      throw new Error("Só pode acompanhar alunos das turmas que lecciona.");
+    }
+  };
+  return { schoolId: membership.schoolId, db, classScope, assertClassInScope };
 }
 
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
@@ -49,11 +67,11 @@ const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : 
 export const listRiskCases = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<RiskCase[]> => {
-    const { schoolId, db } = await ctx(context.userId);
-    const { data: cases, error } = await db
-      .from("student_risk_cases")
-      .select("*")
-      .eq("school_id", schoolId)
+    const { schoolId, db, classScope } = await ctx(context.userId);
+    if (classScope && classScope.size === 0) return [];
+    let casesQuery = db.from("student_risk_cases").select("*").eq("school_id", schoolId);
+    if (classScope) casesQuery = casesQuery.in("class_group_id", [...classScope]);
+    const { data: cases, error } = await casesQuery
       .order("updated_at", { ascending: false })
       .limit(500);
     if (error) throw new Error("Não foi possível carregar o acompanhamento.");
@@ -119,7 +137,8 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => saveSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { schoolId, db } = await ctx(context.userId, "write");
+    const { schoolId, db, assertClassInScope } = await ctx(context.userId, "write");
+    assertClassInScope(data.classGroupId || null);
     // Só matrículas desta escola (e da turma indicada, quando há turma): o ecrã
     // não decide a que alunos se abre um caso.
     let enrollmentQuery = db
@@ -132,11 +151,15 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
       );
     if (data.classGroupId)
       enrollmentQuery = enrollmentQuery.eq("class_group_id", data.classGroupId);
-    const { data: validRows } = await enrollmentQuery;
+    const { data: validRows, error: validError } = await enrollmentQuery;
+    if (validError) throw new Error("Não foi possível confirmar os alunos da análise.");
     const valid = new Set((validRows ?? []).map((e: { id: string }) => String(e.id)));
     data.students = data.students.filter((s) => valid.has(s.enrollment_id));
     const enrollmentIds = data.students.map((s) => s.enrollment_id);
     if (!enrollmentIds.length) return { saved: 0 };
+    // O nome gravado no caso é o da base, não o que o ecrã mandou.
+    const { studentNames } = await import("@/features/academic/exam-data");
+    const names = await studentNames(db, schoolId, enrollmentIds);
     const { data: existing } = await db
       .from("student_risk_cases")
       .select("id, enrollment_id, baseline_average")
@@ -156,7 +179,7 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
         school_id: schoolId,
         enrollment_id: s.enrollment_id,
         class_group_id: data.classGroupId || null,
-        student_name: s.name,
+        student_name: names.get(s.enrollment_id)?.name ?? s.name,
         class_group_name: data.classGroupName,
         risk_level: s.risk,
         reasons: s.reasons,
@@ -185,7 +208,10 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
         created_by: context.userId,
       };
     });
-    if (log.length) await db.from("student_risk_interventions").insert(log);
+    if (log.length) {
+      const { error: logError } = await db.from("student_risk_interventions").insert(log);
+      if (logError) throw new Error("Casos guardados, mas o histórico da análise não ficou.");
+    }
     return { saved: log.length };
   });
 
@@ -207,14 +233,15 @@ export const addRiskIntervention = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => interventionSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { schoolId, db } = await ctx(context.userId, "write");
+    const { schoolId, db, assertClassInScope } = await ctx(context.userId, "write");
     const { data: c } = await db
       .from("student_risk_cases")
-      .select("id, risk_level, latest_average")
+      .select("id, risk_level, latest_average, class_group_id")
       .eq("id", data.caseId)
       .eq("school_id", schoolId)
       .maybeSingle();
     if (!c) throw new Error("Caso não encontrado.");
+    assertClassInScope(c.class_group_id ? String(c.class_group_id) : null);
     const { error } = await db.from("student_risk_interventions").insert({
       case_id: c.id,
       school_id: schoolId,
@@ -227,7 +254,13 @@ export const addRiskIntervention = createServerFn({ method: "POST" })
     });
     if (error) throw new Error("Não foi possível registar a intervenção.");
     if (data.status) {
-      await db.from("student_risk_cases").update({ status: data.status }).eq("id", c.id);
+      const { error: statusError } = await db
+        .from("student_risk_cases")
+        .update({ status: data.status })
+        .eq("id", c.id);
+      if (statusError) {
+        throw new Error("Intervenção registada, mas o estado do caso não mudou.");
+      }
     }
     return { ok: true };
   });
@@ -257,7 +290,8 @@ export const saveAutomaticRiskSignals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => automaticSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { schoolId, db } = await ctx(context.userId, "write");
+    const { schoolId, db, assertClassInScope } = await ctx(context.userId, "write");
+    assertClassInScope(data.classGroupId);
     const { studentNames } = await import("@/features/academic/exam-data");
     const { data: group } = await db
       .from("class_groups")
@@ -335,6 +369,9 @@ export const saveAutomaticRiskSignals = createServerFn({ method: "POST" })
         created_by: context.userId,
       });
     }
-    if (log.length) await db.from("student_risk_interventions").insert(log);
+    if (log.length) {
+      const { error: logError } = await db.from("student_risk_interventions").insert(log);
+      if (logError) throw new Error("Sinais guardados, mas o histórico não ficou.");
+    }
     return { saved: log.length };
   });

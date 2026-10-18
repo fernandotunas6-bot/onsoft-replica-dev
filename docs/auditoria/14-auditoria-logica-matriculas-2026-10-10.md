@@ -548,3 +548,57 @@ Por decidir (dono):
   consulta; as antigas, sem perfil, nunca. Qual das duas é a regra?
 - **AD4:** dois administradores da plataforma a retirarem-se um ao outro ao mesmo tempo podem
   deixar a plataforma sem nenhum (a contagem é lida antes de apagar).
+
+## 22. Catracas, códigos OTP, acompanhamento de risco, planos e Arquivos (2026-10-18)
+
+Catracas:
+
+- **CT1 (alto) — Manutenção anulada por uma leitura.** O webhook do leitor gravava
+  `status: "online"` a cada leitura: numa catraca posta em «Manutenção» ou «Offline» pelo
+  administrador, a primeira leitura era recusada e a segunda já passava. Grava só o sinal de vida.
+- **CT2 — Lista offline.** Levava o QR e a tag RFID de todos os cartões a quem só tinha
+  leitura em Gestão (dava para clonar cartões); pede escrita, como revelar a chave de uma
+  catraca. Lê todos os cartões (acima de 1000 saía cortada).
+- **CT3 — Reconciliação portaria/aula em UTC.** Uma entrada às 08:40 de Luanda contava como
+  07:40 e não era tardia; o dia começava à 01:00; a hora mostrada era a UTC; podia contar uma
+  entrada que não era a primeira. Passa ao dia e à hora de Luanda, lendo todas as entradas.
+
+Códigos OTP e limites:
+
+- **OT1 (alto) — IP falsificável.** Os limites por IP das server functions (OTP, entrar, repor a
+  senha, registo, matrícula pública, verificação de documentos) liam o primeiro valor de
+  `X-Forwarded-For`, que vem do cliente. Passam a usar `CF-Connecting-IP`
+  (`serverFnClientIp`).
+- **OT2 — Pontos públicos genéricos de OTP.** `requestOtpVerificationFn` e `verifyOtpCodeFn`
+  eram públicos, aceitavam qualquer finalidade e nenhum ecrã os usava: qualquer pessoa enviava
+  SMS pagos para qualquer número ou gastava as tentativas do código de reposição de outra
+  pessoa. Removidos (cada fluxo tem o seu, ligado à conta).
+- **OT3 — Força bruta na reposição de senha.** Cada código novo dava outras 5 tentativas
+  (~300/hora por conta, sem tecto). Passa a haver tecto por conta (20/dia) e por IP (30/hora).
+
+Acompanhamento de risco (IA) e planos de aula:
+
+- **RK1 — O professor via e alterava os casos de risco de toda a escola** (com intervenções
+  como «acompanhamento psicológico»). Fica com as turmas que lecciona ou dirige; o nome do aluno
+  no caso vem da base; os erros do histórico e do estado deixam de ser ignorados.
+- **LP1 — Plano com avaliações a mudar de turma, disciplina ou período** deixava as avaliações na
+  pauta antiga. É recusado (cria-se um plano novo).
+
+Arquivos:
+
+- **AR1 — Mover uma pasta para dentro de uma subpasta sua** fazia um ciclo e as pastas sumiam
+  da árvore. É recusado.
+
+Por decidir ou pendentes (dono):
+
+- **CT4:** sem índice único `(school_id, person_id) WHERE status = 'active'` em
+  `siga_access_cards`, dois pedidos simultâneos criam dois cartões activos e, a partir daí, cada
+  pedido cria mais um. Precisa de migração (e de ver primeiro se a produção já tem repetidos).
+- **OT4:** o SMS de OTP aceita qualquer número E.164; restringir a `+244` (ou a uma lista) é
+  decisão comercial.
+- **AI:** o limite de pedidos à IA é por instância e não há tecto por escola; uma escola
+  suspensa ainda gasta créditos na análise de risco.
+- **Menores:** o feed ICS não deixa de funcionar quando a pessoa sai da escola (só mostra o
+  nome da escola e os períodos); falta `DTSTAMP` nos eventos ICS; a pesquisa de planos filtra
+  depois do limite; alunos e encarregados vêem os planos publicados de todas as turmas; alguns
+  erros do calendário (reabrir o ano anterior, sequência) são ignorados.

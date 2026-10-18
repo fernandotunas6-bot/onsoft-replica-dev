@@ -1,6 +1,6 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -246,7 +246,7 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
   .validator((input: unknown) => submitPublicEnrollmentInputSchema.parse(input))
   .handler(async ({ data }) => {
     // Formulário público: sem limite, um script enchia a lista de candidaturas.
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKey = `public_enrollment:${ip}`;
     if (ip !== "unknown" && !isRateLimitBypassed(rateLimitKey)) {
       if (!(await consumeRateLimit([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT))) {

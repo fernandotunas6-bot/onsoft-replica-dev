@@ -11,7 +11,7 @@
  * para `/verificar`, que confirma quem emitiu, o quê e quando. Sem migração.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -217,7 +217,7 @@ export type DocumentVerification =
 export const verifyIssuedDocument = createServerFn({ method: "GET" })
   .validator((input: unknown) => verifyInputSchema.parse(input))
   .handler(async ({ data }): Promise<DocumentVerification> => {
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKey = `document_verify:${ip}`;
     // Partilhado entre instâncias: adivinhar códigos de documentos espalhando
     // pedidos pelas instâncias não foge ao limite.

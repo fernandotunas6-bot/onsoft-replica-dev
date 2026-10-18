@@ -319,13 +319,17 @@ async function assertLessonPlanScope(
 async function loadPlanScope(db: Db, schoolId: string, planId: string) {
   const { data: plan, error } = await db
     .from("siga_lesson_plans")
-    .select("id, class_group_id, subject_id")
+    .select("id, class_group_id, subject_id, term")
     .eq("id", planId)
     .eq("school_id", schoolId)
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano de aula.");
   if (!plan) throw new Error("Plano de aula não encontrado.");
-  return { classGroupId: String(plan.class_group_id), subjectId: String(plan.subject_id) };
+  return {
+    classGroupId: String(plan.class_group_id),
+    subjectId: String(plan.subject_id),
+    term: plan.term as unknown,
+  };
 }
 
 export const listLessonPlans = createServerFn({ method: "GET" })
@@ -526,6 +530,27 @@ export const updateLessonPlan = createServerFn({ method: "POST" })
       current.subjectId,
     );
     await assertLessonPlanScope(db, membership, context.userId, data.classGroupId, data.subjectId);
+    // As avaliações do plano já estão na pauta da turma, disciplina e período dele.
+    // Mudar qualquer um dos três deixava-as na pauta antiga, ligadas a um plano que
+    // já não é dessa turma (e as contas seguintes misturavam as duas).
+    const movesScope =
+      current.classGroupId !== data.classGroupId ||
+      current.subjectId !== data.subjectId ||
+      String(current.term ?? "") !== String(data.term ?? "");
+    if (movesScope) {
+      const { count, error: countError } = await db
+        .from("siga_lesson_plan_components")
+        .select("id", { count: "exact", head: true })
+        .eq("lesson_plan_id", data.id);
+      if (countError) {
+        throw publicDatabaseError(countError, "Não foi possível validar o plano de aula.");
+      }
+      if (count) {
+        throw new Error(
+          "Este plano já tem avaliações na pauta: não pode mudar de turma, disciplina ou período. Crie um plano novo.",
+        );
+      }
+    }
     const { data: updated, error } = await db
       .from("siga_lesson_plans")
       .update({

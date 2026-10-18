@@ -282,145 +282,15 @@ export function CommunicationPreferencesPanel() {
 
 ## 4. OTP Verification Modal
 
-Componente reutilizável para verificar contactos via OTP:
+Removido na auditoria 14 (2026-10-18). `requestOtpVerificationFn` e `verifyOtpCodeFn`
+(`src/features/otp/server.ts`) eram públicos, sem sessão, e aceitavam qualquer finalidade:
+qualquer pessoa enviava SMS pagos pela plataforma para qualquer número, ou gastava as
+tentativas do código de reposição de senha de outra pessoa. Nenhum ecrã os usava.
 
-```tsx
-// src/features/contacts/otp-verification-modal.tsx
-import { useState } from "react";
-import { requestOtpVerificationFn, verifyOtpCodeFn } from "@/features/otp/server";
-import { ContactChannel } from "@/features/contacts";
-
-interface OtpVerificationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  contactIdentifier: string; // Email ou telefone
-  channel: ContactChannel;
-  purpose: "email_change" | "phone_change" | "whatsapp_change";
-}
-
-export function OtpVerificationModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  contactIdentifier,
-  channel,
-  purpose,
-}: OtpVerificationModalProps) {
-  const [step, setStep] = useState<"request" | "verify">("request");
-  const [code, setCode] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleRequestCode = async () => {
-    setIsLoading(true);
-    try {
-      const result = await requestOtpVerificationFn({
-        targetIdentifier: contactIdentifier,
-        purpose,
-        preferredChannel: channel,
-      });
-
-      if (result.success) {
-        setStep("verify");
-        setError(null);
-      } else {
-        setError(result.message || "Erro ao enviar código");
-      }
-    } catch (err) {
-      setError("Erro ao enviar código");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    setIsLoading(true);
-    try {
-      const result = await verifyOtpCodeFn({
-        targetIdentifier: contactIdentifier,
-        purpose,
-        code,
-      });
-
-      if (result.success) {
-        onSuccess();
-        onClose();
-      } else {
-        setError(result.message || "Código inválido");
-      }
-    } catch (err) {
-      setError("Erro ao verificar código");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-8 max-w-sm">
-        <h2 className="text-xl font-semibold mb-4">Verificar {channel}</h2>
-
-        {step === "request" && (
-          <>
-            <p className="text-sm text-gray-600 mb-6">
-              Enviaremos um código de verificação para {contactIdentifier}
-            </p>
-            <button
-              onClick={handleRequestCode}
-              disabled={isLoading}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isLoading ? "Enviando..." : "Enviar Código"}
-            </button>
-          </>
-        )}
-
-        {step === "verify" && (
-          <>
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">
-                Código de Verificação
-              </label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value.slice(0, 6))}
-                placeholder="000000"
-                className="w-full px-3 py-2 border rounded text-center text-xl tracking-widest"
-              />
-            </div>
-            <button
-              onClick={handleVerifyCode}
-              disabled={isLoading || code.length !== 6}
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
-            >
-              {isLoading ? "Verificando..." : "Verificar"}
-            </button>
-            <button
-              onClick={() => setStep("request")}
-              className="w-full mt-2 text-blue-600 py-2 text-sm hover:underline"
-            >
-              Reenviar Código
-            </button>
-          </>
-        )}
-
-        {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
-
-        <button
-          onClick={onClose}
-          className="w-full mt-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-        >
-          Fechar
-        </button>
-      </div>
-    </div>
-  );
-}
-```
+Cada fluxo tem o seu pedido e a sua verificação no servidor, ligados à conta:
+`reset-password-otp-server.ts`, `phone-change-server.ts`, `saas/signup-email-api.ts`.
+Um fluxo novo faz o mesmo (com `OtpDispatcher` e `OtpService.verifyCode` no próprio
+servidor), em vez de um verificador genérico.
 
 ## 5. Escolher Canal Preferido
 

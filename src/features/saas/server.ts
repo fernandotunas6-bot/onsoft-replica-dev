@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
-import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   createSchoolWizardInputSchema,
@@ -135,7 +135,7 @@ export const provisionSchoolTenant = createServerFn({ method: "POST" })
 export const signupSchoolPublic = createServerFn({ method: "POST" })
   .validator((input: unknown) => publicSchoolSignupInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     return runPublicSchoolSignup(data, ip);
   });
 

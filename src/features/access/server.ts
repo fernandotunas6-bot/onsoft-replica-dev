@@ -2,7 +2,7 @@ import { requireRecentVerification } from "@/lib/step-up";
 import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { escapeLikePattern } from "@/lib/like-pattern";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -847,9 +847,7 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
 export const signInWithIdentifierFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => signInWithIdentifierInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const ip =
-      (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ??
-      "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKey = `bi_lookup:${ip}`;
     // Limite partilhado por todas as instâncias: por IP e, à parte, por conta
     // (identificador) — quem use muitos IPs não tenta senhas sem fim numa conta.

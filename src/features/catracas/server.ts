@@ -32,6 +32,23 @@ import {
 import { evaluateGatePassAccess, resolveGatePassDevice } from "./gate-pass-validation";
 import { runDeviceGatePassWebhook } from "./device-webhook-handler";
 import { schoolTodayIso } from "@/lib/school-date";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
+
+/** Hora e minuto de Luanda (o servidor corre em UTC: `getHours()` dava uma hora a menos). */
+function luandaClock(iso: string): { hour: number; label: string } {
+  const parts = new Intl.DateTimeFormat("pt-PT", {
+    timeZone: "Africa/Luanda",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  return {
+    hour: Number(get("hour")),
+    label: `${get("hour")}:${get("minute")}:${get("second")}`,
+  };
+}
 
 export interface GateEntryRecord {
   student_id: string | null;
@@ -64,12 +81,16 @@ export function detectAttendanceAnomalies(
 
   return enteredStudentIds
     .map((stId): AttendanceAnomaly | null => {
-      const entry = gateEntries.find((g) => g.student_id === stId);
+      // A primeira entrada do dia (as linhas não vêm por ordem).
+      const entry = gateEntries
+        .filter((g) => g.student_id === stId)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
       const classStatus = classStatusByStudentId.get(stId);
       const personName = entry?.person_id
         ? (personNameByPersonId.get(entry.person_id) ?? "Estudante")
         : "Estudante";
-      const gateEntryTime = entry ? new Date(entry.created_at).toLocaleTimeString("pt-PT") : "—";
+      const clock = entry ? luandaClock(entry.created_at) : null;
+      const gateEntryTime = clock ? clock.label : "—";
 
       if (classStatus === "absent") {
         return {
@@ -82,7 +103,7 @@ export function detectAttendanceAnomalies(
         };
       }
 
-      const entryHour = entry ? new Date(entry.created_at).getHours() : 0;
+      const entryHour = clock ? clock.hour : 0;
       if (entryHour >= 8) {
         return {
           studentId: stId,
@@ -615,19 +636,28 @@ export const exportGatePassOfflineList = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+    // A lista leva o QR e a tag RFID de todos os cartões: quem a tem clona qualquer
+    // cartão. Pede o mesmo nível que revelar a chave de uma catraca (escrita em
+    // Gestão), não só leitura.
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: cards, error } = await db
-      .from("siga_access_cards")
-      .select(
-        "id, person_id, student_id, card_number, barcode, qr_secret, rfid_tag, status, expires_at",
-      )
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active");
+    // Todos os cartões: acima de 1000 a lista saía cortada sem aviso, e esses alunos
+    // ficavam recusados com a catraca sem rede.
+    const { data: cards, error } = await readAllPages((from, to) =>
+      db
+        .from("siga_access_cards")
+        .select(
+          "id, person_id, student_id, card_number, barcode, qr_secret, rfid_tag, status, expires_at",
+        )
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .order("id")
+        .range(from, to),
+    );
 
     if (error)
       throw publicDatabaseError(error, "Não foi possível exportar a lista offline de catracas.");
@@ -635,8 +665,8 @@ export const exportGatePassOfflineList = createServerFn({ method: "GET" })
     return {
       schoolId: membership.schoolId,
       exportedAt: new Date().toISOString(),
-      totalCards: cards?.length ?? 0,
-      cards: cards ?? [],
+      totalCards: cards.length,
+      cards,
     };
   });
 
@@ -652,13 +682,19 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
 
     const todayStr = schoolTodayIso();
 
-    const { data: gateEntries } = await db
-      .from("siga_access_logs")
-      .select("student_id, person_id, created_at, direction, status")
-      .eq("school_id", membership.schoolId)
-      .eq("direction", "entry")
-      .eq("status", "granted")
-      .gte("created_at", `${todayStr}T00:00:00.000Z`);
+    // O dia de Luanda começa às 23:00 UTC da véspera: com «T00:00Z» as entradas entre a
+    // meia-noite e a uma da manhã ficavam de fora. Todas as linhas, por páginas.
+    const { data: gateEntries } = await readAllPages((from, to) =>
+      db
+        .from("siga_access_logs")
+        .select("id, student_id, person_id, created_at, direction, status")
+        .eq("school_id", membership.schoolId)
+        .eq("direction", "entry")
+        .eq("status", "granted")
+        .gte("created_at", `${todayStr}T00:00:00+01:00`)
+        .order("id")
+        .range(from, to),
+    );
 
     // A data da aula vive na sessão (`siga_attendance_sessions.lesson_date`), não no
     // registo: `siga_attendance_records` não tem coluna `date`, e filtrar por ela fazia o
