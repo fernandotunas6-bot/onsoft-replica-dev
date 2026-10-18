@@ -614,13 +614,17 @@ export function buildIssuePayload(
   const year = school.academicYear || "";
   const dash = "—";
   const hash = (sample.document as Record<string, unknown>)["hash"];
+  // «Sem processo» é o texto de substituição das listas, não um número: no papel, «—».
+  const academicNumber = /^\s*sem processo\s*$/i.test(student.academicNumber ?? "")
+    ? dash
+    : student.academicNumber;
   return {
     ...sample,
     student: {
       fullName: student.fullName,
-      academicNumber: student.academicNumber,
+      academicNumber,
       docType: "Processo",
-      docNumber: student.academicNumber,
+      docNumber: academicNumber,
       nationality: "",
       gender: "",
     },

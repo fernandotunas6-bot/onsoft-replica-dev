@@ -1126,25 +1126,59 @@ export const listArquivosPersonOptions = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
+    // «126 0042» procura pelo nº de aluno; o resto, pelo nome.
+    const digits = (data.query ?? "").replace(/[\s.\-/]/g, "");
+    const byNumber = /^\d{3,}$/.test(digits);
+    let numberPersonIds: string[] | null = null;
+    if (byNumber) {
+      const { data: matches } = await db
+        .from("students")
+        .select("person_id")
+        .eq("school_id", membership.schoolId)
+        .ilike("student_number", `%${digits}%`)
+        .limit(data.limit);
+      numberPersonIds = (matches ?? []).map((m) => String(m.person_id));
+      if (!numberPersonIds.length) return { people: [] };
+    }
     let query = db
       .from("people")
       .select("id, full_name, email")
       .eq("school_id", membership.schoolId)
       .order("full_name", { ascending: true })
       .limit(data.limit);
-    if (data.query) query = query.ilike("full_name", `%${data.query}%`);
+    if (numberPersonIds) query = query.in("id", numberPersonIds);
+    else if (data.query) query = query.ilike("full_name", `%${data.query}%`);
     const { data: rows, error } = await query;
     if (error) {
       if (missingFilesTable(error)) {
-        return { people: [] as Array<{ id: string; name: string; email: string | null }> };
+        return {
+          people: [] as Array<{
+            id: string;
+            name: string;
+            email: string | null;
+            studentNumber: string | null;
+          }>,
+        };
       }
       throw publicDatabaseError(error, "Não foi possível listar pessoas.");
     }
+    const personIds = (rows ?? []).map((row) => String(row.id));
+    const { data: studentRows } = personIds.length
+      ? await db
+          .from("students")
+          .select("person_id, student_number")
+          .eq("school_id", membership.schoolId)
+          .in("person_id", personIds)
+      : { data: [] };
+    const numberOf = new Map(
+      (studentRows ?? []).map((s) => [String(s.person_id), String(s.student_number)]),
+    );
     return {
       people: (rows ?? []).map((row) => ({
         id: String(row.id),
         name: String(row.full_name ?? "Pessoa"),
         email: row.email ? String(row.email) : null,
+        studentNumber: numberOf.get(String(row.id)) ?? null,
       })),
     };
   });

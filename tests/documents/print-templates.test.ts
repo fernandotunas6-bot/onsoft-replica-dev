@@ -259,6 +259,22 @@ describe("modelos em public/templates", () => {
     expect(payload.school.email).toBe("");
   });
 
+  it("«Sem processo» das listas não vai para o papel como se fosse o número", () => {
+    const blank = buildIssuePayload(
+      { name: "Escola" },
+      { fullName: "Aluno Real", academicNumber: "Sem processo" },
+      "",
+    ) as { student: { academicNumber: string; docNumber: string } };
+    expect(blank.student.academicNumber).toBe("—");
+    expect(blank.student.docNumber).toBe("—");
+    const real = buildIssuePayload(
+      { name: "Escola" },
+      { fullName: "Aluno Real", academicNumber: "1260042" },
+      "",
+    ) as { student: { academicNumber: string } };
+    expect(real.student.academicNumber).toBe("1260042");
+  });
+
   it("num documento real, usa o NIF/morada verdadeiros da escola quando configurados", () => {
     const payload = buildIssuePayload(
       { name: "Escola Configurada", nif: "5417834521", address: "Talatona, Luanda" },
