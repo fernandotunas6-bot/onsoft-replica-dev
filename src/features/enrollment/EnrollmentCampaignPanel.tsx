@@ -345,7 +345,7 @@ function ApplicationRow({
   );
   const [pickedClassGroupId, setClassGroupId] = useState("");
   // As turmas podem chegar depois da linha: sem escolha válida, vale a primeira
-  // (a que o <select> mostra). Antes o estado ficava vazio e «Aceitar e
+  // (a que a lista mostra). Antes o estado ficava vazio e «Aceitar e
   // matricular» aceitava sem turma.
   const classGroupId = classGroups.some((group) => group.id === pickedClassGroupId)
     ? pickedClassGroupId
@@ -362,7 +362,7 @@ function ApplicationRow({
 
   /**
    * `placed`: a turma em que o aluno acabou de ser colocado. Sem ela o talão sai
-   * sem turma — a escolha no <select> não é a matrícula real.
+   * sem turma — a escolha na lista não é a matrícula real.
    */
   const printTalao = async (kind: "candidatura" | "matricula", placed?: ClassGroupRow) => {
     const payload = row.payload ?? {};
