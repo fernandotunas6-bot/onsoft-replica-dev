@@ -196,6 +196,10 @@ o script continua a publicar a versão Firebase, como antes.
 
 ## Verificar depois de publicar
 
+Antes de publicar, `node scripts/verificar-colunas-sga.mjs` confirma (sem ligar à
+base) que as leituras do worker só usam tabelas e colunas do
+`supabase/PRODUCTION_SNAPSHOT.json`.
+
 `scripts/verificar-modo-siga.mjs` faz só leituras (nada é gravado) e diz,
 endpoint a endpoint, o que responde, para a conta do token:
 
