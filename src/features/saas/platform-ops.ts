@@ -15,6 +15,7 @@ import type {
 } from "@/features/saas/types";
 import { isMissingTableError, profileFromRow } from "@/features/saas/tenant-billing";
 import {
+  isInTrial,
   isTrialExpired,
   monthlyRevenueOf,
   resolveStatusChange,
@@ -150,16 +151,19 @@ export async function fetchSaaSStats(): Promise<SaaSStats> {
   };
 
   for (const t of tenants ?? []) {
-    if (t.status === "active") stats.activeTenants += 1;
-    if (t.status === "trial") stats.trialTenants += 1;
+    const trialExpired = isTrialExpired(t, now);
+    const inTrial = isInTrial(t);
+    if (t.status === "active" && !inTrial && !t.billing_exempt) stats.activeTenants += 1;
+    if (inTrial && !trialExpired) stats.trialTenants += 1;
     if (t.status === "suspended") stats.suspendedTenants += 1;
     if (t.status === "past_due") stats.pastDueTenants += 1;
     if (t.billing_exempt) stats.exemptTenants += 1;
-    if (isTrialExpired(t, now)) stats.trialExpiredTenants += 1;
+    if (trialExpired) stats.trialExpiredTenants += 1;
     stats.totalStorageGb += t.max_storage_gb || 10;
     stats.mrrAoa += monthlyRevenueOf(
       {
         tenantStatus: String(t.status),
+        subscriptionStatus: t.subscription_status ?? null,
         billingExempt: Boolean(t.billing_exempt),
         profile: profiles.get(t.id) ?? null,
         plan:
