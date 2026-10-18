@@ -4,6 +4,14 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## App SIGA Plus (Flutter) — PR #132, ramo `ccr-6a21e4bf-flutter-ui` (2026-10-18)
+
+- App em `mobile-flutter/`, lê e escreve pelo Mobile V4. Entregas em PDF prontas no código;
+  a migração `20261017140000_task_submissions` está **por aplicar** (pacote
+  `SIGA_aplicar_entregas_pdf.sql`).
+- Transporte escolar: plano e divisão de trabalho com o Lovable em
+  [TRANSPORTE_PLANO.md](./TRANSPORTE_PLANO.md) (por aprovar).
+
 ## Mobile V4 — PR #116, branch `feat/siga-plus-mobile-v4-isolated` (2026-10-12)
 
 App em `mobile-v4/` (React isolado), API em `src/features/mobile-v4/` servida por
