@@ -50,6 +50,11 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Ligar ao motorista do transporte escolar (url_launcher). -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
         <!-- Abrir o portal SIGA Plus web no navegador (url_launcher). -->
         <intent>
             <action android:name="android.intent.action.VIEW"/>

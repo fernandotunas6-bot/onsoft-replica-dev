@@ -76,6 +76,10 @@ const commandMessages = {
   'SUBMISSION_FILE_NOT_FOUND':
       'O envio do PDF não chegou ao SIGA. Tente de novo.',
   'SUBMISSION_FORBIDDEN': 'Sem acesso a esta entrega.',
+  'TRANSPORT_NOT_READY':
+      'O transporte escolar ainda não está activo nesta escola.',
+  'TRANSPORT_UNAVAILABLE':
+      'Não foi possível ler o transporte escolar. Tente de novo.',
 };
 
 /// Identificador aleatório (UUID v4) para tornar um envio idempotente.
@@ -288,6 +292,24 @@ class MobileGateway {
 
   /// Entregas do aluno (todas, ou de uma tarefa) ou, para o professor, as
   /// entregas de uma tarefa sua.
+  /// Aluno: as suas rotas de transporte em vigor hoje (paragem, horas,
+  /// viatura, motorista e estado do dia). Alterações só no portal.
+  Future<List<Map<String, dynamic>>> transport() async {
+    final school = _school();
+    final expectedRole = role;
+    if (expectedRole != 'aluno') return const [];
+    final result = await _get('/schools/$school/transport?role=aluno');
+    final list = result['routes'];
+    if (result['schoolId'] != schoolId ||
+        result['role'] != expectedRole ||
+        result['userId'] != userId ||
+        list is! List ||
+        list.any((r) => r is! Map<String, dynamic>)) {
+      throw StateError('Resposta fora do contexto autorizado.');
+    }
+    return list.cast<Map<String, dynamic>>();
+  }
+
   Future<List<Map<String, dynamic>>> submissions({String? taskId}) async {
     final school = _school();
     final expectedRole = role;

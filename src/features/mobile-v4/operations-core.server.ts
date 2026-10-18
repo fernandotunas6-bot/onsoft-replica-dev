@@ -282,9 +282,10 @@ export async function loadMobileV4SubmissionFile(userId: string, input: unknown)
 export async function loadMobileV4Transport(userId: string, input: unknown) {
   const s = mobileScopeSchema.parse(input);
   const { db } = await requireMobileAcademicAccess(userId, s.schoolId, s.role, "read");
-  if (s.role !== "aluno") return { available: true, routes: [] };
+  const context = { schoolId: s.schoolId, role: s.role, userId };
+  if (s.role !== "aluno") return { ...context, routes: [] };
   const scope = await resolveMobileAcademicScope(db, userId, s.schoolId, s.role);
-  if (!scope.studentId) return { available: true, routes: [] };
+  if (!scope.studentId) return { ...context, routes: [] };
   const { readStudentTransport, TransportError } =
     await import("@/features/transport/transport-core.server");
   try {
@@ -295,7 +296,7 @@ export async function loadMobileV4Transport(userId: string, input: unknown) {
       schoolTodayIso(),
     );
     if (!out.available) throw new MobileApiError(503, "TRANSPORT_NOT_READY");
-    return { routes: out.routes };
+    return { ...context, routes: out.routes };
   } catch (error) {
     if (error instanceof TransportError) throw new MobileApiError(503, error.code);
     throw error;

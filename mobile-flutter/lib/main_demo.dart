@@ -239,7 +239,13 @@ class _DemoAppState extends State<DemoApp> with WidgetsBindingObserver {
       ),
     GoRoute(
       path: 'transport',
-      builder: (_, _) => subPage('Transporte escolar', const TransportPage()),
+      builder: (_, _) => subPage(
+        'Transporte escolar',
+        TransportPage(
+          key: ValueKey('${choice?.schoolId}:${choice?.role}'),
+          gateway: gateway,
+        ),
+      ),
     ),
     GoRoute(
       path: 'gradebooks',

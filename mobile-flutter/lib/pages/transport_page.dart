@@ -1,176 +1,155 @@
 import 'package:flutter/material.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../design/portal.dart';
 import '../design/tokens.dart';
 import '../design/widgets.dart';
+import '../gateway.dart';
 
-/// Transporte escolar — prévia do módulo.
-///
-/// Ainda não há rotas, veículos nem GPS no SIGA Plus. O trajecto é
-/// ilustrativo e está marcado como «Simulação»; não se lê nem inventa
-/// localização e não há botões para acções que ainda não existem.
-class TransportPage extends StatelessWidget {
-  const TransportPage({super.key});
+const _amber = Color(0xffe8890c);
+const _red = Color(0xffd92c3a);
+const _green = Color(0xff1f9d55);
 
+/// Estado de hoje da rota: rótulo, cor e ícone.
+(String, Color, IconData) transportDayText(Map<String, dynamic>? today) =>
+    switch (today?['status']) {
+      'delayed' => (
+        'Atrasada cerca de ${today!['delayMinutes']} min',
+        _amber,
+        FluentIcons.clock_alarm_24_filled,
+      ),
+      'cancelled' => (
+        'Sem serviço hoje',
+        _red,
+        FluentIcons.dismiss_circle_24_filled,
+      ),
+      _ => ('Horário normal', _green, FluentIcons.checkmark_circle_24_filled),
+    };
+
+/// «O meu transporte»: as rotas do aluno em vigor hoje, como estão no
+/// SIGA — paragem, horas, viatura, motorista e o estado do dia. Só consulta:
+/// mudar de rota ou de paragem pede-se à secretaria, no portal.
+class TransportPage extends StatefulWidget {
+  const TransportPage({super.key, required this.gateway});
+  final MobileGateway gateway;
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final palette = SigaPalette.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(Siga.s3),
-      children: [
-        SigaCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(FluentIcons.vehicle_bus_24_regular, size: 30),
-                  const SizedBox(width: Siga.s2),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Rota escolar 01',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        Text(
-                          'Acompanhamento do percurso',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const StatusTag('Simulação'),
-                ],
-              ),
-              const SizedBox(height: Siga.s2),
-              Container(
-                padding: const EdgeInsets.all(Siga.s2),
-                decoration: BoxDecoration(
-                  color: palette.surface2,
-                  borderRadius: BorderRadius.circular(Siga.rLarge),
-                ),
-                child: Column(
-                  children: [
-                    Semantics(
-                      image: true,
-                      label: 'Trajecto ilustrativo da rota',
-                      child: AspectRatio(
-                        aspectRatio: 320 / 150,
-                        child: LayoutBuilder(
-                          builder: (context, box) => Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: RoutePainter(
-                                    done: theme.colorScheme.primary,
-                                    ink: theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: box.maxWidth * 196 / 320,
-                                top: box.maxHeight * 50 / 150,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surface,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: palette.line),
-                                  ),
-                                  child: const Text(
-                                    'Autocarro 01',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: Siga.s1),
-                    Text(
-                      'Trajecto ilustrativo, sem localização GPS real',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Siga.s2),
-              Row(
-                children: [
-                  Expanded(child: _Stat('Próxima paragem', 'Paragem B')),
-                  const SizedBox(width: Siga.s1),
-                  Expanded(child: _Stat('Estado', 'A aguardar GPS')),
-                ],
-              ),
-              const SizedBox(height: Siga.s2),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    FluentIcons.shield_checkmark_24_regular,
-                    size: 18,
-                    color: palette.ink2,
-                  ),
-                  const SizedBox(width: Siga.s1),
-                  Expanded(
-                    child: Text(
-                      'A localização real só estará disponível após '
-                      'autorização, integração GPS e activação da rota.',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: Siga.s3),
-        Text(
-          'Este módulo incluirá rotas, paragens, motoristas, veículos, alunos '
-          'autorizados, notificações de embarque/desembarque, histórico e '
-          'acompanhamento GPS quando disponível. Os encarregados verão apenas '
-          'os trajectos dos seus educandos autorizados.',
-          style: theme.textTheme.bodyMedium,
-        ),
-      ],
-    );
-  }
+  State<TransportPage> createState() => _TransportPageState();
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat(this.label, this.value);
-  final String label;
-  final String value;
+class _TransportPageState extends State<TransportPage> with SyncedState {
+  late Future<List<Map<String, dynamic>>> routes;
+
+  @override
+  void resync() => load();
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  void load() => routes = widget.gateway.transport();
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder(
+    future: routes,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done &&
+          !snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        final error = snapshot.error;
+        return Center(
+          child: EmptyState(
+            icon: FluentIcons.vehicle_bus_24_regular,
+            message: error is CommandError
+                ? error.message
+                : 'Não foi possível carregar o transporte.',
+            action: 'Tentar novamente',
+            onAction: () => setState(load),
+          ),
+        );
+      }
+      final list = snapshot.data!;
+      final children = <Widget>[
+        if (list.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: Siga.s4),
+            child: EmptyState(
+              icon: FluentIcons.vehicle_bus_24_regular,
+              message: 'Não tem transporte escolar atribuído.',
+            ),
+          ),
+        for (final route in list) ...[
+          _DayBanner(route['today'] as Map<String, dynamic>?),
+          const SizedBox(height: Siga.s2),
+          _RouteCard(route),
+          if (route['vehicle'] case final Map<String, dynamic> vehicle) ...[
+            const SizedBox(height: Siga.s2),
+            _VehicleCard(vehicle),
+          ],
+          const SizedBox(height: Siga.s3),
+        ],
+        const PortalHint(
+          'Mudar de rota ou de paragem pede-se à secretaria da escola, '
+          'no portal SIGA Plus.',
+        ),
+      ];
+      return RefreshIndicator(
+        onRefresh: () async {
+          setState(load);
+          await routes;
+        },
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Siga.s3,
+            Siga.s2,
+            Siga.s3,
+            Siga.s4,
+          ),
+          children: [
+            for (final (i, child) in children.indexed)
+              Entrance(index: i, child: child),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _DayBanner extends StatelessWidget {
+  const _DayBanner(this.today);
+  final Map<String, dynamic>? today;
   @override
   Widget build(BuildContext context) {
-    final palette = SigaPalette.of(context);
+    final (label, color, icon) = transportDayText(today);
+    final note = today?['note'];
     return Container(
       padding: const EdgeInsets.all(Siga.s2),
       decoration: BoxDecoration(
-        color: palette.surface2,
+        color: color.withValues(alpha: .1),
         borderRadius: BorderRadius.circular(Siga.rMedium),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              maxLines: 1,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hoje · $label',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: color),
+                ),
+                if (note is String && note.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(note),
+                  ),
+              ],
             ),
           ),
         ],
@@ -179,77 +158,173 @@ class _Stat extends StatelessWidget {
   }
 }
 
-/// Desenho do trajecto ilustrativo: percorrido a cheio, por percorrer a
-/// tracejado, o autocarro a meio e o destino a verde.
-class RoutePainter extends CustomPainter {
-  RoutePainter({required this.done, required this.ink});
-  final Color done;
-  final Color ink;
-
+class _RouteCard extends StatelessWidget {
+  const _RouteCard(this.route);
+  final Map<String, dynamic> route;
   @override
-  void paint(Canvas canvas, Size size) {
-    final sx = size.width / 320;
-    final sy = size.height / 150;
-    Offset p(double x, double y) => Offset(x * sx, y * sy);
+  Widget build(BuildContext context) {
+    final palette = SigaPalette.of(context);
+    final stop = route['stop'] as Map<String, dynamic>;
+    final direction = route['direction'];
+    final landmark = stop['landmark'];
+    final times = [
+      if (direction != 'return' && stop['outboundTime'] is String)
+        ('Ida', stop['outboundTime'] as String),
+      if (direction != 'outbound' && stop['returnTime'] is String)
+        ('Volta', stop['returnTime'] as String),
+    ];
+    return SigaCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              TintIcon(
+                FluentIcons.vehicle_bus_24_regular,
+                color: Theme.of(context).colorScheme.primary,
+                size: 44,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${route['routeName']}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(switch (direction) {
+                      'outbound' => 'Só ida',
+                      'return' => 'Só volta',
+                      _ => 'Ida e volta',
+                    }, style: TextStyle(color: palette.ink2, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Siga.s2),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                FluentIcons.location_24_regular,
+                size: 20,
+                color: palette.ink2,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${stop['name']}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      'Paragem ${stop['sequence']} de ${route['stopsCount']}'
+                      '${landmark is String && landmark.isNotEmpty ? ' · $landmark' : ''}',
+                      style: TextStyle(color: palette.ink2, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (times.isNotEmpty) ...[
+            const SizedBox(height: Siga.s2),
+            Row(
+              children: [
+                for (final (i, (label, time)) in times.indexed) ...[
+                  if (i > 0) const SizedBox(width: Siga.s1),
+                  Expanded(child: _Time(label, time)),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
-    final grid = Paint()
-      ..color = ink.withValues(alpha: .07)
-      ..strokeWidth = 1;
-    for (final y in [30.0, 60.0, 90.0, 120.0]) {
-      canvas.drawLine(p(0, y), p(320, y), grid);
+class _Time extends StatelessWidget {
+  const _Time(this.label, this.time);
+  final String label;
+  final String time;
+  @override
+  Widget build(BuildContext context) {
+    final palette = SigaPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surface2,
+        borderRadius: BorderRadius.circular(Siga.rMedium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: palette.ink2)),
+          const SizedBox(height: 4),
+          Text(
+            time,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VehicleCard extends StatelessWidget {
+  const _VehicleCard(this.vehicle);
+  final Map<String, dynamic> vehicle;
+
+  Future<void> call(BuildContext context, String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone.replaceAll(' ', ''));
+    if (!await launchUrl(uri) && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ligue para $phone.')));
     }
-    for (final x in [40.0, 80.0, 120.0, 160.0, 200.0, 240.0, 280.0]) {
-      canvas.drawLine(p(x, 0), p(x, 150), grid);
-    }
-
-    final travelled = Path()
-      ..moveTo(30 * sx, 118 * sy)
-      ..cubicTo(80 * sx, 100 * sy, 100 * sx, 60 * sy, 140 * sx, 62 * sy)
-      ..cubicTo(160 * sx, 63 * sy, 170 * sx, 80 * sy, 180 * sx, 76 * sy);
-    canvas.drawPath(
-      travelled,
-      Paint()
-        ..color = done
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
-        ..strokeCap = StrokeCap.round,
-    );
-
-    final ahead = Path()
-      ..moveTo(180 * sx, 76 * sy)
-      ..cubicTo(210 * sx, 66 * sy, 220 * sx, 30 * sy, 250 * sx, 26 * sy)
-      ..cubicTo(270 * sx, 24 * sy, 285 * sx, 40 * sy, 292 * sx, 48 * sy);
-    // Tracejado azul-acinzentado, traços curtos como na referência.
-    final dash = Paint()
-      ..color = const Color(0xff94a3b8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.5
-      ..strokeCap = StrokeCap.round;
-    for (final metric in ahead.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 13 * sx) {
-        canvas.drawPath(metric.extractPath(d, d + 6 * sx), dash);
-      }
-    }
-
-    canvas.drawCircle(
-      p(30, 118),
-      6 * sx,
-      Paint()..color = ink.withValues(alpha: .35),
-    );
-    canvas.drawCircle(
-      p(292, 48),
-      7 * sx,
-      Paint()..color = const Color(0xff16a34a),
-    );
-    canvas.drawCircle(
-      p(180, 76),
-      15 * sx,
-      Paint()..color = done.withValues(alpha: .18),
-    );
-    canvas.drawCircle(p(180, 76), 8 * sx, Paint()..color = done);
-    canvas.drawCircle(p(180, 76), 3 * sx, Paint()..color = Colors.white);
   }
 
   @override
-  bool shouldRepaint(RoutePainter old) => old.done != done || old.ink != ink;
+  Widget build(BuildContext context) {
+    final palette = SigaPalette.of(context);
+    final driver = vehicle['driverName'];
+    final phone = vehicle['driverPhone'];
+    return SigaCard(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${vehicle['label']} · ${vehicle['plate']}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  driver is String
+                      ? 'Motorista: $driver'
+                      : 'Motorista por indicar',
+                  style: TextStyle(color: palette.ink2, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          if (phone is String && phone.isNotEmpty)
+            IconButton.filledTonal(
+              tooltip: 'Ligar ao motorista',
+              onPressed: () => call(context, phone),
+              icon: const Icon(FluentIcons.call_24_regular),
+            ),
+        ],
+      ),
+    );
+  }
 }

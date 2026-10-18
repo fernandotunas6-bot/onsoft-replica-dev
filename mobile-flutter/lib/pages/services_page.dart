@@ -142,11 +142,6 @@ class ServicesPage extends StatelessWidget {
       (FluentIcons.alert_24_regular, FluentIcons.alert_24_filled),
       '/more/notifications',
     ),
-    (
-      'Transporte escolar',
-      (FluentIcons.vehicle_bus_24_regular, FluentIcons.vehicle_bus_24_filled),
-      '/more/transport',
-    ),
   ];
 
   /// Integrações sem dados no SIGA: ficam à parte, sem se misturar com a

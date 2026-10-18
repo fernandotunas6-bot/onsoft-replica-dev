@@ -11,7 +11,6 @@ import 'package:siga_plus_flutter/gateway.dart';
 import 'package:siga_plus_flutter/identity.dart';
 import 'package:siga_plus_flutter/pages/appearance_page.dart';
 import 'package:siga_plus_flutter/pages/schools_page.dart';
-import 'package:siga_plus_flutter/pages/transport_page.dart';
 import 'package:siga_plus_flutter/pages/welcome_page.dart';
 
 Widget app(Widget child, {double width = 390}) => MaterialApp(
@@ -401,18 +400,6 @@ void main() {
     expect(mode, ThemeMode.dark);
     expect(accent, Siga.accents[3].$2);
     expect(reduced, isTrue);
-  });
-
-  testWidgets('transporte diz que é simulação e não mostra GPS real', (
-    tester,
-  ) async {
-    await tester.pumpWidget(app(const TransportPage()));
-    expect(find.text('Simulação'), findsOneWidget);
-    expect(
-      find.text('Trajecto ilustrativo, sem localização GPS real'),
-      findsOneWidget,
-    );
-    expect(find.byType(FilledButton), findsNothing);
   });
 
   testWidgets('apresentação: avança até «Começar» e também se pode saltar', (

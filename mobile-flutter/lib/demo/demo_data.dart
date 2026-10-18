@@ -350,6 +350,38 @@ Map<String, dynamic> _response(Uri url) {
               {...s, if (role == 'professor') 'studentName': demoName},
         ],
       };
+    case 'transport':
+      return {
+        ..._context(school, role),
+        'routes': [
+          if (role == 'aluno')
+            {
+              'routeId': 'rota-kilamba',
+              'routeName': 'Rota Kilamba',
+              'direction': 'both',
+              'stop': {
+                'id': 'paragem-3',
+                'sequence': 3,
+                'name': 'Bloco Q',
+                'landmark': 'Em frente à farmácia',
+                'outboundTime': '06:40',
+                'returnTime': '17:10',
+              },
+              'stopsCount': 7,
+              'vehicle': {
+                'plate': 'LD-45-12-AB',
+                'label': 'Autocarro 2',
+                'driverName': 'Sr. Manuel Kiala',
+                'driverPhone': '923 000 111',
+              },
+              'today': {
+                'status': 'delayed',
+                'delayMinutes': 15,
+                'note': 'Trânsito na via expressa.',
+              },
+            },
+        ],
+      };
     case 'submission-file':
       return {'url': 'https://demonstracao.siga.invalid/ficheiro.pdf'};
     case 'chat-capabilities':

@@ -55,6 +55,9 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   // 2026-10-15: chave primária de 20261015120000_tenant_billing_profiles.sql (cobrança
   // por escola). Recapturar da produção depois de aplicada a migração.
   tenant_billing_profiles: ["tenant_id"],
+  // 2026-10-18: único (route_id, service_date) de 20261018120000_school_transport.sql
+  // (estado do dia do transporte). Recapturar da produção depois de aplicada.
+  siga_transport_day_status: ["id", "route_id,service_date"],
 };
 
 function upsertsNoCodigo() {
