@@ -11,6 +11,8 @@
 
 <!-- LOVABLE:END -->
 
+- Keep the school database contract in `src/integrations/supabase/types.sga.ts`, refreshed by `siga:gen-types`; the exact TypeScript path and `.sga` module suffix resolve both aliased and relative type imports without changing generated Lovable clients or their connection settings.
+
 # Continuação para agentes
 
 **Ecossistema (ler ao abrir):** [docs/agents/ARCHITECTURE_HARMONIZATION.md](docs/agents/ARCHITECTURE_HARMONIZATION.md).
