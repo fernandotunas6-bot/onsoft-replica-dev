@@ -433,9 +433,7 @@ describe("portal: estado do dia", () => {
   });
 
   it("não repete o aviso se aluno e encarregado partilham a mesma conta", async () => {
-    const db = dayDb(null, [
-      { guardian_person_id: id(30), valid_from: TODAY, valid_until: null },
-    ]);
+    const db = dayDb(null, [{ guardian_person_id: id(30), valid_from: TODAY, valid_until: null }]);
     const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
     const out = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
     expect(out).toEqual({ notified: 1 });
