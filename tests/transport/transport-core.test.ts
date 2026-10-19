@@ -401,21 +401,22 @@ describe("portal: estado do dia", () => {
       };
       const changed = status.status !== next.status || status.delay_minutes !== next.delay_minutes;
       status = next;
-      return { data: { changed }, error: null };
+      const recipients = args.p_recipient_user_ids as string[];
+      return { data: { changed, notified: changed ? recipients.length : 0 }, error: null };
     });
     return db;
   };
 
   it("atraso novo avisa o aluno e o encarregado com conta", async () => {
     const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
-    const out = await setTransportDayStatus(dayDb(null), SCHOOL, USER, input, TODAY);
+    const db = dayDb(null);
+    const out = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
     expect(out.notified).toBe(2);
-    const rows = notify.mock.calls[0][2] as { userId: string; title: string; eventType: string }[];
-    expect(rows.map((r) => r.userId).sort()).toEqual([id(40), id(41)]);
-    expect(rows[0]).toMatchObject({
-      eventType: "transport.day_status",
-      title: "Transporte: Rota Kilamba com atraso",
-    });
+    const args = vi.mocked(db.rpc!).mock.calls[0][1];
+    expect((args.p_recipient_user_ids as string[]).sort()).toEqual([id(40), id(41)]);
+    expect(args.p_title).toBe("Transporte: Rota Kilamba com atraso");
+    expect(args.p_body).toContain("está atrasada cerca de 20 min");
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it("não avisa encarregados de vínculos futuros ou já terminados", async () => {
@@ -425,10 +426,11 @@ describe("portal: estado do dia", () => {
       { guardian_person_id: id(33), valid_from: "2026-09-01", valid_until: "2026-10-17" },
     ];
     const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
-    const out = await setTransportDayStatus(dayDb(null, guardians), SCHOOL, USER, input, TODAY);
+    const db = dayDb(null, guardians);
+    const out = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
     expect(out.notified).toBe(2);
-    const rows = notify.mock.calls[0][2] as { userId: string }[];
-    expect(rows.map((r) => r.userId).sort()).toEqual([id(40), id(41)]);
+    const recipients = vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids as string[];
+    expect(recipients.sort()).toEqual([id(40), id(41)]);
     const guardianQuery = queries.find((q) => q.table === "student_guardians");
     expect(guardianQuery?.ops).toContainEqual([
       "select",
@@ -459,7 +461,7 @@ describe("portal: estado do dia", () => {
     ]);
     expect(results.map((result) => result.notified).sort()).toEqual([0, 2]);
     expect(db.rpc).toHaveBeenCalledTimes(2);
-    expect(notify).toHaveBeenCalledTimes(1);
+    expect(notify).not.toHaveBeenCalled();
     expect(writes("siga_transport_day_status")).toEqual([]);
   });
 
@@ -523,45 +525,36 @@ describe("portal: estado do dia", () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
-  it("preserva o estado gravado quando a consulta de encarregados falha", async () => {
+  it("falha antes de guardar se a consulta de encarregados não funcionar", async () => {
     const db = dayDb(null, undefined, true);
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
-      const result = await setTransportDayStatus(
+    await expect(
+      setTransportDayStatus(
         db,
         SCHOOL,
         USER,
         setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 15 }),
         TODAY,
-      );
-      expect(result).toEqual({ notified: 0 });
-      expect(db.rpc).toHaveBeenCalledOnce();
-      expect(notify).not.toHaveBeenCalled();
-      expect(errorLog).toHaveBeenCalledOnce();
-    } finally {
-      errorLog.mockRestore();
-    }
+      ),
+    ).rejects.toMatchObject({ code: "TRANSPORT_UNAVAILABLE" });
+    expect(db.rpc).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 
-  it("preserva o estado gravado quando a escrita de avisos falha", async () => {
+  it("erro de notificação na RPC reverte toda a alteração e permite nova tentativa", async () => {
     const db = dayDb(null);
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
-    notify.mockRejectedValueOnce(new Error("Serviço de notificações indisponível"));
-    try {
-      const result = await setTransportDayStatus(
-        db,
-        SCHOOL,
-        USER,
-        setDayStatusSchema.parse({ routeId: ROUTE, status: "cancelled" }),
-        TODAY,
-      );
-      expect(result).toEqual({ notified: 0 });
-      expect(db.rpc).toHaveBeenCalledOnce();
-      expect(notify).toHaveBeenCalledOnce();
-      expect(errorLog).toHaveBeenCalledOnce();
-    } finally {
-      errorLog.mockRestore();
-    }
+    const atomic = vi.mocked(db.rpc!);
+    atomic.mockResolvedValueOnce({
+      data: null,
+      error: { code: "23503", message: "Destinatário não autorizado na escola" },
+    });
+    const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "cancelled" });
+    await expect(setTransportDayStatus(db, SCHOOL, USER, input, TODAY)).rejects.toMatchObject({
+      code: "SAVE_FAILED",
+    });
+    const retry = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
+    expect(retry).toEqual({ notified: 2 });
+    expect(atomic).toHaveBeenCalledTimes(2);
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it("atraso sem minutos é recusado pelo esquema", () => {
