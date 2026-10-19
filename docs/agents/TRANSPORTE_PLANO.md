@@ -65,6 +65,13 @@ e sonda em `SIGA_confirmar_migracoes.sql`.
   respondem `TRANSPORT_NOT_READY` (como as entregas em PDF).
 - Lógica em `transport-core.server.ts` (testada em `tests/transport/`); `server.ts` só
   confirma a sessão e a escola.
+- **Paragens atómicas (PR #132):** `saveStops` chama apenas
+  `public.siga_transport_save_stops_atomic` (RPC `SECURITY INVOKER`, exclusivamente
+  `service_role`). A função verifica escola/rota, bloqueia a rota para serializar
+  alterações concorrentes, valida IDs e realiza eliminações, reordenação e criação
+  de paragens numa só transacção. Falta da RPC implica recusa, sem fallback
+  para várias escritas PostgREST. PGlite valida rollback; PostgreSQL staging
+  e ensaio de concorrência continuam obrigatórios antes de produção.
 - Sem `school_modules` nesta versão: a página aparece a quem tem acesso e a app só mostra
   transporte ao aluno que tem uma rota atribuída.
 
