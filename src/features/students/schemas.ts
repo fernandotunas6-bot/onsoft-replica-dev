@@ -98,17 +98,45 @@ export const createStudentInputSchema = z.object({
 });
 export type CreateStudentInput = z.infer<typeof createStudentInputSchema>;
 
-export const enrollNewStudentInputSchema = z.object({
-  person: personCoreFieldsSchema,
-  // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
-  // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
-  registrationNumber: optionalText,
-  classGroupId: z.string().uuid().optional(),
-  academicYearId: z.string().uuid().optional(),
-  admittedOn: optionalText,
-  guardians: z.array(studentGuardianInputSchema).default([]),
-  duplicateDecision: optionalText,
-});
+export const enrollNewStudentInputSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    person: personCoreFieldsSchema,
+    // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
+    // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
+    registrationNumber: optionalText,
+    classGroupId: z.string().uuid().optional(),
+    academicYearId: z.string().uuid().optional(),
+    admittedOn: optionalText,
+    guardians: z.array(studentGuardianInputSchema).default([]),
+    duplicateDecision: optionalText,
+  })
+  .superRefine((input, ctx) => {
+    if (Boolean(input.classGroupId) !== Boolean(input.academicYearId)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["classGroupId"],
+        message: "Seleccione a turma e o ano lectivo correspondente.",
+      });
+    }
+    if (input.guardians.filter((guardian) => guardian.is_primary).length > 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["guardians"],
+        message: "Indique apenas um encarregado principal.",
+      });
+    }
+    if (
+      new Set(input.guardians.map((guardian) => guardian.guardian_person_id)).size !==
+      input.guardians.length
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["guardians"],
+        message: "Não repita o mesmo encarregado.",
+      });
+    }
+  });
 export type EnrollNewStudentInput = z.infer<typeof enrollNewStudentInputSchema>;
 
 export const changeStudentStatusInputSchema = z.object({

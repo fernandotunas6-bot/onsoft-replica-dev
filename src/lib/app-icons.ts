@@ -22,6 +22,7 @@ import {
   ChartColumn,
   CircleAlert,
   CircleCheck,
+  CircleX,
   ClipboardCheck,
   Clock,
   Clock3,
@@ -144,6 +145,7 @@ export const actionIcons = {
 /** Estados — combinam com os tons `success | warning | destructive | info | muted`. */
 export const statusIcons = {
   success: CircleCheck,
+  rejected: CircleX,
   warning: TriangleAlert,
   error: CircleAlert,
   info: Info,

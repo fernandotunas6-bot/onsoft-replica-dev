@@ -6,19 +6,6 @@
  * tabelas, dando cobertura de tipos a código que falhava em execução.
  */
 
-/**
- * Regenerado a 2026-10-06, depois de aplicadas na produção
- * `20261005030000_school_row_role_policies.sql`,
- * `20261005150000_fee_items_grade_level.sql` e
- * `20261006100000_enrollment_class_change.sql`, e depois de trazidas para o
- * repositório as três que já estavam na produção vindas do PR #87
- * (`student_scholarships`, `class_group_waitlist`, `course_unit_shift`).
- *
- * O diff é grande porque o gerador do CLI mudou de forma desde a última
- * regeneração (p. ex. `Args: never` em vez de `Args: Record<string, never>`);
- * o conteúdo é o da produção, lido com `supabase gen types typescript --linked`.
- */
-
 export type Json =
   | string
   | number
@@ -31,7 +18,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   graphql_public: {
     Tables: {
@@ -1693,6 +1680,143 @@ export type Database = {
           },
         ]
       }
+      bbb_classroom_participation: {
+        Row: {
+          attendance_approved: boolean
+          id: string
+          joined_at: string
+          left_at: string | null
+          participant_user_id: string
+          school_id: string
+          session_id: string
+        }
+        Insert: {
+          attendance_approved?: boolean
+          id?: string
+          joined_at: string
+          left_at?: string | null
+          participant_user_id: string
+          school_id: string
+          session_id: string
+        }
+        Update: {
+          attendance_approved?: boolean
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          participant_user_id?: string
+          school_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bbb_classroom_participation_school_id_session_id_fkey"
+            columns: ["school_id", "session_id"]
+            isOneToOne: false
+            referencedRelation: "bbb_classroom_sessions"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      bbb_classroom_recordings: {
+        Row: {
+          created_at: string
+          id: string
+          published: boolean
+          recording_id: string
+          school_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          published?: boolean
+          recording_id: string
+          school_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          published?: boolean
+          recording_id?: string
+          school_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bbb_classroom_recordings_school_id_session_id_fkey"
+            columns: ["school_id", "session_id"]
+            isOneToOne: false
+            referencedRelation: "bbb_classroom_sessions"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
+      bbb_classroom_sessions: {
+        Row: {
+          class_group_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          meeting_id: string
+          recordings_published: boolean
+          school_id: string
+          starts_at: string
+          status: string
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          class_group_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          meeting_id: string
+          recordings_published?: boolean
+          school_id: string
+          starts_at: string
+          status?: string
+          teacher_id: string
+          title: string
+        }
+        Update: {
+          class_group_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          meeting_id?: string
+          recordings_published?: boolean
+          school_id?: string
+          starts_at?: string
+          status?: string
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bbb_classroom_sessions_school_id_class_group_id_fkey"
+            columns: ["school_id", "class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["school_id", "id"]
+          },
+          {
+            foreignKeyName: "bbb_classroom_sessions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bbb_classroom_sessions_school_id_teacher_id_fkey"
+            columns: ["school_id", "teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["school_id", "id"]
+          },
+        ]
+      }
       calendar_feed_tokens: {
         Row: {
           created_at: string
@@ -1768,6 +1892,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      catalog_countries: {
+        Row: {
+          admin_division: string
+          code: string
+          created_at: string
+          currency_code: string
+          grade_unit: string
+          locale: string
+          name: string
+          stages_loaded: boolean
+          updated_at: string
+        }
+        Insert: {
+          admin_division: string
+          code: string
+          created_at?: string
+          currency_code: string
+          grade_unit: string
+          locale: string
+          name: string
+          stages_loaded?: boolean
+          updated_at?: string
+        }
+        Update: {
+          admin_division?: string
+          code?: string
+          created_at?: string
+          currency_code?: string
+          grade_unit?: string
+          locale?: string
+          name?: string
+          stages_loaded?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_sources: {
+        Row: {
+          authority: string
+          country_code: string | null
+          created_at: string
+          id: string
+          licence: string
+          notes: string | null
+          recorded_on: string
+          status: string
+          title: string
+          updated_at: string
+          url: string | null
+          version: string
+        }
+        Insert: {
+          authority: string
+          country_code?: string | null
+          created_at?: string
+          id: string
+          licence: string
+          notes?: string | null
+          recorded_on: string
+          status: string
+          title: string
+          updated_at?: string
+          url?: string | null
+          version: string
+        }
+        Update: {
+          authority?: string
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          licence?: string
+          notes?: string | null
+          recorded_on?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+          version?: string
+        }
+        Relationships: []
       }
       class_group_waitlist: {
         Row: {
@@ -2199,6 +2404,171 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_curriculum_entries: {
+        Row: {
+          course_code: string | null
+          created_at: string
+          effective_from: string | null
+          effective_until: string | null
+          grade: number
+          id: string
+          is_mandatory: boolean
+          source_id: string
+          stage_id: string
+          status: string
+          subject_code: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          course_code?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
+          grade: number
+          id?: string
+          is_mandatory?: boolean
+          source_id: string
+          stage_id: string
+          status: string
+          subject_code: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          course_code?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
+          grade?: number
+          id?: string
+          is_mandatory?: boolean
+          source_id?: string
+          stage_id?: string
+          status?: string
+          subject_code?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_curriculum_entries_course_code_fkey"
+            columns: ["course_code"]
+            isOneToOne: false
+            referencedRelation: "global_course_catalog"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "country_curriculum_entries_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "country_curriculum_entries_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "country_education_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "country_curriculum_entries_subject_code_fkey"
+            columns: ["subject_code"]
+            isOneToOne: false
+            referencedRelation: "global_subject_catalog"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      country_education_stages: {
+        Row: {
+          assessment: Json | null
+          country_code: string
+          course_codes: string[]
+          created_at: string
+          cycle: string | null
+          effective_from: string | null
+          effective_until: string | null
+          grade_unit: string
+          grades: number[]
+          id: string
+          isced_level: number
+          name: string
+          notes: string | null
+          period_models: string[]
+          source_id: string
+          status: string
+          track: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          assessment?: Json | null
+          country_code: string
+          course_codes?: string[]
+          created_at?: string
+          cycle?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
+          grade_unit: string
+          grades?: number[]
+          id: string
+          isced_level: number
+          name: string
+          notes?: string | null
+          period_models: string[]
+          source_id: string
+          status: string
+          track: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          assessment?: Json | null
+          country_code?: string
+          course_codes?: string[]
+          created_at?: string
+          cycle?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
+          grade_unit?: string
+          grades?: number[]
+          id?: string
+          isced_level?: number
+          name?: string
+          notes?: string | null
+          period_models?: string[]
+          source_id?: string
+          status?: string
+          track?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_education_stages_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "catalog_countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "country_education_stages_isced_level_fkey"
+            columns: ["isced_level"]
+            isOneToOne: false
+            referencedRelation: "global_education_levels"
+            referencedColumns: ["level"]
+          },
+          {
+            foreignKeyName: "country_education_stages_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -3516,6 +3886,219 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_course_catalog: {
+        Row: {
+          aliases: string[]
+          code: string
+          created_at: string
+          field_code: string
+          isced_level: number
+          kind: string
+          name: string
+          short_name: string
+          source_id: string
+          status: string
+          typical_years: number | null
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          code: string
+          created_at?: string
+          field_code: string
+          isced_level: number
+          kind: string
+          name: string
+          short_name: string
+          source_id: string
+          status?: string
+          typical_years?: number | null
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          code?: string
+          created_at?: string
+          field_code?: string
+          isced_level?: number
+          kind?: string
+          name?: string
+          short_name?: string
+          source_id?: string
+          status?: string
+          typical_years?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_course_catalog_field_code_fkey"
+            columns: ["field_code"]
+            isOneToOne: false
+            referencedRelation: "global_education_fields"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "global_course_catalog_isced_level_fkey"
+            columns: ["isced_level"]
+            isOneToOne: false
+            referencedRelation: "global_education_levels"
+            referencedColumns: ["level"]
+          },
+          {
+            foreignKeyName: "global_course_catalog_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_education_fields: {
+        Row: {
+          broad_code: string | null
+          code: string
+          created_at: string
+          name: string
+          name_en: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          broad_code?: string | null
+          code: string
+          created_at?: string
+          name: string
+          name_en: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          broad_code?: string | null
+          code?: string
+          created_at?: string
+          name?: string
+          name_en?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_education_fields_broad_code_fkey"
+            columns: ["broad_code"]
+            isOneToOne: false
+            referencedRelation: "global_education_fields"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "global_education_fields_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_education_levels: {
+        Row: {
+          code: string
+          created_at: string
+          level: number
+          name: string
+          name_en: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          level: number
+          name: string
+          name_en: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          level?: number
+          name?: string
+          name_en?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_education_levels_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      global_subject_catalog: {
+        Row: {
+          aliases: string[]
+          area: string | null
+          code: string
+          created_at: string
+          field_code: string
+          isced_levels: number[]
+          local_names: Json
+          name: string
+          short_name: string
+          source_id: string
+          status: string
+          tracks: string[]
+          updated_at: string
+        }
+        Insert: {
+          aliases?: string[]
+          area?: string | null
+          code: string
+          created_at?: string
+          field_code: string
+          isced_levels: number[]
+          local_names?: Json
+          name: string
+          short_name: string
+          source_id: string
+          status?: string
+          tracks: string[]
+          updated_at?: string
+        }
+        Update: {
+          aliases?: string[]
+          area?: string | null
+          code?: string
+          created_at?: string
+          field_code?: string
+          isced_levels?: number[]
+          local_names?: Json
+          name?: string
+          short_name?: string
+          source_id?: string
+          status?: string
+          tracks?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_subject_catalog_field_code_fkey"
+            columns: ["field_code"]
+            isOneToOne: false
+            referencedRelation: "global_education_fields"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "global_subject_catalog_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -6169,6 +6752,38 @@ export type Database = {
           },
         ]
       }
+      identifier_sequences: {
+        Row: {
+          created_at: string
+          entity: string
+          last_value: number
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity: string
+          last_value?: number
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity?: string
+          last_value?: number
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "identifier_sequences_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_audits: {
         Row: {
           action_type: string
@@ -6738,6 +7353,33 @@ export type Database = {
             referencedColumns: ["school_id", "id"]
           },
         ]
+      }
+      mobile_v4_chat_requests: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          payload: Json
+          request_id: string
+          result: Json
+          school_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          payload: Json
+          request_id: string
+          result: Json
+          school_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          payload?: Json
+          request_id?: string
+          result?: Json
+          school_id?: string
+        }
+        Relationships: []
       }
       module_catalog: {
         Row: {
@@ -7389,6 +8031,7 @@ export type Database = {
       programs: {
         Row: {
           academic_level_id: string
+          catalog_course_code: string | null
           code: string
           created_at: string
           grading_profile: Json | null
@@ -7400,6 +8043,7 @@ export type Database = {
         }
         Insert: {
           academic_level_id: string
+          catalog_course_code?: string | null
           code: string
           created_at?: string
           grading_profile?: Json | null
@@ -7411,6 +8055,7 @@ export type Database = {
         }
         Update: {
           academic_level_id?: string
+          catalog_course_code?: string | null
           code?: string
           created_at?: string
           grading_profile?: Json | null
@@ -11233,6 +11878,7 @@ export type Database = {
       subjects: {
         Row: {
           annual_hours: number | null
+          catalog_subject_code: string | null
           code: string
           color: string | null
           created_at: string
@@ -11262,6 +11908,7 @@ export type Database = {
         }
         Insert: {
           annual_hours?: number | null
+          catalog_subject_code?: string | null
           code: string
           color?: string | null
           created_at?: string
@@ -11291,6 +11938,7 @@ export type Database = {
         }
         Update: {
           annual_hours?: number | null
+          catalog_subject_code?: string | null
           code?: string
           color?: string | null
           created_at?: string
@@ -12149,6 +12797,182 @@ export type Database = {
           },
         ]
       }
+      web_blog_posts: {
+        Row: {
+          author_name: string | null
+          body: string
+          category: string
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          excerpt: string
+          id: string
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      web_contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          message: string
+          name: string
+          school: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message: string
+          name: string
+          school?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          message?: string
+          name?: string
+          school?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      web_faqs: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          created_by: string | null
+          featured: boolean
+          id: string
+          is_published: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          answer: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          featured?: boolean
+          id?: string
+          is_published?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          featured?: boolean
+          id?: string
+          is_published?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      web_school_showcase: {
+        Row: {
+          created_at: string
+          hidden_by_platform: boolean
+          hidden_reason: string | null
+          opted_in: boolean
+          opted_in_at: string | null
+          opted_in_by: string | null
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hidden_by_platform?: boolean
+          hidden_reason?: string | null
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_in_by?: string | null
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hidden_by_platform?: boolean
+          hidden_reason?: string | null
+          opted_in?: boolean
+          opted_in_at?: string | null
+          opted_in_by?: string | null
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_school_showcase_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -12781,6 +13605,25 @@ export type Database = {
         Args: { notification_id: string; school_id: string }
         Returns: Json
       }
+      merge_school_subjects: {
+        Args: {
+          keep_subject_id: string
+          merge_subject_ids: string[]
+          target_school_id: string
+        }
+        Returns: Json
+      }
+      mobile_v4_chat_capabilities: { Args: never; Returns: Json }
+      mobile_v4_chat_command: {
+        Args: {
+          p_actor_id: string
+          p_command: Json
+          p_request_id: string
+          p_role: string
+          p_school_id: string
+        }
+        Returns: Json
+      }
       next_document_number_service: {
         Args: {
           default_prefix?: string
@@ -13035,6 +13878,18 @@ export type Database = {
         }
         Returns: Json
       }
+      siga_enroll_new_student_atomic: {
+        Args: {
+          p_academic_year_id: string
+          p_admission_date: string
+          p_class_group_id: string
+          p_guardians: Json
+          p_person: Json
+          p_request_id: string
+          p_school_id: string
+        }
+        Returns: Json
+      }
       siga_publish_assessment_rule: {
         Args: {
           actor: string
@@ -13064,6 +13919,16 @@ export type Database = {
       }
       siga_reverse_finance_receipt: {
         Args: { p_reason: string; p_receipt_id: string; p_school_id: string }
+        Returns: Json
+      }
+      siga_save_active_academic_year: {
+        Args: {
+          p_ends_on: string
+          p_name: string
+          p_school_id: string
+          p_starts_on: string
+          p_year_id: string
+        }
         Returns: Json
       }
       submit_approved_school_enrollment: {

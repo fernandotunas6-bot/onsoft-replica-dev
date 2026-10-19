@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Loader2 } from "lucide-react";
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -38,14 +38,18 @@ export function SaveBar({
       )}
     >
       {autosaveState && autosaveState !== "idle" ? (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <p
+          role="status"
+          aria-live="polite"
+          className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        >
           {autosaveState === "saving" ? (
             <>
-              <Loader2 className="size-3 animate-spin" aria-hidden /> A guardar…
+              <FeedbackIcon state="processing" className="size-3" /> A guardar…
             </>
           ) : (
             <>
-              <Check className="size-3 text-success-strong" aria-hidden /> Guardado
+              <FeedbackIcon state="success" className="size-3 text-success-strong" /> Guardado
             </>
           )}
         </p>
@@ -59,10 +63,10 @@ export function SaveBar({
         <Button
           type="button"
           className="h-11 flex-[1.4]"
-          disabled={saving || !dirty}
+          disabled={!dirty}
+          loading={saving}
           onClick={onSave}
         >
-          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
           {saveLabel}
         </Button>
       </div>

@@ -15,3 +15,14 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
   // tem a coluna. Uma lista que ninguém esvazia deixa de ser espera e passa a ser
   // dívida silenciosa.
 ]);
+
+/** Dependências preparadas: nenhuma à espera.
+ *
+ * `siga_enroll_new_student_atomic` e `siga_save_active_academic_year` saíram a
+ * 2026-10-10: a migração 20261007083733 ficou registada na produção (já estava
+ * aplicada por efeito — os quatro corpos conferidos por md5) e o retrato
+ * recapturado traz as duas funções. `check-release-contracts.mjs` deixa de
+ * bloquear a publicação. A extensão de tipos de `workflow-rpcs.ts` deixou de
+ * ser necessária para os tipos; sai quando o código que a usa for tocado.
+ */
+export const FUNCOES_ESPERA_MIGRACAO = new Map<string, string>([]);

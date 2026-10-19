@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { COLUNAS_ESPERA_MIGRACAO } from "./espera-migracao";
+import { COLUNAS_ESPERA_MIGRACAO, FUNCOES_ESPERA_MIGRACAO } from "./espera-migracao";
 
 /**
  * O código só lê e filtra colunas que existem na produção
@@ -18,6 +18,8 @@ type Snapshot = {
 };
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as Snapshot;
 const columns = new Map(snapshot.tabelas.map((t) => [t.tabela, new Set(t.colunas)]));
+// Preparadas sobre o esquema existente, nunca aplicadas automaticamente.
+const pendingWorkflowFunctions = new Set(FUNCOES_ESPERA_MIGRACAO.keys());
 
 function walk(dir: string, out: string[] = []) {
   for (const name of readdirSync(dir)) {
@@ -79,10 +81,24 @@ describe("colunas usadas existem na produção", () => {
     for (const file of walk("src")) {
       const source = readFileSync(file, "utf8");
       for (const match of source.matchAll(/\.rpc\(\s*"([a-z_0-9]+)"/g)) {
-        if (!functions.has(match[1]!)) missing.push(`${file}: ${match[1]}`);
+        if (!functions.has(match[1]!) && !pendingWorkflowFunctions.has(match[1]!))
+          missing.push(`${file}: ${match[1]}`);
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it("RPCs pendentes têm migração preparada e falham de forma explícita enquanto indisponíveis", () => {
+    const sql = readFileSync(
+      "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",
+      "utf8",
+    );
+    const client = readFileSync("src/integrations/supabase/workflow-rpcs.ts", "utf8");
+    for (const name of pendingWorkflowFunctions) {
+      expect(sql).toContain(`FUNCTION public.${name}(`);
+      expect(client).toContain(name);
+    }
+    expect(client).toContain('error?.code === "PGRST202"');
   });
 
   it("valores literais de estado são os que a base aceita", () => {

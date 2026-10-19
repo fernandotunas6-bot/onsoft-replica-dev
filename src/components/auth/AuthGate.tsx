@@ -12,7 +12,6 @@ import {
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
-import { SigaLogo } from "@/components/ui/siga-logo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { pendingMfaFactorId } from "@/features/auth/pending-mfa";
@@ -156,6 +155,14 @@ export function AuthGate({
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [modeChanged, setModeChanged] = useState(false);
+
+  useEffect(() => {
+    if (!modeChanged || checking || session || mfaFactorId) return;
+    document.getElementById(mode === "signup" ? "signup-name" : "login-email")?.focus({
+      preventScroll: true,
+    });
+  }, [mode, modeChanged, checking, session, mfaFactorId]);
 
   useEffect(() => {
     try {
@@ -585,9 +592,10 @@ export function AuthGate({
         </section>
 
         <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
-          {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
-          <SigaLogo className="mb-6 lg:hidden" />
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]">
+          <div
+            data-auth-panel=""
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]"
+          >
             {installPrompt && (
               <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
                 <Button
@@ -601,352 +609,361 @@ export function AuthGate({
               </div>
             )}
 
-            <h2 className="mt-1 font-display text-xl font-semibold tracking-tight text-center">
-              {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
-            </h2>
-            <p className="mt-1.5 text-xs text-muted-foreground text-center">
-              {mode === "signup"
-                ? "Uma só identidade para todas as escolas a que pertencer."
-                : "Entre com Google, e-mail ou Nº de BI."}
-            </p>
             <div
-              role="tablist"
-              aria-label="Modo de acesso"
-              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
-              hidden={Boolean(mfaFactorId)}
+              id="auth-panel-content"
+              className="auth-view"
+              data-auth-view={mode}
+              data-auth-motion={modeChanged ? "on" : "off"}
             >
-              {(
-                [
-                  ["signin", "Já tenho conta"],
-                  ["signup", "Criar conta"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === value}
-                  onClick={() => {
-                    setMode(value);
-                    setError(null);
-                    setInfo(null);
-                  }}
-                  className={`rounded-lg px-3 py-1.5 transition-colors ${
-                    mode === value
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-foreground/75 hover:text-foreground"
-                  }`}
+              <h2
+                id="auth-panel-title"
+                className="mt-1 font-display text-xl font-semibold tracking-tight text-center"
+              >
+                {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
+              </h2>
+              <p className="mt-1.5 text-xs text-muted-foreground text-center">
+                {mode === "signup"
+                  ? "Uma só identidade para todas as escolas a que pertencer."
+                  : "Entre com Google, e-mail ou Nº de BI."}
+              </p>
+              {!mfaFactorId ? (
+                <p className="mt-4 text-center text-xs text-muted-foreground">
+                  {mode === "signup" ? "Já tem conta? " : "Ainda não tem conta? "}
+                  <a
+                    href={mode === "signup" ? "#login-email" : "#signup-name"}
+                    aria-controls="auth-panel-content"
+                    aria-disabled={submitting || resetting || sendingMagicLink || undefined}
+                    tabIndex={submitting || resetting || sendingMagicLink ? -1 : undefined}
+                    className="font-medium text-primary underline underline-offset-4 decoration-primary/40 transition-colors hover:decoration-primary aria-disabled:opacity-60"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (submitting || resetting || sendingMagicLink) return;
+                      setModeChanged(true);
+                      setMode(mode === "signup" ? "signin" : "signup");
+                      setShowPassword(false);
+                      setError(null);
+                      setInfo(null);
+                    }}
+                  >
+                    {mode === "signup" ? "Iniciar sessão" : "Criar conta"}
+                  </a>
+                </p>
+              ) : null}
+
+              {error ? (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
+                  {error}
+                </p>
+              ) : null}
+              {info ? (
+                <p
+                  role="status"
+                  className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
+                >
+                  {info}
+                </p>
+              ) : null}
 
-            {error ? (
-              <p
-                role="alert"
-                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
-              >
-                {error}
-              </p>
-            ) : null}
-            {info ? (
-              <p
-                role="status"
-                className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
-              >
-                {info}
-              </p>
-            ) : null}
+              {mfaFactorId ? (
+                <form
+                  className="mt-6 space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void (async () => {
+                      setSubmitting(true);
+                      setError(null);
+                      try {
+                        const challenge = await supabase.auth.mfa.challenge({
+                          factorId: mfaFactorId,
+                        });
+                        if (challenge.error) throw challenge.error;
+                        const verified = await supabase.auth.mfa.verify({
+                          factorId: mfaFactorId,
+                          challengeId: challenge.data.id,
+                          code: mfaCode.trim(),
+                        });
+                        if (verified.error) throw verified.error;
 
-            {mfaFactorId ? (
-              <form
-                className="mt-6 space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void (async () => {
-                    setSubmitting(true);
-                    setError(null);
-                    try {
-                      const challenge = await supabase.auth.mfa.challenge({
-                        factorId: mfaFactorId,
-                      });
-                      if (challenge.error) throw challenge.error;
-                      const verified = await supabase.auth.mfa.verify({
-                        factorId: mfaFactorId,
-                        challengeId: challenge.data.id,
-                        code: mfaCode.trim(),
-                      });
-                      if (verified.error) throw verified.error;
+                        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                        if (assurance.error) throw assurance.error;
+                        if (assurance.data?.currentLevel !== "aal2") {
+                          throw new Error(
+                            "A verificação 2FA não elevou a sessão para AAL2. Tente novamente.",
+                          );
+                        }
 
-                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                      if (assurance.error) throw assurance.error;
-                      if (assurance.data?.currentLevel !== "aal2") {
-                        throw new Error(
-                          "A verificação 2FA não elevou a sessão para AAL2. Tente novamente.",
+                        const { data: sessionData, error: sessionError } =
+                          await supabase.auth.getSession();
+                        if (sessionError) throw sessionError;
+                        if (!sessionData.session) {
+                          throw new Error("A sessão não ficou disponível após a verificação 2FA.");
+                        }
+
+                        localStorage.setItem(
+                          activityKey(sessionData.session.user.id),
+                          String(Date.now()),
                         );
+                        setSession(sessionData.session);
+                        setMfaFactorId(null);
+                        setMfaCode("");
+                      } catch (verifyError) {
+                        setError(
+                          verifyError instanceof Error
+                            ? verifyError.message
+                            : "Código 2FA inválido.",
+                        );
+                      } finally {
+                        setSubmitting(false);
                       }
-
-                      const { data: sessionData, error: sessionError } =
-                        await supabase.auth.getSession();
-                      if (sessionError) throw sessionError;
-                      if (!sessionData.session) {
-                        throw new Error("A sessão não ficou disponível após a verificação 2FA.");
-                      }
-
-                      localStorage.setItem(
-                        activityKey(sessionData.session.user.id),
-                        String(Date.now()),
-                      );
-                      setSession(sessionData.session);
+                    })();
+                  }}
+                >
+                  <p className="text-xs text-muted-foreground">
+                    Introduza o código da aplicação autenticadora para concluir o início de sessão.
+                  </p>
+                  <Input
+                    aria-label="Código de autenticação multifator"
+                    value={mfaCode}
+                    onChange={(event) => setMfaCode(event.target.value)}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="000000"
+                    required
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={submitting || mfaCode.length < 6}
+                  >
+                    {submitting ? "A verificar…" : "Confirmar 2FA"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    disabled={submitting}
+                    onClick={() => {
                       setMfaFactorId(null);
                       setMfaCode("");
-                    } catch (verifyError) {
-                      setError(
-                        verifyError instanceof Error ? verifyError.message : "Código 2FA inválido.",
-                      );
-                    } finally {
-                      setSubmitting(false);
-                    }
-                  })();
-                }}
-              >
-                <p className="text-xs text-muted-foreground">
-                  Introduza o código da aplicação autenticadora para concluir o início de sessão.
-                </p>
-                <Input
-                  aria-label="Código de autenticação multifator"
-                  value={mfaCode}
-                  onChange={(event) => setMfaCode(event.target.value)}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="000000"
-                  required
-                />
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={submitting || mfaCode.length < 6}
-                >
-                  {submitting ? "A verificar…" : "Confirmar 2FA"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  disabled={submitting}
-                  onClick={() => {
-                    setMfaFactorId(null);
-                    setMfaCode("");
-                    void supabase.auth.signOut({ scope: "local" });
-                  }}
-                >
-                  Usar outra conta
-                </Button>
-              </form>
-            ) : null}
-
-            <form
-              className="mt-6 space-y-4"
-              onSubmit={signIn}
-              aria-busy={submitting}
-              hidden={Boolean(mfaFactorId) || mode === "signup"}
-            >
-              <div className="space-y-1.5">
-                <Label htmlFor="login-email" className="text-xs font-medium">
-                  Email ou Nº de BI / NIF
-                </Label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="login-email"
-                    name="email"
-                    type="text"
-                    autoComplete="username"
-                    required
-                    defaultValue={rememberedEmail}
-                    className="pl-9 h-10 text-sm"
-                    placeholder="utilizador@escola.ao ou 004212984LA042"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="login-password" className="text-xs font-medium">
-                    Senha
-                  </Label>
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
-                    onClick={() => void resetPassword()}
-                    disabled={resetting || submitting || sendingMagicLink}
+                      void supabase.auth.signOut({ scope: "local" });
+                    }}
                   >
-                    {resetting ? "A enviar…" : "Esqueceu a senha?"}
-                  </button>
-                </div>
-                <div className="relative">
-                  <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="login-password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    required
-                    minLength={8}
-                    className="pr-11 pl-9 h-10 text-sm"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowPassword((value) => !value)}
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
-              </div>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  name="remember"
-                  aria-label="Lembrar email"
-                  defaultChecked={Boolean(rememberedEmail)}
-                  className="size-3.5 rounded border-input text-primary focus:ring-primary"
-                />
-                Lembrar email neste dispositivo
-              </label>
-              <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
-              <Button
-                type="submit"
-                className="w-full gap-2 h-10 text-sm font-semibold"
-                disabled={submitting || resetting || sendingMagicLink}
-              >
-                {submitting ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <LockKeyhole className="size-4" />
-                )}
-                {submitting ? "A entrar…" : "Entrar no Portal"}
-              </Button>
-              <button
-                type="button"
-                className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
-                onClick={() => void sendMagicLink()}
-                disabled={sendingMagicLink || submitting || resetting}
-              >
-                {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
-              </button>
-            </form>
+                    Usar outra conta
+                  </Button>
+                </form>
+              ) : null}
 
-            {mode === "signup" && !mfaFactorId ? (
-              <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
+              <form
+                id="signin-form"
+                className="mt-6 space-y-4"
+                onSubmit={signIn}
+                aria-busy={submitting}
+                hidden={Boolean(mfaFactorId) || mode === "signup"}
+              >
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-name" className="text-xs font-medium">
-                    Nome completo
+                  <Label htmlFor="login-email" className="text-xs font-medium">
+                    Email ou Nº de BI / NIF
                   </Label>
-                  <Input
-                    id="signup-name"
-                    name="fullName"
-                    autoComplete="name"
-                    required
-                    minLength={3}
-                    maxLength={160}
-                    className="h-10 text-sm"
-                  />
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="login-email"
+                      name="email"
+                      type="text"
+                      autoComplete="username"
+                      required
+                      defaultValue={rememberedEmail}
+                      className="pl-9 h-10 text-sm"
+                      placeholder="utilizador@escola.ao ou 004212984LA042"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-email" className="text-xs font-medium">
-                    E-mail
-                  </Label>
-                  <Input
-                    id="signup-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    className="h-10 text-sm"
-                    placeholder="nome@exemplo.ao"
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-password" className="text-xs font-medium">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="login-password" className="text-xs font-medium">
                       Senha
                     </Label>
-                    <Input
-                      id="signup-password"
-                      name="password"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      minLength={8}
-                      className="h-10 text-sm"
-                    />
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                      onClick={() => void resetPassword()}
+                      disabled={resetting || submitting || sendingMagicLink}
+                    >
+                      {resetting ? "A enviar…" : "Esqueceu a senha?"}
+                    </button>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-confirm" className="text-xs font-medium">
-                      Confirmar senha
-                    </Label>
+                  <div className="relative">
+                    <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="signup-confirm"
-                      name="confirmPassword"
-                      type="password"
-                      autoComplete="new-password"
+                      id="login-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       required
                       minLength={8}
-                      className="h-10 text-sm"
+                      className="pr-11 pl-9 h-10 text-sm"
+                      placeholder="••••••••"
                     />
+                    <button
+                      type="button"
+                      className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
                   </div>
                 </div>
-                <p className="text-[11px] leading-4 text-muted-foreground">
-                  Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
-                  sua escola ou pedir acesso à secretaria da escola a que pertence.
-                </p>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="remember"
+                    aria-label="Lembrar email"
+                    defaultChecked={Boolean(rememberedEmail)}
+                    className="size-3.5 rounded border-input text-primary focus:ring-primary"
+                  />
+                  Lembrar email neste dispositivo
+                </label>
                 <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
                 <Button
                   type="submit"
                   className="w-full gap-2 h-10 text-sm font-semibold"
-                  disabled={submitting}
+                  disabled={submitting || resetting || sendingMagicLink}
                 >
-                  {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-                  {submitting ? "A criar conta…" : "Criar conta"}
+                  {submitting ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : (
+                    <LockKeyhole className="size-4" />
+                  )}
+                  {submitting ? "A entrar…" : "Entrar no Portal"}
                 </Button>
+                <button
+                  type="button"
+                  className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
+                  onClick={() => void sendMagicLink()}
+                  disabled={sendingMagicLink || submitting || resetting}
+                >
+                  {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
+                </button>
               </form>
-            ) : null}
 
-            <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              ou
-              <span className="h-px flex-1 bg-border" />
+              {mode === "signup" && !mfaFactorId ? (
+                <form
+                  id="signup-form"
+                  className="mt-6 space-y-4"
+                  onSubmit={signUp}
+                  aria-busy={submitting}
+                >
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-name" className="text-xs font-medium">
+                      Nome completo
+                    </Label>
+                    <Input
+                      id="signup-name"
+                      name="fullName"
+                      autoComplete="name"
+                      required
+                      minLength={3}
+                      maxLength={160}
+                      className="h-10 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-email" className="text-xs font-medium">
+                      E-mail
+                    </Label>
+                    <Input
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      className="h-10 text-sm"
+                      placeholder="nome@exemplo.ao"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-password" className="text-xs font-medium">
+                        Senha
+                      </Label>
+                      <Input
+                        id="signup-password"
+                        name="password"
+                        type="password"
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-confirm" className="text-xs font-medium">
+                        Confirmar senha
+                      </Label>
+                      <Input
+                        id="signup-confirm"
+                        name="confirmPassword"
+                        type="password"
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                        className="h-10 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] leading-4 text-muted-foreground">
+                    Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar
+                    a sua escola ou pedir acesso à secretaria da escola a que pertence.
+                  </p>
+                  <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
+                  <Button
+                    type="submit"
+                    className="w-full gap-2 h-10 text-sm font-semibold"
+                    disabled={submitting}
+                  >
+                    {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                    {submitting ? "A criar conta…" : "Criar conta"}
+                  </Button>
+                </form>
+              ) : null}
+
+              <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                ou
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4 w-full gap-2 h-10 text-sm font-medium"
+                onClick={() => void signInWithGoogle()}
+                disabled={submitting || resetting || sendingMagicLink}
+              >
+                <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+                  />
+                </svg>
+                {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 w-full gap-2 h-10 text-sm font-medium"
-              onClick={() => void signInWithGoogle()}
-              disabled={submitting || resetting || sendingMagicLink}
-            >
-              <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                <path
-                  fill="#4285F4"
-                  d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
-                />
-              </svg>
-              {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
-            </Button>
 
             {installPrompt && (
               <div className="mt-4 pt-3 border-t border-border/60">

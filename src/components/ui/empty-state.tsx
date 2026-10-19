@@ -50,12 +50,12 @@ export function EmptyState({
         </span>
       ) : compact ? (
         <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
-          <Icon className="size-5" aria-hidden />
+          <Icon className="size-5" strokeWidth={1.8} aria-hidden />
         </span>
       ) : (
         // Na cor da área da página (tom em <html data-tone>).
         <span className="empty-chip mb-3" aria-hidden>
-          <Icon className="size-6 drop-shadow" />
+          <Icon className="size-6" strokeWidth={1.8} />
         </span>
       )}
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>

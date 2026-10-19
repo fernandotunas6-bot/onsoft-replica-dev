@@ -3,6 +3,7 @@ import { defineConfig } from "@playwright/test";
 const isCi = Boolean(process.env.CI);
 
 export default defineConfig({
+  globalSetup: "./tests/e2e/safety-setup.ts",
   testDir: "tests/e2e",
   outputDir: "test-results",
   timeout: 90_000,

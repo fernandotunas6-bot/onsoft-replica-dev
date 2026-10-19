@@ -1,11 +1,20 @@
 import { Toaster as Sonner } from "sonner";
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-const Toaster = ({ ...props }: ToasterProps) => {
+const Toaster = ({ icons, ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
+      icons={{
+        success: <FeedbackIcon state="success" />,
+        error: <FeedbackIcon state="error" />,
+        warning: <FeedbackIcon state="warning" />,
+        info: <FeedbackIcon state="info" />,
+        loading: <FeedbackIcon state="processing" />,
+        ...icons,
+      }}
       toastOptions={{
         classNames: {
           toast:

@@ -1,3 +1,4 @@
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 
 interface PageLoadingProps {
@@ -13,8 +14,8 @@ export function PageLoading({
 }: PageLoadingProps) {
   return (
     <div className={cn("flex items-center justify-center bg-background", minHeight, className)}>
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+      <div className="text-center" role="status" aria-live="polite">
+        <FeedbackIcon state="processing" className="size-8 text-primary mx-auto" />
         {message ? (
           <p className="text-muted-foreground mt-2 text-sm font-medium">{message}</p>
         ) : null}

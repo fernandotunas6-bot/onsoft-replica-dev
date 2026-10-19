@@ -371,9 +371,10 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   font-size: 0.875rem;
   font-weight: 500;
   transition:
-    background-color 120ms ease,
-    color 120ms ease,
-    box-shadow 120ms ease;
+    background-color var(--siga-motion-fast) var(--siga-ease),
+    color var(--siga-motion-fast) var(--siga-ease),
+    box-shadow var(--siga-motion-fast) var(--siga-ease),
+    transform var(--siga-motion-fast) var(--siga-ease);
 
   &:active {
     transform: scale(0.99);
@@ -399,17 +400,19 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   justify-content: center;
   border-radius: 9999px;
   transition:
-    background-color 120ms ease,
-    color 120ms ease,
-    transform 75ms ease-out;
+    background-color var(--siga-motion-fast) var(--siga-ease),
+    color var(--siga-motion-fast) var(--siga-ease),
+    transform var(--siga-motion-fast) var(--siga-ease),
+    opacity var(--siga-motion-fast) var(--siga-ease);
 
   &:hover {
     background-color: var(--color-secondary);
   }
 
   &:active {
-    transform: scale(0.97);
-    opacity: 0.92;
+    transition-duration: 75ms;
+    transform: scale(0.985);
+    opacity: 0.96;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -443,6 +446,7 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
   }
@@ -537,11 +541,36 @@ summary,
 /* Feedback instantâneo de toque (Processar ao Toque) */
 @utility touch-feedback {
   transition:
-    transform 75ms ease-out,
-    opacity 75ms ease-out;
+    transform var(--siga-motion-fast) var(--siga-ease),
+    opacity var(--siga-motion-fast) var(--siga-ease);
   &:active {
-    transform: scale(0.97);
-    opacity: 0.92;
+    transition-duration: 75ms;
+    transform: scale(0.985);
+    opacity: 0.96;
+  }
+}
+
+/* Menus share a gentle entrance and a faster exit, anchored by Radix. */
+@utility siga-menu-motion {
+  &[data-state="open"] {
+    --tw-animation-duration: var(--siga-motion-base);
+    --tw-ease: var(--siga-ease);
+  }
+
+  &[data-state="closed"] {
+    --tw-animation-duration: var(--siga-motion-fast);
+    --tw-ease: ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-row:active,
+  .touch-feedback:active {
+    transform: none;
   }
 }
 
@@ -742,7 +771,7 @@ h6,
 }
 
 /*
- * Transição de rota no telemóvel: opacidade + 4px, nada mais. Uma animação
+ * Entrada do conteúdo: opacidade + 2px, nada mais. Uma animação
  * maior faz a aplicação parecer lenta em vez de nativa.
  */
 @utility page-enter {
@@ -752,7 +781,7 @@ h6,
 @keyframes siga-page-enter {
   from {
     opacity: 0;
-    transform: translateX(4px);
+    transform: translateY(2px);
   }
   to {
     opacity: 1;
@@ -1071,7 +1100,7 @@ h6,
   }
 }
 
-/* Estado vazio: ícone em vidro na cor da área, a flutuar devagar. */
+/* Estado vazio: pequeno destaque estático na cor da área. */
 @layer components {
   .empty-chip {
     display: grid;
@@ -1079,13 +1108,9 @@ h6,
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 28%;
-    color: white;
-    background: linear-gradient(145deg, var(--tone-a), var(--tone-b));
-    box-shadow:
-      inset 0 2px 0 oklch(1 0 0 / 0.5),
-      inset 0 -5px 10px oklch(0 0 0 / 0.15),
-      0 12px 28px -12px color-mix(in oklab, var(--tone-b) 70%, transparent);
-    animation: tile-float 7s ease-in-out infinite;
+    color: var(--tone-a);
+    background: color-mix(in oklch, var(--tone-a) 10%, var(--color-card));
+    border: 1px solid color-mix(in oklch, var(--tone-a) 20%, var(--color-border));
   }
 }
 
@@ -1208,6 +1233,124 @@ h6,
   .text-aurora,
   .page-header-glow,
   .empty-chip {
+    animation: none;
+  }
+}
+
+/* Feedback SVG: one quiet entrance; only an active process repeats. */
+.siga-feedback-icon[data-feedback-motion="on"] {
+  animation: siga-feedback-enter var(--siga-motion-base) var(--siga-ease);
+}
+
+.siga-feedback-icon[data-feedback-motion="on"][data-feedback-state="success"] path,
+.siga-feedback-icon[data-feedback-motion="on"][data-feedback-state="rejected"] path {
+  stroke-dasharray: 40;
+  animation: siga-feedback-stroke var(--siga-motion-slow) ease-out;
+}
+
+.siga-feedback-icon[data-feedback-motion="on"][data-feedback-state="processing"] {
+  animation: siga-feedback-process 1.1s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes siga-feedback-enter {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes siga-feedback-stroke {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes siga-feedback-process {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .siga-feedback-icon[data-feedback-motion="on"][data-feedback-state],
+  .siga-feedback-icon[data-feedback-motion="on"][data-feedback-state] path {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
+
+/* Sonner retains the hidden loader briefly after a result arrives. */
+[data-sonner-toast] .sonner-loader[data-visible="false"] .siga-feedback-icon {
+  animation: none;
+}
+
+/* Shared form states: keep dimensions stable while making context visible. */
+@utility siga-field {
+  transition:
+    border-color var(--siga-motion-fast) var(--siga-ease),
+    background-color var(--siga-motion-fast) var(--siga-ease),
+    box-shadow var(--siga-motion-fast) var(--siga-ease);
+
+  &:focus-visible {
+    border-color: var(--color-ring);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--color-destructive);
+  }
+
+  &[aria-invalid="true"]:focus-visible {
+    --tw-ring-color: var(--color-destructive);
+  }
+
+  &:disabled {
+    background-color: color-mix(in oklch, var(--color-muted) 45%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Change access mode inside the same card, with a short directional entrance. */
+.auth-view[data-auth-motion="on"][data-auth-view="signup"] {
+  animation: siga-auth-forward 260ms var(--siga-ease);
+}
+
+.auth-view[data-auth-motion="on"][data-auth-view="signin"] {
+  animation: siga-auth-back 260ms var(--siga-ease);
+}
+
+@keyframes siga-auth-forward {
+  from {
+    opacity: 0.3;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes siga-auth-back {
+  from {
+    opacity: 0.3;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-view[data-auth-motion="on"][data-auth-view] {
     animation: none;
   }
 }

@@ -4,6 +4,20 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Correcções e SPECs — 2026-10-08
+
+Seguir o banco actual. [Progresso e evidências](../implementation/2026-10-07/PROGRESSO.md),
+[30 SPECs e contratos](../specs/README.md) e
+[revisão/promoção/reversão SQL](../implementation/2026-10-07/REVISAO_SQL.md).
+Matrícula e ano activo usam RPCs atómicos preparados; importação recusa excesso/CSV inválido;
+grants exigem MFA e E2E com escrita recusa produção. Não houve aplicação SQL nem deploy.
+Os dois RPCs ainda ausentes estão explicitamente em `tests/security/espera-migracao.ts`;
+`check-release-contracts.mjs` bloqueia publicação até catálogo confirmado e ensaio de staging.
+Não retirar o bloqueio para publicar antes do SQL nem restaurar escritas parciais como fallback.
+Gates locais: tipos, lint (0 erros/47 avisos), build, 3 119 testes (3 ignorados) e dois fixtures SQL aprovados.
+A auditoria anterior conserva os seus resultados/hashes; fixtures locais não certificam
+concorrência real, jornada anual ou fornecedores. Alterações locais anteriores preservadas.
+
 ## Análise crítica — 2026-10-06
 
 Relatório: [13-auditoria-critica-2026-10-06.md](../auditoria/13-auditoria-critica-2026-10-06.md).
