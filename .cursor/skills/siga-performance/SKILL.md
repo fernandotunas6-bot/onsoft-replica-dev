@@ -90,6 +90,14 @@ uma operação concluída.
   de feedback, dimensões e erros. Requer Chrome; `SIGA_PERF_BASE_URL` escolhe o alvo e
   o `kind` do relatório distingue desenvolvimento de build de produção. Não substitui
   a validação autenticada. Evidências em `docs/performance/2026-10-19/relatorio.md`.
+- Armadilha dos bytes medidos no navegador: o servidor Node que serve o build
+  localmente **não comprime** (sem `content-encoding`, `content-length` igual ao
+  tamanho em disco), e a Cloudflare comprime. Os totais de `transferSize` do
+  `performance-browser.mjs` são por comprimir e inflacionam tudo o que é texto. Antes
+  de anunciar uma poupança, converter para gzip/brotli: a saída do pedaço dos gráficos
+  eram 412 759 bytes em disco mas **110 362 em gzip** — ~110 KB para o utilizador, não
+  414 KB. Media/vídeo já vem comprimido e não encolhe, por isso pesa mais na proporção
+  real do que no total por comprimir.
 - Medir o build de produção neste Mac: `wrangler` exige macOS 13.5+ e `vite preview`
   procura `dist/server/`, que o projecto não usa. Funciona
   `SIGA_NITRO_PRESET=node-server npm run build` e servir `.output/server/index.mjs` por

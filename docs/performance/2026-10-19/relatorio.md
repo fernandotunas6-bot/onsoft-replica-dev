@@ -47,7 +47,8 @@ anteriores não mexeram a nota: as reduções foram feitas na lista de 36, enqua
 ecrã medido carrega a de 73 mais o que ela arrasta.
 
 Carregamento frio medido no navegador, sobre o build de produção (corrida 0 de cada
-perfil, as seguintes aproveitam a cache do contexto):
+perfil, as seguintes aproveitam a cache do contexto). **Valores por comprimir**: o
+servidor Node local não comprime, ao contrário da Cloudflare — ressalva adiante:
 
 | Perfil              | Recursos | Transferido     |
 | ------------------- | -------- | --------------- |
@@ -99,9 +100,25 @@ no build, com o mesmo hash, para as páginas que têm gráficos. No carregamento
 | Computador 1440×900                  | 110 rec. / 4 101 523 B | 107 rec. / 3 687 643 B | −413 880 B (−10,1%) |
 | Telemóvel 390×844                    | 109 rec. / 2 384 567 B | 106 rec. / 1 970 687 B | −413 880 B (−17,4%) |
 
+**Estes bytes são por comprimir e não é isso que um utilizador recebe.** O servidor
+Node que serve o build localmente não comprime — confirmado: resposta sem
+`content-encoding` e `content-length` igual ao tamanho em disco. A Cloudflare serve
+estes recursos comprimidos. Os três que deixaram de ser pedidos são `BarChart`
+(369 985 B), `DashboardCharts` (16 951 B) e `PieChart` (25 823 B), que somam 412 759 —
+os 413 880 medidos, a menos de 1 121 bytes de cabeçalhos. Comprimidos:
+
+| Os 3 recursos que saíram                    | Por comprimir | gzip        | brotli     |
+| ------------------------------------------- | ------------- | ----------- | ---------- |
+| `BarChart` + `DashboardCharts` + `PieChart` | 412 759       | **110 362** | **91 808** |
+
+A poupança que chega a um utilizador em produção é da ordem de **110 KB**, não de
+414 KB. Pela mesma razão, os totais de 4,1 MB e 2,4 MB da tabela estão inflacionados
+para tudo o que é texto; o vídeo (1 716 956 B) já está comprimido e não encolhe, por
+isso pesa mais, na proporção, do que a tabela sugere.
+
 O pedaço `BarChart` deixou de aparecer na lista de recursos pedidos, e o total do
-tipo `script` caiu de 507 643 para **111 235 bytes**. Evidências em
-[`browser-prod.json`](browser-prod.json) (antes) e
+tipo `script` caiu de 507 643 para **111 235 bytes** (também por comprimir).
+Evidências em [`browser-prod.json`](browser-prod.json) (antes) e
 [`browser-prod-after.json`](browser-prod-after.json) (depois).
 
 Nas seis corridas posteriores: zero erros de consola, sem overflow horizontal,
