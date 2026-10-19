@@ -29,6 +29,8 @@ ADMIN = os.environ.get("VITE_ADMIN_URL", "http://localhost:3005")
 DOC = os.environ.get("VITE_DOCS_URL", "http://localhost:5173")
 LIVE = os.environ.get("SIGA_E2E_LIVE", "").lower() in ("1", "true")
 ROOT = Path(__file__).resolve().parents[2]
+if LIVE:
+    subprocess.run(["node", str(ROOT / "scripts/siga/e2e-safety.mjs")], check=True, cwd=ROOT)
 
 
 def unique_slug(prefix: str = "e2e") -> str:

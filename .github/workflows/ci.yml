@@ -228,9 +228,11 @@ jobs:
 
       - name: Configurar Supabase para E2E @live (opcional)
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SIGA_E2E_ALLOW_WRITES: "1"
+          SIGA_E2E_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: node scripts/siga/prepare-ci-env.mjs
 
       - name: Arrancar ecossistema (4 apps)
@@ -239,8 +241,8 @@ jobs:
           # Valores públicos (os mesmos por omissão de src/integrations/supabase/client.ts).
           # Sem eles o ADMIN fecha as rotas protegidas com 503, de propósito, e o smoke
           # e os testes de redirecção para /sign-in falham.
-          NEXT_PUBLIC_SUPABASE_URL: https://xodgfmxiaunpamctfeea.supabase.co
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
 
       - name: Aguardar portas do ecossistema
         run: node scripts/siga/wait-ecosystem.mjs
@@ -258,7 +260,9 @@ jobs:
 
       - name: Playwright UI Python (rotas + wizard; @live se secret)
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SIGA_E2E_ALLOW_WRITES: "1"
+          SIGA_E2E_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: |
           if [ -n "$SUPABASE_SECRET_KEY" ]; then
             SIGA_E2E_LIVE=1 python3 scripts/siga/e2e-ecosystem-playwright.py
@@ -268,8 +272,10 @@ jobs:
 
       - name: Playwright TS @live (comercial + matrícula, opcional)
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
           SIGA_E2E_LIVE: "1"
+          SIGA_E2E_ALLOW_WRITES: "1"
+          SIGA_E2E_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
         run: |
           if [ -z "$SUPABASE_SECRET_KEY" ]; then
             echo "Skip Playwright TS @live — SUPABASE_SECRET_KEY em falta."
@@ -280,7 +286,9 @@ jobs:
       - name: Cleanup tenants E2E órfãos (best-effort)
         if: always()
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SIGA_E2E_ALLOW_WRITES: "1"
+          SIGA_E2E_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: |
           if [ -z "$SUPABASE_SECRET_KEY" ]; then exit 0; fi
           node scripts/siga/e2e-cleanup-stale.mjs || true

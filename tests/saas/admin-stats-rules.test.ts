@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addMonthsClamped,
   defaultBillingProfile,
+  isInTrial,
   isTrialExpired,
   monthlyRevenueOf,
   resolveStatusChange,
+  trialExtensionError,
 } from "@/features/saas/tenant-billing-rules";
 
 const NOW = new Date("2026-10-17T12:00:00Z");
@@ -23,6 +26,10 @@ describe("monthlyRevenueOf (MRR do painel)", () => {
       },
       NOW,
     );
+
+  it("escola activa com a assinatura ainda em trial não conta (não pagou)", () => {
+    expect(revenue({ subscriptionStatus: "trialing" })).toBe(0);
+  });
 
   it("escola activa sem perfil: preço mensal de tabela", () => {
     expect(revenue({})).toBe(50_000);
@@ -103,5 +110,51 @@ describe("resolveStatusChange", () => {
       resolveStatusChange({ status: "suspended", subscription_status: "active" }, "active"),
     ).toEqual({ status: "active" });
     expect(resolveStatusChange({ status: "active" }, "suspended")).toEqual({ status: "suspended" });
+  });
+});
+
+describe("isInTrial", () => {
+  it("trial, ou activa com a assinatura em trialing", () => {
+    expect(isInTrial({ status: "trial" })).toBe(true);
+    expect(isInTrial({ status: "active", subscription_status: "trialing" })).toBe(true);
+    expect(isInTrial({ status: "active", subscription_status: "active" })).toBe(false);
+    expect(isInTrial({ status: "suspended", subscription_status: "trialing" })).toBe(false);
+  });
+});
+
+describe("trialExtensionError", () => {
+  it("recusa prolongar o trial de uma escola que já paga", () => {
+    expect(trialExtensionError({ status: "active", subscription_status: "active" })).toMatch(
+      /já paga/,
+    );
+  });
+
+  it("aceita trial, trial expirado de escola activa, atraso e suspensa", () => {
+    expect(trialExtensionError({ status: "trial", subscription_status: "trialing" })).toBeNull();
+    expect(trialExtensionError({ status: "active", subscription_status: "trialing" })).toBeNull();
+    expect(trialExtensionError({ status: "past_due", subscription_status: "past_due" })).toBeNull();
+    expect(
+      trialExtensionError({ status: "suspended", subscription_status: "trialing" }),
+    ).toBeNull();
+  });
+});
+
+describe("addMonthsClamped", () => {
+  it("31/01 + 1 mês fica no fim de Fevereiro", () => {
+    expect(addMonthsClamped(new Date("2027-01-31T10:00:00Z"), 1).toISOString()).toBe(
+      "2027-02-28T10:00:00.000Z",
+    );
+    expect(addMonthsClamped(new Date("2028-01-31T10:00:00Z"), 1).toISOString()).toBe(
+      "2028-02-29T10:00:00.000Z",
+    );
+  });
+
+  it("dias normais e 12 meses mantêm o dia", () => {
+    expect(addMonthsClamped(new Date("2026-10-18T09:00:00Z"), 3).toISOString()).toBe(
+      "2027-01-18T09:00:00.000Z",
+    );
+    expect(addMonthsClamped(new Date("2026-08-31T09:00:00Z"), 12).toISOString()).toBe(
+      "2027-08-31T09:00:00.000Z",
+    );
   });
 });

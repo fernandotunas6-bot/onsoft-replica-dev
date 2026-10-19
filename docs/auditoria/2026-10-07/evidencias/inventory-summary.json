@@ -1,0 +1,10 @@
+{
+  "branch": "docs/auditoria-critica-2026-10-06",
+  "commit": "df5009b39f03b69acc2cc69db235682bfd994e15",
+  "snapshot": "2026-10-06T08:39:05.488Z",
+  "rotas": 217,
+  "funcoes": 492,
+  "modulos": 30,
+  "tabelas": 189,
+  "node": "v24.18.0"
+}

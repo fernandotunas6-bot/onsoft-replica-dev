@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { collectWorkerSecrets, collectWorkerVars } from "./worker-secrets.mjs";
+execSync("node scripts/siga/check-release-contracts.mjs", { stdio: "inherit" });
 
 // Load .env file
 const envFile = path.resolve(".env");
