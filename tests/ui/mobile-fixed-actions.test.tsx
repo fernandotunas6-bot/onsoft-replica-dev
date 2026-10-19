@@ -41,9 +41,7 @@ describe("separadores de navegação compactos", () => {
 
   it("navega com setas, Home e End sem deslocar a página inteira", () => {
     const onSelect = vi.fn();
-    const { rerender } = render(
-      <MobileTabs tabs={tabs} activeId="resumo" onSelect={onSelect} />,
-    );
+    const { rerender } = render(<MobileTabs tabs={tabs} activeId="resumo" onSelect={onSelect} />);
     const all = screen.getAllByRole("tab");
     expect(all.map((tab) => tab.getAttribute("tabindex"))).toEqual(["0", "-1", "-1"]);
     fireEvent.keyDown(all[0], { key: "ArrowRight" });
