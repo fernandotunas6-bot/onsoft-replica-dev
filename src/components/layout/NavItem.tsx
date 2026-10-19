@@ -1,8 +1,9 @@
-import type { ElementType, ReactNode } from "react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useRef, type ElementType, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { prefetchRouteData } from "@/lib/route-data-prefetch";
+import { canPrefetchResources } from "@/lib/preload";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 
 /**
  * Componente de navegação unificado (regras de layout do Minimals):
@@ -54,10 +55,10 @@ export function NavIcon({
       >
         <span
           className={cn(
-            "block rounded-full transition-[width,height,background-color] duration-(--siga-motion-fast) ease-(--siga-ease)",
+            "block size-1 rounded-full transition-[transform,background-color] duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
             active
-              ? "size-1.5 bg-sidebar-active"
-              : "size-1 bg-sidebar-foreground/40 group-hover:size-1.5 group-hover:bg-sidebar-active",
+              ? "scale-150 bg-sidebar-active"
+              : "bg-sidebar-foreground/40 group-hover:scale-150 group-hover:bg-sidebar-active",
           )}
         />
       </span>
@@ -120,15 +121,46 @@ export function NavLinkRow(
   props: BaseProps & { to: string; search?: Record<string, string | undefined> },
 ) {
   const { to, search, ...rest } = props;
-  const router = useRouter();
   const queryClient = useQueryClient();
+  const { school, selectedYearId } = useSchoolSettings();
+  const targetKey = JSON.stringify([to, search]);
+  const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const generation = useRef(0);
+  const cancelWarmup = () => {
+    clearTimeout(pending.current);
+    generation.current += 1;
+  };
+  useEffect(
+    () => () => {
+      clearTimeout(pending.current);
+      generation.current += 1;
+    },
+    [school?.id, selectedYearId, targetKey],
+  );
   const warmRoute = () => {
-    void router.preloadRoute({ to, ...(search ? { search } : {}) }).catch(() => {});
-    prefetchRouteData(queryClient, to);
+    cancelWarmup();
+    if (!canPrefetchResources()) return;
+    const current = generation.current;
+    pending.current = setTimeout(() => {
+      void import("@/lib/route-data-prefetch")
+        .then(({ prefetchRouteData }) => {
+          if (current !== generation.current) return;
+          prefetchRouteData(queryClient, to, {
+            schoolId: school?.id ?? null,
+            academicYearId: selectedYearId ?? null,
+            search,
+          });
+        })
+        .catch(() => {
+          /* A navegação normal conserva a recuperação de erros. */
+        });
+    }, 80);
   };
   return (
     <Link
       to={to}
+      preload={canPrefetchResources() ? "intent" : false}
+      preloadDelay={80}
       {...(search ? { search } : {})}
       activeOptions={{ exact: !search }}
       {...(props.collapsed ? { title: props.label } : {})}
@@ -139,6 +171,8 @@ export function NavLinkRow(
       data-nav-depth={props.depth ?? "root"}
       onMouseEnter={warmRoute}
       onFocus={warmRoute}
+      onMouseLeave={cancelWarmup}
+      onBlur={cancelWarmup}
     >
       {content(rest)}
     </Link>

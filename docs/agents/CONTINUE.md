@@ -4,6 +4,64 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Performance — navegação, cache e arranque (2026-10-19)
+
+Contrato persistido na skill `.cursor/skills/siga-performance/SKILL.md`, também
+disponível no catálogo Codex. Mesmo visual, dimensões e funcionalidades; priorizar
+resposta ao toque e optimizações medidas. [Relatório e evidências](../performance/2026-10-19/relatorio.md).
+
+- Pré-busca com a cache React Query, chaves/filtros reais, escola/ano seleccionados,
+  cancelamento e limite de concorrência; sem pedidos especulativos em rede limitada.
+- Realtime junta eventos durante leituras lentas e conserva uma actualização final;
+  limpeza ao desmontar. Documentos e Comunicações reutilizam o mesmo mecanismo.
+- `ImportarDadosPage` e `SubscriptionDetail` não têm consumidores externos: manter
+  as funções privadas nas rotas para não impedir a separação automática do código.
+- Manifesto de produção: base de 42 para 36 ficheiros, 1 435 872 para cerca de
+  1 077 268 bytes (-25%). Não é uma redução medida de latência. Não somar os hashes
+  antigos que possam ficar na pasta de saída para calcular tráfego inicial.
+- Laboratório do login: 12 cliques com título actualizado no frame seguinte em
+  14,5–79,5 ms; zero erros/overflow/CLS. São amostras locais, sem sessão e sem p75 real.
+- Catálogo de temas Shadcn/Tweakcn fora do arranque: `src/lib/appearance.tsx` carrega-o
+  por `import()`. A raiz passou de 1 077 268 para 977 513 bytes nos mesmos 36 ficheiros
+  (-31,9% desde o início do ciclo). Guarda em `tests/ui/first-paint-budget.test.ts`:
+  não voltar a importar `@/config/theme-data` estaticamente nesse ficheiro.
+- Zod na raiz (56 638 bytes, o pedaço `types`) fica identificado e **não** alterado:
+  chega por esquemas de validação de funções de servidor e tirá-lo daí sem perder a
+  validação é trabalho de build. Não trocar validação do servidor por bytes.
+- Suite completa sem credenciais: 3 611 aprovados, 3 ignorados, 0 falhas. O `npm test`
+  não carrega o `.env` (sem `dotenv`/`loadEnv` no `vitest.config.ts`); o risco é só
+  `set -a && . ./.env` na mesma shell.
+- **Medir o build de produção passou a ser possível**: `SIGA_NITRO_PRESET=node-server
+npm run build` e servir `.output/server/index.mjs` por Node (o `wrangler` exige macOS
+  13.5+; o `vite preview` procura `dist/server/`). O pacote do cliente é igual nos dois
+  presets. A variável **nunca** entra num workflow de publicação. Primeira medição em
+  `browser-prod.json`: CLS 0, zero erros, LCP 1 272–2 664 ms no computador e 604–916 ms
+  no telemóvel, feedback ao toque 6,8–81,6 ms. Sem limitação de rede/CPU e sem sessão:
+  **não é INP p75 e as metas de aceitação do dono continuam sem verificação**.
+- **Os 36 recursos são do `__root__`, não da página.** A rota `/` soma 73 ficheiros
+  (1 567 114 bytes) e é o que o ecrã de entrada carrega, porque `/` é o painel e desenha
+  o login sem sessão. Explica por que reduções anteriores não mexeram a nota: foram
+  feitas na lista errada. Ler `routes["/"].preloads`, não só a da raiz.
+- **370 KB de `recharts` entravam no login apesar do `lazy()`**: `index.tsx` importava
+  `DashboardChartsSkeleton` do módulo que importa `recharts`, e o manifesto pré-carrega o
+  grafo estático da rota. O esqueleto passou para
+  `src/features/dashboard/DashboardChartsSkeleton.tsx` (marcação pura, zero imports);
+  guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com o import antigo.
+  Medido: a rota `/` passou a 72 ficheiros/1 549 942 bytes no manifesto, sem pedaços de
+  gráficos, e o carregamento frio desceu 413 880 bytes (−10,1% no computador, −17,4% no
+  telemóvel), com o tipo `script` de 507 643 para 111 235 bytes. **Esses bytes são por
+  comprimir**: o servidor Node local não comprime e a Cloudflare comprime, por isso a
+  poupança real são os 110 362 em gzip (91 808 em brotli) dos três recursos que saíram
+  (`BarChart`, `DashboardCharts`, `PieChart`) — ~110 KB, não 414 KB. O LCP veio mais baixo mas
+  **não se atribui à correcção** — seis corridas locais sem limitação. CLS somado 0,003.
+- Pesos restantes do ecrã de entrada, medidos e **não** alterados: `auth-classroom.mp4`
+  (1 716 956 bytes, 42% do carregamento frio no computador, e toda a diferença para o
+  telemóvel, que não o pede) e `styles-*.css` (234 925 bytes). O vídeo é identidade;
+  não se troca por bytes.
+- `inventory-after.json` é anterior à passagem do catálogo de temas: contém 1 077 268
+  bytes, não os 977 513 da última linha da tabela. O relatório agora avisa.
+- Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
+
 ## Sincronização GitHub — 2026-10-19
 
 Integrado `origin/main` (`dcf0825c`) na branch `docs/auditoria-critica-2026-10-06`,
@@ -75,7 +133,7 @@ Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e
 - **Não fazer:** agrupar Radix ou módulos da app num só ficheiro (gerava 1–1,6 MB);
   tornar `PickFileButton`/`InstallConsentModal` lazy (o peso é partilhado, não poupa nada).
 - Guarda: `tests/ui/first-paint-budget.test.ts`. Medir localmente: build, `npm run
-  preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
+preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
   `CHROME_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome`. As notas variam
   ±0,04 entre corridas; comparar várias.
 
@@ -132,8 +190,7 @@ gestão académica). Ser administrador da escola nunca dá a Administração Glo
   (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
   **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
   nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
-- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada,
-  2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
+- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada, 2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
   automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
   Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
 - **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em

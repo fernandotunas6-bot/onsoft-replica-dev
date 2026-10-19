@@ -23,6 +23,10 @@ Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
 
 Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `siga-saas`, `siga-identity`, e `.cursor/skills/siga-*/SKILL.md` por módulo escolar.
 
+**Velocidade e refinamento:** `.cursor/skills/siga-performance/SKILL.md` — optimizar o
+que existe, sem acrescentar/remover funcionalidades ou elementos, sem aumentar a
+interface nem alterar a identidade. Medir antes/depois e preservar segurança e dados.
+
 **Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
 Auto-construção:

@@ -94,7 +94,7 @@ function SubscriptionPage() {
   );
 }
 
-export function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
+function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
   const state = describeSubscription(data, new Date());
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
