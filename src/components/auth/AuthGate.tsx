@@ -12,6 +12,7 @@ import {
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
+import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { pendingMfaFactors } from "@/features/auth/pending-mfa";
@@ -648,15 +649,22 @@ export function AuthGate({
   return (
     <AuthSessionContext.Provider value={null}>
       <main className="grid min-h-dvh bg-background lg:grid-cols-[1fr_1fr] lg:gap-2 lg:p-3">
-        <section className="relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-card p-12 text-foreground lg:flex">
-          <AuthBrandIntro className="self-start text-[32px]" />
+        <section className="auth-hero relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+          <AuthBackgroundVideo />
+          <div
+            aria-hidden
+            // Só escurece em baixo, onde está o texto: o vídeo (sem o letreiro por
+            // cima) fica visível no resto do painel.
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
+          />
+          <AuthBrandIntro className="relative self-start text-[32px]" />
           <AuthHeroSlides />
-          <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="relative flex items-center justify-between gap-3 text-xs opacity-80">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
             </div>
             {isStandalone && (
-              <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1.5 rounded-md bg-primary-foreground/15 px-2.5 py-1 text-xs">
                 <Smartphone className="size-3.5" /> PWA Ativo
               </div>
             )}
