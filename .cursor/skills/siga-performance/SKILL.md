@@ -61,6 +61,10 @@ uma operação concluída.
 ## Pontos existentes a consultar
 
 - `src/router.tsx`: defaults React Query e TanStack Router.
+- `src/features/dashboard/date-clock.ts`: o início apresenta data/saudação, sem
+  segundos. Agendar a hora local seguinte; suspender escondido e actualizar ao
+  regressar. Não redesenhar todo o portal a cada segundo nem aquecer gráficos
+  administrativos para os portais de aluno, professor e encarregado.
 - `src/lib/route-data-prefetch.ts`, `preload.ts`, `warm-charts.ts`: pré-busca.
 - `use-breakpoint.ts`: não publicar estado a cada pixel; preservar degraus e SSR.
   Gráficos antecipados: juntar intenções pendentes, reavaliar rede/visibilidade no

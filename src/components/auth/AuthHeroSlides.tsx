@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthMotionActive } from "./use-auth-motion-active";
 
 const slides = [
   {
@@ -26,11 +27,12 @@ const slides = [
 /** Textos do painel de entrada que deslizam suavemente para a esquerda. */
 export function AuthHeroSlides() {
   const [index, setIndex] = useState(0);
+  const active = useAuthMotionActive();
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!active) return;
     const id = window.setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [active]);
 
   return (
     <div className="relative max-w-xl">

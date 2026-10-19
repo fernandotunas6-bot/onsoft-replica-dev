@@ -6,6 +6,35 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 ## Performance — navegação, cache e arranque (2026-10-19)
 
+Data do início: `features/dashboard/date-clock.ts` agenda a próxima hora local,
+suspende escondido e actualiza ao regressar. O portal só mostra data/saudação;
+não repor ticks de 1 s que redesenham o portal inteiro. Relógio e pré-carga dos
+gráficos administrativos ficam só no modo admin. [Ensaios](../performance/2026-10-19/data-do-dashboard.md).
+
+Mensagens não lidas: `useInboxUnread` partilha um canal por QueryClient/conta.
+O último consumidor remove o canal e cancela a fila; os restantes conservam a
+ligação. Rajadas usam `realtimeInvalidator`, com actualização final durante
+leituras lentas; cada canal novo tem UUID. [Evidência deste ciclo](../performance/2026-10-19/mensagens-nao-lidas.md).
+
+Adaptação ao ecrã: `useBreakpoint` só publica quando muda entre mobile/tablet/
+desktop; mantém SSR/ready e limites de 768/1024 px. Gráficos: `warm-charts.ts`
+junta intenções por grupo, respeita visibilidade e ligação limitada antes de
+agendar e antes do import, e permite retentar depois de falha especulativa.
+Carregamento lazy normal preservado; regressões em `breakpoint-lifecycle` e
+`chart-warmup`. Não confundir menos callbacks com menos downloads já deduplicados.
+
+Diagnóstico: `performance-supervisor.ts` guarda os inícios apenas na cache
+observada; limpa-os ao remover queries, mudar visibilidade, pausar a rede ou
+desligar a subscrição. Reutiliza `query.queryHash` e aceita início em `0`.
+Regressões em `tests/ui/performance-supervisor-lifecycle.test.ts`.
+
+Continuação — recursos do acesso: `use-auth-motion-active.ts` acompanha largura
+≥1024 px, movimento reduzido, visibilidade do documento e poupança de dados. Os
+textos mantêm a rotação de 6 s apenas com o painel visível; o vídeo mantém o atraso
+de 600 ms e pausa/retoma a mesma instância. Uma falha conserva o poster e não
+reinicia carregamentos a cada mudança de visibilidade. Nenhuma dimensão ou classe
+visual alterada. Regressões em `tests/ui/auth-motion-lifecycle.test.tsx`.
+
 Contrato persistido na skill `.cursor/skills/siga-performance/SKILL.md`, também
 disponível no catálogo Codex. Mesmo visual, dimensões e funcionalidades; priorizar
 resposta ao toque e optimizações medidas. [Relatório e evidências](../performance/2026-10-19/relatorio.md).
