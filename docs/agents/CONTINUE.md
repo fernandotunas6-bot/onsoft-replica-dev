@@ -21,6 +21,19 @@ resposta ao toque e optimizações medidas. [Relatório e evidências](../perfor
   antigos que possam ficar na pasta de saída para calcular tráfego inicial.
 - Laboratório do login: 12 cliques com título actualizado no frame seguinte em
   14,5–79,5 ms; zero erros/overflow/CLS. São amostras locais, sem sessão e sem p75 real.
+- Catálogo de temas Shadcn/Tweakcn fora do arranque: `src/lib/appearance.tsx` carrega-o
+  por `import()`. A raiz passou de 1 077 268 para 977 513 bytes nos mesmos 36 ficheiros
+  (-31,9% desde o início do ciclo). Guarda em `tests/ui/first-paint-budget.test.ts`:
+  não voltar a importar `@/config/theme-data` estaticamente nesse ficheiro.
+- Zod na raiz (56 638 bytes, o pedaço `types`) fica identificado e **não** alterado:
+  chega por esquemas de validação de funções de servidor e tirá-lo daí sem perder a
+  validação é trabalho de build. Não trocar validação do servidor por bytes.
+- Suite completa sem credenciais: 3 611 aprovados, 3 ignorados, 0 falhas. O `npm test`
+  não carrega o `.env` (sem `dotenv`/`loadEnv` no `vitest.config.ts`); o risco é só
+  `set -a && . ./.env` na mesma shell.
+- Medição sobre o build de produção continua impossível neste Mac: `wrangler` exige
+  macOS 13.5+ e `vite preview` devolve HTTP 500 (`@tailwindcss/node`). As metas de
+  LCP/INP do dono continuam sem verificação em condições de aceitação.
 - Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
 
 ## Sincronização GitHub — 2026-10-19
