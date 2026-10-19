@@ -407,8 +407,13 @@ export async function saveTransportStops(
       return_time: s.returnTime ?? null,
     })),
   });
-  if (result.error?.code === "23503" && /siga_transport_stops|siga_transport_assignments/.test(result.error.message ?? "")) {
-    throw new TransportError("STOP_IN_USE");
+  if (result.error?.code === "23503") {
+    if (/Paragem não pertence à rota/.test(result.error.message ?? "")) {
+      throw new TransportError("STOP_NOT_FOUND");
+    }
+    if (/siga_transport_stops|siga_transport_assignments/.test(result.error.message ?? "")) {
+      throw new TransportError("STOP_IN_USE");
+    }
   }
   if (result.error) fail(result.error);
   const data = result.data as { saved?: unknown; removed?: unknown } | null;
