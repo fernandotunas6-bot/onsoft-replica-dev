@@ -187,10 +187,10 @@ from (values
      and has_function_privilege('service_role', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
      and not has_function_privilege('authenticated', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
      and not has_function_privilege('anon', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
-     and to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)') is not null
-     and has_function_privilege('service_role', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)'), 'EXECUTE')
-     and not has_function_privilege('authenticated', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)'), 'EXECUTE')
-     and not has_function_privilege('anon', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)'), 'EXECUTE')),
+     and to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)') is not null
+     and has_function_privilege('service_role', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)'), 'EXECUTE')
+     and not has_function_privilege('authenticated', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)'), 'EXECUTE')
+     and not has_function_privilege('anon', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)'), 'EXECUTE')),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
