@@ -1,0 +1,16 @@
+/*
+ * O chat e a barra de guardar são ambos fixos. Quando coexistem, o atalho do
+ * chat sobe acima das acções do formulário; sem isto tapava "Guardar" a 360px.
+ * Aplica-se só enquanto existe uma SaveBar montada — noutros ecrãs não muda nada.
+ */
+@media (max-width: 1023px) {
+  body:has([data-siga-save-bar]) [data-siga-rail-shortcuts] {
+    bottom: calc(var(--siga-bottom-nav-h) + env(safe-area-inset-bottom) + 6.75rem);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1535px) {
+  body:has([data-siga-save-bar]) [data-siga-rail-shortcuts] {
+    bottom: 7rem;
+  }
+}
