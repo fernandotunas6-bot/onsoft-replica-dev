@@ -23,8 +23,16 @@ CREATE FUNCTION private.audit_row_change() RETURNS trigger LANGUAGE plpgsql AS
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 `);
 
-for (const name of ["20261017140000_task_submissions", "20261018120000_school_transport"]) {
+for (const [name, manualPackage] of [
+  ["20261017140000_task_submissions", "SIGA_aplicar_entregas_pdf.sql"],
+  ["20261018120000_school_transport", "SIGA_aplicar_transporte.sql"],
+]) {
   const sql = read(`../../supabase/migrations/${name}.sql`);
+  const packageSql = read(`../../docs/agents/${manualPackage}`);
+  assert.ok(
+    packageSql.includes(sql.trim()),
+    `${manualPackage}: a aplicação manual deve incluir a migração completa`,
+  );
   await db.exec(sql);
   await db.exec(sql); // idempotente
 }
@@ -131,7 +139,10 @@ await db.query(day, [a, routeA]);
 const rejectsParentChange = async (sql, params, expected) => {
   await assert.rejects(db.query(sql, params), (error) => {
     assert.equal(error.code, "23503", `${expected}: ${error.message}`);
-    assert.equal(error.constraint, expected);
+    assert.ok(
+      (Array.isArray(expected) ? expected : [expected]).includes(error.constraint),
+      `Constraint inesperada: ${error.constraint}`,
+    );
     return true;
   });
 };
@@ -144,7 +155,7 @@ await rejectsParentChange(
 await rejectsParentChange(
   "update students set school_id = $1 where id = $2",
   [b, studentA],
-  "siga_submission_student_same_school_fk",
+  ["siga_submission_student_same_school_fk", "siga_transport_assignment_student_school_fk"],
 );
 await rejectsParentChange(
   "update siga_transport_vehicles set school_id = $1 where id = $2",
