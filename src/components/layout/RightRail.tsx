@@ -214,8 +214,10 @@ export function RightRail() {
       </aside>
 
       {/* Abaixo de 2xl o painel não cabe sem comprimir o conteúdo. */}
-      <div data-siga-rail-shortcuts=""
-        className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:bottom-4 2xl:hidden">
+      <div
+        data-siga-rail-shortcuts=""
+        className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:bottom-4 2xl:hidden"
+      >
         {suggestions.length > 0 ? (
           <button
             type="button"
@@ -251,7 +253,10 @@ export function RightRail() {
       <Sheet open={mobileOpen && !isDesktop} onOpenChange={setMobileOpen}>
         {/* Quase ecrã inteiro: uma conversa num Sheet de 75vh deixa duas
             mensagens visíveis acima do teclado num telemóvel. */}
-        <SheetContent side="bottom" className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 overflow-hidden p-0 pt-10">
+        <SheetContent
+          side="bottom"
+          className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 overflow-hidden p-0 pt-10"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>{activeTab === "mensagens" ? "Mensagens" : "Relacionado"}</SheetTitle>
           </SheetHeader>
