@@ -266,7 +266,8 @@ describe("portal: paragens", () => {
       data: null,
       error: {
         code: "23503",
-        message: 'update or delete on "siga_transport_stops" violates fk on siga_transport_assignments',
+        message:
+          'update or delete on "siga_transport_stops" violates fk on siga_transport_assignments',
       },
     }));
     await expect(

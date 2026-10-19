@@ -24,7 +24,10 @@ import type {
 // migração): cliente sem tipos, como em `mobile-v4/submissions.server.ts`.
 export type TransportDb = {
   from: (table: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  rpc?: (name: string, args: Record<string, unknown>) => Promise<{
+  rpc?: (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{
     data: unknown;
     error: DbError;
   }>;
