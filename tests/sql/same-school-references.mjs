@@ -146,6 +146,81 @@ const day =
 await rejects(day, [a, routeB], "transport_route_same_school");
 await db.query(day, [a, routeA]);
 
+
+// ── Paragens atómicas: função SECURITY INVOKER só para service_role.
+const rpc = "public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)";
+for (const role of ["anon", "authenticated"]) {
+  const r = await one("select has_function_privilege($1, $2, 'EXECUTE') as allowed", [
+    role,
+    rpc,
+  ]);
+  assert.equal(r.allowed, false, "RPC de paragens exposta a " + role);
+}
+assert.equal(
+  (await one("select has_function_privilege('service_role', $1, 'EXECUTE') as allowed", [rpc]))
+    .allowed,
+  true,
+);
+
+const saveStopsAtomic = async (school, routeId, stops) =>
+  (await one(
+    "select public.siga_transport_save_stops_atomic($1::uuid,$2::uuid,null::uuid,$3::jsonb) as result",
+    [school, routeId, JSON.stringify(stops)],
+  )).result;
+
+const secondStop = (await one(stop, [a, routeA, 2])).id;
+const existingStops = async () =>
+  (
+    await db.query(
+      "select id, sequence, name from siga_transport_stops where school_id = $1 and route_id = $2 order by sequence",
+      [a, routeA],
+    )
+  ).rows;
+const originalStops = await existingStops();
+
+// Falha após reordenação: a última entrada rebenta a CHECK.
+// A transacção da RPC não pode deixar a lista parcialmente reordenada.
+await assert.rejects(
+  saveStopsAtomic(a, routeA, [
+    { id: secondStop, name: "B" },
+    { id: stopA, name: "A" },
+    { name: "X".repeat(121) },
+  ]),
+  (error) => error.code === "23514",
+);
+assert.deepEqual(await existingStops(), originalStops, "rollback integral nas paragens");
+
+// Uma rota de outra escola não pode ser editada nem por service_role.
+await assert.rejects(
+  saveStopsAtomic(b, routeA, [{ id: stopA, name: "Tentativa" }]),
+  (error) => error.code === "23503",
+);
+assert.deepEqual(await existingStops(), originalStops);
+
+// Sucesso: reordena as 2 existentes e insere 1 nova numa única operação.
+const appliedStops = await saveStopsAtomic(a, routeA, [
+  { id: secondStop, name: "B", outbound_time: "06:30" },
+  { id: stopA, name: "A" },
+  { name: "Nova", landmark: "Escola" },
+]);
+assert.deepEqual(appliedStops, { saved: 3, removed: 0 });
+const savedStops = await existingStops();
+assert.deepEqual(
+  savedStops.map((x) => [x.id, x.sequence, x.name]),
+  [
+    [secondStop, 1, "B"],
+    [stopA, 2, "A"],
+    [savedStops[2].id, 3, "Nova"],
+  ],
+);
+
+// Não eliminar a paragem de um aluno; também aqui tudo se mantém intacto.
+await assert.rejects(
+  saveStopsAtomic(a, routeA, [{ id: secondStop, name: "B" }]),
+  (error) => error.code === "23503",
+);
+assert.deepEqual(await existingStops(), savedStops);
+
 // Prova de integridade relacional em UPDATE do PAI: o gatilho na tabela
 // filha não corre nestas operações. Quem recusa é a chave composta PostgreSQL.
 const rejectsParentChange = async (sql, params, expected) => {
