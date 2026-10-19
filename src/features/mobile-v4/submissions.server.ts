@@ -207,8 +207,11 @@ export async function registerMobileSubmission(
         .update({ ...values, version: previous.version + 1 })
         .eq("school_id", scope.schoolId)
         .eq("id", previous.id)
+        .eq("student_id", studentId)
+        // Optimistic lock: outro reenvio não pode sobrescrever esta versão.
+        .eq("version", previous.version)
         .select(SUBMISSION_FIELDS)
-        .single()
+        .maybeSingle()
     : await submissionsTable(db)
         .insert({
           ...values,
@@ -218,10 +221,21 @@ export async function registerMobileSubmission(
         })
         .select(SUBMISSION_FIELDS)
         .single();
-  if (saved.error || !saved.data) throw new MobileApiError(503, "SUBMISSION_WRITE_FAILED");
+  // A primeira entrega também pode perder a corrida para um INSERT concorrente.
+  // Neste caso não apagar o PDF vencedor nem avançar a versão.
+  if (saved.error?.code === "23505" || (!saved.error && !saved.data)) {
+    throw new MobileApiError(409, "SUBMISSION_CONFLICT");
+  }
+  if (saved.error) throw new MobileApiError(503, "SUBMISSION_WRITE_FAILED");
   // O ficheiro anterior deixa de estar ligado a nada; apagar é melhor esforço.
   if (previous && previous.storage_path !== input.path) {
-    await storage.remove([previous.storage_path]);
+    // Limpeza de melhor esforço. A entrega já está guardada: uma falha no
+    // Storage não pode fazer o cliente acreditar que o reenvio falhou.
+    try {
+      await storage.remove([previous.storage_path]);
+    } catch {
+      // O ficheiro antigo fica órfão para limpeza controlada posterior.
+    }
   }
   return {
     schoolId: scope.schoolId,
