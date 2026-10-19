@@ -106,15 +106,23 @@ tocar:
 | `finance/server.ts:1240` | Ciclo de tentativas, limitado a 5. |
 | `arquivos/server.ts:843` | Sobe a árvore de pastas, limitado a 12 níveis. |
 
-**Um gargalo real, por corrigir:** `higher-ed/server.ts:2630` (graduados por curso). Faz
-`loadPlan()` **mais** uma leitura de `course_unit_enrollments` com `.limit(50000)` **por
-cada curso**. Com 30 cursos são 60 consultas e até 1,5 M de linhas trazidas para memória
-só para contar quem concluiu o plano.
+**Um gargalo real — CORRIGIDO:** `exportSisiesWorkbook`, no bloco dos graduados. Fazia
+`loadPlan()` (que são **3** consultas) mais uma leitura de `course_unit_enrollments` com
+`.limit(50000)` **por cada curso**: 4 consultas por curso, 120 com 30 cursos, e até 1,5 M
+de linhas trazidas para memória para montar uma folha de Excel.
 
-Não corrigido nesta passagem por decisão explícita: reescrever a agregação de graduados
-é mudar lógica académica no fim de uma sessão longa, sem volume para validar o resultado.
-Fica documentado, que é o que os critérios de aceitação permitem. A correcção certa é
-uma agregação só, agrupada por curso, com os totais calculados no Postgres.
+| | Antes | Depois |
+| --- | --- | --- |
+| Planos dos cursos | 3 consultas × N cursos | **2**, com `loadPlanUnitsByProgram` |
+| Inscrições em cadeiras | 1 consulta × N cursos | páginas de 1000 até acabarem |
+| Com 30 cursos | **120 consultas** | **2 + nº de páginas** |
+
+O `.limit(50000)` por curso era também um corte em silêncio: uma escola com mais de 50 000
+inscrições num curso perdia linhas sem aviso, e o número de graduados saía errado. A
+paginação com `.order("id")` fixo tira o tecto e torna a contagem correcta.
+
+Guarda em `tests/higher-ed/server-guards.test.ts` («graduados sem uma consulta por curso»):
+recusa o regresso do `loadPlan(` ao corpo da exportação e exige a paginação ordenada.
 
 ## Sobre-leitura
 
