@@ -72,6 +72,12 @@ e sonda em `SIGA_confirmar_migracoes.sql`.
   de paragens numa só transacção. Falta da RPC implica recusa, sem fallback
   para várias escritas PostgREST. PGlite valida rollback; PostgreSQL staging
   e ensaio de concorrência continuam obrigatórios antes de produção.
+- **Estado do dia atómico (PR #132):** `setDayStatus` utiliza
+  `public.siga_transport_set_day_status_atomic` (também apenas `service_role`):
+  bloqueia a rota, compara o estado anterior e grava tudo na mesma transacção.
+  A repetição do mesmo estado não inicia outro aviso. A entrega dos avisos
+  continua fora da transacção: testar falhas/retries e concorrência real antes
+  de usar com encarregados. Se a RPC faltar, a escrita é recusada.
 - Sem `school_modules` nesta versão: a página aparece a quem tem acesso e a app só mostra
   transporte ao aluno que tem uma rota atribuída.
 
