@@ -243,6 +243,18 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       overview.yearPhase = progress.phase;
     }
 
+    /**
+     * As turmas são lidas uma vez e reutilizadas: o bloco dos alunos e o do
+     * heatmap faziam exactamente a mesma consulta (`id, name, grade_level_id`
+     * da mesma escola) no mesmo pedido, e ambos correm sob a mesma condição.
+     * Fica `null` se o primeiro bloco falhar, e aí o heatmap lê por si.
+     */
+    let classGroups: Array<{
+      id: string;
+      name: string;
+      grade_level_id: string | null;
+    }> | null = null;
+
     if (capabilities.students) {
       try {
         const [studentsResult, programsResult, groupsResult, roomsResult, enrollmentsResult] =
@@ -310,6 +322,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           name: string;
           grade_level_id: string | null;
         }>;
+        classGroups = groups;
         const gradeLevelIds = [
           ...new Set(groups.map((row) => row.grade_level_id).filter(Boolean)),
         ] as string[];
@@ -418,7 +431,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     if (capabilities.students) {
       try {
         // Heatmap de desempenho: médias por turma e disciplina, por trimestre.
-        const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
+        const [{ data: heatmapGrades }, groupsForHeatmap, { data: heatmapSubjects }] =
           await Promise.all([
             db
               .from("siga_assessment_scores")
@@ -427,9 +440,17 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
               )
               .eq("school_id", schoolId)
               .limit(5000),
-            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+            // Já vieram acima, na mesma consulta: só se lêem outra vez se aquele
+            // bloco tiver caído na degradação graciosa.
+            classGroups
+              ? Promise.resolve({ data: classGroups })
+              : db
+                  .from("class_groups")
+                  .select("id, name, grade_level_id")
+                  .eq("school_id", schoolId),
             db.from("subjects").select("id, name, code").eq("school_id", schoolId),
           ]);
+        const heatmapGroups = groupsForHeatmap.data;
 
         const { data: heatmapEnrollments } = await db
           .from("enrollments")
