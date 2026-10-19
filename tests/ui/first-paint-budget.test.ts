@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -71,6 +72,76 @@ describe("orçamento do primeiro desenho", () => {
     // as variáveis de um estado já substituído.
     expect(appearance).toMatch(/import\("@\/config\/theme-data"\)/);
     expect(appearance).toContain("appearanceGeneration");
+  });
+
+  /**
+   * Percorre o grafo de imports **estáticos** a partir da rota `/`, que é o que o
+   * manifesto do router pré-carrega. As guardas por texto abaixo dizem *como* cada
+   * caso foi corrigido; esta diz *o que* não pode voltar a acontecer, por qualquer
+   * caminho — foi assim que se descobriu que o `PickFileButton` chegava por três
+   * sítios diferentes (portais, `TeacherWorkspacePanel` e `UserProfileModal`).
+   */
+  function moduloEstaticoDoLogin() {
+    const raiz = process.cwd();
+    const src = resolve(raiz, "src");
+    const estatico = /^[ \t]*(?:import|export)\s+(?:type\s+)?[^;]*?from\s*["']([^"']+)["']/gm;
+    const simples = /^[ \t]*import\s*["']([^"']+)["']/gm;
+    const resolver = (spec: string, de: string) => {
+      let base: string;
+      if (spec.startsWith("@/")) base = resolve(src, spec.slice(2));
+      else if (spec.startsWith(".")) base = resolve(dirname(de), spec);
+      else return { pacote: spec };
+      for (const c of [base, `${base}.tsx`, `${base}.ts`, `${base}/index.tsx`, `${base}/index.ts`])
+        if (existsSync(c) && statSync(c).isFile()) return { ficheiro: c };
+      return {};
+    };
+    const vistos = new Set<string>();
+    const pacotes = new Set<string>();
+    const pilha = [resolve(raiz, "src/routes/__root.tsx"), resolve(raiz, "src/routes/index.tsx")];
+    while (pilha.length) {
+      const atual = pilha.pop() as string;
+      if (vistos.has(atual)) continue;
+      vistos.add(atual);
+      let texto: string;
+      try {
+        texto = readFileSync(atual, "utf8");
+      } catch {
+        continue;
+      }
+      const specs: string[] = [];
+      for (const m of texto.matchAll(estatico)) {
+        // `import type` desaparece na compilação: não traz código nenhum.
+        if (/^[ \t]*(?:import|export)\s+type\s/.test(m[0])) continue;
+        specs.push(m[1]);
+      }
+      for (const m of texto.matchAll(simples)) specs.push(m[1]);
+      for (const spec of specs) {
+        const r = resolver(spec, atual);
+        if (r.pacote) pacotes.add(r.pacote);
+        else if (r.ficheiro && !vistos.has(r.ficheiro)) pilha.push(r.ficheiro);
+      }
+    }
+    return { ficheiros: [...vistos].map((f) => relative(raiz, f)), pacotes };
+  }
+
+  it("o grafo estático do ecrã de entrada não alcança os pesos pesados", () => {
+    const { ficheiros, pacotes } = moduloEstaticoDoLogin();
+    // Cada um destes já esteve lá e já foi tirado; o teste existe para não voltarem.
+    for (const alvo of [
+      "src/features/dashboard/DashboardCharts.tsx",
+      "src/features/arquivos/PickFileButton.tsx",
+      "src/components/auth/UserProfileModal.tsx",
+      "src/features/dashboard/portals/StudentPortalDashboard.tsx",
+      "src/features/dashboard/portals/GuardianPortalDashboard.tsx",
+      "src/features/dashboard/portals/TeacherPortalDashboard.tsx",
+      "src/features/dashboard/portals/AdminPortalDashboard.tsx",
+    ])
+      expect(ficheiros, `${alvo} voltou ao grafo estático da rota /`).not.toContain(alvo);
+    for (const pkg of ["recharts", "exceljs", "jspdf", "html2canvas"])
+      expect(pacotes, `${pkg} voltou ao grafo estático da rota /`).not.toContain(pkg);
+    // Se o extractor deixar de funcionar, o teste passa a não guardar nada.
+    expect(ficheiros.length).toBeGreaterThan(200);
+    expect(pacotes).toContain("react");
   });
 
   it("o ecrã de entrada não arrasta o pedaço dos gráficos", () => {
