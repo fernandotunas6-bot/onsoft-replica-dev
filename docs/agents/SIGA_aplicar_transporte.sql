@@ -600,4 +600,8 @@ SELECT CASE WHEN to_regclass('public.siga_transport_vehicles') IS NOT NULL
   AND has_function_privilege('service_role', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
   AND NOT has_function_privilege('authenticated', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
   AND NOT has_function_privilege('anon', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+  AND to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)') IS NOT NULL
+  AND has_function_privilege('service_role', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)'), 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)'), 'EXECUTE')
+  AND NOT has_function_privilege('anon', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)'), 'EXECUTE')
   THEN 'aplicada' ELSE 'em falta' END AS transporte_escolar;
