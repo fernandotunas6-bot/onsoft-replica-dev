@@ -341,6 +341,7 @@ ALTER TABLE public.siga_transport_day_status FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON public.siga_transport_day_status FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.siga_transport_day_status TO service_role;
 
+
 -- Substituir as várias escritas de paragens por uma única transacção.
 -- O invocador deve ser o backend service_role DEPOIS das verificações de
 -- identidade/escola/permissão em transport/server.ts. SECURITY INVOKER mantém
