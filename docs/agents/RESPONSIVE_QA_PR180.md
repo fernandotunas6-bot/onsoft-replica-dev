@@ -13,6 +13,8 @@ O teste `tests/e2e/responsive-auth.spec.ts` é intencionalmente **ignorado por o
 
 ```bash
 VITE_SIGA_URL=http://127.0.0.1:3006 \
+VITE_SUPABASE_URL=http://127.0.0.1:54321 \
+SIGA_RESPONSIVE_PROJECT_REF=local \
 SIGA_RESPONSIVE_E2E=1 \
 SIGA_RESPONSIVE_AUTH_STATE=tests/e2e/.auth/admin.json \
 npx playwright test tests/e2e/responsive-auth.spec.ts --project=chromium
@@ -21,6 +23,7 @@ npx playwright test tests/e2e/responsive-auth.spec.ts --project=chromium
 - Colocar o `storageState` apenas em `tests/e2e/.auth/` (ignorado pelo Git). **Nunca** adicionar cookies, tokens, ficheiros de sessão ou screenshots contendo alunos a commits/PRs.
 - Executar separadamente com sessões autorizadas de **Administrador, Professor e Aluno**. Não partilhar a mesma sessão entre perfis.
 - Apenas `localhost` e `127.0.0.1` são aceites como origem de teste. Uma sessão expirada deve falhar explicitamente, e não produzir resultados verdes.
+- A origem web ser local **não basta**: o teste exige `SIGA_RESPONSIVE_PROJECT_REF` e `SUPABASE_URL` ou `VITE_SUPABASE_URL`, recusando a referência de produção. Para staging remoto, indicar a referência e o URL correspondente; conferir ainda a configuração do servidor local.
 - O teste navega por páginas e abre o contexto e notificações, sem guardar alterações. Não activa migrações ou pagamentos e não envia comandos de escrita.
 - Capturas são **desligadas** por omissão. Só definir `SIGA_RESPONSIVE_CAPTURE=1` em ambiente autorizado e protegido. As imagens ficam em `test-results/`, ignorado pelo Git. Rever e eliminar ficheiros sensíveis após análise.
 - Para verificar a colisão de barra Guardar e atalho de mensagens numa rota que já apresenta a SaveBar, acrescentar `SIGA_RESPONSIVE_FORM_PATH=/rota-autorizada`. Sem essa rota, esse teste específico fica ignorado.
