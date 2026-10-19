@@ -106,8 +106,19 @@ const row = {
   status: "submitted",
   submitted_at: "2026-10-16T10:00:00Z",
 };
-function happy(over: Partial<Record<string, (ops: Op[]) => Answer>> = {}) {
+function happy(
+  over: Partial<Record<string, (ops: Op[]) => Answer>> = {},
+  linked: typeof row | null = null,
+) {
   return database((table, ops) => {
+    // A busca pelo caminho verifica se o Blob já pertence a uma entrega,
+    // independentemente do mock usado para a consulta por tarefa/aluno.
+    if (
+      table === "siga_task_submissions" &&
+      ops.some((op) => op[0] === "eq" && op[1] === "storage_path")
+    ) {
+      return { data: linked };
+    }
     if (over[table]) return over[table]!(ops);
     if (table === "siga_task_submissions") {
       if (ops.some((o) => o[0] === "insert" || o[0] === "update"))
@@ -212,6 +223,43 @@ describe("registar a entrega", () => {
       }),
     ).rejects.toMatchObject({ code: "SUBMISSION_PATH_FORBIDDEN" });
   });
+  it("registar de novo o mesmo caminho da própria tarefa é idempotente", async () => {
+    const linked = { ...row, storage_path: ownPath };
+    const out = await registerMobileSubmission(happy({}, linked), student, USER, {
+      taskId: TASK,
+      path: ownPath,
+    });
+    expect(out.submission).toMatchObject({ id: linked.id, version: linked.version });
+    expect(storage).toEqual([]);
+    expect(queries.some((q) => q.ops.some((op) => op[0] === "insert" || op[0] === "update"))).toBe(
+      false,
+    );
+  });
+
+  it("não permite usar o PDF já registado numa tarefa diferente", async () => {
+    await expect(
+      registerMobileSubmission(
+        happy({}, { ...row, task_id: id(90), storage_path: ownPath }),
+        student,
+        USER,
+        { taskId: TASK, path: ownPath },
+      ),
+    ).rejects.toMatchObject({ status: 409, code: "SUBMISSION_PATH_IN_USE" });
+    expect(storage).toEqual([]);
+  });
+
+  it("não permite usar o PDF de outro aluno e nunca remove esse ficheiro", async () => {
+    await expect(
+      registerMobileSubmission(
+        happy({}, { ...row, student_id: id(91), storage_path: ownPath }),
+        student,
+        USER,
+        { taskId: TASK, path: ownPath },
+      ),
+    ).rejects.toMatchObject({ status: 409, code: "SUBMISSION_PATH_IN_USE" });
+    expect(storage).toEqual([]);
+  });
+
   it("apaga e recusa um ficheiro que não é PDF", async () => {
     pdf = new TextEncoder().encode("MZ executável");
     await expect(
