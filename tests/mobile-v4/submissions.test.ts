@@ -75,7 +75,10 @@ function database(answer: (table: string, ops: Op[]) => Answer) {
         },
         download: async (...args: unknown[]) => {
           storage.push({ op: "download", args });
-          return { data: downloadedFile ?? new Blob([pdf as Uint8Array<ArrayBuffer>]), error: null };
+          return {
+            data: downloadedFile ?? new Blob([pdf as Uint8Array<ArrayBuffer>]),
+            error: null,
+          };
         },
         remove: async (...args: unknown[]) => {
           storage.push({ op: "remove", args });
