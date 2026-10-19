@@ -607,7 +607,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 </a>
               </div>
             ) : null}
-            {activeTenant?.status === "trial" && trialDaysLeft !== null ? (
+            {activeTenant?.status === "trial" && !activeTenant.billing_waived && trialDaysLeft !== null ? (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-2.5 text-sm text-warning">
                 <span>
                   Período experimental — <strong>{trialDaysLeft}</strong> dia(s) restantes.

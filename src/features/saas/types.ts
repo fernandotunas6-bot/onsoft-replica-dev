@@ -58,6 +58,11 @@ export interface Tenant {
   plan_id?: string;
   subscription_status?: SubscriptionLifecycle;
   trial_ends_at?: string;
+  /** Isenta de pagamento pela equipa (ADMIN → Escolas). */
+  billing_exempt?: boolean;
+  billing_exempt_reason?: string | null;
+  /** Derivado: isenta ou cobrança desligada na plataforma — não se bloqueia por falta de pagamento. */
+  billing_waived?: boolean;
   contact_name?: string;
   contact_phone?: string;
   contact_email?: string;

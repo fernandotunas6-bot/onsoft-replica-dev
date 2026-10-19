@@ -2,6 +2,7 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { Tenant } from "@/features/saas/types";
 import { validateTenantSlug, isReservedSubdomain } from "@/lib/saas/platform-domain";
+import { isBillingWaived, readBillingSettings } from "@/features/saas/billing-settings";
 
 /**
  * Colunas devolvidas na resolução de tenant por slug ou hostname.
@@ -15,7 +16,7 @@ import { validateTenantSlug, isReservedSubdomain } from "@/lib/saas/platform-dom
  * autenticadas.
  */
 const PUBLIC_TENANT_SELECT =
-  "id, name, slug, status, plan_id, subscription_status, trial_ends_at, max_students, max_storage_gb, created_at, updated_at, plans(*), tenant_usage(active_students_count)" as const;
+  "id, name, slug, status, plan_id, subscription_status, trial_ends_at, billing_exempt, max_students, max_storage_gb, created_at, updated_at, plans(*), tenant_usage(active_students_count)" as const;
 
 /** Tabela/relação em falta no SGA (42P01 / PGRST205 / PGRST200): tratar como "sem tenant". */
 function isMissingRelationError(error: { code?: string | null } | null | undefined): boolean {
@@ -23,13 +24,22 @@ function isMissingRelationError(error: { code?: string | null } | null | undefin
   return code === "42P01" || code === "PGRST205" || code === "PGRST200" || code === "42703";
 }
 
-function mapTenantRow(tenant: Record<string, unknown>): Tenant {
+/**
+ * `billing_waived` diz ao browser que a escola não paga agora (isenta ou
+ * cobrança desligada), para não a bloquear no fim do período experimental.
+ */
+async function mapTenantRow(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  tenant: Record<string, unknown>,
+): Promise<Tenant> {
   const usage = tenant.tenant_usage as
     { active_students_count?: number }[] | { active_students_count?: number } | undefined;
   const usageRow = Array.isArray(usage) ? usage[0] : usage;
+  const settings = await readBillingSettings(db);
   return {
     ...(tenant as unknown as Tenant),
     active_students_count: usageRow?.active_students_count ?? 0,
+    billing_waived: isBillingWaived(tenant as { billing_exempt?: boolean | null }, settings),
   };
 }
 
@@ -45,7 +55,7 @@ export async function fetchTenantBySlug(slug: string): Promise<Tenant | null> {
     throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
   }
   if (!tenant) return null;
-  return mapTenantRow(tenant as Record<string, unknown>);
+  return mapTenantRow(db, tenant as Record<string, unknown>);
 }
 
 /**
@@ -85,7 +95,7 @@ export async function fetchTenantBySchoolId(schoolId: string): Promise<Tenant | 
     throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
   }
   if (!tenant) return null;
-  return mapTenantRow(tenant as Record<string, unknown>);
+  return mapTenantRow(db, tenant as Record<string, unknown>);
 }
 
 export async function fetchTenantByHostname(hostname: string): Promise<Tenant | null> {
@@ -115,7 +125,7 @@ export async function fetchTenantByHostname(hostname: string): Promise<Tenant | 
     throw publicDatabaseError(error, "Não foi possível carregar a instituição.");
   }
   if (!tenant) return null;
-  return mapTenantRow(tenant as Record<string, unknown>);
+  return mapTenantRow(db, tenant as Record<string, unknown>);
 }
 
 export interface SlugAvailabilityResult {

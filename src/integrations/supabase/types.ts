@@ -7492,6 +7492,39 @@ export type Database = {
           },
         ]
       }
+      saas_billing_settings: {
+        Row: {
+          charging_enabled: boolean
+          created_at: string
+          id: number
+          notice: string | null
+          periods: Json
+          trial_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          charging_enabled?: boolean
+          created_at?: string
+          id?: number
+          notice?: string | null
+          periods?: Json
+          trial_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          charging_enabled?: boolean
+          created_at?: string
+          id?: number
+          notice?: string | null
+          periods?: Json
+          trial_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       saas_signup_leads: {
         Row: {
           completed_at: string | null
@@ -10819,6 +10852,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_period: string | null
           cancel_at_period_end: boolean
           created_at: string
           current_period_end: string
@@ -10830,6 +10864,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_period?: string | null
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string
@@ -10841,6 +10876,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_period?: string | null
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string
@@ -11249,6 +11285,8 @@ export type Database = {
       }
       tenants: {
         Row: {
+          billing_exempt: boolean
+          billing_exempt_reason: string | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -11265,6 +11303,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_exempt?: boolean
+          billing_exempt_reason?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -11281,6 +11321,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_exempt?: boolean
+          billing_exempt_reason?: string | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null

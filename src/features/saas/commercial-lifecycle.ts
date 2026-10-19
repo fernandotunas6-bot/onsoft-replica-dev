@@ -8,6 +8,7 @@
  * gravam o progresso da própria sessão do assistente, e a tarefa diária exige o
  * segredo `SIGA_CRON_SECRET` (/api/cron/saas-lifecycle).
  */
+import { readBillingSettings } from "./billing-settings";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { getAppName, getAppUrl } from "@/lib/app-config";
 import { ECOSYSTEM_URLS } from "@/lib/ecosystem-urls";
@@ -263,11 +264,15 @@ async function schoolAdminEmails(db: Db, schoolId: string, contactEmail: string 
 
 async function runTrialReminders(db: Db, now: Date) {
   let sent = 0;
+  // Sem cobrança (desligada ou escola isenta) não há nada a pagar no fim do trial.
+  const billing = await readBillingSettings(db);
+  if (!billing.chargingEnabled) return sent;
   const horizon = new Date(now.getTime() + 8 * 86_400_000).toISOString();
   const { data: tenants } = await db
     .from("tenants")
     .select("id, name, trial_ends_at, contact_email, status, plan_id, plans(name)")
     .eq("subscription_status", "trialing")
+    .eq("billing_exempt", false)
     .gte("trial_ends_at", now.toISOString())
     .lte("trial_ends_at", horizon)
     .in("status", ["active", "trial"])

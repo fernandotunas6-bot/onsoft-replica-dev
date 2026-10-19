@@ -6,6 +6,8 @@ export interface TenantAccessSnapshot {
   status?: TenantStatus;
   subscription_status?: SubscriptionLifecycle;
   trial_ends_at?: string | null;
+  /** Isenta ou cobrança desligada: nada se bloqueia por falta de pagamento. */
+  billing_waived?: boolean;
 }
 
 export function getTenantAccessBlock(
@@ -14,9 +16,10 @@ export function getTenantAccessBlock(
 ): { blocked: boolean; reason?: TenantAccessBlockReason } {
   if (!tenant) return { blocked: false };
 
+  const waived = tenant.billing_waived === true;
   const blockedStatuses: TenantStatus[] = [
     "suspended",
-    "past_due",
+    ...(waived ? [] : (["past_due"] as TenantStatus[])),
     "cancelled",
     "archived",
     "provisioning_failed",
@@ -28,14 +31,21 @@ export function getTenantAccessBlock(
     };
   }
 
-  if (tenant.subscription_status === "canceled" || tenant.subscription_status === "unpaid") {
+  if (
+    tenant.subscription_status === "canceled" ||
+    (!waived && tenant.subscription_status === "unpaid")
+  ) {
     return { blocked: true, reason: "cancelled" };
   }
 
   const trialEnds = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null;
   const trialExpired = trialEnds && !Number.isNaN(trialEnds.getTime()) && trialEnds < now;
 
-  if (trialExpired && (tenant.status === "trial" || tenant.subscription_status === "trialing")) {
+  if (
+    !waived &&
+    trialExpired &&
+    (tenant.status === "trial" || tenant.subscription_status === "trialing")
+  ) {
     return { blocked: true, reason: "trial_expired" };
   }
 

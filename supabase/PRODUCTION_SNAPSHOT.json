@@ -1,11 +1,11 @@
 {
   "capturadoEm": "2026-09-27T14:25:59.502399Z",
   "resumo": {
-    "com_rls": 180,
+    "com_rls": 181,
     "funcoes_private": 98,
     "politicas": 285,
-    "tabelas": 180,
-    "triggers": 191
+    "tabelas": 181,
+    "triggers": 192
   },
   "tabelas": [
     {
@@ -3360,6 +3360,25 @@
       "auth_select": false,
       "colunas": [
         "id",
+        "charging_enabled",
+        "trial_days",
+        "periods",
+        "notice",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "saas_billing_settings"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
         "session_id",
         "last_step",
         "plan_code",
@@ -4866,7 +4885,8 @@
         "current_period_end",
         "cancel_at_period_end",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "billing_period"
       ],
       "obrigatorias": [
         "tenant_id",
@@ -5077,7 +5097,9 @@
         "max_students",
         "max_storage_gb",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "billing_exempt",
+        "billing_exempt_reason"
       ],
       "obrigatorias": [
         "name",
