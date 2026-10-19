@@ -123,7 +123,10 @@ export function MobileHeader({
           >
             <Bell className="size-5" />
             {noticeCount ? (
-              <span aria-hidden="true" className="absolute right-2 top-2 size-2 rounded-full bg-destructive ring-2 ring-background" />
+              <span
+                aria-hidden="true"
+                className="absolute right-2 top-2 size-2 rounded-full bg-destructive ring-2 ring-background"
+              />
             ) : null}
           </button>
           <button
