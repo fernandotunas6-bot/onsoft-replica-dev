@@ -13,7 +13,11 @@ CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
 CREATE SCHEMA auth; CREATE SCHEMA private;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 CREATE TABLE public.schools (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
-CREATE TABLE public.students (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL);
+CREATE TABLE public.students (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL,
+  CONSTRAINT students_school_id_id_key UNIQUE (school_id, id)
+);
 CREATE TABLE public.siga_class_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL);
 CREATE FUNCTION public.siga_touch_updated_at() RETURNS trigger LANGUAGE plpgsql AS
   $$ BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
