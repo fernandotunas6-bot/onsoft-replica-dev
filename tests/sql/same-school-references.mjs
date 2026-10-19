@@ -198,7 +198,7 @@ const saveDay = async (
   (
     await one(
       "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,$5::text,null::uuid,$6::uuid[],$7::text,$8::text) as result",
-      [schoolId, routeId, status, delay, note, recipients, title, "Estado actualizado"],
+      [schoolId, routeId, status, delay, note, `{${recipients.join(",")}}`, title, "Estado actualizado"],
     )
   ).result;
 const dayAuditCount = async () =>
