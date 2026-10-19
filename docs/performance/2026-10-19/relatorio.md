@@ -67,6 +67,40 @@ Os três pesos maiores do ecrã de entrada, por ordem:
    ecrã de login. **Corrigido e remedido** (ver abaixo).
 3. **`styles-BpcmSTvH.css` — 234 925 bytes.** Não alterado neste ciclo.
 
+### A mesma armadilha, quatro vezes
+
+O caso dos gráficos não era único. Cada correcção revelava a seguinte, sempre com a
+mesma forma: **um import estático pequeno a partir de um módulo que a rota já
+carregava por `lazy()`**. Como o manifesto pré-carrega o grafo estático da rota, o
+import pequeno trazia o módulo inteiro e tudo o que ele puxa.
+
+| #   | O que era importado                | De onde                       | O que arrastava                          |
+| --- | ---------------------------------- | ----------------------------- | ---------------------------------------- |
+| 1   | `DashboardChartsSkeleton`          | `DashboardCharts.tsx`         | `recharts` (369 980 B)                   |
+| 2   | os 4 portais, estáticos            | `index.tsx`                   | 55 módulos, incl. `higher-ed/server.ts`  |
+| 3   | `TeacherWorkspaceHint`             | `TeacherWorkspacePanel.tsx`   | `ClassMaterialsPanel` → `PickFileButton` |
+| 4   | `UserProfileModal`, sempre montado | `AppSidebar`, `AccountDrawer` | `PickFileButton`, em todas as páginas    |
+
+O `PickFileButton` chegava por três caminhos diferentes: cortado um, aparecia o
+seguinte. Foi por isso que a guarda final deixou de procurar texto e passou a
+percorrer o grafo — ver «Validação».
+
+Acumulado no ecrã de entrada, medido no navegador sobre o build de produção:
+
+| Carregamento frio   | Antes de tudo          | Depois                | Diferença            |
+| ------------------- | ---------------------- | --------------------- | -------------------- |
+| Computador 1440×900 | 110 rec. / 4 101 523 B | 95 rec. / 3 388 148 B | −15 rec., −713 375 B |
+| Telemóvel 390×844   | 109 rec. / 2 384 567 B | 94 rec. / 1 671 192 B | −15 rec., **−29,9%** |
+
+Continuam a ser bytes **por comprimir**, pela razão da secção anterior: a poupança
+real do utilizador é da ordem de um terço destes números. E o vídeo, que não
+encolhe, passa a ser mais de metade do que resta no computador.
+
+No manifesto da rota `/`: de 73 para 44 ficheiros e de 1 567 114 para 1 152 008
+bytes (468 766 → 344 740 em gzip). O manifesto desce menos do que o navegador porque
+não lista o que é seguido a partir de um import estático — foi o caso do `BarChart`
+e do `PickFileButton`.
+
 ### Como 370 KB de gráficos entravam no login apesar do `lazy()`
 
 `src/routes/index.tsx` carrega os gráficos com `lazy(() => import(...))`, como deve.
@@ -323,6 +357,18 @@ Os testes de ciclo de vida verificam suspensão, retoma, escolha manual, mudanç
 de preferências, desmontagem e falhas. Esta redução de trabalho em segundo plano
 não é uma medição de ganho de LCP/INP nem uma estimativa de bateria.
 
+Validação desta continuação: 14 testes aprovados nos ficheiros de ciclo de vida,
+orçamento do primeiro desenho e alternância login/registo; lint dos quatro
+ficheiros de código/teste sem erros nem avisos. Comparação das classes JSX dos dois
+componentes com `HEAD`: idênticas.
+
+O build `node-server` passou. O ensaio comportamental no Chrome sobre esse build
+([auth-motion-browser.json](auth-motion-browser.json)) confirmou pausa por movimento
+reduzido, retoma, pausa ao reduzir a janela e ausência de vídeo numa entrada nova em
+mobile. Painel: 420 px no desktop, 360 px no mobile; zero erros de JavaScript. Não
+houve sessão nem submissão de formulários. A tentativa em desenvolvimento ficou à
+espera da compilação/hidratação; não foi usada para medir latência ou declarar êxito.
+
 ### Verificações do ciclo anterior
 
 Os 23 testes dirigidos de pré-busca, navegação e Realtime passaram; também passaram
@@ -330,7 +376,19 @@ os testes existentes de menu/login, o build final, a verificação de tipos, o l
 (0 erros, 47 avisos), os controlos estáticos de estilo/acessibilidade, o inventário
 de 18 módulos e a validação da skill.
 
-**Suite completa no fecho desta execução: 3 612 aprovados, 3 ignorados, 0 falhas**
+**Suite completa depois da separação dos portais e do modal: 3 619 aprovados,
+3 ignorados, 0 falhas** (525 ficheiros, 210 s), com tipos a zero e ESLint limpo.
+
+A guarda final mudou de natureza. As guardas por texto dizem _como_ cada caso foi
+corrigido e partem-se quando alguém escreve o mesmo erro de outra maneira. A nova
+percorre o grafo de imports **estáticos** a partir de `__root.tsx` e `index.tsx` e
+exige que `DashboardCharts`, `PickFileButton`, `UserProfileModal`, os quatro portais
+e os pacotes `recharts`, `exceljs`, `jspdf` e `html2canvas` sejam inalcançáveis — por
+qualquer caminho. Tem travão contra tornar-se cega: falha se o extractor devolver
+menos de 200 ficheiros ou se o `react` deixar de aparecer. Foi confirmada a falhar
+com o import antigo, nomeando o módulo culpado.
+
+**Suite completa no fecho da execução anterior: 3 612 aprovados, 3 ignorados, 0 falhas**
 (524 ficheiros aprovados, 2 ignorados; 252 s). A corrida anterior tinha fechado com
 3 611 aprovados e **1 falha**, corrigida abaixo; a repetição depois da correcção é a
 que vale, e o teste a mais é a guarda nova do ecrã de entrada.
