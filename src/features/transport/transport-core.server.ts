@@ -10,7 +10,6 @@
  * Sem a migração `20261018120000_school_transport.sql` aplicada, as leituras
  * respondem `available: false` e as escritas `TRANSPORT_NOT_READY`.
  */
-import { insertInAppNotifications } from "@/features/academic/lesson-delivery";
 import type {
   AssignStudentsInput,
   EndAssignmentInput,
@@ -565,10 +564,14 @@ export async function setTransportDayStatus(
   const serviceDate = input.serviceDate ?? today;
   const delay = input.status === "delayed" ? input.delayMinutes : 0;
 
-  // O GET anterior seguido de upsert não era seguro entre dois operadores:
-  // ambos podiam ler "normal" e criar dois avisos de "atrasada".
-  // A RPC bloqueia a rota, compara o estado anterior e grava numa transacção.
+  // Os destinatários são resolvidos ANTES da transacção. Se esta leitura
+  // falhar, não alterar o estado da rota silenciosamente sem os seus avisos.
   if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY");
+  const userIds = await routeAudience(db, schoolId, input.routeId, serviceDate);
+  const message = DAY_TEXT[input.status](route.name, delay, input.note ?? null);
+
+  // Lock + mudança de estado + notificações in-app acontecem na mesma RPC.
+  // Qualquer falha reverte tudo; um reenvio idêntico não cria novos avisos.
   const saved = await db.rpc("siga_transport_set_day_status_atomic", {
     p_school_id: schoolId,
     p_route_id: input.routeId,
@@ -577,40 +580,23 @@ export async function setTransportDayStatus(
     p_delay_minutes: delay,
     p_note: input.note ?? null,
     p_user_id: userId,
+    p_recipient_user_ids: userIds,
+    p_title: message.title,
+    p_body: message.body,
   });
   if (saved.error?.code === "PGRST202") throw new TransportError("TRANSPORT_NOT_READY");
   if (saved.error) fail(saved.error);
-  const result = saved.data as { changed?: unknown } | null;
-  if (!result || typeof result.changed !== "boolean") {
+  const result = saved.data as { changed?: unknown; notified?: unknown } | null;
+  if (
+    !result ||
+    typeof result.changed !== "boolean" ||
+    typeof result.notified !== "number" ||
+    !Number.isInteger(result.notified) ||
+    result.notified < 0
+  ) {
     throw new TransportError("TRANSPORT_UNAVAILABLE");
   }
-  if (!result.changed) return { notified: 0 };
-
-  try {
-    // A consulta da audiência também pode falhar DEPOIS do commit do estado.
-    // Tratar toda a fase de avisos como uma operação separada, sem aparentar
-    // que a alteração do serviço foi revertida por um erro posterior.
-    const userIds = await routeAudience(db, schoolId, input.routeId, serviceDate);
-    if (!userIds.length) return { notified: 0 };
-    const text = DAY_TEXT[input.status](route.name, delay, input.note ?? null);
-    const notified = await insertInAppNotifications(
-      db as never,
-      schoolId,
-      userIds.map((id) => ({
-        userId: id,
-        ...text,
-        eventType: "transport.day_status",
-        payload: { routeId: input.routeId, serviceDate, status: input.status, delayMinutes: delay },
-      })),
-    );
-    return { notified };
-  } catch (error) {
-    // O estado já ficou gravado: uma falha da audiência ou do envio não o desfaz.
-    // A RPC evita repetições concorrentes do MESMO estado, mas a entrega não
-    // tem ainda uma fila durável com garantia exactly-once.
-    console.error("[transport] avisos do estado do dia:", error);
-    return { notified: 0 };
-  }
+  return { notified: result.notified };
 }
 
 /** Contas dos alunos da rota nesse dia e dos seus encarregados. */
