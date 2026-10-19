@@ -285,7 +285,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="sticky top-0 z-30 hidden h-14 items-center gap-2.5 border-b border-border/70 bg-card px-5 lg:flex">
+          <header className="sticky top-0 z-30 hidden h-14 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card px-3 lg:flex xl:gap-2 xl:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -302,9 +302,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40"
+                  className="flex min-w-0 max-w-36 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 2xl:max-w-56"
                 >
-                  <span className="hidden truncate text-muted-foreground sm:inline">
+                  <span className="hidden truncate text-muted-foreground min-[1800px]:inline">
                     {school?.name ? `${school.name} · ` : ""}
                   </span>
                   <span className="truncate whitespace-nowrap font-semibold">
@@ -333,7 +333,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden min-w-0 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex"
+                    className="hidden min-w-0 max-w-28 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex 2xl:max-w-44"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
                     <ChevronDown className="size-3.5 shrink-0 opacity-60" />
@@ -355,12 +355,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => requestOpenCommandPalette()}
-              className="hidden sm:flex items-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground md:w-56 lg:w-72"
+              aria-label="Pesquisar no SIGA"
+              className="hidden items-center justify-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground sm:flex lg:w-9 lg:shrink-0 xl:w-44 xl:justify-start xl:px-3 2xl:w-52"
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
               <Search className="size-3.5 opacity-60 shrink-0" />
-              <span className="truncate flex-1 text-left">Pesquisar no SIGA…</span>
-              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
+              <span className="hidden min-w-0 flex-1 truncate text-left xl:block">Pesquisar no SIGA…</span>
+              <kbd className="pointer-events-none hidden h-4 shrink-0 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground min-[1800px]:inline-flex">
                 <span className="text-[11px]">⌘</span>K
               </kbd>
             </button>
@@ -493,11 +494,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   </span>
                 ) : null}
               </span>
-              <span className="hidden text-left leading-tight sm:block">
-                <span className="block text-sm font-semibold">{currentUser.name}</span>
-                <span className="block text-xs text-muted-foreground">{currentUser.role}</span>
+              <span className="hidden max-w-36 min-w-0 text-left leading-tight min-[1800px]:block">
+                <span className="block truncate text-sm font-semibold">{currentUser.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{currentUser.role}</span>
               </span>
-              <ChevronDown className="hidden size-4 opacity-60 sm:block" />
+              <ChevronDown className="hidden size-4 opacity-60 min-[1800px]:block" />
             </button>
 
             <AccountDrawer
@@ -510,11 +511,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             />
 
             <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <SheetContent side="right" className="w-[320px] sm:w-[360px]">
+              <SheetContent side="right" className="flex h-dvh w-[320px] max-w-[100vw] flex-col overflow-hidden p-4 sm:w-[360px] sm:p-6">
                 <SheetHeader>
                   <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
-                <div className="mt-6 space-y-3">
+                <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto [scrollbar-width:thin]">
                   <PersonalNotificationsList open={notificationsOpen} />
                   {alerts.map((alert) => (
                     <SchoolAlertRow
