@@ -183,5 +183,5 @@ if (failed > 0) {
 }
 
 console.log(
-  "\nSmoke E2E local OK — fluxo comercial pode ser testado em http://localhost:5174/start",
+  "\nSmoke E2E público concluído — o provisionamento real e as integrações ignoradas exigem validação independente.",
 );
