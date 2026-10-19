@@ -116,6 +116,10 @@ describe("colunas usadas existem na produção", () => {
     expect(migration).toContain("FOR UPDATE");
     expect(migration).toContain("SECURITY INVOKER");
     expect(migration).toContain("REVOKE ALL ON FUNCTION public." + rpc);
+    expect(migration).toContain("INSERT INTO public.notifications");
+    expect(migration).toContain("p_recipient_user_ids uuid[]");
+    expect(core).toContain("p_recipient_user_ids: userIds");
+    expect(core).not.toContain("insertInAppNotifications(");
     expect(core).toContain('if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY")');
     expect(core).toContain("siga_transport_set_day_status_atomic");
     expect(core).toContain('saved.error?.code === "PGRST202"');
