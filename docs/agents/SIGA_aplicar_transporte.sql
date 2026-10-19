@@ -509,6 +509,7 @@ AS $day$
 DECLARE
   previous_status text := 'normal';
   previous_delay integer := 0;
+  previous_note text := NULL;
   previous_exists boolean := false;
   changed boolean;
 BEGIN
@@ -531,8 +532,8 @@ BEGIN
       USING ERRCODE = '23503', CONSTRAINT = 'transport_route_same_school';
   END IF;
 
-  SELECT d.status, d.delay_minutes
-    INTO previous_status, previous_delay
+  SELECT d.status, d.delay_minutes, d.note
+    INTO previous_status, previous_delay, previous_note
   FROM public.siga_transport_day_status AS d
   WHERE d.school_id = p_school_id
     AND d.route_id = p_route_id
@@ -545,6 +546,12 @@ BEGIN
 
   changed := previous_status IS DISTINCT FROM p_status
     OR previous_delay IS DISTINCT FROM p_delay_minutes;
+
+  -- Uma repetição exacta não deve tocar em updated_at, auditoria ou índices.
+  -- Uma alteração apenas da nota continua a gravar, mas sem novo aviso.
+  IF previous_exists AND NOT changed AND previous_note IS NOT DISTINCT FROM p_note THEN
+    RETURN pg_catalog.jsonb_build_object('changed', false);
+  END IF;
 
   INSERT INTO public.siga_transport_day_status (
     school_id, route_id, service_date, status, delay_minutes,
