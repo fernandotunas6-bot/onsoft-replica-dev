@@ -621,12 +621,30 @@ async function routeAudience(db: TransportDb, schoolId: string, routeId: string,
     ),
   ];
   if (!studentIds.length) return [];
-  const names = await studentNames(db, schoolId, studentIds);
-  const guardians = await db
-    .from("student_guardians")
-    .select("guardian_person_id, valid_from, valid_until")
-    .eq("school_id", schoolId)
-    .in("student_id", studentIds);
+  // Para avisos só precisamos do person_id, não dos nomes completos.
+  // Consultar encarregados em paralelo com alunos reduz a latência por rota.
+  const [studentPersonIds, guardians] = await Promise.all([
+    (async () => {
+      const personIds: string[] = [];
+      for (let i = 0; i < studentIds.length; i += 200) {
+        const students = await db
+          .from("students")
+          .select("person_id")
+          .eq("school_id", schoolId)
+          .in("id", studentIds.slice(i, i + 200));
+        if (students.error) fail(students.error, "TRANSPORT_UNAVAILABLE");
+        for (const row of (students.data ?? []) as { person_id: string }[]) {
+          personIds.push(row.person_id);
+        }
+      }
+      return personIds;
+    })(),
+    db
+      .from("student_guardians")
+      .select("guardian_person_id, valid_from, valid_until")
+      .eq("school_id", schoolId)
+      .in("student_id", studentIds),
+  ]);
   if (guardians.error) fail(guardians.error, "TRANSPORT_UNAVAILABLE");
   const guardianRows = (guardians.data ?? []) as {
     guardian_person_id: string;
@@ -638,9 +656,9 @@ async function routeAudience(db: TransportDb, schoolId: string, routeId: string,
     (g) => g.valid_from <= day && (!g.valid_until || g.valid_until >= day),
   );
   const personIds = [
-    ...[...names.values()].map((n) => n.personId),
-    ...eligibleGuardians.map((g) => g.guardian_person_id),
+    ...new Set([...studentPersonIds, ...eligibleGuardians.map((g) => g.guardian_person_id)]),
   ];
+  if (!personIds.length) return [];
   const users = new Set<string>();
   for (let i = 0; i < personIds.length; i += 200) {
     const people = await db
