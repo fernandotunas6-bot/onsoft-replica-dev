@@ -97,4 +97,40 @@ describe("orçamento do primeiro desenho", () => {
       "DashboardChartsSkeleton",
     );
   });
+
+  it("os portais entram por papel, não todos no ecrã de entrada", () => {
+    // Um utilizador vê um portal, o do seu papel. Importados estaticamente, os
+    // quatro entravam no grafo da rota `/` — que desenha o login a quem não tem
+    // sessão — e arrastavam 55 módulos só deles (`higher-ed/server.ts`,
+    // `pedagogica/attendance-server.ts`, …). O grafo estático do login passou de
+    // 412 para 358 módulos quando foram separados.
+    const route = readFileSync("src/routes/index.tsx", "utf8");
+    for (const portal of [
+      "StudentPortalDashboard",
+      "GuardianPortalDashboard",
+      "TeacherPortalDashboard",
+      "AdminPortalDashboard",
+    ]) {
+      expect(route).toMatch(
+        new RegExp(`lazy\\(\\(\\) =>\\s*import\\("@/features/dashboard/portals/${portal}"\\)`),
+      );
+      expect(route).not.toMatch(new RegExp(`^import \\{[^}]*\\b${portal}\\b[^}]*\\} from`, "m"));
+    }
+    // O esqueleto da espera não pode voltar a ligar o login aos portais.
+    const skeleton = readFileSync(
+      "src/features/dashboard/portals/PortalDashboardSkeleton.tsx",
+      "utf8",
+    );
+    expect(skeleton).not.toMatch(/^import /m);
+
+    // Mesma armadilha, terceira vez: a dica do docente vinha do módulo que a rota
+    // carrega por `lazy()`, e arrastava `ClassMaterialsPanel` -> `PickFileButton`.
+    expect(route).toContain('from "@/features/academic/TeacherWorkspaceHint"');
+    expect(route).not.toMatch(
+      /^import \{[^}]*TeacherWorkspaceHint[^}]*\} from "@\/features\/academic\/TeacherWorkspacePanel"/m,
+    );
+    expect(readFileSync("src/features/academic/TeacherWorkspacePanel.tsx", "utf8")).not.toContain(
+      "TeacherWorkspaceHint",
+    );
+  });
 });
