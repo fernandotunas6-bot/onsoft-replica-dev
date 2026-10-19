@@ -341,6 +341,149 @@ ALTER TABLE public.siga_transport_day_status FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON public.siga_transport_day_status FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.siga_transport_day_status TO service_role;
 
+-- Substituir as várias escritas de paragens por uma única transacção.
+-- O invocador deve ser o backend service_role DEPOIS das verificações de
+-- identidade/escola/permissão em transport/server.ts. SECURITY INVOKER mantém
+-- RLS/privilegios do invocador; esta função não concede acesso a clientes.
+-- O lock sobre a rota serializa alterações concorrentes dessa mesma rota.
+CREATE OR REPLACE FUNCTION public.siga_transport_save_stops_atomic(
+  p_school_id uuid,
+  p_route_id uuid,
+  p_user_id uuid,
+  p_stops jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path TO ''
+AS $atomic$
+DECLARE
+  item jsonb;
+  position integer;
+  stop_id uuid;
+  kept_ids uuid[] := ARRAY[]::uuid[];
+  deleted_count integer := 0;
+BEGIN
+  IF p_school_id IS NULL OR p_route_id IS NULL
+     OR jsonb_typeof(p_stops) IS DISTINCT FROM 'array'
+     OR jsonb_array_length(p_stops) > 60 THEN
+    RAISE EXCEPTION 'Lista de paragens inválida'
+      USING ERRCODE = '22023';
+  END IF;
+
+  -- Uma alteração por rota de cada vez. A verificação é novamente feita
+  -- dentro da transacção, não confiando apenas no SELECT anterior do portal.
+  PERFORM 1
+  FROM public.siga_transport_routes AS r
+  WHERE r.school_id = p_school_id AND r.id = p_route_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Rota não encontrada nesta escola'
+      USING ERRCODE = '23503', CONSTRAINT = 'transport_route_same_school';
+  END IF;
+
+  -- Validar todos os IDs, entradas e duplicados antes de qualquer DELETE.
+  FOR item, position IN
+    SELECT value, ordinality::integer
+    FROM pg_catalog.jsonb_array_elements(p_stops) WITH ORDINALITY
+  LOOP
+    IF pg_catalog.jsonb_typeof(item) <> 'object'
+       OR NULLIF(item->>'name', '') IS NULL THEN
+      RAISE EXCEPTION 'Paragem inválida'
+        USING ERRCODE = '22023';
+    END IF;
+    stop_id := NULLIF(item->>'id', '')::uuid;
+    IF stop_id IS NOT NULL THEN
+      IF stop_id = ANY(kept_ids) THEN
+        RAISE EXCEPTION 'Paragem repetida'
+          USING ERRCODE = '22023';
+      END IF;
+      PERFORM 1
+      FROM public.siga_transport_stops AS s
+      WHERE s.school_id = p_school_id
+        AND s.route_id = p_route_id AND s.id = stop_id;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Paragem não pertence à rota'
+          USING ERRCODE = '23503', CONSTRAINT = 'transport_stop_same_route';
+      END IF;
+      kept_ids := pg_catalog.array_append(kept_ids, stop_id);
+    END IF;
+  END LOOP;
+
+  -- As posições 101..160 são temporárias; o limite permanente continua 60.
+  -- Se houver lixo de uma operação legada interrompida, não sobrescrever.
+  IF EXISTS (
+    SELECT 1 FROM public.siga_transport_stops
+    WHERE school_id = p_school_id AND route_id = p_route_id AND sequence > 100
+  ) THEN
+    RAISE EXCEPTION 'Paragens com ordenação pendente de reparação'
+      USING ERRCODE = '23514';
+  END IF;
+
+  SELECT count(*)::integer INTO deleted_count
+  FROM public.siga_transport_stops
+  WHERE school_id = p_school_id AND route_id = p_route_id
+    AND id <> ALL(kept_ids);
+
+  -- Um FK RESTRICT recusa o DELETE se o stop tiver atribuições, fazendo
+  -- rollback da operação inteira (inclusive reordenações posteriores).
+  DELETE FROM public.siga_transport_stops
+  WHERE school_id = p_school_id AND route_id = p_route_id
+    AND id <> ALL(kept_ids);
+
+  FOR item, position IN
+    SELECT value, ordinality::integer
+    FROM pg_catalog.jsonb_array_elements(p_stops) WITH ORDINALITY
+  LOOP
+    stop_id := NULLIF(item->>'id', '')::uuid;
+    IF stop_id IS NOT NULL THEN
+      UPDATE public.siga_transport_stops
+      SET sequence = 100 + position, updated_by = p_user_id
+      WHERE school_id = p_school_id AND route_id = p_route_id AND id = stop_id;
+    END IF;
+  END LOOP;
+
+  FOR item, position IN
+    SELECT value, ordinality::integer
+    FROM pg_catalog.jsonb_array_elements(p_stops) WITH ORDINALITY
+  LOOP
+    stop_id := NULLIF(item->>'id', '')::uuid;
+    IF stop_id IS NOT NULL THEN
+      UPDATE public.siga_transport_stops
+      SET sequence = position,
+          name = item->>'name',
+          landmark = NULLIF(item->>'landmark', ''),
+          outbound_time = NULLIF(item->>'outbound_time', '')::time,
+          return_time = NULLIF(item->>'return_time', '')::time,
+          updated_by = p_user_id
+      WHERE school_id = p_school_id AND route_id = p_route_id AND id = stop_id;
+    ELSE
+      INSERT INTO public.siga_transport_stops (
+        school_id, route_id, sequence, name, landmark,
+        outbound_time, return_time, created_by, updated_by
+      )
+      VALUES (
+        p_school_id, p_route_id, position, item->>'name',
+        NULLIF(item->>'landmark', ''),
+        NULLIF(item->>'outbound_time', '')::time,
+        NULLIF(item->>'return_time', '')::time,
+        p_user_id, p_user_id
+      );
+    END IF;
+  END LOOP;
+
+  RETURN pg_catalog.jsonb_build_object(
+    'saved', pg_catalog.jsonb_array_length(p_stops),
+    'removed', deleted_count
+  );
+END;
+$atomic$;
+
+REVOKE ALL ON FUNCTION public.siga_transport_save_stops_atomic(uuid, uuid, uuid, jsonb)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.siga_transport_save_stops_atomic(uuid, uuid, uuid, jsonb)
+  TO service_role;
+
 -- ══════════ Confirmação ══════════
 -- A simples existência das tabelas não é suficiente: confirmar também as
 -- relações entre escolas, rotas e alunos. Consulta de leitura.
