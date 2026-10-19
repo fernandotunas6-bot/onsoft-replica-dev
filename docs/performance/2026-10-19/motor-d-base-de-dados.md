@@ -90,8 +90,27 @@ trabalho útil, e hoje não dói. Fica aqui porque é o primeiro item que cresce
 houver escolas a sério: é custo por alteração e por subscritor, e passa a contar quando
 as 10 tabelas publicadas tiverem movimento real.
 
-Sem acção proposta agora. Se o Realtime continuar sem uso, a decisão de reduzir a
-publicação é de produto, não de desempenho.
+### A publicação tem uma tabela a mais
+
+Cruzei a publicação com o que a aplicação realmente ouve (`postgres_changes` no código,
+não a palavra `table:`, que aparece noutros contextos e dá falsos positivos):
+
+| | Tabelas |
+| --- | --- |
+| Publicadas | 10 |
+| Subscritas pela app | **9** |
+| Publicada sem ninguém a ouvir | **`siga_direct_messages`** |
+
+Não é descuido de quem subscreve: `siga_direct_messages` é a tabela **antiga** das
+mensagens, substituída pelo chat (`siga_chat_*`) a 2026-10-02. As 24 mensagens foram
+copiadas e nada lhe escreve desde então — está escrito nos comentários de
+`use-inbox-unread.ts` e `DesktopNotifications.tsx`.
+
+**Sem acção proposta, de propósito.** Tirá-la da publicação é uma linha
+(`ALTER PUBLICATION supabase_realtime DROP TABLE public.siga_direct_messages`), mas o
+ganho medido é zero: 26 escritas em 87 dias, e nenhuma daqui para a frente. Mudar a
+produção sem necessidade provada é exactamente o que o contrato desta operação proíbe.
+Fica registado para quando a tabela antiga for retirada de vez.
 
 ## Consultas N+1 no código servidor
 
