@@ -27,6 +27,26 @@ if (enabled) {
   ) {
     throw new Error("Homologação responsiva: executar apenas contra um servidor local.");
   }
+  // Um frontend localhost pode estar ligado ao Supabase de produção.
+  // Recusar esse risco antes de abrir a sessão ou consultar informação escolar.
+  const stagingRef = process.env.SIGA_RESPONSIVE_PROJECT_REF?.trim();
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  if (!stagingRef || stagingRef === "xodgfmxiaunpamctfeea" || !supabaseUrl) {
+    throw new Error("Homologação responsiva: confirmar projecto e URL do Supabase de staging.");
+  }
+  const database = new URL(supabaseUrl);
+  const stagingHost =
+    stagingRef === "local"
+      ? ["localhost", "127.0.0.1", "[::1]"].includes(database.hostname)
+      : database.hostname === `${stagingRef}.supabase.co`;
+  if (
+    !stagingHost ||
+    !["http:", "https:"].includes(database.protocol) ||
+    database.username ||
+    database.password
+  ) {
+    throw new Error("Homologação responsiva: Supabase de produção ou destino inesperado.");
+  }
   if (!stateFile) throw new Error("Homologação responsiva: sessão autorizada em falta.");
   if (!route.startsWith("/") || route.startsWith("//")) {
     throw new Error("Homologação responsiva: a rota deve ser interna ao SIGA.");
