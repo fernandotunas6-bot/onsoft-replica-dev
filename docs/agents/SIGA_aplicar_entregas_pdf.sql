@@ -143,4 +143,5 @@ SELECT CASE WHEN to_regclass('public.siga_task_submissions') IS NOT NULL
   AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
   WHERE conrelid = to_regclass('public.siga_task_submissions')
     AND conname = 'siga_submission_student_same_school_fk')
+  AND to_regclass('public.siga_task_submissions_storage_path_unique_idx') IS NOT NULL
   THEN 'aplicada' ELSE 'em falta' END AS siga_task_submissions;
