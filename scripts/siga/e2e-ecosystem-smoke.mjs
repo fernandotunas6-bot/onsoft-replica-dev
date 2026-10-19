@@ -144,6 +144,8 @@ const endpoints = [
 ];
 
 let failed = 0;
+let passed = 0;
+let skipped = 0;
 
 for (const item of endpoints) {
   try {
@@ -156,16 +158,23 @@ for (const item of endpoints) {
     const ok = expectStatus(item).includes(res.status);
     const mark = ok ? "OK" : "FAIL";
     console.log(`${mark}  ${item.label} → ${res.status} ${item.url}`);
-    if (!ok) failed += 1;
+    if (ok) passed += 1;
+    else failed += 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (CI && item.optionalInCi) {
+      skipped += 1;
       console.log(`SKIP ${item.label} → ${message}`);
       continue;
     }
     failed += 1;
     console.log(`FAIL  ${item.label} → ${message}`);
   }
+}
+
+console.log(`\nSmoke E2E — ${passed} aprovadas, ${failed} falhadas, ${skipped} ignoradas.`);
+if (skipped > 0) {
+  console.warn("Cobertura parcial: verificações opcionais ignoradas NÃO validam os serviços respectivos (ex.: PayFlow).");
 }
 
 if (failed > 0) {
