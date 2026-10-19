@@ -664,16 +664,18 @@ async function routeAudience(db: TransportDb, schoolId: string, routeId: string,
     .eq("school_id", schoolId)
     .in("student_id", studentIds);
   if (guardians.error) fail(guardians.error, "TRANSPORT_UNAVAILABLE");
+  const guardianRows = (guardians.data ?? []) as {
+    guardian_person_id: string;
+    valid_from: string;
+    valid_until: string | null;
+  }[];
+  // Avisos só aos encarregados cujo vínculo já começou e não terminou.
+  const eligibleGuardians = guardianRows.filter(
+    (g) => g.valid_from <= day && (!g.valid_until || g.valid_until >= day),
+  );
   const personIds = [
     ...[...names.values()].map((n) => n.personId),
-    ...((guardians.data ?? []) as {
-      guardian_person_id: string;
-      valid_from: string;
-      valid_until: string | null;
-    }[])
-      // Avisos só aos encarregados cujo vínculo já começou e não terminou.
-      .filter((g) => g.valid_from <= day && (!g.valid_until || g.valid_until >= day))
-      .map((g) => g.guardian_person_id),
+    ...eligibleGuardians.map((g) => g.guardian_person_id),
   ];
   const users = new Set<string>();
   for (let i = 0; i < personIds.length; i += 200) {
