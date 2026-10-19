@@ -33,7 +33,13 @@ export function useBreakpoint(): { breakpoint: Breakpoint; ready: boolean } {
   });
 
   React.useEffect(() => {
-    const update = () => setState({ breakpoint: read(), ready: true });
+    let previous: Breakpoint | undefined;
+    const update = () => {
+      const breakpoint = read();
+      if (breakpoint === previous) return;
+      previous = breakpoint;
+      setState({ breakpoint, ready: true });
+    };
     update();
     window.addEventListener("resize", update, { passive: true });
     window.addEventListener("orientationchange", update);

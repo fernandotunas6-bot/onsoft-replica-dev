@@ -35,6 +35,7 @@ import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";
 import { kwanza } from "@/lib/currency";
 import { warmDashboardCharts } from "@/lib/warm-charts";
+import { startDashboardDateClock } from "@/features/dashboard/date-clock";
 import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { TeacherWorkspaceHint } from "@/features/academic/TeacherWorkspaceHint";
@@ -130,6 +131,7 @@ function Dashboard() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
+  const portalMode = resolvePortalMode(currentUser.role);
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const whatsappNotices = installed.hasCapability("whatsapp.notices");
@@ -141,30 +143,10 @@ function Dashboard() {
   });
 
   useEffect(() => {
-    let timer = 0;
-    const tick = () => {
-      setNow(new Date());
-      if (document.visibilityState === "visible") {
-        timer = window.setTimeout(tick, 1000);
-      }
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        setNow(new Date());
-        tick();
-      } else {
-        window.clearTimeout(timer);
-      }
-    };
-    setNow(new Date());
+    if (portalMode !== "admin") return;
     warmDashboardCharts();
-    tick();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
+    return startDashboardDateClock(setNow);
+  }, [portalMode]);
 
   // Realtime — invalida o overview sempre que dados críticos mudam na BD
   useEffect(() => {
@@ -367,8 +349,6 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState<"geral" | "pedagogico" | "financeiro" | "auditoria">(
     "geral",
   );
-
-  const portalMode = resolvePortalMode(currentUser.role);
 
   return (
     <AppShell>
