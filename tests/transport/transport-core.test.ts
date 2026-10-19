@@ -387,7 +387,10 @@ describe("portal: estado do dia", () => {
     const rows = notify.mock.calls[0][2] as { userId: string }[];
     expect(rows.map((r) => r.userId).sort()).toEqual([id(40), id(41)]);
     const guardianQuery = queries.find((q) => q.table === "student_guardians");
-    expect(guardianQuery?.ops).toContainEqual(["select", "guardian_person_id, valid_from, valid_until"]);
+    expect(guardianQuery?.ops).toContainEqual([
+      "select",
+      "guardian_person_id, valid_from, valid_until",
+    ]);
     expect(guardianQuery?.ops).toContainEqual(["eq", "school_id", SCHOOL]);
   });
 
