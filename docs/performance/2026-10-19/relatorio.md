@@ -284,8 +284,10 @@ os testes existentes de menu/login, o build final, a verificação de tipos, o l
 (0 erros, 47 avisos), os controlos estáticos de estilo/acessibilidade, o inventário
 de 18 módulos e a validação da skill.
 
-**Suite completa no fecho desta execução: 3 611 aprovados, 3 ignorados, 1 falha**
-(523 ficheiros aprovados, 1 falhado, 2 ignorados; 361 s).
+**Suite completa no fecho desta execução: 3 612 aprovados, 3 ignorados, 0 falhas**
+(524 ficheiros aprovados, 2 ignorados; 252 s). A corrida anterior tinha fechado com
+3 611 aprovados e **1 falha**, corrigida abaixo; a repetição depois da correcção é a
+que vale, e o teste a mais é a guarda nova do ecrã de entrada.
 
 A afirmação anterior de que a suite corria «sem credenciais, como o CI» estava
 **errada** e é corrigida aqui. O `vitest.config.ts` de facto não carrega `dotenv`
