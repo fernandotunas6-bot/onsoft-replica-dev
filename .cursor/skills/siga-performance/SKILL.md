@@ -68,6 +68,11 @@ uma operação concluída.
 - `scripts/siga/modules.json`: inventário canónico; skills `siga-*` por módulo.
 - `tests/ui/first-paint-budget.test.ts`: limites do primeiro desenho.
 - `scripts/siga/performance-inventory.mjs`: bytes/preloads do build e inventário por módulo.
+- Armadilha da raiz: `__root.tsx` monta `AppearanceProvider`, `RouteAccessGate`,
+  `use-school-settings` e `tenant-context`, por isso **tudo** o que estes importam de
+  forma estática entra nos 36 recursos pré-carregados. Antes de importar um catálogo
+  ou tabela de dados num destes caminhos, confirmar o peso no manifesto SSR; um
+  `.find()` não justifica 110 KB no arranque. Guardas em `tests/ui/first-paint-budget.test.ts`.
 - `scripts/siga/performance-browser.mjs`: ensaio local sem sessão; login/registo, frame
   de feedback, dimensões e erros. Requer Chrome e SIGA em `localhost:3006`; não substitui
   a validação autenticada. Evidências em `docs/performance/2026-10-19/relatorio.md`.
