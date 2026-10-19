@@ -322,7 +322,12 @@ describe("portal: alunos da rota", () => {
 });
 
 describe("portal: estado do dia", () => {
-  const dayDb = (previous: unknown) =>
+  const dayDb = (
+    previous: unknown,
+    guardians: { guardian_person_id: string; valid_from: string; valid_until: string | null }[] = [
+      { guardian_person_id: id(31), valid_from: "2026-09-01", valid_until: null },
+    ],
+  ) =>
     database((table, ops) => {
       if (table === "siga_transport_routes") return { data: route };
       if (table === "siga_transport_day_status")
@@ -336,12 +341,25 @@ describe("portal: estado do dia", () => {
         };
       if (table === "students")
         return { data: [{ id: STUDENT, person_id: id(30), student_number: null }] };
-      if (table === "student_guardians")
-        return { data: [{ guardian_person_id: id(31), valid_until: null }] };
-      if (table === "people")
-        return has(ops, "select") && String(ops[0][1]).includes("user_id")
-          ? { data: [{ user_id: id(40) }, { user_id: id(41) }, { user_id: null }] }
-          : { data: [{ id: id(30), full_name: "Ana" }] };
+      if (table === "student_guardians") return { data: guardians };
+      if (table === "people") {
+        if (has(ops, "select") && String(ops[0][1]).includes("user_id")) {
+          const requested = (ops.find((op) => op[0] === "in" && op[1] === "id")?.[2] ??
+            []) as string[];
+          const linkedUsers = new Map([
+            [id(30), id(40)],
+            [id(31), id(41)],
+            [id(32), id(42)],
+            [id(33), id(43)],
+          ]);
+          return {
+            data: requested
+              .filter((personId) => linkedUsers.has(personId))
+              .map((personId) => ({ user_id: linkedUsers.get(personId) })),
+          };
+        }
+        return { data: [{ id: id(30), full_name: "Ana" }] };
+      }
       throw new Error(table);
     });
 
@@ -355,6 +373,22 @@ describe("portal: estado do dia", () => {
       eventType: "transport.day_status",
       title: "Transporte: Rota Kilamba com atraso",
     });
+  });
+
+  it("não avisa encarregados de vínculos futuros ou já terminados", async () => {
+    const guardians = [
+      { guardian_person_id: id(31), valid_from: TODAY, valid_until: TODAY },
+      { guardian_person_id: id(32), valid_from: "2026-11-01", valid_until: null },
+      { guardian_person_id: id(33), valid_from: "2026-09-01", valid_until: "2026-10-17" },
+    ];
+    const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
+    const out = await setTransportDayStatus(dayDb(null, guardians), SCHOOL, USER, input, TODAY);
+    expect(out.notified).toBe(2);
+    const rows = notify.mock.calls[0][2] as { userId: string }[];
+    expect(rows.map((r) => r.userId).sort()).toEqual([id(40), id(41)]);
+    const guardianQuery = queries.find((q) => q.table === "student_guardians");
+    expect(guardianQuery?.ops).toContainEqual(["select", "guardian_person_id, valid_from, valid_until"]);
+    expect(guardianQuery?.ops).toContainEqual(["eq", "school_id", SCHOOL]);
   });
 
   it("gravar o mesmo estado outra vez não repete o aviso", async () => {
