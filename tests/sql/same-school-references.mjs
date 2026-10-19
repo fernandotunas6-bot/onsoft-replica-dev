@@ -163,18 +163,31 @@ assert.equal(
     .yes,
   true,
 );
-const saveDay = async (schoolId, routeId, status, delay = 0) =>
+const saveDay = async (schoolId, routeId, status, delay = 0, note = null) =>
   (
     await one(
-      "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,null::text,null::uuid) as result",
-      [schoolId, routeId, status, delay],
+      "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,$5::text,null::uuid) as result",
+      [schoolId, routeId, status, delay, note],
     )
   ).result;
+const dayAuditCount = async () =>
+  (await one("select count(*)::integer as n from private.audit where table_name = 'siga_transport_day_status'")).n;
+const previousDayAudit = await dayAuditCount();
 assert.deepEqual(await saveDay(a, routeA, "delayed", 10), { changed: false });
+assert.equal(await dayAuditCount(), previousDayAudit, "repetição idêntica não audita UPDATE");
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: true });
+const afterChangeAudit = await dayAuditCount();
+assert.equal(afterChangeAudit, previousDayAudit + 1);
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: false });
+assert.equal(await dayAuditCount(), afterChangeAudit, "idempotência também evita writes de auditoria");
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), { changed: false });
+assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota alterada é gravada sem aviso");
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), { changed: false });
+assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota igual não repete UPDATE");
 assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: true });
+const afterNormalAudit = await dayAuditCount();
 assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: false });
+assert.equal(await dayAuditCount(), afterNormalAudit, "estado normal não cria outra auditoria");
 await assert.rejects(saveDay(b, routeA, "cancelled"), (error) => error.code === "23503");
 assert.deepEqual(
   await one("select status, delay_minutes from siga_transport_day_status where route_id = $1", [
