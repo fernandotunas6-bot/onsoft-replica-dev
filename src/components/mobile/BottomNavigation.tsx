@@ -47,15 +47,15 @@ export function BottomNavigation({ onOpenMore }: { onOpenMore: () => void }) {
             <>
               <span
                 className={cn(
-                  "inline-flex h-[28px] w-[48px] items-center justify-center rounded-full transition-colors",
+                  "inline-flex h-[28px] w-full max-w-[48px] items-center justify-center rounded-full transition-colors",
                   active ? "bg-primary-soft text-primary-strong" : "text-muted-foreground",
                 )}
               >
-                <Icon className="size-5" aria-hidden />
+                <Icon className="size-5 max-w-full shrink" aria-hidden />
               </span>
               <span
                 className={cn(
-                  "text-[11px] leading-tight",
+                  "max-w-full truncate text-[11px] leading-tight",
                   active ? "font-medium text-primary-strong" : "text-muted-foreground",
                 )}
               >
