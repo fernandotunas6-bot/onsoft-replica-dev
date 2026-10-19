@@ -36,9 +36,7 @@ export function useBreakpoint(): { breakpoint: Breakpoint; ready: boolean } {
     const update = () => {
       const next = read();
       setState((current) =>
-        current.ready && current.breakpoint === next
-          ? current
-          : { breakpoint: next, ready: true },
+        current.ready && current.breakpoint === next ? current : { breakpoint: next, ready: true },
       );
     };
     update();
