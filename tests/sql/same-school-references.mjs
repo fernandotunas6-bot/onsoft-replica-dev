@@ -163,8 +163,8 @@ const day =
 await rejects(day, [a, routeB], "transport_route_same_school");
 await db.query(day, [a, routeA]);
 // Contas fictícias de duas escolas; a RPC deve recusar mistura de destinatários.
-const userA = (await one("insert into auth.users default values returning id")).id;
-const userB = (await one("insert into auth.users default values returning id")).id;
+const userA = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
+const userB = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
 await db.query("insert into people(school_id,user_id) values($1,$2),($3,$4)", [
   a, userA, b, userB,
 ]);
