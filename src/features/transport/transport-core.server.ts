@@ -22,7 +22,13 @@ import type {
 
 // As tabelas ainda não estão em `types.ts` (gerado depois de aplicar a
 // migração): cliente sem tipos, como em `mobile-v4/submissions.server.ts`.
-export type TransportDb = { from: (table: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+export type TransportDb = {
+  from: (table: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  rpc?: (name: string, args: Record<string, unknown>) => Promise<{
+    data: unknown;
+    error: DbError;
+  }>;
+};
 
 type DbError = { code?: string; message?: string } | null;
 
@@ -385,66 +391,31 @@ export async function saveTransportStops(
 ) {
   await assertReady(db);
   await loadRoute(db, schoolId, input.routeId);
-  const current = await db
-    .from("siga_transport_stops")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("route_id", input.routeId);
-  if (current.error) fail(current.error, "TRANSPORT_UNAVAILABLE");
-  const existing = new Set(((current.data ?? []) as { id: string }[]).map((s) => s.id));
-  const kept = input.stops.filter((s) => s.id);
-  if (kept.some((s) => !existing.has(s.id!))) throw new TransportError("STOP_NOT_FOUND");
-  const keptIds = new Set(kept.map((s) => s.id!));
-  const removed = [...existing].filter((id) => !keptIds.has(id));
 
-  if (removed.length) {
-    const used = await db
-      .from("siga_transport_assignments")
-      .select("id")
-      .eq("school_id", schoolId)
-      .in("stop_id", removed)
-      .limit(1);
-    if (used.error) fail(used.error, "TRANSPORT_UNAVAILABLE");
-    if ((used.data ?? []).length) throw new TransportError("STOP_IN_USE");
-    const gone = await db
-      .from("siga_transport_stops")
-      .delete()
-      .eq("school_id", schoolId)
-      .eq("route_id", input.routeId)
-      .in("id", removed);
-    if (gone.error?.code === "23503") throw new TransportError("STOP_IN_USE");
-    if (gone.error) fail(gone.error);
-  }
-  const fields = (s: SaveStopsInput["stops"][number], sequence: number) => ({
-    sequence,
-    name: s.name,
-    landmark: s.landmark ?? null,
-    outbound_time: s.outboundTime ?? null,
-    return_time: s.returnTime ?? null,
-    updated_by: userId,
+  // Sem RPC não voltar ao algoritmo antigo: dezenas de escritas PostgREST
+  // independentes podiam deixar a lista parcialmente alterada.
+  if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY");
+  const result = await db.rpc("siga_transport_save_stops_atomic", {
+    p_school_id: schoolId,
+    p_route_id: input.routeId,
+    p_user_id: userId,
+    p_stops: input.stops.map((s) => ({
+      id: s.id ?? null,
+      name: s.name,
+      landmark: s.landmark ?? null,
+      outbound_time: s.outboundTime ?? null,
+      return_time: s.returnTime ?? null,
+    })),
   });
-  for (const pass of [100, 0]) {
-    for (const [i, s] of input.stops.entries()) {
-      if (!s.id) continue;
-      const moved = await db
-        .from("siga_transport_stops")
-        .update(pass ? { sequence: pass + i + 1 } : fields(s, i + 1))
-        .eq("school_id", schoolId)
-        .eq("route_id", input.routeId)
-        .eq("id", s.id);
-      if (moved.error) fail(moved.error);
-    }
+  if (result.error?.code === "23503" && /siga_transport_stops|siga_transport_assignments/.test(result.error.message ?? "")) {
+    throw new TransportError("STOP_IN_USE");
   }
-  const fresh = input.stops.flatMap((s, i) =>
-    s.id
-      ? []
-      : [{ ...fields(s, i + 1), school_id: schoolId, route_id: input.routeId, created_by: userId }],
-  );
-  if (fresh.length) {
-    const inserted = await db.from("siga_transport_stops").insert(fresh);
-    if (inserted.error) fail(inserted.error);
+  if (result.error) fail(result.error);
+  const data = result.data as { saved?: unknown; removed?: unknown } | null;
+  if (!data || typeof data.saved !== "number" || typeof data.removed !== "number") {
+    throw new TransportError("SAVE_FAILED");
   }
-  return { saved: input.stops.length, removed: removed.length };
+  return { saved: data.saved, removed: data.removed };
 }
 
 /**
