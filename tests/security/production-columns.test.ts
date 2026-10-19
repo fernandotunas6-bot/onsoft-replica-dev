@@ -104,6 +104,23 @@ describe("colunas usadas existem na produção", () => {
     expect(core).toContain("fail(result.error)");
   });
 
+  it("a RPC de estado do dia tem migração restrita e comparação transaccional", () => {
+    const rpc = "siga_transport_set_day_status_atomic";
+    expect(FUNCOES_ESPERA_MIGRACAO.has(rpc)).toBe(true);
+    const migration = readFileSync(
+      "supabase/migrations/20261018120000_school_transport.sql",
+      "utf8",
+    );
+    const core = readFileSync("src/features/transport/transport-core.server.ts", "utf8");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public." + rpc + "(");
+    expect(migration).toContain("FOR UPDATE");
+    expect(migration).toContain("SECURITY INVOKER");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public." + rpc);
+    expect(core).toContain('if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY")');
+    expect(core).toContain("siga_transport_set_day_status_atomic");
+    expect(core).toContain('saved.error?.code === "PGRST202"');
+  });
+
   it("RPCs atómicos têm migração e falham de forma explícita se indisponíveis", () => {
     const sql = readFileSync(
       "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",
