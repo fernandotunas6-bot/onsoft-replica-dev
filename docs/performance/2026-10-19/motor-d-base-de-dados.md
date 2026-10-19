@@ -125,6 +125,12 @@ paginação com `.order("id")` fixo tira o tecto e torna a contagem correcta.
 Guarda em `tests/higher-ed/server-guards.test.ts` («graduados sem uma consulta por curso»):
 recusa o regresso do `loadPlan(` ao corpo da exportação e exige a paginação ordenada.
 
+**As outras duas chamadas a `loadPlan` dentro de ciclos ficam como estão**, e é de
+propósito — verifiquei as duas: `getMyEnrollmentOffer` e a transcrição do estudante
+percorrem os cursos **de um aluno**, que saem das turmas dele. O ciclo corre uma ou duas
+vezes, não uma vez por curso da escola. Além disso precisam das precedências, que o
+`loadPlanUnitsByProgram` não carrega. Quem vier a seguir não as deve «corrigir».
+
 ## Sobre-leitura
 
 Estreitar colunas às cegas é perigoso: quem leia um campo que deixou de vir parte em
