@@ -62,11 +62,13 @@ export function MobileHeader({
             <button
               type="button"
               onClick={onOpenContext}
-              className="flex min-h-[44px] min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary"
+              aria-label="Alterar escola, ano lectivo ou período"
+              aria-haspopup="dialog"
+              className="flex min-h-[44px] min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="min-w-0">
                 <span className="block truncate text-[14px] font-semibold text-foreground">
-                  {greeting()}, {currentUser.name.split(" ")[0]}
+                  {greeting()}, {currentUser.name.trim().split(/\s+/)[0] || "utilizador"}
                 </span>
                 <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
                   <span className="truncate">{school?.name ?? "SIGA"}</span>
@@ -83,7 +85,7 @@ export function MobileHeader({
               type="button"
               onClick={goBack}
               aria-label="Voltar"
-              className="touch-target -ml-1 inline-flex items-center justify-center rounded-full text-foreground active:bg-secondary"
+              className="touch-target -ml-1 inline-flex shrink-0 items-center justify-center rounded-full text-foreground active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowLeft className="size-5" />
             </button>
@@ -92,6 +94,7 @@ export function MobileHeader({
                 type="button"
                 onClick={onOpenContext}
                 aria-label="Alterar escola, ano lectivo ou período"
+                aria-haspopup="dialog"
                 className="flex min-h-[44px] w-full min-w-0 items-center gap-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="truncate">{title ?? "SIGA"}</span>
@@ -107,7 +110,7 @@ export function MobileHeader({
             type="button"
             onClick={onOpenSearch}
             aria-label="Pesquisar no SIGA"
-            className="touch-target inline-flex items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
+            className="touch-target inline-flex items-center justify-center rounded-full text-muted-foreground active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Search className="size-5" />
           </button>
@@ -115,18 +118,20 @@ export function MobileHeader({
             type="button"
             onClick={onOpenNotifications}
             aria-label={noticeCount ? `Notificações (${noticeCount} não lidas)` : "Notificações"}
-            className="touch-target relative inline-flex items-center justify-center rounded-full text-muted-foreground active:bg-secondary"
+            aria-haspopup="dialog"
+            className="touch-target relative inline-flex items-center justify-center rounded-full text-muted-foreground active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Bell className="size-5" />
             {noticeCount ? (
-              <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive ring-2 ring-background" />
+              <span aria-hidden="true" className="absolute right-2 top-2 size-2 rounded-full bg-destructive ring-2 ring-background" />
             ) : null}
           </button>
           <button
             type="button"
             onClick={onOpenAccount}
             aria-label="Abrir painel da conta"
-            className="touch-target inline-flex items-center justify-center rounded-full"
+            aria-haspopup="dialog"
+            className="touch-target inline-flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <UserAvatar
               url={currentUser.avatarUrl}
