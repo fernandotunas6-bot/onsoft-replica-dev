@@ -267,13 +267,26 @@ os testes existentes de menu/login, o build final, a verificação de tipos, o l
 (0 erros, 47 avisos), os controlos estáticos de estilo/acessibilidade, o inventário
 de 18 módulos e a validação da skill.
 
-**Suite completa no fecho desta execução: 3 611 aprovados, 3 ignorados, 0 falhas**
-(524 ficheiros aprovados, 2 ignorados; 447 s). Correu sem credenciais, como o CI —
-confirmado com uma sonda: o `vitest.config.ts` não carrega `dotenv` nem `loadEnv`,
-nenhum teste carrega o `.env` por si, e `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`,
-`SUPABASE_ACCESS_TOKEN`, `RESEND_API_KEY` e `CLOUDFLARE_API_TOKEN` estão todos
-`undefined` durante a corrida. Os testes que querem a produção de propósito saltaram
-sozinhos. **Nenhuma escrita na produção.**
+**Suite completa no fecho desta execução: 3 611 aprovados, 3 ignorados, 1 falha**
+(523 ficheiros aprovados, 1 falhado, 2 ignorados; 361 s).
+
+A afirmação anterior de que a suite corria «sem credenciais, como o CI» estava
+**errada** e é corrigida aqui. O `vitest.config.ts` de facto não carrega `dotenv`
+nem `loadEnv`, mas isso não chega: `tests/security/selects-vs-producao-live.test.ts`
+lê o `.env` **do disco** com `readFileSync` e só depois sobrepõe o `process.env`
+(`{ ...lerEnv(), ...process.env }`). Numa máquina com `.env`, esse teste sonda a
+produção com a chave `service_role` mesmo com as variáveis de ambiente desligadas —
+`env -u` não o desarma. São leituras (`select=…&limit=0`), não escritas, e é esse o
+propósito declarado do teste; o que estava errado era a descrição da corrida, não o
+teste. **Continua a não haver escritas na produção.**
+
+A falha foi `ECONNRESET` nessa sonda, não um defeito do código. O ficheiro já
+documentava a regra certa — «"o pedido não chegou ao fim" é ruído ... um teste que
+falha ao calhar ensina a ignorar falhas» — mas `sondarComRetentativa` fazia `throw`
+à segunda tentativa e pintava a suite de vermelho. Corrigido: três tentativas com
+recuo crescente, as sondas que nunca chegam ao fim são contadas à parte e não contam
+como achado, e se **nenhuma** das sondas chegar à produção o teste falha a dizer que
+não verificou nada — para o ruído não virar cegueira silenciosa.
 
 O catálogo de temas tem cinco testes novos em
 [`tests/lib/appearance-theme-catalogue.test.ts`](../../../tests/lib/appearance-theme-catalogue.test.ts):
