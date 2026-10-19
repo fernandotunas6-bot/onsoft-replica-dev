@@ -62,8 +62,20 @@ uma operação concluída.
 
 - `src/router.tsx`: defaults React Query e TanStack Router.
 - `src/lib/route-data-prefetch.ts`, `preload.ts`, `warm-charts.ts`: pré-busca.
+- `use-breakpoint.ts`: não publicar estado a cada pixel; preservar degraus e SSR.
+  Gráficos antecipados: juntar intenções pendentes, reavaliar rede/visibilidade no
+  idle e permitir retentativa. Menos callbacks não implica menos downloads de módulos
+  que o navegador já reutilizava.
 - `src/lib/realtime-invalidate.ts`: agrupamento de invalidações.
+- `src/features/messages/use-inbox-unread.ts`: canal partilhado por cache/conta,
+  contagem de consumidores e invalidações agrupadas. Desmontar um consumidor não
+  pode cortar os restantes; o último cancela timers e remove o canal. Preservar
+  filtros e isolamento; nomes novos evitam reutilizar canais ainda em remoção.
 - `src/lib/performance-supervisor.ts`, `vitals.ts`: diagnóstico existente.
+- `src/components/auth/use-auth-motion-active.ts`: suspender vídeo e rotação fora
+  do painel desktop visível; preservar os 600 ms/6 s e a mesma instância do vídeo.
+  Diagnóstico de queries: tempos por cache, limpeza na remoção/pausa/desmontagem
+  e nas mudanças de visibilidade; não contar esse intervalo como latência da rede.
 - `src/features/auth/use-current-account.ts`, `use-sign-out.ts`: sessão/escola.
 - `scripts/siga/modules.json`: inventário canónico; skills `siga-*` por módulo.
 - `tests/ui/first-paint-budget.test.ts`: limites do primeiro desenho.
@@ -98,6 +110,13 @@ uma operação concluída.
   eram 412 759 bytes em disco mas **110 362 em gzip** — ~110 KB para o utilizador, não
   414 KB. Media/vídeo já vem comprimido e não encolhe, por isso pesa mais na proporção
   real do que no total por comprimir.
+- Lighthouse local: **uma nota alta pode ser avaria**. Corridas em que o servidor
+  devolve 500 para os recursos pontuam 0,84–0,99 porque a página não carrega. Filtrar
+  pelo `statusCode` do audit `network-requests` antes de ler a pontuação, e confirmar
+  que o vídeo do ecrã de entrada entrou dos dois lados — sem ele são ~1,7 MB a menos e
+  a comparação é entre páginas diferentes. Não servir dois builds Nitro ao mesmo tempo
+  a partir do mesmo `node_modules`: foi o que gerou os 500. A pontuação sai do CI; daqui
+  saem pedidos, bytes, CLS, overflow, erros de consola e dimensões.
 - Medir o build de produção neste Mac: `wrangler` exige macOS 13.5+ e `vite preview`
   procura `dist/server/`, que o projecto não usa. Funciona
   `SIGA_NITRO_PRESET=node-server npm run build` e servir `.output/server/index.mjs` por

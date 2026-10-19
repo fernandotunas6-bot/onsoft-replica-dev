@@ -375,6 +375,44 @@ O que continua a valer desta via local é o que é determinístico ou robusto ao
 o manifesto de recursos, os bytes, o CLS, o overflow, os erros de consola e as
 dimensões do painel. A pontuação, não.
 
+## Lighthouse local: uma nota alta é sinal de avaria
+
+Confirma-se que a pontuação não sai desta máquina, e acrescenta-se **porquê** —
+não é só carga. Num A/B intercalado (os dois builds servidos ao mesmo tempo, ordem
+trocada a meio), o braço novo deu 0,99, 0,87, 0,85, 0,85 e 0,84. Parecia um ganho
+enorme. Não era: **essas cinco corridas tiveram respostas HTTP 500**. A de 0,99
+teve uma resposta 200 e **50 respostas 500**, com 29 749 bytes no total — a página
+não carregou, e uma página que não carrega pontua bem.
+
+Daqui saem duas regras para quem medir a seguir:
+
+- **Filtrar sempre pelos códigos de estado antes de ler a pontuação.** O audit
+  `network-requests` traz `statusCode` por pedido; qualquer corrida com um 4xx/5xx
+  é lixo, por mais bonita que seja a nota. Uma nota local subitamente alta é
+  motivo para desconfiar, não para celebrar.
+- **Não servir dois builds Nitro ao mesmo tempo a partir do mesmo `node_modules`.**
+  Foi o que produziu os 500 aqui: o segundo build reescreve estado partilhado
+  debaixo do servidor que já estava a responder.
+
+Filtrando as corridas válidas — zero erros e vídeo carregado dos dois lados —
+sobram 9 antes e 4 depois:
+
+|                           | Antes                    | Depois                   |
+| ------------------------- | ------------------------ | ------------------------ |
+| Scores                    | 0,50–0,72 (mediana 0,57) | 0,63–0,75 (mediana 0,67) |
+| FCP / LCP / TBT (mediana) | 2 603 / 2 724 / 311 ms   | 2 254 / 2 485 / 220 ms   |
+| Pedidos / bytes           | 114 / 4 135 478          | 99 / 3 424 420           |
+
+Os intervalos **sobrepõem-se** e são 4 corridas válidas do lado novo. **Não se
+declara ganho de pontuação**: isto é sugestivo, não é prova, e é coerente com o que
+já estava escrito acima sobre o ruído local. O que vale são os pedidos e os bytes,
+que são determinísticos e batem com a medição do manifesto.
+
+Nota sobre o vídeo, para quem ler os números em bruto: nas corridas partidas ele
+não chegou a ser pedido, o que sozinho tira ~1,7 MB da página. Qualquer comparação
+tem de confirmar que o vídeo entrou dos dois lados, senão compara páginas
+diferentes.
+
 ## Validação
 
 ### Continuação — trabalho do painel de acesso fora de vista
@@ -405,7 +443,57 @@ mobile. Painel: 420 px no desktop, 360 px no mobile; zero erros de JavaScript. N
 houve sessão nem submissão de formulários. A tentativa em desenvolvimento ficou à
 espera da compilação/hidratação; não foi usada para medir latência ou declarar êxito.
 
-### Verificações do ciclo anterior
+### Continuação — ciclo de vida do diagnóstico
+
+O diagnóstico de consultas também tinha um mapa de inícios global: remover uma
+query ou desligar o observador não o limpava, e duas caches com a mesma chave
+podiam partilhar um início incorrecto. Passou a pertencer à subscrição, com limpeza
+por remoção, pausa, mudança de visibilidade e desmontagem. Usa o hash já calculado
+pelo React Query em vez de serializar a chave em cada evento; o instante zero
+também passa a ser válido. São correcções de retenção e precisão do diagnóstico,
+sem percentagem de aceleração atribuída. Os cinco testes novos verificam esses
+casos com relógio controlado e caches React Query reais.
+
+Passaram os 24 testes dos cinco ficheiros dirigidos: ciclo de vida do diagnóstico,
+diagnóstico existente, animações do acesso, orçamento do primeiro desenho e
+alternância login/registo. Lint dos seis ficheiros de código/teste sem achados;
+formatação e validação da skill aprovadas.
+O build completo com `SIGA_NITRO_PRESET=node-server` também passou depois desta
+correcção. O servidor de desenvolvimento ficou activo na porta 3006 e respondeu
+HTTP 200. A suite completa anterior não foi repetida para esta alteração localizada.
+A verificação global de tipos (`npm run typecheck`) terminou com código 0.
+
+### Continuação — adaptação ao ecrã e antecipação de gráficos
+
+`useBreakpoint` publicava um objecto novo em cada evento de redimensionamento,
+mesmo quando o componente continuava no mesmo degrau. Num ensaio com 100 larguras
+entre 1100 e 1199 px, isso provocava 100 novos commits do consumidor. Agora só
+publica ao mudar de degrau. Mantém os limites de 768/1024 px, os eventos de
+orientação e o primeiro HTML em desktop com `ready: false`, sem mudar layouts.
+
+`warm-charts.ts` agendava um callback em cada intenção, mesmo com uma carga já
+pendente, e não verificava ligação limitada/visibilidade nos efeitos das páginas.
+Passou a juntar intenções por grupo, reavaliar essas condições antes do import e
+permitir uma nova intenção depois de uma falha, sem rejeição especulativa solta.
+O carregamento normal dos componentes lazy continua independente. Isto reduz
+agendamentos e antecipação desnecessária; o navegador já reutilizava os imports,
+portanto não se afirma que antes houvesse 100 downloads do mesmo módulo.
+
+Testes em `breakpoint-lifecycle.test.tsx` e `chart-warmup.test.ts`. As guardas foram
+executadas antes da correcção: confirmaram os 100 commits desnecessários, os 100
+callbacks financeiros e a rejeição sem tratamento de uma antecipação que falha.
+Não se atribui a estes ensaios um ganho de LCP ou INP de campo.
+
+Depois da correcção: 0 commits adicionais nos 100 redimensionamentos dentro do
+mesmo degrau; 1 callback para 100 intenções financeiras. Passaram 49 testes em
+nove ficheiros, incluindo consumidores do início, portais e relatórios. Os testes
+verificam também as duas importações financeiras, grupos independentes, import em
+curso, nova intenção após falha, 2G/poupança de dados e mudança de condições antes
+do idle. Lint dos quatro ficheiros alterados, formatação e skill aprovados.
+O build completo com o preset local `node-server` passou após as duas correcções.
+A verificação global de tipos (`npm run typecheck`) também terminou com código 0.
+
+### Validação global dos ciclos anteriores
 
 Os 23 testes dirigidos de pré-busca, navegação e Realtime passaram; também passaram
 os testes existentes de menu/login, o build final, a verificação de tipos, o lint
