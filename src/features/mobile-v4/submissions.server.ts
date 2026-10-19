@@ -175,14 +175,23 @@ export async function registerMobileSubmission(
   const storage = db.storage.from(SUBMISSION_BUCKET);
   const file = await storage.download(input.path);
   if (file.error || !file.data) throw new MobileApiError(404, "SUBMISSION_FILE_NOT_FOUND");
-  const bytes = new Uint8Array(await file.data.arrayBuffer());
-  const isPdf = new TextDecoder("latin1").decode(bytes.subarray(0, 5)) === "%PDF-";
-  if (!isPdf || bytes.byteLength === 0 || bytes.byteLength > SUBMISSION_MAX_BYTES) {
-    await storage.remove([input.path]);
-    throw new MobileApiError(
-      bytes.byteLength > SUBMISSION_MAX_BYTES ? 413 : 422,
-      bytes.byteLength > SUBMISSION_MAX_BYTES ? "FILE_TOO_LARGE" : "PDF_REQUIRED",
-    );
+  // O download já devolveu um Blob. O seu tamanho é fiável para o limite
+  // e basta ler os primeiros cinco bytes, sem copiar até 10 MB para outro buffer.
+  const sizeBytes = file.data.size;
+  const tooLarge = sizeBytes > SUBMISSION_MAX_BYTES;
+  const isPdf =
+    !tooLarge &&
+    sizeBytes >= 5 &&
+    new TextDecoder("latin1").decode(new Uint8Array(await file.data.slice(0, 5).arrayBuffer())) ===
+      "%PDF-";
+  if (tooLarge || !isPdf) {
+    // O erro de limpeza não pode esconder a razão da rejeição (413/422).
+    try {
+      await storage.remove([input.path]);
+    } catch {
+      // Ficheiro inválido fica para limpeza controlada posterior.
+    }
+    throw new MobileApiError(tooLarge ? 413 : 422, tooLarge ? "FILE_TOO_LARGE" : "PDF_REQUIRED");
   }
   const fileName = input.path.split("/")[5].slice(37);
 
@@ -197,7 +206,7 @@ export async function registerMobileSubmission(
   const values = {
     storage_path: input.path,
     file_name: fileName,
-    size_bytes: bytes.byteLength,
+    size_bytes: sizeBytes,
     status: "submitted",
     submitted_by: userId,
     submitted_at: new Date().toISOString(),
