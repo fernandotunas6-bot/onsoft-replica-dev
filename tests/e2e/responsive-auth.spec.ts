@@ -49,16 +49,18 @@ test.describe("SIGA — matriz responsiva autenticada, sem escritas", () => {
   });
 
   for (const width of [320, 375, 390, 768, 1024, 1280, 1536, 1920]) {
-    test(`layout legível sem rolagem lateral global em ${width}px`, async ({
-      page,
-    }, testInfo) => {
+    test(`layout legível sem rolagem lateral global em ${width}px`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: width < 768 ? 780 : 900 });
       await page.goto(route, { waitUntil: "domcontentloaded" });
       await expect(page.locator("#conteudo-principal")).toBeVisible();
 
       // Um login expirado não deve ser confundido com validação positiva.
-      await expect(page.getByRole("navigation", { name: "Navegação principal" }))
-        [width < 1024 ? "toBeVisible" : "toBeHidden"]();
+      const navigation = page.getByRole("navigation", { name: "Navegação principal" });
+      if (width < 1024) {
+        await expect(navigation).toBeVisible();
+      } else {
+        await expect(navigation).toBeHidden();
+      }
 
       if (width < 1536) {
         await expect(page.getByRole("button", { name: "Abrir mensagens" }).last()).toBeVisible();
