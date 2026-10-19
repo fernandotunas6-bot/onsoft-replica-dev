@@ -45,8 +45,8 @@ describe("aparência sem o catálogo no arranque", () => {
 
   it("um tema Tweakcn escolhido continua a ser aplicado", async () => {
     const theme = tweakcnThemes[0]!;
-    const [varName, expected] = Object.entries(theme.preset.styles.light).find(
-      ([, v]) => Boolean(v),
+    const [varName, expected] = Object.entries(theme.preset.styles.light).find(([, v]) =>
+      Boolean(v),
     )!;
     applyAppearance({ ...base, tweakcnTheme: theme.value, preferPersonalAccent: true });
     await settle();
@@ -55,8 +55,8 @@ describe("aparência sem o catálogo no arranque", () => {
 
   it("um tema Shadcn escolhido continua a ser aplicado", async () => {
     const theme = colorThemes[0]!;
-    const [varName, expected] = Object.entries(theme.preset.styles.light).find(
-      ([, v]) => Boolean(v),
+    const [varName, expected] = Object.entries(theme.preset.styles.light).find(([, v]) =>
+      Boolean(v),
     )!;
     applyAppearance({ ...base, shadcnTheme: theme.value, preferPersonalAccent: true });
     await settle();
