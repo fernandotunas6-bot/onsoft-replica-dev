@@ -19,6 +19,23 @@ CREATE TABLE public.students (
   CONSTRAINT students_school_id_id_key UNIQUE (school_id, id)
 );
 CREATE TABLE public.siga_class_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL);
+-- Subconjunto do esquema real: pessoas autorizadas e notificações in-app.
+CREATE TABLE public.people (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL,
+  user_id uuid UNIQUE
+);
+CREATE TABLE public.notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  channel text NOT NULL,
+  event_type text NOT NULL,
+  title text NOT NULL CHECK (title <> '__TEST_FAIL_NOTIFICATION__'),
+  body text NOT NULL,
+  payload jsonb NOT NULL,
+  status text NOT NULL
+);
 CREATE FUNCTION public.siga_touch_updated_at() RETURNS trigger LANGUAGE plpgsql AS
   $$ BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
 CREATE TABLE private.audit (table_name text, op text);
@@ -145,12 +162,18 @@ const day =
   "insert into siga_transport_day_status(school_id, route_id, service_date, status, delay_minutes) values($1, $2, '2026-10-19', 'delayed', 10)";
 await rejects(day, [a, routeB], "transport_route_same_school");
 await db.query(day, [a, routeA]);
+// Contas fictícias de duas escolas; a RPC deve recusar mistura de destinatários.
+const userA = (await one("insert into auth.users default values returning id")).id;
+const userB = (await one("insert into auth.users default values returning id")).id;
+await db.query("insert into people(school_id,user_id) values($1,$2),($3,$4)", [
+  a, userA, b, userB,
+]);
 
 // Decisão atómica de avisos: o lock da rota ocorre ANTES da leitura
 // do estado anterior. PGlite valida contrato, idempotência e isolamento;
 // concorrência entre ligações PostgreSQL independentes fica para staging.
 const stateRpc =
-  "public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)";
+  "public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)";
 for (const role of ["anon", "authenticated"]) {
   const allowed = await one("select has_function_privilege($1, $2, 'EXECUTE') as yes", [
     role,
@@ -163,11 +186,19 @@ assert.equal(
     .yes,
   true,
 );
-const saveDay = async (schoolId, routeId, status, delay = 0, note = null) =>
+const saveDay = async (
+  schoolId,
+  routeId,
+  status,
+  delay = 0,
+  note = null,
+  recipients = [userA],
+  title = "Aviso de transporte",
+) =>
   (
     await one(
-      "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,$5::text,null::uuid) as result",
-      [schoolId, routeId, status, delay, note],
+      "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,$5::text,null::uuid,$6::uuid[],$7::text,$8::text) as result",
+      [schoolId, routeId, status, delay, note, recipients, title, "Estado actualizado"],
     )
   ).result;
 const dayAuditCount = async () =>
@@ -176,27 +207,61 @@ const dayAuditCount = async () =>
       "select count(*)::integer as n from private.audit where table_name = 'siga_transport_day_status'",
     )
   ).n;
+const noticeCount = async () =>
+  (await one("select count(*)::integer as n from notifications where school_id = $1", [a])).n;
 const previousDayAudit = await dayAuditCount();
-assert.deepEqual(await saveDay(a, routeA, "delayed", 10), { changed: false });
+assert.deepEqual(await saveDay(a, routeA, "delayed", 10), { changed: false, notified: 0 });
 assert.equal(await dayAuditCount(), previousDayAudit, "repetição idêntica não audita UPDATE");
-assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: true });
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: true, notified: 1 });
+assert.equal(await noticeCount(), 1, "aviso e estado devem ser gravados juntos");
 const afterChangeAudit = await dayAuditCount();
 assert.equal(afterChangeAudit, previousDayAudit + 1);
-assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: false });
-assert.equal(
-  await dayAuditCount(),
-  afterChangeAudit,
-  "idempotência também evita writes de auditoria",
-);
-assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), { changed: false });
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: false, notified: 0 });
+assert.equal(await dayAuditCount(), afterChangeAudit, "idempotência também evita writes de auditoria");
+assert.equal(await noticeCount(), 1, "repetição não duplica a notificação");
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), {
+  changed: false, notified: 0,
+});
 assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota alterada é gravada sem aviso");
-assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), { changed: false });
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), {
+  changed: false, notified: 0,
+});
 assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota igual não repete UPDATE");
-assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: true });
+
+// Se a inserção do aviso falhar, status + audit devem voltar ao estado anterior.
+const beforeFailureAudit = await dayAuditCount();
+await assert.rejects(
+  saveDay(a, routeA, "cancelled", 0, null, [userA], "__TEST_FAIL_NOTIFICATION__"),
+  (error) => error.code === "23514",
+);
+assert.equal(await dayAuditCount(), beforeFailureAudit, "falha do aviso reverte a auditoria");
+assert.equal(await noticeCount(), 1, "falha do aviso não deixa linhas parciais");
+assert.deepEqual(
+  await one("select status, delay_minutes from siga_transport_day_status where route_id = $1", [
+    routeA,
+  ]),
+  { status: "delayed", delay_minutes: 20 },
+);
+
+// Um destinatário de outra escola é recusado antes de qualquer alteração.
+await assert.rejects(saveDay(a, routeA, "cancelled", 0, null, [userB]), (error) => {
+  assert.equal(error.code, "42501");
+  return true;
+});
+assert.equal(await noticeCount(), 1);
+
+// Repetições de um destinatário dentro do mesmo pedido criam apenas um aviso.
+assert.deepEqual(await saveDay(a, routeA, "normal", 0, null, [userA, userA]), {
+  changed: true, notified: 1,
+});
+assert.equal(await noticeCount(), 2);
 const afterNormalAudit = await dayAuditCount();
-assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: false });
+assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: false, notified: 0 });
 assert.equal(await dayAuditCount(), afterNormalAudit, "estado normal não cria outra auditoria");
-await assert.rejects(saveDay(b, routeA, "cancelled"), (error) => error.code === "23503");
+await assert.rejects(saveDay(b, routeA, "cancelled", 0, null, [userB]), (error) => {
+  assert.equal(error.code, "23503");
+  return true;
+});
 assert.deepEqual(
   await one("select status, delay_minutes from siga_transport_day_status where route_id = $1", [
     routeA,
