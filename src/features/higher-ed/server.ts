@@ -77,6 +77,7 @@ import {
   type UnitRecord,
 } from "./engine";
 import { schoolTodayIso } from "@/lib/school-date";
+import { allPages, allPagesIn } from "@/integrations/supabase/paged-in";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -730,28 +731,37 @@ export const listProgramStudents = createServerFn({ method: "GET" })
     const { data: groups } = await groupsQuery;
     const groupName = new Map((groups ?? []).map((g) => [str(g.id), str(g.name)]));
     if (!groupName.size) return [];
-    const { data: enrollments } = await db
-      .from("enrollments")
-      .select("student_id, class_group_id")
-      .eq("school_id", membership.schoolId)
-      .in("class_group_id", [...groupName.keys()])
-      .in("status", ["active", "pending"])
-      .limit(2000);
+    const { data: enrollments } = await allPagesIn([...groupName.keys()], (chunk, from, to) =>
+      db
+        .from("enrollments")
+        .select("id, student_id, class_group_id")
+        .eq("school_id", membership.schoolId)
+        .in("class_group_id", chunk)
+        .in("status", ["active", "pending"])
+        .order("id")
+        .range(from, to),
+    );
     const studentIds = [...new Set((enrollments ?? []).map((e) => str(e.student_id)))];
     if (!studentIds.length) return [];
-    const { data: students } = await db
-      .from("students")
-      .select("id, person_id, student_number")
-      .eq("school_id", membership.schoolId)
-      .in("id", studentIds);
+    const { data: students } = await allPagesIn(studentIds, (chunk, from, to) =>
+      db
+        .from("students")
+        .select("id, person_id, student_number")
+        .eq("school_id", membership.schoolId)
+        .in("id", chunk)
+        .order("id")
+        .range(from, to),
+    );
     const personIds = (students ?? []).map((s) => str(s.person_id));
-    const { data: people } = personIds.length
-      ? await db
-          .from("people")
-          .select("id, full_name")
-          .eq("school_id", membership.schoolId)
-          .in("id", personIds)
-      : { data: [] as Row[] };
+    const { data: people } = await allPagesIn(personIds, (chunk, from, to) =>
+      db
+        .from("people")
+        .select("id, full_name")
+        .eq("school_id", membership.schoolId)
+        .in("id", chunk)
+        .order("id")
+        .range(from, to),
+    );
     const nameOf = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
     const groupOf = new Map(
       (enrollments ?? []).map((e) => [str(e.student_id), str(e.class_group_id)]),
@@ -924,7 +934,14 @@ export const getStudentTranscript = createServerFn({ method: "GET" })
 /** Modelo no registo de documentos emitidos (`audit_logs`, `documents.issued`). */
 export const HIGHER_ED_CERTIFICATE_TEMPLATE = "certificado-conclusao-superior";
 
-type IssuedCertificate = { number: string; code: string; issuedAt: string };
+type IssuedCertificate = {
+  number: string;
+  code: string;
+  issuedAt: string;
+  /** A classificação e a menção gravadas na emissão: a reimpressão não muda. */
+  finalGrade: number | null;
+  mention: string | null;
+};
 
 /**
  * O certificado já emitido para o estudante neste curso (o primeiro, se por alguma
@@ -954,6 +971,11 @@ async function findIssuedCertificate(
     number: str(meta.reference),
     code: str(meta.code),
     issuedAt: str(meta.issued_at) || str(data.occurred_at),
+    finalGrade:
+      meta.final_grade == null || !Number.isFinite(Number(meta.final_grade))
+        ? null
+        : Number(meta.final_grade),
+    mention: meta.mention == null ? null : str(meta.mention),
   };
 }
 
@@ -978,7 +1000,7 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
 
     const doctoral = transcript.program.degree === "doutoramento";
     const final = transcript.progress.completed
-      ? finalClassification(transcript.progress.average)
+      ? finalClassification(transcript.progress.rawAverage)
       : null;
     if (!transcript.progress.completed || (doctoral ? !transcript.juryMention : !final)) {
       throw new Error(
@@ -1014,6 +1036,8 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
       number: String(number),
       code: generateVerificationCode(),
       issuedAt: new Date().toISOString(),
+      finalGrade: final?.value ?? null,
+      mention: doctoral ? (transcript.juryMention ?? null) : (final?.mention ?? null),
     };
     // Sem este registo o documento diria que é verificável e não é: o erro não se engole.
     const { error } = await db.from("audit_logs").insert({
@@ -1046,20 +1070,28 @@ const todayIso = () => schoolTodayIso();
 /** Estudantes com propinas vencidas por pagar (para o bloqueio por dívida). */
 async function studentsWithOverdueDebt(db: Db, schoolId: string, studentIds: string[]) {
   if (!studentIds.length) return new Set<string>();
-  const { data: enrollments } = await db
-    .from("enrollments")
-    .select("id, student_id")
-    .eq("school_id", schoolId)
-    .in("student_id", studentIds);
+  const { data: enrollments } = await allPagesIn(studentIds, (chunk, from, to) =>
+    db
+      .from("enrollments")
+      .select("id, student_id")
+      .eq("school_id", schoolId)
+      .in("student_id", chunk)
+      .order("id")
+      .range(from, to),
+  );
   const studentOfEnrollment = new Map(
     (enrollments ?? []).map((row) => [str(row.id), str(row.student_id)]),
   );
   if (!studentOfEnrollment.size) return new Set<string>();
-  const { data: contracts } = await db
-    .from("finance_contracts")
-    .select("id, enrollment_id")
-    .eq("school_id", schoolId)
-    .in("enrollment_id", [...studentOfEnrollment.keys()]);
+  const { data: contracts } = await allPagesIn([...studentOfEnrollment.keys()], (chunk, from, to) =>
+    db
+      .from("finance_contracts")
+      .select("id, enrollment_id")
+      .eq("school_id", schoolId)
+      .in("enrollment_id", chunk)
+      .order("id")
+      .range(from, to),
+  );
   const studentOfContract = new Map(
     (contracts ?? []).map((row) => [
       str(row.id),
@@ -1067,13 +1099,17 @@ async function studentsWithOverdueDebt(db: Db, schoolId: string, studentIds: str
     ]),
   );
   if (!studentOfContract.size) return new Set<string>();
-  const { data: invoices } = await db
-    .from("finance_invoices")
-    .select("contract_id")
-    .eq("school_id", schoolId)
-    .in("contract_id", [...studentOfContract.keys()])
-    .in("status", ["open", "partially_paid"])
-    .lt("due_date", todayIso());
+  const { data: invoices } = await allPagesIn([...studentOfContract.keys()], (chunk, from, to) =>
+    db
+      .from("finance_invoices")
+      .select("id, contract_id")
+      .eq("school_id", schoolId)
+      .in("contract_id", chunk)
+      .in("status", ["open", "partially_paid"])
+      .lt("due_date", todayIso())
+      .order("id")
+      .range(from, to),
+  );
   return new Set(
     (invoices ?? [])
       .map((row) => studentOfContract.get(str(row.contract_id)) ?? "")
@@ -1220,13 +1256,16 @@ async function programStudentIds(db: Db, schoolId: string, programId: string) {
     .in("grade_level_id", gradeIds);
   const groupIds = (groups ?? []).map((g) => str(g.id));
   if (!groupIds.length) return new Set<string>();
-  const { data: enrollments } = await db
-    .from("enrollments")
-    .select("student_id")
-    .eq("school_id", schoolId)
-    .in("class_group_id", groupIds)
-    .in("status", ["active", "pending"])
-    .limit(5000);
+  const { data: enrollments } = await allPagesIn(groupIds, (chunk, from, to) =>
+    db
+      .from("enrollments")
+      .select("id, student_id")
+      .eq("school_id", schoolId)
+      .in("class_group_id", chunk)
+      .in("status", ["active", "pending"])
+      .order("id")
+      .range(from, to),
+  );
   return new Set((enrollments ?? []).map((e) => str(e.student_id)));
 }
 
@@ -1264,12 +1303,18 @@ export const enrollCohort = createServerFn({ method: "POST" })
     const candidates = units.filter((unit) => unit.semester === data.semester);
     if (!candidates.length) throw new Error("O plano não tem cadeiras neste semestre.");
     const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, studentIds);
-    const { data: recordRows, error: recordsError } = await db
-      .from("course_unit_enrollments")
-      .select(RECORD_COLUMNS)
-      .eq("school_id", schoolId)
-      .eq("program_id", data.programId)
-      .in("student_id", studentIds);
+    const { data: recordRows, error: recordsError } = await allPagesIn(
+      studentIds,
+      (chunk, from, to) =>
+        db
+          .from("course_unit_enrollments")
+          .select(RECORD_COLUMNS)
+          .eq("school_id", schoolId)
+          .eq("program_id", data.programId)
+          .in("student_id", chunk)
+          .order("id")
+          .range(from, to),
+    );
     if (recordsError)
       throw publicDatabaseError(recordsError, "Não foi possível carregar os históricos.");
     const recordsByStudent = new Map<string, UnitRecord[]>();
@@ -1636,6 +1681,12 @@ export const grantUnitExemption = createServerFn({ method: "POST" })
     ) {
       throw new Error("Esta cadeira já está concluída.");
     }
+    // Um registo por estudante, cadeira e ano (course_unit_enrollments_unique).
+    if (rows.some((row) => row.record.unitId === unit.id && row.record.academicYearId === yearId)) {
+      throw new Error(
+        "Esta cadeira já tem um registo neste ano lectivo (inscrição ou resultado): só se pode creditar no próximo.",
+      );
+    }
     const attempt =
       Math.max(0, ...rows.filter((r) => r.record.unitId === unit.id).map((r) => r.record.attempt)) +
       1;
@@ -2001,13 +2052,16 @@ export const getUnitSheet = createServerFn({ method: "GET" })
     if (!(await canLaunchUnit(db, membership, context.userId, data.programId, unit.subjectId))) {
       throw new Error("Só a coordenação ou o professor desta cadeira vê esta pauta.");
     }
-    const { data: inUnit, error: inUnitError } = await db
-      .from("course_unit_enrollments")
-      .select("student_id")
-      .eq("school_id", schoolId)
-      .eq("program_id", data.programId)
-      .eq("program_subject_id", unit.id)
-      .limit(5000);
+    const { data: inUnit, error: inUnitError } = await allPages((from, to) =>
+      db
+        .from("course_unit_enrollments")
+        .select("id, student_id")
+        .eq("school_id", schoolId)
+        .eq("program_id", data.programId)
+        .eq("program_subject_id", unit.id)
+        .order("id")
+        .range(from, to),
+    );
     if (inUnitError) throw publicDatabaseError(inUnitError, "Não foi possível carregar a pauta.");
     const studentIds = [...new Set((inUnit ?? []).map((row) => str(row.student_id)))];
     const yearId = await activeYearId(db, schoolId);
@@ -2036,12 +2090,16 @@ export const getUnitSheet = createServerFn({ method: "GET" })
 
     // O histórico completo de cada estudante no curso: a época especial depende
     // de quantas cadeiras lhe faltam no plano, não só desta.
-    const { data: recordRows, error } = await db
-      .from("course_unit_enrollments")
-      .select(RECORD_COLUMNS)
-      .eq("school_id", schoolId)
-      .eq("program_id", data.programId)
-      .in("student_id", studentIds);
+    const { data: recordRows, error } = await allPagesIn(studentIds, (chunk, from, to) =>
+      db
+        .from("course_unit_enrollments")
+        .select(RECORD_COLUMNS)
+        .eq("school_id", schoolId)
+        .eq("program_id", data.programId)
+        .in("student_id", chunk)
+        .order("id")
+        .range(from, to),
+    );
     if (error) throw publicDatabaseError(error, "Não foi possível carregar a pauta.");
     const byStudent = new Map<string, UnitRecord[]>();
     for (const row of (recordRows ?? []) as Row[]) {
@@ -2049,19 +2107,25 @@ export const getUnitSheet = createServerFn({ method: "GET" })
       list.push(toRecord(row));
       byStudent.set(str(row.student_id), list);
     }
-    const { data: students } = await db
-      .from("students")
-      .select("id, person_id, student_number")
-      .eq("school_id", schoolId)
-      .in("id", studentIds);
+    const { data: students } = await allPagesIn(studentIds, (chunk, from, to) =>
+      db
+        .from("students")
+        .select("id, person_id, student_number")
+        .eq("school_id", schoolId)
+        .in("id", chunk)
+        .order("id")
+        .range(from, to),
+    );
     const personIds = (students ?? []).map((s) => str(s.person_id));
-    const { data: people } = personIds.length
-      ? await db
-          .from("people")
-          .select("id, full_name")
-          .eq("school_id", schoolId)
-          .in("id", personIds)
-      : { data: [] as Row[] };
+    const { data: people } = await allPagesIn(personIds, (chunk, from, to) =>
+      db
+        .from("people")
+        .select("id, full_name")
+        .eq("school_id", schoolId)
+        .in("id", chunk)
+        .order("id")
+        .range(from, to),
+    );
     const nameOf = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.full_name)]));
     const statuses = await studentStatusMap(db, schoolId, studentIds);
 
@@ -2375,14 +2439,20 @@ export const getAccessRanking = createServerFn({ method: "GET" })
     const [profiles, regulation, { data: rows, error }] = await Promise.all([
       readSettingsDomain(db, schoolId, "higher_ed_programs"),
       regulationOf(db, schoolId),
-      db
-        .from("enrollment_applications")
-        .select("id, full_name, status, payload, created_at")
-        .eq("school_id", schoolId)
-        .in("status", ["pending", "accepted"])
-        .is("deleted_at", null)
-        .order("created_at")
-        .limit(2000),
+      // Só as deste curso, todas: antes eram as 2000 primeiras da escola
+      // (cortadas em 1000) e o filtro pelo curso vinha depois.
+      allPages((from, to) =>
+        db
+          .from("enrollment_applications")
+          .select("id, full_name, status, payload, created_at")
+          .eq("school_id", schoolId)
+          .in("status", ["pending", "accepted"])
+          .is("deleted_at", null)
+          .eq("payload->desiredProgram->>id", data.programId)
+          .order("created_at")
+          .order("id")
+          .range(from, to),
+      ),
     ]);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as candidaturas.");
     const seats = parseProgramProfile(profiles[data.programId]).seats;
@@ -2526,28 +2596,59 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     if (yearId) groupsQuery = groupsQuery.eq("academic_year_id", yearId);
     const { data: groups } = gradeById.size ? await groupsQuery : { data: [] as Row[] };
     const gradeOfGroup = new Map((groups ?? []).map((g) => [str(g.id), str(g.grade_level_id)]));
-    const { data: enrollments } = gradeOfGroup.size
-      ? await db
+    // Tudo em páginas e em blocos: os mapas oficiais não podem sair com
+    // estudantes a menos (PostgREST corta em 1000; `.in()` longo passa o URL).
+    const loaded = <T>(label: string, result: { data: T[]; error: { message: string } | null }) => {
+      if (result.error) throw publicDatabaseError(result.error, `Não foi possível ler ${label}.`);
+      return result.data;
+    };
+    const enrollments = loaded(
+      "as matrículas",
+      await allPagesIn([...gradeOfGroup.keys()], (chunk, from, to) =>
+        db
           .from("enrollments")
           .select("id, student_id, class_group_id")
           .eq("school_id", schoolId)
-          .in("class_group_id", [...gradeOfGroup.keys()])
+          .in("class_group_id", chunk)
           .in("status", ["active", "pending"])
-          .limit(20000)
-      : { data: [] as Row[] };
+          .order("id")
+          .range(from, to),
+      ),
+    );
     const studentIds = [...new Set(((enrollments ?? []) as Row[]).map((e) => str(e.student_id)))];
-    const { data: students } = studentIds.length
-      ? await db
+    const students = loaded(
+      "os estudantes",
+      await allPagesIn(studentIds, (chunk, from, to) =>
+        db
           .from("students")
           .select("id, person_id")
           .eq("school_id", schoolId)
-          .in("id", studentIds)
-      : { data: [] as Row[] };
+          .in("id", chunk)
+          .order("id")
+          .range(from, to),
+      ),
+    );
     const personIds = ((students ?? []) as Row[]).map((s) => str(s.person_id));
-    const { data: people } = personIds.length
-      ? await db.from("people").select("id, sex").eq("school_id", schoolId).in("id", personIds)
-      : { data: [] as Row[] };
-    const sexOfPerson = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.sex)]));
+    const people = loaded(
+      "as pessoas",
+      await allPagesIn(personIds, (chunk, from, to) =>
+        db
+          .from("people")
+          .select("id, sex")
+          .eq("school_id", schoolId)
+          .in("id", chunk)
+          .order("id")
+          .range(from, to),
+      ),
+    );
+    // A base grava male/female (CHECK de people.sex); a comparação com «M»/«F»
+    // dava sempre 0 nas colunas por sexo do mapa.
+    const sexOfPerson = new Map(
+      ((people ?? []) as Row[]).map((p) => {
+        const sex = str(p.sex);
+        return [str(p.id), sex === "male" ? "M" : sex === "female" ? "F" : sex];
+      }),
+    );
     const sexOfStudent = new Map(
       ((students ?? []) as Row[]).map((s) => [str(s.id), sexOfPerson.get(str(s.person_id)) ?? ""]),
     );
@@ -2606,12 +2707,18 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     }
 
     // Acesso: candidaturas pelo curso pretendido.
-    const { data: applications } = await db
-      .from("enrollment_applications")
-      .select("status, payload")
-      .eq("school_id", schoolId)
-      .is("deleted_at", null)
-      .limit(20000);
+    const applications = loaded(
+      "as candidaturas",
+      await allPages((from, to) =>
+        db
+          .from("enrollment_applications")
+          .select("id, status, payload")
+          .eq("school_id", schoolId)
+          .is("deleted_at", null)
+          .order("id")
+          .range(from, to),
+      ),
+    );
     const accessBy = new Map<string, { candidates: number; scored: number; accepted: number }>();
     for (const application of (applications ?? []) as Row[]) {
       const payload = (application.payload ?? {}) as ApplicationPayload;
@@ -2630,12 +2737,18 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     for (const programId of programIds) {
       const { units } = await loadPlan(db, schoolId, programId);
       if (!units.length) continue;
-      const { data: recordRows } = await db
-        .from("course_unit_enrollments")
-        .select(RECORD_COLUMNS)
-        .eq("school_id", schoolId)
-        .eq("program_id", programId)
-        .limit(50000);
+      const recordRows = loaded(
+        "os históricos",
+        await allPages((from, to) =>
+          db
+            .from("course_unit_enrollments")
+            .select(RECORD_COLUMNS)
+            .eq("school_id", schoolId)
+            .eq("program_id", programId)
+            .order("id")
+            .range(from, to),
+        ),
+      );
       const byStudent = new Map<string, UnitRecord[]>();
       for (const row of (recordRows ?? []) as Row[]) {
         const list = byStudent.get(str(row.student_id)) ?? [];
@@ -2648,7 +2761,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
         if (!units.every((unit) => done.has(unit.id))) continue;
         entry.total += 1;
         const final = finalClassification(
-          studentProgress({ plan: units, records, regulation }).average,
+          studentProgress({ plan: units, records, regulation }).rawAverage,
         );
         if (final) entry.averages.push(final.value);
       }

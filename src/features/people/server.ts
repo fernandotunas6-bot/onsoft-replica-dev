@@ -49,7 +49,9 @@ function mapSex(sex: string | undefined) {
   if (!sex) return null;
   if (sex === "M") return "male";
   if (sex === "F") return "female";
-  return sex;
+  // people.sex só aceita female, male, other, undisclosed (CHECK na produção).
+  if (sex === "outro") return "other";
+  return ["female", "male", "other", "undisclosed"].includes(sex) ? sex : null;
 }
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;

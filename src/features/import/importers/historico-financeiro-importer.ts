@@ -24,6 +24,7 @@ import {
   type EnrollmentFinanceRef,
   type FeeItemRef,
   type FeePlanRef,
+  loadInvoiceNumbers,
 } from "./finance-core";
 
 type HistoricoFinanceiroCache = ImportRefCache & {
@@ -57,7 +58,7 @@ export const historicoFinanceiroImporter: RowImporter = {
         loadEnrollmentFinanceRefs(ctx.db, ctx.schoolId),
         loadFeePlanRefs(ctx.db, ctx.schoolId),
         loadFeeItemRefs(ctx.db, ctx.schoolId),
-        ctx.db.from("finance_invoices").select("invoice_number").eq("school_id", ctx.schoolId),
+        loadInvoiceNumbers(ctx.db, ctx.schoolId),
       ]);
 
     const existingInvoiceNumbers = new Set(

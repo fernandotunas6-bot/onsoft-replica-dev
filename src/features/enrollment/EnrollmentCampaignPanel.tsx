@@ -57,7 +57,16 @@ export function EnrollmentCampaignPanel() {
   });
   const applicationsQuery = useQuery({
     queryKey: ["enrollment", "applications"],
-    queryFn: () => listEnrollmentApplications({ data: { status: "all", limit: 30 } }),
+    // Todas as pendentes (antes eram só as 30 mais recentes de qualquer estado, e as
+    // pendentes mais antigas desapareciam) e as 30 últimas decididas.
+    queryFn: async () => {
+      const [pending, recent] = await Promise.all([
+        listEnrollmentApplications({ data: { status: "pending", limit: 200 } }),
+        listEnrollmentApplications({ data: { status: "all", limit: 30 } }),
+      ]);
+      const seen = new Set(pending.map((row) => row.id));
+      return [...pending, ...recent.filter((row) => !seen.has(row.id))];
+    },
     retry: false,
     enabled: Boolean(formQuery.data),
   });
@@ -67,7 +76,28 @@ export function EnrollmentCampaignPanel() {
     retry: false,
     enabled: Boolean(formQuery.data),
   });
-  const classGroups = directoryQuery.data?.classGroups ?? [];
+  // Só turmas activas de anos lectivos activos: a matrícula (enroll_student)
+  // recusa as outras, depois de a candidatura já ter sido aceite.
+  const classGroups = useMemo(() => {
+    const activeYears = new Set(
+      (directoryQuery.data?.academicYears ?? [])
+        .filter((year) => year.status === "active")
+        .map((year) => year.id),
+    );
+    return (directoryQuery.data?.classGroups ?? []).filter(
+      (group) =>
+        group.status === "active" &&
+        Boolean(group.academic_year_id) &&
+        activeYears.has(group.academic_year_id as string),
+    );
+  }, [directoryQuery.data]);
+  const yearLabels = useMemo(
+    () =>
+      new Map(
+        (directoryQuery.data?.academicYears ?? []).map((year) => [year.id, year.name as string]),
+      ),
+    [directoryQuery.data],
+  );
   const form = formQuery.data;
   useEffect(() => {
     if (typeof form?.is_open === "boolean") setIsOpen(form.is_open);
@@ -253,6 +283,7 @@ export function EnrollmentCampaignPanel() {
                 // `payload` é jsonb (Json nos tipos gerados); a forma é a de ApplicationListRow.
                 row={row as ApplicationListRow}
                 classGroups={classGroups}
+                yearLabels={yearLabels}
                 gradeLevels={(directoryQuery.data?.gradeLevels ?? []) as CandidateGrade[]}
                 onChanged={async () => {
                   await queryClient.invalidateQueries({ queryKey: ["enrollment", "applications"] });
@@ -297,10 +328,12 @@ function ApplicationRow({
   row,
   classGroups: allClassGroups,
   gradeLevels,
+  yearLabels,
   onChanged,
 }: {
   row: ApplicationListRow;
   classGroups: ClassGroupRow[];
+  yearLabels: Map<string, string>;
   gradeLevels: CandidateGrade[];
   onChanged: () => Promise<void>;
 }) {
@@ -310,7 +343,13 @@ function ApplicationRow({
     gradeLevels,
     row.payload?.desiredProgram?.id,
   );
-  const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
+  const [pickedClassGroupId, setClassGroupId] = useState("");
+  // As turmas podem chegar depois da linha: sem escolha válida, vale a primeira
+  // (a que a lista mostra). Antes o estado ficava vazio e «Aceitar e
+  // matricular» aceitava sem turma.
+  const classGroupId = classGroups.some((group) => group.id === pickedClassGroupId)
+    ? pickedClassGroupId
+    : (classGroups[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
@@ -321,8 +360,14 @@ function ApplicationRow({
   const contactEmail = row.payload?.person?.email || "";
   const shareText = `Candidatura SIGA de ${row.full_name} (${applicationStatusLabel(row.status).toLowerCase()}).`;
 
-  const printTalao = async (kind: "candidatura" | "matricula") => {
+  /**
+   * `placed`: a turma em que o aluno acabou de ser colocado. Sem ela o talão sai
+   * sem turma — a escolha na lista não é a matrícula real.
+   */
+  const printTalao = async (kind: "candidatura" | "matricula", placed?: ClassGroupRow) => {
     const payload = row.payload ?? {};
+    const className = placed?.name ?? null;
+    const placedYear = placed?.academic_year_id ? yearLabels.get(placed.academic_year_id) : null;
     await issuePrintDocument({
       tipo: kind === "matricula" ? "Talão de matrícula" : "Talão de candidatura",
       school: {
@@ -333,18 +378,21 @@ function ApplicationRow({
         address: school?.address ?? null,
         directorName: school?.director_name ?? null,
         academicYear:
-          selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year || null,
+          placedYear ||
+          selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") ||
+          school?.academic_year ||
+          null,
       },
       student: {
         fullName: row.full_name,
         academicNumber: row.processNumber ?? candidacyProcessNumber(row.id, row.created_at),
-        className: selected?.name ?? null,
+        className,
       },
       overlay: overlayTalao({
         kind,
         fullName: payload.person?.full_name || row.full_name,
         process: row.processNumber ?? candidacyProcessNumber(row.id, row.created_at),
-        ...(selected?.name ? { className: selected.name } : {}),
+        ...(className ? { className } : {}),
         ...(payload.guardianName ? { guardianName: payload.guardianName } : {}),
         ...(payload.guardianPhone ? { guardianPhone: payload.guardianPhone } : {}),
         ...(payload.person?.email ? { guardianEmail: payload.person.email } : {}),
@@ -375,7 +423,10 @@ function ApplicationRow({
           ? `Candidatura aceite e aluno colocado em ${selected.name ?? "turma"}.`
           : "Candidatura aceite. O aluno ficou como candidato até ser colocado numa turma.",
       );
-      await printTalao(withClass ? "matricula" : "candidatura").catch(() => undefined);
+      await printTalao(
+        withClass && selected ? "matricula" : "candidatura",
+        withClass ? selected : undefined,
+      ).catch(() => undefined);
     } catch (error) {
       showDecisionError(error, "Não foi possível aceitar.");
     } finally {
@@ -398,7 +449,7 @@ function ApplicationRow({
         },
       });
       await refresh(`Aluno colocado em ${selected.name ?? "turma"}.`);
-      await printTalao("matricula").catch(() => undefined);
+      await printTalao("matricula", selected).catch(() => undefined);
     } catch (error) {
       showDecisionError(error, "Não foi possível colocar na turma.");
     } finally {

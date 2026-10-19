@@ -634,8 +634,12 @@ export async function listSgaTermGrades(params: {
 
   // O servidor devolve no máximo 1000 linhas por pedido: ler por páginas,
   // senão as turmas cujas notas ficam depois da 1000ª aparecem sem média.
+  // Sem tecto pelo `limit`: com 12 000 linhas (as mais recentes primeiro) caíam as
+  // notas do 1.º trimestre numa escola média, e o boletim e a declaração saíam com
+  // «—» no 1.º T e a MFA errada. Fica só um tecto de segurança alto.
+  void limit;
   const PAGE = 1000;
-  const maxRows = Math.max(limit * 3, 300);
+  const maxRows = 200_000;
   const scores: Array<{
     id: string;
     grade_item_id: string;
@@ -664,22 +668,33 @@ export async function listSgaTermGrades(params: {
   if (!scores.length) return [];
 
   const itemIds = [...new Set(scores.map((row: { grade_item_id: string }) => row.grade_item_id))];
-  const { data: items, error: itemsError } = await db
-    .from("grade_items")
-    .select("id, code, gradebook_id")
-    .in("id", itemIds);
-  if (itemsError)
-    throw publicDatabaseError(itemsError, "Não foi possível carregar os componentes.");
+  // Em blocos: um `.in()` com milhares de ids passa o tamanho do URL.
+  const inChunks = <T>(ids: readonly T[], size = 150) =>
+    Array.from({ length: Math.ceil(ids.length / size) }, (_, i) =>
+      ids.slice(i * size, i * size + size),
+    );
+  const items: Array<{ id: string; code: string; gradebook_id: string }> = [];
+  for (const chunk of inChunks(itemIds)) {
+    const { data, error: itemsError } = await db
+      .from("grade_items")
+      .select("id, code, gradebook_id")
+      .in("id", chunk);
+    if (itemsError)
+      throw publicDatabaseError(itemsError, "Não foi possível carregar os componentes.");
+    items.push(...((data ?? []) as typeof items));
+  }
 
   const gradebookIds = [
     ...new Set((items ?? []).map((row: { gradebook_id: string }) => row.gradebook_id)),
   ];
-  const { data: gradebooks } = gradebookIds.length
-    ? await db
-        .from("gradebooks")
-        .select("id, term_id, class_subject_id, class_group_id")
-        .in("id", gradebookIds)
-    : { data: [] as Array<Record<string, unknown>> };
+  const gradebooks: Array<Record<string, unknown>> = [];
+  for (const chunk of inChunks(gradebookIds)) {
+    const { data } = await db
+      .from("gradebooks")
+      .select("id, term_id, class_subject_id, class_group_id")
+      .in("id", chunk);
+    gradebooks.push(...((data ?? []) as Array<Record<string, unknown>>));
+  }
 
   const termIds = [
     ...new Set(
@@ -696,14 +711,19 @@ export async function listSgaTermGrades(params: {
     ),
   ];
 
-  const [{ data: terms }, { data: classSubjects }] = await Promise.all([
-    termIds.length
-      ? db.from("terms").select("id, sequence, name").in("id", termIds)
-      : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
-    classSubjectIds.length
-      ? db.from("class_subjects").select("id, subject_id, class_group_id").in("id", classSubjectIds)
-      : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
-  ]);
+  const terms: Array<Record<string, unknown>> = [];
+  for (const chunk of inChunks(termIds)) {
+    const { data } = await db.from("terms").select("id, sequence, name").in("id", chunk);
+    terms.push(...((data ?? []) as Array<Record<string, unknown>>));
+  }
+  const classSubjects: Array<Record<string, unknown>> = [];
+  for (const chunk of inChunks(classSubjectIds)) {
+    const { data } = await db
+      .from("class_subjects")
+      .select("id, subject_id, class_group_id")
+      .in("id", chunk);
+    classSubjects.push(...((data ?? []) as Array<Record<string, unknown>>));
+  }
 
   const toRecordMap = (rows: Array<Record<string, unknown>>) =>
     new Map(rows.map((row) => [String(row["id"] ?? ""), row] as const));

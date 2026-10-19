@@ -216,6 +216,8 @@ function FaturasPage() {
         vencimento: invoice.due_on,
         valor: Number(invoice.total_amount),
         recebido: Number(invoice.amount_paid),
+        // Recibos oficiais (REC-…) emitidos por register_payment, para reimprimir.
+        recibos: invoice.receipts ?? [],
         // Multa que um pagamento registado hoje leva (0 sem atraso ou sem multa na escola).
         multaHoje: invoice.late_fee_today,
         estado:
@@ -416,17 +418,21 @@ function FaturasPage() {
               </Button>
             )}
           />
-        ) : (
+        ) : f.recibos.length ? (
+          // Reimprime os recibos verdadeiros (número e valor de cada pagamento). Antes
+          // imprimia «RC-<n.º da fatura>», que não existe, com o total recebido.
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              void downloadReceipt(f, `RC-${f.numero.replace(/^FT-?/i, "")}`, f.recebido || f.valor)
-            }
+            onClick={async () => {
+              for (const recibo of f.recibos) {
+                await downloadReceipt(f, recibo.number, recibo.amount);
+              }
+            }}
           >
-            <FileDown className="size-3.5" /> Recibo
+            <FileDown className="size-3.5" /> {f.recibos.length === 1 ? "Recibo" : "Recibos"}
           </Button>
-        )}
+        ) : null}
         {resendInvoices ? (
           <Button
             size="sm"

@@ -269,6 +269,18 @@ export function checkUnitEnrollment(params: {
   ) {
     reasons.push(`Já está inscrito em «${unit.name}» neste ano lectivo.`);
   }
+  // A base só admite um registo por estudante, cadeira e ano
+  // (course_unit_enrollments_unique). Com outro registo neste ano (anulado,
+  // reprovado…) a inserção falhava com um erro genérico — e, na inscrição em
+  // lote, fazia falhar a turma inteira.
+  else if (
+    !completed.has(unit.id) &&
+    records.some((r) => r.unitId === unit.id && r.academicYearId === academicYearId)
+  ) {
+    reasons.push(
+      `«${unit.name}» já tem um registo neste ano lectivo: só pode voltar a inscrever-se no próximo.`,
+    );
+  }
   if (
     records.some(
       (r) => r.unitId === unit.id && r.academicYearId !== academicYearId && r.status === "inscrito",
@@ -492,6 +504,11 @@ export function seasonResult(params: {
 }): { status: "aprovado" | "reprovado"; finalGrade: number | null } {
   const { season, frequency, exam, previousGrade, regulation } = params;
   let grade: number | null;
+  // Na época normal o exame é obrigatório: sem ele, calculateComponentGrade
+  // devolvia só a frequência e o estudante aprovava sem ir ao exame.
+  if (season === "normal" && normalizeScore(exam) === null) {
+    return { status: "reprovado", finalGrade: null };
+  }
   if (season === "normal") {
     grade = calculateComponentGrade("frequencia_exame", frequency, exam, {
       frequencia: regulation.frequency_weight,
@@ -544,6 +561,14 @@ export function studentProgress(params: {
     creditsTotal,
     percent: creditsTotal ? Math.round((creditsEarned / creditsTotal) * 100) : 0,
     average: calculateCreditWeightedAverage(graded),
+    /**
+     * A mesma média sem arredondar, para a classificação final: arredondar
+     * duas vezes (13,45 → 13,5 → 14) dava uma nota e uma menção acima da certa.
+     */
+    rawAverage: graded.reduce((sum, g) => sum + g.credits, 0)
+      ? graded.reduce((sum, g) => sum + g.score * g.credits, 0) /
+        graded.reduce((sum, g) => sum + g.credits, 0)
+      : null,
     gpa: calculateGpa(graded),
     curricularYear,
     pendingUnits,

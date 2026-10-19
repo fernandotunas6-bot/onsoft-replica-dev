@@ -135,6 +135,14 @@ describe("mapSgaGuardianRelationship", () => {
     expect(mapSgaGuardianRelationship("father")).toBe("father");
     expect(mapSgaGuardianRelationship("desconhecido")).toBe("other");
   });
+
+  it("aceita os rótulos do modelo de importação, com acentos e maiúsculas", () => {
+    expect(mapSgaGuardianRelationship("Mãe")).toBe("mother");
+    expect(mapSgaGuardianRelationship("Avó")).toBe("grandparent");
+    expect(mapSgaGuardianRelationship("Encarregado Legal")).toBe("guardian");
+    expect(mapSgaGuardianRelationship(" Tutor ")).toBe("guardian");
+    expect(mapSgaGuardianRelationship("Tio")).toBe("other");
+  });
 });
 
 describe("removeGuardianInputSchema", () => {

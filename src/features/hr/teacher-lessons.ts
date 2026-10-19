@@ -160,15 +160,19 @@ async function ensureAttendanceSessionForOccurrence(
   }
 
   if (!sessionId) {
-    const { data: byClass } = await db
+    // Com dois tempos no mesmo dia há duas sessões: o maybeSingle falhava e
+    // abria-se outra. Com tempo marcado, só se reaproveita uma sessão sem tempo
+    // (aberta pela chamada); a de outro tempo é outra aula.
+    let byClassQuery = db
       .from("siga_attendance_sessions")
       .select("id")
       .eq("school_id", schoolId)
       .eq("class_group_id", classSubject.class_group_id)
       .eq("subject_id", classSubject.subject_id)
-      .eq("lesson_date", lessonDate)
-      .maybeSingle();
-    if (byClass?.id) sessionId = String(byClass.id);
+      .eq("lesson_date", lessonDate);
+    if (occurrence.timetable_slot_id) byClassQuery = byClassQuery.is("timetable_slot_id", null);
+    const { data: byClass } = await byClassQuery.order("created_at").limit(1);
+    if (byClass?.[0]?.id) sessionId = String(byClass[0].id);
   }
 
   if (!sessionId) {

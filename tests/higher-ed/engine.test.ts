@@ -194,6 +194,11 @@ describe("frequência e épocas", () => {
   });
 
   it("época normal pondera frequência e exame pelo peso do regulamento", () => {
+    // Sem exame na época normal não se aprova só com a frequência.
+    expect(seasonResult({ season: "normal", frequency: 12, exam: null, regulation: reg })).toEqual({
+      status: "reprovado",
+      finalGrade: null,
+    });
     expect(seasonResult({ season: "normal", frequency: 12, exam: 8, regulation: reg })).toEqual({
       status: "reprovado",
       finalGrade: 9.6,
@@ -386,6 +391,18 @@ describe("progressão do estudante", () => {
     expect(progress.finalist).toBe(true);
     expect(progress.completed).toBe(false);
     expect(progress.curricularYear).toBe(1);
+  });
+
+  it("classificação final da média sem arredondar duas vezes (13,45 → 13, não 14)", () => {
+    const two: PlanUnit[] = [unit("a", 1, 11), unit("b", 1, 9)];
+    const progress = studentProgress({
+      plan: two,
+      records: [rec("a", "aprovado", { finalGrade: 13 }), rec("b", "aprovado", { finalGrade: 14 })],
+      regulation: reg,
+    });
+    expect(progress.average).toBe(13.5);
+    expect(progress.rawAverage).toBeCloseTo(13.45, 5);
+    expect(finalClassification(progress.rawAverage)).toEqual({ value: 13, mention: "Suficiente" });
   });
 
   it("tudo concluído: curso completo", () => {

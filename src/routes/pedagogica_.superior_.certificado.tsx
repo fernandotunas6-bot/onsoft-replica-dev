@@ -65,9 +65,25 @@ function CertificatePage() {
   // Decreto 257/25: classificação final inteira (10–20) com menção qualitativa.
   const degree = data?.program.degree ?? "licenciatura";
   const doctoral = degree === "doutoramento";
-  const final = data?.progress.completed ? finalClassification(data.progress.average) : null;
+  // Um certificado já emitido reimprime a classificação gravada nesse dia, com o mesmo
+  // número e código; recalcular mostraria a nota de hoje sob o registo antigo.
+  const issuedFinal =
+    certificate && certificate.finalGrade != null
+      ? {
+          value: certificate.finalGrade,
+          mention: (certificate.mention ??
+            finalClassification(certificate.finalGrade)?.mention) as NonNullable<
+            ReturnType<typeof finalClassification>
+          >["mention"],
+        }
+      : null;
+  const final =
+    issuedFinal ??
+    (data?.progress.completed ? finalClassification(data.progress.rawAverage) : null);
+  const juryMention = (certificate?.mention ?? data?.juryMention) as
+    keyof typeof DOCTORAL_MENTIONS | null | undefined;
   // Doutoramento: sem nota numérica, conta a decisão do júri (Decreto 257/25).
-  const completed = Boolean(data?.progress.completed && (doctoral ? data.juryMention : final));
+  const completed = Boolean(data?.progress.completed && (doctoral ? juryMention : final));
   const title = DEGREE_TITLE[degree];
   // Ano lectivo de conclusão: o mais recente entre as cadeiras feitas.
   const lastYear = data?.lines
@@ -142,7 +158,7 @@ function CertificatePage() {
               , tendo obtido {data.progress.creditsEarned} créditos,{" "}
               {doctoral ? (
                 <>
-                  com a decisão do júri de <strong>{DOCTORAL_MENTIONS[data.juryMention!]}</strong>.
+                  com a decisão do júri de <strong>{DOCTORAL_MENTIONS[juryMention!]}</strong>.
                 </>
               ) : (
                 <>

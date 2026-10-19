@@ -80,37 +80,48 @@ export const getOrCreateEnrollmentForm = createServerFn({ method: "POST" })
       .select("name")
       .eq("id", membership.schoolId)
       .maybeSingle();
-    const slug = `${slugFromSchoolName(String(school.data?.name ?? "escola"))}-matricula`;
-    const { data, error } = await db
-      .from("enrollment_forms")
-      .insert({
-        school_id: membership.schoolId,
-        slug,
-        title: "Candidatura a matrícula",
-        subtitle: "Preencha os dados do aluno para a secretaria confirmar.",
-        hero_text: "Bem-vindo. A sua candidatura fica pendente até a secretaria validar.",
-        accent_color: "#1d4ed8",
-        is_open: true,
-        visible_fields: [
-          "birth_date",
-          "sex",
-          "phone_primary",
-          "email",
-          "province",
-          "municipality",
-          "address",
-          "guardian_name",
-          "guardian_phone",
-          "guardian_relationship",
-        ],
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
-      .select(
-        "id, slug, title, subtitle, hero_text, accent_color, logo_url, is_open, visible_fields",
-      )
-      .single();
+    const base = slugFromSchoolName(String(school.data?.name ?? "escola"));
+    // O slug é único entre todas as escolas: duas escolas com o mesmo nome (ou
+    // nomes longos iguais nos primeiros 40 caracteres) ficavam sem link. Na
+    // colisão, tenta com um sufixo da escola.
+    const insertForm = (slug: string) =>
+      db
+        .from("enrollment_forms")
+        .insert({
+          school_id: membership.schoolId,
+          slug,
+          title: "Candidatura a matrícula",
+          subtitle: "Preencha os dados do aluno para a secretaria confirmar.",
+          hero_text: "Bem-vindo. A sua candidatura fica pendente até a secretaria validar.",
+          accent_color: "#1d4ed8",
+          is_open: true,
+          visible_fields: [
+            "birth_date",
+            "sex",
+            "phone_primary",
+            "email",
+            "province",
+            "municipality",
+            "address",
+            "guardian_name",
+            "guardian_phone",
+            "guardian_relationship",
+          ],
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select(
+          "id, slug, title, subtitle, hero_text, accent_color, logo_url, is_open, visible_fields",
+        )
+        .single();
+    let { data, error } = await insertForm(`${base}-matricula`);
+    if (error?.code === "23505") {
+      ({ data, error } = await insertForm(
+        `${base}-${membership.schoolId.replace(/-/g, "").slice(0, 6)}-matricula`,
+      ));
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível criar o link de matrícula.");
+    if (!data) throw new Error("Não foi possível criar o link de matrícula.");
     return data;
   });
 
@@ -370,13 +381,25 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
     if (data.decision === "accepted" && data.classGroupId) {
       const { data: group, error: classError } = await db
         .from("class_groups")
-        .select("id, academic_year_id")
+        .select("id, academic_year_id, status")
         .eq("id", data.classGroupId)
         .eq("school_id", membership.schoolId)
         .maybeSingle();
       if (classError) throw publicDatabaseError(classError, "Não foi possível validar a turma.");
       if (!group) throw new Error("Turma não encontrada nesta escola.");
       if (!group.academic_year_id) throw new Error("Esta turma não tem ano lectivo associado.");
+      // A matrícula (enroll_student) só aceita turma e ano activos: verificar aqui,
+      // antes de criar o aluno e dar a candidatura como aceite.
+      if (group.status !== "active") throw new Error("Esta turma não está activa.");
+      const { data: year, error: yearError } = await db
+        .from("academic_years")
+        .select("status")
+        .eq("id", group.academic_year_id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (yearError)
+        throw publicDatabaseError(yearError, "Não foi possível validar o ano lectivo.");
+      if (year?.status !== "active") throw new Error("O ano lectivo desta turma não está activo.");
       classGroup = { id: String(group.id) };
     }
 
@@ -459,7 +482,15 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
             : null,
           national_id: normalizedNif,
           date_of_birth: person.birth_date || null,
-          sex: person.sex === "M" ? "male" : person.sex === "F" ? "female" : person.sex || null,
+          // «Outro» do formulário público é «other» na base (CHECK de people.sex).
+          sex:
+            person.sex === "M"
+              ? "male"
+              : person.sex === "F"
+                ? "female"
+                : person.sex === "outro"
+                  ? "other"
+                  : null,
           status: "active",
           created_by: context.userId,
           updated_by: context.userId,
@@ -556,14 +587,34 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
 
         const guardianName = String(payload.guardianName ?? "").trim();
         let guardianPersonId: string | null = null;
-        if (guardianName) {
+        const guardianPhone = payload.guardianPhone
+          ? (normalizeStoredPhone(payload.guardianPhone) ?? payload.guardianPhone)
+          : null;
+        // Irmãos com o mesmo encarregado: reaproveita a pessoa desta escola com o
+        // mesmo telefone e o mesmo nome, em vez de criar outra a cada candidatura.
+        if (guardianName && guardianPhone) {
+          const { data: sameGuardian } = await db
+            .from("people")
+            .select("id, full_name")
+            .eq("school_id", membership.schoolId)
+            .eq("phone", guardianPhone)
+            .is("deleted_at", null)
+            .limit(10);
+          const sameName = (value: string) =>
+            value.normalize("NFD").replace(/\p{M}/gu, "").replace(/\s+/g, " ").trim().toLowerCase();
+          const match = (sameGuardian ?? []).find(
+            (row) => sameName(String(row.full_name ?? "")) === sameName(guardianName),
+          );
+          if (match) guardianPersonId = String(match.id);
+        }
+        if (guardianName && !guardianPersonId) {
           const { data: guardianPerson, error: guardianError } = await db
             .from("people")
             .insert({
               school_id: membership.schoolId,
               full_name: guardianName,
               preferred_name: guardianName.split(/\s+/)[0],
-              phone: payload.guardianPhone || null,
+              phone: guardianPhone,
               status: "active",
               created_by: context.userId,
               updated_by: context.userId,

@@ -1,3 +1,4 @@
+import { mapSgaGuardianRelationship } from "@/features/students/schemas";
 import { findBestPersonMatch } from "../engine/dedupe";
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
@@ -122,11 +123,19 @@ export const encarregadosImporter: RowImporter = {
     const phone = normalizeText(valueOf(normalized, "phone", "telefone", "contacto"))!;
     const nationalId = normalizeText(valueOf(normalized, "id_number", "bi"));
     const email = normalizeText(valueOf(normalized, "email", "correio"));
-    const relationship =
-      normalizeText(valueOf(normalized, "relationship_type", "parentesco")) || "Encarregado";
+    // A base só aceita father/mother/guardian/grandparent/sibling/other: o texto
+    // da folha («Pai», «Mãe», «Encarregado Legal») ia tal e qual e todas as
+    // linhas falhavam, depois de a pessoa já ter sido criada.
+    const relationship = mapSgaGuardianRelationship(
+      normalizeText(valueOf(normalized, "relationship_type", "parentesco")) || "Encarregado",
+    );
     const isFinancial =
-      normalizeText(valueOf(normalized, "is_financial_responsible", "responsavel_financeiro")) ===
-      "Sim";
+      (
+        normalizeText(valueOf(normalized, "is_financial_responsible", "responsavel_financeiro")) ??
+        ""
+      )
+        .trim()
+        .toLowerCase() === "sim";
 
     const studentMatch = uniqueExactMatch(studentIdent, cache.students, [
       (s) => s.student_number,

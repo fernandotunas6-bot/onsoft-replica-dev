@@ -1,3 +1,4 @@
+import { allPagesIn } from "@/integrations/supabase/paged-in";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -50,12 +51,16 @@ export async function studentStatusMap(
 ): Promise<Map<string, StudentStatus>> {
   const map = new Map<string, StudentStatus>();
   if (!studentIds.length) return map;
-  const { data, error } = await db
-    .from("student_special_statuses")
-    .select("student_id, kind, valid_from, valid_until, revoked_at")
-    .eq("school_id", schoolId)
-    .in("student_id", studentIds)
-    .is("revoked_at", null);
+  const { data, error } = await allPagesIn(studentIds, (chunk, from, to) =>
+    db
+      .from("student_special_statuses")
+      .select("id, student_id, kind, valid_from, valid_until, revoked_at")
+      .eq("school_id", schoolId)
+      .in("student_id", chunk)
+      .is("revoked_at", null)
+      .order("id")
+      .range(from, to),
+  );
   if (error) {
     if (missingTable(error)) return map;
     throw publicDatabaseError(error, "Não foi possível ler os estatutos dos estudantes.");

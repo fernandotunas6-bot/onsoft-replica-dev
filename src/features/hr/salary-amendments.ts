@@ -42,6 +42,8 @@ export const listHrSalaryChangeRequests = createServerFn({ method: "GET" })
     if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
       throw new Error("Sem permissão para consultar pedidos salariais.");
     }
+    // Com o Financeiro em «Nenhum» para esta conta, os salários também não se lêem.
+    await assertModuleNotBlocked(membership.schoolId, context.userId, "financeiro", "read");
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("hr_salary_change_requests")
@@ -63,6 +65,8 @@ export const listHrContractsForSalaryChange = createServerFn({ method: "GET" })
     if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
       throw new Error("Sem permissão para consultar contratos.");
     }
+    // Com o Financeiro em «Nenhum» para esta conta, os salários também não se lêem.
+    await assertModuleNotBlocked(membership.schoolId, context.userId, "financeiro", "read");
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("hr_contracts")
@@ -84,6 +88,8 @@ export const listHrSalaryAmendments = createServerFn({ method: "GET" })
     if (!membership || !["Administrador", "Tesouraria"].includes(membership.appRole)) {
       throw new Error("Sem permissão para consultar o histórico salarial.");
     }
+    // Com o Financeiro em «Nenhum» para esta conta, os salários também não se lêem.
+    await assertModuleNotBlocked(membership.schoolId, context.userId, "financeiro", "read");
     const db = await loadSgaAdminClient();
     const { data, error } = await db
       .from("hr_contract_salary_amendments")

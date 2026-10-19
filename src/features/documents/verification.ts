@@ -18,7 +18,11 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { checkRateLimit, isRateLimitBypassed, recordRateLimitAttempt } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
-import { isPrintTemplateKey, type PrintTemplateKey } from "./print-catalog";
+import {
+  isPrintTemplateKey,
+  printTemplateKeyFromTitle,
+  type PrintTemplateKey,
+} from "./print-catalog";
 
 export const ISSUED_DOCUMENT_ACTION = "documents.issued";
 const ISSUER_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
@@ -118,7 +122,14 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
       throw new Error("Sem permissão para emitir documentos oficiais.");
     }
     const templateKey = data.templateKey as PrintTemplateKey;
-    const issuerRole = issuerRoleFor(roles, templateKey, Boolean(data.amountLabel));
+    // O título é o que a verificação pública mostra: quem emite tem de poder emitir
+    // também o documento que o título diz. Sem isto, um professor registava um
+    // «Certificado de Habilitações» com a chave do boletim.
+    const titleKey = printTemplateKeyFromTitle(data.title);
+    const issuerRole =
+      titleKey && !issuerRoleFor(roles, titleKey, Boolean(data.amountLabel))
+        ? null
+        : issuerRoleFor(roles, templateKey, Boolean(data.amountLabel));
     if (!issuerRole) {
       throw new Error(
         data.amountLabel
