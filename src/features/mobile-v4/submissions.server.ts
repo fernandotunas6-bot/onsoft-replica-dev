@@ -172,6 +172,28 @@ export async function registerMobileSubmission(
   await assertReady(db);
   assertOpen(await loadTask(db, scope, input.taskId));
 
+  // Um ficheiro registado não pode ser reutilizado noutra tarefa ou aluno.
+  // Verificar ANTES do download e, sobretudo, de qualquer limpeza no Storage:
+  // o mesmo pedido repetido deve devolver a entrega já guardada sem a apagar.
+  const linked = await submissionsTable(db)
+    .select(SUBMISSION_FIELDS)
+    .eq("school_id", scope.schoolId)
+    .eq("storage_path", input.path)
+    .maybeSingle();
+  if (linked.error) throw new MobileApiError(503, "SUBMISSIONS_UNAVAILABLE");
+  if (linked.data) {
+    const current = linked.data as SubmissionRow;
+    if (current.task_id !== input.taskId || current.student_id !== studentId) {
+      throw new MobileApiError(409, "SUBMISSION_PATH_IN_USE");
+    }
+    return {
+      schoolId: scope.schoolId,
+      userId,
+      role: scope.role,
+      submission: project(current),
+    };
+  }
+
   const storage = db.storage.from(SUBMISSION_BUCKET);
   const file = await storage.download(input.path);
   if (file.error || !file.data) throw new MobileApiError(404, "SUBMISSION_FILE_NOT_FOUND");
