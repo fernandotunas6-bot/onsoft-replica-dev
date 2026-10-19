@@ -474,3 +474,88 @@ REVOKE ALL ON FUNCTION public.siga_transport_save_stops_atomic(uuid, uuid, uuid,
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.siga_transport_save_stops_atomic(uuid, uuid, uuid, jsonb)
   TO service_role;
+
+
+-- Estado do dia: a comparação com o valor anterior tem de ocorrer dentro da
+-- MESMA transacção que a gravação. O SELECT FOR UPDATE da rota serializa
+-- chamadas simultâneas, inclusive a criação inicial do estado do dia.
+-- Só o servidor autorizado usa a RPC; notificações seguem depois do commit.
+-- Isto impede dois avisos para a mesma transição de estado, sem prometer
+-- entrega exactamente uma vez se a escrita do aviso falhar após o commit.
+CREATE OR REPLACE FUNCTION public.siga_transport_set_day_status_atomic(
+  p_school_id uuid,
+  p_route_id uuid,
+  p_service_date date,
+  p_status text,
+  p_delay_minutes integer,
+  p_note text,
+  p_user_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path TO ''
+AS $day$
+DECLARE
+  previous_status text := 'normal';
+  previous_delay integer := 0;
+  previous_exists boolean := false;
+  changed boolean;
+BEGIN
+  IF p_school_id IS NULL OR p_route_id IS NULL OR p_service_date IS NULL
+     OR p_status IS NULL OR p_status NOT IN ('normal', 'delayed', 'cancelled')
+     OR p_delay_minutes IS NULL OR p_delay_minutes NOT BETWEEN 0 AND 240
+     OR (p_status = 'delayed' AND p_delay_minutes = 0)
+     OR (p_status <> 'delayed' AND p_delay_minutes <> 0)
+     OR (p_note IS NOT NULL AND pg_catalog.length(p_note) > 300)
+  THEN
+    RAISE EXCEPTION 'Estado do transporte inválido'
+      USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM 1 FROM public.siga_transport_routes AS r
+  WHERE r.id = p_route_id AND r.school_id = p_school_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Rota não pertence à escola'
+      USING ERRCODE = '23503', CONSTRAINT = 'transport_route_same_school';
+  END IF;
+
+  SELECT d.status, d.delay_minutes
+    INTO previous_status, previous_delay
+  FROM public.siga_transport_day_status AS d
+  WHERE d.school_id = p_school_id
+    AND d.route_id = p_route_id
+    AND d.service_date = p_service_date;
+  previous_exists := FOUND;
+  IF NOT previous_exists THEN
+    previous_status := 'normal';
+    previous_delay := 0;
+  END IF;
+
+  changed := previous_status IS DISTINCT FROM p_status
+    OR previous_delay IS DISTINCT FROM p_delay_minutes;
+
+  INSERT INTO public.siga_transport_day_status (
+    school_id, route_id, service_date, status, delay_minutes,
+    note, created_by, updated_by
+  ) VALUES (
+    p_school_id, p_route_id, p_service_date, p_status, p_delay_minutes,
+    p_note, p_user_id, p_user_id
+  )
+  ON CONFLICT (route_id, service_date) DO UPDATE SET
+    status = EXCLUDED.status,
+    delay_minutes = EXCLUDED.delay_minutes,
+    note = EXCLUDED.note,
+    updated_by = EXCLUDED.updated_by;
+
+  RETURN pg_catalog.jsonb_build_object('changed', changed);
+END;
+$day$;
+
+REVOKE ALL ON FUNCTION public.siga_transport_set_day_status_atomic(
+  uuid, uuid, date, text, integer, text, uuid
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.siga_transport_set_day_status_atomic(
+  uuid, uuid, date, text, integer, text, uuid
+) TO service_role;
