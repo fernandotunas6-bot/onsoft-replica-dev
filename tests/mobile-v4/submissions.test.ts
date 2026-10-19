@@ -39,6 +39,7 @@ type Answer = { data?: unknown; error?: { code?: string; message?: string } | nu
 let queries: { table: string; ops: Op[] }[];
 let storage: { op: string; args: unknown[] }[];
 let pdf: Uint8Array;
+let downloadedFile: Blob | undefined;
 let cleanupThrows = false;
 
 function database(answer: (table: string, ops: Op[]) => Answer) {
@@ -74,7 +75,7 @@ function database(answer: (table: string, ops: Op[]) => Answer) {
         },
         download: async (...args: unknown[]) => {
           storage.push({ op: "download", args });
-          return { data: new Blob([pdf as Uint8Array<ArrayBuffer>]), error: null };
+          return { data: downloadedFile ?? new Blob([pdf as Uint8Array<ArrayBuffer>]), error: null };
         },
         remove: async (...args: unknown[]) => {
           storage.push({ op: "remove", args });
@@ -121,6 +122,7 @@ beforeEach(() => {
   queries = [];
   storage = [];
   pdf = new TextEncoder().encode("%PDF-1.7 conteúdo");
+  downloadedFile = undefined;
   cleanupThrows = false;
 });
 
@@ -215,6 +217,48 @@ describe("registar a entrega", () => {
     expect(storage.find((s) => s.op === "remove")?.args).toEqual([[ownPath]]);
     expect(queries.some((q) => q.ops.some((o) => o[0] === "insert"))).toBe(false);
   });
+  it("confirma o cabeçalho sem copiar o Blob completo", async () => {
+    const blob = new Blob([pdf as Uint8Array<ArrayBuffer>]);
+    const fullRead = vi.spyOn(blob, "arrayBuffer").mockRejectedValue(new Error("leitura completa"));
+    downloadedFile = blob;
+    const result = await registerMobileSubmission(happy(), student, USER, {
+      taskId: TASK,
+      path: ownPath,
+    });
+    expect(result.submission.taskId).toBe(TASK);
+    expect(fullRead).not.toHaveBeenCalled();
+  });
+
+  it("recusa ficheiros acima de 10 MB sem ler o conteúdo", async () => {
+    const slice = vi.fn(() => {
+      throw new Error("não deve ler ficheiro acima do limite");
+    });
+    downloadedFile = { size: 10 * 1024 * 1024 + 1, slice } as unknown as Blob;
+    await expect(
+      registerMobileSubmission(happy(), student, USER, { taskId: TASK, path: ownPath }),
+    ).rejects.toMatchObject({ status: 413, code: "FILE_TOO_LARGE" });
+    expect(slice).not.toHaveBeenCalled();
+    expect(storage.find((item) => item.op === "remove")?.args).toEqual([[ownPath]]);
+    expect(queries.some((q) => q.ops.some((op) => op[0] === "insert"))).toBe(false);
+  });
+
+  it("devolve o erro original quando a limpeza de PDF inválido falha", async () => {
+    cleanupThrows = true;
+    pdf = new TextEncoder().encode("MZ executável");
+    await expect(
+      registerMobileSubmission(happy(), student, USER, { taskId: TASK, path: ownPath }),
+    ).rejects.toMatchObject({ status: 422, code: "PDF_REQUIRED" });
+    expect(storage.some((item) => item.op === "remove")).toBe(true);
+  });
+
+  it("recusa PDF vazio antes de registar a entrega", async () => {
+    downloadedFile = new Blob([]);
+    await expect(
+      registerMobileSubmission(happy(), student, USER, { taskId: TASK, path: ownPath }),
+    ).rejects.toMatchObject({ status: 422, code: "PDF_REQUIRED" });
+    expect(queries.some((q) => q.ops.some((op) => op[0] === "insert"))).toBe(false);
+  });
+
   it("primeira entrega: insere com o aluno, a tarefa e o tamanho real", async () => {
     const out = await registerMobileSubmission(happy(), student, USER, {
       taskId: TASK,
