@@ -660,14 +660,19 @@ async function routeAudience(db: TransportDb, schoolId: string, routeId: string,
   const names = await studentNames(db, schoolId, studentIds);
   const guardians = await db
     .from("student_guardians")
-    .select("guardian_person_id, valid_until")
+    .select("guardian_person_id, valid_from, valid_until")
     .eq("school_id", schoolId)
     .in("student_id", studentIds);
   if (guardians.error) fail(guardians.error, "TRANSPORT_UNAVAILABLE");
   const personIds = [
     ...[...names.values()].map((n) => n.personId),
-    ...((guardians.data ?? []) as { guardian_person_id: string; valid_until: string | null }[])
-      .filter((g) => !g.valid_until || g.valid_until >= day)
+    ...((guardians.data ?? []) as {
+      guardian_person_id: string;
+      valid_from: string;
+      valid_until: string | null;
+    }[])
+      // Avisos só aos encarregados cujo vínculo já começou e não terminou.
+      .filter((g) => g.valid_from <= day && (!g.valid_until || g.valid_until >= day))
       .map((g) => g.guardian_person_id),
   ];
   const users = new Set<string>();
