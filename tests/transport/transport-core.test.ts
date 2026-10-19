@@ -351,8 +351,12 @@ describe("portal: estado do dia", () => {
     guardians: { guardian_person_id: string; valid_from: string; valid_until: string | null }[] = [
       { guardian_person_id: id(31), valid_from: "2026-09-01", valid_until: null },
     ],
-  ) =>
-    database((table, ops) => {
+  ) => {
+    let status = (previous as { status: string; delay_minutes: number } | null) ?? {
+      status: "normal",
+      delay_minutes: 0,
+    };
+    const db = database((table, ops) => {
       if (table === "siga_transport_routes") return { data: route };
       if (table === "siga_transport_day_status")
         return has(ops, "maybeSingle") ? { data: previous } : {};
@@ -386,6 +390,18 @@ describe("portal: estado do dia", () => {
       }
       throw new Error(table);
     });
+    db.rpc = vi.fn(async (_name, args) => {
+      const next = {
+        status: args.p_status as string,
+        delay_minutes: args.p_delay_minutes as number,
+      };
+      const changed =
+        status.status !== next.status || status.delay_minutes !== next.delay_minutes;
+      status = next;
+      return { data: { changed }, error: null };
+    });
+    return db;
+  };
 
   it("atraso novo avisa o aluno e o encarregado com conta", async () => {
     const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
@@ -428,6 +444,79 @@ describe("portal: estado do dia", () => {
       TODAY,
     );
     expect(out.notified).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("duas alterações simultâneas para o mesmo estado criam um único conjunto de avisos", async () => {
+    const db = dayDb(null);
+    const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
+    const results = await Promise.all([
+      setTransportDayStatus(db, SCHOOL, USER, input, TODAY),
+      setTransportDayStatus(db, SCHOOL, USER, input, TODAY),
+    ]);
+    expect(results.map((result) => result.notified).sort()).toEqual([0, 2]);
+    expect(db.rpc).toHaveBeenCalledTimes(2);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(writes("siga_transport_day_status")).toEqual([]);
+  });
+
+  it("guarda nota alterada mas não cria novos avisos se o estado for igual", async () => {
+    const db = dayDb({ status: "delayed", delay_minutes: 20 });
+    const out = await setTransportDayStatus(
+      db,
+      SCHOOL,
+      USER,
+      setDayStatusSchema.parse({
+        routeId: ROUTE,
+        status: "delayed",
+        delayMinutes: 20,
+        note: "Nova observação",
+      }),
+      TODAY,
+    );
+    expect(out.notified).toBe(0);
+    expect(db.rpc).toHaveBeenCalledWith(
+      "siga_transport_set_day_status_atomic",
+      expect.objectContaining({
+        p_school_id: SCHOOL,
+        p_service_date: TODAY,
+        p_note: "Nova observação",
+      }),
+    );
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("sem RPC atómica não grava nem notifica o estado", async () => {
+    const db = dayDb(null);
+    delete db.rpc;
+    await expect(
+      setTransportDayStatus(
+        db,
+        SCHOOL,
+        USER,
+        setDayStatusSchema.parse({ routeId: ROUTE, status: "cancelled" }),
+        TODAY,
+      ),
+    ).rejects.toMatchObject({ code: "TRANSPORT_NOT_READY" });
+    expect(writes("siga_transport_day_status")).toEqual([]);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("RPC ainda não migrada falha fechada sem enviar avisos", async () => {
+    const db = dayDb(null);
+    db.rpc = vi.fn(async () => ({
+      data: null,
+      error: { code: "PGRST202", message: "Could not find function in schema cache" },
+    }));
+    await expect(
+      setTransportDayStatus(
+        db,
+        SCHOOL,
+        USER,
+        setDayStatusSchema.parse({ routeId: ROUTE, status: "cancelled" }),
+        TODAY,
+      ),
+    ).rejects.toMatchObject({ code: "TRANSPORT_NOT_READY" });
     expect(notify).not.toHaveBeenCalled();
   });
 
