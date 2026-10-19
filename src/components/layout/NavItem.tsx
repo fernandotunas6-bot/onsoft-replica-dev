@@ -123,13 +123,20 @@ export function NavLinkRow(
   const { to, search, ...rest } = props;
   const queryClient = useQueryClient();
   const { school, selectedYearId } = useSchoolSettings();
+  const targetKey = JSON.stringify([to, search]);
   const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const generation = useRef(0);
   const cancelWarmup = () => {
     clearTimeout(pending.current);
     generation.current += 1;
   };
-  useEffect(() => cancelWarmup, [school?.id, selectedYearId]);
+  useEffect(
+    () => () => {
+      clearTimeout(pending.current);
+      generation.current += 1;
+    },
+    [school?.id, selectedYearId, targetKey],
+  );
   const warmRoute = () => {
     cancelWarmup();
     if (!canPrefetchResources()) return;

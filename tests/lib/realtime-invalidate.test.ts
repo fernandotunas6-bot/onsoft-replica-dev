@@ -51,4 +51,46 @@ describe("realtimeInvalidator", () => {
     vi.advanceTimersByTime(1000);
     expect(invalidateQueries).not.toHaveBeenCalled();
   });
+
+  it("não reinicia uma leitura lenta e conserva a última actualização da rajada", async () => {
+    const { client, invalidateQueries } = fakeClient();
+    let finish!: () => void;
+    invalidateQueries.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const realtime = realtimeInvalidator(client);
+    realtime.invalidate(["students", "search"]);
+    await vi.advanceTimersByTimeAsync(300);
+    for (let i = 0; i < 500; i++) realtime.invalidate(["students", "search"]);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(invalidateQueries).toHaveBeenCalledOnce();
+    finish();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(invalidateQueries).toHaveBeenCalledTimes(2);
+    realtime.dispose();
+  });
+
+  it("desmontar durante a leitura impede uma actualização tardia", async () => {
+    const { client, invalidateQueries } = fakeClient();
+    let finish!: () => void;
+    invalidateQueries.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const realtime = realtimeInvalidator(client);
+    realtime.invalidate(["documents", "workspace"]);
+    await vi.advanceTimersByTimeAsync(300);
+    realtime.invalidate(["documents", "workspace"]);
+    realtime.dispose();
+    finish();
+    await vi.advanceTimersByTimeAsync(1000);
+    realtime.invalidate(["documents", "workspace"]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(invalidateQueries).toHaveBeenCalledOnce();
+  });
 });

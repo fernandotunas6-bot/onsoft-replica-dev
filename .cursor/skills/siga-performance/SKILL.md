@@ -32,6 +32,8 @@ O pedido original está em [references/prompt-master.md](references/prompt-maste
 2. Medir antes de alterar: distinguir compilação de desenvolvimento, build de produção,
    cache fria/quente, sessão autenticada e ambiente sintético. Não atribuir percentis
    reais de INP/LCP a um teste de laboratório nem anunciar ganhos sem comparação.
+   Medir recursos iniciais pelo manifesto SSR actual: a pasta `.output/public/assets`
+   pode conservar hashes de builds antigos, e somá-los falseia o tráfego de arranque.
 3. Priorizar gargalos partilhados comprovados: imports iniciais, router/pré-busca,
    cache React Query, subscrições, listas/formulários e chamadas redundantes. Reutilizar
    as ferramentas existentes; dependências, workers ou infra novos exigem justificação.
@@ -65,6 +67,10 @@ uma operação concluída.
 - `src/features/auth/use-current-account.ts`, `use-sign-out.ts`: sessão/escola.
 - `scripts/siga/modules.json`: inventário canónico; skills `siga-*` por módulo.
 - `tests/ui/first-paint-budget.test.ts`: limites do primeiro desenho.
+- `scripts/siga/performance-inventory.mjs`: bytes/preloads do build e inventário por módulo.
+- `scripts/siga/performance-browser.mjs`: ensaio local sem sessão; login/registo, frame
+  de feedback, dimensões e erros. Requer Chrome e SIGA em `localhost:3006`; não substitui
+  a validação autenticada. Evidências em `docs/performance/2026-10-19/relatorio.md`.
 
 Usar Node 24. Para comprovar comportamento correr testes dirigidos, tipos, lint e
 build; expandir a suite quando a mudança partilhada o justificar. Não fazer deploy,

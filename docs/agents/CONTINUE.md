@@ -4,6 +4,25 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Performance — navegação, cache e arranque (2026-10-19)
+
+Contrato persistido na skill `.cursor/skills/siga-performance/SKILL.md`, também
+disponível no catálogo Codex. Mesmo visual, dimensões e funcionalidades; priorizar
+resposta ao toque e optimizações medidas. [Relatório e evidências](../performance/2026-10-19/relatorio.md).
+
+- Pré-busca com a cache React Query, chaves/filtros reais, escola/ano seleccionados,
+  cancelamento e limite de concorrência; sem pedidos especulativos em rede limitada.
+- Realtime junta eventos durante leituras lentas e conserva uma actualização final;
+  limpeza ao desmontar. Documentos e Comunicações reutilizam o mesmo mecanismo.
+- `ImportarDadosPage` e `SubscriptionDetail` não têm consumidores externos: manter
+  as funções privadas nas rotas para não impedir a separação automática do código.
+- Manifesto de produção: base de 42 para 36 ficheiros, 1 435 872 para cerca de
+  1 077 268 bytes (-25%). Não é uma redução medida de latência. Não somar os hashes
+  antigos que possam ficar na pasta de saída para calcular tráfego inicial.
+- Laboratório do login: 12 cliques com título actualizado no frame seguinte em
+  14,5–79,5 ms; zero erros/overflow/CLS. São amostras locais, sem sessão e sem p75 real.
+- Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
+
 ## Sincronização GitHub — 2026-10-19
 
 Integrado `origin/main` (`dcf0825c`) na branch `docs/auditoria-critica-2026-10-06`,
