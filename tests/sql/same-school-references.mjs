@@ -171,7 +171,11 @@ const saveDay = async (schoolId, routeId, status, delay = 0, note = null) =>
     )
   ).result;
 const dayAuditCount = async () =>
-  (await one("select count(*)::integer as n from private.audit where table_name = 'siga_transport_day_status'")).n;
+  (
+    await one(
+      "select count(*)::integer as n from private.audit where table_name = 'siga_transport_day_status'",
+    )
+  ).n;
 const previousDayAudit = await dayAuditCount();
 assert.deepEqual(await saveDay(a, routeA, "delayed", 10), { changed: false });
 assert.equal(await dayAuditCount(), previousDayAudit, "repetição idêntica não audita UPDATE");
@@ -179,7 +183,11 @@ assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: true });
 const afterChangeAudit = await dayAuditCount();
 assert.equal(afterChangeAudit, previousDayAudit + 1);
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: false });
-assert.equal(await dayAuditCount(), afterChangeAudit, "idempotência também evita writes de auditoria");
+assert.equal(
+  await dayAuditCount(),
+  afterChangeAudit,
+  "idempotência também evita writes de auditoria",
+);
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), { changed: false });
 assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota alterada é gravada sem aviso");
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), { changed: false });
