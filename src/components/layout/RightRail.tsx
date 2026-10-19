@@ -43,11 +43,15 @@ export function RightRail() {
   const { breakpoint, ready } = useBreakpoint();
   const [wideLayout, setWideLayout] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(min-width: 1536px)");
-    const update = () => setWideLayout(query.matches);
+    // Mesmo fallback de resize do useBreakpoint: não depende de matchMedia em testes.
+    const update = () => setWideLayout(window.innerWidth >= 1536);
     update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
+    window.addEventListener("resize", update, { passive: true });
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
   }, []);
   const isDesktop = ready && breakpoint === "desktop" && wideLayout;
 
