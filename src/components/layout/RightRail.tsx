@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import "./right-rail-layout.css";
 import { ChevronLeft, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -168,7 +169,7 @@ export function RightRail() {
                 setTab("mensagens");
                 setPanelCollapsed(false);
               }}
-              className="relative rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
+              className="touch-target relative rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MessageCircle className="size-4" />
               {unread > 0 ? (
@@ -213,7 +214,8 @@ export function RightRail() {
       </aside>
 
       {/* Abaixo de 2xl o painel não cabe sem comprimir o conteúdo. */}
-      <div className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:bottom-4 2xl:hidden">
+      <div data-siga-rail-shortcuts=""
+        className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:bottom-4 2xl:hidden">
         {suggestions.length > 0 ? (
           <button
             type="button"
@@ -235,7 +237,7 @@ export function RightRail() {
             setMobileOpen(true);
           }}
           aria-label="Abrir mensagens"
-          className="relative flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
+          className="relative flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <MessageCircle className="size-5" />
           {unread > 0 ? (
@@ -249,7 +251,7 @@ export function RightRail() {
       <Sheet open={mobileOpen && !isDesktop} onOpenChange={setMobileOpen}>
         {/* Quase ecrã inteiro: uma conversa num Sheet de 75vh deixa duas
             mensagens visíveis acima do teclado num telemóvel. */}
-        <SheetContent side="bottom" className="flex h-[92vh] flex-col gap-0 p-0">
+        <SheetContent side="bottom" className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 overflow-hidden p-0 pt-10">
           <SheetHeader className="sr-only">
             <SheetTitle>{activeTab === "mensagens" ? "Mensagens" : "Relacionado"}</SheetTitle>
           </SheetHeader>
