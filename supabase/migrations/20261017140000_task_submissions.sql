@@ -35,6 +35,41 @@ CREATE INDEX IF NOT EXISTS siga_task_submissions_task_idx
 CREATE INDEX IF NOT EXISTS siga_task_submissions_student_idx
   ON public.siga_task_submissions (school_id, student_id);
 
+-- Protecção relacional: os gatilhos validam a nova linha, mas apenas as FKs
+-- compostas mantêm o vínculo à escola se a tarefa ou o aluno forem alterados
+-- posteriormente (e com escritas concorrentes). Os dois índices únicos
+-- reiteram a identidade por escola sem alterar os PKs existentes.
+CREATE UNIQUE INDEX IF NOT EXISTS siga_tasks_school_identity_idx
+  ON public.siga_class_tasks (school_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS siga_students_school_identity_idx
+  ON public.students (school_id, id);
+
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_task_submissions'::regclass
+      AND conname = 'siga_submission_task_same_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_task_submissions
+      ADD CONSTRAINT siga_submission_task_same_school_fk
+      FOREIGN KEY (school_id, task_id)
+      REFERENCES public.siga_class_tasks (school_id, id) ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_task_submissions'::regclass
+      AND conname = 'siga_submission_student_same_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_task_submissions
+      ADD CONSTRAINT siga_submission_student_same_school_fk
+      FOREIGN KEY (school_id, student_id)
+      REFERENCES public.students (school_id, id) ON DELETE CASCADE;
+  END IF;
+END
+$migration$;
+
 -- Tarefa e aluno da mesma escola da entrega (auditoria da PR #132): a chave
 -- estrangeira só garante que o id existe.
 CREATE OR REPLACE FUNCTION private.validate_task_submission_school_references()
