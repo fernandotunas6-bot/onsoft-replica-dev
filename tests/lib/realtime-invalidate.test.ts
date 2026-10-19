@@ -25,14 +25,20 @@ describe("realtimeInvalidator", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["dashboard", "overview"] });
   });
 
-  it("uma rajada longa actualiza a cada janela, não só no fim", () => {
+  // `...Async`: a invalidação passou a esperar que a anterior assente antes de
+  // agendar a seguinte (evita cancelar e recomeçar o mesmo pedido a cada janela).
+  // Esse `.finally()` é um microtask, e o `advanceTimersByTime` síncrono nunca o
+  // deixa correr — a janela seguinte nunca era agendada e o teste via 1 chamada em
+  // vez de 3. A variante assíncrona escoa os microtasks entre temporizadores, que
+  // é o que acontece no browser.
+  it("uma rajada longa actualiza a cada janela, não só no fim", async () => {
     const { client, invalidateQueries } = fakeClient();
     const realtime = realtimeInvalidator(client);
     for (let ms = 0; ms < 1000; ms += 10) {
       realtime.invalidate(["finance", "invoices"]);
-      vi.advanceTimersByTime(10);
+      await vi.advanceTimersByTimeAsync(10);
     }
-    vi.advanceTimersByTime(300);
+    await vi.advanceTimersByTimeAsync(300);
     expect(invalidateQueries.mock.calls.length).toBeGreaterThanOrEqual(3);
     expect(invalidateQueries.mock.calls.length).toBeLessThanOrEqual(5);
   });

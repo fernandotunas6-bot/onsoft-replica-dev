@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -191,6 +192,7 @@ function ComunicacoesPage() {
   });
 
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
     const channel = supabase
       .channel(`school_announcements_realtime:${realtimeInstanceId}`)
       .on(
@@ -201,14 +203,13 @@ function ComunicacoesPage() {
           table: "school_announcements",
         },
         () => {
-          void queryClient.invalidateQueries({
-            queryKey: ["communications", "announcements"],
-          });
+          realtime.invalidate(["communications", "announcements"]);
         },
       )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       void supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);
