@@ -47,6 +47,10 @@ npm run build` e servir `.output/server/index.mjs` por Node (o `wrangler` exige 
   grafo estático da rota. O esqueleto passou para
   `src/features/dashboard/DashboardChartsSkeleton.tsx` (marcação pura, zero imports);
   guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com o import antigo.
+  Medido: a rota `/` passou a 72 ficheiros/1 549 942 bytes no manifesto, sem pedaços de
+  gráficos, e o carregamento frio desceu 413 880 bytes (−10,1% no computador, −17,4% no
+  telemóvel), com o tipo `script` de 507 643 para 111 235 bytes. O LCP veio mais baixo mas
+  **não se atribui à correcção** — seis corridas locais sem limitação. CLS somado 0,003.
 - Pesos restantes do ecrã de entrada, medidos e **não** alterados: `auth-classroom.mp4`
   (1 716 956 bytes, 42% do carregamento frio no computador, e toda a diferença para o
   telemóvel, que não o pede) e `styles-*.css` (234 925 bytes). O vídeo é identidade;

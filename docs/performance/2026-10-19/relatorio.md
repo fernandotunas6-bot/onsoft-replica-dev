@@ -63,7 +63,7 @@ Os três pesos maiores do ecrã de entrada, por ordem:
    8 do pedido proíbe remover elementos por bytes. O poster embutido já evita que
    seja o LCP.
 2. **`BarChart-BAPBWitz.js` — 369 980 bytes**, o maior script, descarregado no
-   ecrã de login. **Corrigido** (ver abaixo).
+   ecrã de login. **Corrigido e remedido** (ver abaixo).
 3. **`styles-BpcmSTvH.css` — 234 925 bytes.** Não alterado neste ciclo.
 
 ### Como 370 KB de gráficos entravam no login apesar do `lazy()`
@@ -88,6 +88,30 @@ marcação pura sem um único import. Mesmo desenho, mesmos componentes, mesmo
 `lazy()` para os gráficos; só deixou de haver uma aresta estática do login para o
 `recharts`. Guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com
 o import antigo para não ser guarda morta.
+
+Resultado, medido no preset de publicação e depois no navegador. No manifesto, a
+rota `/` passou de 73 para **72 ficheiros** e de 1 567 114 para **1 549 942 bytes**,
+e já não lista nenhum pedaço de gráficos; o `BarChart-BAPBWitz.js` continua a existir
+no build, com o mesmo hash, para as páginas que têm gráficos. No carregamento frio:
+
+| Carregamento frio do ecrã de entrada | Antes                  | Depois                 | Diferença           |
+| ------------------------------------ | ---------------------- | ---------------------- | ------------------- |
+| Computador 1440×900                  | 110 rec. / 4 101 523 B | 107 rec. / 3 687 643 B | −413 880 B (−10,1%) |
+| Telemóvel 390×844                    | 109 rec. / 2 384 567 B | 106 rec. / 1 970 687 B | −413 880 B (−17,4%) |
+
+O pedaço `BarChart` deixou de aparecer na lista de recursos pedidos, e o total do
+tipo `script` caiu de 507 643 para **111 235 bytes**. Evidências em
+[`browser-prod.json`](browser-prod.json) (antes) e
+[`browser-prod-after.json`](browser-prod-after.json) (depois).
+
+Nas seis corridas posteriores: zero erros de consola, sem overflow horizontal,
+painel com os mesmos 420 px no computador e 360 px no ecrã de 390 px. O LCP veio
+mais baixo (472–1 316 ms no computador, 552–620 ms no telemóvel, contra 1 272–2 664 e
+604–916 antes), mas **não se atribui essa diferença à correcção**: são seis corridas
+locais sem limitação de rede ou CPU, e a medição anterior correu com a máquina
+ocupada por outro trabalho. O que a correcção demonstra é a redução de bytes e de
+pedidos, que é determinística. O CLS somado passou de 0 para **0,003** nas seis
+corridas — muito abaixo do limiar de 0,1, mas registado por não ser já zero.
 
 ## Causas corrigidas
 
