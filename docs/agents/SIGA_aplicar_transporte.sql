@@ -121,8 +121,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_routes_school_identity_idx
   ON public.siga_transport_routes (school_id, id);
 CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_stops_route_identity_idx
   ON public.siga_transport_stops (school_id, route_id, id);
-CREATE UNIQUE INDEX IF NOT EXISTS siga_students_school_identity_idx
-  ON public.students (school_id, id);
+-- A tabela students já possui UNIQUE (school_id, id) no esquema base.
 
 DO $migration$
 BEGIN
