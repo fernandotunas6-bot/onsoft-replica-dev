@@ -39,6 +39,7 @@ type Answer = { data?: unknown; error?: { code?: string; message?: string } | nu
 let queries: { table: string; ops: Op[] }[];
 let storage: { op: string; args: unknown[] }[];
 let pdf: Uint8Array;
+let cleanupThrows = false;
 
 function database(answer: (table: string, ops: Op[]) => Answer) {
   return {
@@ -77,6 +78,7 @@ function database(answer: (table: string, ops: Op[]) => Answer) {
         },
         remove: async (...args: unknown[]) => {
           storage.push({ op: "remove", args });
+          if (cleanupThrows) throw new Error("Storage temporariamente indisponível");
           return { data: [], error: null };
         },
         createSignedUrl: async (...args: unknown[]) => {
@@ -119,6 +121,7 @@ beforeEach(() => {
   queries = [];
   storage = [];
   pdf = new TextEncoder().encode("%PDF-1.7 conteúdo");
+  cleanupThrows = false;
 });
 
 describe("caminhos e nomes", () => {
@@ -269,6 +272,24 @@ describe("registar a entrega", () => {
       registerMobileSubmission(db, student, USER, { taskId: TASK, path: ownPath }),
     ).rejects.toMatchObject({ status: 409, code: "SUBMISSION_CONFLICT" });
     expect(storage.some((item) => item.op === "remove")).toBe(false);
+  });
+
+  it("falha de limpeza do ficheiro anterior não invalida a nova entrega guardada", async () => {
+    cleanupThrows = true;
+    const db = happy({
+      siga_task_submissions: (ops) =>
+        ops.some((op) => op[0] === "update")
+          ? { data: { ...row, storage_path: ownPath, version: 2 } }
+          : ops.some((op) => op[0] === "maybeSingle")
+            ? { data: row }
+            : { data: [] },
+    });
+    const result = await registerMobileSubmission(db, student, USER, {
+      taskId: TASK,
+      path: ownPath,
+    });
+    expect(result.submission).toMatchObject({ version: 2 });
+    expect(storage.find((item) => item.op === "remove")?.args).toEqual([[row.storage_path]]);
   });
 
   it("reenvio: actualiza a versão e apaga o ficheiro anterior", async () => {
