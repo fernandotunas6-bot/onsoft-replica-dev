@@ -19,4 +19,8 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
 // O mesmo retrato já inclui merge_school_subjects e os dois RPCs atómicos.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
+// Transporte PR #132: função na migração 20261018120000 ainda por aplicar.
+// O servidor recusa saveStops se a RPC faltar; nunca recorre a escritas parciais.
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  "siga_transport_save_stops_atomic",
+]);
