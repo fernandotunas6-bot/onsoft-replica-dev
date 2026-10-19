@@ -22,6 +22,22 @@ describe("orçamento do primeiro desenho", () => {
     expect(statSync("public/brands/siga-plus-icon-256.webp").size).toBeLessThan(40 * 1024);
   });
 
+  it("o favicon é um ícone pequeno, não o logótipo grande", () => {
+    const root = readFileSync("src/routes/__root.tsx", "utf8");
+    expect(root).toContain('href: "/favicon.png"');
+    // A 12/10 o ficheiro foi trocado por um logótipo de 2007x783 (1,04 MB) e
+    // o favicon real ficou ao lado como `#favicon.png`. Serve em cada página.
+    const favicon = statSync("public/favicon.png");
+    expect(favicon.size).toBeLessThan(32 * 1024);
+    // Um favicon é quadrado; o logótipo que entrou por engano não era.
+    const bytes = readFileSync("public/favicon.png");
+    expect(bytes.subarray(12, 16).toString("ascii")).toBe("IHDR");
+    const width = bytes.readUInt32BE(16);
+    const height = bytes.readUInt32BE(20);
+    expect(width).toBe(height);
+    expect(width).toBeLessThanOrEqual(256);
+  });
+
   it("ícones e núcleo saem em poucos ficheiros (não um por ícone)", () => {
     const vite = readFileSync("vite.config.ts", "utf8");
     expect(vite).toContain('name: "icons"');
