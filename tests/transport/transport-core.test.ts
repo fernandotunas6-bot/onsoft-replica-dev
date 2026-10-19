@@ -207,23 +207,68 @@ describe("portal: viaturas e rotas", () => {
 });
 
 describe("portal: paragens", () => {
-  const routeDb = (over: (table: string, ops: Op[]) => Answer | undefined) =>
-    database((table, ops) => {
-      const o = over(table, ops);
-      if (o) return o;
-      if (table === "siga_transport_routes")
+  const routeDb = () => {
+    const db = database((table, ops) => {
+      if (table === "siga_transport_routes") {
         return has(ops, "maybeSingle") ? { data: route } : { data: [] };
-      if (table === "siga_transport_stops") return { data: [{ id: STOP_A }, { id: STOP_B }] };
-      if (table === "siga_transport_assignments") return { data: [] };
+      }
       throw new Error(table);
     });
+    db.rpc = vi.fn(async (_name, args) => ({
+      data: { saved: (args.p_stops as unknown[]).length, removed: 0 },
+      error: null,
+    }));
+    return db;
+  };
 
-  it("não apaga paragem com alunos", async () => {
-    const db = routeDb((table, ops) =>
-      table === "siga_transport_assignments" && has(ops, "limit")
-        ? { data: [{ id: id(20) }] }
-        : undefined,
-    );
+  it("reordena e inclui novas paragens numa só RPC, sem escritas parciais", async () => {
+    const input = saveStopsSchema.parse({
+      routeId: ROUTE,
+      stops: [
+        { id: STOP_B, name: "B", outboundTime: "06:30" },
+        { id: STOP_A, name: "A" },
+        { name: "Nova", landmark: "  " },
+      ],
+    });
+    const db = routeDb();
+    const out = await saveTransportStops(db, SCHOOL, USER, input);
+    expect(out).toEqual({ saved: 3, removed: 0 });
+    expect(db.rpc).toHaveBeenCalledWith("siga_transport_save_stops_atomic", {
+      p_school_id: SCHOOL,
+      p_route_id: ROUTE,
+      p_user_id: USER,
+      p_stops: [
+        { id: STOP_B, name: "B", landmark: null, outbound_time: "06:30", return_time: null },
+        { id: STOP_A, name: "A", landmark: null, outbound_time: null, return_time: null },
+        { id: null, name: "Nova", landmark: null, outbound_time: null, return_time: null },
+      ],
+    });
+    expect(writes("siga_transport_stops")).toEqual([]);
+  });
+
+  it("sem RPC transaccional recusa escrita, sem voltar ao algoritmo antigo", async () => {
+    const db = routeDb();
+    delete db.rpc;
+    await expect(
+      saveTransportStops(
+        db,
+        SCHOOL,
+        USER,
+        saveStopsSchema.parse({ routeId: ROUTE, stops: [{ id: STOP_A, name: "A" }] }),
+      ),
+    ).rejects.toMatchObject({ code: "TRANSPORT_NOT_READY" });
+    expect(writes("siga_transport_stops")).toEqual([]);
+  });
+
+  it("falha por paragem em uso sem tentar outras gravações", async () => {
+    const db = routeDb();
+    db.rpc = vi.fn(async () => ({
+      data: null,
+      error: {
+        code: "23503",
+        message: 'update or delete on "siga_transport_stops" violates fk on siga_transport_assignments',
+      },
+    }));
     await expect(
       saveTransportStops(
         db,
@@ -235,43 +280,21 @@ describe("portal: paragens", () => {
     expect(writes("siga_transport_stops")).toEqual([]);
   });
 
-  it("paragem de outra rota é recusada", async () => {
+  it("paragem de outra rota falha fechada dentro da transacção", async () => {
+    const db = routeDb();
+    db.rpc = vi.fn(async () => ({
+      data: null,
+      error: { code: "23503", message: "Paragem não pertence à rota" },
+    }));
     await expect(
       saveTransportStops(
-        routeDb(() => undefined),
+        db,
         SCHOOL,
         USER,
         saveStopsSchema.parse({ routeId: ROUTE, stops: [{ id: id(99), name: "X" }] }),
       ),
     ).rejects.toMatchObject({ code: "STOP_NOT_FOUND" });
-  });
-
-  it("trocar a ordem passa por 101+ antes da posição final; novas entram no fim", async () => {
-    const input = saveStopsSchema.parse({
-      routeId: ROUTE,
-      stops: [
-        { id: STOP_B, name: "B", outboundTime: "06:30" },
-        { id: STOP_A, name: "A" },
-        { name: "Nova", landmark: "  " },
-      ],
-    });
-    await saveTransportStops(
-      routeDb(() => undefined),
-      SCHOOL,
-      USER,
-      input,
-    );
-    const updates = writes("siga_transport_stops")
-      .map((q) => q.ops.find((o) => o[0] === "update")?.[1] as Record<string, unknown> | undefined)
-      .filter(Boolean)
-      .map((u) => u!.sequence);
-    expect(updates).toEqual([101, 102, 1, 2]);
-    const insert = writes("siga_transport_stops")
-      .flatMap((q) => q.ops)
-      .find((o) => o[0] === "insert")?.[1] as Record<string, unknown>[];
-    expect(insert).toEqual([
-      expect.objectContaining({ sequence: 3, name: "Nova", landmark: null, school_id: SCHOOL }),
-    ]);
+    expect(writes("siga_transport_stops")).toEqual([]);
   });
 });
 
