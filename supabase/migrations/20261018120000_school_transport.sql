@@ -379,11 +379,11 @@ BEGIN
     FROM pg_catalog.jsonb_array_elements(p_stops) WITH ORDINALITY
   LOOP
     IF pg_catalog.jsonb_typeof(item) <> 'object'
-       OR pg_catalog.nullif(item->>'name', '') IS NULL THEN
+       OR NULLIF(item->>'name', '') IS NULL THEN
       RAISE EXCEPTION 'Paragem inválida'
         USING ERRCODE = '22023';
     END IF;
-    stop_id := pg_catalog.nullif(item->>'id', '')::uuid;
+    stop_id := NULLIF(item->>'id', '')::uuid;
     IF stop_id IS NOT NULL THEN
       IF stop_id = ANY(kept_ids) THEN
         RAISE EXCEPTION 'Paragem repetida'
@@ -426,7 +426,7 @@ BEGIN
     SELECT value, ordinality::integer
     FROM pg_catalog.jsonb_array_elements(p_stops) WITH ORDINALITY
   LOOP
-    stop_id := pg_catalog.nullif(item->>'id', '')::uuid;
+    stop_id := NULLIF(item->>'id', '')::uuid;
     IF stop_id IS NOT NULL THEN
       UPDATE public.siga_transport_stops
       SET sequence = 100 + position, updated_by = p_user_id
@@ -438,14 +438,14 @@ BEGIN
     SELECT value, ordinality::integer
     FROM pg_catalog.jsonb_array_elements(p_stops) WITH ORDINALITY
   LOOP
-    stop_id := pg_catalog.nullif(item->>'id', '')::uuid;
+    stop_id := NULLIF(item->>'id', '')::uuid;
     IF stop_id IS NOT NULL THEN
       UPDATE public.siga_transport_stops
       SET sequence = position,
           name = item->>'name',
-          landmark = pg_catalog.nullif(item->>'landmark', ''),
-          outbound_time = pg_catalog.nullif(item->>'outbound_time', '')::time,
-          return_time = pg_catalog.nullif(item->>'return_time', '')::time,
+          landmark = NULLIF(item->>'landmark', ''),
+          outbound_time = NULLIF(item->>'outbound_time', '')::time,
+          return_time = NULLIF(item->>'return_time', '')::time,
           updated_by = p_user_id
       WHERE school_id = p_school_id AND route_id = p_route_id AND id = stop_id;
     ELSE
@@ -455,9 +455,9 @@ BEGIN
       )
       VALUES (
         p_school_id, p_route_id, position, item->>'name',
-        pg_catalog.nullif(item->>'landmark', ''),
-        pg_catalog.nullif(item->>'outbound_time', '')::time,
-        pg_catalog.nullif(item->>'return_time', '')::time,
+        NULLIF(item->>'landmark', ''),
+        NULLIF(item->>'outbound_time', '')::time,
+        NULLIF(item->>'return_time', '')::time,
         p_user_id, p_user_id
       );
     END IF;
