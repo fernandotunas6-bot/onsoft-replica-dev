@@ -146,6 +146,44 @@ const day =
 await rejects(day, [a, routeB], "transport_route_same_school");
 await db.query(day, [a, routeA]);
 
+// Decisão atómica de avisos: o lock da rota ocorre ANTES da leitura
+// do estado anterior. PGlite valida contrato, idempotência e isolamento;
+// concorrência entre ligações PostgreSQL independentes fica para staging.
+const stateRpc = "public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid)";
+for (const role of ["anon", "authenticated"]) {
+  const allowed = await one("select has_function_privilege($1, $2, 'EXECUTE') as yes", [
+    role,
+    stateRpc,
+  ]);
+  assert.equal(allowed.yes, false, "RPC do estado exposta a " + role);
+}
+assert.equal(
+  (await one("select has_function_privilege('service_role', $1, 'EXECUTE') as yes", [stateRpc]))
+    .yes,
+  true,
+);
+const saveDay = async (schoolId, routeId, status, delay = 0) =>
+  (
+    await one(
+      "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,null::text,null::uuid) as result",
+      [schoolId, routeId, status, delay],
+    )
+  ).result;
+assert.deepEqual(await saveDay(a, routeA, "delayed", 10), { changed: false });
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: true });
+assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: false });
+assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: true });
+assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: false });
+await assert.rejects(saveDay(b, routeA, "cancelled"), (error) => error.code === "23503");
+assert.deepEqual(
+  await one(
+    "select status, delay_minutes from siga_transport_day_status where route_id = $1",
+    [routeA],
+  ),
+  { status: "normal", delay_minutes: 0 },
+);
+await assert.rejects(saveDay(a, routeA, "delayed", 0), (error) => error.code === "22023");
+
 // ── Paragens atómicas: função SECURITY INVOKER só para service_role.
 const rpc = "public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)";
 for (const role of ["anon", "authenticated"]) {
