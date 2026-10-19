@@ -37,7 +37,16 @@ export default defineConfig({
     jsxRuntime: "automatic",
   },
   nitro: {
-    preset: "cloudflare-module",
+    /**
+     * O alvo de publicação é sempre o `cloudflare-module`. A variável existe só
+     * para medir o build de produção localmente: o `wrangler` exige macOS 13.5+ e
+     * `vite preview` procura o build em `dist/server/`, que este projecto não usa.
+     * Com `SIGA_NITRO_PRESET=node-server` sai uma saída servível por Node, para
+     * Lighthouse e ensaios de navegador. Nome próprio de propósito — não é o
+     * `NITRO_PRESET` que o Nitro ou um CI possam definir sem ser de propósito.
+     * Nunca definir isto num workflow de publicação.
+     */
+    preset: process.env["SIGA_NITRO_PRESET"] ?? "cloudflare-module",
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).

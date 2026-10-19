@@ -4,6 +4,16 @@ import { resolve } from "node:path";
 
 // Auditoria local, sem sessão: nunca submete formulários nem escreve na escola.
 // node scripts/siga/performance-browser.mjs current reports/performance
+//
+// Por omissão aponta ao servidor de desenvolvimento. Para medir o build de
+// produção, servi-lo e apontar aqui — os números de desenvolvimento incluem
+// compilação e não valem como aceitação:
+//   SIGA_NITRO_PRESET=node-server npm run build
+//   PORT=3013 node .output/server/index.mjs
+//   SIGA_PERF_BASE_URL=http://127.0.0.1:3013 node scripts/siga/performance-browser.mjs prod docs/performance/2026-10-19
+const baseUrl = process.env["SIGA_PERF_BASE_URL"] ?? "http://localhost:3006";
+if (!/^https?:\/\/[a-zA-Z0-9.:[\]-]+\/?$/.test(baseUrl)) throw new Error("URL base inválido.");
+const isDevServer = baseUrl.includes(":3006");
 const label = process.argv[2] ?? "current";
 if (!/^[a-z0-9-]+$/.test(label)) throw new Error("Rótulo inválido.");
 const output = resolve(process.argv[3] ?? "reports/performance");
@@ -71,7 +81,7 @@ let activeBrowser;
           } catch {}
         }
       });
-      await page.goto("http://localhost:3006/", { waitUntil: "domcontentloaded", timeout: 120000 });
+      await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 120000 });
       await page
         .getByRole("heading", { name: "Iniciar sessão", exact: true })
         .waitFor({ timeout: 60000 });
@@ -111,8 +121,13 @@ let activeBrowser;
     resolve(output, `browser-${label}.json`),
     JSON.stringify(
       {
-        kind: "local-development-lab",
-        note: "Chrome isolado; sem sessão autenticada, sem throttling e sem percentis de campo. Latência do teste inclui automação; não equivale a INP.",
+        kind: isDevServer ? "local-development-lab" : "local-production-build-lab",
+        baseUrl,
+        note:
+          (isDevServer
+            ? "Servidor de desenvolvimento: os tempos incluem compilação e não valem como aceitação. "
+            : "Build de produção servido localmente; o pacote do cliente é o mesmo do alvo de publicação. ") +
+          "Chrome isolado; sem sessão autenticada, sem throttling e sem percentis de campo. Latência do teste inclui automação; não equivale a INP.",
         runs,
       },
       null,
