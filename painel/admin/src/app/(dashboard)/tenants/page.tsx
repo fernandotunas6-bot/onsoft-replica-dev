@@ -30,6 +30,8 @@ interface TenantRow {
   max_students?: number
   usage_last_calculated_at?: string
   plans?: { name?: string; code?: string }
+  billing_exempt?: boolean
+  billing_exempt_reason?: string | null
 }
 
 interface Stats {
@@ -248,6 +250,15 @@ export default function TenantsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{tenantStatusLabel(tenant.status)}</Badge>
+                        {tenant.billing_exempt ? (
+                          <Badge
+                            variant="secondary"
+                            className="ml-1"
+                            title={tenant.billing_exempt_reason ?? undefined}
+                          >
+                            Isenta
+                          </Badge>
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-sm">
                         <div>{tenant.contact_email || "—"}</div>

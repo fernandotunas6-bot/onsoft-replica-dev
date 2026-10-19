@@ -9,6 +9,7 @@
  * (`saas_billing_settings`); sem configuração, valem os de `DEFAULT_BILLING`.
  *
  * Lógica pura: sem base, sem React (testada em tests/saas/billing-periods.test.ts).
+ * Copiada tal e qual para painel/web e painel/admin (tests/saas/plan-details.test.ts).
  */
 
 export const BILLING_PERIOD_CODES = ["monthly", "quarterly", "semiannual", "yearly"] as const;

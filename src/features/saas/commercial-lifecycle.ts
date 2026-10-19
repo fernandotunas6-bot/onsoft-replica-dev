@@ -381,10 +381,51 @@ async function runLeadReminders(now: Date) {
   return sent;
 }
 
+/**
+ * Fim de uma assinatura com «Cancelar renovação»: passado o período pago, fica
+ * cancelada (o SIGA mostra o ecrã de reactivação; os dados ficam). Escolas
+ * isentas ou com a cobrança desligada não são tocadas.
+ */
+async function runRenewalEnds(db: Db, now: Date) {
+  const billing = await readBillingSettings(db);
+  if (!billing.chargingEnabled) return 0;
+  const { data: rows } = await db
+    .from("subscriptions")
+    .select("id, tenant_id, current_period_end, tenants(billing_exempt)")
+    .eq("status", "active")
+    .eq("cancel_at_period_end", true)
+    .lt("current_period_end", now.toISOString())
+    .limit(200);
+  let ended = 0;
+  for (const row of (rows ?? []) as Array<Record<string, unknown>>) {
+    const tenant = row["tenants"] as { billing_exempt?: boolean | null } | null;
+    if (tenant?.billing_exempt) continue;
+    const tenantId = String(row["tenant_id"]);
+    try {
+      await db.from("subscriptions").update({ status: "canceled" }).eq("id", String(row["id"]));
+      await db.from("tenants").update({ subscription_status: "canceled" }).eq("id", tenantId);
+      await db.from("saas_audit_logs").insert({
+        tenant_id: tenantId,
+        action: "subscription_ended",
+        entity: "subscription",
+        entity_id: String(row["id"]),
+        metadata: { period_end: row["current_period_end"] as string, reason: "not_renewed" },
+      });
+      ended += 1;
+    } catch (error) {
+      reportSigaError("saas.lifecycle.renewal_end_failed", error, { tenant_id: tenantId });
+    }
+  }
+  return ended;
+}
+
 export async function runCommercialLifecycle(now = new Date()) {
   const db = await loadSgaAdminClient();
   const trialReminders = await runTrialReminders(db, now);
   const signupReminders = await runLeadReminders(now);
-  reportSigaEvent("saas.lifecycle.completed", { count: trialReminders + signupReminders });
-  return { trialReminders, signupReminders };
+  const subscriptionsEnded = await runRenewalEnds(db, now);
+  reportSigaEvent("saas.lifecycle.completed", {
+    count: trialReminders + signupReminders + subscriptionsEnded,
+  });
+  return { trialReminders, signupReminders, subscriptionsEnded };
 }

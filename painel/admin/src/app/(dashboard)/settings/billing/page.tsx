@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { fetchSaasPlans, type SaasPlanRow } from "@/lib/saas-api"
 import { getWebUrl } from "@/lib/ecosystem-urls"
+import { BillingConfigCard } from "./components/billing-config-card"
 
 function formatAoa(value?: number) {
   if (value == null) return "—"
@@ -43,7 +44,7 @@ export default function BillingSettings() {
           <h1 className="text-3xl font-bold">Catálogo SaaS</h1>
           <p className="text-muted-foreground">
             Planos activos da plataforma (mesma fonte que o WEB e o wizard de criação).
-            Cobrança por escola é gerida em Escolas clientes.
+            Isenção de uma escola em particular: Escolas clientes → Subscrição.
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
@@ -53,6 +54,8 @@ export default function BillingSettings() {
           </a>
         </Button>
       </div>
+
+      <BillingConfigCard plans={plans} />
 
       {loading ? (
         <p className="text-sm text-muted-foreground">A carregar planos…</p>

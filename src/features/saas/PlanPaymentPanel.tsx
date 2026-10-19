@@ -13,7 +13,13 @@ import {
   type PlanPaymentStart,
   type SubscriptionOverview,
 } from "./subscription-server";
-import { planPriceKz } from "./subscription-view";
+import {
+  BILLING_PERIOD_LABEL,
+  BILLING_PERIOD_UNIT,
+  enabledPeriods,
+  periodPrice,
+  type BillingPeriodCode,
+} from "./billing-periods";
 
 const PAYMENT_IBAN = String(import.meta.env["VITE_PAYMENT_IBAN"] ?? "").trim();
 const PAYMENT_BANK = String(import.meta.env["VITE_PAYMENT_BANK"] ?? "").trim();
@@ -41,11 +47,18 @@ async function fileToBase64(file: File): Promise<string> {
  * sem PayFlow, o IBAN da plataforma — e (2) enviar o recibo de uma transferência
  * já feita. A equipa confirma a entrada do dinheiro e activa o plano.
  */
-export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
+export function PlanPaymentPanel({
+  data,
+  period: billing,
+  onPeriodChange,
+}: {
+  data: SubscriptionOverview;
+  period: BillingPeriodCode;
+  onPeriodChange: (period: BillingPeriodCode) => void;
+}) {
   const defaultPlan =
     data.pendingPlanRequest?.planCode ?? data.plan?.code ?? data.plans[0]?.code ?? "";
   const [planCode, setPlanCode] = useState(defaultPlan);
-  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [charge, setCharge] = useState<PlanPaymentStart | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [reference, setReference] = useState("");
@@ -55,11 +68,19 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
   const submitProof = useServerFn(submitPlanPaymentProof);
 
   const plan = data.plans.find((p) => p.code === planCode) ?? null;
-  const amount = plan ? planPriceKz(plan, billing) : 0;
+  const price = plan ? periodPrice(plan.price_aoa_monthly, billing, data.billing) : null;
+  const amount = price?.total ?? 0;
+  // A cobrança gerada era para outra periodicidade: gera-se outra.
+  const [chargeFor, setChargeFor] = useState<string>("");
+  const chargeKey = `${planCode}-${billing}`;
+  const visibleCharge = chargeFor === chargeKey ? charge : null;
 
   const startMutation = useMutation({
     mutationFn: () => start({ data: { planCode: planCode as never, billing } }),
-    onSuccess: (result) => setCharge(result),
+    onSuccess: (result) => {
+      setCharge(result);
+      setChargeFor(chargeKey);
+    },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Não foi possível gerar a cobrança."),
   });
@@ -123,20 +144,36 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
               value={billing}
               onChange={(e) => {
-                setBilling(e.target.value as "monthly" | "yearly");
-                setCharge(null);
+                onPeriodChange(e.target.value as BillingPeriodCode);
               }}
             >
-              <option value="monthly">Mensal</option>
-              <option value="yearly">Anual</option>
+              {enabledPeriods(data.billing).map((p) => (
+                <option key={p.code} value={p.code}>
+                  {BILLING_PERIOD_LABEL[p.code]}
+                  {p.discountPct > 0 ? ` (−${Math.round(p.discountPct)}%)` : ""}
+                </option>
+              ))}
             </select>
           </div>
         </div>
-        <p className="text-sm">
-          A pagar: <strong>{amount ? kz(amount) : "sem preço definido"}</strong>
-        </p>
+        <div className="text-sm">
+          <p>
+            A pagar: <strong>{amount ? kz(amount) : "sem preço definido"}</strong>
+            {price && price.months > 1 ? (
+              <span className="text-muted-foreground"> · {kz(price.perMonth)}/mês</span>
+            ) : null}
+          </p>
+          {price ? (
+            <p className="text-xs text-muted-foreground">
+              Cobrado {BILLING_PERIOD_UNIT[billing]}
+              {price.savingsKz > 0 ? (
+                <span className="text-success"> · poupa {kz(price.savingsKz)}</span>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
 
-        {!charge ? (
+        {!visibleCharge ? (
           <Button
             type="button"
             size="sm"
@@ -145,19 +182,21 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
           >
             {startMutation.isPending ? "A gerar…" : "Gerar referência de pagamento"}
           </Button>
-        ) : charge.mode === "payflow" ? (
+        ) : visibleCharge.mode === "payflow" ? (
           <dl className="grid gap-1 rounded-md bg-muted/60 p-3 text-sm">
             <dt className="text-xs text-muted-foreground">Transferência bancária</dt>
-            {charge.reference ? (
+            {visibleCharge.reference ? (
               <dd>
-                Referência: <span className="font-mono">{charge.reference}</span>
+                Referência: <span className="font-mono">{visibleCharge.reference}</span>
               </dd>
             ) : null}
-            {charge.iban ? <dd className="break-all font-mono text-xs">{charge.iban}</dd> : null}
-            {charge.beneficiary ? (
+            {visibleCharge.iban ? (
+              <dd className="break-all font-mono text-xs">{visibleCharge.iban}</dd>
+            ) : null}
+            {visibleCharge.beneficiary ? (
               <dd className="text-xs text-muted-foreground">
-                {charge.beneficiary}
-                {charge.bankName ? ` · ${charge.bankName}` : ""}
+                {visibleCharge.beneficiary}
+                {visibleCharge.bankName ? ` · ${visibleCharge.bankName}` : ""}
               </dd>
             ) : null}
             <dd className="text-xs text-muted-foreground">
@@ -165,7 +204,7 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
             </dd>
             <dd className="mt-2">
               <Button asChild size="sm" variant="outline">
-                <a href={charge.checkoutUrl} target="_blank" rel="noreferrer">
+                <a href={visibleCharge.checkoutUrl} target="_blank" rel="noreferrer">
                   Abrir página de pagamento <ExternalLink className="size-3.5" />
                 </a>
               </Button>

@@ -1,5 +1,6 @@
 import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { periodEnd, type BillingPeriodCode } from "@/features/saas/billing-periods";
 import { isPlatformOwnedHostname } from "@/lib/saas/platform-domain";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { sumTenantUsageStudents, usageFromTenantRow } from "@/features/saas/tenant-access";
@@ -47,6 +48,7 @@ async function syncTenantSubscriptionRecord(
     planId: string;
     status: SubscriptionLifecycle;
     periodEnd?: string;
+    payment?: { period: BillingPeriodCode; startedAt: string };
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -70,6 +72,13 @@ async function syncTenantSubscriptionRecord(
         status: input.status,
         current_period_end: periodEnd,
         updated_at: now,
+        ...(input.payment
+          ? {
+              billing_period: input.payment.period,
+              current_period_start: input.payment.startedAt,
+              cancel_at_period_end: false,
+            }
+          : {}),
       })
       .eq("id", existing.id);
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a subscrição.");
@@ -82,6 +91,7 @@ async function syncTenantSubscriptionRecord(
     status: input.status,
     current_period_start: now,
     current_period_end: periodEnd,
+    billing_period: input.payment?.period ?? null,
   });
   if (error) throw publicDatabaseError(error, "Não foi possível criar a subscrição.");
 }
@@ -170,7 +180,9 @@ export async function updateTenantSubscription(input: {
   tenantId: string;
   plan_code?: "start" | "professional" | "business" | "enterprise";
   extend_trial_days?: number;
-  confirm_payment_billing?: "monthly" | "yearly";
+  confirm_payment_billing?: BillingPeriodCode;
+  billing_exempt?: boolean;
+  billing_exempt_reason?: string;
   userId: string;
 }): Promise<{ success: true }> {
   const db = await loadSgaAdminClient();
@@ -226,15 +238,21 @@ export async function updateTenantSubscription(input: {
         ? new Date(current.current_period_end)
         : null;
     const base = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
-    const end = new Date(base);
-    if (input.confirm_payment_billing === "yearly") end.setFullYear(end.getFullYear() + 1);
-    else end.setMonth(end.getMonth() + 1);
-    paidUntil = end.toISOString();
+    paidUntil = periodEnd(base, input.confirm_payment_billing).toISOString();
     patch.subscription_status = "active";
     patch.status = "active";
     metadata.payment_confirmed = true;
     metadata.billing = input.confirm_payment_billing;
     metadata.paid_until = paidUntil;
+  }
+
+  if (input.billing_exempt != null) {
+    patch.billing_exempt = input.billing_exempt;
+    patch.billing_exempt_reason = input.billing_exempt
+      ? input.billing_exempt_reason?.trim() || null
+      : null;
+    metadata.billing_exempt = input.billing_exempt;
+    metadata.billing_exempt_reason = patch.billing_exempt_reason;
   }
 
   if (!Object.keys(patch).some((key) => key !== "updated_at")) {
@@ -265,6 +283,10 @@ export async function updateTenantSubscription(input: {
       planId: updatedTenant.plan_id as string,
       status: (updatedTenant.subscription_status as SubscriptionLifecycle) || "active",
       periodEnd: paidUntil ?? (updatedTenant.trial_ends_at as string | null) ?? undefined,
+      // Pagamento novo: período começa hoje, renova no fim (desfaz «não renovar»).
+      payment: input.confirm_payment_billing
+        ? { period: input.confirm_payment_billing, startedAt: new Date().toISOString() }
+        : undefined,
     });
   }
 

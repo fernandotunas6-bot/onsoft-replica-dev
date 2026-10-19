@@ -1,3 +1,4 @@
+import type { BillingPeriodCode, BillingSettings } from "@/lib/billing-periods"
 import { getPayflowHealthUrl, getSaasApiUrl } from "@/lib/ecosystem-urls"
 
 export interface SaasSessionProfile {
@@ -147,8 +148,11 @@ export async function updateTenantSubscription(
     tenantId: string
     plan_code?: string
     extend_trial_days?: number
-    /** Pagamento confirmado: activa a assinatura por um mês ou um ano. */
-    confirm_payment_billing?: "monthly" | "yearly"
+    /** Pagamento confirmado: activa a assinatura pelo período pago. */
+    confirm_payment_billing?: BillingPeriodCode
+    /** Não cobrar esta escola (parceria, piloto…). */
+    billing_exempt?: boolean
+    billing_exempt_reason?: string
   },
 ): Promise<{ ok: boolean; error?: string }> {
   if (!accessToken) return { ok: false, error: "Sessão em falta." }
@@ -457,4 +461,31 @@ export async function fetchSignupLeads(
   const data = (await res.json().catch(() => ({}))) as SignupLeadsResult & { error?: string }
   if (!res.ok) return { ok: false, error: data.error || "Não foi possível ler os registos." }
   return { ok: true, data }
+}
+
+export async function fetchBillingSettings(
+  accessToken: string | undefined | null,
+): Promise<{ ok: boolean; settings?: BillingSettings; error?: string }> {
+  if (!accessToken) return { ok: false, error: "Sessão em falta." }
+  const res = await fetch(getSaasApiUrl("/api/saas/billing-settings"), {
+    headers: authHeaders(accessToken),
+  })
+  const data = (await res.json().catch(() => ({}))) as { settings?: BillingSettings; error?: string }
+  if (!res.ok) return { ok: false, error: data.error || "Não foi possível ler a configuração." }
+  return { ok: true, settings: data.settings }
+}
+
+export async function saveBillingSettings(
+  accessToken: string | undefined | null,
+  settings: BillingSettings,
+): Promise<{ ok: boolean; settings?: BillingSettings; error?: string }> {
+  if (!accessToken) return { ok: false, error: "Sessão em falta." }
+  const res = await fetch(getSaasApiUrl("/api/saas/billing-settings"), {
+    method: "POST",
+    headers: authHeaders(accessToken, true),
+    body: JSON.stringify(settings),
+  })
+  const data = (await res.json().catch(() => ({}))) as { settings?: BillingSettings; error?: string }
+  if (!res.ok) return { ok: false, error: data.error || "Não foi possível guardar a configuração." }
+  return { ok: true, settings: data.settings }
 }

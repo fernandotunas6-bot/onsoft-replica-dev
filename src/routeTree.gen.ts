@@ -66,6 +66,7 @@ import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/le
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
+import { Route as ApiSaasBillingSettingsRouteImport } from './routes/api/saas/billing-settings'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
 import { Route as ApiSaasGatewayWebhooksRouteImport } from './routes/api/saas/gateway-webhooks'
 import { Route as ApiSaasMailboxesRouteImport } from './routes/api/saas/mailboxes'
@@ -395,6 +396,11 @@ const ApiSaasBillingProofsRoute = ApiSaasBillingProofsRouteImport.update({
   path: '/api/saas/billing-proofs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSaasBillingSettingsRoute = ApiSaasBillingSettingsRouteImport.update({
+  id: '/api/saas/billing-settings',
+  path: '/api/saas/billing-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSaasDomainsRoute = ApiSaasDomainsRouteImport.update({
   id: '/api/saas/domains',
   path: '/api/saas/domains',
@@ -674,6 +680,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
@@ -774,6 +781,7 @@ export interface FileRoutesByTo {
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
@@ -875,6 +883,7 @@ export interface FileRoutesById {
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
+  '/api/saas/billing-settings': typeof ApiSaasBillingSettingsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
   '/api/saas/gateway-webhooks': typeof ApiSaasGatewayWebhooksRoute
   '/api/saas/mailboxes': typeof ApiSaasMailboxesRoute
@@ -977,6 +986,7 @@ export interface FileRouteTypes {
     | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1077,6 +1087,7 @@ export interface FileRouteTypes {
     | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1177,6 +1188,7 @@ export interface FileRouteTypes {
     | '/api/cron/saas-lifecycle'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
+    | '/api/saas/billing-settings'
     | '/api/saas/domains'
     | '/api/saas/gateway-webhooks'
     | '/api/saas/mailboxes'
@@ -1265,6 +1277,7 @@ export interface RootRouteChildren {
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
+  ApiSaasBillingSettingsRoute: typeof ApiSaasBillingSettingsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
   ApiSaasGatewayWebhooksRoute: typeof ApiSaasGatewayWebhooksRoute
   ApiSaasMailboxesRoute: typeof ApiSaasMailboxesRoute
@@ -1687,6 +1700,13 @@ declare module '@tanstack/react-router' {
       path: '/api/saas/billing-proofs'
       fullPath: '/api/saas/billing-proofs'
       preLoaderRoute: typeof ApiSaasBillingProofsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saas/billing-settings': {
+      id: '/api/saas/billing-settings'
+      path: '/api/saas/billing-settings'
+      fullPath: '/api/saas/billing-settings'
+      preLoaderRoute: typeof ApiSaasBillingSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/domains': {
@@ -2211,6 +2231,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
+  ApiSaasBillingSettingsRoute: ApiSaasBillingSettingsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
   ApiSaasGatewayWebhooksRoute: ApiSaasGatewayWebhooksRoute,
   ApiSaasMailboxesRoute: ApiSaasMailboxesRoute,

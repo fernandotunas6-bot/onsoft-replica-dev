@@ -1,3 +1,4 @@
+import { DEFAULT_BILLING, normalizeBillingSettings, type BillingSettings } from "./billing-periods"
 import { getSaasApiUrl, ECOSYSTEM_URLS } from "@/lib/ecosystem-urls"
 
 export type PlanCode = "start" | "professional" | "business" | "enterprise"
@@ -68,6 +69,18 @@ export function planLimitFeatures(plan: SaasPlan): string[] {
     items.push("Identidade visual avançada (logótipo e cores)")
   }
   return items
+}
+
+/** Catálogo e periodicidades activas (descontos configurados no ADMIN). */
+export async function fetchSaasCatalog(): Promise<{ plans: SaasPlan[]; billing: BillingSettings }> {
+  try {
+    const res = await fetch(getSaasApiUrl("/api/saas/plans"))
+    if (!res.ok) return { plans: [], billing: DEFAULT_BILLING }
+    const data = (await res.json()) as { plans?: SaasPlan[]; billing?: unknown }
+    return { plans: data.plans ?? [], billing: normalizeBillingSettings(data.billing ?? null) }
+  } catch {
+    return { plans: [], billing: DEFAULT_BILLING }
+  }
 }
 
 export async function fetchSaasPlans(): Promise<SaasPlan[]> {

@@ -25,6 +25,12 @@ import {
   type SaasAuditLogRow,
   type SubscriptionRow,
 } from "@/lib/saas-api"
+import {
+  BILLING_PERIOD_LABEL,
+  BILLING_PERIOD_MONTHS,
+  isBillingPeriodCode,
+  type BillingPeriodCode,
+} from "@/lib/billing-periods"
 
 type PlanRequest = {
   tenantId: string
@@ -77,7 +83,7 @@ type PaymentProof = {
   tenantName: string
   tenantSlug: string | null
   planCode: string
-  billing: "monthly" | "yearly"
+  billing: BillingPeriodCode
   amountKz: number | null
   proofPath: string
   transferReference: string | null
@@ -112,7 +118,7 @@ function pendingPaymentProofs(logs: SaasAuditLogRow[]): PaymentProof[] {
         tenantName: log.tenant_name || String(meta.school ?? "Escola"),
         tenantSlug: log.tenant_slug ?? null,
         planCode: String(meta.plan_code ?? ""),
-        billing: meta.billing === "yearly" ? "yearly" : "monthly",
+        billing: isBillingPeriodCode(meta.billing) ? meta.billing : "monthly",
         amountKz: typeof meta.amount_kz === "number" ? meta.amount_kz : null,
         proofPath: String(meta.proof_path ?? ""),
         transferReference: typeof meta.transfer_reference === "string" ? meta.transfer_reference : null,
@@ -229,7 +235,7 @@ export default function SubscriptionsPage() {
     if (!result.ok) setError(result.error || "Não foi possível confirmar o pagamento.")
     else
       setBackfillMessage(
-        `${proof.tenantName}: pagamento confirmado, plano ${proof.planCode} activo (${proof.billing === "yearly" ? "1 ano" : "1 mês"}).`,
+        `${proof.tenantName}: pagamento confirmado, plano ${proof.planCode} activo (${BILLING_PERIOD_MONTHS[proof.billing]} ${BILLING_PERIOD_MONTHS[proof.billing] === 1 ? "mês" : "meses"}).`,
       )
     await load()
     setApproving(null)
@@ -326,7 +332,7 @@ export default function SubscriptionsPage() {
                         ) : null}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {proof.planCode} · {proof.billing === "yearly" ? "anual" : "mensal"}
+                        {proof.planCode} · {BILLING_PERIOD_LABEL[proof.billing].toLowerCase()}
                         {proof.amountKz ? ` · ${proof.amountKz.toLocaleString("pt-AO")} Kz` : ""}
                         {proof.transferReference ? ` · ref. ${proof.transferReference}` : ""}
                         {proof.paidOn ? ` · pago a ${proof.paidOn}` : ""} · enviado a {formatDate(proof.submittedAt)}
@@ -376,7 +382,7 @@ export default function SubscriptionsPage() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {request.from ?? "—"} → <span className="text-foreground">{request.to}</span>
-                        {request.billing === "yearly" ? " · anual" : " · mensal"} · pedido a{" "}
+                        {isBillingPeriodCode(request.billing) ? ` · ${BILLING_PERIOD_LABEL[request.billing].toLowerCase()}` : ""} · pedido a{" "}
                         {formatDate(request.requestedAt)}
                       </div>
                       {request.note ? (

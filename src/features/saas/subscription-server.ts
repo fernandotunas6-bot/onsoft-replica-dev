@@ -19,7 +19,16 @@ import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
 import { fetchActivePlans } from "./catalog";
 import { planCodeSchema } from "./schemas";
 import type { Plan } from "./types";
-import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom, planPriceKz } from "./subscription-view";
+import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom } from "./subscription-view";
+import {
+  BILLING_PERIOD_CODES,
+  BILLING_PERIOD_LABEL,
+  isBillingPeriodCode,
+  periodPrice,
+  type BillingPeriodCode,
+  type BillingSettings,
+} from "./billing-periods";
+import { isBillingWaived, readBillingSettings } from "./billing-settings";
 import { getPayflowUrl } from "@/lib/ecosystem-urls";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -44,6 +53,15 @@ export type SubscriptionOverview = {
   subdomain: string;
   plans: Plan[];
   pendingPlanRequest: { planCode: string; requestedAt: string } | null;
+  /** Período pago actual (null no trial ou antes desta funcionalidade). */
+  billingPeriod: BillingPeriodCode | null;
+  periodStart: string | null;
+  /** «Não renovar»: o acesso continua até `periodEnd` e depois pára. */
+  cancelAtPeriodEnd: boolean;
+  billing: BillingSettings;
+  /** Isenta pela equipa ou cobrança desligada: não há nada a pagar agora. */
+  billingWaived: boolean;
+  billingExempt: boolean;
 };
 
 async function requireSchoolAdminTenant(userId: string) {
@@ -87,34 +105,40 @@ export const getMySubscription = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<SubscriptionOverview> => {
     const { db, schoolName, tenantId } = await requireSchoolAdminTenant(context.userId);
 
-    const [tenantRes, subscriptionRes, usageRes, domainsRes, plans, pending] = await Promise.all([
-      db
-        .from("tenants")
-        .select(
-          "id, name, slug, status, plan_id, subscription_status, trial_ends_at, max_students, max_storage_gb",
-        )
-        .eq("id", tenantId)
-        .maybeSingle(),
-      db
-        .from("subscriptions")
-        .select("plan_id, status, current_period_end")
-        .eq("tenant_id", tenantId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      db
-        .from("tenant_usage")
-        .select("active_students_count, active_staff_count, storage_bytes_used, last_calculated_at")
-        .eq("tenant_id", tenantId)
-        .maybeSingle(),
-      db
-        .from("tenant_domains")
-        .select("hostname, type, status, ssl_status")
-        .eq("tenant_id", tenantId)
-        .order("created_at", { ascending: true }),
-      fetchActivePlans(),
-      latestPlanRequest(db, tenantId),
-    ]);
+    const [tenantRes, subscriptionRes, usageRes, domainsRes, plans, pending, billing] =
+      await Promise.all([
+        db
+          .from("tenants")
+          .select(
+            "id, name, slug, status, plan_id, subscription_status, trial_ends_at, max_students, max_storage_gb, billing_exempt",
+          )
+          .eq("id", tenantId)
+          .maybeSingle(),
+        db
+          .from("subscriptions")
+          .select(
+            "plan_id, status, current_period_start, current_period_end, cancel_at_period_end, billing_period",
+          )
+          .eq("tenant_id", tenantId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        db
+          .from("tenant_usage")
+          .select(
+            "active_students_count, active_staff_count, storage_bytes_used, last_calculated_at",
+          )
+          .eq("tenant_id", tenantId)
+          .maybeSingle(),
+        db
+          .from("tenant_domains")
+          .select("hostname, type, status, ssl_status")
+          .eq("tenant_id", tenantId)
+          .order("created_at", { ascending: true }),
+        fetchActivePlans(),
+        latestPlanRequest(db, tenantId),
+        readBillingSettings(db),
+      ]);
     if (tenantRes.error)
       throw publicDatabaseError(tenantRes.error, "Não foi possível ler a assinatura.");
     const tenant = tenantRes.data;
@@ -161,12 +185,20 @@ export const getMySubscription = createServerFn({ method: "GET" })
       subdomain: getPlatformSubdomain(String(tenant.slug ?? "")),
       plans,
       pendingPlanRequest: pending,
+      billingPeriod: isBillingPeriodCode(subscriptionRes.data?.billing_period)
+        ? subscriptionRes.data.billing_period
+        : null,
+      periodStart: (subscriptionRes.data?.current_period_start as string | null) ?? null,
+      cancelAtPeriodEnd: subscriptionRes.data?.cancel_at_period_end === true,
+      billing,
+      billingWaived: isBillingWaived(tenant, billing),
+      billingExempt: tenant.billing_exempt === true,
     };
   });
 
 export const requestPlanChangeInputSchema = z.object({
   planCode: planCodeSchema,
-  billing: z.enum(["monthly", "yearly"]).default("monthly"),
+  billing: z.enum(BILLING_PERIOD_CODES).default("monthly"),
   note: z.string().trim().max(500).optional(),
 });
 
@@ -222,7 +254,34 @@ export const cancelPlanChangeRequest = createServerFn({ method: "POST" })
 
 // ─── Pagamento do plano ──────────────────────────────────────────────────────
 
-const billingSchema = z.enum(["monthly", "yearly"]);
+const billingSchema = z.enum(BILLING_PERIOD_CODES);
+
+/**
+ * Valor a cobrar: preço mensal do plano no período escolhido, com o desconto
+ * configurado no ADMIN. Recusa períodos desligados e escolas que não pagam.
+ */
+async function chargeFor(
+  db: Db,
+  tenantId: string,
+  plan: Plan,
+  period: BillingPeriodCode,
+): Promise<number> {
+  const [billing, { data: tenant }] = await Promise.all([
+    readBillingSettings(db),
+    db.from("tenants").select("billing_exempt").eq("id", tenantId).maybeSingle(),
+  ]);
+  if (isBillingWaived(tenant, billing)) {
+    throw new Error("Neste momento a sua escola não tem nada a pagar.");
+  }
+  if (!billing.periods.some((p) => p.code === period && p.enabled)) {
+    throw new Error(
+      `O pagamento ${BILLING_PERIOD_LABEL[period].toLowerCase()} não está disponível.`,
+    );
+  }
+  const price = periodPrice(plan.price_aoa_monthly, period, billing);
+  if (!price) throw new Error("Este plano não tem preço definido. Fale com a equipa comercial.");
+  return price.total;
+}
 
 export type PlanPaymentStart =
   | {
@@ -255,9 +314,7 @@ export const startPlanPayment = createServerFn({ method: "POST" })
     const plans = await fetchActivePlans();
     const plan = plans.find((p) => p.code === data.planCode);
     if (!plan) throw new Error("Esse plano não está disponível.");
-    const amountKz = planPriceKz(plan, data.billing);
-    if (!amountKz)
-      throw new Error("Este plano não tem preço definido. Fale com a equipa comercial.");
+    const amountKz = await chargeFor(db, tenantId, plan, data.billing);
 
     const apiKey = process.env["PAYFLOW_INTEGRATION_API_KEY"]?.trim() ?? "";
     const url = getPayflowUrl("/api/v1/payments");
@@ -294,7 +351,7 @@ export const startPlanPayment = createServerFn({ method: "POST" })
         body: JSON.stringify({
           amount: Math.round(amountKz * 100),
           currency: "AOA",
-          description: `SIGA Plus — plano ${plan.name} (${data.billing === "yearly" ? "anual" : "mensal"})`,
+          description: `SIGA Plus — plano ${plan.name} (${BILLING_PERIOD_LABEL[data.billing].toLowerCase()})`,
           customer: { name: schoolName, email: (school?.email as string | null) ?? "" },
           external_reference: `SIGA-SUB-${String(tenant?.slug ?? tenantId).slice(0, 60)}`,
           source_app: "SIGA",
@@ -400,6 +457,7 @@ export const submitPlanPaymentProof = createServerFn({ method: "POST" })
     const plans = await fetchActivePlans();
     const plan = plans.find((p) => p.code === data.planCode);
     if (!plan) throw new Error("Esse plano não está disponível.");
+    const amountKz = await chargeFor(db, tenantId, plan, data.billing);
     const buffer = Buffer.from(data.base64, "base64");
     if (buffer.byteLength > 5 * 1024 * 1024)
       throw new Error("O comprovativo deve ter no máximo 5 MB.");
@@ -429,7 +487,7 @@ export const submitPlanPaymentProof = createServerFn({ method: "POST" })
           school: schoolName,
           plan_code: plan.code,
           billing: data.billing,
-          amount_kz: planPriceKz(plan, data.billing),
+          amount_kz: amountKz,
           proof_path: path,
           content_type: data.contentType,
           transfer_reference: data.transferReference ?? null,
@@ -458,4 +516,47 @@ export const submitPlanPaymentProof = createServerFn({ method: "POST" })
     const { error } = await db.from("saas_audit_logs").insert(rows);
     if (error) throw publicDatabaseError(error, "Não foi possível registar o comprovativo.");
     return { ok: true };
+  });
+
+/**
+ * Renovação automática, como nas assinaturas do Claude: «Cancelar renovação»
+ * mantém tudo até ao fim do período pago e só então pára; «Retomar» desfaz.
+ * Não há reembolsos nem cortes a meio do período.
+ */
+export const setSubscriptionRenewal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ renew: z.boolean(), reason: z.string().trim().max(500).optional() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { db, tenantId, schoolName } = await requireSchoolAdminTenant(context.userId);
+    const { data: subscription, error: loadError } = await db
+      .from("subscriptions")
+      .select("id, status, current_period_end")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (loadError) throw publicDatabaseError(loadError, "Não foi possível ler a assinatura.");
+    if (!subscription || subscription.status !== "active") {
+      throw new Error("Só uma assinatura paga e activa tem renovação para gerir.");
+    }
+    const { error } = await db
+      .from("subscriptions")
+      .update({ cancel_at_period_end: !data.renew })
+      .eq("id", subscription.id);
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar a renovação.");
+    await db.from("saas_audit_logs").insert({
+      tenant_id: tenantId,
+      user_id: context.userId,
+      action: data.renew ? "subscription_renewal_resumed" : "subscription_renewal_cancelled",
+      entity: "subscription",
+      entity_id: String(subscription.id),
+      metadata: {
+        school: schoolName,
+        period_end: subscription.current_period_end,
+        reason: data.reason ?? null,
+      },
+    });
+    return { ok: true, periodEnd: String(subscription.current_period_end) };
   });

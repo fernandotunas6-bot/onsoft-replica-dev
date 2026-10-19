@@ -1,3 +1,4 @@
+import { BILLING_PERIOD_CODES } from "./billing-periods";
 import { z } from "zod";
 import { normalizeAngolaProvince } from "@/lib/angola-territory";
 import { isSchoolTypeId } from "@/lib/school-config";
@@ -183,16 +184,36 @@ export const updateTenantSubscriptionInputSchema = z
     tenantId: z.string().uuid(),
     plan_code: planCodeSchema.optional(),
     extend_trial_days: z.number().int().min(1).max(90).optional(),
-    // Pagamento confirmado pela equipa: activa a assinatura por um mês ou um ano.
-    confirm_payment_billing: z.enum(["monthly", "yearly"]).optional(),
+    // Pagamento confirmado pela equipa: activa a assinatura pelo período pago.
+    confirm_payment_billing: z.enum(BILLING_PERIOD_CODES).optional(),
+    // Não cobrar esta escola (parceria, piloto, escola pública…).
+    billing_exempt: z.boolean().optional(),
+    billing_exempt_reason: z.string().trim().max(200).optional(),
   })
   .refine(
     (data) =>
       data.plan_code != null ||
       data.extend_trial_days != null ||
-      data.confirm_payment_billing != null,
-    { message: "Indique plano, extensão de trial ou pagamento confirmado." },
+      data.confirm_payment_billing != null ||
+      data.billing_exempt != null,
+    { message: "Indique plano, extensão de trial, pagamento confirmado ou isenção." },
   );
+
+export const billingSettingsInputSchema = z.object({
+  chargingEnabled: z.boolean(),
+  trialDays: z.number().int().min(0).max(90),
+  notice: z.string().trim().max(280).nullable().optional(),
+  periods: z
+    .array(
+      z.object({
+        code: z.enum(BILLING_PERIOD_CODES),
+        enabled: z.boolean(),
+        discountPct: z.number().min(0).max(50),
+      }),
+    )
+    .min(1)
+    .max(BILLING_PERIOD_CODES.length),
+});
 
 export type UpdateTenantSubscriptionInput = z.infer<typeof updateTenantSubscriptionInputSchema>;
 

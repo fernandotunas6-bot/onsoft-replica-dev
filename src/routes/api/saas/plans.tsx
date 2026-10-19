@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { fetchActivePlans } from "@/features/saas/catalog";
+import { fetchActivePlans, fetchBillingSettings } from "@/features/saas/catalog";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 
 const APPS = ["web", "admin"] as const;
@@ -12,8 +12,14 @@ export const Route = createFileRoute("/api/saas/plans")({
       OPTIONS: async ({ request }) => corsPreflight(request, [...APPS]),
       GET: async ({ request }) => {
         try {
-          const plans = await fetchActivePlans();
-          return jsonWithCors(request, { plans }, { apps: [...APPS] });
+          const [plans, settings] = await Promise.all([fetchActivePlans(), fetchBillingSettings()]);
+          // Só o que o site precisa para mostrar preços por período (sem aviso interno).
+          const billing = {
+            chargingEnabled: settings.chargingEnabled,
+            trialDays: settings.trialDays,
+            periods: settings.periods.filter((p) => p.enabled),
+          };
+          return jsonWithCors(request, { plans, billing }, { apps: [...APPS] });
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Não foi possível carregar os planos.";
