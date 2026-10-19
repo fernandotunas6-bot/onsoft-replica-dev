@@ -110,6 +110,78 @@ CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_assignments_open_unique
 CREATE INDEX IF NOT EXISTS siga_transport_day_status_date_idx
   ON public.siga_transport_day_status (school_id, service_date);
 
+-- Referências na mesma escola (auditoria da PR #132): as chaves estrangeiras só
+-- garantem que o id existe; este gatilho garante que a viatura, a rota, a
+-- paragem e o aluno são da escola da linha, e que a paragem é da rota. O
+-- servidor já filtra por escola; isto fecha o mesmo erro na própria base.
+CREATE OR REPLACE FUNCTION private.validate_transport_school_references()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+BEGIN
+  IF TG_TABLE_NAME = 'siga_transport_routes' THEN
+    IF NEW.vehicle_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.siga_transport_vehicles AS v
+      WHERE v.id = NEW.vehicle_id AND v.school_id = NEW.school_id
+    ) THEN
+      RAISE EXCEPTION 'Viatura não pertence à escola da rota'
+        USING ERRCODE = '23503', CONSTRAINT = 'transport_route_vehicle_same_school';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.siga_transport_routes AS r
+    WHERE r.id = NEW.route_id AND r.school_id = NEW.school_id
+  ) THEN
+    RAISE EXCEPTION 'Rota não pertence à escola'
+      USING ERRCODE = '23503', CONSTRAINT = 'transport_route_same_school';
+  END IF;
+
+  IF TG_TABLE_NAME = 'siga_transport_assignments' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.students AS st
+      WHERE st.id = NEW.student_id AND st.school_id = NEW.school_id
+    ) THEN
+      RAISE EXCEPTION 'Aluno não pertence à escola da rota'
+        USING ERRCODE = '23503', CONSTRAINT = 'transport_assignment_student_same_school';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.siga_transport_stops AS sp
+      WHERE sp.id = NEW.stop_id
+        AND sp.route_id = NEW.route_id
+        AND sp.school_id = NEW.school_id
+    ) THEN
+      RAISE EXCEPTION 'Paragem não pertence à rota'
+        USING ERRCODE = '23503', CONSTRAINT = 'transport_assignment_stop_same_route';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION private.validate_transport_school_references() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS validate_transport_route_school ON public.siga_transport_routes;
+CREATE TRIGGER validate_transport_route_school
+  BEFORE INSERT OR UPDATE OF school_id, vehicle_id ON public.siga_transport_routes
+  FOR EACH ROW EXECUTE FUNCTION private.validate_transport_school_references();
+DROP TRIGGER IF EXISTS validate_transport_stop_school ON public.siga_transport_stops;
+CREATE TRIGGER validate_transport_stop_school
+  BEFORE INSERT OR UPDATE OF school_id, route_id ON public.siga_transport_stops
+  FOR EACH ROW EXECUTE FUNCTION private.validate_transport_school_references();
+DROP TRIGGER IF EXISTS validate_transport_assignment_school ON public.siga_transport_assignments;
+CREATE TRIGGER validate_transport_assignment_school
+  BEFORE INSERT OR UPDATE OF school_id, route_id, stop_id, student_id
+  ON public.siga_transport_assignments
+  FOR EACH ROW EXECUTE FUNCTION private.validate_transport_school_references();
+DROP TRIGGER IF EXISTS validate_transport_day_status_school ON public.siga_transport_day_status;
+CREATE TRIGGER validate_transport_day_status_school
+  BEFORE INSERT OR UPDATE OF school_id, route_id ON public.siga_transport_day_status
+  FOR EACH ROW EXECUTE FUNCTION private.validate_transport_school_references();
+
 -- siga_transport_vehicles
 DROP TRIGGER IF EXISTS siga_transport_vehicles_touch ON public.siga_transport_vehicles;
 CREATE TRIGGER siga_transport_vehicles_touch

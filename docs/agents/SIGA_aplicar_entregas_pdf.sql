@@ -44,6 +44,40 @@ CREATE INDEX IF NOT EXISTS siga_task_submissions_task_idx
 CREATE INDEX IF NOT EXISTS siga_task_submissions_student_idx
   ON public.siga_task_submissions (school_id, student_id);
 
+-- Tarefa e aluno da mesma escola da entrega (auditoria da PR #132): a chave
+-- estrangeira só garante que o id existe.
+CREATE OR REPLACE FUNCTION private.validate_task_submission_school_references()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.siga_class_tasks AS t
+    WHERE t.id = NEW.task_id AND t.school_id = NEW.school_id
+  ) THEN
+    RAISE EXCEPTION 'Tarefa não pertence à escola da entrega'
+      USING ERRCODE = '23503', CONSTRAINT = 'task_submission_task_same_school';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.students AS st
+    WHERE st.id = NEW.student_id AND st.school_id = NEW.school_id
+  ) THEN
+    RAISE EXCEPTION 'Aluno não pertence à escola da entrega'
+      USING ERRCODE = '23503', CONSTRAINT = 'task_submission_student_same_school';
+  END IF;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION private.validate_task_submission_school_references() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS validate_task_submission_school ON public.siga_task_submissions;
+CREATE TRIGGER validate_task_submission_school
+  BEFORE INSERT OR UPDATE OF school_id, task_id, student_id ON public.siga_task_submissions
+  FOR EACH ROW EXECUTE FUNCTION private.validate_task_submission_school_references();
+
 DROP TRIGGER IF EXISTS siga_task_submissions_touch ON public.siga_task_submissions;
 CREATE TRIGGER siga_task_submissions_touch
   BEFORE UPDATE ON public.siga_task_submissions
