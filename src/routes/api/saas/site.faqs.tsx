@@ -1,0 +1,46 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+import { faqInputSchema } from "@/features/saas/web-site-schemas";
+import { deleteFaq, listAllFaqs, saveFaq } from "@/features/saas/web-site-content";
+import { SITE_ADMIN_APPS, readBody, withSiteAdmin } from "@/features/saas/site-admin-route";
+import { corsPreflight } from "@/lib/ecosystem-cors";
+
+// style-check: route-exempt — perguntas frequentes do site, geridas no ADMIN.
+
+const actionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("save"), faq: faqInputSchema }),
+  z.object({ action: z.literal("delete"), id: z.string().uuid() }),
+]);
+
+export const Route = createFileRoute("/api/saas/site/faqs")({
+  server: {
+    handlers: {
+      OPTIONS: async ({ request }) => corsPreflight(request, [...SITE_ADMIN_APPS]),
+      GET: async ({ request }) =>
+        withSiteAdmin(request, "Não foi possível ler as perguntas.", async () => ({
+          faqs: await listAllFaqs(),
+        })),
+      POST: async ({ request }) =>
+        withSiteAdmin(request, "Não foi possível guardar a pergunta.", async (actor) => {
+          const body = await readBody(request, actionSchema);
+          if (body.action === "delete") {
+            await deleteFaq(body.id);
+            return { ok: true };
+          }
+          return saveFaq(body.faq, actor);
+        }),
+    },
+  },
+  component: SiteFaqsApiPlaceholder,
+});
+
+function SiteFaqsApiPlaceholder() {
+  return (
+    <main className="mx-auto max-w-lg px-5 py-16 text-center">
+      <h1 className="font-display text-lg font-extrabold">API das perguntas frequentes</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        GET/POST autenticado. A UI vive no ADMIN.
+      </p>
+    </main>
+  );
+}

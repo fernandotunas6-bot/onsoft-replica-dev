@@ -25,6 +25,7 @@ import { suggestModule } from "./engine/suggest";
 import { getImporter, isModuleImplemented } from "./engine/registry";
 import { assertImportModuleGoverned } from "./engine/governance";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import type { ImportCommitContext } from "./engine/types";
 import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import type { Json, TablesInsert } from "@/integrations/supabase/types";
@@ -476,6 +477,7 @@ export const commitImportBatch = createServerFn({ method: "POST" })
       userId: context.userId,
       duplicateStrategy: data.duplicate_strategy,
       dryRun: data.dry_run,
+      assertCanAddStudent: () => assertCanAddStudentForSchool(membership.schoolId),
     };
 
     let inserted = 0;
@@ -484,12 +486,45 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     let failed = 0;
     const allAudits: Array<Record<string, unknown>> = [];
 
+    // Uma linha que lança a meio do lote não pode levar consigo o registo das
+    // linhas já gravadas antes dela: sem esse registo a importação não se reverte.
+    // E o trabalho não fica em «importing» sem rasto do que o parou.
+    const flushAuditsOnFailure = async (error: unknown, rowNumber: number | null) => {
+      if (allAudits.length > 0) {
+        await db.from("import_audits").insert(allAudits as TablesInsert<"import_audits">[]);
+        allAudits.length = 0;
+      }
+      await db
+        .from("import_jobs")
+        .update({
+          error_summary: [
+            {
+              row_number: rowNumber,
+              message: error instanceof Error ? error.message : "Erro inesperado na importação.",
+              at: new Date().toISOString(),
+            },
+          ],
+        })
+        .eq("id", job.id);
+    };
+
     for (const row of pendingRows ?? []) {
-      const result = await importer.commitRow(
-        row.normalized_data as Record<string, unknown>,
-        commitCtx,
-        cache,
-      );
+      let result: Awaited<ReturnType<typeof importer.commitRow>>;
+      try {
+        result = await importer.commitRow(
+          row.normalized_data as Record<string, unknown>,
+          commitCtx,
+          cache,
+        );
+      } catch (error) {
+        if (!data.dry_run) {
+          await flushAuditsOnFailure(
+            error,
+            typeof row.row_number === "number" ? row.row_number : null,
+          );
+        }
+        throw error;
+      }
       if (result.status === "imported") inserted += 1;
       else if (result.status === "will_update") updated += 1;
       else if (result.status === "ignored") ignored += 1;

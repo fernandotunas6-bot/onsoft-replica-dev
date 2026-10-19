@@ -10,6 +10,11 @@ export type ImportCommitContext = {
   userId: string;
   duplicateStrategy: "update" | "ignore" | "create_new";
   dryRun: boolean;
+  /**
+   * Recusa (lança) quando a escola já está no limite de alunos do plano. Opcional
+   * para os testes; o servidor passa-a sempre (`assertCanAddStudentForSchool`).
+   */
+  assertCanAddStudent?: () => Promise<void>;
 };
 
 export type AuditEntry = {

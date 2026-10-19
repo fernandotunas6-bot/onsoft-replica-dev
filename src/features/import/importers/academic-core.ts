@@ -2,6 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalEntityKey } from "../engine/dedupe";
 import { normalizeDate, normalizeText } from "../engine/normalize";
 import { schoolTodayIso } from "@/lib/school-date";
+import { selectAllPages } from "../engine/paged";
+import {
+  normalizeGrade as catalogGrade,
+  normalizePeriod,
+  subjectCatalogKey,
+} from "@/features/education-catalog/normalize";
 
 export type StudentRef = {
   id: string;
@@ -48,28 +54,43 @@ export function uniqueExactMatch<T>(
 }
 
 export async function loadStudentRefs(db: SupabaseClient, schoolId: string): Promise<StudentRef[]> {
-  const { data: students, error: studentError } = await db
-    .from("students")
-    .select("id, person_id, student_number, status")
-    .eq("school_id", schoolId);
-  if (studentError) throw new Error(`Não foi possível carregar alunos: ${studentError.message}`);
-
-  const personIds = [
-    ...new Set((students ?? []).map((row) => String(row.person_id)).filter(Boolean)),
-  ];
-  const { data: people, error: peopleError } = personIds.length
-    ? await db
-        .from("people")
-        .select("id, national_id")
-        .eq("school_id", schoolId)
-        .in("id", personIds)
-    : { data: [], error: null };
-  if (peopleError)
-    throw new Error(`Não foi possível carregar identificadores dos alunos: ${peopleError.message}`);
+  // Em páginas e sem filtrar por uma lista com todos os ids: o PostgREST corta em 1000
+  // linhas e uma lista com centenas de ids passa o tamanho máximo do URL.
+  type StudentRow = { id: string; person_id: string; student_number: string; status: string };
+  type PersonRow = { id: string; national_id: string | null };
+  const [students, people] = await Promise.all([
+    selectAllPages<StudentRow>(
+      (from, to) =>
+        db
+          .from("students")
+          .select("id, person_id, student_number, status")
+          .eq("school_id", schoolId)
+          .order("id", { ascending: true })
+          .range(from, to) as unknown as PromiseLike<{
+          data: StudentRow[] | null;
+          error: { message: string } | null;
+        }>,
+      "Não foi possível carregar alunos",
+    ),
+    selectAllPages<PersonRow>(
+      (from, to) =>
+        db
+          .from("people")
+          .select("id, national_id")
+          .eq("school_id", schoolId)
+          .not("national_id", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to) as unknown as PromiseLike<{
+          data: PersonRow[] | null;
+          error: { message: string } | null;
+        }>,
+      "Não foi possível carregar identificadores dos alunos",
+    ),
+  ]);
   const nationalIdByPerson = new Map(
-    (people ?? []).map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
+    people.map((row) => [String(row.id), row.national_id ? String(row.national_id) : null]),
   );
-  return (students ?? []).map((row) => ({
+  return students.map((row) => ({
     id: String(row.id),
     person_id: String(row.person_id),
     student_number: String(row.student_number ?? ""),
@@ -213,8 +234,27 @@ export function resolveClassGroup(value: unknown, groups: ClassGroupRef[]) {
   return uniqueExactMatch(value, groups, [(group) => group.code, (group) => group.name]);
 }
 
-export function resolveSubject(value: unknown, subjects: SubjectRef[]) {
-  return uniqueExactMatch(value, subjects, [(subject) => subject.code, (subject) => subject.name]);
+/**
+ * Disciplina da folha → disciplina da escola. Primeiro código ou nome exactos;
+ * se nada bater, a equivalência do catálogo («L. Portuguesa» → «Língua
+ * Portuguesa», «Inglês» → «Língua Estrangeira (Inglês)»), só por nome e só
+ * quando aponta para uma única disciplina da escola. `viaCatalog` permite ao
+ * importador avisar da associação.
+ */
+export function resolveSubject(
+  value: unknown,
+  subjects: SubjectRef[],
+): { row: SubjectRef | null; ambiguous: boolean; viaCatalog?: true } {
+  const exact = uniqueExactMatch(value, subjects, [
+    (subject) => subject.code,
+    (subject) => subject.name,
+  ]);
+  if (exact.row || exact.ambiguous) return exact;
+  const key = subjectCatalogKey(value);
+  if (!key) return exact;
+  const matches = subjects.filter((subject) => subjectCatalogKey(subject.name) === key);
+  if (matches.length === 1) return { row: matches[0]!, ambiguous: false, viaCatalog: true };
+  return { row: null, ambiguous: matches.length > 1 };
 }
 
 export function parseTerm(value: unknown): 1 | 2 | 3 | null {
@@ -224,7 +264,35 @@ export function parseTerm(value: unknown): 1 | 2 | 3 | null {
   if (/^(2|2º|2°|2o)(\b|\s|$)/.test(text) || text.includes("segundo")) return 2;
   if (/^(3|3º|3°|3o)(\b|\s|$)/.test(text) || text.includes("terceiro")) return 3;
   const numeric = Number(text.replace(/[^0-9]/g, ""));
-  return numeric === 1 || numeric === 2 || numeric === 3 ? numeric : null;
+  if (numeric === 1 || numeric === 2 || numeric === 3) return numeric;
+  // «I Trimestre», «III trimestre», «Segunda trimestre», «T2»: as mesmas regras
+  // do catálogo. Só com a palavra do período (ou T/S), nunca um número solto.
+  const period = normalizePeriod(text);
+  return period && period.n <= 3 ? (period.n as 1 | 2 | 3) : null;
+}
+
+type GradeLevelRef = { code: string; name: string };
+
+/**
+ * Classe da folha → classe da escola. Primeiro código ou nome exactos; se nada
+ * bater, a mesma classe escrita de outra forma («10a classe», «décima classe»,
+ * «10.ª Classe» → «10ª Classe»), pelo número e pela unidade (classe/ano), e só
+ * quando aponta para uma única classe da escola. `viaCatalog` permite avisar.
+ */
+export function resolveGradeLevel<T extends GradeLevelRef>(
+  value: unknown,
+  grades: T[],
+): { row: T | null; ambiguous: boolean; viaCatalog?: true } {
+  const exact = uniqueExactMatch(value, grades, [(g) => g.code, (g) => g.name]);
+  if (exact.row || exact.ambiguous) return exact;
+  const wanted = catalogGrade(normalizeText(value));
+  if (!wanted) return exact;
+  const matches = grades.filter((g) => {
+    const own = catalogGrade(g.name) ?? catalogGrade(g.code);
+    return own?.n === wanted.n && own.unit === wanted.unit;
+  });
+  if (matches.length === 1) return { row: matches[0]!, ambiguous: false, viaCatalog: true };
+  return { row: null, ambiguous: matches.length > 1 };
 }
 
 export function parseScore(value: unknown): number | null {

@@ -1,3 +1,4 @@
+import { requireRecentVerification } from "@/lib/step-up";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
@@ -393,6 +394,7 @@ export const updateBillingSettings = createServerFn({ method: "POST" })
       "Tesouraria",
     ]);
     requireAal2(context.claims, "Alterar as regras de cobrança");
+    requireRecentVerification(context.claims, "Alterar as regras de cobrança");
     const db = await loadSgaAdminClient();
     await upsertSettingDomain(
       db,
@@ -422,6 +424,7 @@ export const updateSchoolBanking = createServerFn({ method: "POST" })
     // O IBAN da escola é para onde os encarregados pagam: trocá-lo é o caminho
     // clássico para desviar propinas. 2FA e registo de quem mudou, de onde para onde.
     requireAal2(context.claims, "Alterar os dados bancários da escola");
+    requireRecentVerification(context.claims, "Alterar os dados bancários da escola");
     const db = await loadSgaAdminClient();
     const iban = normalizeAngolaIban(data.iban);
     const previous = await readSettingDomain(db, membership.schoolId, "banking");

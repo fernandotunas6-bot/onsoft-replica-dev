@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { applyPendingUpdate, registerServiceWorker, SW_UPDATE_READY_EVENT } from "@/lib/pwa";
 import { measureVitals } from "@/lib/vitals";
 
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Toaster } from "@/components/ui/sonner";
 import { AppearanceProvider } from "@/lib/appearance";
 import { AuthGate } from "@/components/auth/AuthGate";
@@ -24,6 +24,7 @@ import { EntityFocusProvider } from "@/features/intelligence/entity-focus-contex
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { TenantProvider } from "@/features/saas/tenant-context";
+import { TenantAccessBarrier } from "@/features/saas/TenantAccessBarrier";
 import { PageLoading } from "@/components/ui/page-loading";
 import { readSessionHint } from "@/features/auth/session-hint";
 
@@ -49,7 +50,8 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () => void }) {
+  const error = rawError as Error;
   return <RouteErrorScreen error={error} reset={reset} fullPage />;
 }
 
@@ -97,6 +99,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
+    // Num motor antigo (ex.: Mac com o Safari por actualizar, também na app desktop)
+    // explica como actualizar em vez de deixar um ecrã que não responde. `defer`: corre
+    // antes dos módulos da app, mas não trava o primeiro desenho da página (síncrono,
+    // ficava na fila atrás dos pré-carregamentos e atrasava-o ~0,5 s).
+    scripts: [{ src: "/browser-check.js", defer: true }],
   }),
   // Pista de sessão para o SSR desenhar logo o ecrã de entrada (ver session-hint.ts).
   loader: async () => ({ sessionHint: await readSessionHint() }),
@@ -123,6 +130,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
 import { DesktopVaultGate } from "@/components/layout/DesktopVaultGate";
+import { OfflineOutboxSync } from "@/components/layout/OfflineOutboxSync";
 import { areaToneForPath } from "@/lib/area-tone";
 
 function ClientOnlyToaster() {
@@ -132,7 +140,17 @@ function ClientOnlyToaster() {
     setHydrated(true);
   }, []);
 
-  return hydrated ? <Toaster position="top-right" richColors /> : null;
+  // Computador: canto superior direito. Telemóvel (< 600px): o sonner ocupa a
+  // largura toda; o topo fica abaixo do entalhe e longe da barra inferior.
+  return hydrated ? (
+    <Toaster
+      position="top-right"
+      richColors
+      closeButton
+      visibleToasts={4}
+      mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 8, right: 8 }}
+    />
+  ) : null;
 }
 
 function RootComponent() {
@@ -183,18 +201,30 @@ function RootComponent() {
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
-              <Outlet />
+              // Escola bloqueada fecha a matrícula online. Entrar, definir senha
+              // e verificar documentos continuam: sem /auth o administrador nem
+              // chegava à assinatura para a regularizar.
+              pathname.startsWith("/matricula") ? (
+                <TenantAccessBarrier>
+                  <Outlet />
+                </TenantAccessBarrier>
+              ) : (
+                <Outlet />
+              )
             ) : (
               <AuthGate sessionHint={sessionHint}>
-                <SchoolYearProvider>
-                  <SchoolBrandAppearanceSync />
-                  <EntityFocusProvider>
-                    <RouteAccessGate>
-                      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                      <Outlet />
-                    </RouteAccessGate>
-                  </EntityFocusProvider>
-                </SchoolYearProvider>
+                <OfflineOutboxSync />
+                <TenantAccessBarrier allowSchoolAdmin>
+                  <SchoolYearProvider>
+                    <SchoolBrandAppearanceSync />
+                    <EntityFocusProvider>
+                      <RouteAccessGate>
+                        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                        <Outlet />
+                      </RouteAccessGate>
+                    </EntityFocusProvider>
+                  </SchoolYearProvider>
+                </TenantAccessBarrier>
               </AuthGate>
             )}
           </div>

@@ -206,11 +206,6 @@ main > section:not(#hero) {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
-
-  .animate-logo-scroll {
-    animation: none;
-    will-change: auto;
-  }
 }
 
 @media (hover: none) {
@@ -238,32 +233,6 @@ main > section:not(#hero) {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* Logo carousel animation */
-@keyframes logo-scroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-144rem); /* 12 items * 12rem = 144rem */
-  }
-}
-
-.animate-logo-scroll {
-  animation: logo-scroll 30s linear infinite;
-  will-change: transform;
-}
-
-.animate-logo-scroll:hover {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-logo-scroll {
-    animation: none;
-    will-change: auto;
   }
 }
 

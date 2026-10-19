@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Upload } from "lucide-react";
 import { z } from "zod";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ModuleShortcutsRow } from "./settings-shortcuts-row";
+import { WebShowcaseCard } from "./web-showcase-card";
 
 const institutionSchema = z.object({
   nome: z.string().trim().min(3, "Nome demasiado curto").max(120, "Máximo 120 caracteres"),
@@ -174,7 +175,9 @@ function supportedPeriods(stored: unknown): number {
 
 // Sem SVG: o bucket é público e um SVG pode levar código.
 const LOGO_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+// O bucket `school-logos` recusa acima de 2 MB: com 4 MB aqui, um logótipo de 3 MB
+// passava esta verificação e falhava com «Não foi possível carregar o logótipo».
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 export function SchoolSettingsPanel() {
   const currentUser = useCurrentAccount();
@@ -402,7 +405,7 @@ export function SchoolSettingsPanel() {
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
-      toast.error("O logótipo deve ter no máximo 4 MB.");
+      toast.error("O logótipo deve ter no máximo 2 MB.");
       return;
     }
     setUploadingLogo(true);
@@ -772,6 +775,8 @@ export function SchoolSettingsPanel() {
           ))}
         </ul>
       </div>
+
+      <WebShowcaseCard canEdit={canEdit} />
 
       {canEdit ? (
         <div className="flex justify-end gap-2">

@@ -33,6 +33,11 @@ export function desktopSessionStorage() {
   };
 }
 
+/** O cofre do posto, quando desbloqueado (a fila de envio sem rede também o usa). */
+export function desktopVault(): Promise<NativeSecretStore> {
+  return vaultReady;
+}
+
 export function isDesktopSessionUnlocked() {
   return unlocked;
 }

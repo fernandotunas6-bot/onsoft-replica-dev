@@ -1,3 +1,4 @@
+import { requireRecentVerification } from "@/lib/step-up";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestIP } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -280,6 +281,7 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
     // que já exige 2FA: a mesma exigência aqui.
     if (cargoRequiresAdministrator(data.cargo)) {
       requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
+      requireRecentVerification(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
     }
     const admin = await loadAdminClient();
 
@@ -476,6 +478,7 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
     if (cargoRequiresAdministrator(data.cargo) && !isAdministrator) {
       throw new Error(`Apenas um Administrador pode atribuir o cargo de ${data.cargo}.`);
     }
+    requireRecentVerification(context.claims ?? {}, "Mudar o cargo de uma conta");
     if (cargoRequiresAdministrator(data.cargo)) {
       requireAal2(context.claims ?? {}, `Atribuir o cargo de ${data.cargo}`);
     }
@@ -584,6 +587,7 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
     if (!isAdministrator) {
       throw new Error("Apenas Administradores podem suspender ou reactivar contas de acesso.");
     }
+    requireRecentVerification(context.claims ?? {}, "Suspender ou reactivar uma conta");
 
     const admin = await loadAdminClient();
     const { data: targetProfile } = await admin

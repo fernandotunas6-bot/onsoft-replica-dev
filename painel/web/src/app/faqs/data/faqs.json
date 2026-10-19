@@ -2,25 +2,25 @@
   {
     "id": 1,
     "question": "O que é o SIGA Plus?",
-    "answer": "O SIGA Plus é a plataforma de gestão escolar para instituições em Angola: matrículas, pautas, tesouraria, Multicaixa Express e comunicação, com quatro aplicações (WEB, ADMIN, SIGA e DOC).",
+    "answer": "O SIGA Plus é a plataforma de gestão escolar para instituições em Angola: matrículas, pautas, tesouraria, cobrança por Multicaixa Express e comunicação com as famílias, no navegador e na app para computador.",
     "category": "Geral"
   },
   {
     "id": 2,
     "question": "Como começo?",
-    "answer": "Crie a escola no portal comercial (WEB), escolha um plano e entre no SIGA para operar o dia-a-dia. A documentação oficial está no DOC.",
+    "answer": "Crie a escola aqui no site («Criar escola»), escolha um plano e entre no SIGA para trabalhar no dia-a-dia. Os manuais em português ajudam em cada área.",
     "category": "Geral"
   },
   {
     "id": 3,
     "question": "Há período de experiência?",
-    "answer": "Sim. Pode criar a escola e explorar o essencial sem cartão. Os limites do trial estão descritos na página de planos.",
+    "answer": "Sim: 14 dias para experimentar, sem cartão e sem compromisso. No fim escolhe o plano e continua com os mesmos dados.",
     "category": "Geral"
   },
   {
     "id": 4,
-    "question": "Que browsers são suportados?",
-    "answer": "Chrome, Firefox, Safari e Edge nas versões actuais. Recomendamos a última versão do browser que usa.",
+    "question": "Que navegadores são suportados?",
+    "answer": "Chrome e Edge 111+, Firefox 114+ e Safari 16.4+ (no iPhone e iPad, iOS 16.4+). No Mac, a app para computador usa o Safari do sistema: mantenha-o actualizado em Actualização de Software.",
     "category": "Geral"
   },
   {
@@ -44,25 +44,25 @@
   {
     "id": 8,
     "question": "Que métodos de pagamento aceitam?",
-    "answer": "A facturação SaaS do plano é gerida no Centro de controlo. Na escola, as propinas podem usar Multicaixa Express e Unitel Money, conforme o plano.",
+    "answer": "A subscrição do SIGA Plus paga-se pelos canais indicados no plano. Na escola, as propinas podem ser cobradas por Multicaixa Express, Unitel Money e transferência para o IBAN da escola.",
     "category": "Facturação"
   },
   {
     "id": 9,
     "question": "Como mudo de plano?",
-    "answer": "No portal de preços ou no Centro de controlo SaaS. A alteração aplica-se ao ciclo seguinte, salvo indicação em contrário.",
+    "answer": "Na página de preços ou nas Definições da escola, no SIGA. A alteração aplica-se ao ciclo seguinte, salvo indicação em contrário.",
     "category": "Facturação"
   },
   {
     "id": 10,
     "question": "Como funciona a facturação?",
-    "answer": "O plano da escola é mensal ou anual. Recibos e histórico ficam em Planos e facturação. Propinas dos alunos são tesouraria escolar, no SIGA.",
+    "answer": "O plano da escola é mensal ou anual, com recibos e histórico nas Definições da escola. As propinas dos alunos são outra coisa: tratam-se na tesouraria do SIGA.",
     "category": "Facturação"
   },
   {
     "id": 11,
-    "question": "Há API?",
-    "answer": "Sim. A documentação da API está no DOC. Integrações catalogadas (Multicaixa, Unitel Money, Classroom, Moodle, WhatsApp) configuram-se na escola.",
+    "question": "Há integrações?",
+    "answer": "Sim. Multicaixa Express, Unitel Money, Google Classroom, Moodle e WhatsApp configuram-se nas definições da escola, conforme o plano.",
     "category": "Técnico"
   },
   {
@@ -74,25 +74,25 @@
   {
     "id": 13,
     "question": "Como tratam os dados pessoais?",
-    "answer": "Os dados da escola ficam isolados por tenant. Não partilhamos informação de alunos com terceiros sem base legal ou consentimento.",
+    "answer": "Cada escola vê só os seus dados. Não partilhamos informação de alunos com terceiros sem base legal ou consentimento. Os detalhes estão na Política de Privacidade.",
     "category": "Privacidade"
   },
   {
     "id": 14,
     "question": "Os dados estão encriptados?",
-    "answer": "O tráfego usa HTTPS. Palavras-passe e segredos seguem as práticas do Supabase Auth; ficheiros sensíveis usam armazenamento controlado.",
+    "answer": "Sim. Toda a comunicação usa HTTPS, as palavras-passe nunca são guardadas em texto e os documentos sensíveis ficam em armazenamento com acesso controlado.",
     "category": "Privacidade"
   },
   {
     "id": 15,
     "question": "Há autenticação de dois factores?",
-    "answer": "Sim. O SIGA suporta TOTP 2FA na entrada da conta da escola.",
+    "answer": "Sim. O SIGA suporta verificação em dois passos (2FA) com uma app de autenticação, recomendada para a direcção e a tesouraria.",
     "category": "Segurança"
   },
   {
     "id": 16,
     "question": "Como peço ajuda?",
-    "answer": "Consulte o DOC, a página de contacto do WEB, ou o suporte institucional indicado no contrato da escola.",
+    "answer": "Consulte os manuais em português, use o formulário de contacto deste site ou o suporte indicado no contrato da escola.",
     "category": "Suporte"
   }
 ]

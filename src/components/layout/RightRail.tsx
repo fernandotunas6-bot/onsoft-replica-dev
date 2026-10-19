@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -8,7 +8,9 @@ import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { ContextualActionsPanel } from "@/features/intelligence/components/ContextualActionsPanel";
 import { startDirectConversation } from "@/features/messages/chat-server";
-import { OPEN_DM_EVENT } from "@/features/messages/unread";
+import { OPEN_DM_EVENT, type OpenConversationRequest } from "@/features/messages/unread";
+import { useInboxUnread } from "@/features/messages/use-inbox-unread";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 
 /* O chat é pesado (painel inteiro + realtime) e a maioria das sessões nunca
    abre o separador: só carrega quando alguém lá vai. */
@@ -31,7 +33,15 @@ export function RightRail() {
   const [showMore, setShowMore] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tab, setTab] = useState<RailTab>("relacionado");
-  const [unread, setUnread] = useState(0);
+  // O contador vem do servidor (o mesmo do sino): com o chat fechado não há
+  // ChatDock montado para o dar.
+  const { unread: unreadRows } = useInboxUnread();
+  const unread = unreadRows.reduce((total, row) => total + row.unread, 0);
+  // Um só chat montado: a coluna no computador (lg), a folha abaixo disso.
+  // Antes os dois ficavam montados (um escondido), com dois canais de tempo
+  // real, e abrir pelo sino no computador abria também a folha do telemóvel.
+  const { breakpoint, ready } = useBreakpoint();
+  const isDesktop = breakpoint === "desktop";
   const [openRequest, setOpenRequest] = useState<{
     conversationId: string;
     nonce: number;
@@ -43,21 +53,26 @@ export function RightRail() {
   const hasRelated = Boolean(focusedEntity);
   const activeTab: RailTab = hasRelated ? tab : "mensagens";
 
-  /* Reaproveita o evento que o sino de notificações e a fila de avatares do
-     drawer já disparam (requestOpenDirectMessage): aqui resolve-se o peerId
-     para a conversa directa e abre-se o separador. */
+  /* O sino de notificações e a fila de avatares do drawer pedem a conversa por
+     OPEN_DM_EVENT: o sino já sabe a conversa; a fila de avatares só sabe a
+     pessoa, e aqui resolve-se (ou cria-se) a conversa directa. */
   useEffect(() => {
+    const open = (conversationId: string) => {
+      nonceRef.current += 1;
+      setOpenRequest({ conversationId, nonce: nonceRef.current });
+    };
     const handler = (event: Event) => {
-      const peerId = (event as CustomEvent<{ peerId?: string }>).detail?.peerId;
-      if (!peerId) return;
+      const detail = (event as CustomEvent<OpenConversationRequest>).detail ?? {};
+      if (!detail.peerId && !detail.conversationId) return;
       setTab("mensagens");
-      setMobileOpen(true);
-      setPanelCollapsed(false);
-      void startDirectConversation({ data: { peerId } })
-        .then(({ conversationId }) => {
-          nonceRef.current += 1;
-          setOpenRequest({ conversationId, nonce: nonceRef.current });
-        })
+      if (isDesktop) setPanelCollapsed(false);
+      else setMobileOpen(true);
+      if (detail.conversationId) {
+        open(detail.conversationId);
+        return;
+      }
+      void startDirectConversation({ data: { peerId: detail.peerId! } })
+        .then(({ conversationId }) => open(conversationId))
         .catch(() => {
           /* A ChatDock mostra a lista; iniciar a conversa pode estar barrado
              pela regra de quem fala com quem. */
@@ -65,15 +80,13 @@ export function RightRail() {
     };
     window.addEventListener(OPEN_DM_EVENT, handler);
     return () => window.removeEventListener(OPEN_DM_EVENT, handler);
-  }, [setPanelCollapsed]);
-
-  const handleUnread = useCallback((total: number) => setUnread(total), []);
+  }, [isDesktop, setPanelCollapsed]);
 
   const chat = (
     <Suspense
       fallback={<div className="p-6 text-center text-sm text-muted-foreground">A abrir…</div>}
     >
-      <ChatDock openRequest={openRequest} onUnreadChange={handleUnread} />
+      <ChatDock openRequest={openRequest} />
     </Suspense>
   );
 
@@ -164,7 +177,9 @@ export function RightRail() {
             {tabs}
             <div className="min-h-0 flex-1">
               {activeTab === "mensagens" ? (
-                chat
+                ready && isDesktop ? (
+                  chat
+                ) : null
               ) : (
                 <ContextualActionsPanel
                   title={focusedEntity?.label ?? ""}
@@ -182,7 +197,7 @@ export function RightRail() {
       </aside>
 
       {/* Abaixo de lg o painel não cabe: dois botões flutuantes abrem o Sheet. */}
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
+      <div className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
         {suggestions.length > 0 ? (
           <button
             type="button"
@@ -215,7 +230,7 @@ export function RightRail() {
         </button>
       </div>
 
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+      <Sheet open={mobileOpen && !isDesktop} onOpenChange={setMobileOpen}>
         {/* Quase ecrã inteiro: uma conversa num Sheet de 75vh deixa duas
             mensagens visíveis acima do teclado num telemóvel. */}
         <SheetContent side="bottom" className="flex h-[92vh] flex-col gap-0 p-0">
@@ -225,7 +240,9 @@ export function RightRail() {
           {tabs}
           <div className="min-h-0 flex-1">
             {activeTab === "mensagens" ? (
-              chat
+              isDesktop ? null : (
+                chat
+              )
             ) : (
               <ContextualActionsPanel
                 title={focusedEntity?.label ?? ""}

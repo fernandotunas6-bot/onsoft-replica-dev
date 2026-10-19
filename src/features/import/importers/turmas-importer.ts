@@ -1,6 +1,6 @@
 import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
-import { normalizeShift, uniqueExactMatch } from "./academic-core";
+import { normalizeShift, resolveGradeLevel, uniqueExactMatch } from "./academic-core";
 
 type Ref = { id: string; code: string; name: string };
 type TurmaRef = Ref & { academic_year_id: string };
@@ -75,11 +75,15 @@ export const turmasImporter: RowImporter = {
     if (!code) errors.push("Código da turma é obrigatório.");
     if (!name) errors.push("Nome da turma é obrigatório.");
     if (!gradeValue) errors.push("Classe/nível é obrigatório.");
-    const grade = uniqueExactMatch(gradeValue, cache.gradeLevels, [(r) => r.code, (r) => r.name]);
+    const grade = resolveGradeLevel(gradeValue, cache.gradeLevels);
     if (grade.ambiguous)
       errors.push(`Classe "${normalizeText(gradeValue)}" é ambígua; use o código exacto.`);
     else if (gradeValue && !grade.row)
       errors.push(`Classe "${normalizeText(gradeValue)}" não encontrada nesta escola.`);
+    else if (grade.viaCatalog)
+      warnings.push(
+        `Classe "${normalizeText(gradeValue)}" associada a «${grade.row!.name}» (${grade.row!.code}). Confirme antes de gravar.`,
+      );
     const shift = normalizeShift(shiftValue);
     if (!shift) errors.push("Turno inválido. Use Manhã, Tarde ou Noite.");
 
@@ -129,10 +133,7 @@ export const turmasImporter: RowImporter = {
     const name = normalizeText(valueOf(normalized, "name", "nome", "Turma"));
     const gradeValue = valueOf(normalized, "grade_level", "classe", "Classe");
     const shift = normalizeShift(valueOf(normalized, "shift", "turno", "Turno"))!;
-    const grade = uniqueExactMatch(gradeValue, cache.gradeLevels, [
-      (r) => r.code,
-      (r) => r.name,
-    ]).row!;
+    const grade = resolveGradeLevel(gradeValue, cache.gradeLevels).row!;
     const roomValue = valueOf(normalized, "room", "sala", "Sala");
     const campusValue = valueOf(normalized, "campus", "campus_code", "campus_nome");
     const campus = campusValue

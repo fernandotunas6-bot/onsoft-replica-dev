@@ -18,6 +18,8 @@ export default tseslint.config(
       // da raiz analisava ~490 ficheiros com um config que não é o deles
       // (outro tsconfig, outros globals) — só produzia ruído e ~10 min de CPU.
       "painel/**",
+      // Código de terceiros copiado só para estudo (ver estudo/README.md).
+      "estudo/**",
       "desktop/**",
       "modelo de pautas/**",
       "playwright-report/**",
@@ -30,6 +32,7 @@ export default tseslint.config(
       // Ficheiros gerados: nunca editados à mão, não há nada a corrigir neles.
       "**/*.gen.ts",
       "src/integrations/supabase/types.ts",
+      "src/integrations/supabase/types.sga.ts",
       // Gerado pela integração Lovable Cloud.
       "src/integrations/supabase/previewAuthStorage.ts",
       ".claude/**",
@@ -61,6 +64,12 @@ export default tseslint.config(
               message:
                 "TanStack Start does not use the Next.js `server-only` package. Rename the module to `*.server.ts` or mark it with `@tanstack/react-start/server-only`.",
             },
+            {
+              name: "sonner",
+              importNames: ["toast"],
+              message:
+                'Use `import { toast } from "@/lib/toast"`: cada toast.error sai com a correcção e o botão para o sítio onde se resolve (docs/agents/ERROR_GUIDANCE.md).',
+            },
           ],
         },
       ],
@@ -73,6 +82,11 @@ export default tseslint.config(
       // sem mascarar erros a sério como `react-hooks/rules-of-hooks`.
       "@typescript-eslint/no-explicit-any": "warn",
     },
+  },
+  {
+    // O único sítio que importa o `toast` do sonner é o próprio invólucro.
+    files: ["src/lib/toast.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
   {
     // Testes e scripts de manutenção usam duplos de teste e respostas externas

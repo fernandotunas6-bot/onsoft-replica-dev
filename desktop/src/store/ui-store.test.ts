@@ -12,6 +12,12 @@ describe('UIStore', () => {
     })
   })
 
+  it('opens with the quick-note panel hidden', () => {
+    const initial = useUIStore.getInitialState()
+    expect(initial.leftSidebarVisible).toBe(true)
+    expect(initial.rightSidebarVisible).toBe(false)
+  })
+
   it('has correct initial state', () => {
     const state = useUIStore.getState()
     expect(state.leftSidebarVisible).toBe(true)

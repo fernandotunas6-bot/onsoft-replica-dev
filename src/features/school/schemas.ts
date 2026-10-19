@@ -38,7 +38,21 @@ export const updateSchoolSettingsInputSchema = z.object({
   evaluationPeriods: z.number().int().min(2).max(3),
   passingGrade: z.number().min(0).max(20),
   preferences: z.record(z.string(), z.boolean()).default({}),
-  logoUrl: z.union([z.string().trim().url().max(2048), z.literal("")]).optional(),
+  // Só https: o logótipo sai em documentos, e-mails e no formulário público; `url()`
+  // sozinho aceitava `javascript:` e `data:` (auditoria 13).
+  logoUrl: z
+    .union([
+      z
+        .string()
+        .trim()
+        .url()
+        .max(2048)
+        .refine((value) => value.toLowerCase().startsWith("https://"), {
+          message: "O logótipo tem de ser um endereço https.",
+        }),
+      z.literal(""),
+    ])
+    .optional(),
   motto: z.string().trim().max(160).optional(),
   // Identidade institucional. `schoolType` é validado contra a taxonomia única em
   // school-config; um valor desconhecido vira `undefined` em vez de rejeitar o

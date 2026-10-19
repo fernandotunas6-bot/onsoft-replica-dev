@@ -1,3 +1,4 @@
+import { reportPossibleStepUp } from "@/lib/step-up";
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import {
   ShieldCheck,
   UserPlus,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -714,6 +715,7 @@ function AcessosPage() {
                                 });
                                 toast.success("Cargo actualizado");
                               } catch (error) {
+                                if (reportPossibleStepUp(error)) return;
                                 toast.error("Não foi possível actualizar o cargo", {
                                   description:
                                     error instanceof Error ? error.message : "Tente novamente.",
@@ -997,6 +999,7 @@ function AcessosPage() {
                                   else
                                     toast.success(checked ? "Conta reactivada" : "Conta suspensa");
                                 } catch (error) {
+                                  if (reportPossibleStepUp(error)) return;
                                   toast.error("Não foi possível actualizar o acesso", {
                                     description:
                                       error instanceof Error ? error.message : "Tente novamente.",

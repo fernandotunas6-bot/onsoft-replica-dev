@@ -3,6 +3,7 @@ import type { AuditEntry, ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassSubjectRefs,
   loadTeacherRefs,
+  resolveSubject,
   uniqueExactMatch,
   type ClassSubjectRef,
   type TeacherRef,
@@ -186,10 +187,14 @@ export const horariosImporter: RowImporter = {
     else if (!groupMatch.row)
       errors.push(`Turma "${normalizeText(groupVal)}" não encontrada nesta escola.`);
 
-    const subjMatch = uniqueExactMatch(subjectVal, cache.subjects, [(r) => r.code, (r) => r.name]);
+    const subjMatch = resolveSubject(subjectVal, cache.subjects);
     if (subjMatch.ambiguous) errors.push(`Disciplina "${normalizeText(subjectVal)}" é ambígua.`);
     else if (!subjMatch.row)
       errors.push(`Disciplina "${normalizeText(subjectVal)}" não encontrada nesta escola.`);
+    else if (subjMatch.viaCatalog)
+      warnings.push(
+        `Disciplina "${normalizeText(subjectVal)}" associada a «${subjMatch.row.name}» (${subjMatch.row.code}) pelo catálogo.`,
+      );
 
     if (teacherVal) {
       const teacherMatch = uniqueExactMatch(teacherVal, cache.teachers, [
@@ -247,7 +252,7 @@ export const horariosImporter: RowImporter = {
       return { status: "error", warnings, errors };
     }
 
-    return { status: "valid", warnings, errors: [] };
+    return { status: warnings.length ? "warning" : "valid", warnings, errors: [] };
   },
 
   async commitRow(normalized, ctx, rawCache) {
@@ -269,7 +274,7 @@ export const horariosImporter: RowImporter = {
       (r) => r.code,
       (r) => r.name,
     ]).row!;
-    const subj = uniqueExactMatch(subjectVal, cache.subjects, [(r) => r.code, (r) => r.name]).row!;
+    const subj = resolveSubject(subjectVal, cache.subjects).row!;
     const teacher = teacherVal
       ? uniqueExactMatch(teacherVal, cache.teachers, [
           (t) => t.employee_number,

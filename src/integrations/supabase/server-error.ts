@@ -60,6 +60,12 @@ const businessMessages = new Set([
   "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
   "Turma ativa inválida para esta escola.",
   "Identidade da matrícula é imutável.",
+  // Gatilho das mensagens (20261002100000_chat_integrity.sql).
+  "Conversa inexistente.",
+  "A mensagem tem de pertencer à escola da conversa.",
+  "O anexo tem de ser um ficheiro da escola da conversa.",
+  "Só pode responder a mensagens da mesma conversa.",
+
   "A turma tem de pertencer à escola e ao ano lectivo seleccionados.",
   "Este pedido já foi concluído com outros dados. Abra uma nova matrícula.",
   "Indique encarregados distintos e apenas um principal.",

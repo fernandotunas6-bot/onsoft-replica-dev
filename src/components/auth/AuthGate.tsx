@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   PWNED_PASSWORD_MESSAGE,
   PWNED_SIGN_IN_NOTICE,
@@ -14,8 +14,24 @@ import {
 } from "@/lib/session-expiry";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
-import { pendingMfaFactorId } from "@/features/auth/pending-mfa";
-import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
+import { pendingMfaFactors } from "@/features/auth/pending-mfa";
+import {
+  passkeysSupported,
+  registerPasskey,
+  passkeyErrorMessage,
+  sessionAal,
+  type VerificationFactors,
+} from "@/features/auth/verification";
+import { MfaChallenge } from "./MfaChallenge";
+import { StepUpDialog } from "./StepUpDialog";
+import {
+  SHARED_DEVICE_IDLE_MS,
+  TRUSTED_DEVICE_DAYS,
+  deviceTrust,
+  forgetTrustedDevice,
+  trustDevice,
+} from "@/features/auth/trusted-device";
+import { AuthBrandIntro } from "./AuthBrandIntro";
 import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
 import {
@@ -45,9 +61,10 @@ import { Label } from "@/components/ui/label";
 import { PageLoading } from "@/components/ui/page-loading";
 
 const AuthSessionContext = createContext<Session | null>(null);
-const IDLE_TIMEOUT_MS = 30 * 60_000;
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
 const REMEMBERED_EMAIL_KEY = "portal:login-email";
+const INSTALL_DISMISSED_KEY = "siga:install-dismissed-until";
+const INSTALL_SNOOZE_MS = 30 * 24 * 60 * 60_000;
 
 const activityKey = (userId: string) => `portal:last-activity:${userId}`;
 
@@ -128,6 +145,27 @@ export function useAuthSession(): Session | null {
   return useContext(AuthSessionContext);
 }
 
+/**
+ * Depois de entrar com o código, propõe uma vez a chave de acesso: da próxima
+ * vez basta um toque. O clique no aviso é o gesto que o browser exige.
+ */
+function offerPasskey() {
+  if (!passkeysSupported()) return;
+  toast("Da próxima vez, entre com um toque", {
+    description: "Crie uma chave de acesso: impressão digital, Face ID ou Windows Hello.",
+    duration: 15_000,
+    action: {
+      label: "Criar chave",
+      onClick: () => {
+        void registerPasskey().then(
+          () => toast.success("Chave de acesso criada. Da próxima vez basta um toque."),
+          (passkeyError: unknown) => toast.error(passkeyErrorMessage(passkeyError)),
+        );
+      },
+    },
+  });
+}
+
 export function AuthGate({
   children,
   sessionHint,
@@ -150,19 +188,20 @@ export function AuthGate({
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberedEmail, setRememberedEmail] = useState("");
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
-  const [mfaCode, setMfaCode] = useState("");
+  const [mfaFactors, setMfaFactors] = useState<VerificationFactors | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // «Agora não» cala o convite durante 30 dias neste navegador.
+  const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [modeChanged, setModeChanged] = useState(false);
 
   useEffect(() => {
-    if (!modeChanged || checking || session || mfaFactorId) return;
-    document.getElementById(mode === "signup" ? "signup-name" : "login-email")?.focus({
-      preventScroll: true,
-    });
-  }, [mode, modeChanged, checking, session, mfaFactorId]);
+    if (!modeChanged || checking || session || mfaFactors) return;
+    document
+      .getElementById(mode === "signup" ? "signup-name" : "login-email")
+      ?.focus({ preventScroll: true });
+  }, [mode, modeChanged, checking, session, mfaFactors]);
 
   useEffect(() => {
     try {
@@ -176,6 +215,12 @@ export function AuthGate({
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true;
       setIsStandalone(Boolean(isStandaloneMode));
+      try {
+        const until = Number(localStorage.getItem(INSTALL_DISMISSED_KEY));
+        setInstallDismissed(Number.isFinite(until) && until > Date.now());
+      } catch {
+        setInstallDismissed(false);
+      }
 
       const handleBeforeInstall = (e: Event) => {
         e.preventDefault();
@@ -188,14 +233,23 @@ export function AuthGate({
     return undefined;
   }, []);
 
+  const dismissInstall = () => {
+    setInstallDismissed(true);
+    try {
+      localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now() + INSTALL_SNOOZE_MS));
+    } catch {
+      // ignore
+    }
+  };
+
   const handleInstallApp = async () => {
     if (!installPrompt) return;
     try {
       await installPrompt.prompt();
       const choice = await installPrompt.userChoice;
-      if (choice.outcome === "accepted") {
-        setInstallPrompt(null);
-      }
+      // O browser só deixa usar o convite uma vez; recusado, não insistir.
+      setInstallPrompt(null);
+      if (choice.outcome === "dismissed") dismissInstall();
     } catch (e) {
       console.warn("PWA install error:", e);
     }
@@ -209,16 +263,16 @@ export function AuthGate({
     // servidor recusa os tokens aal1 dessas contas (`requireSupabaseAuth`).
     const adoptSession = async (nextSession: Session | null) => {
       if (nextSession) {
-        const factorId = await pendingMfaFactorId();
+        const factors = await pendingMfaFactors();
         if (!active) return;
-        if (factorId) {
-          setMfaFactorId(factorId);
+        if (factors) {
+          setMfaFactors(factors);
           setSession(null);
           setChecking(false);
           return;
         }
       }
-      setMfaFactorId(null);
+      setMfaFactors(null);
       setSession(nextSession);
       setChecking(false);
     };
@@ -300,6 +354,7 @@ export function AuthGate({
     if (!session) return;
 
     const key = activityKey(session.user.id);
+    const verifiedSession = sessionAal(session.access_token) === "aal2";
     let lastWrite = 0;
     let expiring = false;
 
@@ -311,21 +366,40 @@ export function AuthGate({
       localStorage.setItem(key, String(now));
     };
 
-    const expireSession = async () => {
+    const expireSession = async (message: string) => {
       if (expiring) return;
       expiring = true;
       setSession(null);
-      setError("A sessão terminou após 30 minutos sem actividade. Entre novamente.");
+      setError(message);
       await supabase.auth.signOut({ scope: "local" });
     };
 
     const checkActivity = () => {
+      // Dispositivo reconhecido (sessão com 2FA): sem fim por inactividade.
+      // Só volta a pedir a verificação perante um sinal de risco.
+      let trust = deviceTrust(session.user.id);
+      if (trust === "shared" && verifiedSession) {
+        // Sessão com 2FA de antes do reconhecimento existir: reconhece agora.
+        trustDevice(session.user.id);
+        trust = "trusted";
+      }
+      if (trust === "expired" || trust === "changed") {
+        forgetTrustedDevice(session.user.id);
+        void expireSession(
+          trust === "expired"
+            ? `Passaram ${TRUSTED_DEVICE_DAYS} dias desde a última verificação neste dispositivo. Confirme de novo que é você.`
+            : "Este navegador mudou desde a última verificação. Por segurança, confirme de novo que é você.",
+        );
+        return;
+      }
       const stored = Number(localStorage.getItem(key));
-      if (!Number.isFinite(stored) || stored <= 0) {
+      if (trust === "trusted" || !Number.isFinite(stored) || stored <= 0) {
         markActivity();
         return;
       }
-      if (Date.now() - stored >= IDLE_TIMEOUT_MS) void expireSession();
+      if (Date.now() - stored >= SHARED_DEVICE_IDLE_MS) {
+        void expireSession("A sessão terminou após 30 minutos sem actividade. Entre novamente.");
+      }
     };
 
     const onVisibilityChange = () => {
@@ -387,9 +461,9 @@ export function AuthGate({
             if (count) warnToChangePassword(PWNED_SIGN_IN_NOTICE);
           });
         }
-        const factorId = await pendingMfaFactorId();
-        if (factorId) {
-          setMfaFactorId(factorId);
+        const factors = await pendingMfaFactors();
+        if (factors) {
+          setMfaFactors(factors);
           setSession(null);
         }
         return;
@@ -557,427 +631,355 @@ export function AuthGate({
   if (checking) {
     return (
       <AuthSessionContext.Provider value={session}>
-        <PageLoading message="A verificar sessão…" />
+        <PageLoading message="A verificar sessão…" brandOnly />
       </AuthSessionContext.Provider>
     );
   }
 
   if (session) {
-    return <AuthSessionContext.Provider value={session}>{children}</AuthSessionContext.Provider>;
+    return (
+      <AuthSessionContext.Provider value={session}>
+        {children}
+        <StepUpDialog email={session.user.email ?? null} />
+      </AuthSessionContext.Provider>
+    );
   }
 
   return (
     <AuthSessionContext.Provider value={null}>
-      <main className="grid min-h-screen bg-background lg:grid-cols-[1.15fr_0.85fr] lg:p-2">
-        <section className="relative hidden overflow-hidden flex-col justify-between rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
-          <AuthBackgroundVideo />
-          <div
-            aria-hidden
-            // Só escurece em baixo, onde está o texto: o vídeo (sem logótipo por
-            // cima) fica visível no resto do painel.
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
-          />
-          <div />
+      <main className="grid min-h-dvh bg-background lg:grid-cols-[1fr_1fr] lg:gap-2 lg:p-3">
+        <section className="relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-card p-12 text-foreground lg:flex">
+          <AuthBrandIntro className="self-start text-[32px]" />
           <AuthHeroSlides />
-          <div className="relative flex items-center justify-between text-xs opacity-80">
+          <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
             </div>
             {isStandalone && (
-              <div className="flex items-center gap-1.5 rounded-md bg-primary-foreground/15 px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
                 <Smartphone className="size-3.5" /> PWA Ativo
               </div>
             )}
           </div>
         </section>
 
-        <section className="flex flex-col items-center justify-center bg-muted/20 px-5 py-10 sm:px-10">
+        <section className="flex flex-col items-center justify-center px-5 py-8 sm:px-8">
+          {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
+          <AuthBrandIntro className="mb-8 text-[28px] lg:hidden" />
           <div
+            id="auth-panel-content"
             data-auth-panel=""
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card p-8 shadow-sm sm:p-10 lg:[zoom:1.15]"
+            data-auth-view={mode}
+            data-auth-motion={modeChanged ? "on" : "off"}
+            className="auth-view siga-auth-card w-full max-w-[420px] rounded-2xl border border-border/70 bg-card p-6 sm:p-8"
           >
-            {installPrompt && (
-              <div className="mb-6 flex flex-col items-center justify-center text-center pb-4 border-b border-border">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleInstallApp}
-                  className="h-8 gap-1.5 text-xs rounded-full"
-                >
-                  <Download className="size-3.5" /> Instalar App SIGA Plus
-                </Button>
-              </div>
-            )}
-
-            <div
-              id="auth-panel-content"
-              className="auth-view"
-              data-auth-view={mode}
-              data-auth-motion={modeChanged ? "on" : "off"}
-            >
-              <h2
-                id="auth-panel-title"
-                className="mt-1 font-display text-xl font-semibold tracking-tight text-center"
-              >
-                {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
-              </h2>
-              <p className="mt-1.5 text-xs text-muted-foreground text-center">
-                {mode === "signup"
-                  ? "Uma só identidade para todas as escolas a que pertencer."
-                  : "Entre com Google, e-mail ou Nº de BI."}
-              </p>
-              {!mfaFactorId ? (
-                <p className="mt-4 text-center text-xs text-muted-foreground">
-                  {mode === "signup" ? "Já tem conta? " : "Ainda não tem conta? "}
-                  <a
-                    href={mode === "signup" ? "#login-email" : "#signup-name"}
-                    aria-controls="auth-panel-content"
-                    aria-disabled={submitting || resetting || sendingMagicLink || undefined}
-                    tabIndex={submitting || resetting || sendingMagicLink ? -1 : undefined}
-                    className="font-medium text-primary underline underline-offset-4 decoration-primary/40 transition-colors hover:decoration-primary aria-disabled:opacity-60"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      if (submitting || resetting || sendingMagicLink) return;
-                      setModeChanged(true);
-                      setMode(mode === "signup" ? "signin" : "signup");
-                      setShowPassword(false);
-                      setError(null);
-                      setInfo(null);
-                    }}
-                  >
-                    {mode === "signup" ? "Iniciar sessão" : "Criar conta"}
-                  </a>
-                </p>
-              ) : null}
-
-              {error ? (
-                <p
-                  role="alert"
-                  className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
-                >
-                  {error}
-                </p>
-              ) : null}
-              {info ? (
-                <p
-                  role="status"
-                  className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
-                >
-                  {info}
-                </p>
-              ) : null}
-
-              {mfaFactorId ? (
-                <form
-                  className="mt-6 space-y-4"
-                  onSubmit={(event) => {
+            <h2 className="mt-1 font-display text-[24px] font-semibold tracking-tight text-center">
+              {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-center">
+              {mode === "signup"
+                ? "Uma só identidade para todas as escolas a que pertencer."
+                : "Entre com Google, e-mail ou Nº de BI."}
+            </p>
+            {!mfaFactors ? (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                {mode === "signup" ? "Já tem conta? " : "Ainda não tem conta? "}
+                <a
+                  href={mode === "signup" ? "#login-email" : "#signup-name"}
+                  aria-controls="auth-panel-content"
+                  aria-disabled={submitting || resetting || sendingMagicLink || undefined}
+                  tabIndex={submitting || resetting || sendingMagicLink ? -1 : undefined}
+                  className="font-medium text-primary underline underline-offset-4 decoration-primary/40 transition-colors hover:decoration-primary aria-disabled:opacity-60"
+                  onClick={(event) => {
                     event.preventDefault();
-                    void (async () => {
-                      setSubmitting(true);
-                      setError(null);
-                      try {
-                        const challenge = await supabase.auth.mfa.challenge({
-                          factorId: mfaFactorId,
-                        });
-                        if (challenge.error) throw challenge.error;
-                        const verified = await supabase.auth.mfa.verify({
-                          factorId: mfaFactorId,
-                          challengeId: challenge.data.id,
-                          code: mfaCode.trim(),
-                        });
-                        if (verified.error) throw verified.error;
-
-                        const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                        if (assurance.error) throw assurance.error;
-                        if (assurance.data?.currentLevel !== "aal2") {
-                          throw new Error(
-                            "A verificação 2FA não elevou a sessão para AAL2. Tente novamente.",
-                          );
-                        }
-
-                        const { data: sessionData, error: sessionError } =
-                          await supabase.auth.getSession();
-                        if (sessionError) throw sessionError;
-                        if (!sessionData.session) {
-                          throw new Error("A sessão não ficou disponível após a verificação 2FA.");
-                        }
-
-                        localStorage.setItem(
-                          activityKey(sessionData.session.user.id),
-                          String(Date.now()),
-                        );
-                        setSession(sessionData.session);
-                        setMfaFactorId(null);
-                        setMfaCode("");
-                      } catch (verifyError) {
-                        setError(
-                          verifyError instanceof Error
-                            ? verifyError.message
-                            : "Código 2FA inválido.",
-                        );
-                      } finally {
-                        setSubmitting(false);
-                      }
-                    })();
+                    if (submitting || resetting || sendingMagicLink) return;
+                    setMode(mode === "signup" ? "signin" : "signup");
+                    setModeChanged(true);
+                    setShowPassword(false);
+                    setError(null);
+                    setInfo(null);
                   }}
                 >
-                  <p className="text-xs text-muted-foreground">
-                    Introduza o código da aplicação autenticadora para concluir o início de sessão.
-                  </p>
-                  <Input
-                    aria-label="Código de autenticação multifator"
-                    value={mfaCode}
-                    onChange={(event) => setMfaCode(event.target.value)}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    placeholder="000000"
-                    required
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={submitting || mfaCode.length < 6}
-                  >
-                    {submitting ? "A verificar…" : "Confirmar 2FA"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full"
-                    disabled={submitting}
-                    onClick={() => {
-                      setMfaFactorId(null);
-                      setMfaCode("");
-                      void supabase.auth.signOut({ scope: "local" });
-                    }}
-                  >
-                    Usar outra conta
-                  </Button>
-                </form>
-              ) : null}
+                  {mode === "signup" ? "Iniciar sessão" : "Criar conta"}
+                </a>
+              </p>
+            ) : null}
 
-              <form
-                id="signin-form"
-                className="mt-6 space-y-4"
-                onSubmit={signIn}
-                aria-busy={submitting}
-                hidden={Boolean(mfaFactorId) || mode === "signup"}
+            {error ? (
+              <p
+                role="alert"
+                className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
               >
-                <div className="space-y-1.5">
-                  <Label htmlFor="login-email" className="text-xs font-medium">
-                    Email ou Nº de BI / NIF
+                {error}
+              </p>
+            ) : null}
+            {info ? (
+              <p
+                role="status"
+                className="mt-4 rounded-lg bg-success/10 px-3 py-2 text-xs text-success"
+              >
+                {info}
+              </p>
+            ) : null}
+
+            {mfaFactors ? (
+              <div className="mt-6">
+                <MfaChallenge
+                  factors={mfaFactors}
+                  intro="Falta confirmar que é você. Só é pedido neste dispositivo de 30 em 30 dias, ou se algo mudar."
+                  cancelLabel="Usar outra conta"
+                  onCancel={() => {
+                    setMfaFactors(null);
+                    void supabase.auth.signOut({ scope: "local" });
+                  }}
+                  onVerified={async (method) => {
+                    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                    if (assurance.data?.currentLevel !== "aal2") {
+                      throw new Error("A verificação não elevou a sessão. Tente novamente.");
+                    }
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    if (!sessionData.session) {
+                      throw new Error("A sessão não ficou disponível após a verificação.");
+                    }
+                    const userId = sessionData.session.user.id;
+                    localStorage.setItem(activityKey(userId), String(Date.now()));
+                    trustDevice(userId);
+                    setSession(sessionData.session);
+                    setMfaFactors(null);
+                    if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
+                  }}
+                />
+              </div>
+            ) : null}
+
+            <form
+              className="mt-6 space-y-4"
+              onSubmit={signIn}
+              aria-busy={submitting}
+              hidden={Boolean(mfaFactors) || mode === "signup"}
+            >
+              <div className="space-y-1.5">
+                <Label htmlFor="login-email" className="text-xs font-medium">
+                  Email ou Nº de BI / NIF
+                </Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="login-email"
+                    name="email"
+                    type="text"
+                    autoComplete="username"
+                    required
+                    defaultValue={rememberedEmail}
+                    className="pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    placeholder="utilizador@escola.ao ou 004212984LA042"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="login-password" className="text-xs font-medium">
+                    Senha
                   </Label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="login-email"
-                      name="email"
-                      type="text"
-                      autoComplete="username"
-                      required
-                      defaultValue={rememberedEmail}
-                      className="pl-9 h-10 text-sm"
-                      placeholder="utilizador@escola.ao ou 004212984LA042"
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    onClick={() => void resetPassword()}
+                    disabled={resetting || submitting || sendingMagicLink}
+                  >
+                    {resetting ? "A enviar…" : "Esqueceu a senha?"}
+                  </button>
+                </div>
+                <div className="relative">
+                  <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="login-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    minLength={8}
+                    className="pr-11 pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="remember"
+                  aria-label="Lembrar email"
+                  defaultChecked={Boolean(rememberedEmail)}
+                  className="size-3.5 rounded border-input text-primary focus:ring-primary"
+                />
+                Lembrar email neste dispositivo
+              </label>
+              <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
+              <Button
+                type="submit"
+                className="w-full gap-2 h-[44px] text-[14px] font-semibold"
+                disabled={submitting || resetting || sendingMagicLink}
+              >
+                {submitting ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <LockKeyhole className="size-4" />
+                )}
+                {submitting ? "A entrar…" : "Entrar no Portal"}
+              </Button>
+              <button
+                type="button"
+                className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
+                onClick={() => void sendMagicLink()}
+                disabled={sendingMagicLink || submitting || resetting}
+              >
+                {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
+              </button>
+            </form>
+
+            {mode === "signup" && !mfaFactors ? (
+              <form className="mt-6 space-y-4" onSubmit={signUp} aria-busy={submitting}>
+                <div className="space-y-1.5">
+                  <Label htmlFor="signup-name" className="text-xs font-medium">
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    name="fullName"
+                    autoComplete="name"
+                    required
+                    minLength={3}
+                    maxLength={160}
+                    className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label htmlFor="login-password" className="text-xs font-medium">
+                  <Label htmlFor="signup-email" className="text-xs font-medium">
+                    E-mail
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    placeholder="nome@exemplo.ao"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-password" className="text-xs font-medium">
                       Senha
                     </Label>
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
-                      onClick={() => void resetPassword()}
-                      disabled={resetting || submitting || sendingMagicLink}
-                    >
-                      {resetting ? "A enviar…" : "Esqueceu a senha?"}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="login-password"
+                      id="signup-password"
                       name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
+                      type="password"
+                      autoComplete="new-password"
                       required
                       minLength={8}
-                      className="pr-11 pl-9 h-10 text-sm"
-                      placeholder="••••••••"
+                      className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
                     />
-                    <button
-                      type="button"
-                      className="absolute top-1/2 right-1.5 flex size-[28px] -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword((value) => !value)}
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                    >
-                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-confirm" className="text-xs font-medium">
+                      Confirmar senha
+                    </Label>
+                    <Input
+                      id="signup-confirm"
+                      name="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      className="h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
+                    />
                   </div>
                 </div>
-                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    name="remember"
-                    aria-label="Lembrar email"
-                    defaultChecked={Boolean(rememberedEmail)}
-                    className="size-3.5 rounded border-input text-primary focus:ring-primary"
-                  />
-                  Lembrar email neste dispositivo
-                </label>
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar a
+                  sua escola ou pedir acesso à secretaria da escola a que pertence.
+                </p>
                 <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
                 <Button
                   type="submit"
-                  className="w-full gap-2 h-10 text-sm font-semibold"
-                  disabled={submitting || resetting || sendingMagicLink}
+                  className="w-full gap-2 h-[44px] text-[14px] font-semibold"
+                  disabled={submitting}
                 >
-                  {submitting ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <LockKeyhole className="size-4" />
-                  )}
-                  {submitting ? "A entrar…" : "Entrar no Portal"}
+                  {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {submitting ? "A criar conta…" : "Criar conta"}
                 </Button>
-                <button
-                  type="button"
-                  className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-60"
-                  onClick={() => void sendMagicLink()}
-                  disabled={sendingMagicLink || submitting || resetting}
-                >
-                  {sendingMagicLink ? "A enviar link…" : "Ou entrar sem senha por link de e-mail"}
-                </button>
               </form>
+            ) : null}
 
-              {mode === "signup" && !mfaFactorId ? (
-                <form
-                  id="signup-form"
-                  className="mt-6 space-y-4"
-                  onSubmit={signUp}
-                  aria-busy={submitting}
-                >
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-name" className="text-xs font-medium">
-                      Nome completo
-                    </Label>
-                    <Input
-                      id="signup-name"
-                      name="fullName"
-                      autoComplete="name"
-                      required
-                      minLength={3}
-                      maxLength={160}
-                      className="h-10 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-email" className="text-xs font-medium">
-                      E-mail
-                    </Label>
-                    <Input
-                      id="signup-email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      className="h-10 text-sm"
-                      placeholder="nome@exemplo.ao"
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-password" className="text-xs font-medium">
-                        Senha
-                      </Label>
-                      <Input
-                        id="signup-password"
-                        name="password"
-                        type="password"
-                        autoComplete="new-password"
-                        required
-                        minLength={8}
-                        className="h-10 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-confirm" className="text-xs font-medium">
-                        Confirmar senha
-                      </Label>
-                      <Input
-                        id="signup-confirm"
-                        name="confirmPassword"
-                        type="password"
-                        autoComplete="new-password"
-                        required
-                        minLength={8}
-                        className="h-10 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[11px] leading-4 text-muted-foreground">
-                    Criar conta não dá acesso a nenhuma escola. Depois de entrar, poderá configurar
-                    a sua escola ou pedir acesso à secretaria da escola a que pertence.
-                  </p>
-                  <AuthCaptcha onToken={setCaptchaToken} resetSignal={captchaReset} />
-                  <Button
-                    type="submit"
-                    className="w-full gap-2 h-10 text-sm font-semibold"
-                    disabled={submitting}
-                  >
-                    {submitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
-                    {submitting ? "A criar conta…" : "Criar conta"}
-                  </Button>
-                </form>
-              ) : null}
-
-              <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
-                <span className="h-px flex-1 bg-border" />
-                ou
-                <span className="h-px flex-1 bg-border" />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4 w-full gap-2 h-10 text-sm font-medium"
-                onClick={() => void signInWithGoogle()}
-                disabled={submitting || resetting || sendingMagicLink}
-              >
-                <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-                  <path
-                    fill="#4285F4"
-                    d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
-                  />
-                </svg>
-                {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
-              </Button>
-            </div>
-
-            {installPrompt && (
-              <div className="mt-4 pt-3 border-t border-border/60">
+            {/* Durante o código 2FA só há um caminho: confirmar ou usar outra conta. */}
+            {mfaFactors ? null : (
+              <>
+                <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  ou
+                  <span className="h-px flex-1 bg-border" />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleInstallApp}
-                  className="w-full gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                  className="mt-4 w-full gap-2 h-[44px] text-[14px] font-medium"
+                  onClick={() => void signInWithGoogle()}
+                  disabled={submitting || resetting || sendingMagicLink}
                 >
-                  <Download className="size-3.5" />
-                  Instalar aplicação Web no dispositivo (PWA)
+                  <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
+                    <path
+                      fill="#4285F4"
+                      d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.88-3a7.4 7.4 0 0 1-4.07 1.16c-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.76 0 3.34.6 4.59 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+                    />
+                  </svg>
+                  {mode === "signup" ? "Continuar com Google" : "Entrar com Google"}
                 </Button>
-              </div>
+              </>
             )}
+
+            {installPrompt && !installDismissed && !mfaFactors && !isStandalone ? (
+              <div className="mt-4 flex items-center justify-center gap-3 border-t border-border/60 pt-3 text-xs">
+                <button
+                  type="button"
+                  onClick={handleInstallApp}
+                  className="inline-flex items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <Download className="size-3.5" /> Instalar a aplicação
+                </button>
+                <span aria-hidden="true" className="text-border">
+                  ·
+                </span>
+                <button
+                  type="button"
+                  onClick={dismissInstall}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Agora não
+                </button>
+              </div>
+            ) : null}
           </div>
         </section>
       </main>

@@ -21,7 +21,7 @@ const menuSections = [
     items: [
       {
         title: 'Criar escola',
-        description: 'Wizard de provisionamento no portal WEB',
+        description: 'Seis passos curtos, pronta no mesmo dia',
         icon: Package,
         href: '/start'
       },
@@ -38,10 +38,10 @@ const menuSections = [
         href: '/#features'
       },
       {
-        title: 'Portal comercial',
-        description: 'Landing, FAQ e contacto',
+        title: 'App para computador',
+        description: 'Windows, macOS e Linux, também sem rede',
         icon: Layout,
-        href: '/'
+        href: '/download'
       }
     ]
   },
@@ -62,20 +62,20 @@ const menuSections = [
       },
       {
         title: 'Tesouraria',
-        description: 'Propinas no SIGA, cobrança no PayFlow',
+        description: 'Propinas, facturas e recibos com IBAN AO',
         icon: BarChart3,
-        href: '/pricing'
+        href: '/#features'
       },
       {
         title: 'PayFlow',
-        description: 'Pagamentos, recibos e conciliação',
+        description: 'Cobrança por Multicaixa Express e Unitel Money',
         icon: Zap,
         href: getPayflowUrl('/'),
         target: '_blank'
       },
       {
         title: 'Segurança',
-        description: '2FA, catracas e cartão virtual',
+        description: '2FA, cargos e catracas',
         icon: Shield,
         href: '/#features'
       }
@@ -85,14 +85,14 @@ const menuSections = [
     title: 'Recursos',
     items: [
       {
-        title: 'Documentação',
-        description: 'Manuais, API e arquitectura',
+        title: 'Manuais',
+        description: 'Guias em português para cada área',
         icon: Database,
-        href: getDocsUrl()
+        href: getDocsUrl('/siga/primeiros-passos.html')
       },
       {
         title: 'Perguntas frequentes',
-        description: 'Planos, trial e suporte',
+        description: 'Planos, avaliação e suporte',
         icon: Palette,
         href: '/faqs'
       },

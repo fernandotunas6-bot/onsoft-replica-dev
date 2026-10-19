@@ -25,7 +25,7 @@ import {
   normalizeResendRecipients,
   resolveResendCredentials,
   resolveSystemSender,
-  sendResendEmail,
+  sendResendEmailEach,
 } from "./resend-client";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
@@ -35,6 +35,16 @@ import {
   sendWhatsAppCloudMessage,
 } from "./whatsapp-client";
 import { normalizeSmsRecipients, resolveTwilioCredentials, sendTwilioSms } from "./sms-client";
+import { announcementAudienceOptions } from "@/features/communications/schemas";
+import {
+  DISPATCH_MAX_RECIPIENTS,
+  audienceDispatchRoles,
+  listAudienceEmails,
+  listAudiencePhones,
+  listAudienceUserIds,
+  tooManyRecipientsReason,
+  unsupportedAudienceReason,
+} from "./audience-recipients";
 
 const upsertIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
@@ -57,8 +67,12 @@ const rotateGatewayWebhookKeyInputSchema = z.object({
   provider: z.enum(["multicaixa_express", "unitel_money"]),
 });
 
+/** Sem `to`, os destinatários saem do público do comunicado (`audience`). */
+const dispatchAudienceSchema = z.enum(announcementAudienceOptions).optional();
+
 const sendSchoolResendEmailInputSchema = z.object({
   to: z.array(z.string().email()).min(1).max(50).optional(),
+  audience: dispatchAudienceSchema,
   subject: z.string().trim().min(2).max(200),
   text: z.string().trim().min(1).max(8000),
 });
@@ -70,11 +84,13 @@ const PLATFORM_EMAIL_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 20 };
 
 const sendSchoolWhatsAppInputSchema = z.object({
   to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
+  audience: dispatchAudienceSchema,
   text: z.string().trim().min(1).max(4096),
 });
 
 const sendSchoolSmsInputSchema = z.object({
   to: z.array(z.string().trim().min(6).max(32)).min(1).max(50).optional(),
+  audience: dispatchAudienceSchema,
   text: z.string().trim().min(1).max(1600),
 });
 
@@ -475,12 +491,19 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
 
     let recipients = normalizeResendRecipients(data.to ?? []);
     if (!recipients.length) {
-      recipients = await listSchoolStaffEmails(db, membership.schoolId);
+      const resolved = await resolveAudienceRecipients(
+        db,
+        membership.schoolId,
+        data.audience,
+        "email",
+      );
+      if (!resolved.ok) return { mode: "clipboard" as const, reason: resolved.reason };
+      recipients = normalizeResendRecipients(resolved.recipients);
     }
     if (!recipients.length) {
       return {
         mode: "clipboard" as const,
-        reason: "Sem destinatários: indique e-mails ou cadastre e-mails na equipa.",
+        reason: "Sem destinatários: indique e-mails ou registe-os nas fichas deste público.",
       };
     }
 
@@ -525,26 +548,26 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
 
     const html = `<pre style="font-family:sans-serif;white-space:pre-wrap">${escapeHtml(data.text)}</pre>`;
 
-    try {
-      const result = await sendResendEmail({
-        apiKey: credentials.apiKey,
-        from,
-        to: recipients,
-        subject: data.subject,
-        text: data.text,
-        html,
-      });
-      return {
-        mode: "sent" as const,
-        id: result.id,
-        recipientCount: recipients.length,
-      };
-    } catch (error) {
+    const result = await sendResendEmailEach({
+      apiKey: credentials.apiKey,
+      from,
+      to: recipients,
+      subject: data.subject,
+      text: data.text,
+      html,
+    });
+    if (result.sent === 0) {
       return {
         mode: "clipboard" as const,
-        reason: error instanceof Error ? error.message : "Falha no envio Resend.",
+        reason: result.errors[0] ?? "Falha no envio Resend.",
       };
     }
+    return {
+      mode: "sent" as const,
+      id: result.ids[0] ?? null,
+      recipientCount: result.sent,
+      partialErrors: result.errors.length ? result.errors.slice(0, 3) : undefined,
+    };
   });
 
 /**
@@ -617,7 +640,14 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
 
     let recipients = normalizeWhatsAppRecipients(data.to ?? []);
     if (!recipients.length) {
-      recipients = await listSchoolStaffPhones(db, membership.schoolId);
+      const resolved = await resolveAudienceRecipients(
+        db,
+        membership.schoolId,
+        data.audience,
+        "phone",
+      );
+      if (!resolved.ok) return { mode: "deeplink" as const, reason: resolved.reason };
+      recipients = normalizeWhatsAppRecipients(resolved.recipients);
     }
     if (!recipients.length) {
       return {
@@ -700,7 +730,14 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
 
     let recipients = normalizeSmsRecipients(data.to ?? []);
     if (!recipients.length) {
-      recipients = await listSchoolStaffPhones(db, membership.schoolId);
+      const resolved = await resolveAudienceRecipients(
+        db,
+        membership.schoolId,
+        data.audience,
+        "phone",
+      );
+      if (!resolved.ok) return { mode: "unavailable" as const, reason: resolved.reason };
+      recipients = normalizeSmsRecipients(resolved.recipients);
     }
     if (!recipients.length) {
       return {
@@ -764,58 +801,43 @@ function escapeHtml(value: string) {
     .replaceAll('"', "&quot;");
 }
 
-async function listSchoolStaffEmails(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  schoolId: string,
-): Promise<string[]> {
-  try {
-    const { data: memberships, error } = await db
-      .from("school_memberships")
-      .select("user_id")
-      .eq("school_id", schoolId)
-      .eq("status", "active")
-      .limit(80);
-    if (error || !memberships?.length) return [];
-    const userIds = memberships.map((row) => row.user_id).filter(Boolean);
-    if (!userIds.length) return [];
-    const { data: profiles } = await db
-      // `profiles` não tem coluna `email` — o e-mail vive em `people` (e em
-      // `auth.users`). Com `email` no select, o PostgREST recusava a consulta
-      // inteira e o resultado vinha vazio, indistinguível de «não há contactos».
-      .from("people")
-      .select("email")
-      .in("user_id", userIds)
-      .limit(80);
-    return normalizeResendRecipients((profiles ?? []).map((row) => String(row.email ?? "")));
-  } catch {
-    return [];
-  }
-}
+type AudienceRecipients = { ok: true; recipients: string[] } | { ok: false; reason: string };
 
-async function listSchoolStaffPhones(
+/**
+ * Contactos do público do comunicado (ver `audience-recipients.ts`). Acima do
+ * tecto não se envia nada: mandar só aos primeiros 50, sem critério, era pior
+ * do que não mandar.
+ */
+async function resolveAudienceRecipients(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   schoolId: string,
-): Promise<string[]> {
+  audience: string | undefined,
+  kind: "email" | "phone",
+): Promise<AudienceRecipients> {
+  const roles = audienceDispatchRoles(audience);
+  if (!roles) return { ok: false, reason: unsupportedAudienceReason(String(audience)) };
   try {
-    const { data: memberships, error } = await db
-      .from("school_memberships")
-      .select("user_id")
-      .eq("school_id", schoolId)
-      .eq("status", "active")
-      .limit(80);
-    if (error || !memberships?.length) return [];
-    const userIds = memberships.map((row) => row.user_id).filter(Boolean);
-    if (!userIds.length) return [];
-    const { data: profiles } = await db
-      .from("profiles")
-      .select("phone")
-      .in("id", userIds)
-      .limit(80);
-    return normalizeWhatsAppRecipients(
-      (profiles ?? []).map((row) => String((row as { phone?: string | null }).phone ?? "")),
+    const userIds = await listAudienceUserIds(db, schoolId, roles);
+    if (!userIds.length) return { ok: true, recipients: [] };
+    const contacts =
+      kind === "email"
+        ? await listAudienceEmails(db, schoolId, userIds)
+        : await listAudiencePhones(db, schoolId, userIds);
+    const distinct = new Set(
+      contacts.map((value) =>
+        kind === "email" ? value.trim().toLowerCase() : value.replace(/\D/g, "").slice(-9),
+      ),
     );
-  } catch {
-    return [];
+    distinct.delete("");
+    if (distinct.size > DISPATCH_MAX_RECIPIENTS) {
+      return { ok: false, reason: tooManyRecipientsReason(distinct.size) };
+    }
+    return { ok: true, recipients: contacts };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : "Não foi possível ler os destinatários.",
+    };
   }
 }
 

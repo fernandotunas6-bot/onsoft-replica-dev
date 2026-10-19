@@ -28,10 +28,13 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("@/features/auth/use-current-account", () => ({
   useCurrentAccount: () => ({ id: "u-1", schoolId: "s-1", roles: ["Encarregado"] }),
 }));
-vi.mock("@/features/messages/server", () => ({
-  listInboxPreviews: async () => ({
+vi.mock("@/features/messages/chat-server", () => ({
+  listChatConversations: async () => ({
     storage: "sga",
-    previews: [{ peerId: "u-2", full_name: "Ana Silva" }],
+    conversations: [
+      { id: "c-1", type: "guardian", name: "Ana Silva" },
+      { id: "c-grupo", type: "group", name: "9.ª A" },
+    ],
   }),
 }));
 vi.mock("@/lib/desktop-utils", () => ({ isTauriDesktop: () => true, notifyNative }));
@@ -56,19 +59,33 @@ describe("notificações do sistema na app desktop", () => {
     vi.restoreAllMocks();
   });
 
-  it("subscreve só as mensagens desta conta e os comunicados desta escola", () => {
-    expect(table("siga_direct_messages").filter["filter"]).toBe("recipient_id=eq.u-1");
+  it("subscreve as mensagens do chat (a RLS limita às conversas da conta) e os comunicados desta escola", () => {
+    expect(table("siga_chat_messages").filter["event"]).toBe("INSERT");
+    expect(table("siga_chat_messages").filter["filter"]).toBeUndefined();
     expect(table("school_announcements").filter["filter"]).toBe("school_id=eq.s-1");
   });
 
   it("mensagem recebida em segundo plano: aviso com o remetente, sem o texto", async () => {
-    table("siga_direct_messages").callback({
-      new: { id: "m-1", recipient_id: "u-1", sender_id: "u-2", body: "segredo" },
+    table("siga_chat_messages").callback({
+      new: { id: "m-1", conversation_id: "c-1", sender_id: "u-2", body: "segredo" },
     });
     await vi.waitFor(() =>
       expect(notifyNative).toHaveBeenCalledWith("Nova mensagem", "De Ana Silva."),
     );
     expect(JSON.stringify(notifyNative.mock.calls)).not.toContain("segredo");
+  });
+
+  it("mensagem num grupo: avisa sem dizer quem escreveu; as próprias não avisam", async () => {
+    table("siga_chat_messages").callback({
+      new: { id: "m-3", conversation_id: "c-1", sender_id: "u-1" },
+    });
+    table("siga_chat_messages").callback({
+      new: { id: "m-4", conversation_id: "c-grupo", sender_id: "u-2" },
+    });
+    await vi.waitFor(() =>
+      expect(notifyNative).toHaveBeenCalledWith("Nova mensagem", "Abra o SIGA para a ler."),
+    );
+    expect(notifyNative).toHaveBeenCalledTimes(1);
   });
 
   it("comunicado: só os que a conta vê na lista, uma vez", async () => {
@@ -93,8 +110,8 @@ describe("notificações do sistema na app desktop", () => {
 
   it("com a janela à frente não avisa", async () => {
     vi.spyOn(document, "hasFocus").mockReturnValue(true);
-    table("siga_direct_messages").callback({
-      new: { id: "m-2", recipient_id: "u-1", sender_id: "u-2" },
+    table("siga_chat_messages").callback({
+      new: { id: "m-2", conversation_id: "c-1", sender_id: "u-2" },
     });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(notifyNative).not.toHaveBeenCalled();

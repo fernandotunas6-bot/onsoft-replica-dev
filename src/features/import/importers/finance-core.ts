@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
+import { selectAllPages } from "../engine/paged";
 import { categoryToFeeKind } from "@/features/finance/server";
 import { formatInvoiceNumber } from "@/features/finance/invoice-numbering";
 
@@ -39,12 +40,21 @@ export async function loadEnrollmentFinanceRefs(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<EnrollmentFinanceRef[]> {
-  const { data, error } = await db
-    .from("enrollments")
-    .select("id, student_id, academic_year_id, status")
-    .eq("school_id", schoolId);
-  if (error) throw new Error(`Não foi possível carregar matrículas: ${error.message}`);
-  return (data ?? []).map((row) => ({
+  type Row = { id: string; student_id: string; academic_year_id: string; status: string };
+  const data = await selectAllPages<Row>(
+    (from, to) =>
+      db
+        .from("enrollments")
+        .select("id, student_id, academic_year_id, status")
+        .eq("school_id", schoolId)
+        .order("id", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{
+        data: Row[] | null;
+        error: { message: string } | null;
+      }>,
+    "Não foi possível carregar matrículas",
+  );
+  return data.map((row) => ({
     id: String(row.id),
     student_id: String(row.student_id),
     academic_year_id: String(row.academic_year_id),

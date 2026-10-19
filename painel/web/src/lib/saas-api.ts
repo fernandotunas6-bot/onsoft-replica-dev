@@ -87,11 +87,15 @@ export async function fetchSaasPlans(): Promise<SaasPlan[]> {
   }
 }
 
-/** true = livre para usar, false = já pertence a outra escola, null = não deu para confirmar (não bloqueia o avanço). */
-export async function checkSlugAvailability(slug: string): Promise<boolean | null> {
+/**
+ * true = livre para usar, false = já pertence a outra escola, "reserved" = reservado pela
+ * plataforma, null = não deu para confirmar (não bloqueia o avanço).
+ */
+export async function checkSlugAvailability(slug: string): Promise<boolean | "reserved" | null> {
   try {
     const res = await fetch(getSaasApiUrl(`/api/saas/tenants/lookup?slug=${encodeURIComponent(slug)}`))
     if (res.status === 404) return true
+    if (res.status === 409) return "reserved"
     if (res.ok) return false
     return null
   } catch {

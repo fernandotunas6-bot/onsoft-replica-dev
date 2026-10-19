@@ -75,6 +75,7 @@ export default defineConfig({
             { text: 'Visão geral', link: '/admin/' },
             { text: 'Control Center', link: '/admin/control-center' },
             { text: 'Domínios', link: '/admin/domains' },
+            { text: 'Site público', link: '/admin/site' },
           ],
         },
       ],

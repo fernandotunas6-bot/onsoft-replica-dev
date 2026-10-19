@@ -38,6 +38,8 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   school_integration_secrets: ["id", "provider,school_id,secret_key"],
   school_integrations: ["id", "provider,school_id"],
   school_shifts: ["id", "id,school_id", "code,school_id"],
+  // 2026-10-07: chave primária confirmada na produção (auditoria 13, conversas directas).
+  siga_chat_members: ["conversation_id,user_id"],
   siga_attendance_records: ["id", "session_id,student_id"],
   siga_exam_registrations: ["id", "enrollment_id,session_id,subject_id"],
   siga_lesson_meetings: ["id", "external_meeting_id,provider", "attendance_session_id,provider"],
@@ -47,6 +49,12 @@ const UNICOS_PRODUCAO: Record<string, string[]> = {
   student_academic_history: ["id", "academic_year_label,grade_level,school_id,student_id"],
   student_risk_cases: ["id", "enrollment_id,school_id"],
   tenant_usage: ["id", "tenant_id"],
+  // 2026-10-07: chave primária de 20261007100000_web_site_content.sql (vitrine do site).
+  // Recapturar da produção depois de aplicada a migração.
+  web_school_showcase: ["school_id"],
+  // 2026-10-15: chave primária de 20261015120000_tenant_billing_profiles.sql (cobrança
+  // por escola). Recapturar da produção depois de aplicada a migração.
+  tenant_billing_profiles: ["tenant_id"],
 };
 
 function upsertsNoCodigo() {

@@ -26,7 +26,7 @@ export function CTASection() {
                 <div className='text-muted-foreground flex items-center gap-4 text-sm'>
                   <span className='flex items-center gap-1'>
                     <div className='size-2 rounded-full bg-green-500' />
-                    Trial de 14 dias
+                    14 dias para experimentar
                   </span>
                   <Separator orientation='vertical' className='!h-4' />
                   <span>Feito para Angola</span>
@@ -63,8 +63,8 @@ export function CTASection() {
                   </a>
                 </Button>
                 <Button variant='outline' size='lg' className='cursor-pointer px-8 py-6 text-lg font-medium group' asChild>
-                  <a href={getDocsUrl()}>
-                    Documentação
+                  <a href={getDocsUrl("/siga/primeiros-passos.html")}>
+                    Ler os manuais
                     <ArrowRight className='ms-2 size-4 transition-transform duration-150 group-hover:translate-x-1' />
                   </a>
                 </Button>

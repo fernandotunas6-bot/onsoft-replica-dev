@@ -195,14 +195,26 @@ pub(super) async fn portal_vault_unlock(
             return Err("PIN incorrecto ou cofre danificado.".into());
         }
     };
+    let stronghold = tauri::async_runtime::spawn_blocking(move || prepare_client(stronghold))
+        .await
+        .map_err(|_| "Falha ao abrir o cofre.".to_string())??;
+    guard(&vault.attempts)?.succeeded();
+    *guard(&vault.open)? = Some(stronghold);
+    Ok(())
+}
+
+/// Carrega o cliente do cofre; num cofre novo cria-o e grava logo o ficheiro, para o
+/// PIN ficar definido mesmo que a pessoa feche a app antes de guardar alguma coisa.
+fn prepare_client(stronghold: Stronghold) -> Result<Stronghold, String> {
     if stronghold.load_client(VAULT_CLIENT).is_err() {
         stronghold
             .create_client(VAULT_CLIENT)
             .map_err(|_| "Não foi possível preparar o cofre.".to_string())?;
+        stronghold
+            .save()
+            .map_err(|_| "Não foi possível gravar o cofre.".to_string())?;
     }
-    guard(&vault.attempts)?.succeeded();
-    *guard(&vault.open)? = Some(stronghold);
-    Ok(())
+    Ok(stronghold)
 }
 
 /// Fecha o cofre: os segredos deixam de estar em memória até novo desbloqueio.
@@ -357,6 +369,20 @@ mod tests {
         assert!(valid_salt(&salt).is_err());
         std::fs::write(&salt, [7u8; 32]).unwrap();
         assert!(valid_salt(&salt).is_ok());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_new_vault_is_written_when_the_pin_is_created() {
+        let dir = std::env::temp_dir().join(format!("siga-vault-new-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let snapshot = dir.join(VAULT_FILE);
+        let key = KeyDerivation::argon2("123456", &dir.join(SALT_FILE));
+        prepare_client(Stronghold::new(&snapshot, key.clone()).unwrap()).unwrap();
+        assert!(snapshot.is_file());
+        // Reaberto com o mesmo PIN, o cliente carrega sem ser criado de novo.
+        let reopened = Stronghold::new(&snapshot, key).unwrap();
+        assert!(reopened.load_client(VAULT_CLIENT).is_ok());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

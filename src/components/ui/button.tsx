@@ -6,7 +6,7 @@ import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-[color,background-color,transform,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) active:duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 motion-reduce:active:scale-100 motion-reduce:transition-none",
+  "siga-motion-control inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-[color,background-color,transform,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) active:duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 motion-reduce:active:scale-100 motion-reduce:transition-none",
   {
     variants: {
       variant: {
@@ -19,10 +19,10 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-3.5 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-6",
-        icon: "h-9 w-9",
+        default: "h-9 min-h-[44px] px-3.5 py-2 lg:min-h-0",
+        sm: "h-8 min-h-[44px] rounded-md px-3 text-xs lg:min-h-0",
+        lg: "h-10 min-h-[44px] rounded-md px-6 lg:min-h-0",
+        icon: "h-9 w-9 min-h-[44px] min-w-[44px] lg:min-h-0 lg:min-w-0",
       },
     },
     defaultVariants: {

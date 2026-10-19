@@ -52,6 +52,8 @@ export type ChatConversation = {
   online?: boolean;
   student?: { id: string; name?: string };
   messages: ChatMessage[];
+  /** Conversa directa com quem já saiu da escola: só para leitura. */
+  peerLeft?: boolean;
   /** Há mais mensagens para trás do que as carregadas. */
   more?: boolean;
   loaded?: boolean;

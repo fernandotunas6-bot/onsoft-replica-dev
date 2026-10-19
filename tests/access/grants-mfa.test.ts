@@ -23,7 +23,7 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
 vi.mock("@/features/audit/record-audit", () => ({ recordAccessAudit: state.audit }));
 const context = {
   userId: "AUDIT-admin",
-  claims: { aal: "aal2" },
+  claims: { aal: "aal2", amr: [{ method: "totp", timestamp: Math.floor(Date.now() / 1000) }] },
   supabase: {
     from: () => ({
       upsert: state.upsert,

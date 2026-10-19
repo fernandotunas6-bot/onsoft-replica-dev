@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, FolderOpen, LoaderCircle, Shield, Sliders, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { PasskeysPanel } from "@/features/auth/PasskeysPanel";
 import {
   setCurrentProfileAvatar,
   updateCurrentProfile,
@@ -289,7 +290,7 @@ function MfaSecurityPanel() {
             <Shield className="size-4 text-primary" /> Autenticação de dois fatores
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Proteja a conta com uma aplicação autenticadora.
+            Código da aplicação autenticadora: o recurso quando a chave de acesso não está à mão.
           </p>
         </div>
         <Badge variant={enabled ? "default" : "outline"}>
@@ -438,6 +439,7 @@ export function ProfileSettingsPanel() {
     <form className="space-y-6" onSubmit={saveProfile} onChange={() => stackNav?.reportDirty(true)}>
       <ProfileAvatarField />
       <Separator />
+      <PasskeysPanel />
       <MfaSecurityPanel />
       <Separator />
 

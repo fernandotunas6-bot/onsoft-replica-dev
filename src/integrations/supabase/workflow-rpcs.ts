@@ -3,14 +3,14 @@ import type { Database, Json } from "./types";
 import { z } from "zod";
 
 /**
- * Os dois RPCs estão aplicados na produção desde 2026-10-10 e `types.ts` já os
+ * Os dois RPCs estão aplicados na produção desde 2026-10-10 e `types.sga.ts` já os
  * descreve. O que fica aqui é só a nulidade dos argumentos: o gerador do CLI
  * não a conhece (um parâmetro sem valor por omissão sai como obrigatório e
  * não-nulo), e estas funções aceitam NULL de propósito — ano por nome em vez de
  * id, matrícula sem turma, data de admissão em branco. Daí o `Omit`: substitui
  * a entrada gerada em vez de a intersectar, que é como `string & (string|null)`
  * voltava a ser `string` e recusava o `null` dos chamadores.
- * Não editar types.ts à mão — é gerado da produção.
+ * Não editar types.sga.ts à mão — é gerado da produção.
  */
 type WorkflowFunctions = {
   siga_enroll_new_student_atomic: {

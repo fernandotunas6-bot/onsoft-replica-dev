@@ -1,4 +1,5 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -17,6 +18,7 @@ import {
   kindFromFile,
 } from "./kinds";
 import { insertFinanceArchive } from "./archive-finance-core";
+import { assertCanStoreBytesForSchool } from "@/features/saas/tenant-limits-server";
 import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "./document-code";
 import {
   createSchoolFolderInputSchema,
@@ -143,7 +145,11 @@ function mapRow(row: Record<string, unknown>): SchoolFileRecord {
  * tem de continuar a dizer o mesmo -- `tests/security/siga-files-rls.test.ts`
  * compara-as.
  */
-export function canSeeRow(row: SchoolFileRecord, userId: string, role: string) {
+export function canSeeRow(
+  row: Pick<SchoolFileRecord, "area" | "ownerUserId" | "visibility">,
+  userId: string,
+  role: string,
+) {
   if (!canReadFileArea(role, row.area)) return false;
   if (row.area === "pessoal" && row.ownerUserId !== userId) return false;
   if (row.visibility === "private" && row.ownerUserId !== userId) {
@@ -164,6 +170,87 @@ function presentFileForViewer(
     description: null,
     storagePath: "",
   };
+}
+
+/**
+ * Os ids que o browser manda (pasta-mãe, turma, pessoa, utilizador) têm de ser
+ * desta escola. A base não o garante: `parent_id` e `related_person_id` têm
+ * chave estrangeira só pelo id, e `class_group_id` não tem nenhuma, por isso um
+ * ficheiro podia ficar ligado a uma pasta, turma ou pessoa de outra escola
+ * (auditoria 13).
+ */
+export async function assertFileRefsInSchool(
+  db: AdminDb,
+  schoolId: string,
+  refs: {
+    parentId?: string | null;
+    classGroupId?: string | null;
+    relatedPersonId?: string | null;
+    relatedUserId?: string | null;
+  },
+): Promise<void> {
+  const checks: Array<{ ok: () => Promise<boolean>; message: string }> = [];
+  if (refs.parentId) {
+    checks.push({
+      message: "A pasta escolhida não existe nesta escola.",
+      ok: async () => {
+        const { data } = await db
+          .from("siga_files")
+          .select("id, is_folder")
+          .eq("id", refs.parentId!)
+          .eq("school_id", schoolId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        return Boolean(data?.is_folder);
+      },
+    });
+  }
+  if (refs.classGroupId) {
+    checks.push({
+      message: "A turma escolhida não existe nesta escola.",
+      ok: async () => {
+        const { data } = await db
+          .from("class_groups")
+          .select("id")
+          .eq("id", refs.classGroupId!)
+          .eq("school_id", schoolId)
+          .maybeSingle();
+        return Boolean(data);
+      },
+    });
+  }
+  if (refs.relatedPersonId) {
+    checks.push({
+      message: "A pessoa escolhida não existe nesta escola.",
+      ok: async () => {
+        const { data } = await db
+          .from("people")
+          .select("id")
+          .eq("id", refs.relatedPersonId!)
+          .eq("school_id", schoolId)
+          .maybeSingle();
+        return Boolean(data);
+      },
+    });
+  }
+  if (refs.relatedUserId) {
+    checks.push({
+      message: "A conta escolhida não pertence a esta escola.",
+      ok: async () => {
+        const { data } = await db
+          .from("school_memberships")
+          .select("id")
+          .eq("user_id", refs.relatedUserId!)
+          .eq("school_id", schoolId)
+          .limit(1)
+          .maybeSingle();
+        return Boolean(data);
+      },
+    });
+  }
+  const results = await Promise.all(checks.map((check) => check.ok()));
+  const failed = checks.find((_, index) => !results[index]);
+  if (failed) throw new Error(failed.message);
 }
 
 async function profilePeople(db: AdminDb, ids: string[]) {
@@ -448,10 +535,41 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     if (!kindFromFile(data.name, data.mime)) {
       throw new Error("Formato fora do padrão SIGA.");
     }
+    if (requiresVerifiedSchoolStorage(data) && data.storageBackend !== "sga") {
+      throw new Error(
+        "Os documentos pessoais da Secretaria exigem armazenamento seguro da escola.",
+      );
+    }
     if (!isOwnUploadPath(data.storagePath, membership.schoolId, userId, data.id, data.area)) {
       throw new Error("Caminho do ficheiro inválido.");
     }
     const db = await loadSgaAdminClient();
+    // Quota de arquivo do plano. O ficheiro já foi enviado pelo browser: se não
+    // cabe, sai do armazenamento para não ocupar espaço sem registo.
+    if (data.storageBackend === "sga") {
+      try {
+        await assertFileRefsInSchool(db, membership.schoolId, {
+          parentId: data.parentId,
+          classGroupId: data.classGroupId,
+          relatedPersonId: data.relatedPersonId,
+          relatedUserId: data.relatedUserId?.trim() || null,
+        });
+        await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
+      } catch (error) {
+        await db.storage
+          .from(FILES_BUCKET)
+          .remove([data.storagePath])
+          .catch(() => undefined);
+        throw error;
+      }
+    } else {
+      await assertFileRefsInSchool(db, membership.schoolId, {
+        parentId: data.parentId,
+        classGroupId: data.classGroupId,
+        relatedPersonId: data.relatedPersonId,
+        relatedUserId: data.relatedUserId?.trim() || null,
+      });
+    }
     const now = new Date().toISOString();
     const base = {
       id: data.id,
@@ -493,6 +611,11 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     let row: Record<string, unknown> | null = null;
     const first = await db.from("siga_files").insert(withAudit).select(FILE_SELECT).single();
     if (first.error && missingOptionalColumn(first.error)) {
+      if (data.relatedPersonId) {
+        throw new Error(
+          "A base de dados da escola não suporta a associação de documentos a pessoas. Actualize o Arquivo antes de carregar.",
+        );
+      }
       const mid = await db
         .from("siga_files")
         .insert({ ...base, class_group_id: data.classGroupId ?? null })
@@ -546,6 +669,7 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
       throw new Error("Sem permissão para criar pastas nesta área.");
     }
     const db = await loadSgaAdminClient();
+    await assertFileRefsInSchool(db, membership.schoolId, { parentId: data.parentId });
     const now = new Date().toISOString();
     const payload = {
       id: data.id,
@@ -902,6 +1026,10 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     if (!canEdit || !canWriteFileArea(membership.appRole, area)) {
       throw new Error("Sem permissão para editar metadados.");
     }
+    await assertFileRefsInSchool(db, membership.schoolId, {
+      relatedPersonId: data.relatedPersonId ?? null,
+      relatedUserId: data.relatedUserId?.trim() || null,
+    });
     const now = new Date().toISOString();
     const payload: TablesUpdate<"siga_files"> = {
       updated_at: now,
@@ -1184,6 +1312,7 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
       "Professor",
     ]);
     const db = await loadSgaAdminClient();
+    await assertFileRefsInSchool(db, membership.schoolId, { classGroupId: data.classGroupId });
     const action = data.classGroupId ? "linked_class" : "unlinked_class";
     const now = new Date().toISOString();
     const { error } = await db
@@ -1385,6 +1514,67 @@ export const listSchoolFileActivity = createServerFn({ method: "GET" })
       }),
     };
   });
+
+/**
+ * Ficheiro desta escola para anexar a uma mensagem: só se quem envia o pode
+ * ver. Sem isto, um id copiado partilhava no chat um ficheiro pessoal ou
+ * privado de outra pessoa (a base só confirma que é da mesma escola).
+ */
+export async function loadShareableSchoolFile(
+  db: AdminDb,
+  schoolId: string,
+  fileId: string,
+  userId: string,
+  role: string,
+): Promise<SchoolFileRecord> {
+  const row = await loadSchoolFileRow(db, schoolId, fileId);
+  if (!row || row.isFolder) throw new Error("O ficheiro anexado já não existe nos Arquivos.");
+  if (!canSeeRow(row, userId, role) || !canAccessFileContent(row, userId, role)) {
+    throw new Error("Só pode anexar ficheiros que consegue abrir nos Arquivos.");
+  }
+  return row;
+}
+
+/**
+ * Endereço temporário (10 min) de um anexo de mensagem. Quem chama já
+ * confirmou que a pessoa participa na conversa: quem envia escolheu partilhar
+ * o ficheiro com ela, por isso não se aplicam aqui as áreas dos Arquivos.
+ */
+export async function signChatAttachmentFile(db: AdminDb, schoolId: string, fileId: string) {
+  const row = await loadSchoolFileRow(db, schoolId, fileId);
+  if (!row) throw new Error("O anexo foi apagado dos Arquivos e já não pode ser aberto.");
+  if (row.storageBackend !== "sga") {
+    throw new Error("Este anexo ficou guardado só no computador de quem o enviou.");
+  }
+  const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(row.storagePath, 600);
+  if (signed.error || !signed.data?.signedUrl) {
+    throw new Error("Não foi possível abrir o anexo agora. Tente outra vez dentro de instantes.");
+  }
+  return signed.data.signedUrl;
+}
+
+async function loadSchoolFileRow(
+  db: AdminDb,
+  schoolId: string,
+  fileId: string,
+): Promise<SchoolFileRecord | null> {
+  let { data: row, error } = await db
+    .from("siga_files")
+    .select(FILE_SELECT)
+    .eq("id", fileId)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  if (error && missingOptionalColumn(error)) {
+    ({ data: row, error } = await db
+      .from("siga_files")
+      .select(FILE_SELECT_BASIC)
+      .eq("id", fileId)
+      .eq("school_id", schoolId)
+      .maybeSingle());
+  }
+  if (error) throw publicDatabaseError(error, "Não foi possível ler o ficheiro.");
+  return row ? mapRow(row as Record<string, unknown>) : null;
+}
 
 export const signSchoolFile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

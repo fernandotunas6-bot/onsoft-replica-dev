@@ -2,14 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
-  CalendarCheck,
   Check,
   CheckCheck,
   ClipboardList,
   Clock,
   CornerUpLeft,
   FileText,
-  Flag,
   GraduationCap,
   Plus,
   Search,
@@ -23,11 +21,13 @@ import {
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { signSchoolFile } from "@/features/arquivos/server";
+import { signMessageAttachment } from "@/features/messages/attachment-server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { touchRecentContact } from "./recent-contacts";
 import { createSigaChatAdapter } from "./chat-adapter";
 import type { ChatContact, ChatConversation, ChatMessage } from "./chat-schemas";
+import { chatErrorText, mergeConversations, withLocalMessages } from "./chat-merge";
 
 /* Paleta e ícones do template original (chat/ChatEscolar.jsx), mantidos tal e
    qual a pedido: o painel tem a sua própria identidade dentro do SIGA. */
@@ -152,8 +152,17 @@ function Avatar({
   );
 }
 
-async function openAttachment(fileId: string) {
-  const signed = await signSchoolFile({ data: { id: fileId } });
+/** Mensagem já gravada: abre pela mensagem, para que encarregados e alunos (sem
+ *  acesso aos Arquivos) abram o que o pessoal lhes envia. Ainda a enviar ou
+ *  falhada: o anexo é de quem a escreve, abre pelos Arquivos. */
+/** Quem tem a Biblioteca de Arquivos (a mesma regra de `canReadFileArea`). */
+const ATTACH_ROLES = new Set<string>(["Administrador", "Secretaria", "Tesouraria", "Professor"]);
+
+async function openAttachment(message: ChatMessage) {
+  const persisted = message.status !== "sending" && message.status !== "failed";
+  const signed = persisted
+    ? await signMessageAttachment({ data: { source: "chat", messageId: message.id } })
+    : await signSchoolFile({ data: { id: message.file!.fileId } });
   if (signed.url) window.open(signed.url, "_blank", "noopener");
   else throw new Error("sem-url");
 }
@@ -172,6 +181,9 @@ export function ChatDock({
 }) {
   const currentUser = useCurrentAccount();
   const navigate = useNavigate();
+  const canAttach = (currentUser.roles ?? [currentUser.role]).some((role) =>
+    ATTACH_ROLES.has(role),
+  );
   const adapter = useMemo(
     () => createSigaChatAdapter({ id: currentUser.id, name: currentUser.name }),
     [currentUser.id, currentUser.name],
@@ -237,7 +249,15 @@ export function ChatDock({
     onUnreadChange?.(total);
   }, [onUnreadChange, total]);
 
-  const reload = useCallback(() => adapter.listConversations().then(setConvs), [adapter]);
+  // Junta em vez de substituir: a conversa aberta mantém o histórico e o que
+  // ainda está a ser enviado (ver chat-merge.ts).
+  const reload = useCallback(
+    () =>
+      adapter
+        .listConversations()
+        .then((fresh) => setConvs((prev) => mergeConversations(prev, fresh, activeRef.current))),
+    [adapter],
+  );
 
   const loadMessages = useCallback(
     (id: string) =>
@@ -246,7 +266,7 @@ export function ChatDock({
         .then((result) =>
           patch(id, (c) => ({
             ...c,
-            messages: result.messages,
+            messages: withLocalMessages(result.messages, c.messages),
             loaded: true,
             more: result.hasMore,
           })),
@@ -331,20 +351,22 @@ export function ChatDock({
       ),
     }));
     setSelId(null);
-    void adapter.deleteMessage(mid).catch(() => setToast("Não foi possível apagar a mensagem."));
+    const cid = activeId!;
+    void adapter.deleteMessage(mid).catch((error: unknown) => {
+      setToast(chatErrorText(error, "Não foi possível apagar a mensagem."));
+      // Não ficou apagada: volta a mostrar o que está no servidor.
+      void loadMessages(cid);
+    });
   };
 
   /* Atalhos do aluno: navegam nas rotas que já existem, em vez de abrirem um
      ecrã novo só para o chat. */
-  const studentAction = (action: "boletim" | "frequencia" | "ocorrencias") => {
+  /* Atalho do aluno: a ficha tem o boletim, a frequência e as ocorrências.
+     Antes «Frequência» abria `?tab=presenca`, um separador que não existe. */
+  const openStudent = () => {
     const studentId = conv?.student?.id;
     if (!studentId) return;
-    const target = {
-      boletim: { to: "/pedagogica", search: { tab: "notas", aluno: studentId } },
-      frequencia: { to: "/pedagogica", search: { tab: "presenca", aluno: studentId } },
-      ocorrencias: { to: "/alunos", search: { aluno: studentId } },
-    }[action];
-    void navigate(target as never);
+    void navigate({ to: "/alunos/$studentId", params: { studentId } });
     onClose?.();
   };
 
@@ -364,9 +386,9 @@ export function ChatDock({
             .map((m) => (m.id === msg.id ? saved : m)),
         })),
       )
-      .catch(() => {
+      .catch((error: unknown) => {
         setStatus(cid, msg.id, "failed");
-        setToast("Falha ao enviar. Toque na mensagem para reenviar.");
+        setToast(chatErrorText(error, "Falha ao enviar. Toque na mensagem para reenviar."));
       });
 
   const send = () => {
@@ -432,12 +454,12 @@ export function ChatDock({
     try {
       const id = await adapter.startDirect(peerId);
       touchRecentContact(currentUser.id, peerId);
-      setConvs(await adapter.listConversations());
+      await reload();
       setPicker(null);
       setQ("");
       openConv(id);
-    } catch {
-      setToast("Não foi possível iniciar a conversa.");
+    } catch (error) {
+      setToast(chatErrorText(error, "Não foi possível iniciar a conversa."));
     }
   };
 
@@ -660,24 +682,15 @@ export function ChatDock({
               className="flex gap-2 overflow-x-auto px-2 py-2"
               style={{ background: "#fff", borderBottom: `1px solid ${T.line}` }}
             >
-              {(
-                [
-                  ["boletim", "Boletim", ClipboardList],
-                  ["frequencia", "Frequência", CalendarCheck],
-                  ["ocorrencias", "Ocorrências", Flag],
-                ] as const
-              ).map(([k, l, I]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => studentAction(k)}
-                  className="flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs"
-                  style={{ border: `1px solid ${T.line}`, color: T.brandDark }}
-                >
-                  <I size={13} />
-                  {l}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={openStudent}
+                className="flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs"
+                style={{ border: `1px solid ${T.line}`, color: T.brandDark }}
+              >
+                <ClipboardList size={13} />
+                Ficha do aluno · boletim e frequência
+              </button>
             </div>
           ) : null}
 
@@ -767,7 +780,7 @@ export function ChatDock({
                                 tabIndex={0}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  void openAttachment(mm.file!.fileId).catch(() =>
+                                  void openAttachment(mm).catch(() =>
                                     setToast("Não foi possível abrir o arquivo."),
                                   );
                                 }}
@@ -775,7 +788,7 @@ export function ChatDock({
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    void openAttachment(mm.file!.fileId).catch(() =>
+                                    void openAttachment(mm).catch(() =>
                                       setToast("Não foi possível abrir o arquivo."),
                                     );
                                   }
@@ -934,77 +947,89 @@ export function ChatDock({
             </div>
           ) : null}
 
-          <div
-            className="flex items-end gap-1 p-2"
-            style={{ background: T.panel, borderTop: `1px solid ${T.line}` }}
-          >
-            <button
-              type="button"
-              onClick={() => setPanel(panel === "emoji" ? null : "emoji")}
-              aria-label="Emojis"
-              className="p-2"
+          {conv.peerLeft ? (
+            <div
+              className="p-3 text-center text-xs"
+              style={{ background: T.panel, borderTop: `1px solid ${T.line}`, color: T.mute }}
             >
-              <Smile size={22} color={T.mute} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setPanel(panel === "quick" ? null : "quick")}
-              aria-label="Mensagens rápidas"
-              className="p-2"
+              Esta pessoa já não pertence à escola. A conversa fica só para leitura.
+            </div>
+          ) : (
+            <div
+              className="flex items-end gap-1 p-2"
+              style={{ background: T.panel, borderTop: `1px solid ${T.line}` }}
             >
-              <Zap size={20} color={T.mute} />
-            </button>
-            {/* Anexo vem da Biblioteca de Arquivos da escola: o ficheiro fica
+              <button
+                type="button"
+                onClick={() => setPanel(panel === "emoji" ? null : "emoji")}
+                aria-label="Emojis"
+                className="p-2"
+              >
+                <Smile size={22} color={T.mute} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPanel(panel === "quick" ? null : "quick")}
+                aria-label="Mensagens rápidas"
+                className="p-2"
+              >
+                <Zap size={20} color={T.mute} />
+              </button>
+              {/* Anexo vem da Biblioteca de Arquivos da escola: o ficheiro fica
                 auditado e com as permissões que já existem, em vez de um bucket
-                paralelo só do chat. */}
-            <PickFileButton
-              variant="ghost"
-              size="sm"
-              onPick={(file: SchoolFileRecord) =>
-                setPending({ id: file.id, name: file.name, size: file.sizeBytes })
-              }
-            >
-              <FileText size={20} color={T.mute} />
-            </PickFileButton>
-            <textarea
-              ref={taRef}
-              rows={1}
-              value={draft}
-              placeholder="Escreva uma mensagem"
-              className="min-w-0 flex-1 resize-none rounded-2xl px-3 py-2 outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              style={{ fontSize: 16, background: "#fff", border: `1px solid ${T.line}` }}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                if (activeId) adapter.setTyping(activeId);
-                e.target.style.height = "auto";
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 96)}px`;
-              }}
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  !e.shiftKey &&
-                  window.matchMedia("(pointer: fine)").matches
-                ) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={send}
-              disabled={!draft.trim() && !pending}
-              aria-label="Enviar"
-              className="rounded-full p-2.5"
-              style={{
-                background: T.brand,
-                color: "#fff",
-                opacity: draft.trim() || pending ? 1 : 0.45,
-              }}
-            >
-              <Send size={18} />
-            </button>
-          </div>
+                paralelo só do chat. Alunos e encarregados não têm Arquivos. */}
+              {canAttach ? (
+                <PickFileButton
+                  label="Anexar ficheiro da biblioteca"
+                  variant="ghost"
+                  size="sm"
+                  onPick={(file: SchoolFileRecord) =>
+                    setPending({ id: file.id, name: file.name, size: file.sizeBytes })
+                  }
+                >
+                  <FileText size={20} color={T.mute} />
+                </PickFileButton>
+              ) : null}
+              <textarea
+                ref={taRef}
+                rows={1}
+                value={draft}
+                placeholder="Escreva uma mensagem"
+                className="min-w-0 flex-1 resize-none rounded-2xl px-3 py-2 outline-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                style={{ fontSize: 16, background: "#fff", border: `1px solid ${T.line}` }}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  if (activeId) adapter.setTyping(activeId);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 96)}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    window.matchMedia("(pointer: fine)").matches
+                  ) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={send}
+                disabled={!draft.trim() && !pending}
+                aria-label="Enviar"
+                className="rounded-full p-2.5"
+                style={{
+                  background: T.brand,
+                  color: "#fff",
+                  opacity: draft.trim() || pending ? 1 : 0.45,
+                }}
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          )}
         </>
       )}
 

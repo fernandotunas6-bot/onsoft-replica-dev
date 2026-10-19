@@ -20,6 +20,7 @@ import {
   ListTodo,
   CalendarDays,
   Mail,
+  Library,
   type LucideIcon,
 } from "lucide-react"
 
@@ -143,9 +144,14 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: t("nav.platform_admins"), url: "/platform-admins", group: t("nav.saas"), icon: Shield },
     { title: t("nav.audit"), url: "/audit", group: t("nav.saas"), icon: ScrollText },
     { title: t("nav.gateway_webhooks"), url: "/gateway-webhooks", group: t("nav.saas"), icon: Activity },
+    { title: t("nav.education_catalog"), url: "/education-catalog", group: t("nav.saas"), icon: Library },
     { title: t("nav.domains"), url: "/domains", group: t("nav.saas"), icon: Globe },
     { title: t("nav.faqs"), url: "/faqs", group: t("nav.saas"), icon: HelpCircle },
     { title: t("nav.create_school"), url: getCreateSchoolUrl(), group: t("nav.saas"), icon: GraduationCap, external: true },
+    { title: t("nav.site_blog"), url: "/site/blog", group: t("nav.site"), icon: BookOpen },
+    { title: t("nav.site_faqs"), url: "/site/faqs", group: t("nav.site"), icon: HelpCircle },
+    { title: t("nav.site_messages"), url: "/site/messages", group: t("nav.site"), icon: MessageCircle },
+    { title: t("nav.site_schools"), url: "/site/schools", group: t("nav.site"), icon: GraduationCap },
     { title: t("nav.settings_billing"), url: "/settings/billing", group: t("nav.settings"), icon: CreditCard },
     { title: "Entrar", url: "/sign-in", group: t("nav.auth"), icon: Shield },
     { title: "Comunicações (SIGA)", url: getSigaUrl("/comunicacoes"), group: "Atalhos vivos", icon: MessageCircle, external: true },

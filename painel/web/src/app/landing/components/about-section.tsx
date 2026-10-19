@@ -4,30 +4,40 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { CardDecorator } from '@/components/ui/card-decorator'
-import { Code, Palette, Layout, Crown } from 'lucide-react'
+import { GraduationCap, Link2, MapPin, Rocket, School } from 'lucide-react'
 
 const values = [
   {
-    icon: Code,
+    icon: School,
     title: 'Feito para escolas',
-    description: 'Cada ecrã serve secretaria, tesouraria e professores — não um marketplace de componentes.'
+    description: 'Cada ecrã foi pensado para a direcção, a secretaria, a tesouraria e os professores.'
   },
   {
-    icon: Palette,
+    icon: MapPin,
     title: 'Identidade angolana',
     description: 'BI, NIF, IBAN AO, fuso de Luanda e documentos alinhados ao MINED e à AGT.'
   },
   {
-    icon: Layout,
-    title: 'Pronto a operar',
-    description: 'Cria a escola no WEB, o ADMIN regista o cliente e o SIGA fica imediatamente disponível.'
+    icon: Rocket,
+    title: 'Pronto no mesmo dia',
+    description: 'Crie a escola aqui no site e a equipa começa logo a trabalhar no SIGA.'
   },
   {
-    icon: Crown,
-    title: 'Cinco apps, um produto',
-    description: 'WEB vende, ADMIN controla, SIGA trabalha, PayFlow cobra, DOC explica — sem misturar papéis.'
+    icon: Link2,
+    title: 'Tudo ligado',
+    description: 'Matrículas, pautas, tesouraria e cobrança partilham os mesmos dados, sem folhas paralelas.'
   }
 ]
+
+/** Níveis de ensino que o SIGA Plus organiza (os mesmos do SIGA: angola-academic). */
+const LEVELS = [
+  'Iniciação e pré-escolar',
+  'Ensino Primário',
+  'I Ciclo do Ensino Secundário',
+  'II Ciclo e Ensino Médio',
+  'Técnico-Profissional',
+  'Ensino Superior',
+] as const
 
 export function AboutSection() {
   return (
@@ -42,8 +52,8 @@ export function AboutSection() {
             Feito para a escola angolana
           </h2>
           <p className="text-lg text-muted-foreground mb-8">
-            O SIGA Plus é a plataforma de gestão escolar do ecossistema: venda no WEB,
-            controlo SaaS no ADMIN, operação no SIGA, cobrança no PayFlow e ajuda no DOC.
+            O SIGA Plus junta a gestão académica, a secretaria e a tesouraria numa só plataforma,
+            com a cobrança feita pelo PayFlow e manuais em português sempre à mão.
           </p>
         </div>
 
@@ -66,9 +76,18 @@ export function AboutSection() {
 
         {/* Call to Action */}
         <div className="mt-16 text-center">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <span className="text-muted-foreground">Feito com cuidado para escolas em Angola</span>
-          </div>
+          <p className="text-muted-foreground mb-4 text-sm">Do pré-escolar ao ensino superior</p>
+          <ul className="mb-8 flex flex-wrap items-center justify-center gap-2">
+            {LEVELS.map((level) => (
+              <li
+                key={level}
+                className="bg-card text-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"
+              >
+                <GraduationCap className="text-primary size-4" aria-hidden="true" />
+                {level}
+              </li>
+            ))}
+          </ul>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="cursor-pointer" asChild>
               <a href="/start">

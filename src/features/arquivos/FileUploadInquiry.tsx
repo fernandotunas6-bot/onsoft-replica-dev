@@ -72,6 +72,7 @@ export function FileUploadInquiryModal({
   currentUserId,
   mode = "upload",
   initial,
+  lockRelatedPerson = false,
   onCancel,
   onConfirm,
 }: {
@@ -84,6 +85,7 @@ export function FileUploadInquiryModal({
   currentUserId: string;
   mode?: "upload" | "organize";
   initial?: Partial<UploadInquiryResult> & { name?: string };
+  lockRelatedPerson?: boolean;
   onCancel: () => void;
   onConfirm: (meta: UploadInquiryResult) => void;
 }) {
@@ -375,6 +377,7 @@ export function FileUploadInquiryModal({
                 id="file-meta-area"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                 value={area}
+                disabled={lockRelatedPerson}
                 onChange={(event) => {
                   const next = event.target.value as FileArea;
                   setArea(next);
@@ -423,6 +426,7 @@ export function FileUploadInquiryModal({
               id="file-meta-visibility"
               className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={visibility}
+              disabled={lockRelatedPerson}
               onChange={(event) =>
                 setVisibility(event.target.value as SchoolFileRecord["visibility"])
               }
@@ -476,6 +480,7 @@ export function FileUploadInquiryModal({
             <select
               className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={relatedPersonId}
+              disabled={lockRelatedPerson}
               onChange={(event) => {
                 setRelatedPersonId(event.target.value);
                 setFormError(null);
@@ -529,6 +534,21 @@ export function FileUploadInquiryModal({
                 setFormError(
                   `Indique uma descrição com pelo menos ${FILE_DESCRIPTION_MIN} caracteres.`,
                 );
+                return;
+              }
+              if (
+                lockRelatedPerson &&
+                (!initial?.relatedPersonId || relatedPersonId !== initial.relatedPersonId)
+              ) {
+                setFormError("O documento deve permanecer associado à pessoa deste perfil.");
+                return;
+              }
+              if (lockRelatedPerson && area !== "secretaria") {
+                setFormError("Os documentos pessoais devem ficar na área reservada da Secretaria.");
+                return;
+              }
+              if (lockRelatedPerson && visibility !== "private") {
+                setFormError("Os documentos pessoais devem manter acesso privado.");
                 return;
               }
               if (isPhotoCategory && !relatedPersonId) {

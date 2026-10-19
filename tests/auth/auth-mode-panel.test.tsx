@@ -36,14 +36,14 @@ describe("login e registo no mesmo painel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mostrar senha" }));
     expect(password.type).toBe("text");
 
-    fireEvent.click(screen.getByRole("link", { name: "Criar conta", exact: true }));
+    fireEvent.click(screen.getByRole("link", { name: "Criar conta" }));
     expect(screen.getByRole("heading", { name: "Criar conta SIGA Plus" })).toBeTruthy();
     expect(container.querySelector("[data-auth-panel]")).toBe(panel);
     expect(document.activeElement).toBe(screen.getByLabelText("Nome completo"));
     expect(screen.queryByRole("tablist")).toBeNull();
     expect(screen.queryByAltText(/SIGA Plus/i)).toBeNull();
 
-    fireEvent.click(screen.getByRole("link", { name: "Iniciar sessão", exact: true }));
+    fireEvent.click(screen.getByRole("link", { name: "Iniciar sessão" }));
     await waitFor(() => expect(document.activeElement).toBe(email));
     expect(email.value).toBe("teste@example.ao");
     expect(password.value).toBe("Senha-local-123");
@@ -53,8 +53,8 @@ describe("login e registo no mesmo painel", () => {
 
   it("mantém os campos e métodos de autenticação no registo", () => {
     render(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
-    fireEvent.click(screen.getByRole("link", { name: "Criar conta", exact: true }));
-    const form = screen.getByRole("button", { name: "Criar conta", exact: true }).closest("form");
+    fireEvent.click(screen.getByRole("link", { name: "Criar conta" }));
+    const form = screen.getByRole("button", { name: "Criar conta" }).closest("form");
     expect(form?.querySelectorAll("input[required]")).toHaveLength(4);
     expect(screen.getByLabelText("Confirmar senha").getAttribute("autocomplete")).toBe(
       "new-password",

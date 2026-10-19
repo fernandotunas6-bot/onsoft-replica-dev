@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Copy, ExternalLink, LoaderCircle, Video } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { createZoomLessonMeeting, getZoomLessonMeeting } from "./zoom";
 import { meetingRoomLink } from "./actions";

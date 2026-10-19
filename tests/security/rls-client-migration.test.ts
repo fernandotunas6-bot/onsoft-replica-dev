@@ -55,6 +55,20 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Acesso do administrador da escola (Smart School Onboarding, 2026-10-15): lê o
+  // estado da conta no Supabase Auth (e-mail confirmado, último acesso, 2FA), os
+  // papéis e permissões da escola e o tenant — nada disso é legível pelo JWT. A
+  // reparação só mexe no perfil e nas permissões dos papéis da própria escola.
+  // A lógica vive em src/features/saas/school-admin-access.ts, que recebe o
+  // cliente de quem chama: a rota do ADMIN (platform_admins + aal2) e a página de
+  // boas-vindas (Administrador da escola, só a própria conta).
+  "src/routes/api/saas/tenants.admin-access.tsx",
+  // Cobrança por escola (2026-10-15): `tenant_billing_profiles` é só do servidor
+  // (FORCE RLS, sem políticas) e `tenants`/`saas_audit_logs` só têm política para a
+  // equipa da plataforma. A rota exige platform_admins + aal2; a lógica está em
+  // src/features/saas/tenant-billing.ts, que recebe o cliente de quem chama.
+  "src/routes/api/saas/tenants.billing.tsx",
+  "src/features/school/admin-welcome.ts",
   // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
   // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
   // função exige Administrador/Secretaria (ou o professor da cadeira, para lançar
@@ -67,6 +81,12 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // encarregado, e com razão. A RLS das tabelas siga_chat_* continua a ser a
   // rede de segurança para o acesso directo do browser (o Realtime passa por lá).
   "src/features/messages/chat-server.ts",
+  // Anexos de mensagens (auditoria 13): abrir um anexo exige ler a ficha do
+  // ficheiro e os cargos de quem o enviou, e assinar o objecto no Storage —
+  // um encarregado não lê `siga_files` nem `member_roles` de outra conta. A
+  // função confirma que a pessoa participa na conversa e que quem enviou ainda
+  // pode abrir o ficheiro.
+  "src/features/messages/attachment-server.ts",
   // Professor em várias escolas: lê os vínculos da conta em todas as escolas e, só
   // nas de vínculo activo, as turmas onde dá aulas (mesmas consultas de
   // `teacherClassGroupIds`). Devolve nomes de turmas e contagens, nunca alunos.
@@ -103,6 +123,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // rotas públicas gravam apenas o progresso da própria sessão; a tarefa diária
   // exige SIGA_CRON_SECRET; a listagem exige admin da plataforma com MFA.
   "src/features/saas/commercial-lifecycle.ts",
+  // Conteúdo do site público: as tabelas `web_*` são só do servidor (FORCE RLS, sem
+  // políticas). As rotas públicas lêem só o publicado (a vitrine só nome, logótipo e
+  // cidade de escolas que aceitaram) e gravam contacto com limite por IP; as do ADMIN
+  // exigem admin da plataforma com MFA; a escolha da vitrine exige o Administrador.
+  "src/features/saas/web-site-content.ts",
 
   // Regista cada documento oficial emitido (audit_logs, só o servidor grava) e
   // verifica-o publicamente, sem sessão, a partir do código impresso.

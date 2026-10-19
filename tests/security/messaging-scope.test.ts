@@ -39,10 +39,13 @@ describe("mensagens directas: quem fala com quem", () => {
     );
   });
 
-  it("alunos e encarregados só enviam mensagens ao pessoal (cargo nesta escola)", () => {
-    const send = body("sendDirectMessage");
-    expect(send).toMatch(/schoolRolesOf\(db, membership\.schoolId, data\.peerId\)/);
-    expect(send).toMatch(/Só pode enviar mensagens ao pessoal da escola/);
+  it("alunos e encarregados só abrem conversa com o pessoal (cargo nesta escola)", () => {
+    // As mensagens directas antigas saíram (2026-10-07): a regra vive em
+    // startDirectConversation, a única porta para uma conversa nova.
+    const chat = readFileSync(join(process.cwd(), "src/features/messages/chat-server.ts"), "utf8");
+    const start = chat.slice(chat.indexOf("export const startDirectConversation"));
+    expect(start).toMatch(/schoolRolesOf\(db, membership\.schoolId, data\.peerId\)/);
+    expect(start).toMatch(/Só pode enviar mensagens ao pessoal da escola/);
   });
 });
 

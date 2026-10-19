@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import QRCode from "qrcode";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Printer, ShieldCheck, Award } from "lucide-react";
 import {
   Dialog,

@@ -24,7 +24,8 @@ export const useUIStore = create<UIState>()(
   devtools(
     set => ({
       leftSidebarVisible: true,
-      rightSidebarVisible: true,
+      // A nota rápida fica no painel direito: só aparece quando a pessoa o abre.
+      rightSidebarVisible: false,
       commandPaletteOpen: false,
       preferencesOpen: false,
       lastQuickPaneEntry: null,

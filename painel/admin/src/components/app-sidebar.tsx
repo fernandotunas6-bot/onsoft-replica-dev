@@ -22,6 +22,10 @@ import {
   ListTodo,
   Mail,
   CircleHelp,
+  Newspaper,
+  Inbox,
+  School,
+  Library,
 } from "lucide-react"
 import { getCreateSchoolUrl, getDocsUrl, getPayflowUrl, getSigaUrl, getWebUrl } from "@/lib/ecosystem-urls"
 import Link from "next/link"
@@ -132,6 +136,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: Activity,
           },
           {
+            title: t("nav.education_catalog"),
+            url: "/education-catalog",
+            icon: Library,
+          },
+          {
             title: t("nav.domains"),
             url: "/domains",
             icon: Globe,
@@ -145,6 +154,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: t("nav.settings"),
             url: "/settings/billing",
             icon: Settings,
+          },
+        ],
+      },
+      {
+        label: t("nav.site"),
+        items: [
+          {
+            title: t("nav.site_blog"),
+            url: "/site/blog",
+            icon: Newspaper,
+          },
+          {
+            title: t("nav.site_faqs"),
+            url: "/site/faqs",
+            icon: CircleHelp,
+          },
+          {
+            title: t("nav.site_messages"),
+            url: "/site/messages",
+            icon: Inbox,
+          },
+          {
+            title: t("nav.site_schools"),
+            url: "/site/schools",
+            icon: School,
           },
         ],
       },

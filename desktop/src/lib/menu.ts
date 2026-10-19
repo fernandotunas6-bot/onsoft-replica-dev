@@ -15,6 +15,7 @@ import i18n from '@/i18n/config'
 import { useUIStore } from '@/store/ui-store'
 import { logger } from '@/lib/logger'
 import { notifications } from '@/lib/notifications'
+import { getPlatform } from '@/hooks/use-platform'
 
 const APP_NAME = 'SIGA Desktop'
 
@@ -87,9 +88,44 @@ export async function buildAppMenu(): Promise<Menu> {
       ],
     })
 
+    // macOS: sem os menus Editar e Janela, Cmd+C/V/X/Z/A e Cmd+W/M não funcionam em
+    // nenhuma janela (incluindo o portal: não dava para colar o e-mail nem a palavra-passe).
+    const editMenu =
+      getPlatform() === 'macos'
+        ? [
+            await Submenu.new({
+              text: t('menu.edit'),
+              items: [
+                await PredefinedMenuItem.new({ item: 'Undo' }),
+                await PredefinedMenuItem.new({ item: 'Redo' }),
+                await PredefinedMenuItem.new({ item: 'Separator' }),
+                await PredefinedMenuItem.new({ item: 'Cut' }),
+                await PredefinedMenuItem.new({ item: 'Copy' }),
+                await PredefinedMenuItem.new({ item: 'Paste' }),
+                await PredefinedMenuItem.new({ item: 'SelectAll' }),
+              ],
+            }),
+          ]
+        : []
+    const windowMenu =
+      getPlatform() === 'macos'
+        ? [
+            await Submenu.new({
+              text: t('menu.window'),
+              items: [
+                await PredefinedMenuItem.new({ item: 'Minimize' }),
+                await PredefinedMenuItem.new({ item: 'Maximize' }),
+                await PredefinedMenuItem.new({ item: 'Fullscreen' }),
+                await PredefinedMenuItem.new({ item: 'Separator' }),
+                await PredefinedMenuItem.new({ item: 'CloseWindow' }),
+              ],
+            }),
+          ]
+        : []
+
     // Build the complete menu
     const menu = await Menu.new({
-      items: [appSubmenu, viewSubmenu],
+      items: [appSubmenu, ...editMenu, viewSubmenu, ...windowMenu],
     })
 
     // Set as the application menu

@@ -38,12 +38,20 @@ export function PricingPlans({
   onPlanSelect,
 }: PricingPlansProps) {
   const [fetchedPlans, setFetchedPlans] = useState<PricingPlan[] | null>(null)
+  // Sem resposta do catálogo: em vez de «a carregar» para sempre, oferece repetir e contacto.
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (plans) return // o chamador já trouxe os planos (ex.: contexto de facturação real)
     let cancelled = false
     void fetchSaasPlans().then((list) => {
-      if (cancelled || !list.length) return
+      if (cancelled) return
+      if (!list.length) {
+        setFailed(true)
+        return
+      }
+      setFailed(false)
       setFetchedPlans(
         list.map((plan) => {
           const priceValue =
@@ -63,7 +71,7 @@ export function PricingPlans({
     return () => {
       cancelled = true
     }
-  }, [plans, billingPeriod])
+  }, [plans, billingPeriod, attempt])
 
   const resolvedPlans = plans ?? fetchedPlans ?? []
 
@@ -96,8 +104,33 @@ export function PricingPlans({
   }
 
   if (resolvedPlans.length === 0) {
+    if (failed) {
+      return (
+        <div role="status" className="text-muted-foreground flex flex-col items-center gap-3 text-center text-sm">
+          <p>Não foi possível mostrar os planos agora. Verifique a ligação e tente de novo.</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              onClick={() => {
+                setFailed(false)
+                setAttempt((value) => value + 1)
+              }}
+            >
+              Tentar de novo
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/#contact">Pedir os preços</a>
+            </Button>
+          </div>
+        </div>
+      )
+    }
     return (
-      <p className="text-muted-foreground text-center text-sm">A carregar planos…</p>
+      <p role="status" className="text-muted-foreground text-center text-sm">
+        A carregar planos…
+      </p>
     )
   }
 

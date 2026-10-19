@@ -29,6 +29,7 @@ import {
 } from "./grade-sheet-workflow";
 import { insertInAppNotifications, resolveClassAudience } from "./lesson-delivery";
 import { absenceByEnrollment } from "./exam-data";
+import { teacherClassGroupIds } from "@/features/students/student-scope";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -36,6 +37,31 @@ const str = (v: unknown) => (v == null ? "" : String(v));
 const num = (v: unknown) => (v == null || v === "" ? null : Number(v));
 const READ_ROLES = ["Administrador", "Secretaria", "Professor"] as const;
 const MANAGE_ROLES = ["Administrador", "Secretaria"] as const;
+
+/**
+ * Turmas cujas pautas a conta pode ver: `null` = todas (Administração e
+ * Secretaria). O professor vê só as turmas onde dá aulas ou de que é director de
+ * turma, a mesma regra de `loadStudentScope` — antes abria a pauta de qualquer
+ * turma da escola, com as médias de todos os alunos (auditoria 13).
+ */
+async function visibleGradeSheetGroups(
+  db: Db,
+  membership: { schoolId: string; appRole: string; allAppRoles?: readonly string[] },
+  userId: string,
+): Promise<Set<string> | null> {
+  const roles = membership.allAppRoles?.length ? membership.allAppRoles : [membership.appRole];
+  if (roles.some((role) => (MANAGE_ROLES as readonly string[]).includes(role))) return null;
+  const { data: teacher } = await db
+    .from("teachers")
+    .select("id")
+    .eq("school_id", membership.schoolId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (!teacher?.id) return new Set();
+  return new Set(await teacherClassGroupIds(db, membership.schoolId, String(teacher.id)));
+}
 
 export type GradeSheetBoard = {
   terms: Array<{ id: string; name: string; sequence: number }>;
@@ -96,23 +122,29 @@ export const getGradeSheetBoard = createServerFn({ method: "GET" })
         .eq("academic_year_id", yearId),
     ]);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as pautas.");
+    const visible = await visibleGradeSheetGroups(db, membership, context.userId);
+    const canSee = (groupId: unknown) => !visible || visible.has(str(groupId));
     return {
       terms: (terms ?? []).map((t) => ({
         id: str(t.id),
         name: str(t.name) || `${t.sequence}.º período`,
         sequence: Number(t.sequence),
       })),
-      classGroups: (groups ?? []).map((g) => ({ id: str(g.id), name: str(g.name) })),
-      sheets: (sheets ?? []).map((s) => ({
-        id: str(s.id),
-        classGroupId: str(s.class_group_id),
-        termId: s.term_id ? str(s.term_id) : null,
-        kind: s.kind === "annual" ? "annual" : "term",
-        status: (GRADE_SHEET_STATUSES as readonly string[]).includes(str(s.status))
-          ? (s.status as GradeSheetStatus)
-          : "draft",
-        updatedAt: str(s.updated_at),
-      })),
+      classGroups: (groups ?? [])
+        .filter((g) => canSee(g.id))
+        .map((g) => ({ id: str(g.id), name: str(g.name) })),
+      sheets: (sheets ?? [])
+        .filter((s) => canSee(s.class_group_id))
+        .map((s) => ({
+          id: str(s.id),
+          classGroupId: str(s.class_group_id),
+          termId: s.term_id ? str(s.term_id) : null,
+          kind: s.kind === "annual" ? "annual" : "term",
+          status: (GRADE_SHEET_STATUSES as readonly string[]).includes(str(s.status))
+            ? (s.status as GradeSheetStatus)
+            : "draft",
+          updatedAt: str(s.updated_at),
+        })),
     };
   });
 
@@ -334,6 +366,10 @@ export const getGradeSheetDetail = createServerFn({ method: "GET" })
       .eq("id", data.sheetId)
       .maybeSingle();
     if (!sheet) throw new Error("Pauta não encontrada.");
+    const visible = await visibleGradeSheetGroups(db, membership, context.userId);
+    if (visible && !visible.has(str(sheet.class_group_id))) {
+      throw new Error("Pauta não encontrada.");
+    }
     const { data: rows } = await db
       .from("grade_sheet_rows")
       .select(

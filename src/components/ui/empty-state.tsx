@@ -38,7 +38,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/20 text-center",
+        "flex flex-col items-center justify-center rounded-xl border border-border/70 bg-card text-center",
         compact ? "px-4 py-6" : "px-6 py-10",
         className,
       )}
@@ -58,9 +58,11 @@ export function EmptyState({
           <Icon className="size-6" strokeWidth={1.8} />
         </span>
       )}
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
       {description ? (
-        <p className="mt-1.5 max-w-md text-xs text-muted-foreground md:text-sm">{description}</p>
+        <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       ) : null}
       {action ? (
         <div className="mt-4">{action}</div>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { tenantSlugInputSchema } from "@/features/saas/schemas";
 import { fetchTenantBySlug, publicTenantSummary } from "@/features/saas/tenant-lookup";
 import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
+import { isReservedSubdomain } from "@/lib/saas/platform-domain";
 
 const APPS = ["web", "admin"] as const;
 
@@ -21,6 +22,19 @@ export const Route = createFileRoute("/api/saas/tenants/lookup")({
             request,
             { error: "Indique ?slug= válido." },
             { status: 400, apps: [...APPS] },
+          );
+        }
+        // Um subdomínio reservado não é de nenhuma escola, mas também não está livre:
+        // o assistente do WEB dizia «disponível» e só o envio final o recusava.
+        if (isReservedSubdomain(parsed.data.slug)) {
+          return jsonWithCors(
+            request,
+            {
+              tenant: null,
+              reserved: true,
+              error: "Este subdomínio está reservado pela plataforma.",
+            },
+            { status: 409, apps: [...APPS] },
           );
         }
         try {
