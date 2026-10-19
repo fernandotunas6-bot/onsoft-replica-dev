@@ -1,4 +1,8 @@
--- SIGA Plus — SQL a aplicar no Supabase (projecto Sga), pacote de 2026-10-19 — POR APLICAR.
+-- SIGA Plus — SQL do Supabase (projecto Sga), pacote de 2026-10-19 — APLICADO à produção
+-- a 2026-10-19 pelo conector do Supabase. Os 4 índices foram confirmados em pg_indexes
+-- logo a seguir. A migração ficou carimbada como 20261019112536 (o conector gera o seu
+-- próprio carimbo e ignora o nome do ficheiro), e o ficheiro em supabase/migrations foi
+-- renomeado para bater certo.
 -- Colar TUDO no SQL Editor → Run. Pode correr mais do que uma vez sem problema.
 --
 -- 4 índices, nada mais. Não cria tabelas, não mexe em políticas, não apaga nada,

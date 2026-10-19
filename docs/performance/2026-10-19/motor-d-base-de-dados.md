@@ -51,7 +51,8 @@ As quatro: `class_group_waitlist.student_id`, `class_group_waitlist.class_group_
 `student_scholarships.student_id`, `student_special_statuses.student_id`. Estão todas a
 zero hoje, mas crescem uma linha por aluno quando as funcionalidades forem usadas.
 
-SQL preparado, **por aplicar**, em
+**Aplicado à produção a 2026-10-19** e confirmado em `pg_indexes`. Migração
+`20261019112536_growth_foreign_key_indexes.sql`; pacote em
 [`docs/agents/SIGA_aplicar_indices_crescimento.sql`](../../agents/SIGA_aplicar_indices_crescimento.sql).
 
 **Seguir os 209 avisos à letra tornaria as escritas mais lentas sem acelerar leitura
