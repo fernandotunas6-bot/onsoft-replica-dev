@@ -165,9 +165,7 @@ await db.query(day, [a, routeA]);
 // Contas fictícias de duas escolas; a RPC deve recusar mistura de destinatários.
 const userA = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
 const userB = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
-await db.query("insert into people(school_id,user_id) values($1,$2),($3,$4)", [
-  a, userA, b, userB,
-]);
+await db.query("insert into people(school_id,user_id) values($1,$2),($3,$4)", [a, userA, b, userB]);
 
 // Decisão atómica de avisos: o lock da rota ocorre ANTES da leitura
 // do estado anterior. PGlite valida contrato, idempotência e isolamento;
@@ -198,7 +196,16 @@ const saveDay = async (
   (
     await one(
       "select public.siga_transport_set_day_status_atomic($1::uuid,$2::uuid,'2026-10-19'::date,$3::text,$4::integer,$5::text,null::uuid,$6::uuid[],$7::text,$8::text) as result",
-      [schoolId, routeId, status, delay, note, `{${recipients.join(",")}}`, title, "Estado actualizado"],
+      [
+        schoolId,
+        routeId,
+        status,
+        delay,
+        note,
+        `{${recipients.join(",")}}`,
+        title,
+        "Estado actualizado",
+      ],
     )
   ).result;
 const dayAuditCount = async () =>
@@ -217,14 +224,20 @@ assert.equal(await noticeCount(), 1, "aviso e estado devem ser gravados juntos")
 const afterChangeAudit = await dayAuditCount();
 assert.equal(afterChangeAudit, previousDayAudit + 1);
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20), { changed: false, notified: 0 });
-assert.equal(await dayAuditCount(), afterChangeAudit, "idempotência também evita writes de auditoria");
+assert.equal(
+  await dayAuditCount(),
+  afterChangeAudit,
+  "idempotência também evita writes de auditoria",
+);
 assert.equal(await noticeCount(), 1, "repetição não duplica a notificação");
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), {
-  changed: false, notified: 0,
+  changed: false,
+  notified: 0,
 });
 assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota alterada é gravada sem aviso");
 assert.deepEqual(await saveDay(a, routeA, "delayed", 20, "Atraso justificado"), {
-  changed: false, notified: 0,
+  changed: false,
+  notified: 0,
 });
 assert.equal(await dayAuditCount(), afterChangeAudit + 1, "nota igual não repete UPDATE");
 
@@ -252,7 +265,8 @@ assert.equal(await noticeCount(), 1);
 
 // Repetições de um destinatário dentro do mesmo pedido criam apenas um aviso.
 assert.deepEqual(await saveDay(a, routeA, "normal", 0, null, [userA, userA]), {
-  changed: true, notified: 1,
+  changed: true,
+  notified: 1,
 });
 assert.equal(await noticeCount(), 2);
 const afterNormalAudit = await dayAuditCount();
