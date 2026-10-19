@@ -360,7 +360,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
               <Search className="size-3.5 opacity-60 shrink-0" />
-              <span className="hidden min-w-0 flex-1 truncate text-left xl:block">Pesquisar no SIGA…</span>
+              <span className="hidden min-w-0 flex-1 truncate text-left xl:block">
+                Pesquisar no SIGA…
+              </span>
               <kbd className="pointer-events-none hidden h-4 shrink-0 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground min-[1800px]:inline-flex">
                 <span className="text-[11px]">⌘</span>K
               </kbd>
@@ -496,7 +498,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </span>
               <span className="hidden max-w-36 min-w-0 text-left leading-tight min-[1800px]:block">
                 <span className="block truncate text-sm font-semibold">{currentUser.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{currentUser.role}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {currentUser.role}
+                </span>
               </span>
               <ChevronDown className="hidden size-4 opacity-60 min-[1800px]:block" />
             </button>
@@ -511,7 +515,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             />
 
             <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <SheetContent side="right" className="flex h-dvh w-[320px] max-w-[100vw] flex-col overflow-hidden p-4 sm:w-[360px] sm:p-6">
+              <SheetContent
+                side="right"
+                className="flex h-dvh w-[320px] max-w-[100vw] flex-col overflow-hidden p-4 sm:w-[360px] sm:p-6"
+              >
                 <SheetHeader>
                   <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
