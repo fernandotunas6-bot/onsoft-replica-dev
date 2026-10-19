@@ -479,9 +479,8 @@ GRANT EXECUTE ON FUNCTION public.siga_transport_save_stops_atomic(uuid, uuid, uu
 -- Estado do dia: a comparação com o valor anterior tem de ocorrer dentro da
 -- MESMA transacção que a gravação. O SELECT FOR UPDATE da rota serializa
 -- chamadas simultâneas, inclusive a criação inicial do estado do dia.
--- Só o servidor autorizado usa a RPC; notificações seguem depois do commit.
--- Isto impede dois avisos para a mesma transição de estado, sem prometer
--- entrega exactamente uma vez se a escrita do aviso falhar após o commit.
+-- A RPC mantém estado e notificações in-app numa só transacção.
+-- A audiência é obtida no servidor antes da chamada e revista pela base.
 -- As notificações in-app passam a integrar a mesma transacção do estado.
 -- Antes do lock sobre a rota, o servidor resolve os destinatários autorizados.
 -- Dentro do lock, o PostgreSQL revalida o vínculo com a escola e só cria os
