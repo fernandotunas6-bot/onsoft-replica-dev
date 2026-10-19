@@ -339,6 +339,40 @@ dispositivo reais. Páginas autenticadas, redes/dispositivos físicos e percenti
 campo continuam a exigir um ambiente compatível, sessão de teste e dados
 representativos. Não são substituídos pelos testes locais com mocks.
 
+### A pontuação do Lighthouse não se decide nesta máquina
+
+A mesma via local permite agora correr o Lighthouse sobre o build de produção
+(`--preset=desktop --only-categories=performance` contra o Node acima). O que ela
+mostra primeiro é o seu próprio ruído: **no mesmo `.output`, sem recompilar**, três
+corridas deram `perf=0,68` (FCP 2 782 ms, TBT 55 ms), um `PROTOCOL_TIMEOUT` e
+`perf=0,97` (FCP 989 ms, TBT 0 ms). Ao longo do ciclo a nota composta variou entre
+**0,47 e 0,97** com a mesma receita.
+
+Consequência directa: **um A/B local não consegue medir o efeito dos cortes de bytes
+deste ciclo.** Uma oscilação de ≈0,29 na nota composta do mesmo build é maior do que
+qualquer efeito que ~110 KB possam ter. Duas tentativas de comparação antes/depois —
+seis builds, a segunda intercalada para diluir a carga da máquina — não produziram
+diferença atribuível, e os ficheiros brutos da primeira não sobreviveram à limpeza do
+directório temporário. Não se declara ganho de pontuação a partir daqui: **a nota tem
+de sair do CI**, que corre em hardware consistente. Isto é coerente com o ciclo de
+14/10, em que 550 KB a menos moveram a nota de 0,84 para 0,83.
+
+Duas ressalvas de validade desta via, que empurram os tempos locais para pior que a
+produção:
+
+- **O servidor Node não comprime.** Um pedido com `Accept-Encoding: gzip, br` a
+  `framework-CIytk8im.js` responde sem `content-encoding` e com os 362 497 bytes
+  crus. A Cloudflare comprime. Os bytes transferidos e os tempos medidos localmente
+  são, por isso, um **limite inferior pessimista** — não a nota de produção.
+- **O `0,97` observado é a prova de que o build atinge a nota do CI** (0,94-0,97 na
+  `main`). As corridas baixas são carga desta máquina, não a aplicação: durante este
+  ciclo o disco esteve a 100% de ocupação, com 25 MiB livres, o que impedia qualquer
+  build ou corrida de Lighthouse até se libertarem 4,3 GiB de caches.
+
+O que continua a valer desta via local é o que é determinístico ou robusto ao ruído:
+o manifesto de recursos, os bytes, o CLS, o overflow, os erros de consola e as
+dimensões do painel. A pontuação, não.
+
 ## Validação
 
 ### Continuação — trabalho do painel de acesso fora de vista
