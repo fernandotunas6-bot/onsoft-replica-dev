@@ -172,6 +172,53 @@ ficheiro importado outra vez para memória. **Corrigido.**
 As outras 97 ficam como estão, de propósito: tabelas pequenas onde o ganho não paga o
 risco de partir uma leitura em silêncio.
 
+## O painel inicial: 38 consultas, uma delas repetida
+
+É o ecrã mais carregado, por isso contei as idas à base para o desenhar:
+`getDashboardOverview` 24, `getSchoolTodayOps` 8, `listSchoolAlerts` 6.
+
+A forma está certa — `membership` → ano lectivo → **cinco em paralelo** → `people`, e as
+sequências que restam são dependências reais (precisa dos `personIds` para ler as pessoas).
+
+Mas havia repetição pura: `class_groups` lida **duas vezes com a consulta idêntica**
+(`id, name, grade_level_id` da mesma escola), num `Promise.all` do bloco dos alunos e
+noutro do heatmap — ambos sob a mesma condição `if (capabilities.students)`, logo os dois
+corriam sempre. **Corrigido:** lê-se uma vez e reutiliza-se, com recuo dentro do mesmo
+`Promise.all` caso o primeiro bloco caia na degradação graciosa (está num `try/catch` que
+ignora falhas das tabelas de alunos), para o caminho raro não ganhar uma viagem em série.
+
+## Storage: também não há nada para optimizar
+
+6 buckets, **25 ficheiros, ~5 MB** no total. `siga-files` (privado) tem 17; `school-logos`
+(público, como deve ser) tem 4; `avatars` tem 4; três estão vazios.
+
+Fora do âmbito do desempenho, fica a nota: `siga-files` aceita até 50 MB **sem restringir
+tipos de ficheiro**, ao contrário dos outros. Não é um problema de velocidade.
+
+## Um método que não resultou, para não se repetir
+
+Tentei generalizar o achado do painel com um varrimento automático de «consultas idênticas
+dentro da mesma função servidor». Devolveu 12 candidatos. **Verifiquei três à mão e os três
+eram falsos positivos:**
+
+| Candidato | Porque não era |
+| --- | --- |
+| `getMyHigherEd` (3 repetições) | a segunda cópia está em `enrolledProgramsOf`, função separada chamada por **outro** endpoint |
+| `requestMagicLinkFn` | ramos alternativos — só um corre por pedido |
+| `commitImportBatch` | uma é tentativa de repetição, a outra é o caminho de erro |
+
+O varrimento não distingue funções não exportadas, tentativas, ramos de erro nem caminhos
+mutuamente exclusivos. **O único duplicado real do dia encontrei-o a ler o código**, não a
+procurar padrões. Quem vier a seguir não ganha nada em repetir o varrimento.
+
+## Fugas de recursos: nada aberto por fechar
+
+Varri o ciclo de vida de todos os efeitos: **zero `useEffect` que abra mais do que fecha**.
+A ficheiro inteiro são 42 listeners adicionados e 34 removidos — os 8 restantes são
+singletons de arranque (`error-capture.ts`, `pwa.ts`, `stale-build.ts`), instalados uma vez
+no `client.tsx` e no `__root.tsx` e correctos por desenho. Canais realtime 8/9, intervalos
+8/8.
+
 ## Como obter medições a sério
 
 Nada disto se resolve a medir a produção como está. Para um antes-e-depois honesto é
