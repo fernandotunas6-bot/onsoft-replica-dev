@@ -39,3 +39,14 @@ Cobrança por escola (2026-10-15): `node tests/sql/tenant-billing-profiles.mjs` 
 Matrícula e ano activo (2026-10-08): `node tests/sql/atomic-school-workflows.mjs` executa duas vezes o SQL preparado, verifica quota, reenvio, observações no histórico, rollback de cadastro/matrícula/auditoria, escolas distintas, MFA e preservação do ano activo. `node tests/sql/staff-grants-mfa.mjs` verifica as políticas restritivas de escrita AAL2, mantendo a leitura existente. Usam a mesma dependência isolada PGlite; não simulam concorrência PostgreSQL real nem todas as FKs/triggers de produção. Nenhum SQL foi aplicado ao banco real.
 
 Mesma escola nas migrações por aplicar (2026-10-19, auditoria da PR #132): `node tests/sql/same-school-references.mjs` corre duas vezes `20261017140000_task_submissions.sql` e `20261018120000_school_transport.sql`, confirma que anon e authenticated não lêem nenhuma das seis tabelas (RLS forçado) e tenta 13 escritas com referências de outra escola — tarefa ou aluno de outra escola numa entrega, viatura/rota/aluno de outra escola no transporte, paragem de outra rota — todas recusadas com 23503 e o nome da restrição. Com as versões anteriores das migrações (sem os gatilhos) o ensaio falha. Não substitui o ensaio em staging com dados reais.
+
+
+Segurança entre escolas — PR #132 (2026-10-19): `node tests/sql/same-school-references.mjs`
+executa **duas vezes** as migrações pendentes de PDF e transporte em PGlite isolado,
+confere que os dois pacotes de aplicação manual contêm a migração integral,
+verifica as 8 FKs compostas, tentativas de vincular linhas de outra escola,
+alterações posteriores em alunos/tarefas/rotas/paragens/viaturas e a eliminação
+segura da viatura sem perder a escola da rota. Não usa nem modifica a produção.
+Os gatilhos existentes e as chaves estrangeiras compostas são ambos exigidos.
+Este teste não substitui a validação em PostgreSQL de staging com esquema
+completo, políticas RLS, autenticação real e ensaios de concorrência.
