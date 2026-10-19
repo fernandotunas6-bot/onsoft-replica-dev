@@ -182,6 +182,34 @@ corridas — muito abaixo do limiar de 0,1, mas registado por não ser já zero.
   validação do servidor, o que a secção 8 do pedido proíbe trocar por velocidade.
   Fica identificado e documentado, sem alteração — tirá-lo do cliente sem perder a
   validação é trabalho de build, não um remendo de import.
+- **Vídeo do ecrã de entrada (1 716 656 bytes), analisado e não alterado.** H.264,
+  1280×720, 8,00 s, 1 717 kbps de média. Lido dos cabeçalhos MP4 por falta de
+  `ffprobe` nesta máquina. Duas observações para quem decidir mexer:
+  - **A faixa de áudio pesa 128 679 bytes (7,5% do ficheiro) numa etiqueta `muted` e
+    `aria-hidden`** — nunca é audível. O vídeo em si são 1 573 282 bytes. Tirar o
+    áudio não muda um pixel; precisa de `ffmpeg`, que este Mac não tem.
+  - O ficheiro tem 1280 px de largura para ser desenhado num painel de ~720 px CSS
+    com `object-cover`: ~1,8× a largura necessária. Reencodar para a largura
+    desenhada e sem áudio é o maior ganho que resta no ecrã de entrada, e é decisão
+    do dono por ser um recurso de marca. Não se tocou no ficheiro: já foi apagado
+    uma vez por engano e repô-lo não é trivial.
+  - O componente em si já estava bem travado: só ≥ 1024 px, respeita «reduzir
+    movimento», atrasa 600 ms, tem poster para não ser o LCP e usa
+    `preload="metadata"`. **O `preload` não é lever**: com `autoPlay` o navegador
+    descarrega o ficheiro todo de qualquer maneira.
+  - Fica uma lacuna por fechar, de uma linha: o travão de rede do vídeo só verifica
+    `connection.saveData`, enquanto `canPrefetchResources()` em `src/lib/preload.ts`
+    — a política que o resto do ciclo usa para não especular em rede limitada —
+    verifica também `effectiveType` em `slow-2g`/`2g`. São 1,7 MB decorativos a
+    descer numa ligação que o próprio projecto já considera limitada. Quem não
+    receber o vídeo continua a ver o poster, que é o 1.º frame dele: o ecrã fica
+    igual, sem o movimento. Não foi aplicado aqui porque o ficheiro estava a ser
+    reescrito por outro agente no mesmo directório.
+- **CSS da aplicação (234 625 bytes), verificado e não alterado.** Comprime para
+  50 617 em gzip e 41 588 em brotli, que é o que a Cloudflare entrega. Continua a ser
+  o maior recurso de texto do ecrã de entrada depois da saída dos gráficos, mas a
+  grandeza real é de dezenas de KB, não de centenas: não justifica cirurgia no
+  Tailwind neste ciclo.
 - **Fugas de memória.** Os três ficheiros com mais `addEventListener` que
   `removeEventListener` (`stale-build.ts`, `error-capture.ts`, `pwa.ts`) são de
   instalação única no arranque: `attachStaleBuildRecovery()` é chamado uma vez em
@@ -278,6 +306,24 @@ campo continuam a exigir um ambiente compatível, sessão de teste e dados
 representativos. Não são substituídos pelos testes locais com mocks.
 
 ## Validação
+
+### Continuação — trabalho do painel de acesso fora de vista
+
+Antes, `AuthHeroSlides` mantinha um intervalo de 6 s mesmo abaixo dos 1024 px,
+onde o painel está escondido por CSS. `AuthBackgroundVideo` avaliava largura,
+movimento reduzido e poupança de dados apenas ao montar: depois de redimensionar
+ou esconder o documento, não havia pausa explícita. A verificação passa a acompanhar
+essas mudanças e a visibilidade do documento, com limpeza de todos os listeners.
+No telemóvel não fica intervalo activo; no desktop, a rotação mantém os mesmos
+6 s enquanto visível. O vídeo conserva o poster, o atraso de 600 ms e a mesma
+instância ao pausar/retomar, sem repetir tentativas depois de uma falha.
+
+Não foram alterados textos, botões, dimensões, classes visuais ou ficheiros de media.
+Os testes de ciclo de vida verificam suspensão, retoma, escolha manual, mudanças
+de preferências, desmontagem e falhas. Esta redução de trabalho em segundo plano
+não é uma medição de ganho de LCP/INP nem uma estimativa de bateria.
+
+### Verificações do ciclo anterior
 
 Os 23 testes dirigidos de pré-busca, navegação e Realtime passaram; também passaram
 os testes existentes de menu/login, o build final, a verificação de tipos, o lint
