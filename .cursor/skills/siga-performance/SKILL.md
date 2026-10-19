@@ -73,9 +73,28 @@ uma operação concluída.
   forma estática entra nos 36 recursos pré-carregados. Antes de importar um catálogo
   ou tabela de dados num destes caminhos, confirmar o peso no manifesto SSR; um
   `.find()` não justifica 110 KB no arranque. Guardas em `tests/ui/first-paint-budget.test.ts`.
+- Armadilha da rota, maior do que a da raiz: os 36 recursos são do `__root__`, **não
+  da página**. A rota `/` tem a sua própria lista no manifesto e soma 73 ficheiros
+  (1 567 114 bytes) — e o `/` é o painel, que desenha o login a quem não tem sessão.
+  Optimizar a lista de 36 pode não mexer nada no ecrã que todos vêem. Ler sempre
+  `routes["/"].preloads`, não só `routes.__root__.preloads`.
+- Armadilha do `lazy()` anulado por um import estático: o manifesto pré-carrega o grafo
+  **estático** da rota. Importar uma peça pequena (um esqueleto, um tipo com valor, uma
+  constante) de um módulo que importa biblioteca pesada põe esse módulo nos recursos da
+  rota, e o navegador segue os imports estáticos dele até à biblioteca. Foi assim que
+  370 KB de `recharts` entravam no login apesar do `lazy()`. Diagnóstico por contraste:
+  comparar a lista da rota suspeita com rotas que usam a mesma biblioteca só por
+  `lazy()` — se só uma tem o pedaço, é uma aresta estática. Correcção: a peça pequena
+  vai para um módulo sem imports.
 - `scripts/siga/performance-browser.mjs`: ensaio local sem sessão; login/registo, frame
-  de feedback, dimensões e erros. Requer Chrome e SIGA em `localhost:3006`; não substitui
+  de feedback, dimensões e erros. Requer Chrome; `SIGA_PERF_BASE_URL` escolhe o alvo e
+  o `kind` do relatório distingue desenvolvimento de build de produção. Não substitui
   a validação autenticada. Evidências em `docs/performance/2026-10-19/relatorio.md`.
+- Medir o build de produção neste Mac: `wrangler` exige macOS 13.5+ e `vite preview`
+  procura `dist/server/`, que o projecto não usa. Funciona
+  `SIGA_NITRO_PRESET=node-server npm run build` e servir `.output/server/index.mjs` por
+  Node. O pacote do cliente é igual nos dois presets; a variável nunca entra num
+  workflow de publicação. Números de desenvolvimento não valem como medição.
 
 Usar Node 24. Para comprovar comportamento correr testes dirigidos, tipos, lint e
 build; expandir a suite quando a mudança partilhada o justificar. Não fazer deploy,

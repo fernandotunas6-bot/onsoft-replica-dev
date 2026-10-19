@@ -31,9 +31,28 @@ resposta ao toque e optimizações medidas. [Relatório e evidências](../perfor
 - Suite completa sem credenciais: 3 611 aprovados, 3 ignorados, 0 falhas. O `npm test`
   não carrega o `.env` (sem `dotenv`/`loadEnv` no `vitest.config.ts`); o risco é só
   `set -a && . ./.env` na mesma shell.
-- Medição sobre o build de produção continua impossível neste Mac: `wrangler` exige
-  macOS 13.5+ e `vite preview` devolve HTTP 500 (`@tailwindcss/node`). As metas de
-  LCP/INP do dono continuam sem verificação em condições de aceitação.
+- **Medir o build de produção passou a ser possível**: `SIGA_NITRO_PRESET=node-server
+npm run build` e servir `.output/server/index.mjs` por Node (o `wrangler` exige macOS
+  13.5+; o `vite preview` procura `dist/server/`). O pacote do cliente é igual nos dois
+  presets. A variável **nunca** entra num workflow de publicação. Primeira medição em
+  `browser-prod.json`: CLS 0, zero erros, LCP 1 272–2 664 ms no computador e 604–916 ms
+  no telemóvel, feedback ao toque 6,8–81,6 ms. Sem limitação de rede/CPU e sem sessão:
+  **não é INP p75 e as metas de aceitação do dono continuam sem verificação**.
+- **Os 36 recursos são do `__root__`, não da página.** A rota `/` soma 73 ficheiros
+  (1 567 114 bytes) e é o que o ecrã de entrada carrega, porque `/` é o painel e desenha
+  o login sem sessão. Explica por que reduções anteriores não mexeram a nota: foram
+  feitas na lista errada. Ler `routes["/"].preloads`, não só a da raiz.
+- **370 KB de `recharts` entravam no login apesar do `lazy()`**: `index.tsx` importava
+  `DashboardChartsSkeleton` do módulo que importa `recharts`, e o manifesto pré-carrega o
+  grafo estático da rota. O esqueleto passou para
+  `src/features/dashboard/DashboardChartsSkeleton.tsx` (marcação pura, zero imports);
+  guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com o import antigo.
+- Pesos restantes do ecrã de entrada, medidos e **não** alterados: `auth-classroom.mp4`
+  (1 716 956 bytes, 42% do carregamento frio no computador, e toda a diferença para o
+  telemóvel, que não o pede) e `styles-*.css` (234 925 bytes). O vídeo é identidade;
+  não se troca por bytes.
+- `inventory-after.json` é anterior à passagem do catálogo de temas: contém 1 077 268
+  bytes, não os 977 513 da última linha da tabela. O relatório agora avisa.
 - Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
 
 ## Sincronização GitHub — 2026-10-19
@@ -107,7 +126,7 @@ Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e
 - **Não fazer:** agrupar Radix ou módulos da app num só ficheiro (gerava 1–1,6 MB);
   tornar `PickFileButton`/`InstallConsentModal` lazy (o peso é partilhado, não poupa nada).
 - Guarda: `tests/ui/first-paint-budget.test.ts`. Medir localmente: build, `npm run
-  preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
+preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
   `CHROME_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome`. As notas variam
   ±0,04 entre corridas; comparar várias.
 
@@ -164,8 +183,7 @@ gestão académica). Ser administrador da escola nunca dá a Administração Glo
   (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
   **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
   nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
-- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada,
-  2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
+- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada, 2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
   automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
   Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
 - **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em

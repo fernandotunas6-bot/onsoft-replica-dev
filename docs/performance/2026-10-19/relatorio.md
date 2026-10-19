@@ -13,16 +13,81 @@ Numa segunda passagem, o catálogo de temas saiu da raiz (ver abaixo) e os mesmo
 desde o início do ciclo: **-31,9%** em bytes e **-28,3%** em gzip. Continua a ser
 uma medição de recursos do build, não de latência.
 
-| Passagem | Ficheiros da raiz | Bytes | gzip |
-| --- | --- | --- | --- |
-| Antes do ciclo | 42 | 1 435 872 | 408 642 |
-| Depois da separação de código | 36 | 1 077 268 | 307 394 |
-| Depois do catálogo de temas | 36 | **977 513** | **293 074** |
+| Passagem                      | Ficheiros da raiz | Bytes       | gzip        |
+| ----------------------------- | ----------------- | ----------- | ----------- |
+| Antes do ciclo                | 42                | 1 435 872   | 408 642     |
+| Depois da separação de código | 36                | 1 077 268   | 307 394     |
+| Depois do catálogo de temas   | 36                | **977 513** | **293 074** |
 
 Fontes: [inventário anterior](inventory-before.json) e [inventário posterior](inventory-after.json).
+Atenção ao ler a tabela: `inventory-after.json` foi capturado **antes** da passagem
+do catálogo de temas e contém os 1 077 268 bytes da linha do meio, não os 977 513
+da última linha. Os valores da última linha foram reconfirmados a partir do
+manifesto do build de produção corrente, nos dois presets.
 `bundle-before.json` é a soma física dos ficheiros existentes na pasta de saída,
 incluindo hashes de builds anteriores: não representa tráfego inicial e não foi
 usado para calcular os ganhos acima.
+
+## O ecrã de entrada carrega 73 recursos, não 36
+
+A medição sobre o build de produção permitiu, pela primeira vez, comparar o que o
+relatório conta com o que o navegador pede. **Os 36 ficheiros/977 513 bytes são o
+`__root__`, não a página.** A rota `/` tem a sua própria lista de recursos no
+manifesto do router, e é essa que o ecrã de entrada carrega:
+
+| Lista do manifesto                     | Ficheiros | Bytes         | gzip        |
+| -------------------------------------- | --------- | ------------- | ----------- |
+| `__root__` (o que a tabela acima mede) | 36        | 977 513       | 293 074     |
+| Rota `/` (raiz + acrescento da rota)   | **73**    | **1 567 114** | **474 766** |
+| Acrescento só da rota `/`              | 37        | 589 601       | 181 692     |
+
+A rota `/` é o painel, mas desenha o login a quem não tem sessão — e a app serve o
+login em todas as páginas a quem não entrou. Isto explica por que medições
+anteriores não mexeram a nota: as reduções foram feitas na lista de 36, enquanto o
+ecrã medido carrega a de 73 mais o que ela arrasta.
+
+Carregamento frio medido no navegador, sobre o build de produção (corrida 0 de cada
+perfil, as seguintes aproveitam a cache do contexto):
+
+| Perfil              | Recursos | Transferido     |
+| ------------------- | -------- | --------------- |
+| Computador 1440×900 | 110      | 4 101 523 bytes |
+| Telemóvel 390×844   | 109      | 2 384 567 bytes |
+
+Os três pesos maiores do ecrã de entrada, por ordem:
+
+1. **`/auth-classroom.mp4` — 1 716 956 bytes**, 42% do carregamento frio no
+   computador. É exactamente a diferença entre os dois perfis (4 101 523 −
+   1 716 956 = 2 384 567): o telemóvel não o pede. Fica **identificado e não
+   alterado** — é o vídeo do ecrã de entrada, elemento da identidade, e a secção
+   8 do pedido proíbe remover elementos por bytes. O poster embutido já evita que
+   seja o LCP.
+2. **`BarChart-BAPBWitz.js` — 369 980 bytes**, o maior script, descarregado no
+   ecrã de login. **Corrigido** (ver abaixo).
+3. **`styles-BpcmSTvH.css` — 234 925 bytes.** Não alterado neste ciclo.
+
+### Como 370 KB de gráficos entravam no login apesar do `lazy()`
+
+`src/routes/index.tsx` carrega os gráficos com `lazy(() => import(...))`, como deve.
+O que os trazia era outra coisa: o manifesto do router pré-carrega o grafo
+**estático** da rota, e `index.tsx` importava `DashboardChartsSkeleton` do mesmo
+módulo que importa `recharts`. Isso punha `DashboardCharts-*.js` (17 563 bytes) nos
+recursos da rota `/`; o navegador seguia o import estático desse módulo e pedia o
+pedaço `BarChart` (369 980 bytes) — que **não** está no manifesto, por isso era
+descoberto tarde e ainda assim descarregado. O pior dos dois mundos.
+
+O diagnóstico ficou provado por contraste no próprio manifesto: `/pedagogica`,
+`/financeiro`, `/relatorios/academicos` e `/relatorios/financeiros` também carregam
+gráficos com `lazy()` e têm **zero** pedaços de gráficos nas suas listas. Só `/`
+tinha um — a única rota com uma dependência estática ao módulo dos gráficos.
+`AdminPortalDashboard.tsx`, que `index.tsx` importa estaticamente, tinha o mesmo
+import do esqueleto.
+
+Correcção: o esqueleto passou para `src/features/dashboard/DashboardChartsSkeleton.tsx`,
+marcação pura sem um único import. Mesmo desenho, mesmos componentes, mesmo
+`lazy()` para os gráficos; só deixou de haver uma aresta estática do login para o
+`recharts`. Guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com
+o import antigo para não ser guarda morta.
 
 ## Causas corrigidas
 
@@ -132,22 +197,44 @@ neste ciclo de frontend. A análise de dados do mesmo dia está no
 ```sh
 npm run build
 node scripts/siga/performance-inventory.mjs > /tmp/siga-performance.json
-# Com SIGA a responder em localhost:3006 e Chrome instalado:
+# Desenvolvimento, com SIGA a responder em localhost:3006 e Chrome instalado:
 node scripts/siga/performance-browser.mjs current reports/performance
+# Build de produção servido localmente (os números que valem como medição):
+SIGA_NITRO_PRESET=node-server npm run build
+PORT=3013 node .output/server/index.mjs &
+SIGA_PERF_BASE_URL=http://127.0.0.1:3013 \
+  node scripts/siga/performance-browser.mjs prod docs/performance/2026-10-19
 npx vitest run --maxWorkers=2 tests/lib/route-data-prefetch.test.ts tests/lib/realtime-invalidate.test.ts tests/ui/nav-intent-prefetch.test.tsx tests/lib/appearance-theme-catalogue.test.ts tests/ui/first-paint-budget.test.ts
 npm run typecheck
 npm run lint
 npm test -- --maxWorkers=2
 ```
 
-O Worker de produção não foi executado neste macOS: o runtime instalado exige
-macOS 13.5 ou superior. A alternativa `npx vite preview` sobre o build também não
-serve: responde **HTTP 500** por falha de resolução do `@tailwindcss/node` nesse
-modo. Por isso **não há nesta execução nenhuma medição de navegador sobre o build
-de produção** — os tempos abaixo continuam a ser de desenvolvimento, e as metas de
-LCP e INP do dono continuam sem verificação em condições de aceitação. Testes de páginas autenticadas, redes/dispositivos físicos
-e percentis de campo continuam a exigir um ambiente compatível, sessão de teste
-e dados representativos. Não são substituídos pelos testes locais com mocks.
+O Worker de produção continua sem correr neste macOS: o `wrangler` exige macOS
+13.5 ou superior e este Mac é 12.6. O `npx vite preview` também não serve — procura
+o build em `dist/server/`, que este projecto não usa, porque compila para `.output/`.
+O caminho que **resulta** é servir a saída do Nitro por Node: `SIGA_NITRO_PRESET`
+troca o preset só para medir, o alvo de publicação continua a ser o
+`cloudflare-module` por omissão, e a variável nunca deve ser definida num workflow
+de publicação. O proxy é válido porque o conjunto de recursos da raiz é o mesmo nos
+dois presets no mesmo commit — 36 ficheiros, 977 513 bytes, 293 074 em gzip, com
+hashes iguais: só o runtime do servidor difere, o pacote do cliente medido é o que
+se publica.
+
+Com isso, [`browser-prod.json`](browser-prod.json) é a primeira medição deste ciclo
+sobre o build de produção: seis corridas, CLS 0 e zero erros de consola em todas,
+sem overflow horizontal, painel com 420 px no computador e 360 px no ecrã de 390 px.
+LCP de 1 272 a 2 664 ms no computador e de 604 a 916 ms no telemóvel; os 12 cliques
+entre login e registo mostraram o título novo no frame seguinte em 6,8 a 81,6 ms,
+mediana 23,9 ms. A pior duração de evento observada foi 120 ms, numa cadeia de
+clique.
+
+O que isto **não** é: não há limitação de rede nem de CPU, a máquina é local, não há
+sessão autenticada e seis corridas não dão percentis. Logo **não é INP p75 nem LCP
+de campo, e as metas de aceitação do dono continuam sem verificação** em rede e
+dispositivo reais. Páginas autenticadas, redes/dispositivos físicos e percentis de
+campo continuam a exigir um ambiente compatível, sessão de teste e dados
+representativos. Não são substituídos pelos testes locais com mocks.
 
 ## Validação
 

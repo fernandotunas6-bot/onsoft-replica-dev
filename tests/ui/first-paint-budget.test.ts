@@ -72,4 +72,29 @@ describe("orçamento do primeiro desenho", () => {
     expect(appearance).toMatch(/import\("@\/config\/theme-data"\)/);
     expect(appearance).toContain("appearanceGeneration");
   });
+
+  it("o ecrã de entrada não arrasta o pedaço dos gráficos", () => {
+    // A rota `/` é o painel e desenha o login a quem não tem sessão. O manifesto
+    // do router pré-carrega o grafo **estático** da rota: `/pedagogica`,
+    // `/financeiro` e os relatórios têm zero pedaços de gráficos no seu
+    // manifesto, mas `/` tinha o `DashboardCharts` — e o navegador seguia o
+    // import estático dele para o pedaço `BarChart` (369 980 bytes) no ecrã de
+    // entrada, apesar do `lazy()`. O esqueleto é marcação pura e vive à parte.
+    const skeletonModule = "@/features/dashboard/DashboardChartsSkeleton";
+    for (const path of [
+      "src/routes/index.tsx",
+      "src/features/dashboard/portals/AdminPortalDashboard.tsx",
+    ]) {
+      const source = readFileSync(path, "utf8");
+      expect(source).toContain(`from "${skeletonModule}"`);
+      // Só o import estático conta: o `lazy(() => import(...))` é o que se quer.
+      expect(source).not.toMatch(/^import .*features\/dashboard\/DashboardCharts";$/m);
+    }
+    // Um import no módulo do esqueleto voltaria a ligá-lo ao grafo dos gráficos.
+    const skeleton = readFileSync("src/features/dashboard/DashboardChartsSkeleton.tsx", "utf8");
+    expect(skeleton).not.toMatch(/^import /m);
+    expect(readFileSync("src/features/dashboard/DashboardCharts.tsx", "utf8")).not.toContain(
+      "DashboardChartsSkeleton",
+    );
+  });
 });
