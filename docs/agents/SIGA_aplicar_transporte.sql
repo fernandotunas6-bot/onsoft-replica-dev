@@ -343,9 +343,29 @@ REVOKE ALL ON public.siga_transport_day_status FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.siga_transport_day_status TO service_role;
 
 -- ══════════ Confirmação ══════════
+-- A simples existência das tabelas não é suficiente: confirmar também as
+-- relações entre escolas, rotas e alunos. Consulta de leitura.
 SELECT CASE WHEN to_regclass('public.siga_transport_vehicles') IS NOT NULL
   AND to_regclass('public.siga_transport_routes') IS NOT NULL
   AND to_regclass('public.siga_transport_stops') IS NOT NULL
   AND to_regclass('public.siga_transport_assignments') IS NOT NULL
   AND to_regclass('public.siga_transport_day_status') IS NOT NULL
+  AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
+  WHERE conrelid = to_regclass('public.siga_transport_routes')
+    AND conname = 'siga_transport_route_vehicle_school_fk')
+  AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
+  WHERE conrelid = to_regclass('public.siga_transport_stops')
+    AND conname = 'siga_transport_stop_route_school_fk')
+  AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
+  WHERE conrelid = to_regclass('public.siga_transport_assignments')
+    AND conname = 'siga_transport_assignment_student_school_fk')
+  AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
+  WHERE conrelid = to_regclass('public.siga_transport_assignments')
+    AND conname = 'siga_transport_assignment_route_school_fk')
+  AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
+  WHERE conrelid = to_regclass('public.siga_transport_assignments')
+    AND conname = 'siga_transport_assignment_stop_route_school_fk')
+  AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
+  WHERE conrelid = to_regclass('public.siga_transport_day_status')
+    AND conname = 'siga_transport_day_route_school_fk')
   THEN 'aplicada' ELSE 'em falta' END AS transporte_escolar;
