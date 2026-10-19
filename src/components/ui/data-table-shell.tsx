@@ -24,7 +24,14 @@ export const DataTableShell = React.forwardRef<HTMLDivElement, DataTableShellPro
           </div>
         ) : null}
 
-        <div className="relative w-full overflow-x-auto [scrollbar-width:thin]">{children}</div>
+        <div
+          role="region"
+          aria-label="Tabela com deslocação horizontal"
+          tabIndex={0}
+          className="relative w-full max-w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          {children}
+        </div>
 
         {footer ? (
           <div className="border-t border-border/60 bg-muted/10 px-3.5 py-2.5 sm:px-4">
