@@ -1,13 +1,23 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ChevronUp, Circle, CreditCard, Lock } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  CreditCard,
+  Lock,
+  Wand2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Aurora, GlassTile } from "@/components/brand/aurora";
 import { cn } from "@/lib/utils";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { getSchoolSetupGuide, type SchoolSetupOverview } from "./setup-guide-server";
 import { setupStepTitle, type SetupStep } from "./setup-guide";
+import { firstRunStorageKey, readFirstRunPreference, shouldAutoOpenFirstRun } from "./first-run";
 
 const PHASES: SetupStep["phase"][] = ["Base", "Pedagógica", "Financeiro", "Pessoas"];
 
@@ -94,6 +104,17 @@ export function SchoolSetupGuide() {
   const guide = query.data;
   const key = storageKey(guide?.schoolName ?? "");
   const [preference, setPreference] = useState<"open" | "min" | "hidden" | null>(null);
+  const navigate = useNavigate();
+
+  // Escola acabada de criar: abre a configuração inicial em ecrã próprio
+  // (uma vez; «Configurar mais tarde» deixa o painel normal).
+  useEffect(() => {
+    if (!guide) return;
+    const firstRun = readFirstRunPreference(firstRunStorageKey(guide.schoolName));
+    if (shouldAutoOpenFirstRun(guide, firstRun, true)) {
+      void navigate({ to: "/configuracao-inicial" });
+    }
+  }, [guide, navigate]);
 
   if (!guide) return null;
   const current = preference ?? readPreference(key);
@@ -148,8 +169,13 @@ export function SchoolSetupGuide() {
               precisa do anterior.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <SubscriptionLine subscription={guide.subscription} />
+            <Button asChild size="sm" variant="outline">
+              <Link to="/configuracao-inicial">
+                <Wand2 className="size-3.5" /> Configuração guiada
+              </Link>
+            </Button>
             <Button
               type="button"
               size="sm"

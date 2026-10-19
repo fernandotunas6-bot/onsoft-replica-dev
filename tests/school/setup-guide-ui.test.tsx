@@ -12,7 +12,9 @@ vi.mock("@/features/school/setup-guide-server", () => ({
   getSchoolSetupGuide: () => Promise.resolve(state.guide),
 }));
 vi.mock("@/lib/settings-deep-link", () => ({ openSettingsPanel }));
+const navigate = vi.hoisted(() => vi.fn());
 vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => navigate,
   Link: ({ children, to, ...rest }: { children: ReactNode; to: string }) => (
     <a href={to} {...(rest as object)}>
       {children}
@@ -56,6 +58,7 @@ describe("guia de arranque no painel", () => {
   beforeEach(() => {
     localStorage.clear();
     openSettingsPanel.mockClear();
+    navigate.mockClear();
   });
   afterEach(cleanup);
 
@@ -69,6 +72,21 @@ describe("guia de arranque no painel", () => {
     expect(
       screen.getByText("Primeiro: Criar as turmas do ano e Definir propina e matrícula."),
     ).toBeTruthy();
+  });
+
+  it("escola nova abre a configuração inicial; dispensada, fica no painel", async () => {
+    await renderGuide(NOVA);
+    await screen.findByRole("heading", { name: "Arranque da escola" });
+    expect(navigate).toHaveBeenCalledWith({ to: "/configuracao-inicial" });
+    cleanup();
+    navigate.mockClear();
+    localStorage.setItem("siga:first-run:Colégio Teste", "skipped");
+    await renderGuide(NOVA);
+    await screen.findByRole("heading", { name: "Arranque da escola" });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: /Configuração guiada/ }).getAttribute("href")).toBe(
+      "/configuracao-inicial",
+    );
   });
 
   it("o botão do próximo passo abre o painel de definições certo", async () => {

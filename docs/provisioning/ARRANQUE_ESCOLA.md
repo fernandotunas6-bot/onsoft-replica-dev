@@ -95,12 +95,43 @@ da sessão ou um admin da plataforma com MFA.
   ficheiro no bucket privado `billing-proofs`. A referência Multicaixa (EMIS) só quando o
   adaptador do PayFlow estiver homologado.
 - ADMIN → Subscrições → «Comprovativos de pagamento por confirmar»: ver o ficheiro (link de
-  5 min) e «Confirmar pagamento» (activa o plano por um mês ou um ano).
+  5 min) e «Confirmar pagamento» (activa o plano pelo período pago — ver §8).
 - Tarefa diária `.github/workflows/saas-lifecycle.yml` → `POST /api/cron/saas-lifecycle`
   (`SIGA_CRON_SECRET`): avisos de fim do período experimental a 7, 3 e 1 dia(s) e lembretes de
   registo.
 
-## 7. Por fazer
+## 7. Configuração inicial (primeiro acesso)
+
+`/configuracao-inicial` (`src/routes/configuracao-inicial.tsx`, regras em
+`src/features/school/first-run.ts`). Ecrã próprio, sem o menu do sistema, só para o
+Administrador. Abre sozinho a partir do painel quando a escola ainda não tem ano lectivo nem
+estrutura e o Administrador não escolheu «Configurar mais tarde» (preferência no navegador,
+`siga:first-run:<escola>`). Também se abre pelo botão «Configuração guiada» do cartão de
+arranque.
+
+Ecrãs: Boas-vindas → Dados da escola → Ano lectivo e trimestres (calendário do MED gravado num
+clique com `saveAcademicCalendar`) → Classes, cursos e turmas (`CurriculumTemplateDialog`) →
+Avaliação e propinas → Equipa → Tudo pronto. Cada ecrã mostra os passos do guia com o estado da
+base; sair a meio e voltar retoma no primeiro ecrã por fazer.
+
+## 8. Cobrança: períodos, isenção e renovação
+
+- `saas_billing_settings` (linha única, só servidor): cobrança ligada/desligada, dias de
+  experimental, períodos (mensal, trimestral, semestral, anual) com desconto, aviso às escolas.
+  ADMIN → Catálogo SaaS → «Cobrança das assinaturas» (`/api/saas/billing-settings`).
+- Preço de um período = mensal × meses × (1 − desconto), arredondado a 500 Kz
+  (`billing-periods.ts`, copiado tal e qual para o WEB e o ADMIN). O anual a 16,67 % dá o
+  preço anual do catálogo (10 × mensal).
+- «Não cobrar esta escola»: ADMIN → Escolas clientes → Subscrição (`tenants.billing_exempt` e
+  motivo). Escola isenta ou cobrança desligada: não é bloqueada no fim do trial nem por atraso,
+  não recebe avisos de fim de trial e não vê pagamento no SIGA.
+- SIGA → Assinatura: periodicidade com poupança, preço por mês, próxima cobrança, «Mudar para
+  anual», «Cancelar renovação» (acesso até ao fim do período pago; a tarefa diária passa a
+  assinatura a cancelada depois) e «Retomar». `subscriptions.billing_period` guarda o período
+  pago; confirmar o pagamento no ADMIN aceita os quatro períodos e desfaz «não renovar».
+- WEB → Preços e SIGA → Mudar de plano: «Ver mais» em cada pacote (`plan-details.ts`).
+
+## 9. Por fazer
 
 - Referência Multicaixa real (homologação EMIS no PayFlow).
 - Carga horária por disciplina nos modelos (depende do plano curricular de cada escola).

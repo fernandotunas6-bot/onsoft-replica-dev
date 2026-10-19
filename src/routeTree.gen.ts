@@ -17,6 +17,7 @@ import { Route as ArquivosRouteImport } from './routes/arquivos'
 import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as CatracasRouteImport } from './routes/catracas'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
+import { Route as ConfiguracaoInicialRouteImport } from './routes/configuracao-inicial'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CriarEscolaRouteImport } from './routes/criar-escola'
 import { Route as DocumentosRouteImport } from './routes/documentos'
@@ -147,6 +148,11 @@ const CatracasRoute = CatracasRouteImport.update({
 const ComunicacoesRoute = ComunicacoesRouteImport.update({
   id: '/comunicacoes',
   path: '/comunicacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracaoInicialRoute = ConfiguracaoInicialRouteImport.update({
+  id: '/configuracao-inicial',
+  path: '/configuracao-inicial',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -631,6 +637,7 @@ export interface FileRoutesByFullPath {
   '/calendario': typeof CalendarioRouteWithChildren
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracao-inicial': typeof ConfiguracaoInicialRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
@@ -732,6 +739,7 @@ export interface FileRoutesByTo {
   '/calendario': typeof CalendarioRouteWithChildren
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracao-inicial': typeof ConfiguracaoInicialRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
@@ -834,6 +842,7 @@ export interface FileRoutesById {
   '/calendario': typeof CalendarioRouteWithChildren
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
+  '/configuracao-inicial': typeof ConfiguracaoInicialRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
@@ -937,6 +946,7 @@ export interface FileRouteTypes {
     | '/calendario'
     | '/catracas'
     | '/comunicacoes'
+    | '/configuracao-inicial'
     | '/configuracoes'
     | '/criar-escola'
     | '/documentos'
@@ -1038,6 +1048,7 @@ export interface FileRouteTypes {
     | '/calendario'
     | '/catracas'
     | '/comunicacoes'
+    | '/configuracao-inicial'
     | '/configuracoes'
     | '/criar-escola'
     | '/documentos'
@@ -1139,6 +1150,7 @@ export interface FileRouteTypes {
     | '/calendario'
     | '/catracas'
     | '/comunicacoes'
+    | '/configuracao-inicial'
     | '/configuracoes'
     | '/criar-escola'
     | '/documentos'
@@ -1241,6 +1253,7 @@ export interface RootRouteChildren {
   CalendarioRoute: typeof CalendarioRouteWithChildren
   CatracasRoute: typeof CatracasRoute
   ComunicacoesRoute: typeof ComunicacoesRoute
+  ConfiguracaoInicialRoute: typeof ConfiguracaoInicialRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   CriarEscolaRoute: typeof CriarEscolaRoute
   DocumentosRoute: typeof DocumentosRoute
@@ -1357,6 +1370,13 @@ declare module '@tanstack/react-router' {
       path: '/comunicacoes'
       fullPath: '/comunicacoes'
       preLoaderRoute: typeof ComunicacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracao-inicial': {
+      id: '/configuracao-inicial'
+      path: '/configuracao-inicial'
+      fullPath: '/configuracao-inicial'
+      preLoaderRoute: typeof ConfiguracaoInicialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -2194,6 +2214,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarioRoute: CalendarioRouteWithChildren,
   CatracasRoute: CatracasRoute,
   ComunicacoesRoute: ComunicacoesRoute,
+  ConfiguracaoInicialRoute: ConfiguracaoInicialRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   CriarEscolaRoute: CriarEscolaRoute,
   DocumentosRoute: DocumentosRoute,

@@ -4,6 +4,20 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Cobrança configurável, assinaturas ao estilo Claude e configuração inicial (2026-10-19)
+
+Detalhe em [docs/provisioning/ARRANQUE_ESCOLA.md](../provisioning/ARRANQUE_ESCOLA.md) §7–8.
+
+- Migração **aplicada na produção** `20260930210000_billing_settings_and_exemption`:
+  `saas_billing_settings` (FORCE RLS, só servidor), `tenants.billing_exempt(_reason)`,
+  `subscriptions.billing_period`. Retrato e `types.ts` actualizados à mão.
+- `billing-periods.ts` e `plan-details.ts` são puros e têm cópias iguais em `painel/web/src/lib`
+  (e `painel/admin/src/lib` para os períodos); `tests/saas/plan-details.test.ts` falha se
+  divergirem — editar o original em `src/features/saas` e copiar.
+- `billing-settings.ts` recebe o cliente de quem chama (não abre um), por isso não conta para o
+  tecto de ficheiros privilegiados.
+- `/configuracao-inicial` abre sozinho numa escola nova (ver `first-run.ts`).
+
 ## Visual «Aurora» da marca (2026-09-30)
 
 Ver [docs/design/VISUAL_AURORA.md](../design/VISUAL_AURORA.md). Fundo animado azul→violeta,

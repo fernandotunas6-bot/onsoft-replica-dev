@@ -71,6 +71,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/acessos", "/catracas"], roles: ["Administrador", "Secretaria"] },
   { prefixes: ["/configuracoes"], roles: ["Administrador"] },
+  { prefixes: ["/configuracao-inicial"], roles: ["Administrador"] },
   { prefixes: ["/tesouraria"], roles: ["Administrador", "Tesouraria"] },
   {
     prefixes: ["/faturas", "/relatorios/financeiros"],
