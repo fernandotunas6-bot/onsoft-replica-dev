@@ -24,8 +24,8 @@ type RailTab = "relacionado" | "mensagens";
    mesmo espaço de 320px, em separadores. Duas colunas lado a lado custariam
    ~700px de largura e apertavam o conteúdo em ecrãs de 1440px.
 
-   Em `lg:` é uma aside fixa; abaixo disso é um Sheet de fundo — o mesmo padrão
-   que o painel contextual já usava. */
+   A coluna fixa só cabe com conforto em 2xl (1536px). Abaixo disso é um
+   Sheet acessível pelo botão flutuante, sem apertar o conteúdo principal. */
 export function RightRail() {
   const { focusedEntity, panelCollapsed, setPanelCollapsed } = useEntityFocus();
   const relations = useRelations();
@@ -37,11 +37,23 @@ export function RightRail() {
   // ChatDock montado para o dar.
   const { unread: unreadRows } = useInboxUnread();
   const unread = unreadRows.reduce((total, row) => total + row.unread, 0);
-  // Um só chat montado: a coluna no computador (lg), a folha abaixo disso.
+  // Um só chat montado: a coluna em ecrãs largos (2xl), a folha abaixo disso.
   // Antes os dois ficavam montados (um escondido), com dois canais de tempo
   // real, e abrir pelo sino no computador abria também a folha do telemóvel.
   const { breakpoint, ready } = useBreakpoint();
-  const isDesktop = breakpoint === "desktop";
+  const [wideLayout, setWideLayout] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1536px)");
+    const update = () => setWideLayout(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  const isDesktop = ready && breakpoint === "desktop" && wideLayout;
+
+  useEffect(() => {
+    if (isDesktop) setMobileOpen(false);
+  }, [isDesktop]);
   const [openRequest, setOpenRequest] = useState<{
     conversationId: string;
     nonce: number;
@@ -130,7 +142,7 @@ export function RightRail() {
     <>
       <aside
         aria-label="Painel lateral"
-        className="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 border-l border-border/50 bg-card/40 backdrop-blur-xs lg:flex lg:flex-col"
+        className="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 border-l border-border/50 bg-card/40 backdrop-blur-xs 2xl:flex 2xl:flex-col"
         style={{ width: panelCollapsed ? "3.25rem" : "320px" }}
       >
         {panelCollapsed ? (
@@ -196,8 +208,8 @@ export function RightRail() {
         )}
       </aside>
 
-      {/* Abaixo de lg o painel não cabe: dois botões flutuantes abrem o Sheet. */}
-      <div className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
+      {/* Abaixo de 2xl o painel não cabe sem comprimir o conteúdo. */}
+      <div className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:bottom-4 2xl:hidden">
         {suggestions.length > 0 ? (
           <button
             type="button"
