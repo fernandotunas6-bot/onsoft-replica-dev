@@ -564,35 +564,28 @@ export async function setTransportDayStatus(
   const route = await loadRoute(db, schoolId, input.routeId);
   const serviceDate = input.serviceDate ?? today;
   const delay = input.status === "delayed" ? input.delayMinutes : 0;
-  const before = await db
-    .from("siga_transport_day_status")
-    .select("status, delay_minutes")
-    .eq("school_id", schoolId)
-    .eq("route_id", input.routeId)
-    .eq("service_date", serviceDate)
-    .maybeSingle();
-  if (before.error) fail(before.error, "TRANSPORT_UNAVAILABLE");
-  const previous = (before.data as { status: string; delay_minutes: number } | null) ?? {
-    status: "normal",
-    delay_minutes: 0,
-  };
-  const saved = await db.from("siga_transport_day_status").upsert(
-    {
-      school_id: schoolId,
-      route_id: input.routeId,
-      service_date: serviceDate,
-      status: input.status,
-      delay_minutes: delay,
-      note: input.note ?? null,
-      created_by: userId,
-      updated_by: userId,
-    },
-    { onConflict: "route_id,service_date" },
-  );
-  if (saved.error) fail(saved.error);
 
-  const changed = previous.status !== input.status || previous.delay_minutes !== delay;
-  if (!changed) return { notified: 0 };
+  // O GET anterior seguido de upsert não era seguro entre dois operadores:
+  // ambos podiam ler "normal" e criar dois avisos de "atrasada".
+  // A RPC bloqueia a rota, compara o estado anterior e grava numa transacção.
+  if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY");
+  const saved = await db.rpc("siga_transport_set_day_status_atomic", {
+    p_school_id: schoolId,
+    p_route_id: input.routeId,
+    p_service_date: serviceDate,
+    p_status: input.status,
+    p_delay_minutes: delay,
+    p_note: input.note ?? null,
+    p_user_id: userId,
+  });
+  if (saved.error?.code === "PGRST202") throw new TransportError("TRANSPORT_NOT_READY");
+  if (saved.error) fail(saved.error);
+  const result = saved.data as { changed?: unknown } | null;
+  if (!result || typeof result.changed !== "boolean") {
+    throw new TransportError("TRANSPORT_UNAVAILABLE");
+  }
+  if (!result.changed) return { notified: 0 };
+
   const userIds = await routeAudience(db, schoolId, input.routeId, serviceDate);
   const text = DAY_TEXT[input.status](route.name, delay, input.note ?? null);
   try {
@@ -609,6 +602,8 @@ export async function setTransportDayStatus(
     return { notified };
   } catch (error) {
     // O estado já ficou gravado: um aviso que falha não o desfaz.
+    // A RPC impede repetições concorrentes do MESMO estado, mas isto não é
+    // ainda uma fila de notificações com garantia exactly-once.
     console.error("[transport] avisos do estado do dia:", error);
     return { notified: 0 };
   }
