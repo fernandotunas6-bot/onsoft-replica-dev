@@ -322,7 +322,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           name: string;
           grade_level_id: string | null;
         }>;
-        classGroups = groups;
+        // Só se reutiliza o que veio bem. O Supabase devolve `data: null` com erro
+        // sem lançar: guardar `[]` nesse caso faria o heatmap herdar a falha em
+        // vez de tentar por si.
+        classGroups = groupsResult.error ? null : groups;
         const gradeLevelIds = [
           ...new Set(groups.map((row) => row.grade_level_id).filter(Boolean)),
         ] as string[];
