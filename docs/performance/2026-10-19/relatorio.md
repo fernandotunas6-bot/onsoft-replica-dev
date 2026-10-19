@@ -364,12 +364,21 @@ produção:
   `framework-CIytk8im.js` responde sem `content-encoding` e com os 362 497 bytes
   crus. A Cloudflare comprime. Os bytes transferidos e os tempos medidos localmente
   são, por isso, um **limite inferior pessimista** — não a nota de produção.
-- **O `0,97` observado é a prova de que o build atinge a nota do CI** — a `main` está
-  a 0,96-0,98 com LCP ~1 s nas sete rotas, conforme [`CONTINUE.md`](../../agents/CONTINUE.md),
-  contra um portão de `minScore` 0,90. As corridas baixas são carga desta máquina,
-  não a aplicação: durante este
-  ciclo o disco esteve a 100% de ocupação, com 25 MiB livres, o que impedia qualquer
-  build ou corrida de Lighthouse até se libertarem 4,3 GiB de caches.
+- **O `0,97` local não prova nada, e a afirmação anterior é retirada.** Esta secção
+  dizia que ele era «a prova de que o build atinge a nota do CI». Não é: as corridas
+  desta máquina nunca foram filtradas pelos códigos de estado das respostas, e a
+  secção [«uma nota alta é sinal de avaria»](#lighthouse-local-uma-nota-alta-é-sinal-de-avaria)
+  demonstra que uma página que devolve 500 e não carrega pontua **melhor**, não pior.
+  Os ficheiros brutos dessa corrida não sobreviveram, pelo que não é reverificável —
+  fica retirada em vez de remendada. As corridas baixas também deixam de se explicar
+  só por carga, embora o disco a 100% de ocupação, com 25 MiB livres, tenha impedido
+  qualquer build ou Lighthouse até se libertarem 4,3 GiB de caches.
+- **A nota, essa, veio do CI.** Na `main` em `974d9616` — a corrida que o desbloqueio
+  do portão permitiu — o Lighthouse CI deu **0,93 a 0,97 em 21 medições** (7 rotas × 3
+  corridas), média 0,955, contra o portão de `minScore` 0,90. FCP de 1 014 a 1 290 ms
+  e **TBT 0 ms em todas as 21**. Substitui a faixa 0,96-0,98 que esta secção citava de
+  segunda mão a partir do `CONTINUE.md`. Como o TBT já está a zero, a margem que resta
+  está no FCP, LCP e índice de velocidade — o caminho de render, não o tempo de bloqueio.
 
 O que continua a valer desta via local é o que é determinístico ou robusto ao ruído:
 o manifesto de recursos, os bytes, o CLS, o overflow, os erros de consola e as
