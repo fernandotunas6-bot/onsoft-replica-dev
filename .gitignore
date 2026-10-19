@@ -58,6 +58,9 @@ tests/visual/diff/
 .e2e-ecosystem-pids.json
 test-results/
 playwright-report/
+# Sessões autorizadas Playwright: nunca guardar tokens ou cookies no Git.
+tests/e2e/.auth/
+tests/e2e/auth-states/
 
 # Arquivos de referência grandes que não devem entrar no repo (>100MB, rejeitados pelo GitHub)
 public/turmas/*.zip
