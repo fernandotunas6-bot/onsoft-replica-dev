@@ -126,6 +126,67 @@ const day =
 await rejects(day, [a, routeB], "transport_route_same_school");
 await db.query(day, [a, routeA]);
 
+// Prova de integridade relacional em UPDATE do PAI: o gatilho na tabela
+// filha não corre nestas operações. Quem recusa é a chave composta PostgreSQL.
+const rejectsParentChange = async (sql, params, expected) => {
+  await assert.rejects(db.query(sql, params), (error) => {
+    assert.equal(error.code, "23503", `${expected}: ${error.message}`);
+    assert.equal(error.constraint, expected);
+    return true;
+  });
+};
+
+await rejectsParentChange(
+  "update siga_class_tasks set school_id = $1 where id = $2",
+  [b, taskA],
+  "siga_submission_task_same_school_fk",
+);
+await rejectsParentChange(
+  "update students set school_id = $1 where id = $2",
+  [b, studentA],
+  "siga_submission_student_same_school_fk",
+);
+await rejectsParentChange(
+  "update siga_transport_vehicles set school_id = $1 where id = $2",
+  [b, vehicleA],
+  "siga_transport_route_vehicle_school_fk",
+);
+await assert.rejects(
+  db.query("update siga_transport_routes set school_id = $1 where id = $2", [b, routeA]),
+  (error) => error.code === "23503",
+);
+await rejectsParentChange(
+  "update siga_transport_stops set route_id = $1 where id = $2",
+  [routeA2, stopA],
+  "siga_transport_assignment_stop_route_school_fk",
+);
+
+// ON DELETE SET NULL deve preservar school_id e só apagar vehicle_id, já que
+// a rota da escola sobrevive à remoção da sua viatura.
+await db.query("delete from siga_transport_vehicles where id = $1", [vehicleA]);
+const stillRoute = await one(
+  "select school_id, vehicle_id from siga_transport_routes where id = $1",
+  [routeA],
+);
+assert.deepEqual(stillRoute, { school_id: a, vehicle_id: null });
+
+// Conferir que as constraints realmente existem e não duplicaram na 2.ª
+// execução de cada migração.
+const installed = await db.query(`
+  select conname from pg_constraint
+  where conname in (
+    'siga_submission_task_same_school_fk',
+    'siga_submission_student_same_school_fk',
+    'siga_transport_route_vehicle_school_fk',
+    'siga_transport_stop_route_school_fk',
+    'siga_transport_assignment_student_school_fk',
+    'siga_transport_assignment_route_school_fk',
+    'siga_transport_assignment_stop_route_school_fk',
+    'siga_transport_day_route_school_fk'
+  )
+`);
+assert.equal(installed.rows.length, 8, "oito FKs compostas instaladas uma única vez");
+
 // Paragem com aluno não se apaga; a auditoria regista as escritas.
 await assert.rejects(db.query("delete from siga_transport_stops where id = $1", [stopA]));
 const audited = await one(
@@ -133,4 +194,4 @@ const audited = await one(
 );
 assert.ok(audited.n >= 6, "auditoria das tabelas do transporte");
 
-console.log("same-school-references: 2 migrações x2, 13 referências de outra escola recusadas");
+console.log("same-school-references: 2 migrações x2, 8 FKs compostas, pais protegidos");
