@@ -51,8 +51,7 @@ CREATE INDEX IF NOT EXISTS siga_task_submissions_student_idx
 -- reiteram a identidade por escola sem alterar os PKs existentes.
 CREATE UNIQUE INDEX IF NOT EXISTS siga_tasks_school_identity_idx
   ON public.siga_class_tasks (school_id, id);
-CREATE UNIQUE INDEX IF NOT EXISTS siga_students_school_identity_idx
-  ON public.students (school_id, id);
+-- A tabela students já possui UNIQUE (school_id, id) no esquema base.
 
 DO $migration$
 BEGIN
