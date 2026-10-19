@@ -586,9 +586,13 @@ export async function setTransportDayStatus(
   }
   if (!result.changed) return { notified: 0 };
 
-  const userIds = await routeAudience(db, schoolId, input.routeId, serviceDate);
-  const text = DAY_TEXT[input.status](route.name, delay, input.note ?? null);
   try {
+    // A consulta da audiência também pode falhar DEPOIS do commit do estado.
+    // Tratar toda a fase de avisos como uma operação separada, sem aparentar
+    // que a alteração do serviço foi revertida por um erro posterior.
+    const userIds = await routeAudience(db, schoolId, input.routeId, serviceDate);
+    if (!userIds.length) return { notified: 0 };
+    const text = DAY_TEXT[input.status](route.name, delay, input.note ?? null);
     const notified = await insertInAppNotifications(
       db as never,
       schoolId,
@@ -601,9 +605,9 @@ export async function setTransportDayStatus(
     );
     return { notified };
   } catch (error) {
-    // O estado já ficou gravado: um aviso que falha não o desfaz.
-    // A RPC impede repetições concorrentes do MESMO estado, mas isto não é
-    // ainda uma fila de notificações com garantia exactly-once.
+    // O estado já ficou gravado: uma falha da audiência ou do envio não o desfaz.
+    // A RPC evita repetições concorrentes do MESMO estado, mas a entrega não
+    // tem ainda uma fila durável com garantia exactly-once.
     console.error("[transport] avisos do estado do dia:", error);
     return { notified: 0 };
   }
