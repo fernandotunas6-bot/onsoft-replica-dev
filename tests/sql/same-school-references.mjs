@@ -146,14 +146,10 @@ const day =
 await rejects(day, [a, routeB], "transport_route_same_school");
 await db.query(day, [a, routeA]);
 
-
 // ── Paragens atómicas: função SECURITY INVOKER só para service_role.
 const rpc = "public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)";
 for (const role of ["anon", "authenticated"]) {
-  const r = await one("select has_function_privilege($1, $2, 'EXECUTE') as allowed", [
-    role,
-    rpc,
-  ]);
+  const r = await one("select has_function_privilege($1, $2, 'EXECUTE') as allowed", [role, rpc]);
   assert.equal(r.allowed, false, "RPC de paragens exposta a " + role);
 }
 assert.equal(
@@ -163,10 +159,12 @@ assert.equal(
 );
 
 const saveStopsAtomic = async (school, routeId, stops) =>
-  (await one(
-    "select public.siga_transport_save_stops_atomic($1::uuid,$2::uuid,null::uuid,$3::jsonb) as result",
-    [school, routeId, JSON.stringify(stops)],
-  )).result;
+  (
+    await one(
+      "select public.siga_transport_save_stops_atomic($1::uuid,$2::uuid,null::uuid,$3::jsonb) as result",
+      [school, routeId, JSON.stringify(stops)],
+    )
+  ).result;
 
 const secondStop = (await one(stop, [a, routeA, 2])).id;
 const existingStops = async () =>
