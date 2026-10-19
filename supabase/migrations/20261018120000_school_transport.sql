@@ -482,6 +482,10 @@ GRANT EXECUTE ON FUNCTION public.siga_transport_save_stops_atomic(uuid, uuid, uu
 -- Só o servidor autorizado usa a RPC; notificações seguem depois do commit.
 -- Isto impede dois avisos para a mesma transição de estado, sem prometer
 -- entrega exactamente uma vez se a escrita do aviso falhar após o commit.
+-- As notificações in-app passam a integrar a mesma transacção do estado.
+-- Antes do lock sobre a rota, o servidor resolve os destinatários autorizados.
+-- Dentro do lock, o PostgreSQL revalida o vínculo com a escola e só cria os
+-- avisos se o estado/atraso realmente mudar. Qualquer falha faz rollback total.
 CREATE OR REPLACE FUNCTION public.siga_transport_set_day_status_atomic(
   p_school_id uuid,
   p_route_id uuid,
@@ -489,7 +493,10 @@ CREATE OR REPLACE FUNCTION public.siga_transport_set_day_status_atomic(
   p_status text,
   p_delay_minutes integer,
   p_note text,
-  p_user_id uuid
+  p_user_id uuid,
+  p_recipient_user_ids uuid[],
+  p_title text,
+  p_body text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -502,6 +509,8 @@ DECLARE
   previous_note text := NULL;
   previous_exists boolean := false;
   changed boolean;
+  recipient_count integer := 0;
+  notified_count integer := 0;
 BEGIN
   IF p_school_id IS NULL OR p_route_id IS NULL OR p_service_date IS NULL
      OR p_status IS NULL OR p_status NOT IN ('normal', 'delayed', 'cancelled')
@@ -509,6 +518,8 @@ BEGIN
      OR (p_status = 'delayed' AND p_delay_minutes = 0)
      OR (p_status <> 'delayed' AND p_delay_minutes <> 0)
      OR (p_note IS NOT NULL AND pg_catalog.length(p_note) > 300)
+     OR p_recipient_user_ids IS NULL
+     OR pg_catalog.cardinality(p_recipient_user_ids) > 5000
   THEN
     RAISE EXCEPTION 'Estado do transporte inválido'
       USING ERRCODE = '22023';
@@ -537,10 +548,37 @@ BEGIN
   changed := previous_status IS DISTINCT FROM p_status
     OR previous_delay IS DISTINCT FROM p_delay_minutes;
 
-  -- Uma repetição exacta não deve tocar em updated_at, auditoria ou índices.
-  -- Uma alteração apenas da nota continua a gravar, mas sem novo aviso.
+  -- Não tocar na base nem na auditoria se a operação é uma repetição exacta.
   IF previous_exists AND NOT changed AND previous_note IS NOT DISTINCT FROM p_note THEN
-    RETURN pg_catalog.jsonb_build_object('changed', false);
+    RETURN pg_catalog.jsonb_build_object('changed', false, 'notified', 0);
+  END IF;
+
+  IF changed THEN
+    SELECT count(*)::integer INTO recipient_count
+    FROM (SELECT DISTINCT u AS user_id FROM pg_catalog.unnest(p_recipient_user_ids) AS u) AS recipients;
+
+    IF recipient_count > 0
+       AND (p_title IS NULL OR pg_catalog.btrim(p_title) = ''
+         OR p_body IS NULL OR pg_catalog.btrim(p_body) = '')
+    THEN
+      RAISE EXCEPTION 'Título ou texto da notificação inválido'
+        USING ERRCODE = '22023';
+    END IF;
+
+    -- Defesa adicional, mesmo com service_role: não usar destinatários de outra escola.
+    IF EXISTS (
+      SELECT 1 FROM (
+        SELECT DISTINCT u AS user_id FROM pg_catalog.unnest(p_recipient_user_ids) AS u
+      ) AS wanted
+      WHERE wanted.user_id IS NULL
+        OR NOT EXISTS (
+          SELECT 1 FROM public.people AS p
+          WHERE p.school_id = p_school_id AND p.user_id = wanted.user_id
+        )
+    ) THEN
+      RAISE EXCEPTION 'Destinatário fora da escola'
+        USING ERRCODE = '42501';
+    END IF;
   END IF;
 
   INSERT INTO public.siga_transport_day_status (
@@ -556,13 +594,34 @@ BEGIN
     note = EXCLUDED.note,
     updated_by = EXCLUDED.updated_by;
 
-  RETURN pg_catalog.jsonb_build_object('changed', changed);
+  IF changed AND recipient_count > 0 THEN
+    INSERT INTO public.notifications (
+      school_id, user_id, channel, event_type,
+      title, body, payload, status
+    )
+    SELECT
+      p_school_id, recipients.user_id, 'in_app', 'transport.day_status',
+      pg_catalog.left(p_title, 160), pg_catalog.left(p_body, 4000),
+      pg_catalog.jsonb_build_object(
+        'routeId', p_route_id,
+        'serviceDate', p_service_date,
+        'status', p_status,
+        'delayMinutes', p_delay_minutes
+      ),
+      'delivered'
+    FROM (
+      SELECT DISTINCT u AS user_id FROM pg_catalog.unnest(p_recipient_user_ids) AS u
+    ) AS recipients;
+    GET DIAGNOSTICS notified_count = ROW_COUNT;
+  END IF;
+
+  RETURN pg_catalog.jsonb_build_object('changed', changed, 'notified', notified_count);
 END;
 $day$;
 
 REVOKE ALL ON FUNCTION public.siga_transport_set_day_status_atomic(
-  uuid, uuid, date, text, integer, text, uuid
+  uuid, uuid, date, text, integer, text, uuid, uuid[], text, text
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.siga_transport_set_day_status_atomic(
-  uuid, uuid, date, text, integer, text, uuid
+  uuid, uuid, date, text, integer, text, uuid, uuid[], text, text
 ) TO service_role;
