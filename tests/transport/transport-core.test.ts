@@ -351,6 +351,7 @@ describe("portal: estado do dia", () => {
     guardians: { guardian_person_id: string; valid_from: string; valid_until: string | null }[] = [
       { guardian_person_id: id(31), valid_from: "2026-09-01", valid_until: null },
     ],
+    audienceFails = false,
   ) => {
     let status = (previous as { status: string; delay_minutes: number } | null) ?? {
       status: "normal",
@@ -369,7 +370,10 @@ describe("portal: estado do dia", () => {
         };
       if (table === "students")
         return { data: [{ id: STUDENT, person_id: id(30), student_number: null }] };
-      if (table === "student_guardians") return { data: guardians };
+      if (table === "student_guardians")
+        return audienceFails
+          ? { error: { code: "PGRST500", message: "Falha simulada ao consultar vínculos" } }
+          : { data: guardians };
       if (table === "people") {
         if (has(ops, "select") && String(ops[0][1]).includes("user_id")) {
           const requested = (ops.find((op) => op[0] === "in" && op[1] === "id")?.[2] ??
@@ -517,6 +521,47 @@ describe("portal: estado do dia", () => {
       ),
     ).rejects.toMatchObject({ code: "TRANSPORT_NOT_READY" });
     expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("preserva o estado gravado quando a consulta de encarregados falha", async () => {
+    const db = dayDb(null, undefined, true);
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const result = await setTransportDayStatus(
+        db,
+        SCHOOL,
+        USER,
+        setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 15 }),
+        TODAY,
+      );
+      expect(result).toEqual({ notified: 0 });
+      expect(db.rpc).toHaveBeenCalledOnce();
+      expect(notify).not.toHaveBeenCalled();
+      expect(errorLog).toHaveBeenCalledOnce();
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
+  it("preserva o estado gravado quando a escrita de avisos falha", async () => {
+    const db = dayDb(null);
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    notify.mockRejectedValueOnce(new Error("Serviço de notificações indisponível"));
+    try {
+      const result = await setTransportDayStatus(
+        db,
+        SCHOOL,
+        USER,
+        setDayStatusSchema.parse({ routeId: ROUTE, status: "cancelled" }),
+        TODAY,
+      );
+      expect(result).toEqual({ notified: 0 });
+      expect(db.rpc).toHaveBeenCalledOnce();
+      expect(notify).toHaveBeenCalledOnce();
+      expect(errorLog).toHaveBeenCalledOnce();
+    } finally {
+      errorLog.mockRestore();
+    }
   });
 
   it("atraso sem minutos é recusado pelo esquema", () => {
