@@ -101,6 +101,95 @@ CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_assignments_open_unique
 CREATE INDEX IF NOT EXISTS siga_transport_day_status_date_idx
   ON public.siga_transport_day_status (school_id, service_date);
 
+-- FKs compostas garantem o isolamento mesmo que um registo de origem mude de
+-- escola/rota depois de gravado. Os gatilhos seguintes continuam activos:
+-- verificam a intenção na escrita; a FK protege também UPDATE/DELETE do pai.
+-- Índices únicos reutilizáveis não alteram a chave primária original.
+CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_vehicles_school_identity_idx
+  ON public.siga_transport_vehicles (school_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_routes_school_identity_idx
+  ON public.siga_transport_routes (school_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS siga_transport_stops_route_identity_idx
+  ON public.siga_transport_stops (school_id, route_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS siga_students_school_identity_idx
+  ON public.students (school_id, id);
+
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_transport_routes'::regclass
+      AND conname = 'siga_transport_route_vehicle_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_transport_routes
+      ADD CONSTRAINT siga_transport_route_vehicle_school_fk
+      FOREIGN KEY (school_id, vehicle_id)
+      REFERENCES public.siga_transport_vehicles (school_id, id)
+      ON DELETE SET NULL (vehicle_id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_transport_stops'::regclass
+      AND conname = 'siga_transport_stop_route_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_transport_stops
+      ADD CONSTRAINT siga_transport_stop_route_school_fk
+      FOREIGN KEY (school_id, route_id)
+      REFERENCES public.siga_transport_routes (school_id, id)
+      ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_transport_assignments'::regclass
+      AND conname = 'siga_transport_assignment_student_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_transport_assignments
+      ADD CONSTRAINT siga_transport_assignment_student_school_fk
+      FOREIGN KEY (school_id, student_id)
+      REFERENCES public.students (school_id, id)
+      ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_transport_assignments'::regclass
+      AND conname = 'siga_transport_assignment_route_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_transport_assignments
+      ADD CONSTRAINT siga_transport_assignment_route_school_fk
+      FOREIGN KEY (school_id, route_id)
+      REFERENCES public.siga_transport_routes (school_id, id)
+      ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_transport_assignments'::regclass
+      AND conname = 'siga_transport_assignment_stop_route_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_transport_assignments
+      ADD CONSTRAINT siga_transport_assignment_stop_route_school_fk
+      FOREIGN KEY (school_id, route_id, stop_id)
+      REFERENCES public.siga_transport_stops (school_id, route_id, id)
+      ON DELETE RESTRICT;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'public.siga_transport_day_status'::regclass
+      AND conname = 'siga_transport_day_route_school_fk'
+  ) THEN
+    ALTER TABLE public.siga_transport_day_status
+      ADD CONSTRAINT siga_transport_day_route_school_fk
+      FOREIGN KEY (school_id, route_id)
+      REFERENCES public.siga_transport_routes (school_id, id)
+      ON DELETE CASCADE;
+  END IF;
+END
+$migration$;
+
 -- Referências na mesma escola (auditoria da PR #132): as chaves estrangeiras só
 -- garantem que o id existe; este gatilho garante que a viatura, a rota, a
 -- paragem e o aluno são da escola da linha, e que a paragem é da rota. O
