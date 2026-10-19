@@ -364,8 +364,10 @@ produção:
   `framework-CIytk8im.js` responde sem `content-encoding` e com os 362 497 bytes
   crus. A Cloudflare comprime. Os bytes transferidos e os tempos medidos localmente
   são, por isso, um **limite inferior pessimista** — não a nota de produção.
-- **O `0,97` observado é a prova de que o build atinge a nota do CI** (0,94-0,97 na
-  `main`). As corridas baixas são carga desta máquina, não a aplicação: durante este
+- **O `0,97` observado é a prova de que o build atinge a nota do CI** — a `main` está
+  a 0,96-0,98 com LCP ~1 s nas sete rotas, conforme [`CONTINUE.md`](../../agents/CONTINUE.md),
+  contra um portão de `minScore` 0,90. As corridas baixas são carga desta máquina,
+  não a aplicação: durante este
   ciclo o disco esteve a 100% de ocupação, com 25 MiB livres, o que impedia qualquer
   build ou corrida de Lighthouse até se libertarem 4,3 GiB de caches.
 
