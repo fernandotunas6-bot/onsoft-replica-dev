@@ -45,7 +45,10 @@ export function RightRail() {
   const [wideLayout, setWideLayout] = useState(false);
   useEffect(() => {
     // Mesmo fallback de resize do useBreakpoint: não depende de matchMedia em testes.
-    const update = () => setWideLayout(window.innerWidth >= 1536);
+    const update = () => {
+      const next = window.innerWidth >= 1536;
+      setWideLayout((current) => (current === next ? current : next));
+    };
     update();
     window.addEventListener("resize", update, { passive: true });
     window.addEventListener("orientationchange", update);
