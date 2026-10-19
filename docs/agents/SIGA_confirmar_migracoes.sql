@@ -159,7 +159,8 @@ from (values
          and conname = 'siga_submission_task_same_school_fk')
      and exists (select 1 from pg_catalog.pg_constraint
        where conrelid = to_regclass('public.siga_task_submissions')
-         and conname = 'siga_submission_student_same_school_fk')),
+         and conname = 'siga_submission_student_same_school_fk')
+     and to_regclass('public.siga_task_submissions_storage_path_unique_idx') is not null),
   -- Transporte: a existência de tabelas não substitui as FKs compostas.
   ('20261018120000_school_transport',
      to_regclass('public.siga_transport_day_status') is not null
