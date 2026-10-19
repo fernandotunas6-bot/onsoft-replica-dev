@@ -59,4 +59,17 @@ describe("orçamento do primeiro desenho", () => {
     expect(vite).toContain('name: "icons"');
     expect(vite).toContain('name: "framework"');
   });
+
+  it("o catálogo de temas não entra pelo provider de aparência", () => {
+    const appearance = readFileSync("src/lib/appearance.tsx", "utf8");
+    // `__root.tsx` monta o `AppearanceProvider`, por isso tudo o que este ficheiro
+    // importa de forma estática fica nos 36 recursos da raiz. Os catálogos Shadcn e
+    // Tweakcn somavam 109 833 bytes (10,2% da raiz) para o `applyAppearance` fazer
+    // um `.find()` de um tema — e o estado por omissão não tem tema de catálogo.
+    expect(appearance).not.toMatch(/^import .*config\/theme-data/m);
+    // Sob demanda, e com guarda de geração para um catálogo atrasado não escrever
+    // as variáveis de um estado já substituído.
+    expect(appearance).toMatch(/import\("@\/config\/theme-data"\)/);
+    expect(appearance).toContain("appearanceGeneration");
+  });
 });
