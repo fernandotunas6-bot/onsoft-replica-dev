@@ -182,7 +182,11 @@ from (values
          and conname = 'siga_transport_assignment_stop_route_school_fk')
      and exists (select 1 from pg_catalog.pg_constraint
        where conrelid = to_regclass('public.siga_transport_day_status')
-         and conname = 'siga_transport_day_route_school_fk')),
+         and conname = 'siga_transport_day_route_school_fk')
+     and to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)') is not null
+     and has_function_privilege('service_role', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+     and not has_function_privilege('authenticated', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+     and not has_function_privilege('anon', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
