@@ -34,6 +34,7 @@ export function SaveBar({
       {/* Evita que a barra fixa tape o último campo do formulário. */}
       <div aria-hidden="true" className="pointer-events-none h-24 shrink-0 lg:h-20" />
       <div
+        data-siga-save-bar=""
         className={cn(
           "fixed inset-x-0 bottom-above-nav z-40 border-t border-border bg-card/95 backdrop-blur-sm lg:bottom-0",
           "px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]",
