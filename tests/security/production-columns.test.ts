@@ -89,6 +89,23 @@ describe("colunas usadas existem na produção", () => {
     expect(missing).toEqual([]);
   });
 
+  it("a RPC pendente de paragens tem SQL real, grants restritos e recusa sem função", () => {
+    const rpc = "siga_transport_save_stops_atomic";
+    expect(FUNCOES_ESPERA_MIGRACAO.has(rpc)).toBe(true);
+    const migration = readFileSync(
+      "supabase/migrations/20261018120000_school_transport.sql",
+      "utf8",
+    );
+    const core = readFileSync("src/features/transport/transport-core.server.ts", "utf8");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public." + rpc + "(");
+    expect(migration).toContain("SECURITY INVOKER");
+    expect(migration).toContain(
+      "REVOKE ALL ON FUNCTION public.siga_transport_save_stops_atomic",
+    );
+    expect(core).toContain('if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY")');
+    expect(core).toContain('fail(result.error)');
+  });
+
   it("RPCs atómicos têm migração e falham de forma explícita se indisponíveis", () => {
     const sql = readFileSync(
       "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",
