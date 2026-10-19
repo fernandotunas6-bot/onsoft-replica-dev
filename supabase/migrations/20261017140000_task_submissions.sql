@@ -35,6 +35,11 @@ CREATE INDEX IF NOT EXISTS siga_task_submissions_task_idx
 CREATE INDEX IF NOT EXISTS siga_task_submissions_student_idx
   ON public.siga_task_submissions (school_id, student_id);
 
+-- Uma localização privada no Storage pertence a uma única entrega activa.
+-- Impede que o reenvio de outra tarefa apague o ficheiro ainda referenciado.
+CREATE UNIQUE INDEX IF NOT EXISTS siga_task_submissions_storage_path_unique_idx
+  ON public.siga_task_submissions (storage_path);
+
 -- Protecção relacional: os gatilhos validam a nova linha, mas apenas as FKs
 -- compostas mantêm o vínculo à escola se a tarefa ou o aluno forem alterados
 -- posteriormente (e com escritas concorrentes). Os dois índices únicos
