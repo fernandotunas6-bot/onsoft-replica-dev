@@ -417,6 +417,29 @@ describe("portal: estado do dia", () => {
     expect(args.p_title).toBe("Transporte: Rota Kilamba com atraso");
     expect(args.p_body).toContain("está atrasada cerca de 20 min");
     expect(notify).not.toHaveBeenCalled();
+    const studentSelects = queries
+      .filter((query) => query.table === "students")
+      .flatMap((query) => query.ops)
+      .filter((op) => op[0] === "select");
+    expect(studentSelects).toContainEqual(["select", "person_id"]);
+    expect(studentSelects).not.toContainEqual(["select", "id, person_id, student_number"]);
+    expect(
+      queries.some(
+        (query) =>
+          query.table === "people" &&
+          query.ops.some((op) => op[0] === "select" && op[1] === "id, full_name"),
+      ),
+    ).toBe(false);
+  });
+
+  it("não repete o aviso se aluno e encarregado partilham a mesma conta", async () => {
+    const db = dayDb(null, [
+      { guardian_person_id: id(30), valid_from: TODAY, valid_until: null },
+    ]);
+    const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
+    const out = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
+    expect(out).toEqual({ notified: 1 });
+    expect(vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids).toEqual([id(40)]);
   });
 
   it("não avisa encarregados de vínculos futuros ou já terminados", async () => {
