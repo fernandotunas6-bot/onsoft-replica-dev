@@ -395,8 +395,7 @@ describe("portal: estado do dia", () => {
         status: args.p_status as string,
         delay_minutes: args.p_delay_minutes as number,
       };
-      const changed =
-        status.status !== next.status || status.delay_minutes !== next.delay_minutes;
+      const changed = status.status !== next.status || status.delay_minutes !== next.delay_minutes;
       status = next;
       return { data: { changed }, error: null };
     });
