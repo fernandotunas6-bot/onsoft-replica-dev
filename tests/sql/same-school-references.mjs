@@ -90,6 +90,14 @@ const submission = `insert into siga_task_submissions
 await rejects(submission, [a, taskB, studentA], "task_submission_task_same_school");
 await rejects(submission, [a, taskA, studentB], "task_submission_student_same_school");
 await db.query(submission, [a, taskA, studentA]);
+// A mesma localização do Storage não pode pertencer a duas tarefas diferentes.
+const taskA2 = (await one("insert into siga_class_tasks(school_id) values($1) returning id", [a]))
+  .id;
+await assert.rejects(db.query(submission, [a, taskA2, studentA]), (error) => {
+  assert.equal(error.code, "23505");
+  assert.equal(error.constraint, "siga_task_submissions_storage_path_unique_idx");
+  return true;
+});
 await rejects(
   "update siga_task_submissions set student_id = $1 where school_id = $2",
   [studentB, a],
@@ -201,6 +209,10 @@ const installed = await db.query(`
   )
 `);
 assert.equal(installed.rows.length, 8, "oito FKs compostas instaladas uma única vez");
+const pathIndex = await one(
+  "select to_regclass('public.siga_task_submissions_storage_path_unique_idx') is not null as installed",
+);
+assert.equal(pathIndex.installed, true, "caminho de PDF único entre tarefas");
 
 // Paragem com aluno não se apaga; a auditoria regista as escritas.
 await assert.rejects(db.query("delete from siga_transport_stops where id = $1", [stopA]));
