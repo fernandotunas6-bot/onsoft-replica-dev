@@ -262,13 +262,26 @@ await assert.rejects(saveDay(a, routeA, "cancelled", 0, null, [userB]), (error) 
   return true;
 });
 assert.equal(await noticeCount(), 1);
+assert.equal(
+  (await one("select count(*)::integer as n from notifications where school_id = $1", [b])).n,
+  0,
+  "destinatário cruzado não gera aviso na outra escola",
+);
+
+// Falha de inserção não consome o evento: a mesma transição pode ser repetida.
+assert.deepEqual(await saveDay(a, routeA, "cancelled"), { changed: true, notified: 1 });
+assert.equal(await noticeCount(), 2, "retry após rollback cria exactamente um aviso");
+const afterRetryAudit = await dayAuditCount();
+assert.deepEqual(await saveDay(a, routeA, "cancelled"), { changed: false, notified: 0 });
+assert.equal(await noticeCount(), 2, "repetição do retry não cria outro aviso");
+assert.equal(await dayAuditCount(), afterRetryAudit, "retry idempotente não repete auditoria");
 
 // Repetições de um destinatário dentro do mesmo pedido criam apenas um aviso.
 assert.deepEqual(await saveDay(a, routeA, "normal", 0, null, [userA, userA]), {
   changed: true,
   notified: 1,
 });
-assert.equal(await noticeCount(), 2);
+assert.equal(await noticeCount(), 3);
 const afterNormalAudit = await dayAuditCount();
 assert.deepEqual(await saveDay(a, routeA, "normal"), { changed: false, notified: 0 });
 assert.equal(await dayAuditCount(), afterNormalAudit, "estado normal não cria outra auditoria");
