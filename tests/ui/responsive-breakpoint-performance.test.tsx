@@ -66,6 +66,6 @@ describe("barra inferior adaptável sem novos destinos", () => {
     expect(source).toContain("w-full max-w-[48px]");
     expect(source).toContain("max-w-full truncate text-[11px]");
     expect(source).toContain("lg:hidden");
-    expect(source).toContain("aria-label=\"Navegação principal\"");
+    expect(source).toContain('aria-label="Navegação principal"');
   });
 });
