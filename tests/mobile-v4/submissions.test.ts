@@ -232,6 +232,45 @@ describe("registar a entrega", () => {
     });
     expect(out.submission.taskId).toBe(TASK);
   });
+  it("reenvio concorrente recusa versão desactualizada sem apagar o último PDF válido", async () => {
+    const db = happy({
+      siga_task_submissions: (ops) =>
+        ops.some((op) => op[0] === "update")
+          ? { data: null }
+          : ops.some((op) => op[0] === "maybeSingle")
+            ? { data: row }
+            : { data: [] },
+    });
+
+    await expect(
+      registerMobileSubmission(db, student, USER, { taskId: TASK, path: ownPath }),
+    ).rejects.toMatchObject({ status: 409, code: "SUBMISSION_CONFLICT" });
+
+    const update = queries.find(
+      (q) => q.table === "siga_task_submissions" && q.ops.some((op) => op[0] === "update"),
+    );
+    expect(update?.ops).toContainEqual(["eq", "school_id", SCHOOL]);
+    expect(update?.ops).toContainEqual(["eq", "student_id", STUDENT]);
+    expect(update?.ops).toContainEqual(["eq", "version", row.version]);
+    expect(storage.some((item) => item.op === "remove")).toBe(false);
+  });
+
+  it("primeira entrega concorrente informa conflito em vez de erro genérico", async () => {
+    const db = happy({
+      siga_task_submissions: (ops) =>
+        ops.some((op) => op[0] === "insert")
+          ? { error: { code: "23505", message: "duplicate key" } }
+          : ops.some((op) => op[0] === "maybeSingle")
+            ? { data: null }
+            : { data: [] },
+    });
+
+    await expect(
+      registerMobileSubmission(db, student, USER, { taskId: TASK, path: ownPath }),
+    ).rejects.toMatchObject({ status: 409, code: "SUBMISSION_CONFLICT" });
+    expect(storage.some((item) => item.op === "remove")).toBe(false);
+  });
+
   it("reenvio: actualiza a versão e apaga o ficheiro anterior", async () => {
     const db = happy({
       siga_task_submissions: (ops) =>
