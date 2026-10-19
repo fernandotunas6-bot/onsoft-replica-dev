@@ -126,10 +126,25 @@ recusa o regresso do `loadPlan(` ao corpo da exportação e exige a paginação 
 
 ## Sobre-leitura
 
-98 ocorrências de `.select("*")` em código servidor. A cada uma custa pouco hoje
-(tabelas pequenas) e muito à escala, em largura de banda e memória. Não foram alteradas:
-estreitar colunas quebra silenciosamente quem leia um campo que deixou de vir, e 98
-sítios exigem verificação um a um. Fica como trabalho identificado, não feito.
+Estreitar colunas às cegas é perigoso: quem leia um campo que deixou de vir parte em
+silêncio, sem erro de tipos, porque a linha continua a existir. Por isso medi em vez de
+mudar tudo — cruzei os 41 destinos de `select("*")` com a largura real das tabelas.
+
+| Tabela | Colunas | Das quais jsonb/text | Linhas hoje |
+| --- | --- | --- | --- |
+| **`import_rows`** | 17 | **11** | **4 400** |
+| `people` | 22 | 13 | 529 |
+| `tenant_billing_profiles` | 36 | 16 | 0 |
+| `class_groups` | 19 | 6 | 48 |
+
+Só uma junta tabela larga, muitas linhas e caminho em massa: **`import_rows`**, no ciclo
+de importação. Lia as 17 colunas — incluindo `raw_data`, `errors`, `warnings` — quando o
+ciclo usa **três**: `id`, `row_number` e `normalized_data`. Verifiquei todos os acessos a
+`row.` no âmbito e os usos de `pendingRows` antes de mudar. Com `*`, cada lote trazia o
+ficheiro importado outra vez para memória. **Corrigido.**
+
+As outras 97 ficam como estão, de propósito: tabelas pequenas onde o ganho não paga o
+risco de partir uma leitura em silêncio.
 
 ## Como obter medições a sério
 
