@@ -511,4 +511,8 @@ SELECT CASE WHEN to_regclass('public.siga_transport_vehicles') IS NOT NULL
   AND EXISTS (SELECT 1 FROM pg_catalog.pg_constraint
   WHERE conrelid = to_regclass('public.siga_transport_day_status')
     AND conname = 'siga_transport_day_route_school_fk')
+  AND to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)') IS NOT NULL
+  AND has_function_privilege('service_role', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+  AND NOT has_function_privilege('anon', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
   THEN 'aplicada' ELSE 'em falta' END AS transporte_escolar;
