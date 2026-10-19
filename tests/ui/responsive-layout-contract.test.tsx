@@ -6,9 +6,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, to }: { children: ReactNode; to: string }) => (
-    <a href={to}>{children}</a>
-  ),
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 
 afterEach(cleanup);
@@ -33,11 +31,7 @@ describe("cabeçalhos do SIGA em ecrãs estreitos", () => {
 
   it("mantém o caminho navegável sem forçar múltiplas linhas no telemóvel", () => {
     render(
-      <PageHeader
-        group="Pedagógica"
-        title="Avaliação da turma"
-        description="Resumo do período."
-      />,
+      <PageHeader group="Pedagógica" title="Avaliação da turma" description="Resumo do período." />,
     );
     const breadcrumb = screen.getByRole("navigation", { name: "breadcrumb" });
     expect(breadcrumb.className).toContain("overflow-x-auto");
@@ -50,7 +44,13 @@ describe("tabelas responsivas", () => {
   it("preserva cabeçalho e rodapé e permite foco no conteúdo deslocável", () => {
     render(
       <DataTableShell header={<span>Alunos</span>} footer={<span>10 resultados</span>}>
-        <table><tbody><tr><td>Aluno A</td></tr></tbody></table>
+        <table>
+          <tbody>
+            <tr>
+              <td>Aluno A</td>
+            </tr>
+          </tbody>
+        </table>
       </DataTableShell>,
     );
     const region = screen.getByRole("region", { name: "Tabela com deslocação horizontal" });
