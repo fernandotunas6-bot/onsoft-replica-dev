@@ -4,6 +4,26 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Sincronização GitHub — 2026-10-19
+
+Integrado `origin/main` (`dcf0825c`) na branch `docs/auditoria-critica-2026-10-06`,
+preservando o trabalho local no commit `19f011da`, sem reescrever histórico.
+Os tipos locais gerados em conjunto com o retrato de 12/10 passam para `types.sga.ts`;
+`types.ts` continua reservado ao Lovable. Os RPCs atómicos já constam desse retrato.
+As entradas de espera de catálogo já presentes no retrato foram retiradas.
+O login mantém os novos factores MFA/passkeys e dispositivos de confiança, com os
+links locais para alternar entre login e registo no mesmo painel.
+Os estados de feedback locais coexistem com os ajustes recentes para telemóvel.
+Não foi aplicado SQL nem executado deploy nesta sincronização. As notas de 08/10
+abaixo são históricas; o estado dos contratos depende do retrato actual e do gate.
+
+Validação: `bun install --frozen-lockfile`, `npm run typecheck`, `npm run lint`
+(0 erros, 47 avisos), `npm run build`, contratos SQL e inventário de 18 módulos aprovados.
+A suite completa terminou com 3 580 testes aprovados, 3 ignorados e 2 falhas: o fixture
+MFA não incluía a reconfirmação recente exigida pelo main e a lista de tabelas ausentes
+ainda incluía as quatro WEB já presentes no retrato. Ambos corrigidos; a repetição dos
+dois ficheiros passou os 13 testes. Os ficheiros de teste ajustados passaram também no lint.
+
 ## Lovable e o main (2026-10-17/18) — ler antes de mexer em tipos ou fazer merge
 
 - **Tipos**: o código usa `src/integrations/supabase/types.sga.ts` (produção, gerado por
@@ -224,6 +244,44 @@ do ano depois de o acertar.
   com o código TOTP.
 - Instalação: um só convite discreto («Instalar a aplicação · Agora não», 30 dias);
   nada de Google nem instalação durante a confirmação.
+
+## Correcções e SPECs — 2026-10-08
+
+Seguir o banco actual. [Progresso e evidências](../implementation/2026-10-07/PROGRESSO.md),
+[30 SPECs e contratos](../specs/README.md) e
+[revisão/promoção/reversão SQL](../implementation/2026-10-07/REVISAO_SQL.md).
+Matrícula e ano activo usam RPCs atómicos preparados; importação recusa excesso/CSV inválido;
+grants exigem MFA e E2E com escrita recusa produção. Não houve aplicação SQL nem deploy.
+Os dois RPCs ainda ausentes estão explicitamente em `tests/security/espera-migracao.ts`;
+`check-release-contracts.mjs` bloqueia publicação até catálogo confirmado e ensaio de staging.
+Não retirar o bloqueio para publicar antes do SQL nem restaurar escritas parciais como fallback.
+Gates locais: tipos, lint (0 erros/47 avisos), build, 3 119 testes (3 ignorados) e dois fixtures SQL aprovados.
+A auditoria anterior conserva os seus resultados/hashes; fixtures locais não certificam
+concorrência real, jornada anual ou fornecedores. Alterações locais anteriores preservadas.
+
+## Análise crítica — 2026-10-06
+
+Relatório: [13-auditoria-critica-2026-10-06.md](../auditoria/13-auditoria-critica-2026-10-06.md).
+
+Duas correcções de leitura que mudam o enquadramento de tudo o que vem antes:
+
+- **«49 escolas, 45 alunos, 38 facturas» não é adopção.** 43 das 48 escolas são restos de
+  testes E2E (08–09/09), todas `active`, com 42 subdomínios `tenant_domains` verificados.
+  Das 5 restantes, quatro estão vazias. O uso real é **uma escola, dois alunos, uma nota,
+  quatro facturas**. `siga_assessment_scores` tem 1 linha; `attendance_records` tem 0.
+- **A suite não estava verde.** 1 falha em 3 077 (`tests/finance/appypay-stale-settling`),
+  que o CI não via por ser mais rápido do que a tolerância de 50 ms que o teste media.
+  Corrigida.
+
+Corrigido no commit `305e7972`: a **pauta exportada** (CSV/PDF) decidia a transição por sua
+conta — MFD com os períodos que houvesse, «Transita» por média simples ≥ 10, limiar fixo e
+3 trimestres no selector. Passa a usar `decidePromotionStatus`, o regime da turma e a nota
+mínima do modelo em vigor, como a pauta oficial. Ver §5 e §6 do relatório.
+
+Por decidir (só o dono): rodar a `service_role` e o PAT; limpar os 43 restos de E2E
+(`npm run siga:e2e-cleanup-stale -- --dry-run` identifica 42); projecto de staging; o que
+o PayFlow é (`provider: unconfigured`, `sigaUrl: null`); chaves de assinatura da app
+desktop (**0 releases, 0 tags `v*`, 0 segredos no repositório**); DMARC.
 
 ## Publicar — estado de 2026-10-06
 

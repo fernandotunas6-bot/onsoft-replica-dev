@@ -2,10 +2,14 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import { assertSafeCleanupTarget } from "./e2e-safety.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-export const E2E_SLUG_PATTERN = /^(e2e|web|mat|gw)-[a-z0-9]+$/i;
+// Prefixo mais um ou mais segmentos: o teste do WEB cria `e2e-web-<id>`, com dois.
+// Com um só segmento (`-[a-z0-9]+$`) esse escapava a cada execução e ficava para
+// sempre na produção — eram 43 restos de E2E e a limpeza só apanhava 42.
+export const E2E_SLUG_PATTERN = /^(e2e|web|mat|gw)(-[a-z0-9]+)+$/i;
 
 export function loadRootEnv() {
   const envPath = resolve(root, ".env");
@@ -44,6 +48,7 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
   if (adminEmail && !String(adminEmail).trim().toLowerCase().endsWith("@siga-plus.test")) {
     throw new Error("Refusing cleanup: e-mail admin fora do domínio de teste.");
   }
+  assertSafeCleanupTarget();
 
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
@@ -94,6 +99,7 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
 /** SQL directo via Management API — o cliente PostgREST não chega ao catálogo. */
 async function runManagementSql(query) {
   loadRootEnv();
+  assertSafeCleanupTarget();
   const token = process.env.SUPABASE_ACCESS_TOKEN?.trim();
   const projectRef = process.env.SUPABASE_PROJECT_ID?.trim();
   if (!token || !projectRef) {

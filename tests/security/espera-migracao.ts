@@ -9,16 +9,8 @@
  * Usada por `colunas-inexistentes.test.ts` e `production-columns.test.ts`. O primeiro
  * obriga a lista a encolher: a coluna sai daqui quando o retrato recapturado já a tiver.
  */
-export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
-  // 20261012120000_subjects_catalog_link.sql. A revisão lê `subjects` com `*` e sabe
-  // se a coluna existe; `linkSubjectsToCatalog` (education-catalog/subject-review-server.ts)
-  // responde «falta aplicar a migração …» ao 42703/PGRST204. Antes desta, a lista
-  // esteve vazia de 2026-10-06 a 2026-10-12 — uma lista que ninguém esvazia deixa de
-  // ser espera e passa a ser dívida silenciosa.
-  "subjects.catalog_subject_code",
-  // A mesma migração: education-catalog/catalog-link.ts liga os cursos novos e ignora a falta.
-  "programs.catalog_course_code",
-]);
+// O retrato de 2026-10-12 já inclui as ligações de cursos/disciplinas ao catálogo.
+export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
 
 /**
  * Funções `public` que o código chama e a produção ainda não tem (migração escrita e por
@@ -26,8 +18,5 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
  * mensagem que diga o que falta, em vez de falhar calado. `colunas-inexistentes.test.ts`
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // 20261010150000_merge_school_subjects.sql. education-catalog/subject-review-server.ts
-  // responde «falta aplicar a migração …» ao PGRST202/42883.
-  "merge_school_subjects",
-]);
+// O mesmo retrato já inclui merge_school_subjects e os dois RPCs atómicos.
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);

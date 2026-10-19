@@ -12,6 +12,7 @@ import {
   consumeSessionExpiredFlag,
   reportPossibleSessionError,
 } from "@/lib/session-expiry";
+import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
 import { pendingMfaFactors } from "@/features/auth/pending-mfa";
@@ -194,6 +195,14 @@ export function AuthGate({
   const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [modeChanged, setModeChanged] = useState(false);
+
+  useEffect(() => {
+    if (!modeChanged || checking || session || mfaFactors) return;
+    document
+      .getElementById(mode === "signup" ? "signup-name" : "login-email")
+      ?.focus({ preventScroll: true });
+  }, [mode, modeChanged, checking, session, mfaFactors]);
 
   useEffect(() => {
     try {
@@ -640,15 +649,22 @@ export function AuthGate({
   return (
     <AuthSessionContext.Provider value={null}>
       <main className="grid min-h-dvh bg-background lg:grid-cols-[1fr_1fr] lg:gap-2 lg:p-3">
-        <section className="relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-card p-12 text-foreground lg:flex">
-          <AuthBrandIntro className="self-start text-[32px]" />
+        <section className="auth-hero relative hidden flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-primary p-12 text-primary-foreground shadow-sm lg:flex">
+          <AuthBackgroundVideo />
+          <div
+            aria-hidden
+            // Só escurece em baixo, onde está o texto: o vídeo (sem o letreiro por
+            // cima) fica visível no resto do painel.
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/85 via-primary/30 to-transparent"
+          />
+          <AuthBrandIntro className="relative self-start text-[32px]" />
           <AuthHeroSlides />
-          <div className="relative flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="relative flex items-center justify-between gap-3 text-xs opacity-80">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4" /> Autenticação Segura
             </div>
             {isStandalone && (
-              <div className="flex items-center gap-1.5 rounded-md bg-muted px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1.5 rounded-md bg-primary-foreground/15 px-2.5 py-1 text-xs">
                 <Smartphone className="size-3.5" /> PWA Ativo
               </div>
             )}
@@ -658,7 +674,13 @@ export function AuthGate({
         <section className="flex flex-col items-center justify-center px-5 py-8 sm:px-8">
           {/* No telemóvel o painel da marca não aparece: sem isto, o ecrã não dizia onde se entra. */}
           <AuthBrandIntro className="mb-8 text-[28px] lg:hidden" />
-          <div className="siga-auth-card w-full max-w-[420px] rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
+          <div
+            id="auth-panel-content"
+            data-auth-panel=""
+            data-auth-view={mode}
+            data-auth-motion={modeChanged ? "on" : "off"}
+            className="auth-view siga-auth-card w-full max-w-[420px] rounded-2xl border border-border/70 bg-card p-6 sm:p-8"
+          >
             <h2 className="mt-1 font-display text-[24px] font-semibold tracking-tight text-center">
               {mode === "signup" ? "Criar conta SIGA Plus" : "Iniciar sessão"}
             </h2>
@@ -667,38 +689,29 @@ export function AuthGate({
                 ? "Uma só identidade para todas as escolas a que pertencer."
                 : "Entre com Google, e-mail ou Nº de BI."}
             </p>
-            <div
-              role="tablist"
-              aria-label="Modo de acesso"
-              className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-xs font-semibold"
-              hidden={Boolean(mfaFactors)}
-            >
-              {(
-                [
-                  ["signin", "Já tenho conta"],
-                  ["signup", "Criar conta"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === value}
-                  onClick={() => {
-                    setMode(value);
+            {!mfaFactors ? (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                {mode === "signup" ? "Já tem conta? " : "Ainda não tem conta? "}
+                <a
+                  href={mode === "signup" ? "#login-email" : "#signup-name"}
+                  aria-controls="auth-panel-content"
+                  aria-disabled={submitting || resetting || sendingMagicLink || undefined}
+                  tabIndex={submitting || resetting || sendingMagicLink ? -1 : undefined}
+                  className="font-medium text-primary underline underline-offset-4 decoration-primary/40 transition-colors hover:decoration-primary aria-disabled:opacity-60"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (submitting || resetting || sendingMagicLink) return;
+                    setMode(mode === "signup" ? "signin" : "signup");
+                    setModeChanged(true);
+                    setShowPassword(false);
                     setError(null);
                     setInfo(null);
                   }}
-                  className={`min-h-[36px] rounded-lg px-3 py-2 transition-colors ${
-                    mode === value
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-foreground/75 hover:text-foreground"
-                  }`}
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
+                  {mode === "signup" ? "Iniciar sessão" : "Criar conta"}
+                </a>
+              </p>
+            ) : null}
 
             {error ? (
               <p

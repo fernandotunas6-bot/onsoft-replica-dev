@@ -436,7 +436,10 @@ export const commitImportBatch = createServerFn({ method: "POST" })
 
     let pendingQuery = db
       .from("import_rows")
-      .select("*")
+      // Só os três campos que o ciclo usa. A tabela tem 17 colunas, 11 delas
+      // jsonb/text (raw_data, errors, warnings, diff…): com `*` cada lote trazia
+      // o ficheiro importado outra vez para memória, por nada.
+      .select("id, row_number, normalized_data")
       .eq("import_job_id", job.id)
       .in("status", PENDING_STATUSES)
       .order("row_number", { ascending: true })

@@ -153,12 +153,7 @@ const ANON_POLICIES_ESPERADAS = [
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  // 20261007100000_web_site_content.sql (site público gerido no ADMIN): sai daqui
-  // quando o retrato for recapturado depois de aplicada.
-  "web_blog_posts",
-  "web_contact_messages",
-  "web_faqs",
-  "web_school_showcase",
+  // As quatro tabelas WEB já constam do retrato de 2026-10-12.
   // 20261015120000_tenant_billing_profiles.sql (cobrança por escola no ADMIN). O código
   // funciona sem ela: lê-a tolerando a falta (`tableReady: false`) e as gravações
   // respondem com a migração que falta. Sai daqui quando o retrato a mostrar.

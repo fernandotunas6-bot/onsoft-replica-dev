@@ -1,0 +1,12 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"error\":{\"name\":\"HttpException\",\"message\":\"Failed to run sql query: ERROR:  42P01: relation \\\"cron.job\\\" does not exist\\nLINE 1: select jsonb_build_object('captured_at',current_timestamp,'postgres',version(),'tables',(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'),'rls_enabled',(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity),'policies',(select count(*) from pg_policies where schemaname='public'),'storage_buckets',(select jsonb_agg(jsonb_build_object('name',name,'public',public,'file_size_limit',file_size_limit,'allowed_mime_types',allowed_mime_types)) from storage.buckets),'mfa_verified',(select count(*) from auth.mfa_factors where status='verified'),'users',(select count(*) from auth.users),'cron_jobs',(select count(*) from cron.job)) as audit;\\n                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^\\n\"}}"
+    }
+  ],
+  "structuredContent": {
+    "error_code": "INVALID_ARGUMENT"
+  },
+  "isError": true
+}
