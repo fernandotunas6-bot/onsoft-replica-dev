@@ -45,14 +45,14 @@ Toda alteração posterior ao SHA indicado exige novo CI; não reutilizar este s
 | SQL-03 | Anon ou authenticated acessam directamente as 6 tabelas sensíveis | Sem SELECT/INSERT/UPDATE/DELETE; RLS e FORCE RLS activados |
 | TRANS-01 | Secretaria A cria viatura, rota, paragens e atribui aluno A | Aparece só na escola A |
 | TRANS-02 | Secretaria A tenta usar aluno B, paragem de rota B ou veículo B | Rejeição; nenhuma referência cruzada |
-| TRANS-03 | Alterar ordem das paragens, provocar falha de BD a meio, repetir | Sem dados parcialmente reordenados; definir solução transaccional antes de liberar escrita real |
+| TRANS-03 | Alterar ordem das paragens, provocar falha de BD a meio, repetir | RPC atómica em staging: rollback integral, sem dados parcialmente reordenados; recusa se a função faltar |
 | TRANS-04 | Aviso de atraso para rota A com encarregado já activo, futuro e expirado | Só aluno e encarregado válidos na data recebem aviso |
 | TRANS-05 | Gravar mesmo estado diário em sequência e com pedidos concorrentes | Sem notificação duplicada; ensaio de concorrência real |
 | APP-01 | Flutter: login/MFA, alternar A/B, calendário, trabalhos, transporte e ficheiros | Mesmas regras da API/portal; sem fallback silencioso para demo |
 | APP-02 | Android APK institucional, Android sem rede, reconexão, iOS/PWA no dispositivo suportado | Sem dados de outra escola; estados de falha e carregamento legíveis |
 
 **Bloqueadores conhecidos ainda não resolvidos:**
-- `saveTransportStops` efectua eliminações e actualizações sequenciais em duas passagens; sem transacção única, uma falha a meio pode deixar paragens parcialmente alteradas. Exigir RPC/transaction testada ou outra garantia equivalente **antes de escritas reais**.
+- A PR passou a incluir `siga_transport_save_stops_atomic`: função `SECURITY INVOKER`, acesso `service_role`, lock na rota e rollback numa única transacção. O servidor **não** utiliza a lógica antiga como fallback. **Ainda falta ensaio em staging PostgreSQL real** (PGlite isolado não testa pedidos concorrentes reais nem comprova autorização de publicação).
 - `setTransportDayStatus` faz leitura, upsert e envio de avisos em chamadas separadas; testar concorrência e evitar avisos duplicados antes de produção.
 - Não há prova de ponta a ponta com autenticação real no CI da PR. Não usar a suite PGlite como substituto desse ensaio.
 
