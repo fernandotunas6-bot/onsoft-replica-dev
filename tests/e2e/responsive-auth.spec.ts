@@ -87,9 +87,7 @@ test.describe("SIGA — matriz responsiva autenticada, sem escritas", () => {
     });
   }
 
-  test("contexto da escola e notificações abrem a 390px sem trocar dados", async ({
-    page,
-  }) => {
+  test("contexto da escola e notificações abrem a 390px sem trocar dados", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 780 });
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator("#conteudo-principal")).toBeVisible();
