@@ -1589,9 +1589,10 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null);
-    const { data: changed, error } = await (file.classGroupId
-      ? update.eq("class_group_id", file.classGroupId)
-      : update.is("class_group_id", null)
+    const { data: changed, error } = await (
+      file.classGroupId
+        ? update.eq("class_group_id", file.classGroupId)
+        : update.is("class_group_id", null)
     )
       .select("id")
       .maybeSingle();
@@ -1603,9 +1604,10 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
           .eq("id", data.id)
           .eq("school_id", membership.schoolId)
           .is("deleted_at", null);
-        const fallback = await (file.classGroupId
-          ? plain.eq("class_group_id", file.classGroupId)
-          : plain.is("class_group_id", null)
+        const fallback = await (
+          file.classGroupId
+            ? plain.eq("class_group_id", file.classGroupId)
+            : plain.is("class_group_id", null)
         )
           .select("id")
           .maybeSingle();
