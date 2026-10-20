@@ -126,6 +126,9 @@ export const saveSchoolSiteDraft = createServerFn({ method: "POST" })
     const membership = await requireSgaWriterForWrite(
       "gestao", context.supabase, context.userId, ["Administrador"],
     );
+    if (context.claims["aal"] !== "aal2") {
+      throw new Error("Confirme a verificação em dois passos antes de guardar ou publicar.");
+    }
     return {
       version: await saveForSchool(
         membership.schoolId, context.userId, data.expectedVersion,
@@ -144,6 +147,9 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
     );
     if (data.expectedVersion === 0) {
       throw new Error("Guarde o rascunho antes de publicar.");
+    }
+    if (context.claims["aal"] !== "aal2") {
+      throw new Error("Confirme a verificação em dois passos antes de guardar ou publicar.");
     }
     return {
       version: await saveForSchool(
