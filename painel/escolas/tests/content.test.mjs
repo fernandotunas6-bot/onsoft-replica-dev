@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, renderInline, richText} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, renderInline, richText, COURSE_TOKENS} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,9 +81,11 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
+  // O molde do curso usa marcadores que o gerador resolve antes do brand().
+  const semMarcadoresDoCurso = value => value.replace(new RegExp('\\{\\{(' + COURSE_TOKENS.join('|') + ')\\}\\}', 'g'), 'x');
   for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso']) {
     for (const value of strings(loadContent(name))) {
-      assert.doesNotThrow(() => brand(value), name + ': ' + value);
+      assert.doesNotThrow(() => brand(semMarcadoresDoCurso(value)), name + ': ' + value);
     }
   }
 });

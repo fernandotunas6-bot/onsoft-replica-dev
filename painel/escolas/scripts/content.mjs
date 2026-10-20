@@ -405,6 +405,18 @@ const PROSE = {
   }],
 };
 
+/**
+ * Marcadores que o gerador resolve na página de curso, antes do `brand()`.
+ *
+ * O conteúdo do curso é um molde para 18 páginas: o que varia entra por
+ * marcador. Esta lista é o contrato entre o conteúdo e o gerador — o build
+ * verifica que os valores que fornece são exactamente estes.
+ */
+export const COURSE_TOKENS = [
+  'COURSE', 'DESCRIPTION', 'LEVEL', 'DURATION', 'MODE', 'SHIFT', 'UNIT',
+  'STRUCTURE', 'LANGUAGE', 'DELIVERY', 'PRACTICE', 'ASSESSMENT', 'RESOURCES', 'ACCESS',
+];
+
 /** Páginas institucionais: uma forma por página, o ficheiro em content/pages/. */
 export const PAGE_SHAPES = {
   sobre: {
