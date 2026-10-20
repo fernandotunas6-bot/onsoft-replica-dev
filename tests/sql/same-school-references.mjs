@@ -16,6 +16,7 @@ CREATE TABLE public.schools (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
 CREATE TABLE public.students (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL,
+  person_id uuid,
   CONSTRAINT students_school_id_id_key UNIQUE (school_id, id)
 );
 CREATE TABLE public.siga_class_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), school_id uuid NOT NULL);
@@ -24,6 +25,14 @@ CREATE TABLE public.people (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id uuid NOT NULL,
   user_id uuid UNIQUE
+);
+CREATE TABLE public.student_guardians (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  guardian_person_id uuid NOT NULL,
+  valid_from date NOT NULL,
+  valid_until date
 );
 CREATE TABLE public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -157,6 +166,10 @@ await rejects(assignment, [a, studentA, routeB, stopB], "transport_route_same_sc
 await rejects(assignment, [a, studentA, routeA2, stopA], "transport_assignment_stop_same_route");
 await rejects(assignment, [a, studentA, routeA, stopB], "transport_assignment_stop_same_route");
 await db.query(assignment, [a, studentA, routeA, stopA]);
+await db.query(
+  "update siga_transport_assignments set valid_from = '2026-10-01' where route_id = $1",
+  [routeA],
+);
 
 const day =
   "insert into siga_transport_day_status(school_id, route_id, service_date, status, delay_minutes) values($1, $2, '2026-10-19', 'delayed', 10)";
@@ -165,7 +178,26 @@ await db.query(day, [a, routeA]);
 // Contas fictícias de duas escolas; a RPC deve recusar mistura de destinatários.
 const userA = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
 const userB = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
-await db.query("insert into people(school_id,user_id) values($1,$2),($3,$4)", [a, userA, b, userB]);
+const userGuardian = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
+const userSameSchoolUnlinked = (
+  await one("insert into auth.users(id) values(gen_random_uuid()) returning id")
+).id;
+const personA = (
+  await one("insert into people(school_id,user_id) values($1,$2) returning id", [a, userA])
+).id;
+await db.query("update students set person_id = $1 where id = $2", [personA, studentA]);
+await db.query("insert into people(school_id,user_id) values($1,$2)", [b, userB]);
+const guardianPerson = (
+  await one("insert into people(school_id,user_id) values($1,$2) returning id", [a, userGuardian])
+).id;
+await db.query("insert into people(school_id,user_id) values($1,$2)", [
+  a,
+  userSameSchoolUnlinked,
+]);
+await db.query(
+  "insert into student_guardians(school_id,student_id,guardian_person_id,valid_from) values($1,$2,$3,'2026-11-01')",
+  [a, studentA, guardianPerson],
+);
 
 // Decisão atómica de avisos: o lock da rota ocorre ANTES da leitura
 // do estado anterior. PGlite valida contrato, idempotência e isolamento;
