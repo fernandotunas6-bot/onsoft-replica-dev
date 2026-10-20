@@ -58,6 +58,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  Sparkles,
   Stethoscope,
   Trash2,
   TrendingDown,
@@ -77,6 +78,7 @@ import {
 /** Módulos e áreas do sistema (menu lateral, cabeçalhos de página, atalhos). */
 export const moduleIcons = {
   dashboard: LayoutDashboard,
+  sigaAi: Sparkles,
   pedagogy: School,
   students: GraduationCap,
   enrollment: UserPlus,

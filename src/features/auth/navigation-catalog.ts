@@ -156,6 +156,15 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/catracas" },
   },
   {
+    id: "siga-ai",
+    name: "SIGA AI",
+    shortName: "SIGA AI",
+    description: "Assistente de IA local da escola.",
+    mark: "siga-ai",
+    navPath: "/siga-ai",
+    target: { type: "route", to: "/siga-ai" },
+  },
+  {
     id: "siga-acessos",
     name: "Acessos",
     shortName: "Acessos",
