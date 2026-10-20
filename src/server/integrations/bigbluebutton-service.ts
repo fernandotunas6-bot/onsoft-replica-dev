@@ -51,15 +51,17 @@ function meetingPasswords() {
 export async function provisionVirtualClassroom(request: VerifiedClassroomRequest) {
   requireServer();
   assertVirtualClassroomAccess("create", request.context);
-  if (request.context.session.id !== request.sessionId) throw new Error("Session mismatch");
+  // Scope is checked before the environment is read: a swapped class group is an
+  // authorization failure, and a missing password must not mask it with its own error.
+  const meeting = meetingId(request);
   const { attendeePW, moderatorPW } = meetingPasswords();
   await createBbbMeeting({
-    meetingID: meetingId(request),
+    meetingID: meeting,
     name: request.title,
     attendeePW,
     moderatorPW,
   });
-  return { meetingId: meetingId(request) };
+  return { meetingId: meeting };
 }
 
 export async function joinVirtualClassroom(
@@ -68,7 +70,7 @@ export async function joinVirtualClassroom(
 ) {
   requireServer();
   assertVirtualClassroomAccess("join", request.context);
-  if (request.context.session.id !== request.sessionId) throw new Error("Session mismatch");
+  const meeting = meetingId(request);
   if (role === "moderator") {
     // A student cannot request a moderator link.
     const c = request.context;
@@ -85,7 +87,7 @@ export async function joinVirtualClassroom(
   }
   const passwords = meetingPasswords();
   return getBbbJoinUrl({
-    meetingID: meetingId(request),
+    meetingID: meeting,
     fullName: request.fullName,
     password: role === "moderator" ? passwords.moderatorPW : passwords.attendeePW,
     userID: request.context.authenticatedUserId,
@@ -96,13 +98,12 @@ export async function joinVirtualClassroom(
 export async function finishVirtualClassroom(request: VerifiedClassroomRequest) {
   requireServer();
   assertVirtualClassroomAccess("end", request.context);
-  if (request.context.session.id !== request.sessionId) throw new Error("Session mismatch");
-  return endBbbMeeting(meetingId(request), meetingPasswords().moderatorPW);
+  const meeting = meetingId(request);
+  return endBbbMeeting(meeting, meetingPasswords().moderatorPW);
 }
 
 export async function listVirtualClassroomRecordings(request: VerifiedClassroomRequest) {
   requireServer();
   assertVirtualClassroomAccess("recordings", request.context);
-  if (request.context.session.id !== request.sessionId) throw new Error("Session mismatch");
   return getBbbRecordings(meetingId(request));
 }
