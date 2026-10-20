@@ -15,28 +15,26 @@ const stored: ExistingSchoolFileLocation = {
 };
 
 describe("detecção segura de localização dos arquivos", () => {
+  const incoming = { name: stored.name, size: stored.sizeBytes };
+
   it("identifica um possível duplicado na pasta seleccionada", () => {
-    expect(
-      classifyExistingFile(stored, { name: "relatório.pdf", size: 2048 }, "secretaria", stored.parentId),
-    ).toBe("same-folder");
+    const placement = classifyExistingFile(stored, incoming, "secretaria", stored.parentId);
+    expect(placement).toBe("same-folder");
   });
 
   it("identifica ficheiros em outra pasta ou área sem os mover", () => {
-    expect(
-      classifyExistingFile(stored, { name: stored.name, size: 2048 }, "secretaria", null),
-    ).toBe("another-folder");
-    expect(
-      classifyExistingFile(stored, { name: stored.name, size: 2048 }, "escola", stored.parentId),
-    ).toBe("another-folder");
+    expect(classifyExistingFile(stored, incoming, "secretaria", null)).toBe("another-folder");
+    const otherArea = classifyExistingFile(stored, incoming, "escola", stored.parentId);
+    expect(otherArea).toBe("another-folder");
   });
 
   it("não confunde nomes ou tamanhos diferentes com conteúdo idêntico", () => {
-    expect(
-      classifyExistingFile(stored, { name: stored.name, size: 4096 }, "secretaria", stored.parentId),
-    ).toBe("same-name");
-    expect(
-      classifyExistingFile(stored, { name: "Outro.pdf", size: 2048 }, "secretaria", stored.parentId),
-    ).toBeNull();
+    const bigger = { name: stored.name, size: 4096 };
+    const renamed = { name: "Outro.pdf", size: stored.sizeBytes };
+    expect(classifyExistingFile(stored, bigger, "secretaria", stored.parentId)).toBe("same-name");
+    expect(classifyExistingFile(stored, renamed, "secretaria", stored.parentId)).toBeNull();
+    const alteredCase = { name: "relatório.pdf", size: stored.sizeBytes };
+    expect(classifyExistingFile(stored, alteredCase, "secretaria", stored.parentId)).toBeNull();
   });
 
   it("identifica localização sem publicar caminhos de Storage", () => {
