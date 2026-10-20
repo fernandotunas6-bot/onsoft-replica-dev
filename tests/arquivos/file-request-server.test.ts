@@ -182,8 +182,10 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(files).toContain("uploadClassGroupId ?? activeClassId");
     expect(files).toContain("classGroupId: targetClassGroupId");
     expect(files).toContain('targetArea !== "escola" || meta.visibility !== "school"');
-    expect(files).toContain("classGroupId: uploadClassGroupId, limit: 1");
+    expect(files).toContain("classGroupId: targetClassGroupId, limit: 1");
     expect(files).toContain("await listSchoolFiles({");
+    expect(files).toContain("targetClassGroupId &&");
+    expect(files).toContain("Materiais de turma exigem uma área escolar partilhável.");
   });
 
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
