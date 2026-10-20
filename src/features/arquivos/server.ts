@@ -384,6 +384,7 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
         .from("siga_files")
         .select(select)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(data.limit);
       if (data.area) query = query.eq("area", data.area);
@@ -1651,6 +1652,7 @@ async function loadSchoolFileRow(
     .select(FILE_SELECT)
     .eq("id", fileId)
     .eq("school_id", schoolId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error && missingOptionalColumn(error)) {
     ({ data: row, error } = await db
@@ -1658,6 +1660,7 @@ async function loadSchoolFileRow(
       .select(FILE_SELECT_BASIC)
       .eq("id", fileId)
       .eq("school_id", schoolId)
+      .is("deleted_at", null)
       .maybeSingle());
   }
   if (error) throw publicDatabaseError(error, "Não foi possível ler o ficheiro.");
@@ -1707,6 +1710,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
       .select(FILE_SELECT)
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .maybeSingle();
     if (error && missingOptionalColumn(error)) {
       ({ data: row, error } = await db
@@ -1714,6 +1718,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
         .select(FILE_SELECT_BASIC)
         .eq("id", data.id)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .maybeSingle());
     }
     if (error) {
@@ -1766,13 +1771,15 @@ export const signSchoolFiles = createServerFn({ method: "GET" })
       .from("siga_files")
       .select(FILE_SELECT)
       .in("id", data.ids)
-      .eq("school_id", membership.schoolId));
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null));
     if (error && missingOptionalColumn(error)) {
       ({ data: rows, error } = await db
         .from("siga_files")
         .select(FILE_SELECT_BASIC)
         .in("id", data.ids)
-        .eq("school_id", membership.schoolId));
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null));
     }
     if (error) {
       if (missingFilesTable(error)) return { urls: {} as Record<string, string> };
