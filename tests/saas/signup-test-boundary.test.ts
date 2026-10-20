@@ -93,7 +93,7 @@ describe("confirmação de e-mail do signup público: isolamento de E2E", () => 
       "e2e@siga-plus.test",
       "a@sample.example",
       "a@sample.invalid",
-      "a@localhost",
+      "a@school.localhost",
     ]) {
       expect(isReservedTestEmail(email)).toBe(true);
       expect(canUseReservedSignupEmail(email, staging)).toBe(true);
