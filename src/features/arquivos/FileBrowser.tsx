@@ -841,26 +841,26 @@ export function FileBrowser({
           backend === "local"
             ? { storage: "local" as const, record: null }
             : await registerSchoolFile({
-              data: {
-                id,
-                name: record.name,
-                mime: record.mime,
-                sizeBytes: record.sizeBytes,
-                area: record.area,
-                visibility: record.visibility,
-                storagePath: record.storagePath,
-                storageBackend: backend,
-                classGroupId: activeClassId,
-                parentId: targetFolderId,
-                title: record.title ?? undefined,
-                description: record.description ?? undefined,
-                category: record.category ?? undefined,
-                documentDate: record.documentDate ?? undefined,
-                referenceCode: record.referenceCode ?? undefined,
-                relatedUserId: record.relatedUserId,
-                relatedPersonId: record.relatedPersonId,
-              },
-            });
+                data: {
+                  id,
+                  name: record.name,
+                  mime: record.mime,
+                  sizeBytes: record.sizeBytes,
+                  area: record.area,
+                  visibility: record.visibility,
+                  storagePath: record.storagePath,
+                  storageBackend: backend,
+                  classGroupId: activeClassId,
+                  parentId: targetFolderId,
+                  title: record.title ?? undefined,
+                  description: record.description ?? undefined,
+                  category: record.category ?? undefined,
+                  documentDate: record.documentDate ?? undefined,
+                  referenceCode: record.referenceCode ?? undefined,
+                  relatedUserId: record.relatedUserId,
+                  relatedPersonId: record.relatedPersonId,
+                },
+              });
         assertVerifiedSchoolStorage(
           { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
           backend,
