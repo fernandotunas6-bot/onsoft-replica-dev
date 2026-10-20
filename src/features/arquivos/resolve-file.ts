@@ -38,8 +38,11 @@ export async function resolveFileBlob(
     if (!response.ok) throw new Error("Não foi possível descarregar o ficheiro.");
     return response.blob();
   }
-  const blob = await readLocalBlob(file.id, viewer);
-  if (blob) return blob;
+  // Se o Storage remoto não autorizou a leitura, não mostrar uma cópia antiga.
+  if (signed.local) {
+    const blob = await readLocalBlob(file.id, viewer);
+    if (blob) return blob;
+  }
   throw new Error("Não foi possível abrir o ficheiro.");
 }
 
