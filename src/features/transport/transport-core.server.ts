@@ -247,7 +247,7 @@ export async function readTransportOverview(
       valid_from: string;
       valid_until: string | null;
     }[]
-  ).filter((a) => a.valid_until === null || a.valid_until >= today);
+  ).filter((a) => isAssignmentOpen(a, today));
   const names = await studentNames(db, schoolId, [...new Set(open.map((a) => a.student_id))]);
   const stopsByRoute = new Map<string, TransportStop[]>();
   for (const row of (stops.data ?? []) as Record<string, unknown>[]) {
