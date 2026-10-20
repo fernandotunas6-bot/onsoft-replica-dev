@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const server = readFileSync(resolve(process.cwd(), "src/features/arquivos/server.ts"), "utf8");
 const files = readFileSync(resolve(process.cwd(), "src/features/arquivos/FileBrowser.tsx"), "utf8");
+const grid = readFileSync(resolve(process.cwd(), "src/features/arquivos/FileBrowserGrid.tsx"), "utf8");
 
 describe("contrato central de arquivos: limites de segurança", () => {
   it("revalida escola, visibilidade e finalidade sem revelar caminho ou URL", () => {
@@ -116,6 +117,11 @@ describe("contrato central de arquivos: limites de segurança", () => {
     const bulkStart = server.indexOf("export const signSchoolFiles = createServerFn");
     expect(server.slice(singleStart, bulkStart)).toContain("mapped.isFolder");
     expect(server.slice(bulkStart)).toContain("!file.isFolder");
+  });
+
+  it("mostra ficheiros locais como exclusivos do dispositivo, não da escola", () => {
+    expect(grid).toContain('file.storageBackend === "local"');
+    expect(grid).toContain("Só neste dispositivo");
   });
 
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
