@@ -790,7 +790,10 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
         ) {
           throw new Error("O identificador do upload já está associado a outro registo.");
         }
-        return { storage: "sga" as const, record: mapRow(previous.data as Record<string, unknown>) };
+        return {
+          storage: "sga" as const,
+          record: mapRow(previous.data as Record<string, unknown>),
+        };
       }
       if (missingFilesTable(first.error)) return { storage: "local" as const, record: null };
       throw publicDatabaseError(first.error, "Não foi possível registar o ficheiro.");
