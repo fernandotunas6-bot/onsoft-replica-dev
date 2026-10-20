@@ -4,6 +4,7 @@
  */
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
+import type { TenantStatus, SubscriptionLifecycle } from "@/features/saas/types";
 import { parseSchoolSiteSettings, type SchoolSiteContent } from "./schema";
 
 export type PublicSchoolSite = {
@@ -33,7 +34,13 @@ export async function loadPublishedSchoolSite(hostname: string): Promise<PublicS
     .eq("id", domain.tenant_id)
     .maybeSingle();
   if (tenantError) throw new Error("Não foi possível verificar a instituição.");
-  if (!tenant || getTenantAccessBlock(tenant).blocked) return null;
+  if (!tenant || (tenant.status !== "active" && tenant.status !== "trial")) return null;
+  if (getTenantAccessBlock({
+    status: tenant.status as TenantStatus,
+    subscription_status: tenant.subscription_status as SubscriptionLifecycle,
+    trial_ends_at: tenant.trial_ends_at,
+    billing_exempt: tenant.billing_exempt,
+  }).blocked) return null;
 
   const { data: school, error: schoolError } = await db
     .from("schools")
