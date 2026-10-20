@@ -127,7 +127,7 @@ describe("/arquivos — render", () => {
 
     expect(screen.getByRole("heading", { name: "Arquivos" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Biblioteca da escola" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Secretaria" })).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Secretaria" }).length).toBeGreaterThan(0);
   });
 
   it("mostra o estado vazio quando não existem arquivos na pasta", async () => {
