@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -210,15 +210,19 @@ test('shaped constrói o caminho do erro até à folha', () => {
 });
 
 test('as páginas institucionais passam a validação', () => {
-  for (const name of Object.keys(PAGE_SHAPES)) {
+  for (const [name, shape] of Object.entries(PAGE_SHAPES)) {
     const page = loadInstitutionalPage(name);
-    // A agenda serve duas rotas e traz um título por rota, em vez de um só.
-    const titles = page.title ? [page] : Object.values(page).filter(v => v && v.title);
-    assert.ok(titles.length >= 1, name);
-    for (const t of titles) {
-      assert.ok(t.title.length > 0, name);
-      assert.ok(t.crumb.length > 0, name);
+    assert.ok(Object.keys(page).length > 0, name);
+    // Nem toda a página tem título próprio: a agenda traz um por rota e o
+    // `curso` é o molde das 18 páginas de curso, cujo título é o nome do curso.
+    if (shape.title) {
+      assert.ok(page.title.length > 0, name);
+      assert.ok(page.crumb.length > 0, name);
     }
+  }
+  for (const page of [loadInstitutionalPage('agenda').events, loadInstitutionalPage('agenda').calendar]) {
+    assert.ok(page.title.length > 0);
+    assert.ok(page.crumb.length > 0);
   }
   assert.equal(loadInstitutionalPage('sobre').ideas.items.length, 3);
   assert.equal(loadInstitutionalPage('campus').spaces.length, 4);
@@ -313,4 +317,18 @@ test('as opções de contacto trazem texto ou ligação, nunca as duas em falta'
   for (const option of loadInstitutionalPage('contactos').aside.options) {
     assert.ok(option.text || option.link, option.title);
   }
+});
+
+test('o molde das páginas de curso usa marcadores para os dados', () => {
+  // As 18 páginas de curso partilham um ficheiro. O que varia entre elas entra
+  // por marcador; o que se lê é igual em todas e é editável num sítio só.
+  const curso = loadInstitutionalPage('curso');
+  const texto = JSON.stringify(curso);
+  for (const token of ['{{COURSE}}', '{{LEVEL}}', '{{DURATION}}', '{{ACCESS}}']) {
+    assert.ok(texto.includes(token), token);
+  }
+  assert.equal(curso.summary.fields.length, 9);
+  assert.equal(curso.questions.items.length, 3);
+  // Os âncoras da navegação do curso são os ids das secções do gerador.
+  assert.deepEqual(curso.subnav.items.map(i => i.anchor), ['apresentacao', 'competencias', 'plano', 'carreiras', 'ingresso']);
 });

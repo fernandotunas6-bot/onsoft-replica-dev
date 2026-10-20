@@ -536,6 +536,34 @@ export const PAGE_SHAPES = {
     step3: {eyebrow: 'text', title: 'text', text: 'text', consent: 'text'},
     controls: {back: 'text', draft: 'text', next: 'text'},
   },
+  // Um ficheiro para as 18 páginas de curso: o que muda entre elas são os dados.
+  curso: {
+    hero: {
+      codeLabel: 'text', apply: {label: 'text'}, save: {icon: 'text', label: 'text'},
+      note: 'text', photoAlt: 'text',
+    },
+    subnav: {label: 'text', items: [{anchor: 'text', label: 'text'}]},
+    presentation: {eyebrow: 'text', headline: 'lines', paragraphs: ['text']},
+    skills: {eyebrow: 'text', title: 'text', text: 'text', audienceTitle: 'text', startLabel: 'text'},
+    plan: {eyebrow: 'text', title: 'text', text: 'text', moduleCaption: 'text'},
+    method: {
+      eyebrow: 'text', title: 'text',
+      cards: [{icon: 'text', title: 'text', text: 'text'}],
+      resources: {summary: 'text', text: 'text', link: 'action'},
+    },
+    careers: {eyebrow: 'text', title: 'text', text: 'text'},
+    entry: {
+      title: 'text', text: 'text', link: 'action',
+      requirement: {icon: 'text', title: 'text', text: 'text'},
+    },
+    questions: {title: 'text', items: [{question: 'text', answer: 'text'}]},
+    summary: {
+      eyebrow: 'text', fields: [{label: 'text', value: 'text'}],
+      apply: 'text', guide: 'text', compare: 'text', contact: 'link',
+    },
+    mobile: {label: 'text', tag: 'text', button: 'text'},
+    related: {eyebrow: 'text', title: 'text', link: 'action'},
+  },
   'mapa-do-site': {
     title: 'text', crumb: 'text',
     groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},

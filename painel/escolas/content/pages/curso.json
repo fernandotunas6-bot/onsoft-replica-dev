@@ -1,0 +1,100 @@
+{
+  "hero": {
+    "codeLabel": "EXEMPLO DE FORMAÇÃO",
+    "apply": { "label": "Experimentar candidatura" },
+    "save": { "icon": "♡", "label": "Guardar curso" },
+    "note": "Curso demonstrativo · Não constitui oferta oficial.",
+    "photoAlt": "Ambiente académico ilustrativo"
+  },
+  "subnav": {
+    "label": "Conteúdos do curso",
+    "items": [
+      { "anchor": "apresentacao", "label": "Apresentação" },
+      { "anchor": "competencias", "label": "Competências" },
+      { "anchor": "plano", "label": "Plano de estudos" },
+      { "anchor": "carreiras", "label": "Possibilidades de actuação" },
+      { "anchor": "ingresso", "label": "Ingresso" }
+    ]
+  },
+  "presentation": {
+    "eyebrow": "UM PERCURSO DE DESCOBERTAS",
+    "headline": ["Conheça o universo de", "*{{COURSE}}.*"],
+    "paragraphs": [
+      "{{DESCRIPTION}} Este percurso ilustrativo liga fundamentos da área à análise de problemas, ao trabalho em equipa e à construção de projectos.",
+      "A proposta valoriza uma aprendizagem progressiva, a capacidade de investigar e a aplicação do conhecimento em diferentes contextos."
+    ]
+  },
+  "skills": {
+    "eyebrow": "DO CONHECIMENTO À PRÁTICA",
+    "title": "O que poderá desenvolver.",
+    "text": "Competências ilustrativas para ajudar a compreender a área.",
+    "audienceTitle": "É um caminho para si?",
+    "startLabel": "Para começar"
+  },
+  "plan": {
+    "eyebrow": "CONHECIMENTO EM CONSTRUÇÃO",
+    "title": "O que poderá explorar.",
+    "text": "Uma selecção ilustrativa de temas da área. Não corresponde a uma matriz curricular oficial.",
+    "moduleCaption": "Tema ilustrativo · Conteúdo sujeito a validação"
+  },
+  "method": {
+    "eyebrow": "UM PERCURSO COM ESTRUTURA",
+    "title": "Como poderá aprender.",
+    "cards": [
+      { "icon": "◎", "title": "Experiência de aprendizagem", "text": "{{DELIVERY}} {{PRACTICE}}" },
+      { "icon": "✓", "title": "Avaliação de exemplo", "text": "{{ASSESSMENT}}" }
+    ],
+    "resources": {
+      "summary": "Recursos para a aprendizagem",
+      "text": "{{RESOURCES}}",
+      "link": { "url": "/biblioteca/", "label": "Explorar a biblioteca" }
+    }
+  },
+  "careers": {
+    "eyebrow": "CONHECIMENTO QUE ABRE CAMINHOS",
+    "title": "Possibilidades de actuação.",
+    "text": "Exemplos de áreas relacionadas com a formação. O exercício profissional depende da habilitação, das regras e dos requisitos aplicáveis."
+  },
+  "entry": {
+    "title": "Prepare a sua candidatura.",
+    "text": "Consulte o edital oficial e confirme habilitações exigidas, documentos, provas, vagas e calendário junto da instituição.",
+    "link": { "url": "/ingresso/", "label": "Conhecer as formas de ingresso" },
+    "requirement": {
+      "icon": "▤",
+      "title": "Preparação de acesso",
+      "text": "{{ACCESS}} Documentos, provas, taxas e prazos dependem do edital oficial."
+    }
+  },
+  "questions": {
+    "title": "Antes de escolher.",
+    "items": [
+      { "question": "O plano de estudos é oficial?", "answer": "Não. Estes temas mostram como o curso poderá ser apresentado. Matriz curricular, carga horária, créditos e qualificação final precisam de validação pelo {{SCHOOL}}." },
+      { "question": "Posso guardar esta informação?", "answer": "Sim. Pode guardar o curso nos favoritos, compará-lo com outros percursos ou descarregar uma ficha demonstrativa. Os favoritos ficam neste navegador." },
+      { "question": "Como confirmar propinas, vagas e requisitos?", "answer": "Consulte o edital e os contactos oficiais da instituição. Esta prévia não anuncia vagas nem valores confirmados." }
+    ]
+  },
+  "summary": {
+    "eyebrow": "O PERCURSO, NUM RELANCE",
+    "fields": [
+      { "label": "Formação", "value": "{{LEVEL}}" },
+      { "label": "Duração ilustrativa", "value": "{{DURATION}}" },
+      { "label": "Estrutura", "value": "{{STRUCTURE}}" },
+      { "label": "Idioma de exemplo", "value": "{{LANGUAGE}}" },
+      { "label": "Modalidade", "value": "{{MODE}}" },
+      { "label": "Turno", "value": "{{SHIFT}}" },
+      { "label": "Unidade de exemplo", "value": "{{UNIT}}" },
+      { "label": "Propinas", "value": "A confirmar" },
+      { "label": "Vagas e calendário", "value": "A confirmar" }
+    ],
+    "apply": "Explorar candidatura",
+    "guide": "Descarregar ficha de exemplo",
+    "compare": "Adicionar à comparação",
+    "contact": { "url": "/contactos/", "label": "Tem alguma dúvida? Prepare uma mensagem", "external": true }
+  },
+  "mobile": { "label": "Atalho de candidatura", "tag": "CURSO DEMONSTRATIVO", "button": "Candidatura" },
+  "related": {
+    "eyebrow": "CONTINUE A DESCOBRIR",
+    "title": "Outros caminhos possíveis.",
+    "link": { "url": "/cursos/", "label": "Ver catálogo" }
+  }
+}
