@@ -56,3 +56,6 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,s
 
 form label input:focus-visible,form label select:focus-visible,form label textarea:focus-visible{outline:3px solid #215cce;outline-offset:3px}
 @media(forced-colors:active){form label input:focus-visible,form label select:focus-visible,form label textarea:focus-visible{outline-color:Highlight}}
+
+/* Preserve the normal menu size; scroll its contents on short desktop viewports. */
+@media(min-width:761px){.mega-menu{max-height:var(--menu-max-height,calc(100dvh - 128px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}}
