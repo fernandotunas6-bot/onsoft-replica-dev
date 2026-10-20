@@ -63,3 +63,18 @@ export function assertProductionArtifactCount(table, count) {
     throw new Error(`Limpeza em produção bloqueada: existem registos em ${table}.`);
   }
 }
+
+/**
+ * Uma conta com vínculos em várias escolas nunca pode ser apagada
+ * pela limpeza de apenas um tenant.
+ */
+export function assertCleanupAccountOwnedBySchool(membershipSchoolIds, schoolId) {
+  if (
+    !schoolId ||
+    !Array.isArray(membershipSchoolIds) ||
+    membershipSchoolIds.length === 0 ||
+    membershipSchoolIds.some((id) => id !== schoolId)
+  ) {
+    throw new Error("Limpeza bloqueada: conta associada a outras escolas ou vínculo incerto.");
+  }
+}
