@@ -36,9 +36,9 @@ describe("confirmação de e-mail do signup público: isolamento de E2E", () => 
     expect(isIsolatedSignupTestTarget({ ...staging, SIGA_E2E_PROJECT_REF: "" })).toBe(false);
     expect(isIsolatedSignupTestTarget({ ...staging, SUPABASE_PROJECT_ID: "outra" })).toBe(false);
     expect(isIsolatedSignupTestTarget({ ...staging, VITE_SUPABASE_URL: production })).toBe(false);
-    expect(
-      isIsolatedSignupTestTarget({ ...staging, NEXT_PUBLIC_SUPABASE_URL: production }),
-    ).toBe(false);
+    expect(isIsolatedSignupTestTarget({ ...staging, NEXT_PUBLIC_SUPABASE_URL: production })).toBe(
+      false,
+    );
   });
 
   it("rejeita URL enganador, credenciais embutidas e protocolo inseguro", () => {
@@ -72,9 +72,9 @@ describe("confirmação de e-mail do signup público: isolamento de E2E", () => 
   });
 
   it("apenas staging seguro pode desligar verificação para um teste controlado", () => {
-    expect(isSignupEmailVerificationRequired({ ...staging, SIGNUP_EMAIL_VERIFICATION: "off" })).toBe(
-      false,
-    );
+    expect(
+      isSignupEmailVerificationRequired({ ...staging, SIGNUP_EMAIL_VERIFICATION: "off" }),
+    ).toBe(false);
     expect(isSignupEmailVerificationRequired(staging)).toBe(true);
     expect(isSignupEmailVerificationRequired({ ...staging, SIGNUP_EMAIL_VERIFICATION: "on" })).toBe(
       true,
