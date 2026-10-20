@@ -8,6 +8,22 @@ const BLOBS = "blobs";
 
 type LocalMeta = SchoolFileRecord;
 
+export type LocalFileViewer = { schoolId: string | null; ownerUserId: string };
+
+/**
+ * IndexedDB não tem RLS: todos os ficheiros locais são exclusivamente do
+ * utilizador que os guardou, mesmo nas áreas Escola/Secretaria/Público.
+ * O facto de partilharem escola não concede acesso ao disco do outro.
+ */
+export function isLocalFileOwnedByViewer(
+  row: Pick<LocalMeta, "schoolId" | "ownerUserId">,
+  viewer: LocalFileViewer,
+): boolean {
+  return Boolean(viewer.schoolId && viewer.ownerUserId) &&
+    row.schoolId === viewer.schoolId &&
+    row.ownerUserId === viewer.ownerUserId;
+}
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -80,9 +96,13 @@ export async function listLocalFiles(input: {
     db.close();
     const needle = input.query?.trim().toLowerCase() ?? "";
     return rows
-      .filter((row) => row.schoolId === input.schoolId)
+      .filter((row) =>
+        isLocalFileOwnedByViewer(row, {
+          schoolId: input.schoolId,
+          ownerUserId: input.ownerUserId,
+        }),
+      )
       .filter((row) => {
-        if (row.area === "pessoal" && row.ownerUserId !== input.ownerUserId) return false;
         if (input.area && row.area !== input.area) return false;
         if (input.classGroupId && row.classGroupId !== input.classGroupId) return false;
         if (input.parentId === null && !needle && row.parentId) return false;
@@ -184,11 +204,23 @@ export async function patchLocalFileMeta(
   db.close();
 }
 
-export async function readLocalBlob(id: string): Promise<Blob | null> {
-  if (typeof indexedDB === "undefined") return null;
+export async function readLocalBlob(
+  id: string,
+  viewer: LocalFileViewer,
+): Promise<Blob | null> {
+  if (typeof indexedDB === "undefined" || !viewer.schoolId || !viewer.ownerUserId) return null;
   try {
     const db = await openDb();
-    const tx = db.transaction(BLOBS, "readonly");
+    const tx = db.transaction([META, BLOBS], "readonly");
+    const meta = await new Promise<LocalMeta | undefined>((resolve, reject) => {
+      const request = tx.objectStore(META).get(id);
+      request.onsuccess = () => resolve(request.result as LocalMeta | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    if (!meta || !isLocalFileOwnedByViewer(meta, viewer)) {
+      db.close();
+      return null;
+    }
     const row = await new Promise<{ id: string; blob: Blob } | undefined>((resolve, reject) => {
       const request = tx.objectStore(BLOBS).get(id);
       request.onsuccess = () => resolve(request.result as { id: string; blob: Blob } | undefined);
