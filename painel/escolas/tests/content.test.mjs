@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, loadNavigation} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, loadNavigation, loadHeader, loadFooter} from '../scripts/content.mjs';
+import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
   // A regra que torna o conteúdo editável sem risco: quem apaga uma linha do
@@ -47,5 +48,42 @@ test('o conteúdo da navegação é texto, não marcação', () => {
   for (const menu of loadNavigation()) {
     const values = [menu.title, menu.feature.title, menu.feature.text, menu.feature.label, ...menu.links.flatMap(l => [l.label, l.sub])];
     for (const value of values) assert.ok(!/[<>]/.test(value), value);
+  }
+});
+
+test('flag só aceita a ausência ou um booleano', () => {
+  assert.equal(flag(undefined, 'link.external'), false);
+  assert.equal(flag(true, 'link.external'), true);
+  for (const value of ['true', 1, null, {}]) {
+    assert.throws(() => flag(value, 'link.external'), /Sinalizador inválido em link\.external/, JSON.stringify(value));
+  }
+});
+
+test('o cabeçalho e o rodapé publicados passam a validação', () => {
+  const header = loadHeader();
+  assert.ok(header.topline.links.length >= 1);
+  assert.equal(header.topline.links.every(l => typeof l.external === 'boolean'), true);
+  assert.ok(header.portal.url.startsWith('/'));
+  const footer = loadFooter();
+  assert.ok(footer.tagline.length >= 1);
+  assert.ok(footer.columns.length >= 1);
+  for (const column of footer.columns) assert.ok(column.links.length >= 1);
+  assert.ok(footer.legal.length >= 1);
+});
+
+test('todos os marcadores do conteúdo são marcadores que a identidade conhece', () => {
+  // Um `{{SCHOL}}` num ficheiro de conteúdo só dava erro no build. Aqui falha
+  // na suite, que é onde quem edita o conteúdo olha primeiro.
+  const brand = createBrand(resolveSchool({id: 'escola-exemplo', shortName: 'Escola Exemplo', country: 'Angola'}));
+  const strings = value => {
+    if (typeof value === 'string') return [value];
+    if (Array.isArray(value)) return value.flatMap(strings);
+    if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
+    return [];
+  };
+  for (const name of ['navigation', 'header', 'footer']) {
+    for (const value of strings(loadContent(name))) {
+      assert.doesNotThrow(() => brand(value), name + ': ' + value);
+    }
   }
 });

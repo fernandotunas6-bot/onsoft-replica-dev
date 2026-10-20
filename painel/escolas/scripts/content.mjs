@@ -71,3 +71,69 @@ export function loadNavigation() {
     };
   });
 }
+
+/** Sinalizador opcional: ausente é falso, presente tem de ser booleano. */
+export function flag(value, caminho) {
+  if (value !== undefined && typeof value !== 'boolean') throw Error('Sinalizador inválido em ' + caminho + ': esperado true ou false');
+  return value === true;
+}
+
+/** Ligação de navegação simples: caminho interno, rótulo e marca de saída. */
+function navLink(link, caminho) {
+  const value = link ?? {};
+  return {
+    url: internalUrl(value.url, caminho + '.url'),
+    label: text(value.label, caminho + '.label'),
+    external: flag(value.external, caminho + '.external'),
+  };
+}
+
+function navLinks(value, caminho) {
+  return list(value, caminho).map((link, i) => navLink(link, `${caminho}[${i}]`));
+}
+
+/** Cabeçalho: barra superior, ligações simples, pesquisa e botão do portal. */
+export function loadHeader() {
+  const raw = loadContent('header');
+  const topline = raw.topline ?? {};
+  const search = raw.search ?? {};
+  const portal = raw.portal ?? {};
+  return {
+    skipLink: text(raw.skipLink, 'header.skipLink'),
+    homeLabel: text(raw.homeLabel, 'header.homeLabel'),
+    navLabel: text(raw.navLabel, 'header.navLabel'),
+    menuLabel: text(raw.menuLabel, 'header.menuLabel'),
+    topline: {
+      identity: text(topline.identity, 'header.topline.identity'),
+      tagline: text(topline.tagline, 'header.topline.tagline'),
+      links: navLinks(topline.links, 'header.topline.links'),
+    },
+    links: navLinks(raw.links, 'header.links'),
+    search: {
+      url: internalUrl(search.url, 'header.search.url'),
+      label: text(search.label, 'header.search.label'),
+    },
+    portal: {
+      url: internalUrl(portal.url, 'header.portal.url'),
+      label: text(portal.label, 'header.portal.label'),
+      mobileLabel: text(portal.mobileLabel, 'header.portal.mobileLabel'),
+    },
+  };
+}
+
+/** Rodapé: assinatura, colunas de ligações, aviso e barra legal. */
+export function loadFooter() {
+  const raw = loadContent('footer');
+  return {
+    tagline: list(raw.tagline, 'footer.tagline').map((line, i) => text(line, `footer.tagline[${i}]`)),
+    locale: text(raw.locale, 'footer.locale'),
+    columns: list(raw.columns, 'footer.columns').map((column, i) => ({
+      title: text(column?.title, `footer.columns[${i}].title`),
+      links: navLinks(column?.links, `footer.columns[${i}].links`),
+    })),
+    notice: text(raw.notice, 'footer.notice'),
+    copyright: text(raw.copyright, 'footer.copyright'),
+    legal: navLinks(raw.legal, 'footer.legal'),
+    backToTop: text(raw.backToTop, 'footer.backToTop'),
+  };
+}
