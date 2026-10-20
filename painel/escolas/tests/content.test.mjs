@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -160,5 +160,17 @@ test('os títulos das páginas respeitam a convenção de ênfase', () => {
   // feita a partir do gerador não deixou `<em>` nem `<br>` para trás.
   for (const [route, head] of loadPageHeads()) {
     for (const line of head.headline) assert.ok(!/[<>]/.test(line), route + ': ' + line);
+  }
+});
+
+test('os avisos de demonstração estão todos num sítio', () => {
+  const notices = loadNotices();
+  assert.ok(notices.size >= 12);
+  for (const [key, value] of notices) {
+    assert.match(key, /^[a-z0-9-]{2,48}$/);
+    assert.ok(value.length > 20, key);
+  }
+  for (const key of ['curso', 'candidatura', 'campus', 'agenda', 'portal-candidaturas']) {
+    assert.ok(notices.has(key), key);
   }
 });

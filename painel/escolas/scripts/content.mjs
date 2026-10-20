@@ -274,3 +274,21 @@ export function loadPageHeads() {
   if (heads.size === 0) throw Error('Nenhum cabeçalho de página em content/page-heads.json');
   return heads;
 }
+
+/**
+ * Avisos de demonstração, por chave.
+ *
+ * São os textos que dizem que a oferta, as candidaturas e os dados não são
+ * oficiais. Na activação de uma escola real é isto que tem de ser reescrito, e
+ * é por isso que estão juntos num ficheiro, e não espalhados pelo gerador.
+ */
+export function loadNotices() {
+  const raw = loadContent('notices');
+  const notices = new Map();
+  for (const [key, value] of Object.entries(raw ?? {})) {
+    if (!/^[a-z0-9-]{2,48}$/.test(key)) throw Error('Chave de aviso inválida em content/notices.json: ' + key);
+    notices.set(key, text(value, `notices.${key}`));
+  }
+  if (notices.size === 0) throw Error('Nenhum aviso em content/notices.json');
+  return notices;
+}
