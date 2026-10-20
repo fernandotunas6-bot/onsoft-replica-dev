@@ -109,6 +109,12 @@ export function ClassMaterialsPanel({
 
   const detach = async (file: SchoolFileRecord) => {
     try {
+      if (file.storageBackend === "local") {
+        await patchLocalFileMeta(file.id, { classGroupId: null }, viewer);
+        toast.message("Removido neste dispositivo");
+        await refresh();
+        return;
+      }
       await linkSchoolFileToClass({ data: { id: file.id, classGroupId: null } });
       await patchLocalFileMeta(file.id, { classGroupId: null }, viewer);
       toast.success("Material removido da turma");
@@ -163,6 +169,7 @@ export function ClassMaterialsPanel({
         <ul className="mt-2 space-y-1.5">
           {files.map((file) => {
             const contentOpen = canAccessFileContent(file, account.id, account.role);
+            const shareable = file.storageBackend === "sga";
             return (
               <li
                 key={file.id}
@@ -187,6 +194,7 @@ export function ClassMaterialsPanel({
                   <span className="ml-2 text-[11px] font-normal text-muted-foreground">
                     {formatFileSize(file.sizeBytes)}
                     {file.isSystem && !contentOpen ? " · Protegido" : ""}
+                    {!shareable ? " · Só neste dispositivo" : ""}
                   </span>
                 </button>
                 <div className="flex gap-1">
@@ -195,7 +203,8 @@ export function ClassMaterialsPanel({
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2"
-                    title="Copiar referência"
+                    title={shareable ? "Copiar referência" : "Ficheiro não sincronizado"}
+                    disabled={!shareable}
                     onClick={() =>
                       void copyRef(file).catch((error: Error) => toast.error(error.message))
                     }
@@ -208,6 +217,8 @@ export function ClassMaterialsPanel({
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2 text-[11px] font-semibold"
+                      disabled={!shareable}
+                      title={shareable ? "Partilhar no WhatsApp" : "Ficheiro não sincronizado"}
                       onClick={() =>
                         void shareWhatsApp(file).catch((error: Error) => toast.error(error.message))
                       }
