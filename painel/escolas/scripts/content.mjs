@@ -139,7 +139,7 @@ export function loadFooter() {
 }
 
 /**
- * Ênfase no conteúdo: `*assim*` passa a `<em>assim</em>` depois de esc().
+ * Ênfase no conteúdo: `*assim*` e `**assim**`, depois de esc().
  *
  * Os títulos do site destacam parte da frase. Sem uma convenção, o conteúdo
  * teria de trazer `<em>` — isto é, marcação — e deixaria de poder ser escapado.
@@ -147,8 +147,8 @@ export function loadFooter() {
  */
 export function emphasis(value, caminho) {
   text(value, caminho);
-  const marks = (value.match(/\*/g) ?? []).length;
-  if (marks % 2 !== 0 || /\*\s*\*/.test(value)) throw Error('Ênfase mal fechada em ' + caminho + ': ' + value);
+  const rest = value.replace(/\*\*[^*]+\*\*/g, '').replace(/\*[^*]+\*/g, '');
+  if (rest.includes('*')) throw Error('Ênfase mal fechada em ' + caminho + ': ' + value);
   return value;
 }
 
@@ -157,9 +157,18 @@ export function emphasis(value, caminho) {
  *
  * O `esc` vem do gerador: o conteúdo é escapado primeiro e só depois ganha
  * `<em>`, pelo que um `<` no conteúdo nunca chega ao HTML como marcação.
+ *
+ * O `tag` também vem do gerador. A faixa azul da entrada destaca com `<span>`
+ * e não com `<em>`: o conteúdo diz que há ênfase, o gerador diz como se vê.
  */
-export function renderHeadline(value, esc) {
-  return value.map(line => esc(line).replace(/\*([^*]+)\*/g, '<em>$1</em>')).join('<br>');
+export function renderHeadline(value, esc, tag = 'em') {
+  return value
+    .map(line =>
+      esc(line)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<' + tag + '>$1</' + tag + '>'),
+    )
+    .join('<br>');
 }
 
 /** Título em várias linhas: cada linha é uma quebra no site. */
@@ -291,4 +300,80 @@ export function loadNotices() {
   }
   if (notices.size === 0) throw Error('Nenhum aviso em content/notices.json');
   return notices;
+}
+
+/** Página de entrada: oito secções, todas com texto próprio. */
+export function loadHome() {
+  const raw = loadContent('home');
+  const action = (value, caminho) => ({
+    url: internalUrl(value?.url, caminho + '.url'),
+    label: text(value?.label, caminho + '.label'),
+  });
+  const {hero, finder, areas, courses, split, band, articles} = raw;
+  return {
+    title: text(raw.title, 'home.title'),
+    hero: {
+      eyebrow: text(hero?.eyebrow, 'home.hero.eyebrow'),
+      headline: lines(hero?.headline, 'home.hero.headline'),
+      text: lines(hero?.text, 'home.hero.text'),
+      primary: action(hero?.primary, 'home.hero.primary'),
+      secondary: action(hero?.secondary, 'home.hero.secondary'),
+      small: lines(hero?.small, 'home.hero.small'),
+      photoAlt: text(hero?.photoAlt, 'home.hero.photoAlt'),
+      photoCaption: text(hero?.photoCaption, 'home.hero.photoCaption'),
+      float: lines(hero?.float, 'home.hero.float'),
+      badge: text(hero?.badge, 'home.hero.badge'),
+      side: text(hero?.side, 'home.hero.side'),
+    },
+    finder: {
+      eyebrow: text(finder?.eyebrow, 'home.finder.eyebrow'),
+      link: navLink(finder?.link, 'home.finder.link'),
+      tagsLabel: text(finder?.tagsLabel, 'home.finder.tagsLabel'),
+      tags: navLinks(finder?.tags, 'home.finder.tags'),
+    },
+    marquee: list(raw.marquee, 'home.marquee').map((word, i) => text(word, `home.marquee[${i}]`)),
+    quickPathsLabel: text(raw.quickPathsLabel, 'home.quickPathsLabel'),
+    quickPaths: list(raw.quickPaths, 'home.quickPaths').map((path, i) => ({
+      url: internalUrl(path?.url, `home.quickPaths[${i}].url`),
+      icon: text(path?.icon, `home.quickPaths[${i}].icon`),
+      title: text(path?.title, `home.quickPaths[${i}].title`),
+      text: text(path?.text, `home.quickPaths[${i}].text`),
+    })),
+    areas: {
+      eyebrow: text(areas?.eyebrow, 'home.areas.eyebrow'),
+      headline: lines(areas?.headline, 'home.areas.headline'),
+      text: lines(areas?.text, 'home.areas.text'),
+      countLabel: text(areas?.countLabel, 'home.areas.countLabel'),
+    },
+    courses: {
+      eyebrow: text(courses?.eyebrow, 'home.courses.eyebrow'),
+      headline: lines(courses?.headline, 'home.courses.headline'),
+      link: action(courses?.link, 'home.courses.link'),
+      note: text(courses?.note, 'home.courses.note'),
+    },
+    split: {
+      photoAlt: text(split?.photoAlt, 'home.split.photoAlt'),
+      photoLabel: lines(split?.photoLabel, 'home.split.photoLabel'),
+      eyebrow: text(split?.eyebrow, 'home.split.eyebrow'),
+      headline: lines(split?.headline, 'home.split.headline'),
+      text: text(split?.text, 'home.split.text'),
+      items: list(split?.items, 'home.split.items').map((item, i) => text(item, `home.split.items[${i}]`)),
+      link: action(split?.link, 'home.split.link'),
+    },
+    band: {
+      eyebrow: text(band?.eyebrow, 'home.band.eyebrow'),
+      headline: lines(band?.headline, 'home.band.headline'),
+      steps: list(band?.steps, 'home.band.steps').map((step, i) => ({
+        number: text(step?.number, `home.band.steps[${i}].number`),
+        title: text(step?.title, `home.band.steps[${i}].title`),
+        text: text(step?.text, `home.band.steps[${i}].text`),
+      })),
+      action: action(band?.action, 'home.band.action'),
+    },
+    articles: {
+      eyebrow: text(articles?.eyebrow, 'home.articles.eyebrow'),
+      headline: lines(articles?.headline, 'home.articles.headline'),
+      link: action(articles?.link, 'home.articles.link'),
+    },
+  };
 }

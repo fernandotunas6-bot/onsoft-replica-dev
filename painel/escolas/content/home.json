@@ -1,0 +1,80 @@
+{
+  "title": "Conhecimento que aproxima futuros",
+  "hero": {
+    "eyebrow": "CONHECIMENTO SEM FRONTEIRAS · {{COUNTRY_UPPER}}",
+    "headline": ["O seu futuro", "começa *aqui.*"],
+    "text": [
+      "Aprender. Descobrir. Transformar.",
+      "Encontre o seu caminho e faça parte de uma nova perspectiva de ensino superior."
+    ],
+    "primary": { "url": "/cursos/", "label": "Explore os cursos" },
+    "secondary": { "url": "/sobre/", "label": "Conheça o {{SCHOOL}}" },
+    "small": ["Mais do que escolher uma formação.", "**Escolher quem quer ser.**"],
+    "photoAlt": "Estudantes partilhando ideias numa biblioteca",
+    "photoCaption": "Grandes ideias começam com uma conexão.",
+    "float": ["O próximo capítulo?", "**É o seu.**"],
+    "badge": "Conhecimento em movimento.",
+    "side": "ENSINO · INVESTIGAÇÃO · COMUNIDADE"
+  },
+  "finder": {
+    "eyebrow": "ENCONTRE A SUA PRÓXIMA POSSIBILIDADE",
+    "link": { "url": "/cursos/", "label": "Ver todos os cursos", "external": true },
+    "tagsLabel": "Explore por interesse:",
+    "tags": [
+      { "url": "/cursos/?area=tecnologia", "label": "Tecnologia" },
+      { "url": "/cursos/?area=saude", "label": "Saúde" },
+      { "url": "/cursos/?area=gestao", "label": "Gestão" },
+      { "url": "/cursos/?area=engenharia", "label": "Engenharia" }
+    ]
+  },
+  "marquee": ["APRENDER", "CONECTAR", "DESCOBRIR", "TRANSFORMAR"],
+  "quickPathsLabel": "Atalhos para o seu percurso",
+  "quickPaths": [
+    { "url": "/ingresso/", "icon": "↗", "title": "Quero estudar no {{SCHOOL}}", "text": "O primeiro passo começa aqui" },
+    { "url": "/candidaturas/", "icon": "▤", "title": "Já comecei a candidatura", "text": "Retome o seu percurso" },
+    { "url": "/login/", "icon": "◫", "title": "Procuro o portal académico", "text": "Entre no seu espaço de aprendizagem" }
+  ],
+  "areas": {
+    "eyebrow": "01 / ENCONTRE A SUA ÁREA",
+    "headline": ["Muitos caminhos.", "*Um futuro que é seu.*"],
+    "text": [
+      "Comece pelo que desperta a sua curiosidade.",
+      "Conheça o nosso catálogo demonstrativo."
+    ],
+    "countLabel": "percursos de exemplo"
+  },
+  "courses": {
+    "eyebrow": "02 / CONHECIMENTO EM MOVIMENTO",
+    "headline": ["Qual vai ser o seu", "*próximo grande passo?*"],
+    "link": { "url": "/cursos/", "label": "Explorar todos os cursos" },
+    "note": "Catálogo ilustrativo · Oferta, modalidade e duração a confirmar pela instituição."
+  },
+  "split": {
+    "photoAlt": "Estudantes celebrando a conclusão da sua formação",
+    "photoLabel": ["O SEU FUTURO.", "AS SUAS POSSIBILIDADES."],
+    "eyebrow": "03 / MUITO ALÉM DA SALA DE AULA",
+    "headline": ["Aprender é descobrir.", "*E também pertencer.*"],
+    "text": "O ensino superior é feito de perguntas, encontros e descobertas. Explore uma visão de comunidade onde os seus interesses encontram novas perspectivas.",
+    "items": [
+      "Trocas entre diferentes áreas do conhecimento",
+      "Projectos que aproximam teoria e prática",
+      "Uma jornada com espaço para crescer"
+    ],
+    "link": { "url": "/vida-academica/", "label": "Explore a vida académica" }
+  },
+  "band": {
+    "eyebrow": "O PRIMEIRO PASSO NÃO PRECISA DE SER COMPLICADO",
+    "headline": ["Da curiosidade", "à *sua candidatura.*"],
+    "steps": [
+      { "number": "01", "title": "Descubra o seu curso", "text": "Explore áreas, modalidades e percursos." },
+      { "number": "02", "title": "Prepare o próximo passo", "text": "Conheça as orientações para o ingresso." },
+      { "number": "03", "title": "Experimente a candidatura", "text": "Percorra o formulário demonstrativo." }
+    ],
+    "action": { "url": "/ingresso/", "label": "Veja como começar" }
+  },
+  "articles": {
+    "eyebrow": "04 / IDEIAS PARA LEVAR CONSIGO",
+    "headline": ["Histórias que abrem", "*novas perspectivas.*"],
+    "link": { "url": "/noticias/", "label": "Todas as leituras" }
+  }
+}

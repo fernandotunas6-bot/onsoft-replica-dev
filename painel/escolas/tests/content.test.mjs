@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -173,4 +173,31 @@ test('os avisos de demonstração estão todos num sítio', () => {
   for (const key of ['curso', 'candidatura', 'campus', 'agenda', 'portal-candidaturas']) {
     assert.ok(notices.has(key), key);
   }
+});
+
+test('a ênfase forte é **assim** e não colide com a simples', () => {
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  assert.equal(renderHeadline(['**Escolher quem quer ser.**'], esc), '<strong>Escolher quem quer ser.</strong>');
+  assert.equal(renderHeadline(['*uma* e **outra**'], esc), '<em>uma</em> e <strong>outra</strong>');
+  assert.equal(emphasis('**forte**', 'x'), '**forte**');
+  for (const value of ['***a***', '**a*', 'a**', '**']) {
+    assert.throws(() => emphasis(value, 'x'), /Ênfase mal fechada/, value);
+  }
+});
+
+test('o gerador escolhe a etiqueta da ênfase', () => {
+  // A faixa azul da entrada destaca com <span>; o conteúdo diz só que há ênfase.
+  const esc = s => String(s);
+  assert.equal(renderHeadline(['à *sua candidatura.*'], esc, 'span'), 'à <span>sua candidatura.</span>');
+});
+
+test('a página de entrada passa a validação', () => {
+  const home = loadHome();
+  assert.equal(home.hero.headline.length, 2);
+  assert.ok(home.hero.primary.url.startsWith('/'));
+  assert.equal(home.quickPaths.length, 3);
+  assert.equal(home.band.steps.length, 3);
+  assert.ok(home.marquee.length >= 2);
+  for (const path of home.quickPaths) assert.ok(path.url.startsWith('/'), path.url);
+  for (const tag of home.finder.tags) assert.ok(tag.url.startsWith('/'), tag.url);
 });

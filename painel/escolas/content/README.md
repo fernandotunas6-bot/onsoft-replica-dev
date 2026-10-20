@@ -10,6 +10,7 @@ textos, os rótulos e as ligações. Editar aqui não exige tocar em código.
 | `header.json` | Barra superior, ligação para a página da instituição, pesquisa e botão do portal. |
 | `footer.json` | Assinatura, colunas de ligações, aviso de versão demonstrativa e barra legal. |
 | `site.json` | Blocos repetidos em todas as páginas: metadados, aviso padrão e chamada final. |
+| `home.json` | A página de entrada inteira: herói, atalhos, as quatro secções e a faixa azul. |
 | `page-heads.json` | O cabeçalho de cada página, pela rota: olho, título e descrição. |
 | `notices.json` | Os avisos de versão demonstrativa, por chave — o que reescrever na activação de uma escola real. |
 | `simple-pages.json` | As cinco páginas de serviço (secretaria, apoio, carreiras, investigação, bolsas). |
@@ -27,10 +28,12 @@ vazio no lugar.
 **O conteúdo é texto, não marcação.** Tudo passa por `esc()` no gerador: um
 `<b>` escrito aqui aparece no site como `<b>`, não como negrito.
 
-**A ênfase escreve-se `*assim*`.** Nos títulos, `*três palavras*` ficam
-destacadas na cor da escola. Abre e fecha sempre; o build recusa um asterisco
-sozinho. Um título que seja uma lista de linhas (`"title": ["...", "..."]`)
-quebra a linha entre cada uma.
+**A ênfase escreve-se `*assim*` e `**assim**`.** Nos títulos, `*três palavras*`
+ficam destacadas na cor da escola e `**três palavras**` ficam a negrito. Abre e
+fecha sempre; o build recusa um asterisco sozinho. Um título que seja uma lista
+de linhas (`"title": ["...", "..."]`) quebra a linha entre cada uma. Onde o
+destaque aparece com outra etiqueta — a faixa azul da entrada usa `<span>` —
+quem decide é o gerador: o conteúdo diz apenas que há ênfase.
 
 **As ligações são caminhos internos.** Começam por `/` e terminam no site:
 `internalUrl()` recusa `https://…`, `//…` e `javascript:…`. Uma ligação para
