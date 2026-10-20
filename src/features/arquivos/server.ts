@@ -687,6 +687,22 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       return { storage: "local" as const, record: null };
     }
     const db = await loadSgaAdminClient();
+    if (data.classGroupId) {
+      // Uploads dirigidos a turmas não podem contornar a associação posterior.
+      // Só materiais partilháveis e professores atribuídos à turma são aceites.
+      if (
+        (data.area !== "escola" && data.area !== "publico") ||
+        data.visibility === "private"
+      ) {
+        throw new Error("Materiais de turma devem estar numa área escolar partilhável.");
+      }
+      await assertClassMaterialScope(db, {
+        schoolId: membership.schoolId,
+        userId,
+        classGroupId: data.classGroupId,
+        roles: membership.allAppRoles ?? [membership.appRole],
+      });
+    }
     // Verificar metadados e quota antes de publicar o registo. Nunca apagar
     // automaticamente o blob quando uma verificação falha: o mesmo caminho
     // pode já estar referenciado por um ficheiro legítimo, e a limpeza automática
