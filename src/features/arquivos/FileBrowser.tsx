@@ -245,7 +245,8 @@ export function FileBrowser({
   const [uploading, setUploading] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(prefs.viewMode);
   const [sortBy, setSortBy] = useState<"name" | "date" | "size">(prefs.sortBy);
-  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -1147,7 +1148,7 @@ export function FileBrowser({
           </nav>
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="mr-1 hidden text-xs text-muted-foreground sm:block">
-              {account.role} · a trabalhar
+              {account.role}
             </p>
             <select
               value={sortBy}
@@ -1309,7 +1310,7 @@ export function FileBrowser({
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={`Procurar nome ou ID (${documentCodeSearchHint()})`}
+                  placeholder="Procurar ficheiros"
                   className="h-9 pl-9"
                   aria-label="Procurar arquivo por nome ou ID"
                 />
@@ -1333,36 +1334,15 @@ export function FileBrowser({
                   ))}
                 </select>
               ) : null}
-              <select
-                value={categoryFilter}
-                onChange={(event) =>
-                  setCategoryFilter(
-                    event.target.value as (typeof fileCategoryOptions)[number] | "all",
-                  )
-                }
-                className="h-9 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm"
-                aria-label="Filtrar por categoria"
+              <Button
+                type="button"
+                size="sm"
+                variant={showAdvancedFilters ? "secondary" : "ghost"}
+                aria-expanded={showAdvancedFilters}
+                onClick={() => setShowAdvancedFilters((value) => !value)}
               >
-                <option value="all">Todas categorias</option>
-                {fileCategoryOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {fileCategoryMeta[value].label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={relatedUserFilter}
-                onChange={(event) => setRelatedUserFilter(event.target.value)}
-                className="h-9 max-w-[12rem] rounded-md border border-input bg-background px-2 text-sm"
-                aria-label="Filtrar por utilizador relacionado"
-              >
-                <option value="all">Qualquer utilizador</option>
-                {(usersQuery.data?.users ?? []).map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
+                Filtros{categoryFilter !== "all" || relatedUserFilter !== "all" || kindFilter !== "all" || ownershipFilter !== "all" || needsOrganizeOnly ? " •" : ""}
+              </Button>
               {canUpload ? (
                 <>
                   <Button
@@ -1432,6 +1412,40 @@ export function FileBrowser({
                 </>
               ) : null}
             </div>
+            {showAdvancedFilters ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+              <select
+                value={categoryFilter}
+                onChange={(event) =>
+                  setCategoryFilter(
+                    event.target.value as (typeof fileCategoryOptions)[number] | "all",
+                  )
+                }
+                className="h-9 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm"
+                aria-label="Filtrar por categoria"
+              >
+                <option value="all">Todas categorias</option>
+                {fileCategoryOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {fileCategoryMeta[value].label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={relatedUserFilter}
+                onChange={(event) => setRelatedUserFilter(event.target.value)}
+                className="h-9 max-w-[12rem] rounded-md border border-input bg-background px-2 text-sm"
+                aria-label="Filtrar por utilizador relacionado"
+              >
+                <option value="all">Qualquer utilizador</option>
+                {(usersQuery.data?.users ?? []).map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+                </div>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
               <button
                 type="button"
@@ -1499,6 +1513,8 @@ export function FileBrowser({
                 Sistema
               </button>
             </div>
+              </div>
+            ) : null}
           </div>
 
           <div className={cn("relative min-h-0 flex-1 overflow-auto p-0")}>
