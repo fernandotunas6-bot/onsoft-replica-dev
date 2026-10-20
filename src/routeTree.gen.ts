@@ -102,6 +102,7 @@ import { Route as ApiFinancePayflowSettlementRouteImport } from './routes/api/fi
 import { Route as ApiIntegrationsResendWebhookRouteImport } from './routes/api/integrations/resend.webhook'
 import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
 import { Route as ApiPublicPaymentsAppypayRouteImport } from './routes/api/public/payments/appypay'
+import { Route as ApiPublicSchoolWebsiteSlugRouteImport } from './routes/api/public/school-website/$slug'
 import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
@@ -611,6 +612,12 @@ const ApiPublicPaymentsAppypayRoute =
     path: '/api/public/payments/appypay',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSchoolWebsiteSlugRoute =
+  ApiPublicSchoolWebsiteSlugRouteImport.update({
+    id: '/api/public/school-website/$slug',
+    path: '/api/public/school-website/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSaasDomainsCheckRoute = ApiSaasDomainsCheckRouteImport.update({
   id: '/check',
   path: '/check',
@@ -850,6 +857,7 @@ export interface FileRoutesByFullPath {
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
+  '/api/public/school-website/$slug': typeof ApiPublicSchoolWebsiteSlugRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -972,6 +980,7 @@ export interface FileRoutesByTo {
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
+  '/api/public/school-website/$slug': typeof ApiPublicSchoolWebsiteSlugRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -1095,6 +1104,7 @@ export interface FileRoutesById {
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
+  '/api/public/school-website/$slug': typeof ApiPublicSchoolWebsiteSlugRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -1219,6 +1229,7 @@ export interface FileRouteTypes {
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/public/payments/appypay'
+    | '/api/public/school-website/$slug'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1341,6 +1352,7 @@ export interface FileRouteTypes {
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/public/payments/appypay'
+    | '/api/public/school-website/$slug'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1463,6 +1475,7 @@ export interface FileRouteTypes {
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/public/payments/appypay'
+    | '/api/public/school-website/$slug'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1565,6 +1578,7 @@ export interface RootRouteChildren {
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
   ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
   ApiPublicPaymentsAppypayRoute: typeof ApiPublicPaymentsAppypayRoute
+  ApiPublicSchoolWebsiteSlugRoute: typeof ApiPublicSchoolWebsiteSlugRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
   ApiSaasPublicBlogRoute: typeof ApiSaasPublicBlogRoute
   ApiSaasPublicContactRoute: typeof ApiSaasPublicContactRoute
@@ -2230,6 +2244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsAppypayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/school-website/$slug': {
+      id: '/api/public/school-website/$slug'
+      path: '/api/public/school-website/$slug'
+      fullPath: '/api/public/school-website/$slug'
+      preLoaderRoute: typeof ApiPublicSchoolWebsiteSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/domains/check': {
       id: '/api/saas/domains/check'
       path: '/check'
@@ -2704,6 +2725,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,
   ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
   ApiPublicPaymentsAppypayRoute: ApiPublicPaymentsAppypayRoute,
+  ApiPublicSchoolWebsiteSlugRoute: ApiPublicSchoolWebsiteSlugRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
   ApiSaasPublicBlogRoute: ApiSaasPublicBlogRoute,
   ApiSaasPublicContactRoute: ApiSaasPublicContactRoute,
