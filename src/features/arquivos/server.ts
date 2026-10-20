@@ -1561,9 +1561,26 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     await assertFileRefsInSchool(db, membership.schoolId, { classGroupId: data.classGroupId });
+    const file = await loadSchoolFileRow(db, membership.schoolId, data.id);
+    const allowed = file
+      ? fileMatchesRequest(file, {
+          purpose: "class-material",
+          classGroupId: data.classGroupId ?? file.classGroupId,
+        }) &&
+        canSeeRow(file, userId, membership.appRole) &&
+        canAccessFileContent(file, userId, membership.appRole)
+      : false;
+    if (!allowed || !file) {
+      throw new Error("Este ficheiro não pode ser ligado à turma.");
+    }
     const action = data.classGroupId ? "linked_class" : "unlinked_class";
     const now = new Date().toISOString();
-    const { error } = await db
+    // Bloquear corridas: uma ligação entretanto modificada não deve ser sobrescrita.
+    const scoped = (query: ReturnType<ReturnType<AdminDb["from"]>["update"]>) =>
+      file.classGroupId
+        ? query.eq("class_group_id", file.classGroupId)
+        : query.is("class_group_id", null);
+    const update = db
       .from("siga_files")
       .update({
         class_group_id: data.classGroupId,
@@ -1574,23 +1591,33 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
         last_action_by: userId,
       })
       .eq("id", data.id)
-      .eq("school_id", membership.schoolId);
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null);
+    const { data: changed, error } = await scoped(update).select("id").maybeSingle();
     if (error) {
       if (missingFilesTable(error) || missingOptionalColumn(error)) {
-        const plain = await db
+        const plain = db
           .from("siga_files")
           .update({ class_group_id: data.classGroupId })
           .eq("id", data.id)
-          .eq("school_id", membership.schoolId);
-        if (plain.error && (missingFilesTable(plain.error) || missingOptionalColumn(plain.error))) {
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null);
+        const fallback = await scoped(plain).select("id").maybeSingle();
+        if (
+          fallback.error &&
+          (missingFilesTable(fallback.error) || missingOptionalColumn(fallback.error))
+        ) {
           return { ok: true, localOnly: true };
         }
-        if (plain.error) {
-          throw publicDatabaseError(plain.error, "Não foi possível ligar o ficheiro à turma.");
+        if (fallback.error) {
+          throw publicDatabaseError(fallback.error, "Não foi possível ligar o ficheiro à turma.");
         }
+        if (!fallback.data) throw new Error("A ligação mudou. Actualize a turma e tente de novo.");
       } else {
         throw publicDatabaseError(error, "Não foi possível ligar o ficheiro à turma.");
       }
+    } else if (!changed) {
+      throw new Error("A ligação mudou. Actualize a turma e tente de novo.");
     }
     try {
       await recordFileEvent(db, {
