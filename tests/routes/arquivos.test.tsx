@@ -127,7 +127,7 @@ describe("/arquivos — render", () => {
 
     expect(screen.getByRole("heading", { name: "Arquivos" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Biblioteca da escola" })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Secretaria Reservado/ })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Secretaria" })).toBeDefined();
   });
 
   it("mostra o estado vazio quando não existem arquivos na pasta", async () => {
@@ -161,6 +161,7 @@ describe("/arquivos — render", () => {
 
     const fileRow = screen.getByText("Regulamento Interno 2026.pdf");
     fireEvent.click(fileRow);
+    fireEvent.click(screen.getByRole("button", { name: "Detalhes" }));
 
     await waitFor(() => {
       expect(screen.getAllByText("REG-2026-01").length).toBeGreaterThan(1);
