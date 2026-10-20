@@ -176,16 +176,22 @@ function blankAudit(
   };
 }
 
-async function openRecord(file: SchoolFileRecord) {
+async function openRecord(
+  file: SchoolFileRecord,
+  viewer: { schoolId: string | null; ownerUserId: string },
+) {
   if (file.isFolder) return;
-  const url = await resolveFileUrl(file);
+  const url = await resolveFileUrl(file, viewer);
   window.open(url, "_blank", "noopener,noreferrer");
   void logSchoolFileEvent({ data: { id: file.id, action: "opened" } }).catch(() => undefined);
 }
 
-async function downloadRecord(file: SchoolFileRecord) {
+async function downloadRecord(
+  file: SchoolFileRecord,
+  viewer: { schoolId: string | null; ownerUserId: string },
+) {
   if (file.isFolder) throw new Error("Pastas não se descarregam.");
-  const blob = await resolveFileBlob(file);
+  const blob = await resolveFileBlob(file, viewer);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -495,7 +501,7 @@ export function FileBrowser({
     }
     let cancelled = false;
     let objectUrl: string | null = null;
-    void resolveFileUrl(selected)
+    void resolveFileUrl(selected, { schoolId: account.schoolId, ownerUserId: account.id })
       .then((url) => {
         if (cancelled) {
           if (url.startsWith("blob:")) URL.revokeObjectURL(url);
@@ -529,12 +535,12 @@ export function FileBrowser({
           onPick(selected);
         } else if (!canAccessFileContent(selected, account.id, account.role)) {
           toast.error(SYSTEM_LOCKED_MSG);
-        } else void openRecord(selected).catch((error) => toast.error(error.message));
+        } else void openRecord(selected, { schoolId: account.schoolId, ownerUserId: account.id }).catch((error) => toast.error(error.message));
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [account.id, account.role, onPick, pickMode, selected]);
+  }, [account.schoolId, account.id, account.role, onPick, pickMode, selected]);
 
   const activityQuery = useQuery({
     queryKey: ["arquivos", "activity", account.schoolId, account.id, account.role, selected?.id],
@@ -1202,7 +1208,7 @@ export function FileBrowser({
                   toast.error(SYSTEM_LOCKED_MSG);
                   return;
                 }
-                void downloadRecord(selected).catch((error) => toast.error(error.message));
+                void downloadRecord(selected, { schoolId: account.schoolId, ownerUserId: account.id }).catch((error) => toast.error(error.message));
               }}
             >
               <Download className="size-3.5" />
@@ -1502,7 +1508,7 @@ export function FileBrowser({
                 onSelectId={(id) => setSelectedId(id)}
                 onToggleSelect={(id, checked) => toggleSelect(id, checked)}
                 onOpenRecord={(file) => {
-                  void openRecord(file).catch((error) => toast.error(error.message));
+                  void openRecord(file, { schoolId: account.schoolId, ownerUserId: account.id }).catch((error) => toast.error(error.message));
                 }}
                 onFolderDoubleClick={(folderId) => {
                   setFolderId(folderId);
@@ -1522,7 +1528,7 @@ export function FileBrowser({
                 onSelectId={(id) => setSelectedId(id)}
                 onToggleSelect={(id, checked) => toggleSelect(id, checked)}
                 onOpenRecord={(file) => {
-                  void openRecord(file).catch((error) => toast.error(error.message));
+                  void openRecord(file, { schoolId: account.schoolId, ownerUserId: account.id }).catch((error) => toast.error(error.message));
                 }}
                 onFolderDoubleClick={(folderId) => {
                   setFolderId(folderId);
@@ -1577,7 +1583,7 @@ export function FileBrowser({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void downloadRecord(selected).catch((error) => toast.error(error.message));
+                      void downloadRecord(selected, { schoolId: account.schoolId, ownerUserId: account.id }).catch((error) => toast.error(error.message));
                     }}
                   >
                     <Download className="size-4" />
@@ -1601,7 +1607,7 @@ export function FileBrowser({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void openRecord(selected).catch((error) => toast.error(error.message));
+                      void openRecord(selected, { schoolId: account.schoolId, ownerUserId: account.id }).catch((error) => toast.error(error.message));
                     }}
                   >
                     Abrir
