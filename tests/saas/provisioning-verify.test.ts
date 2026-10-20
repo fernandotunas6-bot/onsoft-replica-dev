@@ -196,6 +196,13 @@ describe("o script de auditoria da frota não se separa da verificação em runt
       ),
     );
 
+  it("a auditoria distingue escolas arquivadas de falhas operacionais", () => {
+    const source = readFileSync(resolve(raiz, "scripts/siga/audit-provisioning.mjs"), "utf8");
+    expect(source).toContain("s.status       as estado_escola");
+    expect(source).toContain("e.estado_escola,");
+    expect(source).toContain('if (escola.estado_escola === "archived")');
+  });
+
   it("o script cobre todas as peças verificadas na criação", () => {
     const runtime = pecasDe("src/features/saas/provisioning-verify.ts");
     const script = pecasDe("scripts/siga/audit-provisioning.mjs");
