@@ -132,6 +132,32 @@ describe("referências de um ficheiro", () => {
     ).rejects.toThrow(/pasta/);
   });
 
+  it("o movimento bloqueia ciclos, pastas de outras áreas e itens apagados", () => {
+    const source = readFileSync("src/features/arquivos/server.ts", "utf8");
+    const begin = source.indexOf("export const moveSchoolFiles =");
+    const end = source.indexOf("export const listFolderTrail =", begin);
+    expect(begin).toBeGreaterThan(0);
+    expect(end).toBeGreaterThan(begin);
+    const body = source.slice(begin, end);
+    expect(body).toContain('is("deleted_at", null)');
+    expect(body).toContain("movingIds.has(current) || visited.has(current)");
+    expect(body).toContain("A pasta de destino pertence a outra área.");
+    expect(body).toContain("parent.owner_user_id");
+    expect(body).toContain("items.length !== data.ids.length");
+  });
+
+  it("a interface só altera a cache local depois da confirmação remota", () => {
+    const source = readFileSync("src/features/arquivos/FileBrowser.tsx", "utf8");
+    const begin = source.indexOf("const commitMove = async");
+    const end = source.indexOf("const commitUpload = async", begin);
+    const body = source.slice(begin, end);
+    expect(body.indexOf("await moveSchoolFiles(")).toBeGreaterThan(0);
+    expect(body.indexOf("await patchLocalFileMeta(")).toBeGreaterThan(
+      body.indexOf("await moveSchoolFiles("),
+    );
+    expect(body).toContain("result.localOnly || result.moved !== remoteIds.length");
+  });
+
   it("as funções que gravam estas referências verificam-nas", () => {
     const source = readFileSync("src/features/arquivos/server.ts", "utf8");
     for (const name of [
