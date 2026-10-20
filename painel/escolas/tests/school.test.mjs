@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {resolveSchool, createBrand, paletteCss, DEFAULT_BLUE} from '../scripts/school.mjs';
+import {resolveSchool, createBrand, paletteCss, recolor, recolorCss, rgbToHsl, hslToHex, DEFAULT_BLUE} from '../scripts/school.mjs';
 
 const base = {id: 'escola-exemplo', shortName: 'Escola Exemplo', country: 'Angola'};
 const brandFor = extra => createBrand(resolveSchool({...base, ...extra}));
@@ -150,4 +150,63 @@ test('o azul por omissão é o que está no :root do CSS', () => {
   const root = /:root\{([^}]*)\}/.exec(css);
   assert.ok(root, ':root não encontrado em src/style.css');
   assert.match(root[1], new RegExp('--blue:' + DEFAULT_BLUE + '\\b'));
+});
+
+const AZUL = [...'1558ee'.match(/../g)].map(x => parseInt(x, 16));
+const familia = alvo => {
+  const to = [...alvo.slice(1).match(/../g)].map(x => parseInt(x, 16));
+  return hex => recolor(hex, rgbToHsl(AZUL), rgbToHsl(to));
+};
+
+test('a cor de marca sai exactamente na cor pedida', () => {
+  // O ponto fixo da transformação: quem configura #1a7f4b vê #1a7f4b.
+  for (const alvo of ['#1a7f4b', '#b3121e', '#6b4fbb', '#0d2a1b']) {
+    assert.equal(familia(alvo)('#1558ee'), alvo);
+  }
+});
+
+test('a rotação não toca em cores fora da família de azuis', () => {
+  const verde = familia('#1a7f4b');
+  // O lima do desenho e as cores dos cartões de área (roxo, areia, rosa).
+  for (const cor of ['#dcf59a', '#7b5cc3', '#f2effc', '#e8a33d', '#c2410c']) {
+    assert.equal(verde(cor), cor, cor);
+  }
+  // Nem em cinzentos puros, brancos e pretos.
+  for (const cor of ['#fff', '#000', '#808080', '#f5f5f5']) {
+    assert.equal(verde(cor), cor, cor);
+  }
+});
+
+test('a rotação preserva o canal alfa e a escala de luminosidade', () => {
+  const verde = familia('#1a7f4b');
+  assert.match(verde('#1558ee08'), /^#[0-9a-f]{6}08$/);
+  assert.equal(verde('#1558ee08').slice(0, 7), verde('#1558ee'));
+  // Um tom quase branco continua quase branco; um quase preto continua escuro.
+  const claro = rgbToHsl([...verde('#edf3ff').slice(1).match(/../g)].map(x => parseInt(x, 16)));
+  const escuro = rgbToHsl([...verde('#11223e').slice(1).match(/../g)].map(x => parseInt(x, 16)));
+  assert.ok(claro[2] > 0.85, 'claro: ' + claro[2]);
+  assert.ok(escuro[2] < 0.25, 'escuro: ' + escuro[2]);
+});
+
+test('sem cor de marca configurada, o CSS não é tocado', () => {
+  const css = '.button{background:linear-gradient(110deg,#1e63f0,#1558ee)}';
+  assert.equal(recolorCss(css, {}), css);
+  assert.equal(recolorCss(css, {lime: '#dcf59a'}), css);
+});
+
+test('com cor de marca, o CSS inteiro roda — inclusive as cores escritas à mão', () => {
+  // Era o defeito: o gradiente do .button em polish.css ignorava o var(--blue).
+  const css = ':root{--blue:#1558ee}.button{background:linear-gradient(110deg,#1e63f0,#1558ee)}.area-card.lime{background:#dcf59a}';
+  const saida = recolorCss(css, {blue: '#1a7f4b'});
+  assert.ok(!saida.includes('#1558ee'), saida);
+  assert.ok(!saida.includes('#1e63f0'), saida);
+  assert.ok(saida.includes('--blue:#1a7f4b'));
+  assert.ok(saida.includes('#dcf59a'));
+});
+
+test('hslToHex e rgbToHsl fecham o círculo', () => {
+  for (const cor of ['#1558ee', '#dcf59a', '#11223e', '#edf3ff', '#808080']) {
+    const rgb = [...cor.slice(1).match(/../g)].map(x => parseInt(x, 16));
+    assert.equal(hslToHex(rgbToHsl(rgb)), cor.length === 7 ? cor : cor);
+  }
 });

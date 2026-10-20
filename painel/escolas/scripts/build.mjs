@@ -5,7 +5,7 @@ import path from 'node:path';
 import {iconifyHTML} from '../src/icons.mjs';
 import {getCourseSpecs} from '../src/course-specs.mjs';
 import {courses,areas,articles,events,services,faqs,portalNav} from '../src/data.mjs';
-import {loadSchool,createBrand,paletteCss} from './school.mjs';
+import {loadSchool,createBrand,paletteCss,recolorCss} from './school.mjs';
 import {loadNavigation,loadHeader,loadFooter,loadSite,loadSimplePages,loadPageHeads,loadNotices,loadHome,loadInstitutionalPage,loadComponents,COURSE_TOKENS,renderHeadline,renderInline} from './content.mjs';
 const school=loadSchool();
 // A validação em school.mjs recusa & < > " ' no nome, no país e na moeda:
@@ -168,6 +168,9 @@ fs.writeFileSync(out+'/data.json',JSON.stringify({courses,areas,events}));
 for(const name of ['app.js','calendar.mjs','search.mjs','budget.mjs','admissions.mjs','data.mjs','icons.mjs','course-specs.mjs'])fs.writeFileSync(out+'/'+name,brand(fs.readFileSync('src/'+name,'utf8')));
 // A paleta da escola entra como um `:root` no fim do CSS: sobrepõe-se ao `:root`
 // de origem sem o reescrever, e uma escola sem paleta configurada recebe o CSS tal como está.
-fs.writeFileSync(out+'/style.css',brand(['src/style.css','src/refinements.css','src/polish.css'].map(file=>fs.readFileSync(file,'utf8')).join('\n')+paletteCss(school.palette)));
+// A cor de marca roda a família de azuis do CSS inteiro — incluindo as cores
+// escritas à mão, como o gradiente do .button; o `:root` da paleta entra depois
+// e ganha, para os tokens que a escola fixou explicitamente.
+fs.writeFileSync(out+'/style.css',brand(recolorCss(['src/style.css','src/refinements.css','src/polish.css'].map(file=>fs.readFileSync(file,'utf8')).join('\n'),school.palette)+paletteCss(school.palette)));
 fs.writeFileSync('docs/routes.json',brand(JSON.stringify(routes,null,2)));
 console.log(`Built ${routes.length} pages with ${courses.length} individual courses.`);

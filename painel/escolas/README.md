@@ -36,11 +36,14 @@ preciso nomear os que mudam; o build acrescenta um `:root` no fim do CSS com
 esses e a `<meta name="theme-color">` segue o `blue`. Sem `palette`, o CSS sai
 tal como está.
 
-Limite conhecido: 122 regras do CSS seguem `var(--blue)`, mas há cerca de 600
-cores escritas à mão — sobretudo fundos quase brancos com um toque de azul
-(`#edf3ff` e família). Uma escola com marca verde recebe botões, ligações e
-ênfases verdes sobre painéis ainda levemente azuis. Converter essas cores em
-tokens é o passo seguinte.
+Com `blue` configurado, o build roda a **família de azuis do CSS inteiro** para
+a cor da escola: mesma luminosidade, mesma relação entre tons, outro matiz.
+Isto apanha as cerca de 600 cores escritas à mão — incluindo o gradiente do
+`.button` em `polish.css`, que se sobrepunha ao `var(--blue)` e mantinha o
+botão principal azul numa escola verde. O lima do desenho e as cores dos
+cartões de área (roxo, areia) ficam como estão, por estarem fora da família.
+
+Sem `palette`, o CSS sai byte a byte igual ao de origem.
 
 `portalUrl`, quando configurado com o endereço HTTPS oficial da escola, faz o botão de acesso usar o SIGA Plus existente. Não cria um login nem duplica notas, finanças ou sessões. O perfil local do portal continua explicitamente demonstrativo.
 
