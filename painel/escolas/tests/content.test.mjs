@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, renderInline, richText} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -229,4 +229,34 @@ test('os artigos em destaque existem no catálogo', async () => {
   const {articles} = await import('../src/data.mjs');
   const ids = new Set(articles.map(a => a.id));
   for (const id of loadInstitutionalPage('vida-academica').articles.ids) assert.ok(ids.has(id), id);
+});
+
+test('uma ligação dentro de uma frase é [rótulo](/caminho/)', () => {
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  assert.equal(renderInline('Pode exportar em [O meu perfil](/portal/perfil/).', esc), 'Pode exportar em <a href="/portal/perfil/">O meu perfil</a>.');
+  assert.equal(richText('ver [aqui](/ajuda/)', 'x'), 'ver [aqui](/ajuda/)');
+  // O destino é validado como caminho interno, como o resto da navegação.
+  assert.throws(() => richText('ver [aqui](https://exemplo.com/)', 'x'), /Ligação interna inválida/);
+  assert.throws(() => richText('ver [aqui](javascript:alert(1))', 'x'), /x/);
+  for (const value of ['ver [aqui sem destino', 'ver aqui](/x/)', '[](/x/)']) {
+    assert.throws(() => richText(value, 'x'), /x/, value);
+  }
+  // E escapa antes de converter: o conteúdo não pode trazer marcação.
+  assert.equal(renderInline('<b>[x](/y/)</b>', esc), '&lt;b&gt;<a href="/y/">x</a>&lt;/b&gt;');
+});
+
+test('as páginas de texto corrido passam a validação', () => {
+  for (const name of ['privacidade', 'acessibilidade', 'sobre-o-projecto']) {
+    const page = loadInstitutionalPage(name);
+    assert.ok(page.sections.length >= 4, name);
+    for (const section of page.sections) {
+      assert.ok(section.title.length > 0, name);
+      assert.ok(section.paragraphs.length >= 1, name);
+    }
+  }
+  // A lista de referências é opcional e só existe numa secção.
+  const projecto = loadInstitutionalPage('sobre-o-projecto');
+  assert.equal(projecto.sections.filter(s => s.links).length, 1);
+  assert.equal(projecto.sections.find(s => s.links).links.length, 4);
+  assert.equal(loadInstitutionalPage('privacidade').sections.every(s => s.links === null), true);
 });

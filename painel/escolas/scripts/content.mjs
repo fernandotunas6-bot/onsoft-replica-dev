@@ -161,14 +161,35 @@ export function emphasis(value, caminho) {
  * O `tag` também vem do gerador. A faixa azul da entrada destaca com `<span>`
  * e não com `<em>`: o conteúdo diz que há ênfase, o gerador diz como se vê.
  */
+const LINK = /\[([^\]]+)\]\(([^()\s]+)\)/g;
+
+export function renderInline(value, esc, tag = 'em') {
+  return esc(value)
+    .replace(LINK, '<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<' + tag + '>$1</' + tag + '>');
+}
+
 export function renderHeadline(value, esc, tag = 'em') {
-  return value
-    .map(line =>
-      esc(line)
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<' + tag + '>$1</' + tag + '>'),
-    )
-    .join('<br>');
+  return value.map(line => renderInline(line, esc, tag)).join('<br>');
+}
+
+/**
+ * Ligação dentro de uma frase: `[o meu perfil](/portal/perfil/)`.
+ *
+ * As páginas de texto corrido têm ligações no meio dos parágrafos. Sem uma
+ * convenção, o parágrafo teria de trazer `<a href>` — marcação, logo
+ * inescapável. O destino é validado como caminho interno, como em toda a
+ * navegação do site.
+ */
+export function richText(value, caminho) {
+  emphasis(value, caminho);
+  const rest = value.replace(LINK, (match, label, url) => {
+    internalUrl(url, caminho);
+    return label;
+  });
+  if (/[[\]]/.test(rest)) throw Error('Ligação mal formada em ' + caminho + ': ' + value);
+  return value;
 }
 
 /** Título em várias linhas: cada linha é uma quebra no site. */
@@ -313,6 +334,7 @@ export function loadNotices() {
 const SHAPES = {
   text: (value, caminho) => text(value, caminho),
   lines: (value, caminho) => lines(value, caminho),
+  rich: (value, caminho) => richText(value, caminho),
   url: (value, caminho) => internalUrl(value, caminho),
   external: (value, caminho) => externalUrl(value, caminho),
   action: (value, caminho) => ({
@@ -330,7 +352,13 @@ export function shaped(value, shape, caminho) {
   }
   if (Array.isArray(shape)) return list(value, caminho).map((item, i) => shaped(item, shape[0], `${caminho}[${i}]`));
   const out = {};
-  for (const [key, inner] of Object.entries(shape)) out[key] = shaped(value?.[key], inner, caminho + '.' + key);
+  for (const [key, inner] of Object.entries(shape)) {
+    // `chave?` é opcional: ausente dá null, presente é validada como as outras.
+    const optional = key.endsWith('?');
+    const name = optional ? key.slice(0, -1) : key;
+    const found = value?.[name];
+    out[name] = optional && (found === undefined || found === null) ? null : shaped(found, inner, caminho + '.' + name);
+  }
   return out;
 }
 
@@ -367,6 +395,16 @@ export function loadHome() {
   });
 }
 
+/** Texto corrido: títulos, parágrafos com ligações e, às vezes, uma lista. */
+const PROSE = {
+  title: 'text', crumb: 'text',
+  sections: [{
+    title: 'text',
+    paragraphs: ['rich'],
+    'links?': [{url: 'external', label: 'text', text: 'text'}],
+  }],
+};
+
 /** Páginas institucionais: uma forma por página, o ficheiro em content/pages/. */
 export const PAGE_SHAPES = {
   sobre: {
@@ -389,6 +427,14 @@ export const PAGE_SHAPES = {
   servicos: {
     title: 'text', crumb: 'text', eyebrow: 'text', headline: 'lines',
     text: 'lines', cardLabel: 'text',
+  },
+  // As três páginas de texto corrido partilham a mesma forma.
+  privacidade: PROSE,
+  acessibilidade: PROSE,
+  'sobre-o-projecto': PROSE,
+  'mapa-do-site': {
+    title: 'text', crumb: 'text',
+    groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},
   },
 };
 

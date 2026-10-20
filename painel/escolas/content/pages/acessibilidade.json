@@ -1,0 +1,22 @@
+{
+  "title": "Acessibilidade",
+  "crumb": "Acessibilidade",
+  "sections": [
+    {
+      "title": "Navegação por teclado",
+      "paragraphs": ["Utilize Tab para percorrer links e controlos, Enter ou Espaço para activar botões e Escape para fechar janelas e menus. O primeiro link de cada página permite saltar para o conteúdo principal."]
+    },
+    {
+      "title": "Leitura e orientação",
+      "paragraphs": ["As páginas usam títulos hierárquicos, rótulos nos formulários, textos alternativos em imagens informativas e mensagens de estado para os fluxos interactivos."]
+    },
+    {
+      "title": "Movimento e ecrãs",
+      "paragraphs": ["A interface adapta-se a ecrãs pequenos e respeita a preferência do sistema por movimento reduzido. Pode também reduzir as animações nas [preferências do portal](/portal/perfil/)."]
+    },
+    {
+      "title": "Limites e melhorias",
+      "paragraphs": ["Esta prévia ainda não passou por uma auditoria formal de conformidade. Se encontrar uma barreira, pode [preparar uma mensagem](/contactos/?assunto=Apoio%20ao%20estudante) para documentar o problema."]
+    }
+  ]
+}

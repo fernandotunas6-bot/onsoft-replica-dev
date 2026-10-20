@@ -1,0 +1,26 @@
+{
+  "title": "Privacidade",
+  "crumb": "Privacidade",
+  "sections": [
+    {
+      "title": "Dados desta demonstração",
+      "paragraphs": ["O catálogo e o perfil académico são fictícios. Favoritos, lista de preparação, comparação, preferências, rascunhos, candidaturas e pedidos são guardados no armazenamento local deste navegador. Não existe sincronização entre dispositivos nem envio institucional desses registos."]
+    },
+    {
+      "title": "Informações nos formulários",
+      "paragraphs": ["Utilize dados fictícios. A candidatura guarda localmente as informações introduzidas apenas quando guarda um rascunho ou conclui a demonstração. Não são solicitados documentos de identidade, dados bancários ou senhas institucionais."]
+    },
+    {
+      "title": "Controlar e apagar os dados",
+      "paragraphs": ["Pode exportar ou apagar os dados em [O meu perfil](/portal/perfil/). Apagar o armazenamento do navegador também remove estes registos. Não é possível recuperá-los após a eliminação, salvo se tiver uma exportação própria."]
+    },
+    {
+      "title": "Acesso e recursos externos",
+      "paragraphs": ["O login com ChatGPT é tratado pela hospedagem Sites. O site carrega fontes do Google Fonts e inclui links para recursos externos; cada fornecedor tem as suas próprias políticas. Fotografias ilustrativas estão guardadas nos ficheiros do site. Não foram adicionados rastreadores publicitários ou analítica."]
+    },
+    {
+      "title": "Antes de uma operação oficial",
+      "paragraphs": ["A instituição deverá validar a política de privacidade, os prazos de conservação, as bases de tratamento, os canais de contacto e os fornecedores antes de recolher dados para candidaturas ou serviços reais."]
+    }
+  ]
+}

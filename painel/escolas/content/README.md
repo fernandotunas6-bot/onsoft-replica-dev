@@ -14,7 +14,7 @@ textos, os rótulos e as ligações. Editar aqui não exige tocar em código.
 | `page-heads.json` | O cabeçalho de cada página, pela rota: olho, título e descrição. |
 | `notices.json` | Os avisos de versão demonstrativa, por chave — o que reescrever na activação de uma escola real. |
 | `simple-pages.json` | As cinco páginas de serviço (secretaria, apoio, carreiras, investigação, bolsas). |
-| `pages/*.json` | Uma página institucional por ficheiro: `sobre`, `vida-academica`, `campus`, `servicos`. |
+| `pages/*.json` | Uma página por ficheiro: `sobre`, `vida-academica`, `campus`, `servicos`, `privacidade`, `acessibilidade`, `sobre-o-projecto`, `mapa-do-site`. |
 
 A identidade da escola — nome, país, idioma, moeda — **não** está aqui: está
 em `../school.config.json`, porque é configuração do cliente e não texto
@@ -40,6 +40,9 @@ quem decide é o gerador: o conteúdo diz apenas que há ênfase.
 `internalUrl()` recusa `https://…`, `//…` e `javascript:…`. Uma ligação para
 fora não se disfarça de página interna. `"external": true` acrescenta a seta
 de saída ao rótulo.
+
+Dentro de uma frase, uma ligação escreve-se `[o meu perfil](/portal/perfil/)`.
+O destino é validado como caminho interno, como qualquer outra ligação.
 
 A única saída do site é o bloco `resources` de uma página, onde `externalUrl()`
 aceita `https://` sem credenciais — a agência de bolsas do país é conteúdo da
