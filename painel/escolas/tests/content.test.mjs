@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, renderInline, richText, COURSE_TOKENS} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, loadComponents, renderInline, richText, COURSE_TOKENS, GENERATOR_TOKENS} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -82,8 +82,9 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     return [];
   };
   // O molde do curso usa marcadores que o gerador resolve antes do brand().
-  const semMarcadoresDoCurso = value => value.replace(new RegExp('\\{\\{(' + COURSE_TOKENS.join('|') + ')\\}\\}', 'g'), 'x');
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso']) {
+  const locais = [...COURSE_TOKENS, ...GENERATOR_TOKENS];
+  const semMarcadoresDoCurso = value => value.replace(new RegExp('\\{\\{(' + locais.join('|') + ')\\}\\}', 'g'), 'x');
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso', 'components', 'pages/artigo', 'pages/portal']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(semMarcadoresDoCurso(value)), name + ': ' + value);
     }
@@ -333,4 +334,21 @@ test('o molde das páginas de curso usa marcadores para os dados', () => {
   assert.equal(curso.questions.items.length, 3);
   // Os âncoras da navegação do curso são os ids das secções do gerador.
   assert.deepEqual(curso.subnav.items.map(i => i.anchor), ['apresentacao', 'competencias', 'plano', 'carreiras', 'ingresso']);
+});
+
+test('os cartões partilhados são conteúdo', () => {
+  const ui = loadComponents();
+  assert.ok(ui.courseCard.favouriteLabel.includes('{{COURSE}}'));
+  assert.ok(ui.eventCard.saveLabel.includes('{{EVENT}}'));
+  assert.ok(ui.searchBox.button.length > 0);
+});
+
+test('a moldura do portal e a ficha do artigo passam a validação', () => {
+  const portal = loadInstitutionalPage('portal');
+  assert.equal(portal.sidebar.links.every(l => l.icon && l.url.startsWith('/')), true);
+  assert.ok(portal.profile.initials.length <= 3);
+  assert.ok(portal.footer.link.url.startsWith('/'));
+  const artigo = loadInstitutionalPage('artigo');
+  assert.match(artigo.byline.datetime, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(artigo.share.link.url.startsWith('/'));
 });

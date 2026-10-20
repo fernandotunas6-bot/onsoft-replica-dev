@@ -342,6 +342,7 @@ const SHAPES = {
     label: text(value?.label, caminho + '.label'),
   }),
   link: (value, caminho) => navLink(value, caminho),
+  iconLink: (value, caminho) => ({...navLink(value, caminho), icon: text(value?.icon, caminho + '.icon')}),
 };
 
 export function shaped(value, shape, caminho) {
@@ -412,10 +413,25 @@ const PROSE = {
  * marcador. Esta lista é o contrato entre o conteúdo e o gerador — o build
  * verifica que os valores que fornece são exactamente estes.
  */
+export const GENERATOR_TOKENS = ['COURSE', 'EVENT'];
+
 export const COURSE_TOKENS = [
   'COURSE', 'DESCRIPTION', 'LEVEL', 'DURATION', 'MODE', 'SHIFT', 'UNIT',
   'STRUCTURE', 'LANGUAGE', 'DELIVERY', 'PRACTICE', 'ASSESSMENT', 'RESOURCES', 'ACCESS',
 ];
+
+/** Cartões e caixas de pesquisa que aparecem em várias páginas. */
+export function loadComponents() {
+  return loadPage('components', {
+    courseCard: {favouriteLabel: 'text', link: 'text', compare: 'text'},
+    articleCard: {tag: 'text', link: 'text'},
+    eventCard: {tag: 'text', saveLabel: 'text', save: 'text'},
+    searchBox: {
+      queryLabel: 'text', placeholder: 'text',
+      levelLabel: 'text', levelAll: 'text', button: 'text',
+    },
+  });
+}
 
 /** Páginas institucionais: uma forma por página, o ficheiro em content/pages/. */
 export const PAGE_SHAPES = {
@@ -575,6 +591,21 @@ export const PAGE_SHAPES = {
     },
     mobile: {label: 'text', tag: 'text', button: 'text'},
     related: {eyebrow: 'text', title: 'text', link: 'action'},
+  },
+  artigo: {
+    tag: 'text',
+    byline: {author: 'text', date: 'text', datetime: 'text', readingTime: 'text'},
+    coverAlt: 'text',
+    share: {copy: 'text', link: 'action'},
+  },
+  portal: {
+    label: 'text', navLabel: 'text',
+    sidebar: {links: ['iconLink'], signOut: {icon: 'text', label: 'text'}},
+    profile: {initials: 'text', name: 'text', role: 'text', viewLabel: 'text'},
+    header: {menuLabel: 'text', eyebrow: 'text', searchLabel: 'text', noticesLabel: 'text'},
+    demoStrip: {icon: 'text', title: 'text', text: 'text', link: 'link'},
+    pageEyebrow: 'text', semester: 'text',
+    footer: {text: 'text', link: 'link'},
   },
   'mapa-do-site': {
     title: 'text', crumb: 'text',

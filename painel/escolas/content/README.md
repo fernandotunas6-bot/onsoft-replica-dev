@@ -11,6 +11,7 @@ textos, os rótulos e as ligações. Editar aqui não exige tocar em código.
 | `footer.json` | Assinatura, colunas de ligações, aviso de versão demonstrativa e barra legal. |
 | `site.json` | Blocos repetidos em todas as páginas: metadados, aviso padrão e chamada final. |
 | `home.json` | A página de entrada inteira: herói, atalhos, as quatro secções e a faixa azul. |
+| `components.json` | Os cartões repetidos: curso, artigo, evento, e a caixa de pesquisa. |
 | `page-heads.json` | O cabeçalho de cada página, pela rota: olho, título e descrição. |
 | `notices.json` | Os avisos de versão demonstrativa, por chave — o que reescrever na activação de uma escola real. |
 | `simple-pages.json` | As cinco páginas de serviço (secretaria, apoio, carreiras, investigação, bolsas). |
