@@ -1,0 +1,21 @@
+{
+  "title": "Informação financeira",
+  "info": "Este painel é ilustrativo. Não representa dívidas ou pagamentos reais e não permite efectuar transacções.",
+  "stats": [
+    { "icon": "◈", "value": "— {{CURRENCY}}", "label": "Valores oficiais a confirmar", "color": "blue" },
+    { "icon": "✓", "value": "Sem cobrança", "label": "Esta demonstração não cobra propinas", "color": "lime" },
+    { "icon": "ⓘ", "value": "Orientação", "label": "Procure os canais oficiais da instituição", "color": "purple" }
+  ],
+  "panel": { "title": "Como será a consulta financeira", "badge": "Prévia" },
+  "columns": ["Descrição", "Período", "Valor", "Estado"],
+  "rows": ["Propina mensal", "Taxa de matrícula", "Serviços académicos"],
+  "rowCategory": "Categoria ilustrativa",
+  "rowPeriod": "A confirmar",
+  "rowValue": "— {{CURRENCY}}",
+  "rowStatus": "Sem dados oficiais",
+  "note": {
+    "title": "Antes de efectuar um pagamento",
+    "text": "Confirme a tabela de propinas, a referência bancária e os prazos directamente com a instituição. Este site não gera referências nem solicita dados bancários.",
+    "link": { "url": "/contactos/?assunto=Serviços%20académicos", "label": "Preparar pedido de informação" }
+  }
+}

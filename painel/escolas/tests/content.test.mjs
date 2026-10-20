@@ -84,7 +84,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
   // O molde do curso usa marcadores que o gerador resolve antes do brand().
   const locais = [...COURSE_TOKENS, ...GENERATOR_TOKENS];
   const semMarcadoresDoCurso = value => value.replace(new RegExp('\\{\\{(' + locais.join('|') + ')\\}\\}', 'g'), 'x');
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso', 'components', 'pages/artigo', 'pages/portal', 'pages/escolher-curso', 'pages/planear-custos', 'pages/preparar-candidatura', 'pages/percursos-de-ingresso', 'pages/novos-estudantes']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso', 'components', 'pages/artigo', 'pages/portal', 'pages/escolher-curso', 'pages/planear-custos', 'pages/preparar-candidatura', 'pages/percursos-de-ingresso', 'pages/novos-estudantes', 'pages/portal-inicio', 'pages/portal-disciplinas', 'pages/portal-notas', 'pages/portal-horarios', 'pages/portal-candidaturas', 'pages/portal-financeiro', 'pages/portal-documentos', 'pages/portal-pedidos', 'pages/portal-perfil']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(semMarcadoresDoCurso(value)), name + ': ' + value);
     }
@@ -218,10 +218,9 @@ test('as páginas institucionais passam a validação', () => {
     assert.ok(Object.keys(page).length > 0, name);
     // Nem toda a página tem título próprio: a agenda traz um por rota e o
     // `curso` é o molde das 18 páginas de curso, cujo título é o nome do curso.
-    if (shape.title) {
-      assert.ok(page.title.length > 0, name);
-      assert.ok(page.crumb.length > 0, name);
-    }
+    if (shape.title) assert.ok(page.title.length > 0, name);
+    // As páginas do portal não têm migalha: a moldura do portal não a mostra.
+    if (shape.crumb) assert.ok(page.crumb.length > 0, name);
   }
   for (const page of [loadInstitutionalPage('agenda').events, loadInstitutionalPage('agenda').calendar]) {
     assert.ok(page.title.length > 0);
@@ -378,4 +377,22 @@ test('os guias passam a validação e o total de tarefas não está escrito no t
   const custos = loadInstitutionalPage('planear-custos');
   assert.equal(Object.keys(custos.form.fields).length, 8);
   assert.equal(Object.keys(custos.summary.rows).length, 4);
+});
+
+test('as nove páginas do portal passam a validação', () => {
+  const nomes = Object.keys(PAGE_SHAPES).filter(n => n.startsWith('portal-'));
+  assert.equal(nomes.length, 9);
+  for (const nome of nomes) {
+    const page = loadInstitutionalPage(nome);
+    assert.ok(page.title.length > 0, nome);
+  }
+  const inicio = loadInstitutionalPage('portal-inicio');
+  assert.equal(inicio.stats.length, 4);
+  assert.equal(inicio.quick.items.length, 4);
+  assert.equal(inicio.week.days.length, 3);
+  assert.ok(inicio.radar.saveLabel.includes('{{EVENT}}'));
+  // Os valores em dinheiro do painel financeiro seguem a moeda da escola.
+  const financeiro = loadInstitutionalPage('portal-financeiro');
+  assert.ok(financeiro.rowValue.includes('{{CURRENCY}}'));
+  assert.ok(financeiro.stats.some(s => s.value.includes('{{CURRENCY}}')));
 });

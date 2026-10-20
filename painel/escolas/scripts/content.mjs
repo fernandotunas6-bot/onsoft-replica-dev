@@ -658,6 +658,60 @@ export const PAGE_SHAPES = {
     second: {headline: 'lines', items: [{title: 'text', text: 'text', link: 'action'}]},
     inlineCta: {text: 'text', action: 'action'},
   },
+  // As nove páginas do portal demonstrativo.
+  'portal-inicio': {
+    title: 'text',
+    welcome: {
+      eyebrow: 'text', greeting: 'text', question: 'text', text: 'text',
+      action: 'action', note: 'lines',
+    },
+    stats: [{icon: 'text', value: 'text', label: 'text', color: 'text'}],
+    week: {title: 'text', link: 'link', days: ['text'], note: 'text'},
+    quick: {title: 'text', items: [{url: 'url', icon: 'text', label: 'text'}]},
+    radar: {title: 'text', link: 'link', note: 'text', saveLabel: 'text'},
+  },
+  'portal-disciplinas': {title: 'text', info: 'text', tag: 'text', link: 'text'},
+  'portal-notas': {
+    title: 'text', info: 'text',
+    stats: [{icon: 'text', value: 'text', label: 'text', color: 'text'}],
+    panel: {title: 'text', export: 'text'},
+    columns: ['text'], rowSubtitle: 'text', gradeScale: 'text', rowStatus: 'text',
+  },
+  'portal-horarios': {
+    title: 'text', info: 'text',
+    panel: {title: 'text', grid: 'text', list: 'text'},
+    timeColumn: 'text', days: ['text'], empty: 'text', listNote: 'text',
+  },
+  'portal-candidaturas': {title: 'text', inlineCta: {text: 'text', action: 'action'}},
+  'portal-financeiro': {
+    title: 'text', info: 'text',
+    stats: [{icon: 'text', value: 'text', label: 'text', color: 'text'}],
+    panel: {title: 'text', badge: 'text'},
+    columns: ['text'], rows: ['text'],
+    rowCategory: 'text', rowPeriod: 'text', rowValue: 'text', rowStatus: 'text',
+    note: {title: 'text', text: 'text', link: 'action'},
+  },
+  'portal-documentos': {
+    title: 'text', info: 'text', icon: 'text', status: 'text', download: 'text',
+    cards: [{id: 'text', title: 'text', text: 'text'}],
+    official: {title: 'text', text: 'text', link: 'action'},
+  },
+  'portal-pedidos': {
+    title: 'text', info: 'text',
+    form: {
+      title: 'text', text: 'text',
+      type: {label: 'text', placeholder: 'text', options: ['text']},
+      description: {label: 'text', placeholder: 'text'},
+      submit: 'text',
+    },
+    list: {title: 'text', icon: 'text'},
+  },
+  'portal-perfil': {
+    title: 'text',
+    profile: {initials: 'text', name: 'text', course: 'text', status: 'text'},
+    preferences: {title: 'text', nameLabel: 'text', namePlaceholder: 'text', motionLabel: 'text', submit: 'text'},
+    data: {title: 'text', text: 'text', export: 'text', clear: 'text', link: 'action'},
+  },
   'mapa-do-site': {
     title: 'text', crumb: 'text',
     groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},
