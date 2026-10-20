@@ -23,7 +23,7 @@ Esta é a documentação **própria** do módulo `school-sites`, diferente do si
 | `/configuracoes/site` | Administrador da escola | Editar e publicar |
 | `/` | SIGA existente | Portal com login e módulos actuais |
 
-O sistema não exige migração SQL para esta fase: usa o domínio `school_website` da tabela existente `school_settings`. O conteúdo default é calculado, mas não exposto publicamente sem publicação explícita. `published` e `draft` são separados.
+O sistema não exige migração SQL para esta fase: usa o domínio `school_website` da tabela existente `school_settings`, com inserções versionadas, RLS, AAL2 e consulta à versão mais recente. O conteúdo default é calculado, mas não exposto publicamente sem publicação explícita. `published` e `draft` são separados.
 
 ## Limites da entrega
 
