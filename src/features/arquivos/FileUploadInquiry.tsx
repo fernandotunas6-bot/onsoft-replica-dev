@@ -406,9 +406,7 @@ export function FileUploadInquiryModal({
                 </p>
               )}
               {existingCheckIncomplete ? (
-                <p className="mt-2 text-xs text-destructive">
-                  Pesquisa incompleta.
-                </p>
+                <p className="mt-2 text-xs text-destructive">Pesquisa incompleta.</p>
               ) : null}
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Correspondência por nome e tamanho; conteúdo não confirmado.
@@ -521,9 +519,7 @@ export function FileUploadInquiryModal({
                     maxLength={40}
                     className="font-mono text-sm"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    ID gerado automaticamente.
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">ID gerado automaticamente.</p>
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -565,9 +561,7 @@ export function FileUploadInquiryModal({
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-muted-foreground">
-                  Conta predefinida: a sua.
-                </p>
+                <p className="text-[11px] text-muted-foreground">Conta predefinida: a sua.</p>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="file-meta-person-q">
