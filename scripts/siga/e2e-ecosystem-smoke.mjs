@@ -185,7 +185,9 @@ if (skipped > 0) {
 }
 
 if (failed > 0 || (REQUIRE_COMPLETE && skipped > 0)) {
-  console.error(`\nSmoke inconclusivo: ${failed} falhas e ${skipped} ignoradas. Confirme: npm run dev:ecosystem`);
+  console.error(
+    `\nSmoke inconclusivo: ${failed} falhas e ${skipped} ignoradas. Confirme: npm run dev:ecosystem`,
+  );
   process.exit(1);
 }
 
