@@ -55,7 +55,9 @@ export function FilePickerModal({
             acceptKinds={acceptKinds}
             initialRelatedPersonId={initialRelatedPersonId}
             uploadClassGroupId={
-              request?.purpose === "class-material" ? (request.classGroupId ?? undefined) : undefined
+              request?.purpose === "class-material"
+                ? (request.classGroupId ?? undefined)
+                : undefined
             }
             onPick={(file) => {
               if (file.isFolder || validating) return;
