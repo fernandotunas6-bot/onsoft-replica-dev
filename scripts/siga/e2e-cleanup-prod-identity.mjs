@@ -49,3 +49,13 @@ export function parseE2ECleanupArgs(args) {
   }
   return { execute, tenantId };
 }
+
+/** Uma única linha existente impede a eliminação automática em produção. */
+export function assertProductionArtifactCount(table, count) {
+  if (typeof count !== "number" || !Number.isSafeInteger(count) || count < 0) {
+    throw new Error(`Limpeza em produção bloqueada: não foi possível auditar ${table}.`);
+  }
+  if (count > 0) {
+    throw new Error(`Limpeza em produção bloqueada: existem registos em ${table}.`);
+  }
+}
