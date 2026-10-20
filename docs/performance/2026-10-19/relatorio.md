@@ -384,6 +384,45 @@ O que continua a valer desta via local é o que é determinístico ou robusto ao
 o manifesto de recursos, os bytes, o CLS, o overflow, os erros de consola e as
 dimensões do painel. A pontuação, não.
 
+## A nota, finalmente: veio do CI (2026-10-20)
+
+Ficou dito ao longo do ciclo que a pontuação só podia sair do CI. Saiu. O ciclo
+inteiro entrou na `main` (#179 em `e5c1a0e7`, #185 em `9c5c9fc6`) e o job Lighthouse
+correu sobre o Worker de produção, comprimido e em máquina consistente — as
+condições que faltavam aqui. Comparação com a corrida de `0c474486`, de 19/10 às
+12:37, antes do trabalho nas rotas:
+
+| Página                | perf antes → depois | FCP antes → depois |
+| --------------------- | ------------------- | ------------------ |
+| `/` (ecrã de entrada) | 0,94 → **0,96**     | 1 207 → 1 032 ms   |
+| `/alunos`             | 0,95 → **0,97**     | 1 163 → 970 ms     |
+| `/pedagogica`         | 0,95 → **0,97**     | 1 145 → 1 032 ms   |
+| `/documentos`         | 0,94 → **0,96**     | 1 193 → 1 054 ms   |
+| `/pessoas`            | 0,94 → **0,96**     | 1 203 → 1 115 ms   |
+| `/faturas`            | 0,95 → 0,95         | 1 171 → 1 129 ms   |
+| `/importar`           | 0,95 → 0,95         | 1 053 → 1 086 ms   |
+
+Mediana global 0,95 → 0,96; FCP 1 164 → 1 079 ms; LCP 1 188 → 1 083 ms. Três
+corridas por página, 21 de cada lado.
+
+**O número que interessa é o piso, não a mediana.** A amplitude passou de
+0,92–0,97 para **0,95–0,97**: a pior corrida subiu três pontos e a margem para o
+mínimo de 0,90 do gate passou de 0,02 para 0,05. Um gate que passava por pouco
+passa agora com folga.
+
+Duas ressalvas, para isto não ser lido como mais do que é. **Não é tudo deste
+trabalho**: entre os dois commits estão também o #180 (responsividade e
+acessibilidade), o #183, o #184 e o trabalho de outro agente no ciclo de vida do
+ecrã de entrada, nas mensagens não lidas e no relógio do painel. É o resultado
+composto do ciclo, não a atribuição de uma mudança. E continuam a ser três corridas
+por página num runner partilhado — melhor do que o laboratório local, não um estudo
+de campo.
+
+Fica também confirmado, por contraste, o aviso da secção seguinte: aqui as notas
+locais andavam entre 0,50 e 0,75 nas corridas válidas, e as que davam 0,99 estavam
+partidas. O CI, nas mesmas páginas, dá 0,95–0,97. A máquina local não serve para
+pontuação — serve para pedidos, bytes e contratos, que são determinísticos.
+
 ## Lighthouse local: uma nota alta é sinal de avaria
 
 Confirma-se que a pontuação não sai desta máquina, e acrescenta-se **porquê** —
