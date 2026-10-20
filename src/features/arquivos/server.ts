@@ -954,7 +954,10 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
           throw new Error("Mover criaria um ciclo entre pastas.");
         }
         visited.add(current);
-        const ancestorLookup = await db
+        const ancestorLookup: {
+          data: { parent_id: string | null; is_folder: boolean; area: string } | null;
+          error: unknown;
+        } = await db
           .from("siga_files")
           .select("id, parent_id, is_folder, area")
           .eq("id", current)
