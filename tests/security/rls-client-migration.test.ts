@@ -73,12 +73,6 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // status activo, escola activa e APENAS o snapshot publicado/consentido.
   // Nunca exporta linhas do banco, rascunhos ou service_role para o browser.
   "src/features/school-site/public-server.ts",
-  // Gestão do website: school_settings permite SELECT e INSERT com RLS,
-  // mas NÃO tem política UPDATE para authenticated (schema de produção
-  // revisto em 2026-10-20). Apenas o servidor faz UPDATE com CAS/version,
-  // exigindo auth, Administrador da própria escola, módulo gestao, tenant
-  // válido e AAL2. Cada operação filtra por schoolId obtido da membership.
-  "src/features/school-site/editor-server.ts",
   "src/features/school/admin-welcome.ts",
   // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
   // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada
