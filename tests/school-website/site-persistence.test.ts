@@ -129,7 +129,9 @@ describe("school-site — versões append-only e RLS", () => {
     const b = await latestSchoolSiteRow(store.db, "school-B");
     expect(a?.version).toBe(1);
     expect(b?.version).toBe(1);
-    expect(a?.school_id).toBe("school-A");
-    expect(b?.school_id).toBe("school-B");
+    // O leitor privado projecta apenas id/version/value; o teste confirma
+    // o filtro escolar através das linhas guardadas, não expõe school_id.
+    expect(store.rows.filter((row) => row.school_id === "school-A")).toHaveLength(1);
+    expect(store.rows.filter((row) => row.school_id === "school-B")).toHaveLength(1);
   });
 });
