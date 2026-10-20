@@ -46,7 +46,11 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
 
   test.beforeEach(async ({ page }) => {
     await page.route("**/api/public/school-site", async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture) });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(fixture),
+      });
     });
   });
 
@@ -56,10 +60,15 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
       await page.goto("/site", { waitUntil: "domcontentloaded" });
 
       await expect(page.locator(".school-site__header")).toBeVisible();
-      await expect(page.getByRole("heading", { level: 1, name: /Colégio Visual de Testes/ })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 1, name: /Colégio Visual de Testes/ }),
+      ).toBeVisible();
       await expect(page.locator(".school-site__hero-visual")).toBeVisible();
       await expect(page.locator(".school-site__footer")).toBeVisible();
-      await expect(page.getByRole("link", { name: /Aceder ao portal/i })).toHaveAttribute("href", "/");
+      await expect(page.getByRole("link", { name: /Aceder ao portal/i })).toHaveAttribute(
+        "href",
+        "/",
+      );
 
       const dimensions = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
@@ -76,7 +85,9 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
     });
   }
 
-  test("a página pública não revela rascunho e segue a tipografia institucional", async ({ page }) => {
+  test("a página pública não revela rascunho e segue a tipografia institucional", async ({
+    page,
+  }) => {
     await page.goto("/site");
     await expect(page.locator(".school-site__hero")).toBeVisible();
     const presentation = await page.locator(".school-site").evaluate((node) => ({
@@ -93,9 +104,10 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/site");
     await expect(page.getByRole("link", { name: /Aceder ao portal/i })).toBeVisible();
-    const duration = await page.locator(".school-site__button").first().evaluate(
-      (el) => getComputedStyle(el).transitionDuration,
-    );
+    const duration = await page
+      .locator(".school-site__button")
+      .first()
+      .evaluate((el) => getComputedStyle(el).transitionDuration);
     expect(duration.split(",").every((time) => Number.parseFloat(time) === 0)).toBe(true);
   });
 });
