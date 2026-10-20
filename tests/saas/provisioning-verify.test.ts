@@ -84,7 +84,9 @@ describe("findProvisioningGaps", () => {
             return chain;
           },
           then: (resolve: (value: unknown) => unknown) =>
-            Promise.resolve({ count: (COMPLETO as Record<string, number>)[table] ?? 0 }).then(resolve),
+            Promise.resolve({ count: (COMPLETO as Record<string, number>)[table] ?? 0 }).then(
+              resolve,
+            ),
         };
         return chain;
       },
