@@ -2,7 +2,9 @@ name: School Site Local Visual Smoke (temporary)
 on:
   push:
     branches: [feat/school-sites-multitenant-20261020]
-    paths: [".github/workflows/_school-site-visual-smoke-temp.yml"]
+    paths:
+      - ".github/workflows/_school-site-visual-smoke-temp.yml"
+      - "tests/e2e/school-site-visual.spec.ts"
 permissions:
   contents: read
 jobs:
