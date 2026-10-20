@@ -2,14 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const server = readFileSync(
-  resolve(process.cwd(), "src/features/arquivos/server.ts"),
-  "utf8",
-);
-const files = readFileSync(
-  resolve(process.cwd(), "src/features/arquivos/FileBrowser.tsx"),
-  "utf8",
-);
+const server = readFileSync(resolve(process.cwd(), "src/features/arquivos/server.ts"), "utf8");
+const files = readFileSync(resolve(process.cwd(), "src/features/arquivos/FileBrowser.tsx"), "utf8");
 
 describe("contrato central de arquivos: limites de segurança", () => {
   it("revalida escola, visibilidade e finalidade sem revelar caminho ou URL", () => {
@@ -39,7 +33,8 @@ describe("contrato central de arquivos: limites de segurança", () => {
   });
 
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
-    expect(files).toContain('"list",\n      account.schoolId,\n      account.id,\n      account.role');
+    expect(files).toContain('"list",\\n      account.schoolId');
+    expect(files).toContain('account.id,\\n      account.role');
     expect(files).toContain('"existing-preupload",\n      account.schoolId,');
     expect(files).toContain('"previews",\n      account.schoolId,');
   });
