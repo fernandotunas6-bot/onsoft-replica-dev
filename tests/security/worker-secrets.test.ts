@@ -87,9 +87,7 @@ describe("segredos do worker", () => {
   it("a activação de websites só é enviada ao Worker como opt-in de servidor", () => {
     expect(OPTIONAL_WORKER_VARS).toContain("SCHOOL_SITES_ENABLED");
     expect(OPTIONAL_WORKER_SECRETS).not.toContain("SCHOOL_SITES_ENABLED");
-    expect(collectWorkerVars({}, {}).some(([name]) => name === "SCHOOL_SITES_ENABLED")).toBe(
-      false,
-    );
+    expect(collectWorkerVars({}, {}).some(([name]) => name === "SCHOOL_SITES_ENABLED")).toBe(false);
     expect(collectWorkerVars({ SCHOOL_SITES_ENABLED: "true" }, {})).toContainEqual([
       "SCHOOL_SITES_ENABLED",
       "true",
