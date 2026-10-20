@@ -40,6 +40,18 @@ describe("E2E com escrita", () => {
       expect(() => assertSafeE2ETarget({ ...staging, SUPABASE_URL: url })).toThrow(/bloqueado/);
     }
   });
+  it("não permite HTTPS inseguro ou URL remota com parâmetros no E2E", () => {
+    for (const url of [
+      "http://audittest.supabase.co",
+      "https://audittest.supabase.co:8443",
+      "https://audittest.supabase.co/path",
+      "https://audittest.supabase.co/?debug=1",
+      "https://audittest.supabase.co/#fragment",
+    ]) {
+      expect(() => assertSafeE2ETarget({ ...staging, SUPABASE_URL: url })).toThrow(/bloqueado/);
+    }
+  });
+
   it("aceita staging consistente e Supabase local explicitamente identificado", () => {
     expect(assertSafeE2ETarget(staging).projectRef).toBe("audittest");
     expect(
@@ -101,6 +113,20 @@ describe("limpeza de restos de E2E", () => {
         SIGA_CLEANUP_ALLOW_PRODUCTION: "1",
       }),
     ).toThrow(/distintos/);
+  });
+
+  it("recusa endpoints de produção sem HTTPS ou com caminho/parâmetros", () => {
+    for (const url of [
+      "http://xodgfmxiaunpamctfeea.supabase.co",
+      "https://xodgfmxiaunpamctfeea.supabase.co:8443",
+      "https://xodgfmxiaunpamctfeea.supabase.co/unsafe",
+      "https://xodgfmxiaunpamctfeea.supabase.co/?debug=1",
+      "https://xodgfmxiaunpamctfeea.supabase.co/#fragment",
+    ]) {
+      expect(() =>
+        assertSafeCleanupTarget({ SUPABASE_URL: url, SIGA_CLEANUP_ALLOW_PRODUCTION: "1" }),
+      ).toThrow(/Limpeza bloqueada/);
+    }
   });
 
   it("exige um URL Supabase", () => {
