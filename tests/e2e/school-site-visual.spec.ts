@@ -104,10 +104,19 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/site");
     await expect(page.getByRole("link", { name: /Aceder ao portal/i })).toBeVisible();
-    const duration = await page
+    const motion = await page
       .locator(".school-site__button")
       .first()
-      .evaluate((el) => getComputedStyle(el).transitionDuration);
-    expect(duration.split(",").every((time) => Number.parseFloat(time) === 0)).toBe(true);
+      .evaluate((el) => ({
+        prefersReduced: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        property: getComputedStyle(el).transitionProperty,
+        duration: getComputedStyle(el).transitionDuration,
+      }));
+    expect(motion.prefersReduced).toBe(true);
+    expect(
+      motion.property === "none" ||
+        motion.duration.split(",").every((time) => Number.parseFloat(time) === 0),
+      JSON.stringify(motion),
+    ).toBe(true);
   });
 });
