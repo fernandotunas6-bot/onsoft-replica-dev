@@ -45,6 +45,7 @@ import { FileBrowserNav } from "./FileBrowserNav";
 import { FileBrowserGrid } from "./FileBrowserGrid";
 import { FileBrowserTable } from "./FileBrowserTable";
 import { FileUploadInquiryModal, type UploadInquiryResult } from "./FileUploadInquiry";
+import type { ExistingSchoolFileLocation } from "./find-existing";
 import {
   canAccessFileContent,
   canManageSystemFile,
@@ -91,6 +92,7 @@ import {
 import {
   createSchoolFolder,
   deleteSchoolFile,
+  findExistingSchoolFiles,
   listArquivosClassOptions,
   listArquivosUserOptions,
   listFolderTrail,
@@ -315,6 +317,33 @@ export function FileBrowser({
         },
       }),
     staleTime: 30_000,
+  });
+
+  // Pesquisa em toda a escola, não só nos 48 ficheiros da pasta visível.
+  // A correspondência é indicativa; nunca trata nome+tamanho como hash de conteúdo.
+  const existingFilesQuery = useQuery({
+    queryKey: [
+      "arquivos",
+      "existing-preupload",
+      remoteQuery.data?.schoolId,
+      pendingFiles.map((file) => `${file.name}:${file.size}`).join("|"),
+    ],
+    enabled: pendingFiles.length > 0 && Boolean(remoteQuery.data?.schoolId),
+    queryFn: async () => {
+      const names = [...new Set(pendingFiles.map((file) => file.name))];
+      const batches: string[][] = [];
+      for (let index = 0; index < names.length; index += 40) {
+        batches.push(names.slice(index, index + 40));
+      }
+      const results = await Promise.all(
+        batches.map((namesBatch) => findExistingSchoolFiles({ data: { names: namesBatch } })),
+      );
+      return {
+        matches: results.flatMap((result) => result.matches),
+        incomplete: results.some((result) => result.incomplete),
+      };
+    },
+    staleTime: 10_000,
   });
 
   const trailQuery = useQuery({
@@ -1568,6 +1597,18 @@ export function FileBrowser({
             : undefined
         }
         lockRelatedPerson={Boolean(initialRelatedPersonId)}
+        currentFolderId={folderId}
+        existingMatches={existingFilesQuery.data?.matches ?? []}
+        checkingExisting={existingFilesQuery.isPending || existingFilesQuery.isFetching}
+        existingCheckError={existingFilesQuery.isError}
+        existingCheckIncomplete={existingFilesQuery.data?.incomplete ?? false}
+        onShowExisting={(match: ExistingSchoolFileLocation) => {
+          setPendingFiles([]);
+          setArea(match.area);
+          setFolderId(match.parentId);
+          setQuery(match.name);
+          setSelectedId(match.id);
+        }}
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />
