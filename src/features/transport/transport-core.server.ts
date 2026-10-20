@@ -622,35 +622,38 @@ async function routeAudience(db: TransportDb, schoolId: string, routeId: string,
   ];
   if (!studentIds.length) return [];
   // Para avisos só precisamos do person_id, não dos nomes completos.
-  // Consultar encarregados em paralelo com alunos reduz a latência por rota.
-  const [studentPersonIds, guardians] = await Promise.all([
-    (async () => {
-      const personIds: string[] = [];
-      for (let i = 0; i < studentIds.length; i += 200) {
-        const students = await db
-          .from("students")
-          .select("person_id")
-          .eq("school_id", schoolId)
-          .in("id", studentIds.slice(i, i + 200));
-        if (students.error) fail(students.error, "TRANSPORT_UNAVAILABLE");
-        for (const row of (students.data ?? []) as { person_id: string }[]) {
-          personIds.push(row.person_id);
-        }
-      }
-      return personIds;
-    })(),
-    db
-      .from("student_guardians")
-      .select("guardian_person_id, valid_from, valid_until")
-      .eq("school_id", schoolId)
-      .in("student_id", studentIds),
-  ]);
-  if (guardians.error) fail(guardians.error, "TRANSPORT_UNAVAILABLE");
-  const guardianRows = (guardians.data ?? []) as {
+  // Em rotas maiores, dividir também a consulta de encarregados: o filtro
+  // IN sem limite pode exceder a URL da API ou o limite de linhas PostgREST.
+  // Cada par de consultas corre em paralelo, com no máximo duas por lote.
+  const studentPersonIds: string[] = [];
+  const guardianRows: {
     guardian_person_id: string;
     valid_from: string;
     valid_until: string | null;
-  }[];
+  }[] = [];
+  for (let i = 0; i < studentIds.length; i += 200) {
+    const chunk = studentIds.slice(i, i + 200);
+    const [students, guardians] = await Promise.all([
+      db.from("students").select("person_id").eq("school_id", schoolId).in("id", chunk),
+      db
+        .from("student_guardians")
+        .select("guardian_person_id, valid_from, valid_until")
+        .eq("school_id", schoolId)
+        .in("student_id", chunk),
+    ]);
+    if (students.error) fail(students.error, "TRANSPORT_UNAVAILABLE");
+    if (guardians.error) fail(guardians.error, "TRANSPORT_UNAVAILABLE");
+    for (const row of (students.data ?? []) as { person_id: string }[]) {
+      studentPersonIds.push(row.person_id);
+    }
+    guardianRows.push(
+      ...((guardians.data ?? []) as {
+        guardian_person_id: string;
+        valid_from: string;
+        valid_until: string | null;
+      }[]),
+    );
+  }
   // Avisos só aos encarregados cujo vínculo já começou e não terminou.
   const eligibleGuardians = guardianRows.filter(
     (g) => g.valid_from <= day && (!g.valid_until || g.valid_until >= day),
