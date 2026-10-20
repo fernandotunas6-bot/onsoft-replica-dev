@@ -510,6 +510,8 @@ DECLARE
   changed boolean;
   recipient_count integer := 0;
   notified_count integer := 0;
+  expected_user_ids uuid[] := ARRAY[]::uuid[];
+  supplied_user_ids uuid[] := ARRAY[]::uuid[];
 BEGIN
   IF p_school_id IS NULL OR p_route_id IS NULL OR p_service_date IS NULL
      OR p_status IS NULL OR p_status NOT IN ('normal', 'delayed', 'cancelled')
@@ -564,18 +566,50 @@ BEGIN
         USING ERRCODE = '22023';
     END IF;
 
-    -- Defesa adicional, mesmo com service_role: não usar destinatários de outra escola.
-    IF EXISTS (
-      SELECT 1 FROM (
-        SELECT DISTINCT u AS user_id FROM pg_catalog.unnest(p_recipient_user_ids) AS u
-      ) AS wanted
-      WHERE wanted.user_id IS NULL
-        OR NOT EXISTS (
-          SELECT 1 FROM public.people AS p
-          WHERE p.school_id = p_school_id AND p.user_id = wanted.user_id
-        )
-    ) THEN
-      RAISE EXCEPTION 'Destinatário fora da escola'
+    -- Revalidar toda a audiência na própria transacção: ser membro da
+    -- escola não basta. Um vínculo removido/expirado depois da leitura do
+    -- servidor não pode continuar a receber informação da rota. Do mesmo
+    -- modo, um novo encarregado activo não pode ser omitido silenciosamente.
+    -- Comparar conjuntos completos (sem confiar na ordem nem em repetidos).
+    IF pg_catalog.array_position(p_recipient_user_ids, NULL::uuid) IS NOT NULL THEN
+      RAISE EXCEPTION 'Destinatários inválidos'
+        USING ERRCODE = '42501';
+    END IF;
+
+    SELECT pg_catalog.coalesce(pg_catalog.array_agg(DISTINCT id ORDER BY id), ARRAY[]::uuid[])
+      INTO supplied_user_ids
+    FROM pg_catalog.unnest(p_recipient_user_ids) AS id;
+
+    WITH assigned AS (
+      SELECT DISTINCT a.student_id, s.person_id
+      FROM public.siga_transport_assignments AS a
+      JOIN public.students AS s
+        ON s.id = a.student_id AND s.school_id = p_school_id
+      WHERE a.school_id = p_school_id
+        AND a.route_id = p_route_id
+        AND a.valid_from <= p_service_date
+        AND (a.valid_until IS NULL OR a.valid_until >= p_service_date)
+    ),
+    eligible_people AS (
+      SELECT assigned.person_id FROM assigned
+      UNION
+      SELECT g.guardian_person_id
+      FROM assigned
+      JOIN public.student_guardians AS g
+        ON g.school_id = p_school_id AND g.student_id = assigned.student_id
+      WHERE g.valid_from <= p_service_date
+        AND (g.valid_until IS NULL OR g.valid_until >= p_service_date)
+    )
+    SELECT pg_catalog.coalesce(
+      pg_catalog.array_agg(DISTINCT p.user_id ORDER BY p.user_id), ARRAY[]::uuid[]
+    ) INTO expected_user_ids
+    FROM eligible_people AS e
+    JOIN public.people AS p
+      ON p.id = e.person_id AND p.school_id = p_school_id
+    WHERE p.user_id IS NOT NULL;
+
+    IF supplied_user_ids IS DISTINCT FROM expected_user_ids THEN
+      RAISE EXCEPTION 'Destinatários da rota desactualizados ou não autorizados'
         USING ERRCODE = '42501';
     END IF;
   END IF;
