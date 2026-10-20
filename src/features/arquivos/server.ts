@@ -887,7 +887,11 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       throw publicDatabaseError(loadError, "Não foi possível mover.");
     }
     const items = rows ?? [];
-    if (!items.length || items.length !== new Set(data.ids).size) {
+    if (
+      !items.length ||
+      data.ids.length !== new Set(data.ids).size ||
+      items.length !== data.ids.length
+    ) {
       throw new Error("A selecção contém itens inexistentes ou apagados nesta escola.");
     }
     for (const item of items) {
@@ -1174,7 +1178,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area, is_system")
+      .select("id, owner_user_id, area, is_system, parent_id")
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1226,6 +1230,9 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     if (data.area !== undefined) {
       if (!canWriteFileArea(membership.appRole, data.area)) {
         throw new Error("Sem permissão para mover para essa área.");
+      }
+      if (existing.parent_id && data.area !== area) {
+        throw new Error("Remova o ficheiro da pasta actual antes de alterar a sua área.");
       }
       payload["area"] = data.area;
     }
