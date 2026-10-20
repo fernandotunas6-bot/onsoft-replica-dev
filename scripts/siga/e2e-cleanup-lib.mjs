@@ -6,6 +6,7 @@ import { assertSafeCleanupTarget } from "./e2e-safety.mjs";
 import {
   assertProductionE2ECleanupIdentity,
   assertProductionArtifactCount,
+  assertCleanupAccountOwnedBySchool,
 } from "./e2e-cleanup-prod-identity.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -85,6 +86,33 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail, approvedTe
     await assertNoProductionSchoolArtifacts(admin, tenantId, school?.id ?? null);
   }
 
+  let authUserIdToDelete = null;
+  if (adminEmail) {
+    const email = String(adminEmail).trim().toLowerCase();
+    const { data: users, error: usersError } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 200,
+    });
+    if (usersError) {
+      throw new Error("Limpeza bloqueada: falhou a verificação da conta de teste.");
+    }
+    const user = users?.users?.find((row) => row.email?.toLowerCase() === email);
+    if (user?.id) {
+      const { data: memberships, error: membershipError } = await admin
+        .from("school_memberships")
+        .select("school_id")
+        .eq("user_id", user.id);
+      if (membershipError) {
+        throw new Error("Limpeza bloqueada: falhou a verificação de vínculos da conta.");
+      }
+      assertCleanupAccountOwnedBySchool(
+        (memberships ?? []).map((row) => row.school_id),
+        school?.id,
+      );
+      authUserIdToDelete = user.id;
+    }
+  }
+
   if (school?.id) {
     // Mais de 100 tabelas referenciam `schools.id`, quase todas com ON DELETE
     // NO ACTION: apagar a escola directamente falha por FK e deixa o tenant
@@ -104,12 +132,10 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail, approvedTe
   const { error: tenantDeleteError } = await admin.from("tenants").delete().eq("id", tenantId);
   if (tenantDeleteError) throw new Error(tenantDeleteError.message);
 
-  if (adminEmail) {
-    const target = String(adminEmail).trim().toLowerCase();
-    const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const user = users.users.find((row) => row.email?.toLowerCase() === target);
-    if (user?.id) {
-      await admin.auth.admin.deleteUser(user.id).catch(() => undefined);
+  if (authUserIdToDelete) {
+    const { error: deleteUserError } = await admin.auth.admin.deleteUser(authUserIdToDelete);
+    if (deleteUserError) {
+      throw new Error("Não foi possível remover a conta de teste após a limpeza do tenant.");
     }
   }
 
