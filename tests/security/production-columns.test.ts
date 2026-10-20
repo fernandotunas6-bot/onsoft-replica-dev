@@ -118,6 +118,9 @@ describe("colunas usadas existem na produção", () => {
     expect(migration).toContain("REVOKE ALL ON FUNCTION public." + rpc);
     expect(migration).toContain("INSERT INTO public.notifications");
     expect(migration).toContain("p_recipient_user_ids uuid[]");
+    expect(migration).toContain("JOIN public.student_guardians AS g");
+    expect(migration).toContain("JOIN public.students AS s");
+    expect(migration).toContain("supplied_user_ids IS DISTINCT FROM expected_user_ids");
     expect(core).toContain("p_recipient_user_ids: userIds");
     expect(core).not.toContain("insertInAppNotifications(");
     expect(core).toContain('if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY")');
