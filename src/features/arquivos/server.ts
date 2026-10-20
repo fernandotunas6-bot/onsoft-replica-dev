@@ -504,31 +504,33 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     const { data: rows, error } = await db
       .from("siga_files")
-      .select("id, name, size_bytes, area, parent_id, owner_user_id, visibility, is_folder, is_system")
+      .select(
+        "id, name, size_bytes, area, parent_id, owner_user_id, visibility, is_folder, is_system",
+      )
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null)
       .eq("is_folder", false)
       .in("name", [...new Set(data.names)])
       .limit(201);
-    if (error) throw publicDatabaseError(error, "Não foi possível verificar os arquivos existentes.");
+    if (error) {
+      throw publicDatabaseError(error, "Não foi possível verificar os arquivos existentes.");
+    }
 
-    const visible = (rows ?? [])
-      .slice(0, 200)
-      .filter((row) => {
-        const viewer = {
-          area: row.area as SchoolFileRecord["area"],
-          ownerUserId: String(row.owner_user_id),
-          visibility: row.visibility as SchoolFileRecord["visibility"],
-        };
-        return (
-          canSeeRow(viewer, userId, membership.appRole) &&
-          canAccessFileContent(
-            { ...viewer, isSystem: Boolean(row.is_system), isFolder: false },
-            userId,
-            membership.appRole,
-          )
-        );
-      });
+    const visible = (rows ?? []).slice(0, 200).filter((row) => {
+      const viewer = {
+        area: row.area as SchoolFileRecord["area"],
+        ownerUserId: String(row.owner_user_id),
+        visibility: row.visibility as SchoolFileRecord["visibility"],
+      };
+      return (
+        canSeeRow(viewer, userId, membership.appRole) &&
+        canAccessFileContent(
+          { ...viewer, isSystem: Boolean(row.is_system), isFolder: false },
+          userId,
+          membership.appRole,
+        )
+      );
+    });
     const parentIds = [...new Set(visible.map((row) => row.parent_id).filter(Boolean))] as string[];
     const folderNames = new Map<string, string>();
     if (parentIds.length) {
@@ -539,7 +541,10 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
         .eq("is_folder", true)
         .in("id", parentIds);
       if (folderError) {
-        throw publicDatabaseError(folderError, "Não foi possível localizar as pastas dos arquivos.");
+        throw publicDatabaseError(
+          folderError,
+          "Não foi possível localizar as pastas dos arquivos.",
+        );
       }
       for (const folder of folders ?? []) {
         if (
