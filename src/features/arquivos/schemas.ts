@@ -98,6 +98,14 @@ export const listArquivosInputSchema = z.object({
 });
 export type ListArquivosInput = z.infer<typeof listArquivosInputSchema>;
 
+/**
+ * Pesquisa limitada por nomes exactos, sem devolver ficheiros de outras escolas.
+ * Os tamanhos são comparados no browser apenas para sinalizar correspondências.
+ */
+export const findExistingSchoolFilesInputSchema = z.object({
+  names: z.array(z.string().trim().min(1).max(180)).min(1).max(40),
+});
+
 export const registerSchoolFileInputSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(180),
