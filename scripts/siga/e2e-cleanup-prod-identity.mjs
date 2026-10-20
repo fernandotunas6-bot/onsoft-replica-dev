@@ -33,7 +33,11 @@ export function parseE2ECleanupArgs(args) {
       dryRunRequested = true;
     } else if (arg === "--tenant-id" || arg.startsWith("--tenant-id=")) {
       const value = arg === "--tenant-id" ? args[++i] : arg.slice("--tenant-id=".length);
-      if (tenantId !== null || !value || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)) {
+      if (
+        tenantId !== null ||
+        !value ||
+        !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)
+      ) {
         throw new Error("Limpeza bloqueada: indique um único --tenant-id UUID válido.");
       }
       tenantId = value.toLowerCase();
