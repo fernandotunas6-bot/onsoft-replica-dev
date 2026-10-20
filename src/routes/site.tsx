@@ -14,6 +14,15 @@ export const Route = createFileRoute("/site")({
       { name: "description", content: "Website institucional de uma escola SIGA Plus." },
       { name: "robots", content: "noindex,follow" }, // SEO por escola: fase seguinte
     ],
+    // Mesmas famílias da fonte visual ISPAB; carregadas apenas no website público.
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap",
+      },
+    ],
   }),
   component: PublicSchoolSitePage,
 });
