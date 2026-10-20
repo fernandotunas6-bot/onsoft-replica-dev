@@ -53,7 +53,7 @@ export type SchoolSiteSettings = z.infer<typeof schoolSiteSettingsSchema>;
 
 export function defaultSchoolSiteContent(schoolName: string): SchoolSiteContent {
   return {
-    title: schoolName.trim() || "Escola",
+    title: schoolName.trim().slice(0, 120) || "Escola",
     tagline: "Bem-vindo à nossa instituição de ensino.",
     about: "",
     heroImageUrl: null,
