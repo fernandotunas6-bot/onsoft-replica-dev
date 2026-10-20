@@ -142,7 +142,7 @@ function SchoolSiteEditorPage() {
                   </div>
                   <label className="flex items-center gap-3 text-sm">
                     <input
-                      type="checkbox" checked={current.showContact}
+                      id="site-show-contact" type="checkbox" aria-label="Mostrar contactos institucionais" checked={current.showContact}
                       onChange={(event) => change("showContact", event.target.checked)}
                       className="size-4 accent-primary"
                     />
