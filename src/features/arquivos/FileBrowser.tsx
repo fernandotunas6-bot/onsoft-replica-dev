@@ -1618,8 +1618,7 @@ export function FileBrowser({
           (existingFilesQuery.isPending || existingFilesQuery.isFetching)
         }
         existingCheckError={
-          existingFilesQuery.isError ||
-          (remoteQuery.isError && !remoteQuery.data?.schoolId)
+          existingFilesQuery.isError || (remoteQuery.isError && !remoteQuery.data?.schoolId)
         }
         existingCheckIncomplete={existingFilesQuery.data?.incomplete ?? false}
         onShowExisting={(match: ExistingSchoolFileLocation) => {
