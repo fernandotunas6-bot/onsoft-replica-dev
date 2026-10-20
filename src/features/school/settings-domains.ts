@@ -20,6 +20,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
+import {
+  schoolSiteSettingsSchema,
+  type SchoolSiteSettings,
+} from "@/features/school-site/schema";
 
 type Raw = Record<string, unknown>;
 
@@ -242,6 +246,13 @@ export type AcademicSettings = {
 };
 
 export const SETTINGS_DOMAINS = {
+  // Website público da escola: rascunho e publicação são snapshots distintos.
+  // Falha fechado: uma configuração desconhecida NÃO gera publicação fictícia.
+  school_website: {
+    label: "Website institucional",
+    parse: (value: unknown): SchoolSiteSettings | null =>
+      schoolSiteSettingsSchema.safeParse(value).data ?? null,
+  },
   billing: {
     label: "Cobrança",
     parse: (value: unknown): BillingSettings => {
