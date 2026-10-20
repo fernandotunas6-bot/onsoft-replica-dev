@@ -59,7 +59,7 @@ for (const row of stale) {
       console.log(`DRY  ${slug} → tenant ${row.id}`);
       continue;
     }
-    await cleanupE2ETenantBySlug(admin, slug, row.contact_email);
+    await cleanupE2ETenantBySlug(admin, slug, row.contact_email, mode.tenantId);
     console.log(`OK   ${slug} removido`);
   } catch (err) {
     failed += 1;
