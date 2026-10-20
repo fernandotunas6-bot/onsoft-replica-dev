@@ -528,11 +528,11 @@ export function FileBrowser({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [account.role, detailsOpen, localFileViewer, selected]);
+  }, [account.id, account.role, detailsOpen, localFileViewer, selected]);
 
-  useEffect(() => {
   const reportFileError = (error: Error) => toast.error(error.message);
 
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedId(null);
       if (!selected) return;
@@ -555,7 +555,7 @@ export function FileBrowser({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [account.role, localFileViewer, onPick, pickMode, selected]);
+  }, [account.id, account.role, localFileViewer, onPick, pickMode, selected]);
 
   const activityQuery = useQuery({
     queryKey: ["arquivos", "activity", account.schoolId, account.id, account.role, selected?.id],
@@ -1490,8 +1490,8 @@ export function FileBrowser({
                   <button
                     type="button"
                     onClick={() =>
-                    setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))
-                  }
+                      setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))
+                    }
                     className={cn(
                       "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
                       ownershipFilter === "mine"
