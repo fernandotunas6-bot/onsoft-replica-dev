@@ -280,13 +280,13 @@ export function FileBrowser({
   }, [account.role, sortBy, viewMode]);
 
   const classesQuery = useQuery({
-    queryKey: ["arquivos", "class-options", account.id, account.role],
+    queryKey: ["arquivos", "class-options", account.schoolId, account.id, account.role],
     queryFn: () => listArquivosClassOptions(),
     staleTime: 60_000,
   });
 
   const usersQuery = useQuery({
-    queryKey: ["arquivos", "user-options", account.id, account.role],
+    queryKey: ["arquivos", "user-options", account.schoolId, account.id, account.role],
     queryFn: () => listArquivosUserOptions(),
     staleTime: 60_000,
   });
@@ -295,6 +295,7 @@ export function FileBrowser({
     queryKey: [
       "arquivos",
       "list",
+      account.schoolId,
       account.id,
       account.role,
       area,
@@ -327,6 +328,7 @@ export function FileBrowser({
     queryKey: [
       "arquivos",
       "existing-preupload",
+      account.schoolId,
       remoteQuery.data?.schoolId,
       account.id,
       account.role,
@@ -351,13 +353,13 @@ export function FileBrowser({
   });
 
   const trailQuery = useQuery({
-    queryKey: ["arquivos", "trail", account.id, account.role, folderId ?? "root"],
+    queryKey: ["arquivos", "trail", account.schoolId, account.id, account.role, folderId ?? "root"],
     queryFn: () => listFolderTrail({ data: { folderId } }),
     staleTime: 30_000,
   });
 
   const foldersQuery = useQuery({
-    queryKey: ["arquivos", "folders", account.id, account.role, area],
+    queryKey: ["arquivos", "folders", account.schoolId, account.id, account.role, area],
     enabled: moveOpen,
     queryFn: () => listSchoolFiles({ data: { area, limit: 48 } }),
     staleTime: 15_000,
@@ -445,6 +447,7 @@ export function FileBrowser({
     queryKey: [
       "arquivos",
       "previews",
+      account.schoolId,
       remoteQuery.data?.schoolId,
       account.id,
       account.role,
@@ -528,7 +531,7 @@ export function FileBrowser({
   }, [account.id, account.role, onPick, pickMode, selected]);
 
   const activityQuery = useQuery({
-    queryKey: ["arquivos", "activity", account.id, account.role, selected?.id],
+    queryKey: ["arquivos", "activity", account.schoolId, account.id, account.role, selected?.id],
     enabled: Boolean(selected && detailsOpen),
     queryFn: () => listSchoolFileActivity({ data: { id: selected!.id, limit: 20 } }),
     staleTime: 15_000,
