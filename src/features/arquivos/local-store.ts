@@ -65,13 +65,33 @@ export function localStoragePath(input: {
   return `${input.schoolId}/${year}/${month}/${input.area}/${input.ownerUserId}/${input.id}-${safe}`;
 }
 
-export async function saveLocalFile(input: { record: LocalMeta; blob: Blob }) {
+export async function saveLocalFile(input: {
+  record: LocalMeta;
+  blob: Blob;
+  viewer: LocalFileViewer;
+}) {
+  if (!isLocalFileOwnedByViewer(input.record, input.viewer)) {
+    throw new Error("Não pode guardar um arquivo local de outra conta ou escola.");
+  }
   const db = await openDb();
-  const tx = db.transaction([META, BLOBS], "readwrite");
-  tx.objectStore(META).put(input.record);
-  tx.objectStore(BLOBS).put({ id: input.record.id, blob: input.blob });
-  await txDone(tx);
-  db.close();
+  try {
+    const tx = db.transaction([META, BLOBS], "readwrite");
+    const store = tx.objectStore(META);
+    const previous = await new Promise<LocalMeta | undefined>((resolve, reject) => {
+      const request = store.get(input.record.id);
+      request.onsuccess = () => resolve(request.result as LocalMeta | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    if (previous && !isLocalFileOwnedByViewer(previous, input.viewer)) {
+      tx.abort();
+      throw new Error("Identificador de arquivo local pertencente a outra conta.");
+    }
+    store.put(input.record);
+    tx.objectStore(BLOBS).put({ id: input.record.id, blob: input.blob });
+    await txDone(tx);
+  } finally {
+    db.close();
+  }
 }
 
 export async function listLocalFiles(input: {
@@ -152,13 +172,32 @@ export async function listLocalFiles(input: {
   }
 }
 
-export async function saveLocalFolder(record: SchoolFileRecord) {
+export async function saveLocalFolder(
+  record: SchoolFileRecord,
+  viewer: LocalFileViewer,
+) {
   if (typeof indexedDB === "undefined") return;
+  if (!isLocalFileOwnedByViewer(record, viewer)) {
+    throw new Error("Não pode guardar uma pasta local de outra conta ou escola.");
+  }
   const db = await openDb();
-  const tx = db.transaction(META, "readwrite");
-  tx.objectStore(META).put(record);
-  await txDone(tx);
-  db.close();
+  try {
+    const tx = db.transaction(META, "readwrite");
+    const store = tx.objectStore(META);
+    const previous = await new Promise<LocalMeta | undefined>((resolve, reject) => {
+      const request = store.get(record.id);
+      request.onsuccess = () => resolve(request.result as LocalMeta | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    if (previous && !isLocalFileOwnedByViewer(previous, viewer)) {
+      tx.abort();
+      throw new Error("Identificador de pasta local pertencente a outra conta.");
+    }
+    store.put(record);
+    await txDone(tx);
+  } finally {
+    db.close();
+  }
 }
 
 export async function patchLocalFileMeta(
@@ -181,6 +220,7 @@ export async function patchLocalFileMeta(
       | "isFolder"
     >
   >,
+  viewer: LocalFileViewer,
 ) {
   if (typeof indexedDB === "undefined") return;
   const db = await openDb();
@@ -192,6 +232,10 @@ export async function patchLocalFileMeta(
     request.onerror = () => reject(request.error);
   });
   if (existing) {
+    if (!isLocalFileOwnedByViewer(existing, viewer)) {
+      db.close();
+      throw new Error("Não pode modificar um arquivo local de outra conta ou escola.");
+    }
     store.put({
       ...existing,
       ...patch,
@@ -233,12 +277,26 @@ export async function readLocalBlob(
   }
 }
 
-export async function deleteLocalFile(id: string) {
+export async function deleteLocalFile(id: string, viewer: LocalFileViewer) {
   if (typeof indexedDB === "undefined") return;
   const db = await openDb();
-  const tx = db.transaction([META, BLOBS], "readwrite");
-  tx.objectStore(META).delete(id);
-  tx.objectStore(BLOBS).delete(id);
-  await txDone(tx);
-  db.close();
+  try {
+    const tx = db.transaction([META, BLOBS], "readwrite");
+    const metaStore = tx.objectStore(META);
+    const existing = await new Promise<LocalMeta | undefined>((resolve, reject) => {
+      const request = metaStore.get(id);
+      request.onsuccess = () => resolve(request.result as LocalMeta | undefined);
+      request.onerror = () => reject(request.error);
+    });
+    if (!existing) return;
+    if (!isLocalFileOwnedByViewer(existing, viewer)) {
+      tx.abort();
+      throw new Error("Não pode apagar um arquivo local de outra conta ou escola.");
+    }
+    metaStore.delete(id);
+    tx.objectStore(BLOBS).delete(id);
+    await txDone(tx);
+  } finally {
+    db.close();
+  }
 }
