@@ -103,3 +103,12 @@ export function withPublication(
     publishedAt: at.toISOString(),
   };
 }
+
+/** Retira o website do ar sem apagar histórico e rascunhos. */
+export function withoutPublication(settings: SchoolSiteSettings): SchoolSiteSettings {
+  return {
+    ...settings,
+    published: null,
+    publishedAt: null,
+  };
+}
