@@ -210,6 +210,7 @@ export function FileBrowser({
   acceptKinds,
   classGroupId,
   initialClassGroupId,
+  uploadClassGroupId,
   initialRelatedPersonId,
   onPick,
 }: {
@@ -218,6 +219,8 @@ export function FileBrowser({
   acceptKinds?: readonly FileKind[] | undefined;
   classGroupId?: string;
   initialClassGroupId?: string;
+  /** Destino dos uploads do selector; não filtra os ficheiros disponíveis. */
+  uploadClassGroupId?: string;
   initialRelatedPersonId?: string;
   onPick?: (file: SchoolFileRecord) => void;
 }) {
@@ -230,7 +233,11 @@ export function FileBrowser({
   const installed = useInstalledIntegrations();
   const prefs = readFilesPrefs(account.role);
   const areas = visibleAreasForRole(account.role);
-  const writableAreas = writableAreasForRole(account.role);
+  const writableAreas =
+    uploadClassGroupId &&
+    (account.role === "Professor" || canWriteFileArea(account.role, "escola"))
+      ? (["escola"] as FileArea[])
+      : writableAreasForRole(account.role);
   const lockedClassId = classGroupId ?? null;
   const [area, setArea] = useState<FileArea>(
     initialArea && areas.includes(initialArea) ? initialArea : prefs.defaultArea,
@@ -702,6 +709,11 @@ export function FileBrowser({
     const schoolId = remoteQuery.data?.schoolId;
     const files = pendingFiles;
     const targetArea = meta.area;
+    const targetClassGroupId = uploadClassGroupId ?? activeClassId;
+    if (uploadClassGroupId && (targetArea !== "escola" || meta.visibility !== "school")) {
+      toast.error("Materiais da turma devem ser partilhados na área Escola.");
+      return;
+    }
     // Trocar a área invalida a pasta actualmente seleccionada.
     const targetFolderId = targetArea === area ? folderId : null;
     if (!files.length) return;
@@ -752,7 +764,7 @@ export function FileBrowser({
           area: targetArea,
           ownerUserId: account.id,
           parentId: targetFolderId,
-          classGroupId: activeClassId ?? null,
+          classGroupId: targetClassGroupId ?? null,
           relatedPersonId: meta.relatedPersonId ?? null,
           relatedUserId: meta.relatedUserId || account.id,
           visibility: meta.visibility,
@@ -813,7 +825,7 @@ export function FileBrowser({
           visibility: meta.visibility,
           storageBackend: backend,
           storagePath,
-          classGroupId: activeClassId ?? null,
+          classGroupId: targetClassGroupId ?? null,
           createdAt: new Date().toISOString(),
           ...blankAudit(account.name),
           parentId: targetFolderId,
@@ -850,7 +862,7 @@ export function FileBrowser({
                   visibility: record.visibility,
                   storagePath: record.storagePath,
                   storageBackend: backend,
-                  classGroupId: activeClassId,
+                  classGroupId: targetClassGroupId,
                   parentId: targetFolderId,
                   title: record.title ?? undefined,
                   description: record.description ?? undefined,
