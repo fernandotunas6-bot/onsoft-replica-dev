@@ -45,7 +45,7 @@ Domínios próprios são opcionais; seguir `tenant_domains` e `domain-verify.ts`
 
 ## 4. Modelo de dados v1 (sem migração)
 
-Reutilizar `school_settings` com **um novo domínio** `school_website`: uma linha por escola+domínio, `value jsonb` e contador `version` protegido por optimistic concurrency. **Não converter as tabelas `web_blog_posts` e `web_faqs` globais em CMS de escola.**
+Reutilizar `school_settings` com **um novo domínio** `school_website`: várias versões append-only por escola+domínio, `value jsonb` e `version` com UNIQUE `(school_id, domain, version)`. A versão mais recente é sempre a de maior número; uma publicação cria um novo registo, nunca UPDATE das versões anteriores. As escritas utilizam `context.supabase` e a RLS existente (`settings_insert_authorized`, AAL2 e permissão). **Não converter as tabelas `web_blog_posts` e `web_faqs` globais em CMS de escola.**
 
 Estrutura JSON controlada por schema Zod:
 - `schemaVersion: 1`
@@ -71,9 +71,9 @@ O modelo v1 é uma página institucional editável e com contacto; **não** cons
 
 ## 6. Publicação e concorrência
 
-O editor grava rascunho explicitamente, com contador de versão esperado. A acção Publicar copia o draft validado para published (snapshot). Uma edição posterior não altera a versão publicada até nova publicação. Se a versão mudou, 409/conflito e solicitar recarregar. Não repetir silenciosamente writes.
+O editor grava rascunho explicitamente, inserindo uma nova versão a partir da versão esperada. A UNIQUE do banco impede que duas sessões publiquem o mesmo número de versão. A acção Publicar copia o draft validado para published (snapshot). Uma edição posterior não altera a versão publicada até nova publicação. Se a versão mudou, 409/conflito e solicitar recarregar. Não repetir silenciosamente writes.
 
-Esta v1 não promete historial de revisões imutável: `school_settings.version` é contador de concorrência, não arquivo histórico. Para o CMS multi-página futuro, criar tabelas dedicadas `school_site_pages`, `school_site_page_versions` e `school_site_publications`, **apenas após** a revisão do schema de produção e migração idempotente.
+Esta v1 preserva as versões anteriores em `school_settings`, mas ainda não oferece um painel de histórico, reversão pública ou fluxo de aprovação editorial. Para o CMS multi-página futuro, criar tabelas dedicadas `school_site_pages`, `school_site_page_versions` e `school_site_publications`, **apenas após** a revisão do schema de produção e migração idempotente.
 
 ## 7. Provisionamento
 
