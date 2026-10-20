@@ -65,8 +65,8 @@ Duas destas pistas já não bastam, e convém saber porquê:
 | #188 (draft) | `security/signup-verification-staging-boundary-20261020` | 8 | +252/−16 | guarda do bypass de verificação de e-mail no signup; 6 ficheiros, CI verde às 05:49, já com o novo job de lint e build do WEB |
 | #186 (draft) | `audit/360-institutional-2026-10-19` | 23 | +365/−45 | auditoria de ontem; 8 ficheiros, CI verde às 05:55 de hoje |
 | #108 (draft) + #107 | `feat/bigbluebutton-server-adapter-20261008` | 79+1 | +1 880 | 20 dos 23 ficheiros; a `main` só tem a migração `20261008144147_bbb_classroom_metadata.sql` |
-| #113 | `fix/calendar-ics-serialization-20261009` | 2 | +85/−7 | UTF-8 e escape de newlines no ICS |
-| #117 | `fix/react-update-depth-20261009` | 1 | +130/−49 | ciclo React #185 na selecção de períodos |
+| #113 | `fix/calendar-ics-serialization-20261009` | 2 | +85/−7 | UTF-8 e escape de newlines no ICS. **Verificado a 20/10:** funde limpo, 7/7 testes passam com a correcção e 7/7 falham sem ela |
+| #117 | `fix/react-update-depth-20261009` | 1 | +130/−49 | ciclo React #185 na selecção de períodos. **Verificado a 20/10:** funde limpo, 14/14 testes passam e sem a correcção 3 falham com «Períodos em ciclo de actualização» |
 | #35 (draft) | `feat/mobile-clean-shell-20260928` | 8 | +2 464/−148 | 24 ficheiros; 1 010 commits atrás da main |
 
 ### Fechado sem fundir, e com parte ainda ausente da main
@@ -83,12 +83,13 @@ Duas destas pistas já não bastam, e convém saber porquê:
 
 ### Empurrado hoje, sem PR
 
-- **`audit/provisioning-admin-scope-20261020`** — 2 commits às 07:07 de hoje, em
+- **`audit/provisioning-admin-scope-20261020`** — 3 commits, o último às 07:14 de hoje, em
   `src/features/saas/provisioning-core.ts` e `provisioning-verify.ts` (+37/−4):
   passa ao verificador os IDs reais de vínculo e papel, e confirma vínculo, papel
   e grants do administrador criado no aprovisionamento. Sem PR aberto. O ramo foi
-  empurrado minutos depois deste inventário, por isso o trabalho pode ainda estar
-  a decorrer; a PR é o passo que falta para ser revisto e fundido.
+  empurrado minutos depois deste inventário e **continua a receber commits**
+  (07:07 e 07:14), por isso o trabalho está a decorrer; a PR é o passo que falta
+  para ser revisto e fundido, e abri-la agora seria sobre um alvo em movimento.
 
 ## Fora deste repositório
 
@@ -111,7 +112,9 @@ Duas destas pistas já não bastam, e convém saber porquê:
 1. `audit/provisioning-admin-scope-20261020` — abrir PR. É de hoje e, sem PR,
    não é revisto nem fundido.
 2. #186 e #188 — de ontem e de hoje, CI verde, pequenos. Tirar do rascunho.
-3. #117 e #113 — correcções pequenas, de 09/10, ainda aplicáveis quase tal e qual.
+3. #117 e #113 — **prontas**. A 20/10 fundem sem conflito na `main` em
+   `7d8ce0ec`, os testes passam com a correcção e falham sem ela, e o CI de 09/10
+   está verde. A verificação ficou em comentário em cada uma.
 4. #30 (modelos de email) — é o maior bloco ausente por inteiro da main.
 5. SIGA_EDU — pôr sob git antes de qualquer outra coisa.
 6. #108/#107 (BigBlueButton) — 1 880 linhas prontas, só a migração entrou.
