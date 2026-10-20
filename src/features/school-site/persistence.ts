@@ -59,9 +59,7 @@ export async function appendSchoolSiteVersion(
   ]);
   const version = row?.version ?? 0;
   if (version !== expectedVersion) throw new Error(CONFLICT);
-  const current = row
-    ? parseSchoolSiteSettings(row.value)
-    : defaultSchoolSiteSettings(name);
+  const current = row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(name);
   const next = transform(current);
 
   const { data, error } = await db

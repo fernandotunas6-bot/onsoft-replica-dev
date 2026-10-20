@@ -4,10 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  requireSgaWriterFor,
-  requireSgaWriterForWrite,
-} from "@/integrations/supabase/sga-admin";
+import { requireSgaWriterFor, requireSgaWriterForWrite } from "@/integrations/supabase/sga-admin";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { appendSchoolSiteVersion, latestSchoolSiteRow } from "./persistence";
 import {
@@ -51,9 +48,7 @@ export const getSchoolSiteEditor = createServerFn({ method: "GET" })
       return {
         schoolName: school.name,
         version: row?.version ?? 0,
-        settings: row
-          ? parseSchoolSiteSettings(row.value)
-          : defaultSchoolSiteSettings(school.name),
+        settings: row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(school.name),
       };
     },
   );
