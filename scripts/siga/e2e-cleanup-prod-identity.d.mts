@@ -6,3 +6,7 @@ export declare function parseE2ECleanupArgs(args: string[]): {
   execute: boolean;
   tenantId: string | null;
 };
+export declare function assertProductionArtifactCount(
+  table: string,
+  count: number | null | undefined,
+): void;
