@@ -10,3 +10,7 @@ export declare function assertProductionArtifactCount(
   table: string,
   count: number | null | undefined,
 ): void;
+export declare function assertCleanupAccountOwnedBySchool(
+  membershipSchoolIds: string[],
+  schoolId: string | null | undefined,
+): void;
