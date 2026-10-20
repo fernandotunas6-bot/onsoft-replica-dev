@@ -10,6 +10,7 @@ textos, os rótulos e as ligações. Editar aqui não exige tocar em código.
 | `header.json` | Barra superior, ligação para a página da instituição, pesquisa e botão do portal. |
 | `footer.json` | Assinatura, colunas de ligações, aviso de versão demonstrativa e barra legal. |
 | `site.json` | Blocos repetidos em todas as páginas: metadados, aviso padrão e chamada final. |
+| `page-heads.json` | O cabeçalho de cada página, pela rota: olho, título e descrição. |
 | `simple-pages.json` | As cinco páginas de serviço (secretaria, apoio, carreiras, investigação, bolsas). |
 
 A identidade da escola — nome, país, idioma, moeda — **não** está aqui: está

@@ -252,3 +252,25 @@ export function loadSimplePages() {
     }),
   };
 }
+
+/**
+ * Cabeçalho de cada página, por rota: olho, título e descrição.
+ *
+ * A rota é a chave porque é o que o gerador conhece no sítio onde desenha o
+ * cabeçalho. Uma rota sem entrada é erro no build, e não uma página sem título.
+ */
+export function loadPageHeads() {
+  const raw = loadContent('page-heads');
+  const heads = new Map();
+  for (const [route, value] of Object.entries(raw ?? {})) {
+    const base = `page-heads["${route}"]`;
+    internalUrl(route, base);
+    heads.set(route, {
+      eyebrow: text(value?.eyebrow, base + '.eyebrow'),
+      headline: lines(value?.headline, base + '.headline'),
+      description: text(value?.description, base + '.description'),
+    });
+  }
+  if (heads.size === 0) throw Error('Nenhum cabeçalho de página em content/page-heads.json');
+  return heads;
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -138,4 +138,27 @@ test('as páginas de serviço publicadas passam a validação', () => {
   const comRecursos = pages.filter(p => p.resources);
   assert.equal(comRecursos.length, 1);
   assert.equal(comRecursos[0].resources.links.every(l => l.url.startsWith('https://')), true);
+});
+
+test('os cabeçalhos de página publicados passam a validação', () => {
+  const heads = loadPageHeads();
+  assert.ok(heads.size >= 27);
+  for (const [route, head] of heads) {
+    assert.ok(route.startsWith('/'), route);
+    assert.ok(head.eyebrow.length > 0, route);
+    assert.ok(head.headline.length >= 1, route);
+    assert.ok(head.description.length > 0, route);
+  }
+  // As rotas que o gerador procura pelo nome têm de existir no conteúdo.
+  for (const route of ['/cursos/', '/ingresso/', '/eventos/', '/calendario/', '/404/']) {
+    assert.ok(heads.has(route), route);
+  }
+});
+
+test('os títulos das páginas respeitam a convenção de ênfase', () => {
+  // `lines()` já recusa uma ênfase mal fechada; isto fixa que a conversão
+  // feita a partir do gerador não deixou `<em>` nem `<br>` para trás.
+  for (const [route, head] of loadPageHeads()) {
+    for (const line of head.headline) assert.ok(!/[<>]/.test(line), route + ': ' + line);
+  }
 });
