@@ -38,7 +38,9 @@ const stale = (tenants ?? []).filter((row) => {
   return email.endsWith("@siga-plus.test") && (!mode.tenantId || row.id === mode.tenantId);
 });
 if (mode.execute && stale.length !== 1) {
-  console.error("Limpeza bloqueada: UUID não corresponde a exactamente um tenant de teste elegível.");
+  console.error(
+    "Limpeza bloqueada: UUID não corresponde a exactamente um tenant de teste elegível.",
+  );
   process.exit(1);
 }
 
@@ -47,9 +49,13 @@ if (!stale.length) {
   process.exit(0);
 }
 
-console.log(`${dryRun ? "Simulação (sem alterações)" : "Limpeza individual autorizada"}: ${stale.length} tenant(s) E2E…`);
+console.log(
+  `${dryRun ? "Simulação (sem alterações)" : "Limpeza individual autorizada"}: ${stale.length} tenant(s) E2E…`,
+);
 if (dryRun) {
-  console.log("Nenhuma eliminação será feita. Para executar, é obrigatório --execute --tenant-id UUID.");
+  console.log(
+    "Nenhuma eliminação será feita. Para executar, é obrigatório --execute --tenant-id UUID.",
+  );
 }
 let failed = 0;
 for (const row of stale) {
