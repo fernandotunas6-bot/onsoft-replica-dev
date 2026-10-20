@@ -94,7 +94,7 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
       family: getComputedStyle(node).fontFamily,
       background: getComputedStyle(node).backgroundColor,
     }));
-    expect(presentation.family).toContain("Inter");
+    expect(presentation.family).toContain("DM Sans");
     expect(presentation.background).toBe("rgb(255, 255, 255)");
     expect(await page.locator("body").innerText()).not.toContain("draft");
     expect(await page.locator("body").innerText()).not.toContain("tenant-a");
