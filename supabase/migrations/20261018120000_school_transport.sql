@@ -578,7 +578,7 @@ BEGIN
 
     SELECT pg_catalog.coalesce(pg_catalog.array_agg(DISTINCT id ORDER BY id), ARRAY[]::uuid[])
       INTO supplied_user_ids
-    FROM pg_catalog.unnest(p_recipient_user_ids) AS id;
+    FROM pg_catalog.unnest(p_recipient_user_ids) AS candidates(id);
 
     WITH assigned AS (
       SELECT DISTINCT a.student_id, s.person_id
