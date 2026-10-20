@@ -1,4 +1,4 @@
-import type { FileArea } from "./kinds";
+import type { FileArea, FileVisibility } from "./kinds";
 
 /**
  * As tentativas sobrevivem a falhas transitórias enquanto o browser mantém
@@ -10,6 +10,11 @@ export type PreparedSchoolUpload = {
   schoolId: string;
   ownerUserId: string;
   area: FileArea;
+  parentId: string | null;
+  classGroupId: string | null;
+  relatedPersonId: string | null;
+  relatedUserId: string;
+  visibility: FileVisibility;
   uploaded: boolean;
 };
 
@@ -23,10 +28,15 @@ export function prepareSchoolUpload<T extends object>(
     if (
       existing.schoolId !== draft.schoolId ||
       existing.ownerUserId !== draft.ownerUserId ||
-      existing.area !== draft.area
+      existing.area !== draft.area ||
+      existing.parentId !== draft.parentId ||
+      existing.classGroupId !== draft.classGroupId ||
+      existing.relatedPersonId !== draft.relatedPersonId ||
+      existing.relatedUserId !== draft.relatedUserId ||
+      existing.visibility !== draft.visibility
     ) {
       throw new Error(
-        "Este envio tem uma tentativa pendente noutra escola, conta ou área. Retome com o destino original.",
+        "Este envio começou noutro destino ou contexto. Volte à pasta e às opções originais ou escolha o ficheiro novamente.",
       );
     }
     return existing;
