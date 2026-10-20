@@ -601,25 +601,33 @@ export async function setTransportDayStatus(
 
 /** Contas dos alunos da rota nesse dia e dos seus encarregados. */
 async function routeAudience(db: TransportDb, schoolId: string, routeId: string, day: string) {
-  const rows = await db
-    .from("siga_transport_assignments")
-    .select("student_id, valid_from, valid_until")
-    .eq("school_id", schoolId)
-    .eq("route_id", routeId);
-  if (rows.error) fail(rows.error, "TRANSPORT_UNAVAILABLE");
-  const studentIds = [
-    ...new Set(
-      (
-        (rows.data ?? []) as {
-          student_id: string;
-          valid_from: string;
-          valid_until: string | null;
-        }[]
-      )
-        .filter((a) => isAssignmentOpen(a, day))
-        .map((a) => a.student_id),
-    ),
-  ];
+  const studentIdsSet = new Set<string>();
+  // A API pode devolver só os primeiros 1000 registos sem erro.
+  // Paginar na chave primária para não omitir destinatários da mesma rota.
+  const pageSize = 500;
+  const maxPages = 40;
+  for (let pageIndex = 0; pageIndex < maxPages; pageIndex++) {
+    const offset = pageIndex * pageSize;
+    const result = await db
+      .from("siga_transport_assignments")
+      .select("student_id, valid_from, valid_until")
+      .eq("school_id", schoolId)
+      .eq("route_id", routeId)
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (result.error) fail(result.error, "TRANSPORT_UNAVAILABLE");
+    const records = (result.data ?? []) as {
+      student_id: string;
+      valid_from: string;
+      valid_until: string | null;
+    }[];
+    for (const record of records) {
+      if (isAssignmentOpen(record, day)) studentIdsSet.add(record.student_id);
+    }
+    if (records.length < pageSize) break;
+    if (pageIndex === maxPages - 1) throw new TransportError("TRANSPORT_UNAVAILABLE");
+  }
+  const studentIds = [...studentIdsSet];
   if (!studentIds.length) return [];
   // Para avisos só precisamos do person_id, não dos nomes completos.
   // Em rotas maiores, dividir também a consulta de encarregados: o filtro
