@@ -1625,6 +1625,11 @@ export function FileBrowser({
           setPendingFiles([]);
           setArea(match.area);
           setFolderId(match.parentId);
+          setKindFilter("all");
+          setOwnershipFilter("all");
+          setCategoryFilter("all");
+          setRelatedUserFilter("all");
+          if (!lockedClassId) setClassFilter("all");
           setQuery(match.name);
           setSelectedId(match.id);
         }}
