@@ -13,12 +13,15 @@ const PUBLIC_PREFIXES = [
   "/api/finance",
   "/api/saas",
   "/api/public/school-website",
-  // Apenas o website institucional e a sua API de leitura são públicos.
-  // /configuracoes/site continua sob AuthGate + autorização de Administrador.
-  "/site",
-  "/api/public/school-site",
 ];
 
+// Não abrir /site/* ou /api/public/school-site/* automaticamente:
+// futuras rotas de edição/pré-visualização nunca devem herdar acesso anónimo.
+const PUBLIC_EXACT_PATHS = new Set(["/site", "/api/public/school-site"]);
+
 export function isPublicAppPath(pathname: string) {
-  return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return (
+    PUBLIC_EXACT_PATHS.has(pathname) ||
+    PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  );
 }
