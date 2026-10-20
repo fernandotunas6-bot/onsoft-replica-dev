@@ -1576,10 +1576,6 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
     const action = data.classGroupId ? "linked_class" : "unlinked_class";
     const now = new Date().toISOString();
     // Bloquear corridas: uma ligação entretanto modificada não deve ser sobrescrita.
-    const scoped = (query: ReturnType<ReturnType<AdminDb["from"]>["update"]>) =>
-      file.classGroupId
-        ? query.eq("class_group_id", file.classGroupId)
-        : query.is("class_group_id", null);
     const update = db
       .from("siga_files")
       .update({
@@ -1593,7 +1589,12 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .is("deleted_at", null);
-    const { data: changed, error } = await scoped(update).select("id").maybeSingle();
+    const { data: changed, error } = await (file.classGroupId
+      ? update.eq("class_group_id", file.classGroupId)
+      : update.is("class_group_id", null)
+    )
+      .select("id")
+      .maybeSingle();
     if (error) {
       if (missingFilesTable(error) || missingOptionalColumn(error)) {
         const plain = db
@@ -1602,7 +1603,12 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
           .eq("id", data.id)
           .eq("school_id", membership.schoolId)
           .is("deleted_at", null);
-        const fallback = await scoped(plain).select("id").maybeSingle();
+        const fallback = await (file.classGroupId
+          ? plain.eq("class_group_id", file.classGroupId)
+          : plain.is("class_group_id", null)
+        )
+          .select("id")
+          .maybeSingle();
         if (
           fallback.error &&
           (missingFilesTable(fallback.error) || missingOptionalColumn(fallback.error))
