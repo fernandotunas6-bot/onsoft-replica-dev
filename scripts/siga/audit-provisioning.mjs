@@ -34,6 +34,7 @@ const SQL = `
     select
       s.id           as school_id,
       s.name         as nome,
+      s.status       as estado_escola,
       nullif(trim(coalesce(s.nif, '')), '') as nif,
       t.id           as tenant_id,
       t.slug         as slug,
@@ -149,8 +150,13 @@ const incompletas = [];
 const semOnboarding = [];
 let semNif = 0;
 let deTeste = 0;
+let arquivadas = 0;
 
 for (const escola of escolas) {
+  if (escola.estado_escola === "archived") {
+    arquivadas += 1;
+    continue;
+  }
   if (escola.sem_nif) semNif += 1;
   if (E2E_SLUG_PATTERN.test(escola.slug ?? "")) deTeste += 1;
 
@@ -159,7 +165,9 @@ for (const escola of escolas) {
   if (Number(escola.anos_lectivos ?? 0) === 0) semOnboarding.push(escola);
 }
 
-console.log(`Escolas auditadas: ${escolas.length}`);
+console.log(`Escolas encontradas: ${escolas.length}`);
+console.log(`Arquivadas (excluídas da verificação operacional): ${arquivadas}`);
+console.log(`Escolas operacionais auditadas: ${escolas.length - arquivadas}`);
 console.log(`Incompletas (defeito): ${incompletas.length}`);
 console.log(`Onboarding por concluir: ${semOnboarding.length}`);
 console.log(`Slugs de teste (e2e-/web-/mat-/gw-): ${deTeste}`);
