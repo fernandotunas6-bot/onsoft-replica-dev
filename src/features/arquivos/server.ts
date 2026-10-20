@@ -938,10 +938,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       if (String(parent.area) !== targetArea) {
         throw new Error("A pasta de destino pertence a outra área.");
       }
-      if (
-        targetArea === "pessoal" &&
-        String(parent.owner_user_id) !== userId
-      ) {
+      if (targetArea === "pessoal" && String(parent.owner_user_id) !== userId) {
         throw new Error("Não pode mover documentos para a pasta pessoal de outro utilizador.");
       }
       const movingIds = new Set(data.ids);
