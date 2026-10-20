@@ -55,7 +55,7 @@ Estrutura JSON controlada por schema Zod:
 
 **Privacidade obrigatória:** como a política SELECT anterior de `school_settings` permite leitura a todos os membros (inclusive alunos e encarregados), a migração `20261020213000_school_website_draft_read_guard.sql` cria uma política SELECT **RESTRICTIVE** que exige `private.has_permission(school_id, 'schools.settings.create')` somente para o domínio `school_website`. Os outros domínios não mudam. **Aplicar a migração revista primeiro em staging, depois em produção com autorização e antes de disponibilizar `/configuracoes/site`.** Não remover o controlo existente de membro nem modificar tabelas existentes.
 
-**Nunca publicar automaticamente o rascunho novo.** O backend calcula o conteúdo inicial a partir do nome da escola sem gravar: abre o editor com a versão default; salvar grava apenas o próprio domínio da escola. A versão publicada é um snapshot independente do rascunho.
+**Bloqueio de activação:** `SCHOOL_SITES_ENABLED` é uma variável exclusiva do servidor, desligada por omissão; o editor e a API pública falham fechado até que a migração RLS tenha sido aplicada/verificada e a flag seja ligada no Worker. **Nunca publicar automaticamente o rascunho novo.** O backend calcula o conteúdo inicial a partir do nome da escola sem gravar: abre o editor com a versão default; salvar grava apenas o próprio domínio da escola. A versão publicada é um snapshot independente do rascunho.
 
 O modelo v1 é uma página institucional editável e com contacto; **não** constitui ainda um CMS multi-página, biblioteca avançada, editor de blocos ou motor de templates 3×. Só expandir quando contratos, migrações e RLS estiverem preparados.
 
