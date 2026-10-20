@@ -34,7 +34,7 @@ describe("contrato central de arquivos: limites de segurança", () => {
 
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
     expect(files).toContain('"list",\n      account.schoolId');
-    expect(files).toContain('account.id,\n      account.role');
+    expect(files).toContain("account.id,\n      account.role");
     expect(files).toContain('"existing-preupload",\n      account.schoolId,');
     expect(files).toContain('"previews",\n      account.schoolId,');
   });
