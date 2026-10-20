@@ -40,3 +40,6 @@ body{background:#fff}.topline{background:#f0f4fb;color:#607491}.site-header{bord
 .budget-summary .budget-total dd{font-size:30px;color:var(--blue)}.budget-summary .outline-button{white-space:normal;text-align:center;margin-block:12px}.budget-summary .text-link{margin-top:20px}
 @media(max-width:900px){.study-budget-layout{grid-template-columns:minmax(0,1fr)}.budget-summary{max-width:none}}
 @media(max-width:760px){.study-budget-layout{gap:24px}.study-budget-layout .preparation-actions{align-items:flex-start}.study-budget-layout .button{white-space:normal;text-align:center}}
+
+/* Semantic column headers retain the existing comparison appearance. */
+.comparison-table thead th.comparison-course{position:relative;background:#f9fbff;font-weight:400}
