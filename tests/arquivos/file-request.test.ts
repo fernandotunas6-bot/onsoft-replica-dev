@@ -3,6 +3,7 @@ import { fileMatchesRequest, type SchoolFileRequest } from "@/features/arquivos/
 
 const schoolFile = {
   isFolder: false,
+  isSystem: false,
   storageBackend: "sga",
   area: "secretaria",
   visibility: "private",
@@ -48,8 +49,12 @@ describe("file picker por finalidade, inspirado no Moodle", () => {
     };
     const material = { ...schoolFile, area: "escola" as const, visibility: "school" as const };
     const otherClass = { ...material, classGroupId: "outra-turma" };
+    const unlinked = { ...material, classGroupId: null };
     const privateMaterial = { ...material, visibility: "private" as const };
+    const systemMaterial = { ...material, isSystem: true };
     expect(fileMatchesRequest(material, req)).toBe(true);
+    expect(fileMatchesRequest(unlinked, req)).toBe(true);
+    expect(fileMatchesRequest(systemMaterial, req)).toBe(false);
     expect(fileMatchesRequest(material, request("class-material"))).toBe(false);
     expect(fileMatchesRequest(otherClass, req)).toBe(false);
     expect(fileMatchesRequest(privateMaterial, req)).toBe(false);
