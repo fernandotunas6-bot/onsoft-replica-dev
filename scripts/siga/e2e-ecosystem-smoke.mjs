@@ -2,11 +2,12 @@
 /**
  * Smoke test manual/automático do ecossistema (Fase 13).
  * Requer apps locais a correr. Não cria tenants reais.
- * SIGA_E2E_CI=1 — identifica HTTP 500 de API como SKIP, nunca como aprovação.
+ * HTTP 500 só é SKIP com SIGA_E2E_ALLOW_API_500_SKIP=1 em CI sem staging.
  */
 import { classifySmokeStatus } from "./e2e-smoke-status.mjs";
 
 const CI = process.env.SIGA_E2E_CI === "1";
+const ALLOW_API_500_SKIP = CI && process.env.SIGA_E2E_ALLOW_API_500_SKIP === "1";
 const REQUIRE_COMPLETE = process.env.SIGA_E2E_REQUIRE_COMPLETE === "1";
 
 const endpoints = [
@@ -157,7 +158,7 @@ for (const item of endpoints) {
       label: item.label,
       expected: item.expect,
       status: res.status,
-      ci: CI,
+      allowApi500Skip: ALLOW_API_500_SKIP,
       optionalInCi: item.optionalInCi,
     });
     const mark = status === "pass" ? "OK" : status === "skip" ? "SKIP" : "FAIL";
