@@ -33,8 +33,8 @@ function accentForeground(hex: string): string {
     const value = Number.parseInt(hex.slice(index, index + 2), 16) / 255;
     return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
   });
-  const luminance = 0.2126 * (channels[0] ?? 0) + 0.7152 * (channels[1] ?? 0)
-    + 0.0722 * (channels[2] ?? 0);
+  const luminance =
+    0.2126 * (channels[0] ?? 0) + 0.7152 * (channels[1] ?? 0) + 0.0722 * (channels[2] ?? 0);
   return luminance <= 0.179 ? "#ffffff" : "#000000";
 }
 
@@ -94,7 +94,9 @@ function PublicSchoolSitePage() {
 
   return (
     <div className="school-site" style={colors}>
-      <a className="school-site__skip" href="#conteudo">Saltar para o conteúdo</a>
+      <a className="school-site__skip" href="#conteudo">
+        Saltar para o conteúdo
+      </a>
       <div className="school-site__topline">
         <div className="school-site__top-inner school-site__container">
           <span>Instituição de ensino · Angola</span>
@@ -114,9 +116,7 @@ function PublicSchoolSitePage() {
           </nav>
           <details className="school-site__menu">
             <summary>Menu</summary>
-            <nav aria-label="Navegação móvel">
-              {links}
-            </nav>
+            <nav aria-label="Navegação móvel">{links}</nav>
           </details>
         </div>
       </header>
@@ -132,9 +132,7 @@ function PublicSchoolSitePage() {
               {content.title}
               <span className="school-site__headline-accent">.</span>
             </h1>
-            {content.tagline ? (
-              <p className="school-site__intro">{content.tagline}</p>
-            ) : null}
+            {content.tagline ? <p className="school-site__intro">{content.tagline}</p> : null}
             <div className="school-site__hero-actions">
               <Link to="/" className="school-site__button">
                 Aceder ao portal <ArrowUpRight size={18} aria-hidden="true" />
@@ -146,7 +144,9 @@ function PublicSchoolSitePage() {
               ) : null}
             </div>
             <div className="school-site__hero-note">
-              <span className="school-site__note-icon" aria-hidden="true">✳</span>
+              <span className="school-site__note-icon" aria-hidden="true">
+                ✳
+              </span>
               <span>Um espaço institucional com acesso ao portal escolar.</span>
             </div>
           </div>
@@ -175,7 +175,11 @@ function PublicSchoolSitePage() {
             )}
             <div className="school-site__float" aria-hidden="true">
               <span className="school-site__float-icon">✳</span>
-              <span>Um lugar para<br /><strong>aprender e crescer.</strong></span>
+              <span>
+                Um lugar para
+                <br />
+                <strong>aprender e crescer.</strong>
+              </span>
             </div>
             <div className="school-site__badge" aria-hidden="true">
               Portal escolar integrado
@@ -184,7 +188,11 @@ function PublicSchoolSitePage() {
         </section>
 
         {content.about ? (
-          <section id="sobre" aria-labelledby="titulo-sobre" className="school-site__section school-site__section-soft">
+          <section
+            id="sobre"
+            aria-labelledby="titulo-sobre"
+            className="school-site__section school-site__section-soft"
+          >
             <div className="school-site__container">
               <div className="school-site__section-head">
                 <span className="school-site__eyebrow">A nossa identidade</span>
@@ -200,7 +208,10 @@ function PublicSchoolSitePage() {
             <div className="school-site__section-head">
               <span className="school-site__eyebrow">Serviços institucionais</span>
               <h2 id="titulo-servicos">A sua escola, sempre por perto.</h2>
-              <p>Aceda ao ambiente escolar ou consulte as informações que a instituição disponibiliza.</p>
+              <p>
+                Aceda ao ambiente escolar ou consulte as informações que a instituição
+                disponibiliza.
+              </p>
             </div>
             <div className="school-site__services">
               <Link to="/" className="school-site__service">
@@ -210,7 +221,9 @@ function PublicSchoolSitePage() {
                 <span>Entrar no portal ↗</span>
               </Link>
               <a className="school-site__service" href={content.about ? "#sobre" : "#inicio"}>
-                <span className="school-site__note-icon" aria-hidden="true">✳</span>
+                <span className="school-site__note-icon" aria-hidden="true">
+                  ✳
+                </span>
                 <h3>Identidade institucional</h3>
                 <p>Conheça a escola e a sua presença institucional online.</p>
                 <span>Conhecer a instituição ↗</span>
@@ -220,7 +233,11 @@ function PublicSchoolSitePage() {
         </section>
 
         {hasContact && contact ? (
-          <section id="contactos" aria-labelledby="titulo-contactos" className="school-site__section school-site__section-soft">
+          <section
+            id="contactos"
+            aria-labelledby="titulo-contactos"
+            className="school-site__section school-site__section-soft"
+          >
             <div className="school-site__container school-site__contacts">
               <div className="school-site__section-head">
                 <span className="school-site__eyebrow">Estamos por perto</span>
@@ -228,9 +245,27 @@ function PublicSchoolSitePage() {
                 <p>Utilize os contactos oficiais publicados pela instituição.</p>
               </div>
               <address>
-                {contact.address ? <p><strong>Morada</strong><br />{contact.address}</p> : null}
-                {contact.phone ? <p><strong>Telefone</strong><br />{contact.phone}</p> : null}
-                {contact.email ? <p><strong>E-mail</strong><br />{contact.email}</p> : null}
+                {contact.address ? (
+                  <p>
+                    <strong>Morada</strong>
+                    <br />
+                    {contact.address}
+                  </p>
+                ) : null}
+                {contact.phone ? (
+                  <p>
+                    <strong>Telefone</strong>
+                    <br />
+                    {contact.phone}
+                  </p>
+                ) : null}
+                {contact.email ? (
+                  <p>
+                    <strong>E-mail</strong>
+                    <br />
+                    {contact.email}
+                  </p>
+                ) : null}
               </address>
             </div>
           </section>
@@ -246,7 +281,9 @@ function PublicSchoolSitePage() {
               </span>
               <span className="school-site__brand-name">{schoolName}</span>
             </p>
-            <p>Website institucional da escola. O portal académico mantém o seu acesso protegido.</p>
+            <p>
+              Website institucional da escola. O portal académico mantém o seu acesso protegido.
+            </p>
           </div>
           <Link to="/" className="school-site__text-link">
             Entrar no Portal Escolar <ArrowUpRight size={18} aria-hidden="true" />
