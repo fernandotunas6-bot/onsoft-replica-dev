@@ -55,6 +55,19 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Transporte escolar (2026-10-18): as cinco tabelas são só do servidor (FORCE RLS,
+  // sem políticas) porque paragem + hora + aluno é a morada de um menor. Cada
+  // função exige Administrador/Secretaria ou a permissão «Gestão»
+  // (requireSgaWriterFor/ForWrite) e a lógica filtra tudo pela escola da sessão
+  // (src/features/transport/transport-core.server.ts).
+  "src/features/transport/server.ts",
+  // Mobile V4: o aluno não pode ler directamente os vínculos/roles nem
+  // revogar sessões Auth Admin. HTTP valida Bearer + MFA antes dos serviços;
+  // autorização confirma o vínculo exacto activo e papel por escola. Ainda
+  // não lê dados académicos nem grava comandos (503). Testes em tests/mobile-v4.
+  "src/features/mobile-v4/authorization.ts",
+  "src/features/mobile-v4/session-core.server.ts",
+  "src/features/mobile-v4/http.server.ts",
   // Acesso do administrador da escola (Smart School Onboarding, 2026-10-15): lê o
   // estado da conta no Supabase Auth (e-mail confirmado, último acesso, 2FA), os
   // papéis e permissões da escola e o tenant — nada disso é legível pelo JWT. A

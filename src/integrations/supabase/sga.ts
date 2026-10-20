@@ -106,6 +106,7 @@ export type UserSchoolMembershipItem = {
 export async function listUserSchoolMemberships(
   client: SupabaseClient,
   userId: string,
+  options: { strict?: boolean } = {},
 ): Promise<UserSchoolMembershipItem[]> {
   const db = sgaClient(client);
   const { data: memberships, error } = await db
@@ -115,6 +116,7 @@ export async function listUserSchoolMemberships(
     .order("created_at", { ascending: true });
 
   if (error) {
+    if (options.strict) throw new Error("Não foi possível confirmar os vínculos institucionais.");
     console.error("[listUserSchoolMemberships] error querying memberships:", error);
     return [];
   }
@@ -132,10 +134,13 @@ export async function listUserSchoolMemberships(
       // abaixo engolia o erro, deixando `schoolsMap` vazio. Consequência: nem o
       // slug nem o **nome** da escola chegavam ao contexto da conta, e quem lê
       // `schoolName`/`schoolSlug` recebia null desde sempre.
-      const { data: schoolsData } = await db
+      const { data: schoolsData, error: schoolsError } = await db
         .from("schools")
         .select("id, name, tenants(slug)")
         .in("id", schoolIds);
+      if (options.strict && (schoolsError || schoolsData?.length !== schoolIds.length)) {
+        throw new Error("Não foi possível confirmar as escolas institucionais.");
+      }
       if (schoolsData) {
         schoolsMap = new Map(
           schoolsData.map(
@@ -150,7 +155,8 @@ export async function listUserSchoolMemberships(
           ),
         );
       }
-    } catch {
+    } catch (schoolError) {
+      if (options.strict) throw schoolError;
       /* ignore if schools table query has issues */
     }
   }
@@ -165,6 +171,7 @@ export async function listUserSchoolMemberships(
       .select("membership_id, roles!member_roles_role_id_fkey(code, name)")
       .in("membership_id", membershipIds);
     if (mrError) {
+      if (options.strict) throw new Error("Não foi possível confirmar os papéis institucionais.");
       console.error("[listUserSchoolMemberships] error querying roles:", mrError);
     }
     for (const mr of (mrData ?? []) as Array<{

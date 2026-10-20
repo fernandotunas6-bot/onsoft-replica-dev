@@ -91,6 +91,48 @@ npm run build` e servir `.output/server/index.mjs` por Node (o `wrangler` exige 
   bytes, não os 977 513 da última linha da tabela. O relatório agora avisa.
 - Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
 
+## App SIGA Plus (Flutter) — PR #132, ramo `ccr-6a21e4bf-flutter-ui` (2026-10-18)
+
+- App em `mobile-flutter/`, lê e escreve pelo Mobile V4. Entregas em PDF prontas no código;
+  a migração `20261017140000_task_submissions` está **por aplicar** (pacote
+  `SIGA_aplicar_entregas_pdf.sql`).
+- Transporte escolar: plano e divisão de trabalho com o Lovable em
+  [TRANSPORTE_PLANO.md](./TRANSPORTE_PLANO.md) (aprovado; migração por aplicar).
+
+## Mobile V4 — PR #116, branch `feat/siga-plus-mobile-v4-isolated` (2026-10-12)
+
+App em `mobile-v4/` (React isolado), API em `src/features/mobile-v4/` servida por
+`/api/mobile-v4/schools/:id/<op>` (`http.server.ts`). Professor e aluno já não têm serviços
+«aguarda integração» no modo ligado ao SIGA. Detalhe: `mobile-v4/reference/REFINAMENTO.md`,
+`mobile-v4/docs/AUDITORIA_MATRICULAS_2026-10-10.md`, `mobile-v4/docs/CLOUDFLARE_PAGES.md`.
+
+- **Escritas:** marcar avisos como lidos; chamada do professor (`attendance-call`), com as
+  regras do portal e mais duas: a turma toda marcada (409 `ATTENDANCE_ROSTER_CHANGED`) e a
+  lista validada antes de abrir a sessão do dia. Lista = `rosterStudentIds`
+  (`academic-scope.server.ts`): matrículas activas e pendentes, como o portal.
+- **Consultas novas:** planos de aula do professor (`lesson-plans`, só os seus pares
+  turma+disciplina, rascunhos incluídos) e pedidos de documentos do aluno (`documents`, sem a
+  nota interna). Só leitura: criar fica no portal.
+- **Visual:** ícones originais, uma só cor de destaque, movimento dos mosaicos (cores por
+  função e 3D foram experimentados e retirados a pedido do dono). Horário por dia com «A
+  decorrer»/«A seguir», trabalhos por prazo, atalhos por turma. `#app` com `overflow: clip`
+  (com `hidden` a página deslizava 86 px).
+- **SIGA:** «Prontidão do Mobile» (`/configuracoes/mobile`, só Administrador, só leitura, RLS)
+  diz caso a caso o que falta a cada aluno, professor e turma. Ligação conta↔ficha numa só
+  regra (`src/features/access/person-link.ts`), usada por Acessos e pelo aceitar convite.
+- **Produção (auditoria só de leitura, 11/10):** 0 alunos com conta ligada (33 de 36 sem
+  e-mail na ficha), 33 de 36 matrículas activas em turmas sem disciplinas, os 2 professores
+  com conta sem turmas. Os dados existentes estão coerentes; falta trabalho da escola.
+- **Publicar:** bloqueado neste ambiente (sem `CLOUDFLARE_API_TOKEN`, rede sem
+  `api.cloudflare.com`). Com acesso: `npm run publish:preview --prefix mobile-v4`, validar,
+  depois `node mobile-v4/scripts/publish.mjs promote <url> --public`. Reversão: `promote` com
+  o URL anterior (hoje `https://361b8072.siga-plus-mobile-v4.pages.dev`).
+- **Decisões do dono por tomar:** o aluno pedir documentos pelo telemóvel; a chamada completa
+  também no portal (`submitAttendanceCallBatch` ainda fecha incompleta); pautas de anos
+  anteriores no Mobile.
+- **Verificar:** `npm run typecheck lint format:check test build build:connected test:domain`
+  em `mobile-v4/`, e `npx vitest run tests/mobile-v4 tests/school tests/access` na raiz.
+
 ## Sincronização GitHub — 2026-10-19
 
 Integrado `origin/main` (`dcf0825c`) na branch `docs/auditoria-critica-2026-10-06`,
@@ -261,9 +303,12 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
   também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
   `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
-  depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.
+- **Aplicadas na produção a 10/10:** `20261010120000_global_education_catalog.sql`, o seed
+  `supabase/seeds/education/catalog.sql` (conferido por md5) e
+  `20261010150000_merge_school_subjects.sql` (a função existe). Falta `npm run siga:db-snapshot`
+  e `siga:gen-types`, e depois tirar `merge_school_subjects` de `FUNCOES_ESPERA_MIGRACAO`.
+- **Por aplicar (dono):** `20261012120000_subjects_catalog_link.sql` (independente das
+  outras). A página não depende dela.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 

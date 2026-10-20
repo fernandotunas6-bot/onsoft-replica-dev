@@ -21,6 +21,8 @@ export default tseslint.config(
       // Código de terceiros copiado só para estudo (ver estudo/README.md).
       "estudo/**",
       "desktop/**",
+      // Aplicação independente, validada pelo workflow Mobile V4.
+      "mobile-v4/**",
       "modelo de pautas/**",
       "playwright-report/**",
       "reports/**",

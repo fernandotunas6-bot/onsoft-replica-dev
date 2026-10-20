@@ -14,8 +14,8 @@
  */
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { canSeeRow } from "@/features/arquivos/server";
 import {
+  canSeeFileMetadata,
   canAccessFileContent,
   type FileArea,
   type FileVisibility,
@@ -46,7 +46,8 @@ export function canShareFileInMessage(
   // IndexedDB fica apenas no dispositivo do autor.
   if (file.isFolder || file.storageBackend !== "sga") return false;
   return senderRoles.some(
-    (role) => canSeeRow(file, senderId, role) && canAccessFileContent(file, senderId, role),
+    (role) =>
+      canSeeFileMetadata(file, senderId, role) && canAccessFileContent(file, senderId, role),
   );
 }
 

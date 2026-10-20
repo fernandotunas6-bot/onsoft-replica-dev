@@ -18,12 +18,88 @@ persistida pelo código; o SDK gere a sua própria sessão.
 
 ## Identidade: limite explícito
 
-O painter é uma proposta tipográfica com expansão, recorte e dissolução.
-**Não é o morph vectorial exacto pedido pelo utilizador.** A referência raster
-não fornece o vector original; não foi criado nem inventado um ficheiro Rive.
-Antes da aprovação visual, obter o SVG original do S, construir um artboard
-Rive e validar a transformação contínua S → Seja bem-vindo → S.
-O wordmark provisório também não substitui a arte final fornecida.
+`IdentityIntro` (`lib/identity.dart`) faz a transformação contínua em widgets
+Flutter: «Seja» começa pelo mesmo «S», que nunca sai do lugar; o resto da
+mensagem abre e fecha a partir dele (`MorphingMark`, `reveal` 0→1→0) enquanto
+o mosaico estica até cápsula e volta; depois a marca encaixa por baixo.
+Primeira abertura 3,3 s, seguintes 1,2 s, «Saltar», e nada com movimento
+reduzido (do sistema ou da app). Os tempos estão em `IntroTimeline` e testados.
+**Ainda não usa o vector original do S nem Rive:** o «S» é tipográfico (fonte
+do sistema) sobre o gradiente da marca. Com o SVG original, trocar o «S» do
+`MorphingMark` pelo vector, ou construir o artboard Rive com a mesma linha
+temporal. O wordmark também é provisório.
+
+## Design system e ecrãs (front-end)
+
+- `lib/design/tokens.dart`: branco, preto suave, cinzento secundário, azul
+  institucional configurável (Aparência → Cor principal), espaçamento de 8,
+  cantos 12/16/24, gradiente só na identidade; claro e escuro.
+- `lib/design/widgets.dart`: cartões com borda fina e resposta ao toque,
+  mosaicos de serviço, etiquetas de estado, estados vazios, avatar por
+  iniciais (nenhuma fotografia inventada), painéis inferiores com
+  escurecimento discreto (sem desfoque).
+- `lib/design/floating_nav.dart`: barra inferior flutuante com indicador que
+  desliza; respeita movimento reduzido.
+- Ecrãs: login, selector de escola, início (próxima aula, serviços escolares,
+  disciplinas, próximas actividades), disciplinas com filtro por turma,
+  calendário com faixa semanal, mensagens com «Não lidas», turmas, espaço da
+  turma (estilo Moodle), tarefas por prazo, Mais, Aparência e Transporte.
+- Honestidade: WhatsApp da turma, aulas online, presenças/notas da turma e o
+  trajecto do transporte aparecem como «Por activar» ou «Simulação», com a
+  explicação; nenhum botão simula uma integração que não existe.
+- `test/ui_test.dart`: linha temporal da abertura, barra inferior, ecrãs com
+  um gateway simulado, selector, aparência e transporte.
+
+## Instalar no Android (APK)
+
+O workflow «SIGA Flutter — validate migration» gera, no job `android`, o
+artefacto **siga-plus-android-apk** com dois ficheiros:
+
+- `siga-plus-demonstracao.apk` — os ecrãs reais com dados fictícios locais
+  (`lib/main_demo.dart`); não pede senha nem contacta servidores; faixa
+  «Demonstração · dados fictícios» sempre visível.
+- `siga-plus.apk` — a app institucional: Supabase do SGA e API móvel em
+  `https://m.portal-siga.com`. O job copia `.env.example` para `.env`, aplica
+  as variáveis do repositório que existirem (`SIGA_SUPABASE_URL`,
+  `SIGA_SUPABASE_PUBLISHABLE_KEY`, `SIGA_API_ORIGIN`, `SIGA_GOOGLE_LOGIN`,
+  `SIGA_MICROSOFT_LOGIN`, `SIGA_APPLE_LOGIN`, `SIGA_AUTH_REDIRECT`), valida com
+  `scripts/check-env.mjs` e compila com `--dart-define-from-file=.env`.
+
+Para instalar: GitHub → Actions → a execução mais recente → Artifacts →
+descarregar o ZIP, abrir o APK no telemóvel e permitir «instalar apps de origem
+desconhecida». Os APK vão assinados com a chave de depuração: servem para
+testar, não para a Play Store (falta a keystore da plataforma).
+
+Localmente, com o Android SDK:
+
+```
+cp .env.example .env            # e ajustar
+node scripts/check-env.mjs .env # recusa segredos
+flutter build apk --release --dart-define-from-file=.env
+```
+
+## Âmbito da app
+
+A app é para a rotina de alunos e professores (aula do dia, chamada, tarefas,
+horário, faltas, mensagens, avisos e consultas). Trabalho complexo — lançar e
+alterar notas, editar planos, criar tarefas, corrigir chamadas fechadas,
+pedidos de documentos e pagamentos — faz-se no portal SIGA Plus web
+(`SIGA_PORTAL_URL`) ou no aplicativo desktop; a secção «No portal SIGA Plus»
+dos Serviços explica cada caso e abre o portal.
+
+## Configuração (.env)
+
+O `.env` (fora do Git) só leva valores públicos, porque fica legível dentro do
+APK: URL e chave `sb_publishable_` do Supabase, origem da API, o endereço do
+portal web (`SIGA_PORTAL_URL`) e os interruptores de login social. A senha da base de dados, a chave
+`service_role`/`sb_secret_` e a senha do Gmail/SMTP ficam só no servidor
+(segredos do Supabase e do Cloudflare); `check-env.mjs` recusa-as.
+
+Entrar com Google (Gmail): no Supabase → Authentication → Providers activar
+Google com o Client ID/Secret do Google Cloud, acrescentar
+`ao.portalsiga.sigaplus://login-callback` (e o domínio web) às Redirect URLs e
+pôr `SIGA_GOOGLE_LOGIN=true`. O mesmo para Microsoft (Azure) e Apple. A
+recuperação de senha usa o e-mail do Supabase Auth (SMTP configurado lá).
 
 ## Executar
 
@@ -33,7 +109,7 @@ Flutter 3.35.7 / Dart 3.9.2:
 flutter pub get
 flutter analyze
 flutter test
-flutter run -d chrome --dart-define=SUPABASE_URL=<url-do-SGA> --dart-define=SUPABASE_PUBLISHABLE_KEY=<chave-publica>
+flutter run -d chrome --dart-define-from-file=.env
 ```
 
 As duas definições são públicas; nunca incluir service_role ou segredos de
@@ -115,3 +191,13 @@ catálogo existente montados no Worker de staging local; guardas de transporte
 e integrações em backend/. 20 testes Node executados e aprovados. Não confundir
 com Flutter/Worker compilados ou Supabase remoto validado. O ZIP inclui os dois
 ficheiros de integração no repositório, além do cliente e backend isolado.
+
+## Substituição do antigo frontend
+
+A pasta mobile-v4 e o workflow React foram removidos nesta branch. Contratos
+e serviços partilhados ficam em contracts/, Worker em staging/ e recursos
+de domínio em deployment/. APIs /api/mobile-v4 preservadas por compatibilidade.
+Após flutter build web, executar node scripts/build-worker.mjs a partir de
+mobile-flutter. O empacotador exige index.html gerado. Não foi executado: SDK e
+dependências do Worker ausentes. Nenhuma troca do site publicado foi feita.
+Documentos em docs/mobile-v4-history são históricos, não instruções de build.

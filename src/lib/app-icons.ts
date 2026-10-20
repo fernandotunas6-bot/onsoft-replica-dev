@@ -12,6 +12,7 @@
  */
 import {
   CreditCard,
+  Smartphone,
   Banknote,
   BookOpen,
   BriefcaseBusiness,
@@ -124,6 +125,8 @@ export const moduleIcons = {
   subscription: CreditCard,
   /** Catálogo global de cursos, disciplinas e etapas de ensino. */
   educationCatalog: Library,
+  /** Prontidão do SIGA Plus Mobile: contas, papéis e turmas prontas. */
+  mobileReadiness: Smartphone,
 } satisfies Record<string, LucideIcon>;
 
 export type ModuleIconKey = keyof typeof moduleIcons;

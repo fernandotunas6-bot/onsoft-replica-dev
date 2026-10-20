@@ -149,8 +149,48 @@ from (values
                and qual like '%sga_app_role%')
      and not exists (select 1 from pg_policies
                      where tablename = 'schools'
-                       and policyname = 'Administrators can update their own school'))
-,
+                       and policyname = 'Administrators can update their own school')),
+  -- Entregas em PDF: só "aplicada" com isolamento por escola na BD.
+  ('20261017140000_task_submissions',
+     to_regclass('public.siga_task_submissions') is not null
+     and not has_table_privilege('authenticated', to_regclass('public.siga_task_submissions'), 'SELECT')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_task_submissions')
+         and conname = 'siga_submission_task_same_school_fk')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_task_submissions')
+         and conname = 'siga_submission_student_same_school_fk')
+     and to_regclass('public.siga_task_submissions_storage_path_unique_idx') is not null),
+  -- Transporte: a existência de tabelas não substitui as FKs compostas.
+  ('20261018120000_school_transport',
+     to_regclass('public.siga_transport_day_status') is not null
+     and not has_table_privilege('authenticated', to_regclass('public.siga_transport_assignments'), 'SELECT')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_transport_routes')
+         and conname = 'siga_transport_route_vehicle_school_fk')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_transport_stops')
+         and conname = 'siga_transport_stop_route_school_fk')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_transport_assignments')
+         and conname = 'siga_transport_assignment_student_school_fk')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_transport_assignments')
+         and conname = 'siga_transport_assignment_route_school_fk')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_transport_assignments')
+         and conname = 'siga_transport_assignment_stop_route_school_fk')
+     and exists (select 1 from pg_catalog.pg_constraint
+       where conrelid = to_regclass('public.siga_transport_day_status')
+         and conname = 'siga_transport_day_route_school_fk')
+     and to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)') is not null
+     and has_function_privilege('service_role', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+     and not has_function_privilege('authenticated', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+     and not has_function_privilege('anon', to_regprocedure('public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)'), 'EXECUTE')
+     and to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)') is not null
+     and has_function_privilege('service_role', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)'), 'EXECUTE')
+     and not has_function_privilege('authenticated', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)'), 'EXECUTE')
+     and not has_function_privilege('anon', to_regprocedure('public.siga_transport_set_day_status_atomic(uuid,uuid,date,text,integer,text,uuid,uuid[],text,text)'), 'EXECUTE')),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))

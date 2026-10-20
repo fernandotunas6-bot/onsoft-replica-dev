@@ -89,6 +89,45 @@ describe("colunas usadas existem na produção", () => {
     expect(missing).toEqual([]);
   });
 
+  it("a RPC pendente de paragens tem SQL real, grants restritos e recusa sem função", () => {
+    const rpc = "siga_transport_save_stops_atomic";
+    expect(FUNCOES_ESPERA_MIGRACAO.has(rpc)).toBe(true);
+    const migration = readFileSync(
+      "supabase/migrations/20261018120000_school_transport.sql",
+      "utf8",
+    );
+    const core = readFileSync("src/features/transport/transport-core.server.ts", "utf8");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public." + rpc + "(");
+    expect(migration).toContain("SECURITY INVOKER");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.siga_transport_save_stops_atomic");
+    expect(core).toContain('if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY")');
+    expect(core).toContain("fail(result.error)");
+  });
+
+  it("a RPC de estado do dia tem migração restrita e comparação transaccional", () => {
+    const rpc = "siga_transport_set_day_status_atomic";
+    expect(FUNCOES_ESPERA_MIGRACAO.has(rpc)).toBe(true);
+    const migration = readFileSync(
+      "supabase/migrations/20261018120000_school_transport.sql",
+      "utf8",
+    );
+    const core = readFileSync("src/features/transport/transport-core.server.ts", "utf8");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public." + rpc + "(");
+    expect(migration).toContain("FOR UPDATE");
+    expect(migration).toContain("SECURITY INVOKER");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public." + rpc);
+    expect(migration).toContain("INSERT INTO public.notifications");
+    expect(migration).toContain("p_recipient_user_ids uuid[]");
+    expect(migration).toContain("JOIN public.student_guardians AS g");
+    expect(migration).toContain("JOIN public.students AS s");
+    expect(migration).toContain("supplied_user_ids IS DISTINCT FROM expected_user_ids");
+    expect(core).toContain("p_recipient_user_ids: userIds");
+    expect(core).not.toContain("insertInAppNotifications(");
+    expect(core).toContain('if (!db.rpc) throw new TransportError("TRANSPORT_NOT_READY")');
+    expect(core).toContain("siga_transport_set_day_status_atomic");
+    expect(core).toContain('saved.error?.code === "PGRST202"');
+  });
+
   it("RPCs atómicos têm migração e falham de forma explícita se indisponíveis", () => {
     const sql = readFileSync(
       "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",

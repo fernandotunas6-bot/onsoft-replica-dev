@@ -1,20 +1,37 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-describe("aceitar convite: ligação à ficha da pessoa", () => {
+/**
+ * As regras da ligação (e-mail exacto, curingas do ILIKE escapados, uma única
+ * ficha sem conta, nunca trocar a conta de uma ficha) vivem em
+ * `person-link.ts` e são testadas em `person-link.test.ts`. Aqui garante-se que
+ * os dois caminhos que criam contas as usam, sem uma cópia própria.
+ */
+describe("ligação da conta à ficha da pessoa", () => {
   const source = readFileSync("src/features/access/server.ts", "utf8");
-  const accept = source.slice(source.indexOf("export const acceptSchoolInvitation"));
+  const body = (name: string) => {
+    const start = source.indexOf(`export const ${name}`);
+    return source.slice(start, source.indexOf("export const", start + 1));
+  };
 
-  it("escapa os curingas do ILIKE e exige o e-mail exacto", () => {
-    expect(accept).toContain("invitedEmail.replace(/[\\\\%_]/g, (c) => `\\\\${c}`)");
-    expect(accept).toContain("=== invitedEmail");
+  it("aceitar um convite e criar a conta em Acessos usam a mesma regra", () => {
+    expect(body("acceptSchoolInvitation")).toContain(
+      "linkPersonByEmail(admin, schoolId, invitedEmail, userId)",
+    );
+    expect(body("inviteSystemUser")).toContain(
+      "linkPersonByEmail(admin, schoolId, data.email, userId)",
+    );
   });
 
-  it("só liga quando há uma única ficha sem conta, pelo id", () => {
-    expect(accept).toContain("if (exact.length === 1)");
-    expect(accept).toContain('.eq("id", String(exact[0].id))');
-    expect(accept).not.toMatch(
-      /\.update\(\{ user_id: userId \}\)\s*\.eq\("school_id", schoolId\)\s*\.ilike/,
-    );
+  it("nenhum deles liga a ficha por conta própria", () => {
+    for (const name of ["acceptSchoolInvitation", "inviteSystemUser"]) {
+      expect(body(name), name).not.toMatch(/\.update\(\{ user_id: userId \}\)/);
+    }
+  });
+
+  it("quem cria a conta é avisado quando a ficha não fica ligada", () => {
+    expect(body("inviteSystemUser")).toContain("personLinkWarning: personLinkMessage");
+    // Uma falha da base não passa por «nenhuma ficha tem este e-mail».
+    expect(body("inviteSystemUser")).toContain('personLink = "error"');
   });
 });

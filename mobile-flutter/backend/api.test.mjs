@@ -28,6 +28,8 @@ const catalog = () => ({
       weekday: 2,
       startsAt: "09:00",
       endsAt: "10:00",
+      publication: "published",
+      room: null,
       privateField: "secret",
     },
   ],
@@ -62,7 +64,7 @@ test("class detail filters to authorized subject scope and drops future private 
   d.academicCatalog = async () => {
     const c = catalog();
     c.classes.push({ ...c.classes[0], classGroupId: other, classSubjectId: other });
-    c.timetable.push({ classSubjectId: other });
+    c.timetable.push({ ...c.timetable[0], slotId: subject, classSubjectId: other });
     return c;
   };
   const r = await handleInstitutionalExtension(req(`/${group}?role=aluno`), d);
@@ -186,5 +188,29 @@ test("duplicate tasks are rejected", async () => {
       due: null,
     }),
   });
+  assert.equal((await handleInstitutionalExtension(req("?role=aluno"), d)).status, 503);
+});
+
+test("invalid or repeated timetable rows never reach class output", async () => {
+  for (const change of [
+    { weekday: 8 },
+    { startsAt: "25:00" },
+    { endsAt: "08:00" },
+    { room: { private: "value" } },
+  ]) {
+    const d = deps();
+    d.academicCatalog = async () => {
+      const c = catalog();
+      Object.assign(c.timetable[0], change);
+      return c;
+    };
+    assert.equal((await handleInstitutionalExtension(req("?role=aluno"), d)).status, 503);
+  }
+  const d = deps();
+  d.academicCatalog = async () => {
+    const c = catalog();
+    c.timetable.push(c.timetable[0]);
+    return c;
+  };
   assert.equal((await handleInstitutionalExtension(req("?role=aluno"), d)).status, 503);
 });

@@ -79,6 +79,11 @@ chat/
 client_secret_*.json
 *-service-account.json
 
+# Opt-in Mobile V4 host library build
+mobile-v4/dist-institutional/
+
+mobile-v4/dist-connected/
+
 # Descargas soltas na raiz (o sweep de 12/10 versionou 3 MB destas e trocou o
 # favicon por um logótipo de 1 MB). Marcas pertencem a public/brands/.
 /Imagem do ChatGPT*
