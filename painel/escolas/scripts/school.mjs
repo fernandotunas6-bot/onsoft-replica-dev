@@ -11,6 +11,40 @@ import fs from 'node:fs';
 
 const DEFAULTS = {lang: 'pt-AO', currency: 'Kz'};
 
+/**
+ * Paleta: os sete tokens de cor que o CSS do site declara em `:root`.
+ *
+ * A escola só precisa de nomear os que quer mudar. O build acrescenta um
+ * `:root` no fim do CSS com esses — e só esses — pelo que uma escola sem
+ * paleta configurada recebe exactamente o CSS de origem.
+ */
+export const PALETTE_TOKENS = ['blue', 'deep', 'text', 'muted', 'line', 'soft', 'lime'];
+
+/** Tem de ser igual ao `--blue` do `:root` em src/style.css (fixado por um teste). */
+export const DEFAULT_BLUE = '#1558ee';
+
+const COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+function resolvePalette(raw) {
+  if (raw === undefined) return {};
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) throw Error('Paleta da escola inválida.');
+  const palette = {};
+  for (const [token, value] of Object.entries(raw)) {
+    if (!PALETTE_TOKENS.includes(token)) throw Error('Token de cor desconhecido na paleta: ' + token);
+    // A cor entra num `:root` do CSS publicado: sem esta validação, a
+    // configuração podia fechar a declaração e escrever regras próprias.
+    if (typeof value !== 'string' || !COLOR.test(value)) throw Error('Cor inválida na paleta (' + token + '): ' + String(value));
+    palette[token] = value.toLowerCase();
+  }
+  return palette;
+}
+
+/** O `:root` que o build acrescenta ao CSS. Vazio quando não há paleta. */
+export function paletteCss(palette) {
+  const entries = PALETTE_TOKENS.filter(token => token in palette);
+  return entries.length === 0 ? '' : '\n:root{' + entries.map(token => '--' + token + ':' + palette[token]).join(';') + '}\n';
+}
+
 /** Marcador por substituir no fim da substituição: erro de escrita, não conteúdo. */
 const LEFTOVER = /\{\{[A-Z_]{2,32}\}\}/;
 
@@ -30,12 +64,14 @@ export function resolveSchool(raw) {
   if (school.currencyName === undefined) school.currencyName = school.currency;
   if (typeof school.currencyName !== 'string' || !/^[\p{L}\p{N} .-]{1,40}$/u.test(school.currencyName)) invalid();
 
+  const palette = resolvePalette(school.palette);
+
   let portal = null;
   if (school.portalUrl) {
     portal = new URL(school.portalUrl);
     if (portal.protocol !== 'https:' || portal.username || portal.password || portal.search || portal.hash) throw Error('URL do portal SIGA inválido.');
   }
-  return {...school, portal};
+  return {...school, palette, themeColor: palette.blue ?? DEFAULT_BLUE, portal};
 }
 
 export function createBrand(school) {

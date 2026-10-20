@@ -22,6 +22,26 @@ A prévia está em `http://127.0.0.1:4174`. Publique `dist/` no host estático e
 
 Os textos, rótulos e ligações do site estão em `content/` — navegação, cabeçalho, rodapé e os blocos repetidos em todas as páginas. São ficheiros JSON validados no build: uma chave em falta é um erro com o caminho no JSON, e o conteúdo é sempre escapado. Ver `content/README.md`.
 
+### Cores
+
+`palette`, em `school.config.json`, muda os tokens de cor do site:
+
+```json
+"palette": { "blue": "#1a7f4b", "deep": "#0d2a1b" }
+```
+
+Os tokens são `blue` (cor de marca: botões, ligações, ênfase dos títulos,
+pontos), `deep` (títulos), `text`, `muted`, `line`, `soft` e `lime`. Só é
+preciso nomear os que mudam; o build acrescenta um `:root` no fim do CSS com
+esses e a `<meta name="theme-color">` segue o `blue`. Sem `palette`, o CSS sai
+tal como está.
+
+Limite conhecido: 122 regras do CSS seguem `var(--blue)`, mas há cerca de 600
+cores escritas à mão — sobretudo fundos quase brancos com um toque de azul
+(`#edf3ff` e família). Uma escola com marca verde recebe botões, ligações e
+ênfases verdes sobre painéis ainda levemente azuis. Converter essas cores em
+tokens é o passo seguinte.
+
 `portalUrl`, quando configurado com o endereço HTTPS oficial da escola, faz o botão de acesso usar o SIGA Plus existente. Não cria um login nem duplica notas, finanças ou sessões. O perfil local do portal continua explicitamente demonstrativo.
 
 ## Integração de API incluída

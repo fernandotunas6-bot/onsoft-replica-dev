@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {resolveSchool, createBrand} from '../scripts/school.mjs';
+import {readFileSync} from 'node:fs';
+import {resolveSchool, createBrand, paletteCss, DEFAULT_BLUE} from '../scripts/school.mjs';
 
 const base = {id: 'escola-exemplo', shortName: 'Escola Exemplo', country: 'Angola'};
 const brandFor = extra => createBrand(resolveSchool({...base, ...extra}));
@@ -118,4 +119,35 @@ test('o nome da moeda tem omissão e validação próprias', () => {
 test('{{CURRENCY}} e {{CURRENCY_NAME}} são marcadores distintos', () => {
   const brand = brandFor({currency: 'MT', currencyName: 'meticais'});
   assert.equal(brand('propina ({{CURRENCY}}) em {{CURRENCY_NAME}}'), 'propina (MT) em meticais');
+});
+
+test('a paleta só aceita os tokens do CSS e cores hexadecimais', () => {
+  assert.deepEqual(resolveSchool(base).palette, {});
+  assert.deepEqual(resolveSchool({...base, palette: {blue: '#1A7F4B'}}).palette, {blue: '#1a7f4b'});
+  assert.throws(() => resolveSchool({...base, palette: {azul: '#1a7f4b'}}), /Token de cor desconhecido na paleta: azul/);
+  for (const value of ['#1a7f4', 'red', 'var(--blue)', '#fff;}body{display:none', 123, null]) {
+    assert.throws(() => resolveSchool({...base, palette: {blue: value}}), /Cor inválida na paleta/, JSON.stringify(value));
+  }
+  for (const value of ['#1a7f4b', ['#1a7f4b'], null]) {
+    assert.throws(() => resolveSchool({...base, palette: value}), /Paleta da escola inválida|Cor inválida/, JSON.stringify(value));
+  }
+});
+
+test('paletteCss escreve um :root só com o que a escola mudou', () => {
+  assert.equal(paletteCss({}), '');
+  assert.equal(paletteCss({deep: '#0d2a1b', blue: '#1a7f4b'}), '\n:root{--blue:#1a7f4b;--deep:#0d2a1b}\n');
+});
+
+test('a cor do tema segue a paleta', () => {
+  assert.equal(resolveSchool(base).themeColor, DEFAULT_BLUE);
+  assert.equal(resolveSchool({...base, palette: {blue: '#1a7f4b'}}).themeColor, '#1a7f4b');
+});
+
+test('o azul por omissão é o que está no :root do CSS', () => {
+  // Duplicação necessária: a cor do tema é um atributo HTML e não pode ler o
+  // CSS. Se alguém mudar o `--blue` do src/style.css, este teste avisa.
+  const css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  const root = /:root\{([^}]*)\}/.exec(css);
+  assert.ok(root, ':root não encontrado em src/style.css');
+  assert.match(root[1], new RegExp('--blue:' + DEFAULT_BLUE + '\\b'));
 });
