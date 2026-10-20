@@ -123,6 +123,50 @@ jobs:
       - name: Build
         run: bun run build
 
+  # O CI da raiz não compila automaticamente o WEB (projecto Vite próprio).
+  # O signup vive em painel/web: uma PR que altere este painel precisa de
+  # comprovar TypeScript/Vite e lint, não só a qualidade do SIGA raiz.
+  web-quality:
+    name: WEB — lint e build (alterações no painel)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detectar alterações ao WEB
+        id: changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git diff --name-only "origin/$BASE_REF...HEAD" | grep -q '^painel/web/'; then
+            echo 'web=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'web=false' >> "$GITHUB_OUTPUT"
+            echo 'Nenhum ficheiro painel/web alterado nesta PR.'
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.web == 'true'
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: painel/web/package-lock.json
+
+      - name: Instalar dependências WEB
+        if: steps.changed.outputs.web == 'true'
+        run: npm ci --prefix painel/web
+
+      - name: Lint WEB
+        if: steps.changed.outputs.web == 'true'
+        run: npm run lint --prefix painel/web
+
+      - name: TypeScript e build Vite WEB
+        if: steps.changed.outputs.web == 'true'
+        run: npm run build --prefix painel/web
+
   # O job "Cobertura IconChip / MediaFrame por rota" saiu a 29/09. Abria 13
   # páginas protegidas no servidor de desenvolvimento sem sessão iniciada e só
   # via o ecrã de entrada (0/13 sempre). A cobertura de estilo continua no passo
