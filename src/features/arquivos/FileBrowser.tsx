@@ -233,11 +233,14 @@ export function FileBrowser({
   const installed = useInstalledIntegrations();
   const prefs = readFilesPrefs(account.role);
   const areas = visibleAreasForRole(account.role);
-  const writableAreas =
-    uploadClassGroupId &&
-    (account.role === "Professor" || canWriteFileArea(account.role, "escola"))
-      ? (["escola"] as FileArea[])
-      : writableAreasForRole(account.role);
+  const writableAreas = useMemo(
+    () =>
+      uploadClassGroupId &&
+      (account.role === "Professor" || canWriteFileArea(account.role, "escola"))
+        ? (["escola"] as FileArea[])
+        : writableAreasForRole(account.role),
+    [account.role, uploadClassGroupId],
+  );
   const lockedClassId = classGroupId ?? null;
   const [area, setArea] = useState<FileArea>(
     initialArea && areas.includes(initialArea) ? initialArea : prefs.defaultArea,
@@ -713,6 +716,18 @@ export function FileBrowser({
     if (uploadClassGroupId && (targetArea !== "escola" || meta.visibility !== "school")) {
       toast.error("Materiais da turma devem ser partilhados na área Escola.");
       return;
+    }
+    if (uploadClassGroupId) {
+      try {
+        // Confirmar a atribuição ANTES do envio para evitar blobs órfãos
+        // quando a turma não pertence ao professor.
+        await listSchoolFiles({ data: { area: "escola", classGroupId: uploadClassGroupId, limit: 1 } });
+      } catch (error) {
+        toast.error("Não foi possível validar a turma para o envio.", {
+          description: error instanceof Error ? error.message : "Confirme a atribuição docente.",
+        });
+        return;
+      }
     }
     // Trocar a área invalida a pasta actualmente seleccionada.
     const targetFolderId = targetArea === area ? folderId : null;
