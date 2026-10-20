@@ -136,7 +136,7 @@
   border-radius: 8px;
   padding: 12px 20px;
   background: var(--school-site-accent);
-  color: #fff !important;
+  color: var(--school-site-accent-ink, #fff) !important;
   font-size: 13px;
   font-weight: 650;
   line-height: 1.5;
