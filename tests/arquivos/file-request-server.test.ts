@@ -87,6 +87,23 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(server.slice(signStart)).toContain("mapped.ownerUserId !== userId");
   });
 
+  it("associação de materiais revalida ACL, finalidade e estado da turma", () => {
+    const start = server.indexOf("export const linkSchoolFileToClass = createServerFn");
+    const stop = server.indexOf("export const deleteSchoolFile = createServerFn", start);
+    expect(start).toBeGreaterThan(0);
+    expect(stop).toBeGreaterThan(start);
+    const fn = server.slice(start, stop);
+    expect(fn).toContain("loadSchoolFileRow(db, membership.schoolId, data.id)");
+    expect(fn).toContain('purpose: "class-material"');
+    expect(fn).toContain("canSeeRow(file, userId, membership.appRole)");
+    expect(fn).toContain("canAccessFileContent(file, userId, membership.appRole)");
+    expect(fn).toContain('file.classGroupId');
+    expect(fn).toContain('.is("deleted_at", null)');
+    expect(fn).toContain('.select("id")');
+    expect(fn).toContain('if (!fallback.data)');
+    expect(fn).toContain('else if (!changed)');
+  });
+
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
     expect(files).toContain('"list",\n      account.schoolId');
     expect(files).toContain("account.id,\n      account.role");
