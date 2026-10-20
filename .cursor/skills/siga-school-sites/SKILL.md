@@ -20,7 +20,7 @@ Ler `docs/school-sites/VISUAL_CONTRACT.md`. Não alterar **nenhum** ficheiro em 
 5. Não repor conteúdo demo nem misturar `painel/web` (comercial) com site escolar.
 6. `painel/escolas` é site ISPAB, não um CMS universal; reutilizar somente padrões que façam sentido.
 7. Proteger scripts/HTML, media privada, CSP, PII, auth/MFA e isolamento multi-escola.
-8. A migração RLS `20261020213000_school_website_draft_read_guard.sql` é obrigatória antes da activação: `settings_select_member` permite ler rascunhos aos alunos/encarregados. Não aplicar automaticamente, testar em staging e exigir autorização de produção. Nunca executar Lovable/Drizzle no SGA.
+8. A migração RLS `20261020213000_school_website_draft_read_guard.sql` é obrigatória antes da activação: `settings_select_member` permite ler rascunhos aos alunos/encarregados. Não aplicar automaticamente, testar em staging e exigir autorização de produção. Sem `SCHOOL_SITES_ENABLED=true` exclusivamente no Worker, o módulo falha fechado. Nunca executar Lovable/Drizzle no SGA.
 9. Cloudflare wildcard existente não significa publicação automática, certificados válidos ou permissões de custom domain.
 10. Não transferir para `main` nem fazer deploy sem CI, canário e revisão.
 
