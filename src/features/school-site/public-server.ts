@@ -6,6 +6,7 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
 import type { TenantStatus, SubscriptionLifecycle } from "@/features/saas/types";
 import { parseSchoolSiteSettings, type SchoolSiteContent } from "./schema";
+import { schoolSitesEnabled } from "./feature-gate";
 
 export type PublicSchoolSite = {
   schoolName: string;
@@ -15,6 +16,7 @@ export type PublicSchoolSite = {
 };
 
 export async function loadPublishedSchoolSite(hostname: string): Promise<PublicSchoolSite | null> {
+  if (!schoolSitesEnabled()) return null;
   const host = hostname.trim().toLowerCase().replace(/\.$/, "");
   if (!host || host.length > 253 || !/^[a-z0-9.-]+$/.test(host)) return null;
   const db = await loadSgaAdminClient();
