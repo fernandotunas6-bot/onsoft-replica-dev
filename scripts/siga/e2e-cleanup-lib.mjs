@@ -41,8 +41,8 @@ export function isE2ETenantSlug(slug) {
   return E2E_SLUG_PATTERN.test(String(slug ?? "").trim());
 }
 
-/** Remove tenant E2E — só slugs e2e/web/mat e e-mail @siga-plus.test quando indicado. */
-export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
+/** Remove um único tenant E2E. Em produção exige UUID idêntico ao autorizado. */
+export async function cleanupE2ETenantBySlug(admin, slug, adminEmail, approvedTenantId = null) {
   if (!isE2ETenantSlug(slug)) {
     throw new Error(`Refusing cleanup: slug «${slug}» não parece tenant E2E.`);
   }
@@ -50,8 +50,8 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
     throw new Error("Refusing cleanup: e-mail admin fora do domínio de teste.");
   }
   const target = assertSafeCleanupTarget();
-  if (target.production && !adminEmail) {
-    throw new Error("Limpeza em produção bloqueada: indique o e-mail E2E do tenant.");
+  if (target.production && (!adminEmail || !approvedTenantId)) {
+    throw new Error("Limpeza em produção bloqueada: indique o contacto E2E e UUID autorizado.");
   }
 
   const { data: tenant, error: tenantError } = await admin
@@ -62,8 +62,10 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
   if (tenantError) throw new Error(tenantError.message);
   if (!tenant?.id) return { removed: false };
   if (target.production) {
-    // O slug por si só não demonstra que esta escola pode ser apagada:
-    // exigir contacto de testes registado, igual ao fornecido pelo operador.
+    if (tenant.id !== approvedTenantId) {
+      throw new Error("Limpeza em produção bloqueada: UUID autorizado não corresponde ao tenant.");
+    }
+    // O slug por si só não demonstra que esta escola pode ser apagada.
     assertProductionE2ECleanupIdentity(adminEmail, tenant.contact_email);
   }
 
@@ -73,6 +75,12 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
     .select("id")
     .eq("tenant_id", tenantId)
     .maybeSingle();
+
+  if (target.production) {
+    // Na produção, qualquer registo académico, financeiro ou de auditoria
+    // impede purga automática. Deve ser avaliado e autorizado manualmente.
+    await assertNoProductionSchoolArtifacts(admin, tenantId, school?.id ?? null);
+  }
 
   if (school?.id) {
     // Mais de 100 tabelas referenciam `schools.id`, quase todas com ON DELETE
@@ -103,6 +111,31 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
   }
 
   return { removed: true, tenantId };
+}
+
+/**
+ * Bloqueio fail-closed de eliminação automática com dados institucionais.
+ * Todas as contagens são feitas com HEAD, sem ler alunos ou facturas.
+ */
+async function assertNoProductionSchoolArtifacts(admin, tenantId, schoolId) {
+  const checks = [{ table: "saas_audit_logs", column: "tenant_id", id: tenantId }];
+  if (schoolId) {
+    for (const table of ["students", "enrollments", "finance_invoices"]) {
+      checks.push({ table, column: "school_id", id: schoolId });
+    }
+  }
+  for (const check of checks) {
+    const { count, error } = await admin
+      .from(check.table)
+      .select("*", { count: "exact", head: true })
+      .eq(check.column, check.id);
+    if (error || count === null || count === undefined || !Number.isSafeInteger(count)) {
+      throw new Error(`Limpeza em produção bloqueada: não foi possível auditar ${check.table}.`);
+    }
+    if (count > 0) {
+      throw new Error(`Limpeza em produção bloqueada: existem registos em ${check.table}.`);
+    }
+  }
 }
 
 /** SQL directo via Management API — o cliente PostgREST não chega ao catálogo. */
