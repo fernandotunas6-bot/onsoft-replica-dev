@@ -9,8 +9,12 @@ const sql = readFileSync(
 
 describe("school_website — RLS dos rascunhos institucionais", () => {
   it("acrescenta guarda de SELECT RESTRICTIVE em school_settings", () => {
-    expect(sql).toMatch(/DROP POLICY IF EXISTS school_website_drafts_admin_read_guard ON public\.school_settings/i);
-    expect(sql).toMatch(/CREATE POLICY school_website_drafts_admin_read_guard\s+ON public\.school_settings\s+AS RESTRICTIVE\s+FOR SELECT\s+TO authenticated/i);
+    expect(sql).toMatch(
+      /DROP POLICY IF EXISTS school_website_drafts_admin_read_guard ON public\.school_settings/i,
+    );
+    expect(sql).toMatch(
+      /CREATE POLICY school_website_drafts_admin_read_guard\s+ON public\.school_settings\s+AS RESTRICTIVE\s+FOR SELECT\s+TO authenticated/i,
+    );
   });
 
   it("preserva os outros domínios e exige permissão administrativa para o site", () => {
@@ -24,6 +28,8 @@ describe("school_website — RLS dos rascunhos institucionais", () => {
     expect(sql).not.toMatch(/DROP POLICY IF EXISTS settings_select_member/i);
     expect(sql).not.toMatch(/DROP POLICY IF EXISTS settings_insert_authorized/i);
     expect(sql).not.toMatch(/GRANT SELECT|GRANT ALL|DISABLE ROW LEVEL SECURITY/i);
-    expect(sql).not.toMatch(/UPDATE\s+public\.school_settings|DELETE\s+FROM\s+public\.school_settings/i);
+    expect(sql).not.toMatch(
+      /UPDATE\s+public\.school_settings|DELETE\s+FROM\s+public\.school_settings/i,
+    );
   });
 });

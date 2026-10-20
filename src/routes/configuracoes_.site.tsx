@@ -93,7 +93,8 @@ function SchoolSiteEditorPage() {
       setNotice("Website retirado do ar. O rascunho e as versões anteriores mantêm-se guardados.");
       await client.invalidateQueries({ queryKey });
     },
-    onError: (error) => setNotice(error instanceof Error ? error.message : "Não foi possível despublicar."),
+    onError: (error) =>
+      setNotice(error instanceof Error ? error.message : "Não foi possível despublicar."),
   });
 
   const change = <K extends keyof SchoolSiteContent>(key: K, value: SchoolSiteContent[K]) => {
@@ -218,7 +219,12 @@ function SchoolSiteEditorPage() {
               <div className="flex flex-wrap gap-3">
                 <Button
                   type="submit"
-                  disabled={!dirty || saveMutation.isPending || publishMutation.isPending || unpublishMutation.isPending}
+                  disabled={
+                    !dirty ||
+                    saveMutation.isPending ||
+                    publishMutation.isPending ||
+                    unpublishMutation.isPending
+                  }
                 >
                   {saveMutation.isPending ? "A guardar…" : "Guardar rascunho"}
                 </Button>
@@ -245,12 +251,17 @@ function SchoolSiteEditorPage() {
                   {confirmUnpublish ? (
                     <div className="flex flex-wrap items-center gap-3">
                       <p className="text-sm text-muted-foreground">
-                        O website deixará de estar público. O portal e os rascunhos permanecem intactos.
+                        O website deixará de estar público. O portal e os rascunhos permanecem
+                        intactos.
                       </p>
                       <Button
                         type="button"
                         variant="destructive"
-                        disabled={saveMutation.isPending || publishMutation.isPending || unpublishMutation.isPending}
+                        disabled={
+                          saveMutation.isPending ||
+                          publishMutation.isPending ||
+                          unpublishMutation.isPending
+                        }
                         onClick={() => unpublishMutation.mutate()}
                       >
                         {unpublishMutation.isPending ? "A retirar…" : "Confirmar despublicação"}
@@ -268,7 +279,12 @@ function SchoolSiteEditorPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      disabled={dirty || saveMutation.isPending || publishMutation.isPending || unpublishMutation.isPending}
+                      disabled={
+                        dirty ||
+                        saveMutation.isPending ||
+                        publishMutation.isPending ||
+                        unpublishMutation.isPending
+                      }
                       onClick={() => setConfirmUnpublish(true)}
                     >
                       Retirar website do ar

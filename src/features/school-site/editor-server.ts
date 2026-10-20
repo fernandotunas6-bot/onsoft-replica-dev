@@ -103,7 +103,6 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
     };
   });
 
-
 /** Emergência editorial: despublica imediatamente a última versão, sem DELETE. */
 export const unpublishSchoolSite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

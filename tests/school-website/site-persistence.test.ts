@@ -127,8 +127,8 @@ describe("school-site — versões append-only e RLS", () => {
     await appendSchoolSiteVersion(store.db, "school-A", "admin-A", 0, (site) =>
       withPublication(site),
     );
-    const nextVersion = await appendSchoolSiteVersion(
-      store.db, "school-A", "admin-A", 1, (site) => withoutPublication(site),
+    const nextVersion = await appendSchoolSiteVersion(store.db, "school-A", "admin-A", 1, (site) =>
+      withoutPublication(site),
     );
     expect(nextVersion).toBe(2);
     expect(store.rows).toHaveLength(2);
