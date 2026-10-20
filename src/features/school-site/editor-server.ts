@@ -1,14 +1,15 @@
 /**
- * CMS institucional mínimo: domínio `school_website` em school_settings.
- * A identidade escolar vem exclusivamente da sessão autenticada.
+ * Gestão autenticada do website: utiliza RLS da sessão do próprio administrador.
+ * Cada alteração acrescenta versão, sem UPDATE nem service_role.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  loadSgaAdminClient,
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
+import { requireAal2 } from "@/features/hr/require-aal2";
+import { appendSchoolSiteVersion, latestSchoolSiteRow } from "./persistence";
 import {
   defaultSchoolSiteSettings,
   parseSchoolSiteSettings,
@@ -19,29 +20,14 @@ import {
   type SchoolSiteSettings,
 } from "./schema";
 
-const WEBSITE_DOMAIN = "school_website";
-
-type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
-type WebsiteRow = { id: string; version: number; value: unknown };
-
-async function readRow(db: Db, schoolId: string): Promise<WebsiteRow | null> {
-  const { data, error } = await db
-    .from("school_settings")
-    .select("id, version, value")
-    .eq("school_id", schoolId)
-    .eq("domain", WEBSITE_DOMAIN)
-    .maybeSingle();
-  if (error) throw new Error("Não foi possível consultar as configurações do website.");
-  return data ? { id: data.id, version: data.version, value: data.value } : null;
+function requireSchoolAdministrator(appRole: string) {
+  // As permissões por módulo podem conceder acesso extraordinário a cargos
+  // não administrativos: para publicar a identidade pública não basta "gestao".
+  if (appRole !== "Administrador") {
+    throw new Error("A configuração do website exige o cargo de Administrador da escola.");
+  }
 }
 
-async function readSchoolName(db: Db, schoolId: string): Promise<string> {
-  const { data, error } = await db.from("schools").select("name").eq("id", schoolId).single();
-  if (error || !data) throw new Error("Escola não encontrada.");
-  return data.name;
-}
-
-/** Ler não necessita MFA; administrar só com o cargo da própria escola. */
 export const getSchoolSiteEditor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(
@@ -55,69 +41,24 @@ export const getSchoolSiteEditor = createServerFn({ method: "GET" })
       const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
         "Administrador",
       ]);
-      const db = await loadSgaAdminClient();
-      const [schoolName, row] = await Promise.all([
-        readSchoolName(db, membership.schoolId),
-        readRow(db, membership.schoolId),
+      requireSchoolAdministrator(membership.appRole);
+      const db = context.supabase;
+      const [{ data: school, error }, row] = await Promise.all([
+        db.from("schools").select("name").eq("id", membership.schoolId).single(),
+        latestSchoolSiteRow(db, membership.schoolId),
       ]);
+      if (error || !school) throw new Error("Escola não encontrada.");
       return {
-        schoolName,
+        schoolName: school.name,
         version: row?.version ?? 0,
-        settings: row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(schoolName),
+        settings: row
+          ? parseSchoolSiteSettings(row.value)
+          : defaultSchoolSiteSettings(school.name),
       };
     },
   );
 
-async function saveForSchool(
-  schoolId: string,
-  userId: string,
-  expectedVersion: number,
-  transform: (current: SchoolSiteSettings) => SchoolSiteSettings,
-): Promise<number> {
-  const db = await loadSgaAdminClient();
-  const [row, schoolName] = await Promise.all([
-    readRow(db, schoolId),
-    readSchoolName(db, schoolId),
-  ]);
-  const version = row?.version ?? 0;
-  if (version !== expectedVersion) {
-    throw new Error("O website foi alterado noutra sessão. Recarregue antes de gravar.");
-  }
-
-  const current = row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(schoolName);
-  const value = transform(current);
-  if (row) {
-    const { data, error } = await db
-      .from("school_settings")
-      .update({ value, version: version + 1, changed_by: userId })
-      .eq("id", row.id)
-      .eq("school_id", schoolId)
-      .eq("version", expectedVersion)
-      .select("version")
-      .maybeSingle();
-    if (error) throw new Error("Não foi possível guardar o website.");
-    if (!data) throw new Error("O website mudou noutra sessão. Recarregue e tente novamente.");
-    return data.version;
-  }
-
-  const { data, error } = await db
-    .from("school_settings")
-    .insert({
-      school_id: schoolId,
-      domain: WEBSITE_DOMAIN,
-      version: 1,
-      value,
-      changed_by: userId,
-    })
-    .select("version")
-    .single();
-  if (error || !data) {
-    throw new Error("Não foi possível criar as configurações. Recarregue e tente novamente.");
-  }
-  return data.version;
-}
-
-/** A configuração é guardada como rascunho, nunca publicada por acidente. */
+/** Grava rascunho sem alterar a versão pública actualmente publicada. */
 export const saveSchoolSiteDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolSiteSaveInputSchema.parse(input))
@@ -125,11 +66,11 @@ export const saveSchoolSiteDraft = createServerFn({ method: "POST" })
     const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
-    if (context.claims["aal"] !== "aal2") {
-      throw new Error("Confirme a verificação em dois passos antes de guardar ou publicar.");
-    }
+    requireSchoolAdministrator(membership.appRole);
+    requireAal2(context.claims, "Guardar website institucional");
     return {
-      version: await saveForSchool(
+      version: await appendSchoolSiteVersion(
+        context.supabase,
         membership.schoolId,
         context.userId,
         data.expectedVersion,
@@ -138,7 +79,7 @@ export const saveSchoolSiteDraft = createServerFn({ method: "POST" })
     };
   });
 
-/** Publicação intencional: snapshot imutável até à publicação seguinte. */
+/** Só um clique de publicação copia o snapshot do rascunho para visitantes. */
 export const publishSchoolSite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolSitePublishInputSchema.parse(input))
@@ -146,14 +87,14 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
     const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
+    requireSchoolAdministrator(membership.appRole);
+    requireAal2(context.claims, "Publicar website institucional");
     if (data.expectedVersion === 0) {
       throw new Error("Guarde o rascunho antes de publicar.");
     }
-    if (context.claims["aal"] !== "aal2") {
-      throw new Error("Confirme a verificação em dois passos antes de guardar ou publicar.");
-    }
     return {
-      version: await saveForSchool(
+      version: await appendSchoolSiteVersion(
+        context.supabase,
         membership.schoolId,
         context.userId,
         data.expectedVersion,
