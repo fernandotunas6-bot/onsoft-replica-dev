@@ -13,6 +13,13 @@ escrito — há uma PR nova (#188) e um ramo empurrado sem PR, ambos de hoje.
 > documento; as secções acima ficam como foram escritas, para se poder ver o que
 > caducou e com que rapidez.
 
+> **Quarta actualização, 20:05 de 20/10.** A base passou a `7cc34b15` (#197) e
+> há três correcções ao retrato das 19:30: a #108 **não** está verde (o lint
+> falha por 11 erros de Prettier num commit nosso), o Codex **passou a deixar
+> rodapé** (`Co-Authored-By: Codex <codex@openai.com>`, primeiro caso na #196) e
+> não resta nenhum ramo do Codex sem PR. Ver
+> [«Quarta actualização»](#quarta-actualização-2005-de-2010) no fim.
+
 ## Como foi identificado
 
 O Codex comete com o teu nome de utilizador do git e **não deixa rodapé de
@@ -229,3 +236,77 @@ está velho.
 5. #35 — 28 ficheiros em conflito. Fechar e levantar da `main`.
 6. `App_Edu` — 962 ficheiros por commitar. É o que resta fora do controlo de
    versões, agora que o SIGA_EDU saiu da lista.
+
+## Quarta actualização, 20:05 de 20/10
+
+Base `origin/main` em `7cc34b15` — mudou outra vez, meia hora depois do retrato
+anterior: a #197 (publicação do website ISPAB por Direct Upload) entrou às
+19:17. Três coisas mudaram de facto; o resto do retrato das 19:30 mantém-se.
+
+### A #108 não está verde — e a culpa é nossa
+
+O retrato das 19:30 diz «verde e sem conflito». Metade disso é verdade: o
+conflito foi resolvido e os **116/116** testes passam. Mas o portão
+«Estilo, acessibilidade e build» falha no ramo, e falha por causa do nosso
+próprio commit:
+
+- `6cb9e741` (19:32, *test(bbb): o fixture da política não acompanhou o aperto
+  do tipo*) deixou **11 erros de Prettier**, todos em
+  `tests/integrations/bigbluebutton-service.test.ts` — o ficheiro do fixture que
+  esse commit reescreveu.
+- Nenhum outro job falha: dependências, WEB lint/build e `check-bbb-format`
+  passam; E2E e Lighthouse ficam `skipping`.
+
+A lição é a de sempre, e desta vez contra nós: **correr os testes não é correr o
+portão**. `vitest` verde e `pnpm lint` vermelho são estados compatíveis, e só o
+segundo bloqueia a fusão. Os 11 erros são todos de formatação e sairiam com
+`--fix`.
+
+### A assinatura do Codex mudou outra vez
+
+A secção «Como foi identificado» diz que o Codex **não deixa rodapé**. Deixou de
+ser verdade hoje às 19:10: `a9cd5a61` (a #196, website ISPAB) é o **primeiro e
+único** commit da `main` com
+
+```
+Co-Authored-By: Codex <codex@openai.com>
+```
+
+Medido na `main`: 836 commits com rodapé do Claude, 1 com rodapé do Codex. Ou
+seja, as três pistas do inventário caducaram por ordem — primeiro o inglês,
+depois as sessões locais, agora a ausência de rodapé. A pista que resta a
+funcionar é a mais fraca de todas (nome do ramo com data, commits curtos
+repetidos), e a nova é a mais forte — mas só cobre o que o Codex fizer a partir
+de hoje.
+
+### Não há ramo do Codex sem PR
+
+O item 1 do roteiro das 07:10 está fechado em definitivo. Dos 9 ramos remotos
+sem PR nenhuma, nenhum é do Codex: 7 são do Claude (`ccr-*`, `claude/*`,
+`audit/timetable-enrollment-2026-10-10`), mais a `main` e a `report` do
+`gpt-engineer-app[bot]`, de 10/08.
+
+### Estado das PRs do inventário, às 20:05
+
+| PR | GitHub diz | Observação |
+|---|---|---|
+| #107 | `MERGEABLE / CLEAN` | fora do rascunho, só documentação. Falta fundir |
+| #113 | `MERGEABLE / CLEAN` | verificada duas vezes. Falta fundir |
+| #117 | `MERGEABLE / CLEAN` | verificada duas vezes. Falta fundir |
+| #108 | `MERGEABLE / UNSTABLE` | funde, mas o lint falha (acima) |
+| #35 | `CONFLICTING / DIRTY` | confirmado pelo GitHub, não só pelo teste local |
+| #190 (esta) | `MERGEABLE / CLEAN` | o local tinha a fusão da `main` por empurrar |
+
+São 29 PRs abertas no repositório. A #198 (cache dos recursos públicos, aberta
+às 18:14) tem rodapé do Claude — não é trabalho do Codex e não entra neste
+inventário.
+
+### Ainda por fazer — revisto
+
+1. **#108**: `pnpm lint --fix` no ficheiro do fixture e empurrar. É o único
+   obstáculo ao portão.
+2. **#113, #117, #107**: verdes e limpas. Falta fundir — nada técnico as segura.
+3. **#30** (modelos de e-mail): continua o maior bloco ausente por inteiro.
+4. **#35**: fechar e levantar da `main`.
+5. **`App_Edu`**: 962 ficheiros por commitar, confirmado às 20:0x. Último commit
+   do repositório: `5ee9cdf1`.
