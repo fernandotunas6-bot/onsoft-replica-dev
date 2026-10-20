@@ -5,6 +5,7 @@ export interface SmokeStatusInput {
   expected: number[];
   status: number;
   allowApi500Skip?: boolean;
+  ci?: boolean;
   optionalInCi?: boolean;
 }
 
