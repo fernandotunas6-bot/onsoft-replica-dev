@@ -243,6 +243,10 @@ jobs:
           SIGA_E2E_WAIT_ATTEMPTS: "120"
 
       - name: Smoke HTTP do ecossistema
+        # API 500 só pode ser SKIP quando NÃO existe secret para o staging.
+        # Com staging configurado, respostas 500 são falhas efectivas.
+        env:
+          SIGA_E2E_ALLOW_API_500_SKIP: ${{ secrets.STAGING_SUPABASE_SECRET_KEY == '' && '1' || '0' }}
         run: SIGA_E2E_CI=1 bun run siga:e2e-smoke
 
       - name: Instalar browsers Playwright (TypeScript)
