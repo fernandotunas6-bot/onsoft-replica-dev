@@ -2,6 +2,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import type { PublicSchoolSite } from "@/features/school-site/public-server";
+import { MediaFrame } from "@/components/ui/media-frame";
 
 export const Route = createFileRoute("/site")({
   head: () => ({
@@ -73,20 +74,17 @@ function PublicSchoolSitePage() {
             ) : null}
             <Link
               to="/"
-              className="inline-flex rounded-lg px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ backgroundColor: content.primaryColor }}
+              className="inline-flex rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               Aceder ao Portal Escolar
             </Link>
           </div>
           {content.heroImageUrl ? (
-            <img
+            <MediaFrame
               src={content.heroImageUrl}
               alt={"Instalações de " + schoolName}
-              width={960}
-              height={640}
-              loading="lazy"
-              className="aspect-[3/2] w-full rounded-2xl object-cover"
+              ratio="3/2"
+              className="w-full"
             />
           ) : (
             <div aria-hidden="true" className="flex aspect-[3/2] items-center justify-center rounded-2xl bg-muted">
