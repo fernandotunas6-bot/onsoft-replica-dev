@@ -102,8 +102,9 @@ export function FileBrowserGrid({
               ) : (
                 fileKindMeta[file.kind].label
               )}
-              {" · "}
-              {fileVisibilityMeta[file.visibility].short}
+              {file.storageBackend === "local"
+                ? " · Só neste dispositivo"
+                : ` · ${fileVisibilityMeta[file.visibility].short}`}
               {fileNeedsOrganization(file) ? " · Por organizar" : ""}
             </p>
           </button>
