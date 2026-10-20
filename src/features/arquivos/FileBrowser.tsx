@@ -625,9 +625,12 @@ export function FileBrowser({
       // Nunca actualizar primeiro o IndexedDB: o servidor pode rejeitar um
       // movimento inválido, e a interface ficaria com uma pasta falsa.
       if (remoteIds.length) {
-        await moveSchoolFiles({
+        const result = await moveSchoolFiles({
           data: { ids: remoteIds, parentId, area },
         });
+        if (result.localOnly || result.moved !== remoteIds.length) {
+          throw new Error("O movimento não foi confirmado no arquivo da escola.");
+        }
       }
       for (const id of ids) {
         await patchLocalFileMeta(id, { parentId });
