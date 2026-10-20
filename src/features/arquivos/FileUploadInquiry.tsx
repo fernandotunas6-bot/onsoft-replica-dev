@@ -316,13 +316,13 @@ export function FileUploadInquiryModal({
                 ? "Organizar ficheiro"
                 : isPhotoCategory
                   ? "Fotografia do aluno"
-                  : "Inquérito do documento"}
+                  : "Guardar ficheiro"}
             </DialogTitle>
             <DialogDescription className="mt-1 text-sm">
               {mode === "organize"
-                ? "Complete a descrição e o destino da área. Nenhum media fica fora do padrão SIGA."
+                ? "Actualize os dados do ficheiro."
                 : isPhotoCategory
-                  ? "Associe a imagem a um aluno e indique a área de destino."
+                  ? "Seleccione o aluno."
                   : `Descreva o ficheiro e escolha a área${
                       files.length > 1
                         ? ` (${files.length} ficheiros · ${formatFileSize(totalBytes)})`
@@ -355,14 +355,14 @@ export function FileUploadInquiryModal({
           </div>
           {mode === "upload" ? (
             <section className="rounded-xl border border-border bg-card p-3" aria-live="polite">
-              <p className="text-xs font-semibold">Verificar existência e localização</p>
+              <p className="text-xs font-semibold">Ficheiros semelhantes</p>
               {checkingExisting ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  A pesquisar ficheiros visíveis nas pastas desta escola…
+                  A verificar…
                 </p>
               ) : existingCheckError ? (
                 <p className="mt-1 text-xs text-destructive">
-                  Não foi possível verificar os arquivos agora. O envio pode criar outra cópia.
+                  Não foi possível verificar possíveis cópias.
                 </p>
               ) : existingLocations.length ? (
                 <div className="mt-2 space-y-2">
@@ -371,10 +371,10 @@ export function FileUploadInquiryModal({
                       <p className="break-all font-medium">{match.name}</p>
                       <p className="mt-1 text-muted-foreground">
                         {placement === "same-folder"
-                          ? "Possível cópia — já está na pasta seleccionada"
+                          ? "Já existe nesta pasta"
                           : placement === "another-folder"
-                            ? "Possível cópia — guardada noutra pasta"
-                            : "Mesmo nome, mas tamanho diferente"}{" "}
+                            ? "Existe noutra pasta"
+                            : "Mesmo nome, tamanho diferente"}{" "}
                         · {describeFileLocation(match, locationLabels)}
                       </p>
                       {onShowExisting ? (
@@ -385,7 +385,7 @@ export function FileUploadInquiryModal({
                           className="mt-1 h-auto px-0 text-xs"
                           onClick={() => onShowExisting(match)}
                         >
-                          Ver no Arquivo
+                          Ver ficheiro
                         </Button>
                       ) : null}
                     </div>
@@ -398,17 +398,16 @@ export function FileUploadInquiryModal({
                 </div>
               ) : (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Nenhum nome igual encontrado nos arquivos a que tem acesso.
+                  Sem correspondências.
                 </p>
               )}
               {existingCheckIncomplete ? (
                 <p className="mt-2 text-xs text-destructive">
-                  Há mais resultados do que o limite de pesquisa. Verificação incompleta.
+                  Pesquisa incompleta.
                 </p>
               ) : null}
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Nome e tamanho sugerem uma correspondência, mas não comprovam conteúdo igual. A
-                pasta correcta depende da organização escolhida pela escola.
+                Correspondência por nome e tamanho; conteúdo não confirmado.
               </p>
             </section>
           ) : null}
@@ -435,7 +434,7 @@ export function FileUploadInquiryModal({
               rows={3}
               maxLength={800}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder={`Obrigatória · mínimo ${FILE_DESCRIPTION_MIN} caracteres (contexto, uso, destinatário)`}
+              placeholder="Finalidade deste ficheiro"
             />
             <p className="text-[11px] text-muted-foreground">
               {description.trim().length}/{FILE_DESCRIPTION_MIN} mínimos
@@ -490,9 +489,15 @@ export function FileUploadInquiryModal({
               <p className="text-[11px] text-muted-foreground">{fileAreaMeta[area].description}</p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="file-meta-date">
+          <details
+            className="rounded-lg border border-border px-3 py-2"
+            open={isPhotoCategory || mode === "organize" || lockRelatedPerson ? true : undefined}
+          >
+            <summary className="cursor-pointer text-sm font-medium">Mais opções</summary>
+            <div className="mt-3 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="file-meta-date">
                 {isPhotoCategory ? "Data da foto" : "Data do documento"}
               </Label>
               <Input
@@ -513,7 +518,7 @@ export function FileUploadInquiryModal({
                 className="font-mono text-sm"
               />
               <p className="text-[11px] text-muted-foreground">
-                Padrão PREFIX-AAMMDD-XXXX para pesquisa rápida na biblioteca.
+                ID gerado automaticamente.
               </p>
             </div>
           </div>
@@ -557,7 +562,7 @@ export function FileUploadInquiryModal({
               ))}
             </select>
             <p className="text-[11px] text-muted-foreground">
-              Todo o documento fica ligado a uma conta (metadados). Por omissão: a sua.
+              Conta predefinida: a sua.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -600,6 +605,8 @@ export function FileUploadInquiryModal({
                   ))}
             </select>
           </div>
+            </div>
+          </details>
           {isPhotoCategory ? (
             <label className="flex items-start gap-2 rounded-xl border border-border bg-primary/5 px-3 py-2.5 text-sm">
               <input
@@ -612,7 +619,7 @@ export function FileUploadInquiryModal({
               <span>
                 <span className="font-medium text-foreground">Usar como foto de perfil</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Só PNG/JPEG são aplicados na ficha; WebP/GIF ficam na biblioteca ligados ao aluno.
+                  Apenas PNG/JPEG podem ser usados no perfil.
                 </span>
               </span>
             </label>
