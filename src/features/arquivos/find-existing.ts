@@ -18,7 +18,8 @@ export function classifyExistingFile(
   targetArea: FileArea,
   targetFolderId: string | null,
 ): ExistingFilePlacement | null {
-  if (existing.name.trim().toLocaleLowerCase("pt") !== incoming.name.trim().toLocaleLowerCase("pt")) {
+  // A consulta PostgREST procura nome exacto; o mesmo critério aplica-se aqui.
+  if (existing.name !== incoming.name) {
     return null;
   }
   if (existing.sizeBytes !== incoming.size) return "same-name";
