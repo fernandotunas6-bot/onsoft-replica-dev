@@ -133,6 +133,26 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(table).toContain("Só neste dispositivo");
   });
 
+  it("aplica escopo docente à listagem, picker e associação final", () => {
+    const listStart = server.indexOf("export const listSchoolFiles = createServerFn");
+    const listEnd = server.indexOf("export const findExistingSchoolFiles = createServerFn", listStart);
+    const linkStart = server.indexOf("export const linkSchoolFileToClass = createServerFn");
+    const linkEnd = server.indexOf("export const deleteSchoolFile = createServerFn", linkStart);
+    const resolveStart = server.indexOf("export const resolveRequestedSchoolFile = createServerFn");
+    const resolveEnd = server.indexOf("export const signSchoolFile = createServerFn", resolveStart);
+    for (const fn of [
+      server.slice(listStart, listEnd),
+      server.slice(linkStart, linkEnd),
+      server.slice(resolveStart, resolveEnd),
+    ]) {
+      expect(fn).toContain("await assertClassMaterialScope(db, {");
+      expect(fn).toContain("membership.schoolId");
+      expect(fn).toContain("membership.allAppRoles ?? [membership.appRole]");
+    }
+    expect(server.slice(resolveStart, resolveEnd)).toContain('data.purpose === "class-material"');
+    expect(server.slice(linkStart, linkEnd)).toContain("data.classGroupId ?? file.classGroupId");
+  });
+
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
     expect(files).toContain('"list",\n      account.schoolId');
     expect(files).toContain("account.id,\n      account.role");
