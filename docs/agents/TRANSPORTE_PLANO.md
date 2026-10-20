@@ -77,7 +77,9 @@ e sonda em `SIGA_confirmar_migracoes.sql`.
   bloqueia a rota, compara o estado anterior e grava estado e avisos
   in-app numa única transacção. A repetição do mesmo estado não cria avisos,
   e uma falha ao gravar o aviso reverte também o estado. O servidor obtém a
-  audiência antes da RPC, que revalida a escola dos destinatários. Ensaiar
+  audiência antes da RPC, que compara o conjunto completo de destinatários
+  com alunos da rota e encarregados válidos na data (não basta ser da escola).
+  Mudança de vínculo exige novo pedido; mantém rollback integral. Ensaiar
   concorrência PostgreSQL real e contas autenticadas antes da produção.
   Se a RPC faltar, a escrita é recusada.
 - Sem `school_modules` nesta versão: a página aparece a quem tem acesso e a app só mostra
