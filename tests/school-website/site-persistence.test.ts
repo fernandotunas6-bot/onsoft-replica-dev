@@ -4,6 +4,7 @@ import {
   defaultSchoolSiteSettings,
   withDraft,
   withPublication,
+  withoutPublication,
   type SchoolSiteSettings,
 } from "@/features/school-site/schema";
 
@@ -119,6 +120,21 @@ describe("school-site — versões append-only e RLS", () => {
       appendSchoolSiteVersion(store.db, "school-A", "admin-B", 0, (s) => s),
     ).rejects.toThrow("Recarregue");
     expect(store.rows).toHaveLength(1);
+  });
+
+  it("despublicação insere nova versão sem apagar a anterior", async () => {
+    const store = database();
+    await appendSchoolSiteVersion(store.db, "school-A", "admin-A", 0, (site) =>
+      withPublication(site),
+    );
+    const nextVersion = await appendSchoolSiteVersion(
+      store.db, "school-A", "admin-A", 1, (site) => withoutPublication(site),
+    );
+    expect(nextVersion).toBe(2);
+    expect(store.rows).toHaveLength(2);
+    expect(store.rows[0]?.value.published).not.toBeNull();
+    expect(store.rows[1]?.value.published).toBeNull();
+    expect(store.rows[1]?.value.draft).toEqual(store.rows[0]?.value.draft);
   });
 
   it("mantém as versões separadas de cada escola", async () => {
