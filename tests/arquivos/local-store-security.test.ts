@@ -8,9 +8,7 @@ describe("isolamento do armazenamento local IndexedDB", () => {
   it("permite apenas o próprio dono dentro da escola activa", () => {
     expect(isLocalFileOwnedByViewer(file, owner)).toBe(true);
     expect(isLocalFileOwnedByViewer(file, { ...owner, schoolId: "escola-b" })).toBe(false);
-    expect(isLocalFileOwnedByViewer(file, { ...owner, ownerUserId: "utilizador-b" })).toBe(
-      false,
-    );
+    expect(isLocalFileOwnedByViewer(file, { ...owner, ownerUserId: "utilizador-b" })).toBe(false);
   });
 
   it("falha com sessão sem escola ou utilizador", () => {
