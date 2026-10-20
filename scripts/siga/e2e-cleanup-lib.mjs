@@ -89,14 +89,7 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail, approvedTe
   let authUserIdToDelete = null;
   if (adminEmail) {
     const email = String(adminEmail).trim().toLowerCase();
-    const { data: users, error: usersError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    if (usersError) {
-      throw new Error("Limpeza bloqueada: falhou a verificação da conta de teste.");
-    }
-    const user = users?.users?.find((row) => row.email?.toLowerCase() === email);
+    const user = await findAuthUserForCleanup(admin, email);
     if (user?.id) {
       const { data: memberships, error: membershipError } = await admin
         .from("school_memberships")
@@ -133,6 +126,15 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail, approvedTe
   if (tenantDeleteError) throw new Error(tenantDeleteError.message);
 
   if (authUserIdToDelete) {
+    // Entre o pré-check e a limpeza alguém pode ter reutilizado a conta.
+    // Nesse caso, preservar Auth é obrigatório mesmo depois do tenant removido.
+    const { count, error: activeMembershipError } = await admin
+      .from("school_memberships")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", authUserIdToDelete);
+    if (activeMembershipError || count === null || count === undefined || count > 0) {
+      throw new Error("Limpeza incompleta: conta Auth preservada por vínculos não verificados.");
+    }
     const { error: deleteUserError } = await admin.auth.admin.deleteUser(authUserIdToDelete);
     if (deleteUserError) {
       throw new Error("Não foi possível remover a conta de teste após a limpeza do tenant.");
@@ -163,6 +165,21 @@ async function assertNoProductionSchoolArtifacts(admin, tenantId, schoolId) {
     }
     assertProductionArtifactCount(check.table, count);
   }
+}
+
+/** Procura em todas as páginas autorizadas, sem assumir que a conta está na primeira. */
+async function findAuthUserForCleanup(admin, normalizedEmail) {
+  const perPage = 200;
+  for (let page = 1; page <= 50; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error || !Array.isArray(data?.users)) {
+      throw new Error("Limpeza bloqueada: falhou a verificação da conta de teste.");
+    }
+    const user = data.users.find((row) => row.email?.toLowerCase() === normalizedEmail);
+    if (user) return user;
+    if (data.users.length < perPage) return null;
+  }
+  throw new Error("Limpeza bloqueada: pesquisa de contas incompleta.");
 }
 
 /** SQL directo via Management API — o cliente PostgREST não chega ao catálogo. */
