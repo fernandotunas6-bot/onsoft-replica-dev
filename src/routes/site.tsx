@@ -41,7 +41,8 @@ function PublicSchoolSitePage() {
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-5 text-center">
         <h1 className="text-xl font-semibold">Website ainda não publicado</h1>
         <p className="max-w-md text-sm text-muted-foreground">
-          Esta instituição ainda não disponibilizou o seu website público ou o serviço está indisponível.
+          Esta instituição ainda não disponibilizou o seu website público ou o serviço está
+          indisponível.
         </p>
         <Link to="/" className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted">
           Ir para o Portal Escolar
@@ -53,9 +54,15 @@ function PublicSchoolSitePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b">
-        <nav aria-label="Navegação principal" className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4">
+        <nav
+          aria-label="Navegação principal"
+          className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-4"
+        >
           <span className="text-base font-semibold">{schoolName}</span>
-          <Link to="/" className="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2">
+          <Link
+            to="/"
+            className="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
             Entrar no Portal
           </Link>
         </nav>
@@ -63,14 +70,19 @@ function PublicSchoolSitePage() {
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-16 md:grid-cols-2 md:py-24">
           <div className="space-y-6">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: content.primaryColor }}>
+            <p
+              className="text-sm font-semibold uppercase tracking-wider"
+              style={{ color: content.primaryColor }}
+            >
               Instituição de ensino
             </p>
             <h1 className="max-w-xl text-4xl font-semibold tracking-tight md:text-5xl">
               {content.title}
             </h1>
             {content.tagline ? (
-              <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">{content.tagline}</p>
+              <p className="max-w-lg text-lg leading-relaxed text-muted-foreground">
+                {content.tagline}
+              </p>
             ) : null}
             <Link
               to="/"
@@ -87,7 +99,10 @@ function PublicSchoolSitePage() {
               className="w-full"
             />
           ) : (
-            <div aria-hidden="true" className="flex aspect-[3/2] items-center justify-center rounded-2xl bg-muted">
+            <div
+              aria-hidden="true"
+              className="flex aspect-[3/2] items-center justify-center rounded-2xl bg-muted"
+            >
               <span className="text-3xl font-semibold text-muted-foreground">{schoolName}</span>
             </div>
           )}
@@ -95,14 +110,21 @@ function PublicSchoolSitePage() {
         {content.about ? (
           <section aria-labelledby="sobre-escola" className="border-t bg-muted/20 px-5 py-16">
             <div className="mx-auto max-w-4xl space-y-4">
-              <h2 id="sobre-escola" className="text-2xl font-semibold">Sobre a nossa escola</h2>
+              <h2 id="sobre-escola" className="text-2xl font-semibold">
+                Sobre a nossa escola
+              </h2>
               <p className="whitespace-pre-line leading-8 text-muted-foreground">{content.about}</p>
             </div>
           </section>
         ) : null}
         {contact && (contact.email || contact.phone || contact.address) ? (
-          <section aria-labelledby="contactos-escola" className="mx-auto max-w-4xl space-y-5 px-5 py-16">
-            <h2 id="contactos-escola" className="text-2xl font-semibold">Contactos</h2>
+          <section
+            aria-labelledby="contactos-escola"
+            className="mx-auto max-w-4xl space-y-5 px-5 py-16"
+          >
+            <h2 id="contactos-escola" className="text-2xl font-semibold">
+              Contactos
+            </h2>
             <address className="space-y-2 not-italic text-sm text-muted-foreground">
               {contact.address ? <p>{contact.address}</p> : null}
               {contact.phone ? <p>Telefone: {contact.phone}</p> : null}

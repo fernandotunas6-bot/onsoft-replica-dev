@@ -36,11 +36,7 @@ async function readRow(db: Db, schoolId: string): Promise<WebsiteRow | null> {
 }
 
 async function readSchoolName(db: Db, schoolId: string): Promise<string> {
-  const { data, error } = await db
-    .from("schools")
-    .select("name")
-    .eq("id", schoolId)
-    .single();
+  const { data, error } = await db.from("schools").select("name").eq("id", schoolId).single();
   if (error || !data) throw new Error("Escola não encontrada.");
   return data.name;
 }
@@ -48,25 +44,29 @@ async function readSchoolName(db: Db, schoolId: string): Promise<string> {
 /** Ler não necessita MFA; administrar só com o cargo da própria escola. */
 export const getSchoolSiteEditor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{
-    schoolName: string;
-    version: number;
-    settings: SchoolSiteSettings;
-  }> => {
-    const membership = await requireSgaWriterFor(
-      "gestao", context.supabase, context.userId, ["Administrador"],
-    );
-    const db = await loadSgaAdminClient();
-    const [schoolName, row] = await Promise.all([
-      readSchoolName(db, membership.schoolId),
-      readRow(db, membership.schoolId),
-    ]);
-    return {
-      schoolName,
-      version: row?.version ?? 0,
-      settings: row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(schoolName),
-    };
-  });
+  .handler(
+    async ({
+      context,
+    }): Promise<{
+      schoolName: string;
+      version: number;
+      settings: SchoolSiteSettings;
+    }> => {
+      const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
+        "Administrador",
+      ]);
+      const db = await loadSgaAdminClient();
+      const [schoolName, row] = await Promise.all([
+        readSchoolName(db, membership.schoolId),
+        readRow(db, membership.schoolId),
+      ]);
+      return {
+        schoolName,
+        version: row?.version ?? 0,
+        settings: row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(schoolName),
+      };
+    },
+  );
 
 async function saveForSchool(
   schoolId: string,
@@ -76,16 +76,15 @@ async function saveForSchool(
 ): Promise<number> {
   const db = await loadSgaAdminClient();
   const [row, schoolName] = await Promise.all([
-    readRow(db, schoolId), readSchoolName(db, schoolId),
+    readRow(db, schoolId),
+    readSchoolName(db, schoolId),
   ]);
   const version = row?.version ?? 0;
   if (version !== expectedVersion) {
     throw new Error("O website foi alterado noutra sessão. Recarregue antes de gravar.");
   }
 
-  const current = row
-    ? parseSchoolSiteSettings(row.value)
-    : defaultSchoolSiteSettings(schoolName);
+  const current = row ? parseSchoolSiteSettings(row.value) : defaultSchoolSiteSettings(schoolName);
   const value = transform(current);
   if (row) {
     const { data, error } = await db
@@ -123,15 +122,17 @@ export const saveSchoolSiteDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolSiteSaveInputSchema.parse(input))
   .handler(async ({ context, data }) => {
-    const membership = await requireSgaWriterForWrite(
-      "gestao", context.supabase, context.userId, ["Administrador"],
-    );
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (context.claims["aal"] !== "aal2") {
       throw new Error("Confirme a verificação em dois passos antes de guardar ou publicar.");
     }
     return {
       version: await saveForSchool(
-        membership.schoolId, context.userId, data.expectedVersion,
+        membership.schoolId,
+        context.userId,
+        data.expectedVersion,
         (settings) => withDraft(settings, data.draft),
       ),
     };
@@ -142,9 +143,9 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolSitePublishInputSchema.parse(input))
   .handler(async ({ context, data }) => {
-    const membership = await requireSgaWriterForWrite(
-      "gestao", context.supabase, context.userId, ["Administrador"],
-    );
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
     if (data.expectedVersion === 0) {
       throw new Error("Guarde o rascunho antes de publicar.");
     }
@@ -153,7 +154,9 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
     }
     return {
       version: await saveForSchool(
-        membership.schoolId, context.userId, data.expectedVersion,
+        membership.schoolId,
+        context.userId,
+        data.expectedVersion,
         (settings) => withPublication(settings),
       ),
     };

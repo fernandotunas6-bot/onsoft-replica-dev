@@ -41,23 +41,35 @@ describe("school-site v1 — publicação segura", () => {
       "https://user:password@example.org/a.png",
       "https://localhost/logo.png",
     ]) {
-      expect(schoolSiteContentSchema.safeParse({ ...draft, heroImageUrl: value }).success).toBe(false);
+      expect(schoolSiteContentSchema.safeParse({ ...draft, heroImageUrl: value }).success).toBe(
+        false,
+      );
     }
   });
 
   it("rejeita propriedades extras que tentem injectar HTML ou escopo escolar", () => {
     const draft = defaults().draft;
-    expect(schoolSiteContentSchema.safeParse({ ...draft, html: "<script>bad()</script>" }).success).toBe(false);
-    expect(schoolSiteSaveInputSchema.safeParse({
-      expectedVersion: 0, draft, schoolId: "another-tenant",
-    }).success).toBe(false);
+    expect(
+      schoolSiteContentSchema.safeParse({ ...draft, html: "<script>bad()</script>" }).success,
+    ).toBe(false);
+    expect(
+      schoolSiteSaveInputSchema.safeParse({
+        expectedVersion: 0,
+        draft,
+        schoolId: "another-tenant",
+      }).success,
+    ).toBe(false);
   });
 
   it("rejeita cor inválida, versão malformada e campos grandes", () => {
     const draft = defaults().draft;
-    expect(schoolSiteContentSchema.safeParse({ ...draft, primaryColor: "red" }).success).toBe(false);
+    expect(schoolSiteContentSchema.safeParse({ ...draft, primaryColor: "red" }).success).toBe(
+      false,
+    );
     expect(schoolSiteSaveInputSchema.safeParse({ expectedVersion: -1, draft }).success).toBe(false);
-    expect(schoolSiteContentSchema.safeParse({ ...draft, title: "X".repeat(121) }).success).toBe(false);
+    expect(schoolSiteContentSchema.safeParse({ ...draft, title: "X".repeat(121) }).success).toBe(
+      false,
+    );
   });
 
   it("não inventa contactos públicos sem autorização", () => {

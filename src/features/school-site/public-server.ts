@@ -35,12 +35,15 @@ export async function loadPublishedSchoolSite(hostname: string): Promise<PublicS
     .maybeSingle();
   if (tenantError) throw new Error("Não foi possível verificar a instituição.");
   if (!tenant || (tenant.status !== "active" && tenant.status !== "trial")) return null;
-  if (getTenantAccessBlock({
-    status: tenant.status as TenantStatus,
-    subscription_status: tenant.subscription_status as SubscriptionLifecycle,
-    trial_ends_at: tenant.trial_ends_at,
-    billing_exempt: tenant.billing_exempt,
-  }).blocked) return null;
+  if (
+    getTenantAccessBlock({
+      status: tenant.status as TenantStatus,
+      subscription_status: tenant.subscription_status as SubscriptionLifecycle,
+      trial_ends_at: tenant.trial_ends_at,
+      billing_exempt: tenant.billing_exempt,
+    }).blocked
+  )
+    return null;
 
   const { data: school, error: schoolError } = await db
     .from("schools")

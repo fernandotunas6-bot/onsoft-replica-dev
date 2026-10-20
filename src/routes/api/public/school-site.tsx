@@ -10,15 +10,15 @@ export const Route = createFileRoute("/api/public/school-site")({
           "Content-Type": "application/json; charset=utf-8",
           "X-Content-Type-Options": "nosniff",
           "Cache-Control": "no-store",
-          "Vary": "Host",
+          Vary: "Host",
         });
         try {
           const hostname = new URL(request.url).hostname;
           const site = await loadPublishedSchoolSite(hostname);
-          return new Response(
-            JSON.stringify(site ? { site } : { error: "site_unavailable" }),
-            { status: site ? 200 : 404, headers },
-          );
+          return new Response(JSON.stringify(site ? { site } : { error: "site_unavailable" }), {
+            status: site ? 200 : 404,
+            headers,
+          });
         } catch {
           return new Response(JSON.stringify({ error: "site_unavailable" }), {
             status: 503,

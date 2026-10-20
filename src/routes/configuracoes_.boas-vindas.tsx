@@ -195,8 +195,8 @@ function WelcomeContent({ status }: { status: AdminWelcomeStatus }) {
       <Panel title="Website institucional da escola">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="max-w-xl text-sm text-muted-foreground">
-            Personalize o website da instituição e publique-o quando estiver pronto.
-            O acesso ao Portal Escolar mantém-se independente.
+            Personalize o website da instituição e publique-o quando estiver pronto. O acesso ao
+            Portal Escolar mantém-se independente.
           </p>
           <Button type="button" onClick={() => open("/configuracoes/site")}>
             Configurar website <ArrowRight className="ml-2 size-4" aria-hidden />
