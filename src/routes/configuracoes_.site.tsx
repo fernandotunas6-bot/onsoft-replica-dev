@@ -14,6 +14,7 @@ import {
   getSchoolSiteEditor,
   saveSchoolSiteDraft,
   publishSchoolSite,
+  unpublishSchoolSite,
 } from "@/features/school-site/editor-server";
 import type { SchoolSiteContent } from "@/features/school-site/schema";
 
@@ -31,15 +32,18 @@ function SchoolSiteEditorPage() {
   const queryKey = [...QUERY_KEY, account.id, schoolId ?? "none"] as const;
   const [draft, setDraft] = useState<SchoolSiteContent | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const client = useQueryClient();
   // Trocar de escola/conta não pode reutilizar o rascunho da anterior.
   useEffect(() => {
     setDraft(null);
     setNotice(null);
+    setConfirmUnpublish(false);
   }, [account.id, schoolId]);
   const load = useServerFn(getSchoolSiteEditor);
   const save = useServerFn(saveSchoolSiteDraft);
   const publish = useServerFn(publishSchoolSite);
+  const unpublish = useServerFn(unpublishSchoolSite);
   const query = useQuery({
     queryKey,
     enabled: isAdmin && Boolean(schoolId),
@@ -75,6 +79,21 @@ function SchoolSiteEditorPage() {
     },
     onError: (error) =>
       setNotice(error instanceof Error ? error.message : "Não foi possível publicar."),
+  });
+
+  const unpublishMutation = useMutation({
+    mutationFn: () => {
+      if (!query.data || !query.data.settings.publishedAt || dirty) {
+        throw new Error("Não é possível retirar esta publicação. Guarde primeiro as alterações.");
+      }
+      return unpublish({ data: { expectedVersion: query.data.version } });
+    },
+    onSuccess: async () => {
+      setConfirmUnpublish(false);
+      setNotice("Website retirado do ar. O rascunho e as versões anteriores mantêm-se guardados.");
+      await client.invalidateQueries({ queryKey });
+    },
+    onError: (error) => setNotice(error instanceof Error ? error.message : "Não foi possível despublicar."),
   });
 
   const change = <K extends keyof SchoolSiteContent>(key: K, value: SchoolSiteContent[K]) => {
@@ -199,7 +218,7 @@ function SchoolSiteEditorPage() {
               <div className="flex flex-wrap gap-3">
                 <Button
                   type="submit"
-                  disabled={!dirty || saveMutation.isPending || publishMutation.isPending}
+                  disabled={!dirty || saveMutation.isPending || publishMutation.isPending || unpublishMutation.isPending}
                 >
                   {saveMutation.isPending ? "A guardar…" : "Guardar rascunho"}
                 </Button>
@@ -210,7 +229,8 @@ function SchoolSiteEditorPage() {
                     dirty ||
                     !query.data.version ||
                     saveMutation.isPending ||
-                    publishMutation.isPending
+                    publishMutation.isPending ||
+                    unpublishMutation.isPending
                   }
                   onClick={() => {
                     setNotice(null);
@@ -220,6 +240,42 @@ function SchoolSiteEditorPage() {
                   {publishMutation.isPending ? "A publicar…" : "Publicar website"}
                 </Button>
               </div>
+              {query.data.settings.publishedAt ? (
+                <div className="space-y-3 border-t pt-4">
+                  {confirmUnpublish ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-sm text-muted-foreground">
+                        O website deixará de estar público. O portal e os rascunhos permanecem intactos.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={saveMutation.isPending || publishMutation.isPending || unpublishMutation.isPending}
+                        onClick={() => unpublishMutation.mutate()}
+                      >
+                        {unpublishMutation.isPending ? "A retirar…" : "Confirmar despublicação"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={unpublishMutation.isPending}
+                        onClick={() => setConfirmUnpublish(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={dirty || saveMutation.isPending || publishMutation.isPending || unpublishMutation.isPending}
+                      onClick={() => setConfirmUnpublish(true)}
+                    >
+                      Retirar website do ar
+                    </Button>
+                  )}
+                </div>
+              ) : null}
               <p className="text-xs text-muted-foreground">
                 Só as alterações publicadas aparecem para visitantes. Para entrar no SIGA, use o
                 portal habitual.
