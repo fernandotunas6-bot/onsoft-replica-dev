@@ -1,6 +1,7 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import type { ExistingSchoolFileLocation } from "./find-existing";
+import { fileMatchesRequest } from "./file-request";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -35,6 +36,7 @@ import {
   moveSchoolFilesInputSchema,
   registerSchoolFileInputSchema,
   renameSchoolFileInputSchema,
+  resolveRequestedSchoolFileSchema,
   schoolFileIdInputSchema,
   schoolFileIdsInputSchema,
   setSchoolFileVisibilityInputSchema,
@@ -1656,6 +1658,36 @@ async function loadSchoolFileRow(
   if (error) throw publicDatabaseError(error, "Não foi possível ler o ficheiro.");
   return row ? mapRow(row as Record<string, unknown>) : null;
 }
+
+/**
+ * Interface central para módulos que pedem ficheiros do Arquivo, à maneira
+ * de um File Picker contextual. Não devolve URLs ou storage_path.
+ * A associação final continua a ser validada pelo módulo de destino.
+ */
+export const resolveRequestedSchoolFile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => resolveRequestedSchoolFileSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const db = await loadSgaAdminClient();
+    const file = await loadSchoolFileRow(db, membership.schoolId, data.id);
+    if (
+      !file ||
+      !canSeeRow(file, userId, membership.appRole) ||
+      !canAccessFileContent(file, userId, membership.appRole) ||
+      !fileMatchesRequest(file, data)
+    ) {
+      throw new Error("Ficheiro não disponível para esta finalidade nesta escola.");
+    }
+    return {
+      id: file.id,
+      name: file.name,
+      kind: file.kind,
+      purpose: data.purpose,
+    };
+  });
 
 export const signSchoolFile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
