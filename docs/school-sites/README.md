@@ -6,6 +6,7 @@ Esta é a documentação **própria** do módulo `school-sites`, diferente do si
 
 - [Arquitectura e contrato funcional](../architecture/SCHOOL_SITES_MULTITENANT.md)
 - [Operações / rollout / rollback](./RUNBOOK.md)
+- [Contrato visual de fidelidade ao ISPAB](./VISUAL_CONTRACT.md)
 - [API pública de candidaturas (existente)](../architecture/SCHOOL_WEBSITE_API.md)
 - [Domínios canónicos](../domains/OVERVIEW.md)
 - [Regras da base de dados](../agents/DATABASE_RULES.md)
