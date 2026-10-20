@@ -1776,7 +1776,9 @@ export async function loadShareableSchoolFile(
   role: string,
 ): Promise<SchoolFileRecord> {
   const row = await loadSchoolFileRow(db, schoolId, fileId);
-  if (!row || row.isFolder) throw new Error("O ficheiro anexado já não existe nos Arquivos.");
+  if (!row || row.isFolder || row.storageBackend !== "sga") {
+    throw new Error("O ficheiro não está disponível no armazenamento da escola.");
+  }
   if (!canSeeRow(row, userId, role) || !canAccessFileContent(row, userId, role)) {
     throw new Error("Só pode anexar ficheiros que consegue abrir nos Arquivos.");
   }
