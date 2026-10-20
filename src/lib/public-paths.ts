@@ -13,6 +13,10 @@ const PUBLIC_PREFIXES = [
   "/api/finance",
   "/api/saas",
   "/api/public/school-website",
+  // Apenas o website institucional e a sua API de leitura são públicos.
+  // /configuracoes/site continua sob AuthGate + autorização de Administrador.
+  "/site",
+  "/api/public/school-site",
 ];
 
 export function isPublicAppPath(pathname: string) {
