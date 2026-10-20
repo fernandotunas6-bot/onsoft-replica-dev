@@ -17,7 +17,7 @@
   min-height: 100vh;
   background: #fff;
   color: var(--school-site-text);
-  font-family: "Inter", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  font-family: "DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.65;
   isolation: isolate;
