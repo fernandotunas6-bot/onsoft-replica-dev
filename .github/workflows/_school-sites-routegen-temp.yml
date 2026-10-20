@@ -23,9 +23,9 @@ jobs:
             echo "::warning::O build inicial não concluiu; as rotas serão verificadas pelo CI."
             tail -n 45 /tmp/siga-school-sites-build.log
           }
-          grep -q "src/routes/site" src/routeTree.gen.ts
-          grep -q "src/routes/configuracoes_.site" src/routeTree.gen.ts
-          grep -q "src/routes/api/public/school-site" src/routeTree.gen.ts
+          grep -q "\'/site\'" src/routeTree.gen.ts
+          grep -q "\'/configuracoes_/site\'" src/routeTree.gen.ts
+          grep -q "\'/api/public/school-site\'" src/routeTree.gen.ts
       - name: Guardar apenas a rota gerada e o formato da nova página
         run: |
           git diff --exit-code -- painel/escolas/
@@ -34,5 +34,7 @@ jobs:
           git add src/routeTree.gen.ts src/routes/site.tsx
           if ! git diff --cached --quiet; then
             git commit -m "chore(school-sites): actualizar mapa TanStack e formatar layout institucional"
+            git fetch origin feat/school-sites-multitenant-20261020
+            git rebase origin/feat/school-sites-multitenant-20261020
             git push origin HEAD:feat/school-sites-multitenant-20261020
           fi
