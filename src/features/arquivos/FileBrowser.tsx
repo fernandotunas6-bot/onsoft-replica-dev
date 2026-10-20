@@ -663,6 +663,8 @@ export function FileBrowser({
     const schoolId = remoteQuery.data?.schoolId;
     const files = pendingFiles;
     const targetArea = meta.area;
+    // Trocar a área invalida a pasta actualmente seleccionada.
+    const targetFolderId = targetArea === area ? folderId : null;
     if (!files.length) return;
     if (!schoolId) {
       toast.error("Escola indisponível. Inicie sessão novamente.");
@@ -750,7 +752,7 @@ export function FileBrowser({
           classGroupId: activeClassId ?? null,
           createdAt: new Date().toISOString(),
           ...blankAudit(account.name),
-          parentId: folderId,
+          parentId: targetFolderId,
           isFolder: false,
           title: meta.title ?? file.name,
           description: meta.description || null,
@@ -776,7 +778,7 @@ export function FileBrowser({
             storagePath: record.storagePath,
             storageBackend: backend,
             classGroupId: activeClassId,
-            parentId: folderId,
+            parentId: targetFolderId,
             title: record.title ?? undefined,
             description: record.description ?? undefined,
             category: record.category ?? undefined,
