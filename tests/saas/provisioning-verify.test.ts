@@ -90,6 +90,10 @@ describe("findProvisioningGaps", () => {
       },
     };
     expect(await findProvisioningGaps(db, IDS)).toEqual([]);
+    expect(captured["profiles"]).toMatchObject({
+      id: IDS.adminUserId,
+      school_id: IDS.schoolId,
+    });
     expect(captured["school_memberships"]).toMatchObject({
       school_id: IDS.schoolId,
       user_id: IDS.adminUserId,
