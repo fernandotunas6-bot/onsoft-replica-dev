@@ -84,6 +84,11 @@ import { isImageFileKind, resolveFileBlob, resolveFileUrl } from "./resolve-file
 import { schoolFileShareText } from "./share-text";
 import { assertVerifiedSchoolStorage } from "./storage-policy";
 import {
+  prepareSchoolUpload,
+  remainingSchoolUploads,
+  type PreparedSchoolUpload,
+} from "./upload-recovery";
+import {
   fileCategoryOptions,
   fileKindOptions,
   fileVisibilityOptions,
@@ -234,6 +239,7 @@ export function FileBrowser({
   const [dragging, setDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const uploadAttemptsRef = useRef(new WeakMap<File, PreparedSchoolUpload>());
   const [folderId, setFolderId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [moveOpen, setMoveOpen] = useState(false);
@@ -708,11 +714,15 @@ export function FileBrowser({
     // desaparecia ao limpar os dados do site ou ao abrir noutro computador. Quem
     // ficar por aqui tem de ser dito em voz alta.
     const ficaramNesteBrowser: string[] = [];
+    let completedFiles = 0;
     try {
       if (targetArea !== area) setArea(targetArea);
       for (const file of files) {
         const kind = kindFromFile(file.name, file.type);
-        if (!kind) continue;
+        if (!kind) {
+          completedFiles += 1;
+          continue;
+        }
         // O SDK do Storage não expõe progresso real: aproximamos com uma rampa
         // que abranda perto dos 90% e só fecha em 100% quando o envio termina.
         const ramp = setInterval(() => {
@@ -725,21 +735,35 @@ export function FileBrowser({
             };
           });
         }, 180);
-        const id = crypto.randomUUID();
-        const storagePath = localStoragePath({
+        const previous = uploadAttemptsRef.current.get(file);
+        const id = previous?.id ?? crypto.randomUUID();
+        const attempt = prepareSchoolUpload(uploadAttemptsRef.current, file, {
+          id,
           schoolId,
           area: targetArea,
           ownerUserId: account.id,
-          id,
-          name: file.name,
+          storagePath: localStoragePath({
+            schoolId,
+            area: targetArea,
+            ownerUserId: account.id,
+            id,
+            name: file.name,
+          }),
         });
-        let backend: "sga" | "local" = "local";
+        const storagePath = attempt.storagePath;
+        let backend: "sga" | "local" = attempt.uploaded ? "sga" : "local";
         try {
-          const { error } = await supabase.storage
-            .from(FILES_BUCKET)
-            .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
-          if (error) ficaramNesteBrowser.push(file.name);
-          else backend = "sga";
+          if (!attempt.uploaded) {
+            const { error } = await supabase.storage
+              .from(FILES_BUCKET)
+              .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
+            if (error) {
+              ficaramNesteBrowser.push(file.name);
+            } else {
+              attempt.uploaded = true;
+              backend = "sga";
+            }
+          }
         } catch {
           ficaramNesteBrowser.push(file.name);
         } finally {
@@ -813,6 +837,10 @@ export function FileBrowser({
           await saveLocalFile({ record: storedRecord, blob: file });
           ficaramNesteBrowser.push(file.name);
         }
+        // O registo ficou concluído; nunca reenviar este ficheiro se
+        // a aplicação da fotografia ou o refresh falhar mais tarde.
+        completedFiles += 1;
+        uploadAttemptsRef.current.delete(file);
         if (
           meta.category === "foto" &&
           meta.relatedPersonId &&
@@ -853,8 +881,15 @@ export function FileBrowser({
       }
       await refresh();
     } catch (error) {
-      toast.error("Não foi possível guardar", {
-        description: error instanceof Error ? error.message : "Tente novamente.",
+      const remaining = remainingSchoolUploads(files, completedFiles);
+      setPendingFiles(remaining);
+      toast.error("Não foi possível concluir todos os envios", {
+        description:
+          (error instanceof Error ? error.message : "Erro ao guardar.") +
+          (remaining.length
+            ? ` ${remaining.length} ficheiro(s) continuam seleccionados para retomar sem repetir os concluídos.`
+            : " Os ficheiros já foram registados; actualize a lista."),
+        duration: 10000,
       });
     } finally {
       setUploading(false);
