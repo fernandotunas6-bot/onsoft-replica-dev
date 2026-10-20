@@ -4,6 +4,13 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Performance — cache dos recursos públicos (2026-10-20)
+
+Política do vídeo, fontes, ícones e marcas em `nitro.routeRules` (`vite.config.ts`):
+sete dias e revalidação posterior. `public/_headers` não repete os caminhos, porque
+o preset Cloudflare acrescenta as regras geradas ao ficheiro existente. Nunca
+alargar esta cache a HTML, APIs ou ficheiros de actualização. [Evidências](../performance/2026-10-20/cache-publica.md).
+
 ## Performance — navegação, cache e arranque (2026-10-19)
 
 Data do início: `features/dashboard/date-clock.ts` agenda a próxima hora local,

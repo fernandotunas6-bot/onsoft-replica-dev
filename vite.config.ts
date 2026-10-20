@@ -6,6 +6,26 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
+import type { NitroConfig } from "nitro/types";
+
+// O adaptador Lovable encaminha estas opções, mas expõe um tipo mais estreito.
+// Valida-se com o contrato Nitro antes de as passar ao adaptador.
+const publicAssetCache = {
+  routeRules: {
+    "/auth-classroom.mp4": {
+      headers: { "cache-control": "public, max-age=604800, stale-while-revalidate=2592000" },
+    },
+    "/fonts/**": {
+      headers: { "cache-control": "public, max-age=604800, stale-while-revalidate=2592000" },
+    },
+    "/icons/**": {
+      headers: { "cache-control": "public, max-age=604800, stale-while-revalidate=2592000" },
+    },
+    "/brands/**": {
+      headers: { "cache-control": "public, max-age=604800, stale-while-revalidate=2592000" },
+    },
+  },
+} satisfies NitroConfig;
 
 export default defineConfig({
   vite: {
@@ -47,6 +67,9 @@ export default defineConfig({
      * Nunca definir isto num workflow de publicação.
      */
     preset: process.env["SIGA_NITRO_PRESET"] ?? "cloudflare-module",
+    // Nomes sem hash: prazo finito, para uma substituição chegar aos visitantes.
+    // Nitro gera também o _headers dos assets Cloudflare a partir destas regras.
+    ...publicAssetCache,
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
