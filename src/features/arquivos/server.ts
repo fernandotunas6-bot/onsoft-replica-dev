@@ -697,10 +697,7 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     if (data.classGroupId) {
       // Uploads dirigidos a turmas não podem contornar a associação posterior.
       // Só materiais partilháveis e professores atribuídos à turma são aceites.
-      if (
-        (data.area !== "escola" && data.area !== "publico") ||
-        data.visibility === "private"
-      ) {
+      if ((data.area !== "escola" && data.area !== "publico") || data.visibility === "private") {
         throw new Error("Materiais de turma devem estar numa área escolar partilhável.");
       }
       await assertClassMaterialScope(db, {
