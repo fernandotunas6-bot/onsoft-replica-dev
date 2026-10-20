@@ -2,6 +2,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import type { ExistingSchoolFileLocation } from "./find-existing";
 import { fileMatchesRequest } from "./file-request";
+import { assertClassMaterialScope } from "./class-material-scope";
 import { assertUploadedSchoolFileMatches } from "./upload-verification";
 import { isMatchingRegisteredUpload } from "./upload-recovery";
 import { createServerFn } from "@tanstack/react-start";
@@ -387,6 +388,14 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
       throw new Error("Sem permissão para esta área de arquivos.");
     }
     const db = await loadSgaAdminClient();
+    if (data.classGroupId) {
+      await assertClassMaterialScope(db, {
+        schoolId: membership.schoolId,
+        userId,
+        classGroupId: data.classGroupId,
+        roles: membership.allAppRoles ?? [membership.appRole],
+      });
+    }
     const run = async (select: string, withClass: boolean) => {
       let query = db
         .from("siga_files")
@@ -1573,6 +1582,12 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
     if (!allowed || !file) {
       throw new Error("Este ficheiro não pode ser ligado à turma.");
     }
+    await assertClassMaterialScope(db, {
+      schoolId: membership.schoolId,
+      userId,
+      classGroupId: data.classGroupId ?? file.classGroupId!,
+      roles: membership.allAppRoles ?? [membership.appRole],
+    });
     const action = data.classGroupId ? "linked_class" : "unlinked_class";
     const now = new Date().toISOString();
     // Bloquear corridas: uma ligação entretanto modificada não deve ser sobrescrita.
@@ -1885,6 +1900,14 @@ export const resolveRequestedSchoolFile = createServerFn({ method: "GET" })
       !fileMatchesRequest(file, data)
     ) {
       throw new Error("Ficheiro não disponível para esta finalidade nesta escola.");
+    }
+    if (data.purpose === "class-material" && data.classGroupId) {
+      await assertClassMaterialScope(db, {
+        schoolId: membership.schoolId,
+        userId,
+        classGroupId: data.classGroupId,
+        roles: membership.allAppRoles ?? [membership.appRole],
+      });
     }
     return {
       id: file.id,
