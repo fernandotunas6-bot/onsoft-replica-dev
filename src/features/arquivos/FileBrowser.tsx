@@ -1156,9 +1156,9 @@ export function FileBrowser({
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="Organizar"
             >
-              <option value="date">Organizar · data</option>
-              <option value="name">Organizar · nome</option>
-              <option value="size">Organizar · tamanho</option>
+              <option value="date">Data</option>
+              <option value="name">Nome</option>
+              <option value="size">Tamanho</option>
             </select>
             <Button
               type="button"
@@ -1520,9 +1520,7 @@ export function FileBrowser({
           <div className={cn("relative min-h-0 flex-1 overflow-auto p-0")}>
             {localOnly ? (
               <p className="m-4 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                Tabela SGA ainda não aplicada. Os ficheiros ficam neste dispositivo até correr{" "}
-                <code className="text-[11px]">APPLY_ENROLLMENT_AND_PREMIUM.sql</code> (inclui{" "}
-                <code className="text-[11px]">siga_file_events</code>). <SqlChecklistLink />
+                Ficheiros apenas neste dispositivo. <SqlChecklistLink />
               </p>
             ) : null}
             {remoteQuery.isLoading ? (
