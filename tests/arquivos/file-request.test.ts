@@ -61,6 +61,15 @@ describe("file picker por finalidade, inspirado no Moodle", () => {
     for (const category of ["fatura", "recibo", "talao"] as const) {
       const financeFile = { ...schoolFile, category };
       expect(fileMatchesRequest(financeFile, request("finance-document"))).toBe(true);
+      expect(
+        fileMatchesRequest({ ...financeFile, area: "escola" }, request("finance-document")),
+      ).toBe(true);
+      expect(
+        fileMatchesRequest({ ...financeFile, area: "pessoal" }, request("finance-document")),
+      ).toBe(false);
+      expect(
+        fileMatchesRequest({ ...financeFile, area: "publico" }, request("finance-document")),
+      ).toBe(false);
     }
   });
 });
