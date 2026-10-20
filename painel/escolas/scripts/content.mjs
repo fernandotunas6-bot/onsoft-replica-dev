@@ -137,3 +137,58 @@ export function loadFooter() {
     backToTop: text(raw.backToTop, 'footer.backToTop'),
   };
 }
+
+/**
+ * Ênfase no conteúdo: `*assim*` passa a `<em>assim</em>` depois de esc().
+ *
+ * Os títulos do site destacam parte da frase. Sem uma convenção, o conteúdo
+ * teria de trazer `<em>` — isto é, marcação — e deixaria de poder ser escapado.
+ * Aqui a ênfase fecha-se sempre e tudo o que não seja ênfase é texto.
+ */
+export function emphasis(value, caminho) {
+  text(value, caminho);
+  const marks = (value.match(/\*/g) ?? []).length;
+  if (marks % 2 !== 0 || /\*\s*\*/.test(value)) throw Error('Ênfase mal fechada em ' + caminho + ': ' + value);
+  return value;
+}
+
+/**
+ * Converte a ênfase do conteúdo em marcação, depois de o gerador escapar.
+ *
+ * O `esc` vem do gerador: o conteúdo é escapado primeiro e só depois ganha
+ * `<em>`, pelo que um `<` no conteúdo nunca chega ao HTML como marcação.
+ */
+export function renderHeadline(value, esc) {
+  return value.map(line => esc(line).replace(/\*([^*]+)\*/g, '<em>$1</em>')).join('<br>');
+}
+
+/** Título em várias linhas: cada linha é uma quebra no site. */
+export function lines(value, caminho) {
+  return list(value, caminho).map((line, i) => emphasis(line, `${caminho}[${i}]`));
+}
+
+/** Blocos que aparecem em todas as páginas: metadados, aviso e chamada final. */
+export function loadSite() {
+  const raw = loadContent('site');
+  const meta = raw.meta ?? {};
+  const cta = raw.cta ?? {};
+  const action = (value, caminho) => ({
+    url: internalUrl(value?.url, caminho + '.url'),
+    label: text(value?.label, caminho + '.label'),
+  });
+  return {
+    meta: {
+      titleSuffix: text(meta.titleSuffix, 'site.meta.titleSuffix'),
+      descriptionSuffix: text(meta.descriptionSuffix, 'site.meta.descriptionSuffix'),
+    },
+    breadcrumbHome: text(raw.breadcrumbHome, 'site.breadcrumbHome'),
+    notice: text(raw.notice, 'site.notice'),
+    cta: {
+      eyebrow: text(cta.eyebrow, 'site.cta.eyebrow'),
+      title: lines(cta.title, 'site.cta.title'),
+      text: text(cta.text, 'site.cta.text'),
+      primary: action(cta.primary, 'site.cta.primary'),
+      secondary: action(cta.secondary, 'site.cta.secondary'),
+    },
+  };
+}

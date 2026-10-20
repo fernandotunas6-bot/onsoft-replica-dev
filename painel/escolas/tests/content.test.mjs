@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, loadNavigation, loadHeader, loadFooter} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, loadNavigation, loadHeader, loadFooter, loadSite} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,9 +81,37 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer']) {
+  for (const name of ['navigation', 'header', 'footer', 'site']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
   }
+});
+
+test('a ênfase do conteúdo fecha-se sempre', () => {
+  assert.equal(emphasis('para a *sua próxima ideia.*', 'site.cta.title[1]'), 'para a *sua próxima ideia.*');
+  assert.equal(emphasis('sem ênfase', 'x'), 'sem ênfase');
+  for (const value of ['abre *e não fecha', '*', 'três * asteriscos * seguidos *', 'vazia **']) {
+    assert.throws(() => emphasis(value, 'site.cta.title[0]'), /Ênfase mal fechada em site\.cta\.title\[0\]/, value);
+  }
+  assert.throws(() => lines([], 'site.cta.title'), /Lista obrigatória/);
+});
+
+test('renderHeadline escapa antes de acrescentar a ênfase', () => {
+  // A ordem é o que torna a convenção segura: se a ênfase entrasse antes do
+  // esc(), o <em> gerado seria escapado; se o esc() não corresse, um `<` do
+  // conteúdo passava a marcação.
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  assert.equal(renderHeadline(['O futuro tem espaço', 'para a *sua próxima ideia.*'], esc), 'O futuro tem espaço<br>para a <em>sua próxima ideia.</em>');
+  assert.equal(renderHeadline(['<script>alert(1)</script>'], esc), '&lt;script&gt;alert(1)&lt;/script&gt;');
+  assert.equal(renderHeadline(['*<b>*'], esc), '<em>&lt;b&gt;</em>');
+});
+
+test('os blocos comuns a todas as páginas passam a validação', () => {
+  const site = loadSite();
+  assert.ok(site.meta.titleSuffix.length > 0);
+  assert.ok(site.notice.length > 0);
+  assert.ok(site.cta.title.length >= 1);
+  assert.ok(site.cta.primary.url.startsWith('/'));
+  assert.ok(site.cta.secondary.url.startsWith('/'));
 });

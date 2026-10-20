@@ -20,6 +20,8 @@ A prévia está em `http://127.0.0.1:4174`. Publique `dist/` no host estático e
 
 `school.config.json` contém o identificador local, o nome curto e o país. O nome/país são aplicados ao gerar o website; o identificador separa o armazenamento demonstrativo de cada escola. O idioma e os conteúdos pedagógicos continuam a precisar de revisão para cada instituição.
 
+Os textos, rótulos e ligações do site estão em `content/` — navegação, cabeçalho, rodapé e os blocos repetidos em todas as páginas. São ficheiros JSON validados no build: uma chave em falta é um erro com o caminho no JSON, e o conteúdo é sempre escapado. Ver `content/README.md`.
+
 `portalUrl`, quando configurado com o endereço HTTPS oficial da escola, faz o botão de acesso usar o SIGA Plus existente. Não cria um login nem duplica notas, finanças ou sessões. O perfil local do portal continua explicitamente demonstrativo.
 
 ## Integração de API incluída

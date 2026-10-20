@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "titleSuffix": "{{SCHOOL}}",
+    "descriptionSuffix": "— Explore a experiência académica do {{SCHOOL}}, {{COUNTRY}}. Website demonstrativo."
+  },
+  "breadcrumbHome": "Início",
+  "notice": "Conteúdo demonstrativo. A oferta, os requisitos e os prazos dependem de validação institucional.",
+  "cta": {
+    "eyebrow": "UM NOVO CAPÍTULO COMEÇA AQUI",
+    "title": [
+      "O futuro tem espaço",
+      "para a *sua próxima ideia.*"
+    ],
+    "text": "Descubra o percurso que faz sentido para si.",
+    "primary": { "url": "/cursos/", "label": "Encontre o seu curso" },
+    "secondary": { "url": "/ingresso/", "label": "Saiba como candidatar-se" }
+  }
+}
