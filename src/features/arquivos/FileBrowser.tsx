@@ -277,6 +277,12 @@ export function FileBrowser({
     ? acceptKinds.map((kind) => fileKindMeta[kind].accept).join(",")
     : fileAcceptAttr;
   const activeClassId = lockedClassId ?? (classFilter !== "all" ? classFilter : undefined);
+  const hasAdvancedFilters =
+    categoryFilter !== "all" ||
+    relatedUserFilter !== "all" ||
+    kindFilter !== "all" ||
+    ownershipFilter !== "all" ||
+    needsOrganizeOnly;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query), 220);
@@ -1341,7 +1347,7 @@ export function FileBrowser({
                 aria-expanded={showAdvancedFilters}
                 onClick={() => setShowAdvancedFilters((value) => !value)}
               >
-                Filtros{categoryFilter !== "all" || relatedUserFilter !== "all" || kindFilter !== "all" || ownershipFilter !== "all" || needsOrganizeOnly ? " •" : ""}
+                Filtros{hasAdvancedFilters ? " •" : ""}
               </Button>
               {canUpload ? (
                 <>
@@ -1415,104 +1421,104 @@ export function FileBrowser({
             {showAdvancedFilters ? (
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
-              <select
-                value={categoryFilter}
-                onChange={(event) =>
-                  setCategoryFilter(
-                    event.target.value as (typeof fileCategoryOptions)[number] | "all",
-                  )
-                }
-                className="h-9 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm"
-                aria-label="Filtrar por categoria"
-              >
-                <option value="all">Todas categorias</option>
-                {fileCategoryOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {fileCategoryMeta[value].label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={relatedUserFilter}
-                onChange={(event) => setRelatedUserFilter(event.target.value)}
-                className="h-9 max-w-[12rem] rounded-md border border-input bg-background px-2 text-sm"
-                aria-label="Filtrar por utilizador relacionado"
-              >
-                <option value="all">Qualquer utilizador</option>
-                {(usersQuery.data?.users ?? []).map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
+                  <select
+                    value={categoryFilter}
+                    onChange={(event) =>
+                      setCategoryFilter(
+                        event.target.value as (typeof fileCategoryOptions)[number] | "all",
+                      )
+                    }
+                    className="h-9 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm"
+                    aria-label="Filtrar por categoria"
+                  >
+                    <option value="all">Todas categorias</option>
+                    {fileCategoryOptions.map((value) => (
+                      <option key={value} value={value}>
+                        {fileCategoryMeta[value].label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={relatedUserFilter}
+                    onChange={(event) => setRelatedUserFilter(event.target.value)}
+                    className="h-9 max-w-[12rem] rounded-md border border-input bg-background px-2 text-sm"
+                    aria-label="Filtrar por utilizador relacionado"
+                  >
+                    <option value="all">Qualquer utilizador</option>
+                    {(usersQuery.data?.users ?? []).map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
-              <button
-                type="button"
-                onClick={() => setKindFilter("all")}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  kindFilter === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Todos
-              </button>
-              {kindChoices.map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  onClick={() => setKindFilter(kind)}
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    kindFilter === kind
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {fileKindMeta[kind].label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setNeedsOrganizeOnly((value) => !value)}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  needsOrganizeOnly
-                    ? "bg-warning text-warning-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Por organizar{disorganizedCount ? ` · ${disorganizedCount}` : ""}
-              </button>
-              <button
-                type="button"
-                onClick={() => setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  ownershipFilter === "mine"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Meus
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setOwnershipFilter((value) => (value === "system" ? "all" : "system"))
-                }
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  ownershipFilter === "system"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Sistema
-              </button>
-            </div>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
+                  <button
+                    type="button"
+                    onClick={() => setKindFilter("all")}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      kindFilter === "all"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {kindChoices.map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => setKindFilter(kind)}
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                        kindFilter === kind
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {fileKindMeta[kind].label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setNeedsOrganizeOnly((value) => !value)}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      needsOrganizeOnly
+                        ? "bg-warning text-warning-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Por organizar{disorganizedCount ? ` · ${disorganizedCount}` : ""}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      ownershipFilter === "mine"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Meus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOwnershipFilter((value) => (value === "system" ? "all" : "system"))
+                    }
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      ownershipFilter === "system"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Sistema
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
