@@ -52,15 +52,25 @@ describe("BBB trusted service", () => {
       ...ctx,
       authenticatedUserId: "teacher-user-a",
       membership: { userId: "teacher-user-a", schoolId: "school-a", role: "teacher", active: true },
-      teacherAssignment: { teacherUserId: "teacher-user-a", teacherId: "teacher-a", schoolId: "school-a", active: true },
+      teacherAssignment: {
+        teacherUserId: "teacher-user-a",
+        teacherId: "teacher-a",
+        schoolId: "school-a",
+        active: true,
+      },
     };
-    await expect(joinVirtualClassroom({
-      context: teacherContext,
-      classGroupId: "class-b",
-      sessionId: "session-a",
-      title: "Matemática",
-      fullName: "Professor",
-    }, "moderator")).rejects.toThrow("Classroom session scope mismatch");
+    await expect(
+      joinVirtualClassroom(
+        {
+          context: teacherContext,
+          classGroupId: "class-b",
+          sessionId: "session-a",
+          title: "Matemática",
+          fullName: "Professor",
+        },
+        "moderator",
+      ),
+    ).rejects.toThrow("Classroom session scope mismatch");
   });
 
   it("rejects cross-school classroom requests", async () => {
