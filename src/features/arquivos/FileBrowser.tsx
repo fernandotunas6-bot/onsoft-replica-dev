@@ -1613,8 +1613,14 @@ export function FileBrowser({
         lockRelatedPerson={Boolean(initialRelatedPersonId)}
         currentFolderId={folderId}
         existingMatches={existingFilesQuery.data?.matches ?? []}
-        checkingExisting={existingFilesQuery.isPending || existingFilesQuery.isFetching}
-        existingCheckError={existingFilesQuery.isError}
+        checkingExisting={
+          Boolean(remoteQuery.data?.schoolId) &&
+          (existingFilesQuery.isPending || existingFilesQuery.isFetching)
+        }
+        existingCheckError={
+          existingFilesQuery.isError ||
+          (remoteQuery.isError && !remoteQuery.data?.schoolId)
+        }
         existingCheckIncomplete={existingFilesQuery.data?.incomplete ?? false}
         onShowExisting={(match: ExistingSchoolFileLocation) => {
           setPendingFiles([]);
