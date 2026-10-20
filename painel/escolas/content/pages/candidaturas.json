@@ -1,0 +1,9 @@
+{
+  "title": "Acompanhar candidaturas",
+  "crumb": "Área do candidato",
+  "next": {
+    "title": "Continuar a descobrir.",
+    "text": "A sua escolha merece tempo e perspectiva.",
+    "link": { "url": "/cursos/", "label": "Explorar cursos" }
+  }
+}

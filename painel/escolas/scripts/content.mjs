@@ -432,6 +432,26 @@ export const PAGE_SHAPES = {
   privacidade: PROSE,
   acessibilidade: PROSE,
   'sobre-o-projecto': PROSE,
+  favoritos: {
+    title: 'text', crumb: 'text',
+    empty: {icon: 'text', title: 'text', text: 'text', action: 'action'},
+  },
+  comparar: {title: 'text', crumb: 'text', addLabel: 'text', placeholder: 'text', addButton: 'text'},
+  candidaturas: {title: 'text', crumb: 'text', next: {title: 'text', text: 'text', link: 'action'}},
+  noticias: {title: 'text', crumb: 'text'},
+  pesquisa: {title: 'text', crumb: 'text', label: 'text', placeholder: 'text', button: 'text'},
+  ajuda: {
+    title: 'text', crumb: 'text',
+    aside: {title: 'text', text: 'text', placeholder: 'text', searchLabel: 'text'},
+    help: {title: 'text', text: 'text', link: 'action'},
+    empty: 'text',
+  },
+  // Duas rotas, um ficheiro: a agenda e o calendário mostram a mesma lista.
+  agenda: {
+    events: {title: 'text', crumb: 'text'},
+    calendar: {title: 'text', crumb: 'text'},
+    month: 'text', timezone: 'text',
+  },
   'mapa-do-site': {
     title: 'text', crumb: 'text',
     groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},

@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -212,8 +212,13 @@ test('shaped constrói o caminho do erro até à folha', () => {
 test('as páginas institucionais passam a validação', () => {
   for (const name of Object.keys(PAGE_SHAPES)) {
     const page = loadInstitutionalPage(name);
-    assert.ok(page.title.length > 0, name);
-    assert.ok(page.crumb.length > 0, name);
+    // A agenda serve duas rotas e traz um título por rota, em vez de um só.
+    const titles = page.title ? [page] : Object.values(page).filter(v => v && v.title);
+    assert.ok(titles.length >= 1, name);
+    for (const t of titles) {
+      assert.ok(t.title.length > 0, name);
+      assert.ok(t.crumb.length > 0, name);
+    }
   }
   assert.equal(loadInstitutionalPage('sobre').ideas.items.length, 3);
   assert.equal(loadInstitutionalPage('campus').spaces.length, 4);
