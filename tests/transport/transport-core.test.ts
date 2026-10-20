@@ -352,6 +352,7 @@ describe("portal: estado do dia", () => {
       { guardian_person_id: id(31), valid_from: "2026-09-01", valid_until: null },
     ],
     audienceFails = false,
+    extraAssignments = 0,
   ) => {
     let status = (previous as { status: string; delay_minutes: number } | null) ?? {
       status: "normal",
@@ -365,15 +366,30 @@ describe("portal: estado do dia", () => {
         return {
           data: [
             { student_id: STUDENT, valid_from: "2026-09-01", valid_until: null },
+            ...Array.from({ length: extraAssignments }, (_, n) => ({
+              student_id: id(100 + n),
+              valid_from: "2026-09-01",
+              valid_until: null,
+            })),
             { student_id: OTHER, valid_from: "2026-11-01", valid_until: null },
           ],
         };
-      if (table === "students")
-        return { data: [{ id: STUDENT, person_id: id(30), student_number: null }] };
-      if (table === "student_guardians")
+      if (table === "students") {
+        const requested = (ops.find((op) => op[0] === "in" && op[1] === "id")?.[2] ??
+          []) as string[];
+        return {
+          data: requested.includes(STUDENT)
+            ? [{ id: STUDENT, person_id: id(30), student_number: null }]
+            : [],
+        };
+      }
+      if (table === "student_guardians") {
+        const requested = (ops.find((op) => op[0] === "in" && op[1] === "student_id")?.[2] ??
+          []) as string[];
         return audienceFails
           ? { error: { code: "PGRST500", message: "Falha simulada ao consultar vínculos" } }
-          : { data: guardians };
+          : { data: requested.includes(STUDENT) ? guardians : [] };
+      }
       if (table === "people") {
         if (has(ops, "select") && String(ops[0][1]).includes("user_id")) {
           const requested = (ops.find((op) => op[0] === "in" && op[1] === "id")?.[2] ??
@@ -430,6 +446,26 @@ describe("portal: estado do dia", () => {
           query.ops.some((op) => op[0] === "select" && op[1] === "id, full_name"),
       ),
     ).toBe(false);
+  });
+
+  it("divide consultas de alunos e encarregados em lotes de até 200", async () => {
+    const db = dayDb(null, undefined, false, 205);
+    const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
+    const out = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
+    expect(out).toEqual({ notified: 2 });
+    for (const [table, column] of [
+      ["students", "id"],
+      ["student_guardians", "student_id"],
+    ]) {
+      const ids = queries
+        .filter((query) => query.table === table)
+        .map((query) => query.ops.find((op) => op[0] === "in" && op[1] === column)?.[2]);
+      expect(ids).toHaveLength(2);
+      expect(ids.map((chunk) => (chunk as string[]).length)).toEqual([200, 6]);
+    }
+    expect(
+      (vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids as string[]).sort(),
+    ).toEqual([id(40), id(41)]);
   });
 
   it("não repete o aviso se aluno e encarregado partilham a mesma conta", async () => {
