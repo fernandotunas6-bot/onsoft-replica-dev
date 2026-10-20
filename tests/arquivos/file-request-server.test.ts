@@ -135,7 +135,10 @@ describe("contrato central de arquivos: limites de segurança", () => {
 
   it("aplica escopo docente à listagem, picker e associação final", () => {
     const listStart = server.indexOf("export const listSchoolFiles = createServerFn");
-    const listEnd = server.indexOf("export const findExistingSchoolFiles = createServerFn", listStart);
+    const listEnd = server.indexOf(
+      "export const findExistingSchoolFiles = createServerFn",
+      listStart,
+    );
     const linkStart = server.indexOf("export const linkSchoolFileToClass = createServerFn");
     const linkEnd = server.indexOf("export const deleteSchoolFile = createServerFn", linkStart);
     const resolveStart = server.indexOf("export const resolveRequestedSchoolFile = createServerFn");
