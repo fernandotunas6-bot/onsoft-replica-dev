@@ -100,6 +100,23 @@ test.describe("School Sites v1 — estilo institucional e adaptação responsiva
     expect(await page.locator("body").innerText()).not.toContain("tenant-a");
   });
 
+  test("site não publicado apresenta estado discreto sem dados privados", async ({ page }) => {
+    await page.route("**/api/public/school-site", async (route) => {
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "site_unavailable" }),
+      });
+    });
+    await page.goto("/site");
+    await expect(page.getByRole("heading", { name: "Website ainda não publicado" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ir para o Portal Escolar" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    await expect(page.getByText("Colégio Visual de Testes")).toHaveCount(0);
+  });
+
   test("movimento reduzido mantém leitura e links", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/site");
