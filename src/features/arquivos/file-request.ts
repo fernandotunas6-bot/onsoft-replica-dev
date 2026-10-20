@@ -24,6 +24,7 @@ export function fileMatchesRequest(
   file: Pick<
     SchoolFileRecord,
     | "isFolder"
+    | "isSystem"
     | "storageBackend"
     | "area"
     | "visibility"
@@ -53,7 +54,8 @@ export function fileMatchesRequest(
   if (request.purpose === "class-material") {
     return (
       Boolean(request.classGroupId) &&
-      file.classGroupId === request.classGroupId &&
+      !file.isSystem &&
+      (file.classGroupId == null || file.classGroupId === request.classGroupId) &&
       (file.area === "escola" || file.area === "publico") &&
       file.visibility !== "private"
     );
