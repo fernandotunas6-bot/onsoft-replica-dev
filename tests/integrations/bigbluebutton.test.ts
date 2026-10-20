@@ -5,13 +5,17 @@ import {
 } from "../../src/server/integrations/bigbluebutton-policy";
 import { scopedMeetingId, bbbSignedUrl } from "../../src/server/integrations/bigbluebutton";
 
+// `session.teacherId` is the teachers row, `teacherAssignment.teacherUserId` the
+// auth user: keeping them distinct is what makes the policy's two-sided check
+// meaningful instead of passing because both sides are undefined.
 const base: ClassroomAuthorization = {
   authenticatedUserId: "teacher-1",
   activeSchoolId: "school-a",
   session: {
     id: "session-1",
     schoolId: "school-a",
-    teacherId: "teacher-1",
+    teacherId: "teacher-record-1",
+    classGroupId: "class-a",
     status: "scheduled",
   },
   membership: {
@@ -22,6 +26,7 @@ const base: ClassroomAuthorization = {
   },
   teacherAssignment: {
     teacherUserId: "teacher-1",
+    teacherId: "teacher-record-1",
     schoolId: "school-a",
     active: true,
   },
@@ -72,6 +77,7 @@ describe("BBB classroom policy", () => {
       enrollment: {
         studentUserId: "student-1",
         schoolId: "school-a",
+        classGroupId: "class-a",
         active: true,
       },
     };
