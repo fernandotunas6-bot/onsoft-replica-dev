@@ -283,11 +283,16 @@ export function FileUploadInquiryModal({
     () =>
       existingMatches.flatMap((match) =>
         files.flatMap((file) => {
-          const placement = classifyExistingFile(match, file, area, currentFolderId);
+          const placement = classifyExistingFile(
+            match,
+            file,
+            area,
+            area === defaultArea ? currentFolderId : null,
+          );
           return placement ? [{ match, placement }] : [];
         }),
       ),
-    [area, currentFolderId, existingMatches, files],
+    [area, currentFolderId, defaultArea, existingMatches, files],
   );
 
   return (
