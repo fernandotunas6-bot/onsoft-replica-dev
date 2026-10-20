@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   assertProductionE2ECleanupIdentity,
+  assertProductionArtifactCount,
   parseE2ECleanupArgs,
 } from "../../scripts/siga/e2e-cleanup-prod-identity.mjs";
 
@@ -75,5 +76,26 @@ describe("CLI E2E seguro — simulação por defeito", () => {
     const file = readFileSync(resolve(process.cwd(), "scripts/siga/e2e-cleanup-stale.mjs"), "utf8");
     expect(file).toContain("const dryRun = !mode.execute");
     expect(file).toContain("mode.execute && stale.length !== 1");
+  });
+});
+
+describe("retenção segura de dados institucionais na produção", () => {
+  it("recusa qualquer quantidade positiva, negativa ou não verificada", () => {
+    for (const table of ["students", "enrollments", "finance_invoices", "saas_audit_logs"]) {
+      for (const count of [1, 34, 43, -1, null, undefined, Number.NaN]) {
+        expect(() => assertProductionArtifactCount(table, count)).toThrow(/bloqueada/);
+      }
+      expect(() => assertProductionArtifactCount(table, 0)).not.toThrow();
+    }
+  });
+
+  it("a função E2E impede apagar dados académicos, financeiros e auditoria", () => {
+    const source = readFileSync(resolve(process.cwd(), "scripts/siga/e2e-cleanup-lib.mjs"), "utf8");
+    expect(source).toContain("if (target.production) {");
+    expect(source).toContain("await assertNoProductionSchoolArtifacts");
+    for (const table of ["students", "enrollments", "finance_invoices", "saas_audit_logs"]) {
+      expect(source).toContain(`"${table}"`);
+    }
+    expect(source).toContain("tenant.id !== approvedTenantId");
   });
 });
