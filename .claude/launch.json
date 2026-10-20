@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "escolas",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "SCHOOL_SITE_PORT=4184 npm run dev --prefix painel/escolas"],
+      "port": 4184
+    },
+    {
       "name": "siga",
       "url": "http://localhost:3006",
       "port": 3006

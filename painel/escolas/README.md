@@ -18,7 +18,7 @@ A prévia está em `http://127.0.0.1:4174`. Publique `dist/` no host estático e
 
 ## Configuração por cliente
 
-`school.config.json` contém o identificador local, o nome curto e o país. O nome/país são aplicados ao gerar o website; o identificador separa o armazenamento demonstrativo de cada escola. O idioma e os conteúdos pedagógicos continuam a precisar de revisão para cada instituição.
+`school.config.json` contém o identificador local, o nome curto, o país, o idioma, o símbolo da moeda e o nome da moeda (`currencyName`, usado no corpo das frases; por omissão é o próprio símbolo). O nome/país são aplicados ao gerar o website; o identificador separa o armazenamento demonstrativo de cada escola. O idioma e os conteúdos pedagógicos continuam a precisar de revisão para cada instituição.
 
 Os textos, rótulos e ligações do site estão em `content/` — navegação, cabeçalho, rodapé e os blocos repetidos em todas as páginas. São ficheiros JSON validados no build: uma chave em falta é um erro com o caminho no JSON, e o conteúdo é sempre escapado. Ver `content/README.md`.
 

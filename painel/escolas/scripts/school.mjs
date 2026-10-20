@@ -25,6 +25,10 @@ export function resolveSchool(raw) {
   // BCP 47 reduzido: o valor entra em <html lang> e em Intl.NumberFormat.
   if (typeof school.lang !== 'string' || !/^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(school.lang)) invalid();
   if (typeof school.currency !== 'string' || !/^[\p{L}\p{Sc}.$ ]{1,8}$/u.test(school.currency)) invalid();
+  // O nome da moeda aparece no corpo das frases («em kwanzas»); o símbolo aparece
+  // nos rótulos dos campos. Por omissão, o nome é o próprio símbolo.
+  if (school.currencyName === undefined) school.currencyName = school.currency;
+  if (typeof school.currencyName !== 'string' || !/^[\p{L}\p{N} .-]{1,40}$/u.test(school.currencyName)) invalid();
 
   let portal = null;
   if (school.portalUrl) {
@@ -44,6 +48,7 @@ export function createBrand(school) {
     ['COUNTRY_UPPER', upper(school.country)],
     ['LANG', school.lang],
     ['CURRENCY', school.currency],
+    ['CURRENCY_NAME', school.currencyName],
   ]);
   return function brand(text) {
     const output = String(text).replace(/\{\{([A-Z_]{2,32})\}\}/g, (match, name) => (tokens.has(name) ? tokens.get(name) : match));

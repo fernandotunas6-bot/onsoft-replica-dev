@@ -37,7 +37,7 @@ de saída ao rótulo.
 ## O nome da escola dentro do texto
 
 Os marcadores `{{SCHOOL}}`, `{{SCHOOL_UPPER}}`, `{{COUNTRY}}`,
-`{{COUNTRY_UPPER}}`, `{{CURRENCY}}` e `{{LANG}}` são substituídos pelos
+`{{COUNTRY_UPPER}}`, `{{CURRENCY}}`, `{{CURRENCY_NAME}}` e `{{LANG}}` são substituídos pelos
 valores de `school.config.json`. Escrever `Viva o {{SCHOOL}}` serve qualquer
 escola; escrever o nome à mão serve uma só. Um marcador que não exista —
 `{{SCHOL}}` — falha na suite de testes, não em produção.

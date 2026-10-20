@@ -104,3 +104,18 @@ test('texto sem marcadores atravessa inalterado', () => {
     assert.equal(brand(text), text);
   }
 });
+
+test('o nome da moeda tem omissão e validação próprias', () => {
+  // O símbolo vai nos rótulos dos campos («propina (Kz)»); o nome vai no corpo
+  // das frases («em kwanzas»). Sem nome configurado, vale o símbolo.
+  assert.equal(resolveSchool(base).currencyName, 'Kz');
+  assert.equal(resolveSchool({...base, currency: 'MT', currencyName: 'meticais'}).currencyName, 'meticais');
+  for (const value of ['', 'moeda & co', 'moeda <b>', 'a'.repeat(41)]) {
+    assert.throws(() => resolveSchool({...base, currencyName: value}), /inválida/, JSON.stringify(value));
+  }
+});
+
+test('{{CURRENCY}} e {{CURRENCY_NAME}} são marcadores distintos', () => {
+  const brand = brandFor({currency: 'MT', currencyName: 'meticais'});
+  assert.equal(brand('propina ({{CURRENCY}}) em {{CURRENCY_NAME}}'), 'propina (MT) em meticais');
+});
