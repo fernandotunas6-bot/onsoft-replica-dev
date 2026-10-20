@@ -329,6 +329,69 @@ assert.deepEqual(
 );
 await assert.rejects(saveDay(a, routeA, "delayed", 0), (error) => error.code === "22023");
 
+// A conta existe nesta escola, mas não tem ligação à rota: não autorizar.
+const noticesBeforeUnlinked = await noticeCount();
+await assert.rejects(
+  saveDay(a, routeA, "delayed", 25, null, [userSameSchoolUnlinked]),
+  (error) => error.code === "42501",
+);
+assert.equal(await noticeCount(), noticesBeforeUnlinked);
+assert.deepEqual(
+  await one("select status, delay_minutes from siga_transport_day_status where route_id = $1", [
+    routeA,
+  ]),
+  { status: "normal", delay_minutes: 0 },
+);
+
+// O servidor podia ter lido os destinatários ANTES de activar o vínculo.
+// A RPC revalida a audiência e obriga a repetir a consulta no servidor.
+await db.query(
+  "update student_guardians set valid_from = '2026-10-01' where guardian_person_id = $1",
+  [guardianPerson],
+);
+await assert.rejects(saveDay(a, routeA, "delayed", 25), (error) => error.code === "42501");
+assert.equal(await noticeCount(), noticesBeforeUnlinked, "mudança de vínculo não emite aviso parcial");
+assert.deepEqual(await saveDay(a, routeA, "delayed", 25, null, [userA, userGuardian]), {
+  changed: true,
+  notified: 2,
+});
+assert.equal(await noticeCount(), noticesBeforeUnlinked + 2);
+assert.deepEqual(await saveDay(a, routeA, "delayed", 25, null, [userA, userGuardian]), {
+  changed: false,
+  notified: 0,
+});
+
+// Revogação do encarregado entre a leitura e o commit: a audiência anterior
+// é recusada, não é enviada informação privada ao encarregado expirado.
+await db.query(
+  "update student_guardians set valid_until = '2026-10-18' where guardian_person_id = $1",
+  [guardianPerson],
+);
+await assert.rejects(
+  saveDay(a, routeA, "cancelled", 0, null, [userA, userGuardian]),
+  (error) => error.code === "42501",
+);
+assert.equal(await noticeCount(), noticesBeforeUnlinked + 2);
+assert.deepEqual(await saveDay(a, routeA, "cancelled", 0, null, [userA]), {
+  changed: true,
+  notified: 1,
+});
+
+// Retirar o aluno da rota: nem ele pode receber avisos por estar na escola.
+await db.query(
+  "update siga_transport_assignments set valid_until = '2026-10-18' where route_id = $1",
+  [routeA],
+);
+await assert.rejects(saveDay(a, routeA, "normal", 0, null, [userA]), (error) => {
+  assert.equal(error.code, "42501");
+  return true;
+});
+assert.deepEqual(await saveDay(a, routeA, "normal", 0, null, []), {
+  changed: true,
+  notified: 0,
+});
+
+
 // ── Paragens atómicas: função SECURITY INVOKER só para service_role.
 const rpc = "public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)";
 for (const role of ["anon", "authenticated"]) {
