@@ -142,6 +142,15 @@ describe("portal: leitura", () => {
               valid_from: "2026-09-01",
               valid_until: "2026-10-17",
             },
+            // Só entra na rota no futuro: não revelar nomes nem atribuições ainda.
+            {
+              id: id(22),
+              route_id: ROUTE,
+              stop_id: STOP_B,
+              student_id: id(99),
+              valid_from: "2026-11-01",
+              valid_until: null,
+            },
           ],
         };
       if (table === "siga_transport_day_status")
@@ -164,6 +173,11 @@ describe("portal: leitura", () => {
     expect(out.assignments).toEqual([
       expect.objectContaining({ studentId: STUDENT, studentName: "Ana Souza" }),
     ]);
+    const requestedStudents = queries
+      .filter((query) => query.table === "students")
+      .flatMap((query) => query.ops)
+      .filter((op) => op[0] === "in" && op[1] === "id");
+    expect(requestedStudents).toContainEqual(["in", "id", [STUDENT]]);
     for (const q of queries) expect(q.ops).toContainEqual(["eq", "school_id", SCHOOL]);
   });
 });
