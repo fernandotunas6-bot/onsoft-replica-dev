@@ -3,6 +3,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { assertSafeCleanupTarget } from "./e2e-safety.mjs";
+import { assertProductionE2ECleanupIdentity } from "./e2e-cleanup-prod-identity.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -48,15 +49,23 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
   if (adminEmail && !String(adminEmail).trim().toLowerCase().endsWith("@siga-plus.test")) {
     throw new Error("Refusing cleanup: e-mail admin fora do domínio de teste.");
   }
-  assertSafeCleanupTarget();
+  const target = assertSafeCleanupTarget();
+  if (target.production && !adminEmail) {
+    throw new Error("Limpeza em produção bloqueada: indique o e-mail E2E do tenant.");
+  }
 
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
-    .select("id")
+    .select("id, contact_email")
     .eq("slug", slug)
     .maybeSingle();
   if (tenantError) throw new Error(tenantError.message);
   if (!tenant?.id) return { removed: false };
+  if (target.production) {
+    // O slug por si só não demonstra que esta escola pode ser apagada:
+    // exigir contacto de testes registado, igual ao fornecido pelo operador.
+    assertProductionE2ECleanupIdentity(adminEmail, tenant.contact_email);
+  }
 
   const tenantId = tenant.id;
   const { data: school } = await admin
@@ -122,7 +131,9 @@ async function runManagementSql(query) {
  * de `pg_constraint`. Repete enquanto houver linhas por apagar para cobrir
  * cadeias (turma → aluno → factura), com um limite de segurança.
  */
-export async function purgeSchoolDependencies(schoolId) {
+// Não exportar: a purga só pode ser invocada pelo fluxo acima depois de
+// confirmar slug, destino de base, opt-in e contacto do tenant.
+async function purgeSchoolDependencies(schoolId) {
   if (!/^[0-9a-f-]{36}$/i.test(String(schoolId))) {
     throw new Error("purgeSchoolDependencies: schoolId inválido.");
   }
@@ -140,8 +151,8 @@ export async function purgeSchoolDependencies(schoolId) {
   // `session_replication_role = replica` desliga triggers e verificações de FK
   // durante a transacção. É preciso porque `audit_logs` é append-only por
   // trigger e nenhuma escola com auditoria poderia ser removida de outra forma.
-  // Só corre para tenants de teste — cleanupE2ETenantBySlug já recusa slugs e
-  // e-mails fora do domínio E2E antes de chegar aqui.
+  // Só corre pelo fluxo privado de cleanupE2ETenantBySlug, que em
+  // produção já confirmou também o e-mail guardado no próprio tenant.
   await runManagementSql(
     `begin;\nset local session_replication_role = replica;\n${statements}\ncommit;`,
   );
