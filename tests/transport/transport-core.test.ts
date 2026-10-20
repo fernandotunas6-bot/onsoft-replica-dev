@@ -477,9 +477,10 @@ describe("portal: estado do dia", () => {
       expect(ids).toHaveLength(2);
       expect(ids.map((chunk) => (chunk as string[]).length)).toEqual([200, 6]);
     }
-    expect(
-      (vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids as string[]).sort(),
-    ).toEqual([id(40), id(41)]);
+    expect((vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids as string[]).sort()).toEqual([
+      id(40),
+      id(41),
+    ]);
   });
 
   it("não repete o aviso se aluno e encarregado partilham a mesma conta", async () => {
