@@ -878,6 +878,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       .from("siga_files")
       .select("id, owner_user_id, area, is_folder, is_system")
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .in("id", data.ids);
     if (loadError) {
       if (missingFilesTable(loadError) || missingOptionalColumn(loadError)) {
@@ -886,7 +887,9 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       throw publicDatabaseError(loadError, "Não foi possível mover.");
     }
     const items = rows ?? [];
-    if (!items.length) throw new Error("Nenhum item seleccionado.");
+    if (!items.length || items.length !== new Set(data.ids).size) {
+      throw new Error("A selecção contém itens inexistentes ou apagados nesta escola.");
+    }
     for (const item of items) {
       const area = item.area as SchoolFileRecord["area"];
       const owner = String(item.owner_user_id);
@@ -907,12 +910,19 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
         throw new Error("Sem permissão para mover um dos itens seleccionados.");
       }
     }
+    if (data.area && items.some((item) => item.area !== data.area)) {
+      throw new Error("Mover para outra área exige uma operação de reclassificação separada.");
+    }
+    if (data.parentId && items.some((item) => item.area !== (data.area ?? items[0].area))) {
+      throw new Error("Não é possível misturar áreas numa mesma pasta.");
+    }
     if (data.parentId) {
       const { data: parent, error: parentError } = await db
         .from("siga_files")
-        .select("id, is_folder, area")
+        .select("id, is_folder, area, owner_user_id")
         .eq("id", data.parentId)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .maybeSingle();
       if (parentError && !missingOptionalColumn(parentError)) {
         throw publicDatabaseError(parentError, "Não foi possível validar a pasta de destino.");
@@ -920,9 +930,42 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       if (!parent || !parent.is_folder) {
         throw new Error("O destino tem de ser uma pasta.");
       }
-      if (data.area && String(parent.area) !== data.area) {
+      const targetArea = data.area ?? String(items[0].area);
+      if (String(parent.area) !== targetArea) {
         throw new Error("A pasta de destino pertence a outra área.");
       }
+      if (
+        targetArea === "pessoal" &&
+        String(parent.owner_user_id) !== userId
+      ) {
+        throw new Error("Não pode mover documentos para a pasta pessoal de outro utilizador.");
+      }
+      const movingIds = new Set(data.ids);
+      const visited = new Set<string>();
+      let current: string | null = data.parentId;
+      let reachedRoot = false;
+      for (let level = 0; level < 50; level += 1) {
+        if (!current) {
+          reachedRoot = true;
+          break;
+        }
+        if (movingIds.has(current) || visited.has(current)) {
+          throw new Error("Mover criaria um ciclo entre pastas.");
+        }
+        visited.add(current);
+        const { data: ancestor, error: ancestorError } = await db
+          .from("siga_files")
+          .select("id, parent_id, is_folder, area")
+          .eq("id", current)
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        if (ancestorError || !ancestor?.is_folder || ancestor.area !== targetArea) {
+          throw new Error("Hierarquia de pastas inconsistente. Movimento bloqueado.");
+        }
+        current = ancestor.parent_id ? String(ancestor.parent_id) : null;
+      }
+      if (!reachedRoot) throw new Error("Hierarquia de pastas demasiado profunda.");
     }
     const now = new Date().toISOString();
     const payload: TablesUpdate<"siga_files"> = {
