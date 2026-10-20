@@ -56,7 +56,7 @@ Exigir revisão manual de `tenant_domains` e do certificado HTTPS do canário an
 4. Publicar → API devolve apenas `published`, sem o draft, IDs, dados pessoais ou privilégios.
 5. Abrir `/site` e testar link `Entrar no Portal` (`/`).
 6. Alterar rascunho → público mantém snapshot publicado.
-7. Segunda sessão com versão antiga → erro de concorrência, sem overwrite.
+7. Segunda sessão com versão antiga → erro de concorrência, sem overwrite (UNIQUE school_id/domain/version). As versões anteriores permanecem preservadas.
 8. Aluno, professor e administrador de outra escola → não conseguem guardar nem publicar.
 9. Suspender tenant em ambiente de ensaio → site não é servido.
 10. Playwright viewport mobile/tablet/desktop, navegação por teclado, leitura de ecrã e Lighthouse.
