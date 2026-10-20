@@ -15,6 +15,7 @@ import {
   schoolSiteSaveInputSchema,
   withDraft,
   withPublication,
+  withoutPublication,
   type SchoolSiteSettings,
 } from "./schema";
 
@@ -98,6 +99,35 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
         context.userId,
         data.expectedVersion,
         (settings) => withPublication(settings),
+      ),
+    };
+  });
+
+
+/** Emergência editorial: despublica imediatamente a última versão, sem DELETE. */
+export const unpublishSchoolSite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => schoolSitePublishInputSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    requireSchoolSitesEnabled();
+    const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
+      "Administrador",
+    ]);
+    requireSchoolAdministrator(membership.appRole);
+    requireAal2(context.claims, "Retirar website institucional do ar");
+    if (data.expectedVersion === 0) {
+      throw new Error("Não existe website publicado.");
+    }
+    return {
+      version: await appendSchoolSiteVersion(
+        context.supabase,
+        membership.schoolId,
+        context.userId,
+        data.expectedVersion,
+        (settings) => {
+          if (!settings.published) throw new Error("O website já está despublicado.");
+          return withoutPublication(settings);
+        },
       ),
     };
   });
