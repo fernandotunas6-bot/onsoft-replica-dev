@@ -84,6 +84,18 @@ describe("segredos do worker", () => {
     ).toEqual([]);
   });
 
+  it("a activação de websites só é enviada ao Worker como opt-in de servidor", () => {
+    expect(OPTIONAL_WORKER_VARS).toContain("SCHOOL_SITES_ENABLED");
+    expect(OPTIONAL_WORKER_SECRETS).not.toContain("SCHOOL_SITES_ENABLED");
+    expect(collectWorkerVars({}, {}).some(([name]) => name === "SCHOOL_SITES_ENABLED")).toBe(
+      false,
+    );
+    expect(collectWorkerVars({ SCHOOL_SITES_ENABLED: "true" }, {})).toContainEqual([
+      "SCHOOL_SITES_ENABLED",
+      "true",
+    ]);
+  });
+
   it("a publicação mantém as variáveis do painel e só envia config definida", () => {
     const script = readFileSync(join(process.cwd(), "scripts/deploy-cf.mjs"), "utf8");
     expect(script).toMatch(/config\.keep_vars = true/);
