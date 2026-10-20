@@ -55,9 +55,11 @@ export async function loadPublishedSchoolSite(hostname: string): Promise<PublicS
 
   const { data: row, error: settingsError } = await db
     .from("school_settings")
-    .select("value")
+    .select("version, value")
     .eq("school_id", school.id)
     .eq("domain", "school_website")
+    .order("version", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (settingsError) throw new Error("Não foi possível consultar o website.");
   if (!row) return null;
