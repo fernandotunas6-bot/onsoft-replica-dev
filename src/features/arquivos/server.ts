@@ -1,5 +1,6 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
+import type { ExistingSchoolFileLocation } from "./find-existing";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -23,6 +24,7 @@ import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "
 import {
   createSchoolFolderInputSchema,
   archiveFinanceDocumentInputSchema,
+  findExistingSchoolFilesInputSchema,
   linkSchoolFileToClassInputSchema,
   listArquivosInputSchema,
   listArquivosPeopleInputSchema,
@@ -483,6 +485,85 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
       schoolId: membership.schoolId,
       backend: "sga" as const,
     };
+  });
+
+/**
+ * Reconhecimento pré-upload. Só revela ficheiros visíveis e acessíveis na
+ * escola activa; nunca devolve o storage_path, URLs assinadas nem conteúdo.
+ * O limite obriga a avisar se o resultado pode estar incompleto.
+ */
+export const findExistingSchoolFiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => findExistingSchoolFilesInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const db = await loadSgaAdminClient();
+    const { data: rows, error } = await db
+      .from("siga_files")
+      .select("id, name, size_bytes, area, parent_id, owner_user_id, visibility, is_folder, is_system")
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
+      .eq("is_folder", false)
+      .in("name", [...new Set(data.names)])
+      .limit(201);
+    if (error) throw publicDatabaseError(error, "Não foi possível verificar os arquivos existentes.");
+
+    const visible = (rows ?? [])
+      .slice(0, 200)
+      .filter((row) => {
+        const viewer = {
+          area: row.area as SchoolFileRecord["area"],
+          ownerUserId: String(row.owner_user_id),
+          visibility: row.visibility as SchoolFileRecord["visibility"],
+        };
+        return (
+          canSeeRow(viewer, userId, membership.appRole) &&
+          canAccessFileContent(
+            { ...viewer, isSystem: Boolean(row.is_system), isFolder: false },
+            userId,
+            membership.appRole,
+          )
+        );
+      });
+    const parentIds = [...new Set(visible.map((row) => row.parent_id).filter(Boolean))] as string[];
+    const folderNames = new Map<string, string>();
+    if (parentIds.length) {
+      const { data: folders, error: folderError } = await db
+        .from("siga_files")
+        .select("id, name, area, owner_user_id, visibility")
+        .eq("school_id", membership.schoolId)
+        .eq("is_folder", true)
+        .in("id", parentIds);
+      if (folderError) {
+        throw publicDatabaseError(folderError, "Não foi possível localizar as pastas dos arquivos.");
+      }
+      for (const folder of folders ?? []) {
+        if (
+          canSeeRow(
+            {
+              area: folder.area as SchoolFileRecord["area"],
+              ownerUserId: String(folder.owner_user_id),
+              visibility: folder.visibility as SchoolFileRecord["visibility"],
+            },
+            userId,
+            membership.appRole,
+          )
+        ) {
+          folderNames.set(String(folder.id), String(folder.name));
+        }
+      }
+    }
+    const matches: ExistingSchoolFileLocation[] = visible.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      sizeBytes: Number(row.size_bytes),
+      area: row.area as SchoolFileRecord["area"],
+      parentId: row.parent_id ? String(row.parent_id) : null,
+      folderName: row.parent_id ? (folderNames.get(String(row.parent_id)) ?? null) : null,
+    }));
+    return { matches, incomplete: (rows ?? []).length > 200 };
   });
 
 /**
