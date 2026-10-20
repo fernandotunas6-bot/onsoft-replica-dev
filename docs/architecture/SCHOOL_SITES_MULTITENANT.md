@@ -73,7 +73,7 @@ O modelo v1 é uma página institucional editável e com contacto; **não** cons
 
 ## 6. Publicação e concorrência
 
-O editor grava rascunho explicitamente, inserindo uma nova versão a partir da versão esperada. A UNIQUE do banco impede que duas sessões publiquem o mesmo número de versão. A acção Publicar copia o draft validado para published (snapshot). Uma edição posterior não altera a versão publicada até nova publicação. Se a versão mudou, 409/conflito e solicitar recarregar. Não repetir silenciosamente writes.
+O editor grava rascunho explicitamente, inserindo uma nova versão a partir da versão esperada. A UNIQUE do banco impede que duas sessões publiquem o mesmo número de versão. A acção Publicar copia o draft validado para published (snapshot). Uma edição posterior não altera a versão publicada até nova publicação. O Administrador pode despublicar (snapshot `published=null`) com confirmação e MFA, preservando o histórico. Se a versão mudou, 409/conflito e solicitar recarregar. Não repetir silenciosamente writes.
 
 Esta v1 preserva as versões anteriores em `school_settings`, mas ainda não oferece um painel de histórico, reversão pública ou fluxo de aprovação editorial. Para o CMS multi-página futuro, criar tabelas dedicadas `school_site_pages`, `school_site_page_versions` e `school_site_publications`, **apenas após** a revisão do schema de produção e migração idempotente.
 
