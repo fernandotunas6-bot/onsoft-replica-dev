@@ -402,8 +402,8 @@ export function FileUploadInquiryModal({
                 </p>
               ) : null}
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Nome e tamanho sugerem uma correspondência, mas não comprovam conteúdo igual.
-                A pasta correcta depende da organização escolhida pela escola.
+                Nome e tamanho sugerem uma correspondência, mas não comprovam conteúdo igual. A
+                pasta correcta depende da organização escolhida pela escola.
               </p>
             </section>
           ) : null}
