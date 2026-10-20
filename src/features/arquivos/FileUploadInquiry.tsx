@@ -224,6 +224,7 @@ export function FileUploadInquiryModal({
     initial,
     open,
     photoLike,
+    mode,
     writableAreas,
     files,
   ]);
@@ -361,9 +362,7 @@ export function FileUploadInquiryModal({
             <section className="rounded-xl border border-border bg-card p-3" aria-live="polite">
               <p className="text-xs font-semibold">Ficheiros semelhantes</p>
               {checkingExisting ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  A verificar…
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">A verificar…</p>
               ) : existingCheckError ? (
                 <p className="mt-1 text-xs text-destructive">
                   Não foi possível verificar possíveis cópias.
@@ -401,9 +400,7 @@ export function FileUploadInquiryModal({
                   ) : null}
                 </div>
               ) : (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sem correspondências.
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">Sem correspondências.</p>
               )}
               {existingCheckIncomplete ? (
                 <p className="mt-2 text-xs text-destructive">Pesquisa incompleta.</p>
