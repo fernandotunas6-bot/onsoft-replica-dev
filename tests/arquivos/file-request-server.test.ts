@@ -20,6 +20,24 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(fn).not.toContain("signedUrl");
   });
 
+  it("reconhece retentativa de upload concluído antes de cobrar quota novamente", () => {
+    const start = server.indexOf("export const registerSchoolFile = createServerFn");
+    const stop = server.indexOf("export const createSchoolFolder = createServerFn", start);
+    expect(start).toBeGreaterThan(0);
+    expect(stop).toBeGreaterThan(start);
+    const fn = server.slice(start, stop);
+    const verifiedStorage = fn.indexOf(".info(data.storagePath)");
+    const previousRecord = fn.indexOf("const registered = await db");
+    const checkedIdentity = fn.indexOf("!isMatchingRegisteredUpload(registered.data");
+    const checkedQuota = fn.indexOf("await assertCanStoreBytesForSchool");
+    expect(verifiedStorage).toBeGreaterThan(0);
+    expect(previousRecord).toBeGreaterThan(verifiedStorage);
+    expect(checkedIdentity).toBeGreaterThan(previousRecord);
+    expect(checkedQuota).toBeGreaterThan(checkedIdentity);
+    expect(fn).toContain('.eq("school_id", membership.schoolId)');
+    expect(fn).toContain('.is("deleted_at", null)');
+  });
+
   it("só pesquisa ficheiros da escola e elimina os apagados da selecção", () => {
     const start = server.indexOf("export const findExistingSchoolFiles = createServerFn");
     const stop = server.indexOf("export function isOwnUploadPath", start);
