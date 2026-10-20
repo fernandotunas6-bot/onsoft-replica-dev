@@ -1,0 +1,34 @@
+name: Website escolar
+
+on:
+  pull_request:
+    paths:
+      - "painel/escolas/**"
+      - ".github/workflows/school-website.yml"
+  push:
+    branches: [main]
+    paths:
+      - "painel/escolas/**"
+      - ".github/workflows/school-website.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  school-website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: painel/escolas
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Gerar website da escola
+        run: npm run build
+      - name: Verificar as páginas e os links internos
+        run: npm run check
+      - name: Testar o cliente de integração
+        run: npm test
