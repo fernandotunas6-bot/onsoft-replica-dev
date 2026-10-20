@@ -46,6 +46,7 @@ function database(answer: (table: string, ops: Op[]) => Answer): TransportDb {
         "is",
         "limit",
         "order",
+        "range",
         "insert",
         "update",
         "upsert",
@@ -376,18 +377,21 @@ describe("portal: estado do dia", () => {
       if (table === "siga_transport_routes") return { data: route };
       if (table === "siga_transport_day_status")
         return has(ops, "maybeSingle") ? { data: previous } : {};
-      if (table === "siga_transport_assignments")
+      if (table === "siga_transport_assignments") {
+        const all = [
+          { student_id: STUDENT, valid_from: "2026-09-01", valid_until: null },
+          ...Array.from({ length: extraAssignments }, (_, n) => ({
+            student_id: id(100 + n),
+            valid_from: "2026-09-01",
+            valid_until: null,
+          })),
+          { student_id: OTHER, valid_from: "2026-11-01", valid_until: null },
+        ];
+        const range = ops.find((op) => op[0] === "range");
         return {
-          data: [
-            { student_id: STUDENT, valid_from: "2026-09-01", valid_until: null },
-            ...Array.from({ length: extraAssignments }, (_, n) => ({
-              student_id: id(100 + n),
-              valid_from: "2026-09-01",
-              valid_until: null,
-            })),
-            { student_id: OTHER, valid_from: "2026-11-01", valid_until: null },
-          ],
+          data: range ? all.slice(range[1] as number, (range[2] as number) + 1) : all,
         };
+      }
       if (table === "students") {
         const requested = (ops.find((op) => op[0] === "in" && op[1] === "id")?.[2] ??
           []) as string[];
@@ -477,6 +481,29 @@ describe("portal: estado do dia", () => {
       expect(ids).toHaveLength(2);
       expect(ids.map((chunk) => (chunk as string[]).length)).toEqual([200, 6]);
     }
+    expect((vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids as string[]).sort()).toEqual([
+      id(40),
+      id(41),
+    ]);
+  });
+
+  it("pagina atribuições da rota além de 500 registos sem omitir contas válidas", async () => {
+    const db = dayDb(null, undefined, false, 505);
+    const input = setDayStatusSchema.parse({ routeId: ROUTE, status: "delayed", delayMinutes: 20 });
+    const out = await setTransportDayStatus(db, SCHOOL, USER, input, TODAY);
+    expect(out).toEqual({ notified: 2 });
+    const batches = queries
+      .filter((query) => query.table === "siga_transport_assignments")
+      .map((query) => query.ops.find((op) => op[0] === "range"));
+    expect(batches).toEqual([
+      ["range", 0, 499],
+      ["range", 500, 999],
+    ]);
+    expect(
+      queries
+        .filter((query) => query.table === "siga_transport_assignments")
+        .every((query) => query.ops.some((op) => op[0] === "order" && op[1] === "id")),
+    ).toBe(true);
     expect((vi.mocked(db.rpc!).mock.calls[0][1].p_recipient_user_ids as string[]).sort()).toEqual([
       id(40),
       id(41),
