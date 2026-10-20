@@ -43,7 +43,7 @@ Estes números devem ser recalculados antes do rollout. **Não reactivar tenants
 
 Domínios próprios são opcionais; seguir `tenant_domains` e `domain-verify.ts`. O wildcard Cloudflare permite multi-tenant sem um deployment por escola. Uma linha `status=active` não prova HTTP/TLS.
 
-## 4. Modelo de dados v1 (sem migração)
+## 4. Modelo de dados v1 (sem nova tabela; migração RLS necessária)
 
 Reutilizar `school_settings` com **um novo domínio** `school_website`: várias versões append-only por escola+domínio, `value jsonb` e `version` com UNIQUE `(school_id, domain, version)`. A versão mais recente é sempre a de maior número; uma publicação cria um novo registo, nunca UPDATE das versões anteriores. As escritas utilizam `context.supabase` e a RLS existente (`settings_insert_authorized`, AAL2 e permissão). **Não converter as tabelas `web_blog_posts` e `web_faqs` globais em CMS de escola.**
 
@@ -52,6 +52,8 @@ Estrutura JSON controlada por schema Zod:
 - `draft`: `title`, `tagline`, `about`, `heroImageUrl` opcional, `primaryColor` validada, `showContact`
 - `published`: snapshot explícito ou null
 - `publishedAt`: timestamp ou null
+
+**Privacidade obrigatória:** como a política SELECT anterior de `school_settings` permite leitura a todos os membros (inclusive alunos e encarregados), a migração `20261020213000_school_website_draft_read_guard.sql` cria uma política SELECT **RESTRICTIVE** que exige `private.has_permission(school_id, 'schools.settings.create')` somente para o domínio `school_website`. Os outros domínios não mudam. **Aplicar a migração revista primeiro em staging, depois em produção com autorização e antes de disponibilizar `/configuracoes/site`.** Não remover o controlo existente de membro nem modificar tabelas existentes.
 
 **Nunca publicar automaticamente o rascunho novo.** O backend calcula o conteúdo inicial a partir do nome da escola sem gravar: abre o editor com a versão default; salvar grava apenas o próprio domínio da escola. A versão publicada é um snapshot independente do rascunho.
 
