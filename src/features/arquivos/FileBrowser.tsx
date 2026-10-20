@@ -615,15 +615,24 @@ export function FileBrowser({
     setMoveOpen(false);
     if (!ids.length) return;
     try {
+      const selected = files.filter((file) => ids.includes(file.id));
+      if (selected.length !== ids.length) {
+        throw new Error("A selecção de ficheiros mudou. Actualize a pasta e tente novamente.");
+      }
+      const remoteIds = selected
+        .filter((file) => file.storageBackend === "sga")
+        .map((file) => file.id);
+      // Nunca actualizar primeiro o IndexedDB: o servidor pode rejeitar um
+      // movimento inválido, e a interface ficaria com uma pasta falsa.
+      if (remoteIds.length) {
+        await moveSchoolFiles({
+          data: { ids: remoteIds, parentId, area },
+        });
+      }
       for (const id of ids) {
         await patchLocalFileMeta(id, { parentId });
       }
-      const result = await moveSchoolFiles({
-        data: { ids, parentId, area },
-      });
-      toast[result.localOnly ? "message" : "success"](
-        result.localOnly ? "Movido neste dispositivo" : `${ids.length} item(ns) movido(s)`,
-      );
+      toast.success(`${ids.length} item(ns) movido(s)`);
       setSelectedIds(new Set());
       await refresh();
     } catch (error) {
