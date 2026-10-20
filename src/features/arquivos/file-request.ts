@@ -51,7 +51,12 @@ export function fileMatchesRequest(
   }
 
   if (request.purpose === "class-material") {
-    return Boolean(request.classGroupId) && file.classGroupId === request.classGroupId;
+    return (
+      Boolean(request.classGroupId) &&
+      file.classGroupId === request.classGroupId &&
+      (file.area === "escola" || file.area === "publico") &&
+      file.visibility !== "private"
+    );
   }
 
   if (request.purpose === "finance-document") {
