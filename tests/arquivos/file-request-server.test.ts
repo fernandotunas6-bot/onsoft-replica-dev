@@ -12,6 +12,10 @@ const table = readFileSync(
   resolve(process.cwd(), "src/features/arquivos/FileBrowserTable.tsx"),
   "utf8",
 );
+const picker = readFileSync(
+  resolve(process.cwd(), "src/features/arquivos/FilePickerModal.tsx"),
+  "utf8",
+);
 
 describe("contrato central de arquivos: limites de segurança", () => {
   it("revalida escola, visibilidade e finalidade sem revelar caminho ou URL", () => {
@@ -154,6 +158,30 @@ describe("contrato central de arquivos: limites de segurança", () => {
     }
     expect(server.slice(resolveStart, resolveEnd)).toContain('data.purpose === "class-material"');
     expect(server.slice(linkStart, linkEnd)).toContain("data.classGroupId ?? file.classGroupId");
+  });
+
+  it("carregamento do professor só é admitido para turma atribuída e conteúdo escolar", () => {
+    const start = server.indexOf("export const registerSchoolFile = createServerFn");
+    const stop = server.indexOf("export const createSchoolFolder = createServerFn", start);
+    const register = server.slice(start, stop);
+    expect(register).toContain('membership.appRole === "Professor"');
+    expect(register).toContain("Boolean(data.classGroupId)");
+    expect(register).toContain('data.area === "escola"');
+    expect(register).toContain('data.visibility === "school"');
+    expect(register).toContain("!canWriteFileArea(membership.appRole, data.area) && !assignedClassUpload");
+    expect(register).toContain("await assertClassMaterialScope(db, {");
+    expect(register).toContain("classGroupId: data.classGroupId");
+    expect(register).toContain("roles: membership.allAppRoles ?? [membership.appRole]");
+  });
+
+  it("selector associa novos uploads à turma sem limitar a escolha de ficheiros existentes", () => {
+    expect(picker).toContain('request?.purpose === "class-material"');
+    expect(picker).toContain("uploadClassGroupId={");
+    expect(files).toContain("uploadClassGroupId ?? activeClassId");
+    expect(files).toContain("classGroupId: targetClassGroupId");
+    expect(files).toContain('targetArea !== "escola" || meta.visibility !== "school"');
+    expect(files).toContain("classGroupId: uploadClassGroupId, limit: 1");
+    expect(files).toContain("await listSchoolFiles({");
   });
 
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
