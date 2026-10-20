@@ -56,7 +56,8 @@ Exigir revisão manual de `tenant_domains` e do certificado HTTPS do canário an
 2. Verificar que o administrador da escola ainda lê e grava o domínio `school_website`, e alunos/encarregados **não** conseguem ler nenhuma versão dele.
 3. Verificar que todos os utilizadores continuam a ler os outros domínios que lhes eram acessíveis antes, sem regressões.
 4. Aplicar à produção **apenas com autorização específica e backup**, antes de activar as novas rotas. Não aplicar automaticamente a partir desta PR.
-5. Depois executar ensaio do website e validar TLS/hostnames; se falhar, não activar a publicação.
+5. O módulo é **fail-closed**: no Worker, `SCHOOL_SITES_ENABLED` está ausente ou diferente de `true` por omissão. Só configurar `SCHOOL_SITES_ENABLED=true` **depois** de confirmar a migração RLS, as permissões e o canário. Na ausência da flag, o editor recusa leituras/gravações e a API pública responde como indisponível. Não usar `VITE_` (não expor como flag de cliente).
+6. Depois executar ensaio do website e validar TLS/hostnames; se falhar, não activar a publicação.
 
 ## 5. Ensaio v1
 
