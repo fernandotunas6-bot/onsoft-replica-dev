@@ -503,35 +503,59 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
     const db = await loadSgaAdminClient();
-    const { data: rows, error } = await db
-      .from("siga_files")
-      .select(
-        "id, name, size_bytes, area, parent_id, owner_user_id, visibility, is_folder, is_system",
-      )
-      .eq("school_id", membership.schoolId)
-      .is("deleted_at", null)
-      .eq("is_folder", false)
-      .in("name", [...new Set(data.names)])
-      .limit(201);
-    if (error) {
-      throw publicDatabaseError(error, "Não foi possível verificar os arquivos existentes.");
-    }
-
-    const visible = (rows ?? []).slice(0, 200).filter((row) => {
-      const viewer = {
-        area: row.area as SchoolFileRecord["area"],
-        ownerUserId: String(row.owner_user_id),
-        visibility: row.visibility as SchoolFileRecord["visibility"],
-      };
-      return (
-        canSeeRow(viewer, userId, membership.appRole) &&
-        canAccessFileContent(
-          { ...viewer, isSystem: Boolean(row.is_system), isFolder: false },
-          userId,
-          membership.appRole,
+    // Paginar a consulta ANTES de limitar resultados visíveis: a primeira
+    // página pode conter apenas ficheiros privados de outras pessoas.
+    // Parar após 1 000 candidatos evita pesquisas indefinidas no serviço.
+    const pageSize = 100;
+    const visible: Array<{
+      id: string;
+      name: string;
+      size_bytes: number | null;
+      area: string;
+      parent_id: string | null;
+      owner_user_id: string;
+      related_user_id: string | null;
+      visibility: string;
+      is_system: boolean | null;
+    }> = [];
+    let incomplete = false;
+    for (let page = 0; page < 10; page += 1) {
+      const { data: rows, error } = await db
+        .from("siga_files")
+        .select(
+          "id, name, size_bytes, area, parent_id, owner_user_id, related_user_id, visibility, is_system",
         )
-      );
-    });
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        .eq("is_folder", false)
+        .in("name", [...new Set(data.names)])
+        .order("id", { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      if (error) {
+        throw publicDatabaseError(error, "Não foi possível verificar os arquivos existentes.");
+      }
+      for (const row of rows ?? []) {
+        const viewer = {
+          area: row.area as SchoolFileRecord["area"],
+          ownerUserId: String(row.owner_user_id),
+          relatedUserId: row.related_user_id ? String(row.related_user_id) : null,
+          visibility: row.visibility as SchoolFileRecord["visibility"],
+        };
+        if (
+          canSeeRow(viewer, userId, membership.appRole) &&
+          canAccessFileContent(
+            { ...viewer, isSystem: Boolean(row.is_system), isFolder: false },
+            userId,
+            membership.appRole,
+          )
+        ) {
+          visible.push(row);
+        }
+      }
+      if ((rows ?? []).length < pageSize) break;
+      // Ao atingir o limite técnico, não afirmar que a busca foi completa.
+      if (page === 9) incomplete = true;
+    }
     const parentIds = [...new Set(visible.map((row) => row.parent_id).filter(Boolean))] as string[];
     const folderNames = new Map<string, string>();
     if (parentIds.length) {
@@ -539,6 +563,7 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
         .from("siga_files")
         .select("id, name, area, owner_user_id, visibility")
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .eq("is_folder", true)
         .in("id", parentIds);
       if (folderError) {
@@ -563,7 +588,11 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
         }
       }
     }
-    const matches: ExistingSchoolFileLocation[] = visible.map((row) => ({
+    // Não divulgar nem navegar até o ID de uma pasta sem autorização.
+    const navigable = visible.filter(
+      (row) => !row.parent_id || folderNames.has(String(row.parent_id)),
+    );
+    const matches: ExistingSchoolFileLocation[] = navigable.map((row) => ({
       id: String(row.id),
       name: String(row.name),
       sizeBytes: Number(row.size_bytes),
@@ -571,7 +600,7 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
       parentId: row.parent_id ? String(row.parent_id) : null,
       folderName: row.parent_id ? (folderNames.get(String(row.parent_id)) ?? null) : null,
     }));
-    return { matches, incomplete: (rows ?? []).length > 200 };
+    return { matches, incomplete };
   });
 
 /**
