@@ -393,6 +393,8 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
         .select(select)
         .eq("school_id", membership.schoolId)
         .is("deleted_at", null)
+        // Registos offline legados não são partilháveis nem têm blob no servidor.
+        .neq("storage_backend", "local")
         .order("created_at", { ascending: false })
         .limit(data.limit);
       if (data.area) query = query.eq("area", data.area);
@@ -536,6 +538,7 @@ export const findExistingSchoolFiles = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .is("deleted_at", null)
         .eq("is_folder", false)
+        .eq("storage_backend", "sga")
         .in("name", [...new Set(data.names)])
         .order("id", { ascending: true })
         .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -668,6 +671,11 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     }
     if (!isOwnUploadPath(data.storagePath, membership.schoolId, userId, data.id, data.area)) {
       throw new Error("Caminho do ficheiro inválido.");
+    }
+    // IndexedDB é propriedade do browser: não criar entradas de escola para
+    // ficheiros sem objecto remoto. Clientes antigos recebem resposta compatível.
+    if (data.storageBackend === "local") {
+      return { storage: "local" as const, record: null };
     }
     const db = await loadSgaAdminClient();
     // Verificar metadados e quota antes de publicar o registo. Nunca apagar
@@ -1834,6 +1842,7 @@ export const resolveRequestedSchoolFile = createServerFn({ method: "GET" })
     const file = await loadSchoolFileRow(db, membership.schoolId, data.id);
     if (
       !file ||
+      file.storageBackend !== "sga" ||
       !canSeeRow(file, userId, membership.appRole) ||
       !canAccessFileContent(file, userId, membership.appRole) ||
       !fileMatchesRequest(file, data)
@@ -1895,7 +1904,12 @@ export const signSchoolFile = createServerFn({ method: "GET" })
       }
       throw new Error("Ficheiro do sistema — conteúdo oculto. Sem permissão de abertura.");
     }
-    if (mapped.storageBackend !== "sga") return { local: true as const, url: null };
+    if (mapped.storageBackend !== "sga") {
+      if (mapped.ownerUserId !== userId) {
+        throw new Error("Este ficheiro existe apenas no dispositivo do proprietário.");
+      }
+      return { local: true as const, url: null };
+    }
     const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(mapped.storagePath, 600);
     if (signed.error || !signed.data?.signedUrl) {
       return { local: false as const, url: null };
