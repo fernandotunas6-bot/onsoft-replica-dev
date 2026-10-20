@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   prepareSchoolUpload,
   remainingSchoolUploads,
+  isMatchingRegisteredUpload,
 } from "@/features/arquivos/upload-recovery";
 
 const draft = {
@@ -54,6 +55,57 @@ describe("retentativas de upload do Arquivo", () => {
   it("recusa contador de conclusão inconsistente", () => {
     for (const count of [-1, 4, 1.5, Number.NaN]) {
       expect(() => remainingSchoolUploads(["a", "b"], count)).toThrow(/inválido/);
+    }
+  });
+});
+
+describe("idempotência segura no registo de uploads", () => {
+  const expected = {
+    ...draft,
+    name: "Contrato.pdf",
+    mime: "application/pdf",
+    sizeBytes: 2048,
+    visibility: "private",
+    parentId: null,
+    classGroupId: null,
+    relatedPersonId: null,
+    relatedUserId: "user",
+  };
+  const saved = {
+    id: expected.id,
+    school_id: expected.schoolId,
+    owner_user_id: expected.ownerUserId,
+    name: expected.name,
+    mime: expected.mime,
+    size_bytes: expected.sizeBytes,
+    area: expected.area,
+    visibility: expected.visibility,
+    storage_path: expected.storagePath,
+    storage_backend: "sga",
+    parent_id: null,
+    class_group_id: null,
+    related_person_id: null,
+    related_user_id: "user",
+  };
+
+  it("aceita somente a mesma operação persistida", () => {
+    expect(isMatchingRegisteredUpload(saved, expected)).toBe(true);
+    expect(isMatchingRegisteredUpload(null, expected)).toBe(false);
+  });
+
+  it("rejeita colisão de ID, escola, dono, caminho e contexto", () => {
+    for (const changed of [
+      { school_id: "outra-escola" },
+      { owner_user_id: "outra-conta" },
+      { storage_path: "outra-localizacao" },
+      { parent_id: "outra-pasta" },
+      { related_person_id: "outra-pessoa" },
+      { class_group_id: "outra-turma" },
+      { visibility: "public" },
+      { size_bytes: 1024 },
+      { storage_backend: "local" },
+    ]) {
+      expect(isMatchingRegisteredUpload({ ...saved, ...changed }, expected)).toBe(false);
     }
   });
 });
