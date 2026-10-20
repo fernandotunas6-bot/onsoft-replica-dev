@@ -54,9 +54,9 @@ const FILES_BUCKET = "siga-files";
 const FILE_SELECT =
   "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, parent_id, is_folder, is_system, title, description, category, document_date, reference_code, related_user_id, related_person_id, created_at, updated_at, updated_by, last_action, last_action_at, last_action_by";
 const FILE_SELECT_CLASS =
-  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, created_at";
+  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, is_folder, is_system, related_user_id, created_at";
 const FILE_SELECT_BASIC =
-  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, created_at";
+  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, is_folder, is_system, related_user_id, created_at";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -1924,7 +1924,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
     }
     if (!row) throw new Error("Ficheiro não encontrado.");
     const mapped = mapRow(row as Record<string, unknown>);
-    if (!canSeeRow(mapped, userId, membership.appRole)) {
+    if (!canSeeRow(mapped, userId, membership.appRole) || mapped.isFolder) {
       throw new Error("Sem permissão para abrir este ficheiro.");
     }
     if (!canAccessFileContent(mapped, userId, membership.appRole)) {
@@ -1994,6 +1994,7 @@ export const signSchoolFiles = createServerFn({ method: "GET" })
         (file) =>
           canSeeRow(file, userId, membership.appRole) &&
           canAccessFileContent(file, userId, membership.appRole) &&
+          !file.isFolder &&
           file.storageBackend === "sga",
       );
     if (!visible.length) return { urls: {} as Record<string, string> };
