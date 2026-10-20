@@ -4,6 +4,15 @@ Data: 2026-10-20. Base de comparação: `origin/main` em `7d8ce0ec`.
 Actualizado às 07:10 de 20/10: o Codex continuou a trabalhar depois de isto ser
 escrito — há uma PR nova (#188) e um ramo empurrado sem PR, ambos de hoje.
 
+> **Terceira actualização, 19:30 de 20/10.** Entre as 18:05 e as 18:17 fundiram
+> sete PRs (#186, #188, #189, #191, #194, #196, #197) e a base passou de
+> `7d8ce0ec` para `a9cd5a61`. Isso resolve os pontos 1 e 2 do roteiro e
+> **invalida as verificações de fusão feitas às 06:17 e 06:31** — a #108 deixou
+> de fundir limpo. O estado revisto está em
+> [«O que mudou ao fim do dia»](#o-que-mudou-ao-fim-do-dia), no fim deste
+> documento; as secções acima ficam como foram escritas, para se poder ver o que
+> caducou e com que rapidez.
+
 ## Como foi identificado
 
 O Codex comete com o teu nome de utilizador do git e **não deixa rodapé de
@@ -138,3 +147,85 @@ Duas destas pistas já não bastam, e convém saber porquê:
 O **SIGA_EDU** saiu desta lista: está sob git e com remoto privado em
 `fernandotunas6-bot/siga-edu-agosto` desde hoje. Fica a faltar o `App_Edu`, com
 962 ficheiros por commitar e uma troca de template a meio.
+
+## O que mudou ao fim do dia
+
+Retrato das 19:30, base `origin/main` em `a9cd5a61`. Sete PRs fundiram entre as
+18:05 e as 18:17, por isso metade deste documento envelheceu em doze horas.
+
+### Os itens do roteiro que se fecharam sozinhos
+
+| Item | Como estava às 07:10 | Como está às 19:30 |
+|---|---|---|
+| 1. `audit/provisioning-admin-scope-20261020` | ramo sem PR, «alvo em movimento» | **fundido** — virou a #189 e entrou às 18:06 |
+| 2. #186 e #188 | rascunhos a tirar do rascunho | **fundidos**, às 18:10 e 18:09 |
+| — | — | entraram ainda #191, #194, #196 e #197 |
+
+A lição do «abrir PR» confirmou-se pelo avesso: o ramo não precisou de ser
+resgatado, precisou de uma PR — e logo que a teve, fundiu no mesmo dia.
+
+### O que a base nova fez às verificações
+
+As verificações de fusão das 06:17 e 06:31 foram repetidas do zero contra
+`a9cd5a61`, porque uma fusão limpa contra `7d8ce0ec` não diz nada sobre a base
+de agora:
+
+| PR | Às 06:xx | Às 19:30 | Medição repetida |
+|---|---|---|---|
+| #113 | funde limpo, 7/7 | **confirmada** | 26/26 verdes em `tests/calendar/`; com `ics.ts` reposto da `main`, 7/7 falham |
+| #117 | funde limpo, 14/14 | **confirmada** | 344/344 verdes em `tests/academic/`; sem a correcção, 3 falham com «Períodos em ciclo de actualização» |
+| #107 | rascunho, só docs | **pronta para revisão** | tirada do rascunho; `MERGEABLE/CLEAN` |
+| #108 | «funde limpo» | **passou a conflituosa** | um conflito só, em `.github/workflows/ci.yml`, criado pela #188 ao acrescentar o job `web-quality` |
+
+### A #108, aberta e fechada
+
+Os três problemas que faltavam foram resolvidos e empurrados para o ramo:
+
+1. **O conflito.** A #188 acrescentou o job `web-quality` exactamente onde o
+   ramo removia o passo `Build`. O ramo move o `Build` para antes do `tsc`, e
+   com razão: o plugin do TanStack Router gera `src/routeTree.gen.ts` durante o
+   build, logo uma rota nova falha nos tipos se o `tsc` correr primeiro.
+   Resolvido mantendo as duas coisas — o `web-quality` da `main` e o `Build`
+   antecipado do ramo — e retirando o `Build` que ficava duplicado no fim.
+2. **A migração duplicada.** `20261008170000_bbb_classroom_metadata.sql`
+   repetia, corpo por corpo (`md5` igual, só difere um cabeçalho de 4 linhas de
+   comentário), a `20261008144147` **já aplicada em produção a 08/10**.
+   Removida.
+3. **Os dois testes.** Não eram o mesmo defeito:
+   - `permits assigned teacher to create scheduled classroom` era um **fixture
+     desactualizado**. A política passou a exigir `session.classGroupId` e
+     `teacherAssignment.teacherId`, e o fixture não os tinha. O mais grave é que
+     os *outros* testes passavam pela razão errada: as negações davam `false`
+     por campos indefinidos, não pela regra que diziam cobrir. O fixture passou
+     a distinguir o id do registo de professor (`teacher-record-1`) do id de
+     utilizador (`teacher-1`) — que é precisamente a verificação de dois lados
+     que a política faz.
+   - `rejects a class group different from the verified session` era um **defeito
+     real, de ordem**: a guarda de configuração (`meetingPasswords`) corria
+     antes da guarda de âmbito (`meetingId`), por isso uma turma trocada era
+     mascarada por «BigBlueButton meeting passwords not configured». O âmbito
+     passou a ser calculado logo depois da autorização e antes de se ler o
+     ambiente. Em produção, com as senhas configuradas, não havia buraco — mas o
+     erro reportado era o errado, e quatro funções repetiam uma verificação
+     parcial (`session.id` só) de algo que o `meetingId` já validava por
+     inteiro, `classGroupId` incluído. Ficou uma guarda, com uma mensagem.
+
+   Resultado: **116/116** verdes em `tests/integrations/` e
+   `tests/virtual-classroom/`.
+
+Fica em aberto na #108 uma coisa que não é defeito mas é inacabamento: o
+`src/routeTree.gen.ts` está versionado e **não** contém `aulas-virtuais`, e a
+rota também não está no `navigation-catalog.ts`. O CI não apanha o primeiro
+porque o build regenera o ficheiro antes do `tsc` — mas o que está commitado
+está velho.
+
+### Ainda por fazer
+
+1. #113 e #117 — verificadas duas vezes contra bases diferentes. Falta fundir.
+2. #107 — fora do rascunho, só documentação. Falta fundir.
+3. #108 — verde e sem conflito. Falta decidir se a integração BigBlueButton
+   entra agora, e fechar a árvore de rotas.
+4. #30 (modelos de e-mail) — continua o maior bloco ausente por inteiro.
+5. #35 — 28 ficheiros em conflito. Fechar e levantar da `main`.
+6. `App_Edu` — 962 ficheiros por commitar. É o que resta fora do controlo de
+   versões, agora que o SIGA_EDU saiu da lista.
