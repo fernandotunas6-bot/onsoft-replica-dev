@@ -178,7 +178,9 @@ await db.query(day, [a, routeA]);
 // Contas fictícias de duas escolas; a RPC deve recusar mistura de destinatários.
 const userA = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
 const userB = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
-const userGuardian = (await one("insert into auth.users(id) values(gen_random_uuid()) returning id")).id;
+const userGuardian = (
+  await one("insert into auth.users(id) values(gen_random_uuid()) returning id")
+).id;
 const userSameSchoolUnlinked = (
   await one("insert into auth.users(id) values(gen_random_uuid()) returning id")
 ).id;
@@ -190,10 +192,7 @@ await db.query("insert into people(school_id,user_id) values($1,$2)", [b, userB]
 const guardianPerson = (
   await one("insert into people(school_id,user_id) values($1,$2) returning id", [a, userGuardian])
 ).id;
-await db.query("insert into people(school_id,user_id) values($1,$2)", [
-  a,
-  userSameSchoolUnlinked,
-]);
+await db.query("insert into people(school_id,user_id) values($1,$2)", [a, userSameSchoolUnlinked]);
 await db.query(
   "insert into student_guardians(school_id,student_id,guardian_person_id,valid_from) values($1,$2,$3,'2026-11-01')",
   [a, studentA, guardianPerson],
@@ -350,7 +349,11 @@ await db.query(
   [guardianPerson],
 );
 await assert.rejects(saveDay(a, routeA, "delayed", 25), (error) => error.code === "42501");
-assert.equal(await noticeCount(), noticesBeforeUnlinked, "mudança de vínculo não emite aviso parcial");
+assert.equal(
+  await noticeCount(),
+  noticesBeforeUnlinked,
+  "mudança de vínculo não emite aviso parcial",
+);
 assert.deepEqual(await saveDay(a, routeA, "delayed", 25, null, [userA, userGuardian]), {
   changed: true,
   notified: 2,
@@ -390,7 +393,6 @@ assert.deepEqual(await saveDay(a, routeA, "normal", 0, null, []), {
   changed: true,
   notified: 0,
 });
-
 
 // ── Paragens atómicas: função SECURITY INVOKER só para service_role.
 const rpc = "public.siga_transport_save_stops_atomic(uuid,uuid,uuid,jsonb)";
