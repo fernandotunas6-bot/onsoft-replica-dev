@@ -43,3 +43,16 @@ body{background:#fff}.topline{background:#f0f4fb;color:#607491}.site-header{bord
 
 /* Semantic column headers retain the existing comparison appearance. */
 .comparison-table thead th.comparison-course{position:relative;background:#f9fbff;font-weight:400}
+
+/* Reading and keyboard feedback, preserving the approved layout. */
+.topline,.hero-side{color:#536b8a}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline-color:#215cce}
+.button:focus-visible,.outline-button:focus-visible,.icon-button:focus-visible,.favorite-button:focus-visible{box-shadow:0 0 0 3px #fff}
+.course-card:focus-within{border-color:#b8cae8;box-shadow:0 12px 26px #203d630d}
+.site-result:focus-visible{background:#f5f8ff;border-color:#b8cae8}
+.button:active,.outline-button:active{filter:brightness(.96)}
+::selection{background:#dbe8ff;color:#142c4d}
+@media(forced-colors:active){a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline-color:Highlight}.button:focus-visible,.outline-button:focus-visible,.icon-button:focus-visible,.favorite-button:focus-visible{box-shadow:none}::selection{background:Highlight;color:HighlightText}}
+
+form label input:focus-visible,form label select:focus-visible,form label textarea:focus-visible{outline:3px solid #215cce;outline-offset:3px}
+@media(forced-colors:active){form label input:focus-visible,form label select:focus-visible,form label textarea:focus-visible{outline-color:Highlight}}
