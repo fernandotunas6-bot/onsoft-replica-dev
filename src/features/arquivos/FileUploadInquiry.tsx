@@ -14,6 +14,11 @@ import {
 import { MediaFrame } from "@/components/ui/media-frame";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
+import {
+  classifyExistingFile,
+  describeFileLocation,
+  type ExistingSchoolFileLocation,
+} from "./find-existing";
 import { documentCodeSearchHint, generateDocumentCode, prefixForCategory } from "./document-code";
 import {
   defaultVisibilityForArea,
@@ -73,6 +78,12 @@ export function FileUploadInquiryModal({
   mode = "upload",
   initial,
   lockRelatedPerson = false,
+  currentFolderId = null,
+  existingMatches = [],
+  checkingExisting = false,
+  existingCheckError = false,
+  existingCheckIncomplete = false,
+  onShowExisting,
   onCancel,
   onConfirm,
 }: {
@@ -86,6 +97,12 @@ export function FileUploadInquiryModal({
   mode?: "upload" | "organize";
   initial?: Partial<UploadInquiryResult> & { name?: string };
   lockRelatedPerson?: boolean;
+  currentFolderId?: string | null;
+  existingMatches?: readonly ExistingSchoolFileLocation[];
+  checkingExisting?: boolean;
+  existingCheckError?: boolean;
+  existingCheckIncomplete?: boolean;
+  onShowExisting?: (match: ExistingSchoolFileLocation) => void;
   onCancel: () => void;
   onConfirm: (meta: UploadInquiryResult) => void;
 }) {
@@ -256,6 +273,22 @@ export function FileUploadInquiryModal({
   });
 
   const totalBytes = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
+  const locationLabels = {
+    escola: fileAreaMeta.escola.label,
+    secretaria: fileAreaMeta.secretaria.label,
+    pessoal: fileAreaMeta.pessoal.label,
+    publico: fileAreaMeta.publico.label,
+  };
+  const existingLocations = useMemo(
+    () =>
+      existingMatches.flatMap((match) =>
+        files.flatMap((file) => {
+          const placement = classifyExistingFile(match, file, area, currentFolderId);
+          return placement ? [{ match, placement }] : [];
+        }),
+      ),
+    [area, currentFolderId, existingMatches, files],
+  );
 
   return (
     <Dialog
@@ -315,6 +348,65 @@ export function FileUploadInquiryModal({
               <p className="truncate">{firstName}</p>
             )}
           </div>
+          {mode === "upload" ? (
+            <section className="rounded-xl border border-border bg-card p-3" aria-live="polite">
+              <p className="text-xs font-semibold">Verificar existência e localização</p>
+              {checkingExisting ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  A pesquisar ficheiros visíveis nas pastas desta escola…
+                </p>
+              ) : existingCheckError ? (
+                <p className="mt-1 text-xs text-destructive">
+                  Não foi possível verificar os arquivos agora. O envio pode criar outra cópia.
+                </p>
+              ) : existingLocations.length ? (
+                <div className="mt-2 space-y-2">
+                  {existingLocations.slice(0, 12).map(({ match, placement }) => (
+                    <div key={match.id} className="rounded-lg border border-border p-2 text-xs">
+                      <p className="break-all font-medium">{match.name}</p>
+                      <p className="mt-1 text-muted-foreground">
+                        {placement === "same-folder"
+                          ? "Possível cópia — já está na pasta seleccionada"
+                          : placement === "another-folder"
+                            ? "Possível cópia — guardada noutra pasta"
+                            : "Mesmo nome, mas tamanho diferente"}{" "}
+                        · {describeFileLocation(match, locationLabels)}
+                      </p>
+                      {onShowExisting ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="link"
+                          className="mt-1 h-auto px-0 text-xs"
+                          onClick={() => onShowExisting(match)}
+                        >
+                          Ver no Arquivo
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))}
+                  {existingLocations.length > 12 ? (
+                    <p className="text-xs text-muted-foreground">
+                      +{existingLocations.length - 12} correspondências adicionais.
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Nenhum nome igual encontrado nos arquivos a que tem acesso.
+                </p>
+              )}
+              {existingCheckIncomplete ? (
+                <p className="mt-2 text-xs text-destructive">
+                  Há mais resultados do que o limite de pesquisa. Verificação incompleta.
+                </p>
+              ) : null}
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Nome e tamanho sugerem uma correspondência, mas não comprovam conteúdo igual.
+                A pasta correcta depende da organização escolhida pela escola.
+              </p>
+            </section>
+          ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="file-meta-title">Título</Label>
             <Input
@@ -528,6 +620,7 @@ export function FileUploadInquiryModal({
           </Button>
           <Button
             type="button"
+            disabled={mode === "upload" && checkingExisting}
             onClick={() => {
               const trimmedDescription = description.trim();
               if (trimmedDescription.length < FILE_DESCRIPTION_MIN) {
