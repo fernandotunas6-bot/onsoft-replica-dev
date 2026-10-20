@@ -413,7 +413,7 @@ const PROSE = {
  * marcador. Esta lista é o contrato entre o conteúdo e o gerador — o build
  * verifica que os valores que fornece são exactamente estes.
  */
-export const GENERATOR_TOKENS = ['COURSE', 'EVENT'];
+export const GENERATOR_TOKENS = ['COURSE', 'EVENT', 'TOTAL'];
 
 export const COURSE_TOKENS = [
   'COURSE', 'DESCRIPTION', 'LEVEL', 'DURATION', 'MODE', 'SHIFT', 'UNIT',
@@ -606,6 +606,57 @@ export const PAGE_SHAPES = {
     demoStrip: {icon: 'text', title: 'text', text: 'text', link: 'link'},
     pageEyebrow: 'text', semester: 'text',
     footer: {text: 'text', link: 'link'},
+  },
+  'escolher-curso': {
+    title: 'text', crumb: 'text',
+    questions: {headline: 'lines', items: [{title: 'text', text: 'text'}]},
+    areas: {eyebrow: 'text', headline: 'lines', text: 'lines', cardLabel: 'text'},
+    steps: {headline: 'lines', items: [{number: 'text', title: 'text', text: 'text', link: 'action'}]},
+  },
+  'planear-custos': {
+    title: 'text', crumb: 'text',
+    form: {
+      title: 'text', text: 'text', amountPlaceholder: 'text', selectPlaceholder: 'text',
+      trainingLegend: 'text', livingLegend: 'text',
+      // As chaves são os nomes dos campos que o app.js lê.
+      fields: {
+        tuition: {label: 'text', hint: 'text'},
+        installments: {label: 'text'},
+        upfront: {label: 'text', hint: 'text'},
+        months: {label: 'text'},
+        transport: {label: 'text', hint: 'text'},
+        meals: {label: 'text', hint: 'text'},
+        housing: {label: 'text', hint: 'text'},
+        other: {label: 'text', hint: 'text'},
+      },
+      submit: 'text', reset: 'text',
+    },
+    summary: {
+      label: 'text', eyebrow: 'text', title: 'text', state: 'text', resultLabel: 'text',
+      rows: {
+        'budget-tuition': 'text', 'budget-living': 'text',
+        'budget-upfront': 'text', 'budget-total': 'text',
+      },
+      download: 'text', note: 'text', link: 'action',
+    },
+    inlineCta: {text: 'text', action: 'action'},
+  },
+  'preparar-candidatura': {
+    title: 'text', crumb: 'text',
+    summary: {title: 'text', count: 'text', download: 'text', reset: 'text', progressLabel: 'text'},
+    inlineCta: {text: 'text', action: 'action'},
+  },
+  'percursos-de-ingresso': {
+    title: 'text', crumb: 'text',
+    questions: {headline: 'lines', items: [{title: 'text', text: 'text'}]},
+    faq: {headline: 'lines', items: [{question: 'text', answer: 'text'}]},
+    inlineCta: {text: 'text', action: 'action'},
+  },
+  'novos-estudantes': {
+    title: 'text', crumb: 'text',
+    first: {headline: 'lines', items: [{title: 'text', text: 'text', link: 'action'}]},
+    second: {headline: 'lines', items: [{title: 'text', text: 'text', link: 'action'}]},
+    inlineCta: {text: 'text', action: 'action'},
   },
   'mapa-do-site': {
     title: 'text', crumb: 'text',

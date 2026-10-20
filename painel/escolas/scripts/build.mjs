@@ -139,8 +139,8 @@ portalWrite('perfil','O meu perfil',`<div class="profile-card portal-panel"><spa
 prose('privacidade');
 prose('acessibilidade');
 prose('sobre-o-projecto');
-writeAcademicGuides({write,crumb,head,link,notice,noticeFor,cta});
-writeDecisionGuides({write,crumb,head,link,notice,noticeFor,cta});
+writeAcademicGuides({write,crumb,head,link,notice,noticeFor,cta,esc,headline,pagina});
+writeDecisionGuides({write,crumb,head,link,notice,noticeFor,cta,esc,headline,pagina});
 // Generated discovery assets.
 const mapa=pagina('mapa-do-site');
 write('/mapa-do-site/',mapa.title,`${crumb(mapa.crumb)}${head('/mapa-do-site/')}<section class="wrap section sitemap-grid">${[[mapa.groups.discover,routes.filter(r=>!r.url.startsWith('/portal/')&&!r.url.startsWith('/cursos/')&&!r.url.startsWith('/noticias/'))],[mapa.groups.courses,routes.filter(r=>r.url.startsWith('/cursos/'))],[mapa.groups.articles,routes.filter(r=>r.url.startsWith('/noticias/'))],[mapa.groups.portal,routes.filter(r=>r.url.startsWith('/portal/'))]].map(([group,items])=>`<div><h2>${esc(group)}</h2>${items.map(r=>`<a href="${r.url}">${esc(r.title)} <span>↗</span></a>`).join('')}</div>`).join('')}</section>`);
