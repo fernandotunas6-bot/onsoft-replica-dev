@@ -44,9 +44,8 @@ export function FilePickerModal({
             Escolher arquivo
           </DialogTitle>
           <DialogDescription className="mt-1 text-sm">
-            Procure um ficheiro existente ou carregue um novo. Cada módulo recebe apenas ficheiros
-            autorizados para a finalidade solicitada. Use Expandir para ecrã largo.
-            {validating ? " A verificar permissões…" : ""}
+            Escolha ou carregue um ficheiro.
+            {validating ? " A verificar…" : ""}
           </DialogDescription>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden bg-secondary/20 p-3">
