@@ -96,7 +96,10 @@ export async function findProvisioningGaps(
       peca: "perfil do administrador",
       detalhe: "sem perfil a conta entra sem cargo nem escola",
       table: "profiles",
-      filters: [["id", ids.adminUserId]],
+      filters: [
+        ["id", ids.adminUserId],
+        ["school_id", ids.schoolId],
+      ],
     },
     {
       peca: "membership activa",
