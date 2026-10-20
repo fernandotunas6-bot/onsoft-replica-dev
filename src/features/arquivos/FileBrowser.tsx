@@ -223,7 +223,7 @@ export function FileBrowser({
 }) {
   const account = useCurrentAccount();
   const localFileViewer = useMemo(
-    () => (localFileViewer),
+    () => ({ schoolId: account.schoolId, ownerUserId: account.id }),
     [account.schoolId, account.id],
   );
   const queryClient = useQueryClient();
