@@ -1,0 +1,53 @@
+name: Publicar website escolar ISPAB
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "painel/escolas/**"
+      - ".github/workflows/siga-ispab-cloudflare.yml"
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-pages-siga-ispab
+  cancel-in-progress: false
+
+jobs:
+  publish-website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Construir website
+        working-directory: painel/escolas
+        run: npm run build
+      - name: Verificar navegação e ligações
+        working-directory: painel/escolas
+        run: npm run check
+      - name: Testar integração demonstrativa
+        working-directory: painel/escolas
+        run: npm test
+      - name: Verificar credenciais de publicação
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Configurar CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID nos segredos do ambiente production."
+            exit 1
+          fi
+      - name: Publicar no Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy painel/escolas/dist --project-name=siga-ispab --branch=main --commit-hash=${{ github.sha }}
