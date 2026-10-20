@@ -531,6 +531,8 @@ export function FileBrowser({
   }, [account.role, detailsOpen, localFileViewer, selected]);
 
   useEffect(() => {
+  const reportFileError = (error: Error) => toast.error(error.message);
+
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedId(null);
       if (!selected) return;
@@ -546,7 +548,9 @@ export function FileBrowser({
           onPick(selected);
         } else if (!canAccessFileContent(selected, account.id, account.role)) {
           toast.error(SYSTEM_LOCKED_MSG);
-        } else void openRecord(selected, localFileViewer).catch((error) => toast.error(error.message));
+        } else {
+          void openRecord(selected, localFileViewer).catch(reportFileError);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -622,10 +626,7 @@ export function FileBrowser({
         },
       });
       if (created.storage === "local" || !created.record) {
-        await saveLocalFolder(created.record ?? record, {
-        schoolId: account.schoolId,
-        ownerUserId: account.id,
-      });
+        await saveLocalFolder(created.record ?? record, localFileViewer);
       }
       toast.success("Pasta criada");
       await refresh();
@@ -659,11 +660,7 @@ export function FileBrowser({
         }
       }
       for (const id of ids) {
-        await patchLocalFileMeta(
-          id,
-          { parentId },
-          localFileViewer,
-        );
+        await patchLocalFileMeta(id, { parentId }, localFileViewer);
       }
       toast.success(`${ids.length} item(ns) movido(s)`);
       setSelectedIds(new Set());
@@ -1153,9 +1150,7 @@ export function FileBrowser({
             ) : null}
           </nav>
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="mr-1 hidden text-xs text-muted-foreground sm:block">
-              {account.role}
-            </p>
+            <p className="mr-1 hidden text-xs text-muted-foreground sm:block">{account.role}</p>
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
@@ -1238,7 +1233,7 @@ export function FileBrowser({
                   toast.error(SYSTEM_LOCKED_MSG);
                   return;
                 }
-                void downloadRecord(selected, localFileViewer).catch((error) => toast.error(error.message));
+                void downloadRecord(selected, localFileViewer).catch(reportFileError);
               }}
             >
               <Download className="size-3.5" />
@@ -1494,7 +1489,9 @@ export function FileBrowser({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))}
+                    onClick={() =>
+                    setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))
+                  }
                     className={cn(
                       "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
                       ownershipFilter === "mine"
@@ -1551,7 +1548,7 @@ export function FileBrowser({
                 onSelectId={(id) => setSelectedId(id)}
                 onToggleSelect={(id, checked) => toggleSelect(id, checked)}
                 onOpenRecord={(file) => {
-                  void openRecord(file, localFileViewer).catch((error) => toast.error(error.message));
+                  void openRecord(file, localFileViewer).catch(reportFileError);
                 }}
                 onFolderDoubleClick={(folderId) => {
                   setFolderId(folderId);
@@ -1571,7 +1568,7 @@ export function FileBrowser({
                 onSelectId={(id) => setSelectedId(id)}
                 onToggleSelect={(id, checked) => toggleSelect(id, checked)}
                 onOpenRecord={(file) => {
-                  void openRecord(file, localFileViewer).catch((error) => toast.error(error.message));
+                  void openRecord(file, localFileViewer).catch(reportFileError);
                 }}
                 onFolderDoubleClick={(folderId) => {
                   setFolderId(folderId);
@@ -1626,7 +1623,7 @@ export function FileBrowser({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void downloadRecord(selected, localFileViewer).catch((error) => toast.error(error.message));
+                      void downloadRecord(selected, localFileViewer).catch(reportFileError);
                     }}
                   >
                     <Download className="size-4" />
@@ -1650,7 +1647,7 @@ export function FileBrowser({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void openRecord(selected, localFileViewer).catch((error) => toast.error(error.message));
+                      void openRecord(selected, localFileViewer).catch(reportFileError);
                     }}
                   >
                     Abrir
