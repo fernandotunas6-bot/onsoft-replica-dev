@@ -3,7 +3,10 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { assertSafeCleanupTarget } from "./e2e-safety.mjs";
-import { assertProductionE2ECleanupIdentity } from "./e2e-cleanup-prod-identity.mjs";
+import {
+  assertProductionE2ECleanupIdentity,
+  assertProductionArtifactCount,
+} from "./e2e-cleanup-prod-identity.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -129,12 +132,10 @@ async function assertNoProductionSchoolArtifacts(admin, tenantId, schoolId) {
       .from(check.table)
       .select("*", { count: "exact", head: true })
       .eq(check.column, check.id);
-    if (error || count === null || count === undefined || !Number.isSafeInteger(count)) {
+    if (error) {
       throw new Error(`Limpeza em produção bloqueada: não foi possível auditar ${check.table}.`);
     }
-    if (count > 0) {
-      throw new Error(`Limpeza em produção bloqueada: existem registos em ${check.table}.`);
-    }
+    assertProductionArtifactCount(check.table, count);
   }
 }
 
