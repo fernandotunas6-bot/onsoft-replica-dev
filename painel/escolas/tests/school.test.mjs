@@ -1,0 +1,106 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {resolveSchool, createBrand} from '../scripts/school.mjs';
+
+const base = {id: 'escola-exemplo', shortName: 'Escola Exemplo', country: 'Angola'};
+const brandFor = extra => createBrand(resolveSchool({...base, ...extra}));
+
+test('resolveSchool preenche idioma e moeda por omissão', () => {
+  const school = resolveSchool(base);
+  assert.equal(school.lang, 'pt-AO');
+  assert.equal(school.currency, 'Kz');
+  assert.equal(school.portal, null);
+});
+
+test('resolveSchool recusa configurações inválidas', () => {
+  const invalid = [
+    {id: 'MAIUSCULAS'},
+    {id: 'a'},
+    {id: 'com espaço'},
+    {shortName: 'x'},
+    {shortName: '...'},
+    {shortName: 'a'.repeat(41)},
+    {country: 'a'},
+    {lang: 'português'},
+    {lang: 'PT'},
+    {currency: ''},
+    {currency: 'moeda demasiado longa'},
+  ];
+  for (const extra of invalid) {
+    assert.throws(() => resolveSchool({...base, ...extra}), /Configuração da escola inválida/, JSON.stringify(extra));
+  }
+});
+
+test('o nome, o país e a moeda não podem conter metacaracteres de HTML', () => {
+  // build.mjs insere estes valores depois de esc(): a validação é o que torna
+  // essa inserção segura. Se estes casos passarem a ser aceites, o site fica
+  // aberto a injecção a partir da configuração.
+  for (const value of ['Escola <b>', 'Escola & Co', 'Escola "X"', "Escola 'X'"]) {
+    assert.throws(() => resolveSchool({...base, shortName: value}), /inválida/, value);
+    assert.throws(() => resolveSchool({...base, country: value}), /inválida/, value);
+  }
+});
+
+test('portalUrl exige https sem credenciais, query nem fragmento', () => {
+  assert.equal(resolveSchool({...base, portalUrl: 'https://portal.exemplo/auth'}).portal.href, 'https://portal.exemplo/auth');
+  for (const url of [
+    'http://portal.exemplo/auth',
+    'https://utilizador:senha@portal.exemplo/auth',
+    'https://portal.exemplo/auth?token=1',
+    'https://portal.exemplo/auth#x',
+  ]) {
+    assert.throws(() => resolveSchool({...base, portalUrl: url}), /URL do portal SIGA inválido/, url);
+  }
+});
+
+test('substitui cada marcador pelo valor da configuração', () => {
+  const brand = brandFor({id: 'ispab', shortName: 'ISPAB', country: 'Angola', currency: 'Kz'});
+  assert.equal(brand('{{SCHOOL}} · {{COUNTRY}}'), 'ISPAB · Angola');
+  assert.equal(brand('{{SCHOOL_ID}}-notas.txt'), 'ispab-notas.txt');
+  assert.equal(brand('<html lang="{{LANG}}">'), '<html lang="pt-AO">');
+  assert.equal(brand('1 000,00 {{CURRENCY}}'), '1 000,00 Kz');
+  assert.equal(brand('{{COUNTRY_UPPER}}'), 'ANGOLA');
+  assert.equal(brand('{{SCHOOL_UPPER}}'), 'ISPAB');
+});
+
+test('REGRESSÃO: a segunda substituição não come o nome da escola', () => {
+  // O brand() anterior fazia replaceAll('ISPAB') e depois replaceAll('Angola')
+  // sobre o texto já gerado. Com este par, o nome da escola — que contém o nome
+  // do país antigo — era reescrito: 682 ocorrências de "Mocambique Tech" no dist.
+  const brand = brandFor({id: 'angola-tech', shortName: 'Angola Tech', country: 'Mocambique'});
+  assert.equal(brand('Bem-vindo ao {{SCHOOL}}, em {{COUNTRY}}.'), 'Bem-vindo ao Angola Tech, em Mocambique.');
+  assert.doesNotMatch(brand('{{SCHOOL}} · {{COUNTRY}}'), /Mocambique Tech/);
+});
+
+test('REGRESSÃO: a caixa alta é um marcador próprio, não uma coincidência de texto', () => {
+  // replaceAll('Angola') nunca tocava em 'ANGOLA': a home publicava
+  // "FRONTEIRAS · ANGOLA" para qualquer escola configurada.
+  const brand = brandFor({country: 'Mocambique'});
+  assert.equal(brand('FRONTEIRAS · {{COUNTRY_UPPER}}'), 'FRONTEIRAS · MOCAMBIQUE');
+});
+
+test('a configuração não pode conter um marcador', () => {
+  assert.throws(() => resolveSchool({...base, shortName: 'Escola {{COUNTRY}}'}), /inválida/);
+});
+
+test('um marcador trazido por um valor é recusado, não reexpandido', () => {
+  // Dupla defesa contra o encadeamento que partiu o brand() anterior: a
+  // substituição é de uma só passagem (não reexamina o que inseriu) e o guarda
+  // final recusa qualquer marcador no resultado. Contorna-se resolveSchool,
+  // que já recusaria este valor, para testar createBrand directamente.
+  const brand = createBrand({shortName: 'Escola {{COUNTRY}}', country: 'Angola', id: 'e', lang: 'pt-AO', currency: 'Kz'});
+  assert.throws(() => brand('{{SCHOOL}}'), /Marcador desconhecido no conteúdo: \{\{COUNTRY\}\}/);
+});
+
+test('um marcador desconhecido é um erro, não conteúdo publicado', () => {
+  const brand = brandFor({});
+  assert.throws(() => brand('olá {{SCHOOLL}}'), /Marcador desconhecido no conteúdo: \{\{SCHOOLL\}\}/);
+  assert.throws(() => brand('{{COUNRTY}}'), /Marcador desconhecido/);
+});
+
+test('texto sem marcadores atravessa inalterado', () => {
+  const brand = brandFor({});
+  for (const text of ['', 'sem marcadores', 'chaves { simples } e {{minusculas}}', '{{a}}']) {
+    assert.equal(brand(text), text);
+  }
+});
