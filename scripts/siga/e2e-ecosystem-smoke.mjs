@@ -159,6 +159,7 @@ for (const item of endpoints) {
       expected: item.expect,
       status: res.status,
       allowApi500Skip: ALLOW_API_500_SKIP,
+      ci: CI,
       optionalInCi: item.optionalInCi,
     });
     const mark = status === "pass" ? "OK" : status === "skip" ? "SKIP" : "FAIL";
