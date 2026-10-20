@@ -517,7 +517,7 @@ export function FileBrowser({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [account.id, account.role, detailsOpen, selected]);
+  }, [account.schoolId, account.id, account.role, detailsOpen, selected]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -611,7 +611,10 @@ export function FileBrowser({
         },
       });
       if (created.storage === "local" || !created.record) {
-        await saveLocalFolder(created.record ?? record);
+        await saveLocalFolder(created.record ?? record, {
+        schoolId: account.schoolId,
+        ownerUserId: account.id,
+      });
       }
       toast.success("Pasta criada");
       await refresh();
@@ -645,7 +648,11 @@ export function FileBrowser({
         }
       }
       for (const id of ids) {
-        await patchLocalFileMeta(id, { parentId });
+        await patchLocalFileMeta(
+          id,
+          { parentId },
+          { schoolId: account.schoolId, ownerUserId: account.id },
+        );
       }
       toast.success(`${ids.length} item(ns) movido(s)`);
       setSelectedIds(new Set());
@@ -809,7 +816,11 @@ export function FileBrowser({
           lastActionByAvatarUrl: account.avatarUrl,
         };
         if (backend === "local") {
-          await saveLocalFile({ record, blob: file });
+          await saveLocalFile({
+            record,
+            blob: file,
+            viewer: { schoolId: account.schoolId, ownerUserId: account.id },
+          });
         }
         const registered = await registerSchoolFile({
           data: {
@@ -842,7 +853,11 @@ export function FileBrowser({
             ? { ...record, storageBackend: "local" }
             : record;
         if (registered.storage === "local" && backend === "sga") {
-          await saveLocalFile({ record: storedRecord, blob: file });
+          await saveLocalFile({
+            record: storedRecord,
+            blob: file,
+            viewer: { schoolId: account.schoolId, ownerUserId: account.id },
+          });
           ficaramNesteBrowser.push(file.name);
         }
         // O registo ficou concluído; nunca reenviar este ficheiro se
@@ -927,7 +942,7 @@ export function FileBrowser({
         referenceCode: meta.referenceCode || null,
         relatedUserId: meta.relatedUserId ?? null,
         relatedPersonId: meta.relatedPersonId ?? null,
-      });
+      }, { schoolId: account.schoolId, ownerUserId: account.id });
       const result = await updateSchoolFileMeta({
         data: {
           id: target.id,
@@ -985,7 +1000,10 @@ export function FileBrowser({
       return;
     }
     try {
-      await deleteLocalFile(selected.id);
+      await deleteLocalFile(selected.id, {
+        schoolId: account.schoolId,
+        ownerUserId: account.id,
+      });
       await deleteSchoolFile({ data: { id: selected.id } });
       setSelectedId(null);
       toast.success("Ficheiro removido");
@@ -1002,7 +1020,11 @@ export function FileBrowser({
     const next = window.prompt("Novo nome do ficheiro", selected.name)?.trim();
     if (!next || next === selected.name) return;
     try {
-      await patchLocalFileMeta(selected.id, { name: next });
+      await patchLocalFileMeta(
+        selected.id,
+        { name: next },
+        { schoolId: account.schoolId, ownerUserId: account.id },
+      );
       const result = await renameSchoolFile({ data: { id: selected.id, name: next } });
       toast[result.localOnly ? "message" : "success"](
         result.localOnly ? "Renomeado neste dispositivo" : "Ficheiro renomeado",
@@ -1018,7 +1040,11 @@ export function FileBrowser({
   const changeVisibility = async (visibility: SchoolFileRecord["visibility"]) => {
     if (!selected || myAccess === "view") return;
     try {
-      await patchLocalFileMeta(selected.id, { visibility });
+      await patchLocalFileMeta(
+        selected.id,
+        { visibility },
+        { schoolId: account.schoolId, ownerUserId: account.id },
+      );
       const result = await setSchoolFileVisibility({
         data: { id: selected.id, visibility },
       });
