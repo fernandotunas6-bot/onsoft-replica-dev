@@ -129,6 +129,10 @@ describe("não apagar autenticação partilhada entre escolas", () => {
     expect(source.indexOf("assertCleanupAccountOwnedBySchool(")).toBeLessThan(
       source.indexOf("await purgeSchoolDependencies("),
     );
+    expect(source).toContain("await findAuthUserForCleanup(admin, email)");
+    expect(source).toContain("page <= 50");
+    expect(source).toContain('count: "exact", head: true');
+    expect(source).toContain("Limpeza incompleta: conta Auth preservada");
     expect(source.indexOf("assertCleanupAccountOwnedBySchool(")).toBeLessThan(
       source.indexOf("await admin.from(\"tenants\").delete()"),
     );
