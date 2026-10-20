@@ -723,18 +723,6 @@ export function FileBrowser({
           completedFiles += 1;
           continue;
         }
-        // O SDK do Storage não expõe progresso real: aproximamos com uma rampa
-        // que abranda perto dos 90% e só fecha em 100% quando o envio termina.
-        const ramp = setInterval(() => {
-          setUploadProgress((prev) => {
-            const current = prev[file.name] ?? 0;
-            if (current >= 90) return prev;
-            return {
-              ...prev,
-              [file.name]: Math.min(90, current + Math.max(1, (90 - current) / 8)),
-            };
-          });
-        }, 180);
         const previous = uploadAttemptsRef.current.get(file);
         const id = previous?.id ?? crypto.randomUUID();
         const attempt = prepareSchoolUpload(uploadAttemptsRef.current, file, {
@@ -752,6 +740,20 @@ export function FileBrowser({
         });
         const storagePath = attempt.storagePath;
         let backend: "sga" | "local" = attempt.uploaded ? "sga" : "local";
+        // A rampa só inicia depois da validação do destino; um erro de
+        // contexto não pode deixar um intervalo de progresso activo.
+        // O SDK do Storage não expõe progresso real: aproximamos com uma rampa
+        // que abranda perto dos 90% e só fecha em 100% quando o envio termina.
+        const ramp = setInterval(() => {
+          setUploadProgress((prev) => {
+            const current = prev[file.name] ?? 0;
+            if (current >= 90) return prev;
+            return {
+              ...prev,
+              [file.name]: Math.min(90, current + Math.max(1, (90 - current) / 8)),
+            };
+          });
+        }, 180);
         try {
           if (!attempt.uploaded) {
             const { error } = await supabase.storage
