@@ -42,7 +42,6 @@ export function FileBrowserNav({
               <Icon className="size-4 shrink-0" />
               <span className="min-w-0">
                 <span className="block truncate">{meta.label}</span>
-
               </span>
             </button>
           );
