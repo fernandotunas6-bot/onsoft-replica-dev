@@ -1,0 +1,25 @@
+{
+  "title": "Entrar no portal",
+  "crumb": "Acesso ao portal",
+  "story": {
+    "eyebrow": "UM LUGAR PARA A SUA JORNADA",
+    "headline": ["O seu campus.", "*Mais perto de si.*"],
+    "text": "Disciplinas, horários, candidaturas e serviços. Uma visão organizada da experiência académica.",
+    "photoAlt": "Estudantes a colaborar na biblioteca"
+  },
+  "card": {
+    "icon": "◫",
+    "title": "Bem-vindo ao {{SCHOOL}}.",
+    "text": "Escolha como quer explorar a experiência.",
+    "hostedLabel": "Entrar com ChatGPT",
+    "portalLabel": "Entrar no SIGA Plus",
+    "hint": "Acesso seguro da hospedagem. Não utilize uma senha institucional nesta prévia.",
+    "separator": "ou explore a experiência",
+    "demoLabel": "Explorar portal demonstrativo",
+    "note": "O portal contém um perfil fictício e dados académicos de exemplo. Não há ligação ao sistema do {{SCHOOL}}.",
+    "links": [
+      { "url": "/candidaturas/", "label": "Sou candidato" },
+      { "url": "/ajuda/", "label": "Preciso de ajuda", "external": true }
+    ]
+  }
+}

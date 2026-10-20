@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -264,4 +264,34 @@ test('as páginas de texto corrido passam a validação', () => {
   assert.equal(projecto.sections.filter(s => s.links).length, 1);
   assert.equal(projecto.sections.find(s => s.links).links.length, 4);
   assert.equal(loadInstitutionalPage('privacidade').sections.every(s => s.links === null), true);
+});
+
+test('o botão de acesso ao portal tem os dois rótulos no conteúdo', () => {
+  // Antes, o rótulo do SIGA Plus era uma substituição de texto sobre o HTML já
+  // gerado. Agora é conteúdo, e o gerador escolhe qual usar.
+  const card = loadInstitutionalPage('login').card;
+  assert.ok(card.hostedLabel.length > 0);
+  assert.ok(card.portalLabel.length > 0);
+  assert.notEqual(card.hostedLabel, card.portalLabel);
+});
+
+test('os recursos da biblioteca são ligações externas validadas', () => {
+  const biblioteca = loadInstitutionalPage('biblioteca');
+  assert.equal(biblioteca.resources.length, 4);
+  for (const r of biblioteca.resources) {
+    assert.ok(r.url.startsWith('https://'), r.url);
+    assert.ok(r.title.length > 0);
+  }
+  assert.ok(biblioteca.guide.link.url.startsWith('/'));
+});
+
+test('os rótulos do catálogo são conteúdo, os valores dos filtros não', async () => {
+  const catalogo = loadInstitutionalPage('cursos');
+  assert.ok(catalogo.filters.area.all.length > 0);
+  assert.ok(catalogo.sort.featured.length > 0);
+  // O conteúdo não contém os valores que a filtragem compara com os dados.
+  const {courses} = await import('../src/data.mjs');
+  const niveis = new Set(courses.map(c => c.level));
+  const texto = JSON.stringify(catalogo);
+  for (const nivel of niveis) assert.ok(!texto.includes(`"${nivel}"`), nivel);
 });
