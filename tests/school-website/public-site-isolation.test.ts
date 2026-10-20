@@ -15,6 +15,8 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
       mock.queries.push({ table, filters });
       const chain = {
         select: () => chain,
+        order: () => chain,
+        limit: () => chain,
         eq: (field: string, value: unknown) => {
           filters.push([field, value]);
           return chain;
