@@ -717,12 +717,18 @@ export function FileBrowser({
       toast.error("Materiais da turma devem ser partilhados na área Escola.");
       return;
     }
-    if (uploadClassGroupId) {
+    if (
+      targetClassGroupId &&
+      ((targetArea !== "escola" && targetArea !== "publico") || meta.visibility === "private")
+    ) {
+      toast.error("Materiais de turma exigem uma área escolar partilhável.");
+      return;
+    }
+    if (targetClassGroupId) {
       try {
-        // Confirmar a atribuição ANTES do envio para evitar blobs órfãos
-        // quando a turma não pertence ao professor.
+        // Confirmar a atribuição ANTES do envio para evitar blobs órfãos.
         await listSchoolFiles({
-          data: { area: "escola", classGroupId: uploadClassGroupId, limit: 1 },
+          data: { area: targetArea, classGroupId: targetClassGroupId, limit: 1 },
         });
       } catch (error) {
         toast.error("Não foi possível validar a turma para o envio.", {
@@ -1408,10 +1414,14 @@ export function FileBrowser({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => void createFolder()} className="gap-2">
-                        <FolderPlus className="size-4 text-warning" /> Nova Pasta
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
+                      {canWrite ? (
+                        <>
+                          <DropdownMenuItem onClick={() => void createFolder()} className="gap-2">
+                            <FolderPlus className="size-4 text-warning" /> Nova Pasta
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      ) : null}
                       <DropdownMenuItem onClick={() => inputRef.current?.click()} className="gap-2">
                         <Upload className="size-4 text-primary" /> Carregar Ficheiros
                       </DropdownMenuItem>
