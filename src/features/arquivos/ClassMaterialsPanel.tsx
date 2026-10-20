@@ -49,7 +49,7 @@ export function ClassMaterialsPanel({
   const whatsappOn = installed.hasCapability("whatsapp.class_groups");
 
   const remoteQuery = useQuery({
-    queryKey: ["arquivos", "turma", classGroupId],
+    queryKey: ["arquivos", "turma", account.schoolId, account.id, account.role, classGroupId],
     queryFn: () =>
       listSchoolFiles({
         data: { classGroupId, limit: 24 },
@@ -79,7 +79,7 @@ export function ClassMaterialsPanel({
 
   const refresh = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["arquivos", "turma", classGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ["arquivos", "turma"] }),
       queryClient.invalidateQueries({ queryKey: ["arquivos", "local-turma"] }),
       queryClient.invalidateQueries({ queryKey: ["arquivos", "list"] }),
       queryClient.invalidateQueries({ queryKey: ["arquivos", "local"] }),
@@ -143,6 +143,7 @@ export function ClassMaterialsPanel({
           <PickFileButton
             label="Anexar"
             area="escola"
+            request={{ purpose: "class-material", classGroupId }}
             size="sm"
             variant="outline"
             onPick={(file) => void attach(file)}
