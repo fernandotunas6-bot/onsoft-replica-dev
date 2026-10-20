@@ -6,6 +6,7 @@ import {
   schoolSiteSaveInputSchema,
   withDraft,
   withPublication,
+  withoutPublication,
 } from "@/features/school-site/schema";
 
 describe("school-site v1 — publicação segura", () => {
@@ -31,6 +32,15 @@ describe("school-site v1 — publicação segura", () => {
     expect(site.published).not.toBe(site.draft);
     expect(site.publishedAt).toBe("2026-10-20T10:30:00.000Z");
     expect(parseSchoolSiteSettings(site).published).not.toBeNull();
+  });
+
+  it("despublicar remove apenas o snapshot visível e conserva o rascunho", () => {
+    const published = withPublication(defaults(), new Date("2026-10-20T10:00:00Z"));
+    const withdrawn = withoutPublication(published);
+    expect(withdrawn.published).toBeNull();
+    expect(withdrawn.publishedAt).toBeNull();
+    expect(withdrawn.draft).toEqual(published.draft);
+    expect(published.published).not.toBeNull();
   });
 
   it("rejeita URL sem HTTPS e credenciais embutidas", () => {
