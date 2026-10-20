@@ -100,9 +100,22 @@ Duas destas pistas já não bastam, e convém saber porquê:
   meio, nunca commitada. O código antigo continua recuperável no git; o template
   não é trabalho teu.
 - **`/Users/valentinocanguele/Documents/SIGA_EDU`** — 613 ficheiros de código
-  (`apps/admin`, `apps/escolar`, `apps/web`), 975 MB, de Agosto, **sem git
-  nenhum**. Cinco sessões de Codex (até 48 mensagens cada) construíram isto. Não
-  há histórico, não há cópia remota: um `rm` perde tudo.
+  (`apps/admin`, `apps/escolar`, `apps/web`), 984 MB, de Agosto, construídos em
+  cinco sessões de Codex (até 48 mensagens cada). **Resolvido a 20/10:** ficou sob
+  git às 06:41 (`b7afb67`, 776 ficheiros, `.git` de 8,5 MB — os 984 MB são quase
+  todos `node_modules`) e às 07:5x passou a ter cópia remota em
+  `fernandotunas6-bot/siga-edu-agosto`, privado. Antes de publicar, varrimento de
+  segredos: só `.env.example` com placeholders e `sk_live_••••` mascarado em dois
+  ecrãs de interface.
+
+  O `git push` por HTTPS não passou: 408 em qualquer pacote acima de ~2 MB, com
+  os PNG de `apps/*/public` a pesar 9 MB dos 8,5 do repositório. A via que
+  funcionou foi empurrar os *blobs* em fatias de ~700 KB em ramos temporários e
+  depois criar as 9 árvores que faltavam e o commit pela API do GitHub,
+  comparando o sha devolvido com o local a cada passo — as nove árvores e o
+  commit saíram **com o mesmo sha**, por isso o histórico remoto é o mesmo
+  objecto, não uma cópia. Verificado por clone novo: 776 ficheiros, `git fsck`
+  limpo. Os ramos temporários foram apagados; o remoto só tem `main`.
 - **`/Users/valentinocanguele/edu/.git`** — repositório vazio, sem commits,
   criado por engano na sessão de 10/08. Só vê as quatro worktrees como ficheiros
   novos. Pode ser apagado.
@@ -122,7 +135,6 @@ Duas destas pistas já não bastam, e convém saber porquê:
 7. #35 — fechar e levantar de novo a partir da `main`, se a decisão de desenho
    ainda interessar. Os conflitos não valem o diff.
 
-O **SIGA_EDU** saiu desta lista: ficou sob git às 06:41 de hoje, num commit único
-de 776 ficheiros (`b7afb67`), com `.gitignore` a excluir `node_modules/` e
-`.next/`. O `.git` tem 8,7 MB — os 984 MB da pasta são quase todos dependências.
-Falta-lhe **cópia remota**: um `rm -rf` da pasta ainda leva tudo.
+O **SIGA_EDU** saiu desta lista: está sob git e com remoto privado em
+`fernandotunas6-bot/siga-edu-agosto` desde hoje. Fica a faltar o `App_Edu`, com
+962 ficheiros por commitar e uma troca de template a meio.
