@@ -1235,9 +1235,9 @@ function PeoplePage() {
                                             kind: "pdf",
                                           } as SchoolFileRecord;
                                           const url = await resolveFileUrl(stub, {
-                                             schoolId: account.schoolId,
-                                             ownerUserId: account.id,
-                                           });
+                                            schoolId: account.schoolId,
+                                            ownerUserId: account.id,
+                                          });
                                           window.open(url, "_blank", "noopener,noreferrer");
                                         } catch (error) {
                                           toast.error("Não foi possível abrir o anexo", {
