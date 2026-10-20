@@ -233,7 +233,7 @@ export async function patchLocalFileMeta(
   if (existing) {
     if (!isLocalFileOwnedByViewer(existing, viewer)) {
       db.close();
-      throw new Error("Não pode modificar um arquivo local de outra conta ou escola.");
+      return;
     }
     store.put({
       ...existing,
@@ -287,7 +287,7 @@ export async function deleteLocalFile(id: string, viewer: LocalFileViewer) {
     if (!existing) return;
     if (!isLocalFileOwnedByViewer(existing, viewer)) {
       tx.abort();
-      throw new Error("Não pode apagar um arquivo local de outra conta ou escola.");
+      return;
     }
     metaStore.delete(id);
     tx.objectStore(BLOBS).delete(id);
