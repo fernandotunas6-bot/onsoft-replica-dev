@@ -1,0 +1,44 @@
+name: School sites format (temporary)
+on:
+  push:
+    branches:
+      - feat/school-sites-multitenant-20261020
+    paths:
+      - ".github/workflows/_school-sites-format-temp.yml"
+permissions:
+  contents: write
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Format only new school-site files and edited welcome screen
+        run: |
+          bunx prettier --write \
+            src/features/school-site/schema.ts \
+            src/features/school-site/editor-server.ts \
+            src/features/school-site/public-server.ts \
+            src/routes/api/public/school-site.tsx \
+            src/routes/site.tsx \
+            src/routes/configuracoes_.site.tsx \
+            src/routes/configuracoes_.boas-vindas.tsx \
+            tests/school-website/school-site-schema.test.ts
+      - name: Commit formatting to feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/features/school-site/ \
+            src/routes/api/public/school-site.tsx \
+            src/routes/site.tsx \
+            src/routes/configuracoes_.site.tsx \
+            src/routes/configuracoes_.boas-vindas.tsx \
+            tests/school-website/school-site-schema.test.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "style(school-sites): formatar módulo com Prettier"
+            git push origin HEAD:feat/school-sites-multitenant-20261020
+          fi
