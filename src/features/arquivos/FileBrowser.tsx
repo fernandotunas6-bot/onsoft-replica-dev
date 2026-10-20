@@ -721,7 +721,9 @@ export function FileBrowser({
       try {
         // Confirmar a atribuição ANTES do envio para evitar blobs órfãos
         // quando a turma não pertence ao professor.
-        await listSchoolFiles({ data: { area: "escola", classGroupId: uploadClassGroupId, limit: 1 } });
+        await listSchoolFiles({
+          data: { area: "escola", classGroupId: uploadClassGroupId, limit: 1 },
+        });
       } catch (error) {
         toast.error("Não foi possível validar a turma para o envio.", {
           description: error instanceof Error ? error.message : "Confirme a atribuição docente.",
