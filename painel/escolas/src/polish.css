@@ -17,3 +17,15 @@ body{background:#fff}.topline{background:#f0f4fb;color:#607491}.site-header{bord
 @media(max-width:760px){.welcome-art{width:95px;height:130px;top:auto;bottom:25px;right:6px;opacity:.7}.welcome-art>span{font-size:95px;right:0;top:0}.welcome-note{right:0;bottom:0}}
 @media(max-width:365px){.welcome-art{width:78px;height:118px;right:4px;opacity:.45}.welcome-art>span{font-size:78px}.welcome-note{font-size:6px;padding:9px 7px}.welcome-note>strong{font-size:8px}}
 @media(max-width:760px){.welcome-art{bottom:12px}}
+
+/* Admissions guides reuse the established cards, typography and colours. */
+.preparation-summary{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin:32px 0 14px}
+.preparation-summary h2{font-size:26px;margin:0}.preparation-summary p{margin:6px 0;color:var(--muted)}
+.preparation-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+#preparation-progress{display:block;width:100%;height:8px;margin:0 0 32px;border:0;border-radius:8px;overflow:hidden;background:var(--line);accent-color:var(--blue)}
+#preparation-progress::-webkit-progress-bar{background:var(--line)}#preparation-progress::-webkit-progress-value{background:var(--blue)}#preparation-progress::-moz-progress-bar{background:var(--blue)}
+.preparation-check{display:flex;align-items:flex-start;gap:12px;cursor:pointer;line-height:1.5;font-size:17px;margin-top:18px}
+.preparation-check input{flex:0 0 20px;width:20px;height:20px;margin:3px 0 0;accent-color:var(--blue)}
+.preparation-grid .text-link{margin-top:auto}.preparation-grid .info-card{display:flex;flex-direction:column}
+.guide-section-title{margin-top:64px}
+@media(max-width:760px){.preparation-actions{width:100%;gap:16px}.preparation-actions .outline-button{white-space:normal;text-align:center}.preparation-summary h2{font-size:24px}.guide-section-title{margin-top:40px}}

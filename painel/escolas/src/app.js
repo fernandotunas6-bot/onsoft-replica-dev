@@ -1,3 +1,4 @@
+import {preparationItems} from './admissions.mjs';
 import {courses,areas,events} from './data.mjs';
 import {iconRegex,iconHTML} from './icons.mjs';
 import {getCourseSpecs} from './course-specs.mjs';
@@ -26,6 +27,18 @@ dialog?.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBou
 function confirmAction(title,text,action){showDialog(`<span class="eyebrow">CONTROLO DOS SEUS DADOS</span><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="text-button" data-cancel>Cancelar</button><button class="button" data-confirm>Confirmar <span>✓</span></button></div>`);$('[data-cancel]',dialog).addEventListener('click',()=>dialog.close());$('[data-confirm]',dialog).addEventListener('click',()=>{dialog.close();action()})}
 function download(name,text,type='text/plain;charset=utf-8'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function demoHeader(){return 'ISPAB — DEMONSTRAÇÃO SEM VALIDADE ACADÉMICA\nDados ilustrativos. Este ficheiro não é um documento oficial.\nGerado em '+new Date().toLocaleString('pt-AO')+'\n\n'}
+// Personal preparation only: no applicant data, eligibility score or API submission.
+function preparationIds(){const value=read('preparation',[]);return Array.isArray(value)?[...new Set(value.filter(id=>preparationItems.some(item=>item.id===id)))]:[]}
+const preparationProgress=$('#preparation-progress');
+if(preparationProgress){
+  let completed=new Set(preparationIds());
+  function renderPreparation(){for(const input of $$('[data-preparation]'))input.checked=completed.has(input.dataset.preparation);preparationProgress.value=completed.size;$('#preparation-count').textContent=completed.size+' de '+preparationItems.length+' tarefas esclarecidas';}
+  for(const input of $$('[data-preparation]'))input.addEventListener('change',()=>{if(input.checked)completed.add(input.dataset.preparation);else completed.delete(input.dataset.preparation);save('preparation',[...completed]);renderPreparation()});
+  $('#preparation-reset').addEventListener('click',()=>confirmAction('Recomeçar a lista de preparação?','Só as marcações desta lista serão apagadas. Os restantes dados da demonstração serão mantidos.',()=>{if(remove('preparation')){completed.clear();renderPreparation();toast('Lista de preparação reiniciada.')}}));
+  $('#preparation-download').addEventListener('click',()=>{const text=demoHeader()+'A MINHA PREPARAÇÃO\nLista pessoal, sem validação de requisitos ou submissão institucional.\n\n'+preparationItems.map(item=>(completed.has(item.id)?'[x] ':'[ ] ')+item.title+'\n'+item.text+'\n').join('\n');download('ispab-lista-de-preparacao.txt',text)});
+  renderPreparation();
+}
+
 // Shared navigation.
 const nav=$('#main-nav'),mobileToggle=$('.mobile-toggle');
 const portalSidebar=$('.portal-sidebar'),sidebarMedia=matchMedia('(max-width:760px)');
@@ -91,8 +104,8 @@ $('#request-form textarea')?.addEventListener('input',e=>e.target.setCustomValid
 document.addEventListener('click',e=>{const button=e.target.closest('[data-delete-request]');if(button)confirmAction('Apagar este pedido local?','O pedido demonstrativo será removido deste navegador.',()=>{if(save('requests',requests().filter(r=>r.id!==button.dataset.deleteRequest))){renderRequests();toast('Pedido local apagado.')}})});
 const preferenceForm=$('#preferences-form');if(preferenceForm){preferenceForm.elements.displayName.value=typeof preferences.displayName==='string'?preferences.displayName:'';preferenceForm.elements.reducedMotion.checked=preferences.reducedMotion===true;preferenceForm.addEventListener('submit',e=>{e.preventDefault();const next={displayName:preferenceForm.elements.displayName.value.trim(),reducedMotion:preferenceForm.elements.reducedMotion.checked};if(save('preferences',next)){document.documentElement.classList.toggle('reduce-motion',next.reducedMotion);toast('Preferências guardadas neste navegador.')}})}
 if(typeof preferences?.displayName==='string'&&preferences.displayName.trim()&&$('.portal-welcome h2')){$('.portal-welcome h2').replaceChildren(document.createTextNode('Olá, '+preferences.displayName.trim()),Object.assign(document.createElement('span'),{textContent:' ✳'}),document.createElement('br'),document.createTextNode('Vamos mais longe?'))}
-$('#export-local')?.addEventListener('click',()=>{const data={notice:'ISPAB — Dados de demonstração, sem validade académica.',exported:new Date().toISOString(),favorites:ids('favorites'),compare:ids('compare'),draft:draft(),applications:records(),requests:requests(),preferences:read('preferences',{})};download('ispab-dados-demonstrativos.json',JSON.stringify(data,null,2),'application/json');toast('Exportação preparada. Guarde o ficheiro num lugar adequado.')});
-$('#clear-local')?.addEventListener('click',()=>confirmAction('Apagar os dados da demonstração?','Serão apagados favoritos, comparações, rascunhos, candidaturas locais, pedidos e preferências deste navegador. Exporte os dados primeiro se quiser uma cópia.',()=>{let ok=true;for(const key of ['favorites','compare','draft','applications','requests','preferences'])if(!remove(key))ok=false;if(ok){document.documentElement.classList.remove('reduce-motion');preferenceForm?.reset();updateBadges();toast('Todos os dados desta demonstração foram apagados.')}}));
+$('#export-local')?.addEventListener('click',()=>{const data={notice:'ISPAB — Dados de demonstração, sem validade académica.',exported:new Date().toISOString(),favorites:ids('favorites'),compare:ids('compare'),draft:draft(),applications:records(),requests:requests(),preparation:preparationIds(),preferences:read('preferences',{})};download('ispab-dados-demonstrativos.json',JSON.stringify(data,null,2),'application/json');toast('Exportação preparada. Guarde o ficheiro num lugar adequado.')});
+$('#clear-local')?.addEventListener('click',()=>confirmAction('Apagar os dados da demonstração?','Serão apagados favoritos, comparações, rascunhos, candidaturas locais, pedidos, lista de preparação e preferências deste navegador. Exporte os dados primeiro se quiser uma cópia.',()=>{let ok=true;for(const key of ['favorites','compare','draft','applications','requests','preparation','preferences'])if(!remove(key))ok=false;if(ok){document.documentElement.classList.remove('reduce-motion');preferenceForm?.reset();updateBadges();toast('Todos os dados desta demonstração foram apagados.')}}));
 window.addEventListener('storage',e=>{if(e.key?.startsWith(PREFIX)){updateBadges();renderFavorites();renderComparison();renderCandidates();renderRequests()}});
 updateBadges();
 
