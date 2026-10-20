@@ -11,6 +11,11 @@ const draft = {
   schoolId: "school",
   ownerUserId: "user",
   area: "secretaria" as const,
+  parentId: "pasta-original",
+  classGroupId: null,
+  relatedPersonId: "pessoa-1",
+  relatedUserId: "user",
+  visibility: "private" as const,
 };
 
 describe("retentativas de upload do Arquivo", () => {
@@ -30,7 +35,7 @@ describe("retentativas de upload do Arquivo", () => {
     expect(retry.storagePath).toBe(draft.storagePath);
   });
 
-  it("não permite reaproveitar upload entre escolas, contas ou áreas", () => {
+  it("não permite reaproveitar upload entre contas, pastas, finalidades ou visibilidades", () => {
     const registry = new WeakMap<object, ReturnType<typeof prepareSchoolUpload>>();
     const file = {};
     prepareSchoolUpload(registry, file, draft);
@@ -38,9 +43,14 @@ describe("retentativas de upload do Arquivo", () => {
       { schoolId: "outra-escola" },
       { ownerUserId: "outra-conta" },
       { area: "pessoal" as const },
+      { parentId: "pasta-diferente" },
+      { classGroupId: "turma-diferente" },
+      { relatedPersonId: "pessoa-diferente" },
+      { relatedUserId: "outro-relacionado" },
+      { visibility: "school" as const },
     ]) {
       expect(() => prepareSchoolUpload(registry, file, { ...draft, ...change })).toThrow(
-        /tentativa pendente/,
+        /destino ou contexto/,
       );
     }
   });
