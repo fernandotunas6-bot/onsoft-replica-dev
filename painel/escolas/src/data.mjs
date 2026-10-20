@@ -1,3 +1,13 @@
+/**
+ * Catálogo de exemplo.
+ *
+ * `source` identifica a origem destes dados. Enquanto disser 'exemplo', o build
+ * recusa publicar fora do modo de demonstração: estes cursos, artigos e eventos
+ * são ilustrativos e não podem ser apresentados como a oferta de uma escola.
+ * Uma escola que substitua este ficheiro pelo seu catálogo muda este valor.
+ */
+export const catalogue = {source: 'ispab-2026'};
+
 export const areas=[{id:'tecnologia',name:'Tecnologia',icon:'⌘',color:'blue',description:'Crie soluções digitais e transforme ideias em tecnologia.'},{id:'gestao',name:'Gestão e Negócios',icon:'↗',color:'lime',description:'Desenvolva uma visão estratégica de organizações e mercados.'},{id:'saude',name:'Saúde e Bem-estar',icon:'✳',color:'rose',description:'Conhecimento, cuidado e compromisso com as pessoas.'},{id:'engenharia',name:'Engenharia',icon:'⌁',color:'sand',description:'Projecte respostas para os desafios do mundo real.'},{id:'educacao',name:'Educação e Sociedade',icon:'◎',color:'purple',description:'Amplie perspectivas e contribua para o desenvolvimento social.'},{id:'criatividade',name:'Comunicação e Design',icon:'✦',color:'sky',description:'Dê forma a novas narrativas e experiências.'}];
 // Conteúdo ilustrativo: não representa a oferta oficial do {{SCHOOL}}.
 const rows=[

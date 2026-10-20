@@ -26,8 +26,14 @@
         }
       ],
       "action": {
-        "url": "/portal/pedidos/",
-        "label": "Explorar requerimentos"
+        "url": "/contactos/?assunto=Servi%C3%A7os%20acad%C3%A9micos",
+        "label": "Preparar um pedido"
+      },
+      "demo": {
+        "action": {
+          "url": "/portal/pedidos/",
+          "label": "Explorar requerimentos"
+        }
       }
     },
     {

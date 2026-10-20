@@ -5,15 +5,30 @@
   "menuLabel": "Abrir navegação",
   "topline": {
     "identity": "{{SCHOOL}} · {{COUNTRY}}",
-    "tagline": "Prévia institucional",
     "links": [
-      { "url": "/candidaturas/", "label": "Área do candidato" },
-      { "url": "/ajuda/", "label": "Ajuda" },
-      { "url": "/contactos/", "label": "Contactos", "external": true }
-    ]
+      {
+        "url": "/candidaturas/",
+        "label": "Área do candidato"
+      },
+      {
+        "url": "/ajuda/",
+        "label": "Ajuda"
+      },
+      {
+        "url": "/contactos/",
+        "label": "Contactos",
+        "external": true
+      }
+    ],
+    "demo": {
+      "tagline": "Prévia institucional"
+    }
   },
   "links": [
-    { "url": "/sobre/", "label": "O {{SCHOOL}}" }
+    {
+      "url": "/sobre/",
+      "label": "O {{SCHOOL}}"
+    }
   ],
   "search": {
     "url": "/pesquisa/",

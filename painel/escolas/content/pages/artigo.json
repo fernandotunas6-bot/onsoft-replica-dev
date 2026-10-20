@@ -1,5 +1,4 @@
 {
-  "tag": "CONTEÚDO EDITORIAL DEMONSTRATIVO",
   "byline": {
     "author": "Redacção do projecto",
     "date": "20 de Outubro de 2026",
@@ -9,6 +8,12 @@
   "coverAlt": "Ambiente académico ilustrativo",
   "share": {
     "copy": "Copiar link",
-    "link": { "url": "/noticias/", "label": "Continuar a ler" }
+    "link": {
+      "url": "/noticias/",
+      "label": "Continuar a ler"
+    }
+  },
+  "demo": {
+    "tag": "CONTEÚDO EDITORIAL DEMONSTRATIVO"
   }
 }

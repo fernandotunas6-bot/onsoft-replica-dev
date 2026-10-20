@@ -66,12 +66,44 @@ export function resolveSchool(raw) {
 
   const palette = resolvePalette(school.palette);
 
+  // Modo de demonstração. É o estado por omissão, e é o que torna honestos os
+  // avisos do site: a oferta é ilustrativa e as candidaturas não são enviadas.
+  if (school.demo === undefined) school.demo = true;
+  if (typeof school.demo !== 'boolean') invalid();
+  const api = resolveApi(school.api);
+
   let portal = null;
   if (school.portalUrl) {
     portal = new URL(school.portalUrl);
     if (portal.protocol !== 'https:' || portal.username || portal.password || portal.search || portal.hash) throw Error('URL do portal SIGA inválido.');
   }
-  return {...school, palette, themeColor: palette.blue ?? DEFAULT_BLUE, portal};
+  // Sair do modo de demonstração sem um destino real seria pior do que ficar
+  // nele: o site deixava de avisar que é uma prévia e continuava sem enviar nada.
+  if (!school.demo) {
+    if (!api) throw Error('Para publicar fora do modo de demonstração é preciso configurar `api` (origin e campaignSlug): sem isso, o formulário de candidatura não envia nada e o site deixaria de o dizer.');
+    if (!portal) throw Error('Para publicar fora do modo de demonstração é preciso configurar `portalUrl`: sem isso, o site aponta o acesso ao portal para uma demonstração.');
+  }
+  return {...school, palette, api, themeColor: palette.blue ?? DEFAULT_BLUE, portal};
+}
+
+/** Ligação ao SIGA: a origem da API e o slug público da campanha. */
+function resolveApi(raw) {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw Error('Configuração `api` inválida.');
+  let origin;
+  try {
+    origin = new URL(raw.origin);
+  } catch {
+    throw Error('Origem da API inválida: ' + String(raw.origin));
+  }
+  const local = ['localhost', '127.0.0.1'].includes(origin.hostname);
+  if (origin.username || origin.password || origin.search || origin.hash || origin.pathname !== '/' || !(origin.protocol === 'https:' || (local && origin.protocol === 'http:'))) {
+    throw Error('Origem da API inválida: ' + raw.origin);
+  }
+  if (typeof raw.campaignSlug !== 'string' || !/^[a-z0-9-]{2,80}$/.test(raw.campaignSlug)) {
+    throw Error('Slug da campanha inválido: ' + String(raw.campaignSlug));
+  }
+  return {origin: origin.origin, campaignSlug: raw.campaignSlug};
 }
 
 export function createBrand(school) {

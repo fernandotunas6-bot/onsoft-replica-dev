@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, loadComponents, renderInline, richText, COURSE_TOKENS, GENERATOR_TOKENS} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, loadComponents, renderInline, richText, setDemo, COURSE_TOKENS, GENERATOR_TOKENS} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -31,7 +31,7 @@ test('loadContent distingue ficheiro em falta de ficheiro inválido', () => {
 test('a navegação publicada passa a validação', () => {
   // Corre sobre o content/navigation.json real: se alguém o editar e partir
   // uma chave, este teste falha antes do build.
-  const menus = loadNavigation();
+  const {menus} = loadNavigation();
   assert.ok(menus.length >= 1);
   const urls = [];
   for (const menu of menus) {
@@ -46,7 +46,7 @@ test('a navegação publicada passa a validação', () => {
 test('o conteúdo da navegação é texto, não marcação', () => {
   // build.mjs passa estes valores por esc(). O teste fixa a expectativa de
   // que o conteúdo publicado não depende disso para ficar legível.
-  for (const menu of loadNavigation()) {
+  for (const menu of loadNavigation().menus) {
     const values = [menu.title, menu.feature.title, menu.feature.text, menu.feature.label, ...menu.links.flatMap(l => [l.label, l.sub])];
     for (const value of values) assert.ok(!/[<>]/.test(value), value);
   }
@@ -420,4 +420,66 @@ test('não sobra texto visível no gerador', () => {
       assert.fail('Texto por extrair do gerador: ' + frase);
     }
   }
+});
+
+test('a variante de demonstração sobrepõe-se ao texto real', () => {
+  const forma = {titulo: 'text'};
+  const dados = {titulo: 'O que a escola diz', demo: {titulo: 'O que a prévia diz'}};
+  setDemo(true);
+  assert.equal(shaped(dados, forma, 'p').titulo, 'O que a prévia diz');
+  setDemo(false);
+  assert.equal(shaped(dados, forma, 'p').titulo, 'O que a escola diz');
+  setDemo(true);
+});
+
+test('um item marcado como demonstração sai da lista fora dela', () => {
+  const forma = {links: ['link']};
+  const dados = {links: [{url: '/a/', label: 'A'}, {url: '/b/', label: 'B', demo: true}]};
+  setDemo(true);
+  assert.equal(shaped(dados, forma, 'p').links.length, 2);
+  setDemo(false);
+  assert.deepEqual(shaped(dados, forma, 'p').links.map(l => l.label), ['A']);
+  setDemo(true);
+});
+
+test('o site publicado perde as marcas de prévia fora da demonstração', () => {
+  setDemo(false);
+  try {
+    assert.equal(loadHeader().topline.tagline, null);
+    assert.equal(loadFooter().notice, null);
+    assert.ok(!loadFooter().copyright.includes('Prévia'));
+    assert.equal(loadFooter().legal.some(l => l.url === '/sobre-o-projecto/'), false);
+    assert.equal(loadComponents().articleCard.tag, null);
+    assert.equal(loadInstitutionalPage('curso').hero.note, null);
+    assert.equal(loadInstitutionalPage('mapa-do-site').groups.portal, null);
+    assert.equal(loadInstitutionalPage('login').card.demoLabel, null);
+  } finally {
+    setDemo(true);
+  }
+  // E mantém-nas dentro dela.
+  assert.ok(loadHeader().topline.tagline);
+  assert.ok(loadFooter().notice);
+});
+
+test('as páginas que fazem afirmações próprias da escola estão marcadas', () => {
+  // É o que o build exige reescrever antes de publicar fora da demonstração.
+  for (const nome of ['privacidade', 'acessibilidade', 'candidatura']) {
+    assert.equal(loadInstitutionalPage(nome).demo, true, nome);
+  }
+  assert.notEqual(loadInstitutionalPage('sobre').demo, true);
+});
+
+test('a candidatura traz os textos de sucesso e de erro do envio real', () => {
+  setDemo(false);
+  try {
+    const real = loadInstitutionalPage('candidatura');
+    assert.ok(!real.success.text.includes('demonstrativa'));
+    assert.equal(real.success.reference.includes('processo'), true);
+    for (const chave of ['unavailable', 'rateLimited', 'invalid', 'unknown']) {
+      assert.ok(real.errors[chave].length > 20, chave);
+    }
+  } finally {
+    setDemo(true);
+  }
+  assert.ok(loadInstitutionalPage('candidatura').success.text.includes('demonstrativa'));
 });

@@ -72,6 +72,24 @@ Três coisas, de propósito:
 Um teste (`não sobra texto visível no gerador`) varre os módulos do gerador à
 procura de frases: se alguém voltar a escrever texto no HTML, a suite falha.
 
+## Modo de demonstração
+
+Enquanto `school.config.json` tiver `"demo": true` (o estado por omissão), o
+site avisa em cada página que é uma prévia. Duas convenções decidem o que muda
+quando sai desse modo:
+
+- **`"demo": { ... }`** dentro de um bloco substitui as chaves do bloco na
+  demonstração. O texto real fica na chave normal — `"copyright": "{{SCHOOL}}"`
+  — e o da prévia em `demo` — `"copyright": "{{SCHOOL}} · Prévia de website"`.
+  Uma chave que só exista em `demo` (como o aviso do rodapé) desaparece.
+- **`"demo": true`** num item de lista publica-o só na demonstração. É assim que
+  a ligação «Sobre o projecto» sai do rodapé.
+
+Num ficheiro inteiro, `"demo": true` no topo significa outra coisa: que aquele
+texto é da demonstração e **tem de ser reescrito** antes de publicar a sério. O
+build recusa-se a sair do modo de demonstração enquanto `privacidade`,
+`acessibilidade` e `candidatura` tiverem essa marca.
+
 ## Antes de publicar
 
 ```sh

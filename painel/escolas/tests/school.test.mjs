@@ -210,3 +210,40 @@ test('hslToHex e rgbToHsl fecham o círculo', () => {
     assert.equal(hslToHex(rgbToHsl(rgb)), cor.length === 7 ? cor : cor);
   }
 });
+
+test('o modo de demonstração é o estado por omissão', () => {
+  assert.equal(resolveSchool(base).demo, true);
+  assert.equal(resolveSchool({...base, demo: true}).demo, true);
+  assert.throws(() => resolveSchool({...base, demo: 'sim'}), /inválida/);
+});
+
+test('sair da demonstração exige um destino real para as candidaturas', () => {
+  // Sem API configurada, o formulário não envia nada — e o site deixaria de o
+  // dizer. É a combinação que o build recusa, não o sinalizador.
+  assert.throws(() => resolveSchool({...base, demo: false}), /`api`/);
+  assert.throws(
+    () => resolveSchool({...base, demo: false, api: {origin: 'https://siga.example', campaignSlug: 'campanha-x'}}),
+    /portalUrl/,
+  );
+  const real = resolveSchool({
+    ...base, demo: false, portalUrl: 'https://portal.example',
+    api: {origin: 'https://siga.example', campaignSlug: 'campanha-x'},
+  });
+  assert.equal(real.demo, false);
+  assert.deepEqual(real.api, {origin: 'https://siga.example', campaignSlug: 'campanha-x'});
+});
+
+test('a origem da API e o slug da campanha são validados', () => {
+  const com = api => () => resolveSchool({...base, api});
+  for (const origin of ['http://siga.example', 'https://siga.example/api', 'https://u:p@siga.example', 'siga.example']) {
+    assert.throws(com({origin, campaignSlug: 'campanha-x'}), /Origem da API inválida/, origin);
+  }
+  for (const campaignSlug of ['', 'Campanha', 'campanha com espaços', 'c']) {
+    assert.throws(com({origin: 'https://siga.example', campaignSlug}), /Slug da campanha inválido/, JSON.stringify(campaignSlug));
+  }
+  // Localhost continua a servir para ensaiar antes de publicar.
+  assert.deepEqual(
+    resolveSchool({...base, api: {origin: 'http://localhost:4184', campaignSlug: 'campanha-x'}}).api,
+    {origin: 'http://localhost:4184', campaignSlug: 'campanha-x'},
+  );
+});

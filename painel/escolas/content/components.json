@@ -5,13 +5,17 @@
     "compare": "Comparar"
   },
   "articleCard": {
-    "tag": "LEITURA DEMONSTRATIVA",
-    "link": "Ler a história"
+    "link": "Ler a história",
+    "demo": {
+      "tag": "LEITURA DEMONSTRATIVA"
+    }
   },
   "eventCard": {
-    "tag": "EVENTO ILUSTRATIVO",
     "saveLabel": "Descarregar {{EVENT}} para a agenda — evento demonstrativo",
-    "save": "Guardar na agenda"
+    "save": "Guardar na agenda",
+    "demo": {
+      "tag": "EVENTO ILUSTRATIVO"
+    }
   },
   "searchBox": {
     "queryLabel": "Nome ou área do curso",

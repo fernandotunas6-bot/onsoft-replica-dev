@@ -51,28 +51,14 @@ export function list(value, caminho) {
 
 /** Valida a navegação e devolve-a na forma que o gerador consome. */
 export function loadNavigation() {
-  const {menus, featureEyebrow} = loadContent('navigation');
-  const eyebrow = text(featureEyebrow, 'navigation.featureEyebrow');
-  const lista = list(menus, 'navigation.menus').map((menu, i) => {
-    const base = `navigation.menus[${i}]`;
-    const feature = menu.feature ?? {};
-    return {
-      title: text(menu.title, base + '.title'),
-      feature: {
-        title: text(feature.title, base + '.feature.title'),
-        text: text(feature.text, base + '.feature.text'),
-        url: internalUrl(feature.url, base + '.feature.url'),
-        label: text(feature.label, base + '.feature.label'),
-      },
-      links: list(menu.links, base + '.links').map((link, j) => ({
-        url: internalUrl(link.url, `${base}.links[${j}].url`),
-        label: text(link.label, `${base}.links[${j}].label`),
-        sub: text(link.sub, `${base}.links[${j}].sub`),
-      })),
-    };
+  return loadPage('navigation', {
+    featureEyebrow: 'text',
+    menus: [{
+      title: 'text',
+      feature: {title: 'text', text: 'text', url: 'url', label: 'text'},
+      links: [{url: 'url', label: 'text', sub: 'text'}],
+    }],
   });
-  lista.eyebrow = eyebrow;
-  return lista;
 }
 
 /** Sinalizador opcional: ausente é falso, presente tem de ser booleano. */
@@ -88,6 +74,7 @@ function navLink(link, caminho) {
     url: internalUrl(value.url, caminho + '.url'),
     label: text(value.label, caminho + '.label'),
     external: flag(value.external, caminho + '.external'),
+    demo: flag(value.demo, caminho + '.demo'),
   };
 }
 
@@ -97,48 +84,22 @@ function navLinks(value, caminho) {
 
 /** Cabeçalho: barra superior, ligações simples, pesquisa e botão do portal. */
 export function loadHeader() {
-  const raw = loadContent('header');
-  const topline = raw.topline ?? {};
-  const search = raw.search ?? {};
-  const portal = raw.portal ?? {};
-  return {
-    skipLink: text(raw.skipLink, 'header.skipLink'),
-    homeLabel: text(raw.homeLabel, 'header.homeLabel'),
-    navLabel: text(raw.navLabel, 'header.navLabel'),
-    menuLabel: text(raw.menuLabel, 'header.menuLabel'),
-    topline: {
-      identity: text(topline.identity, 'header.topline.identity'),
-      tagline: text(topline.tagline, 'header.topline.tagline'),
-      links: navLinks(topline.links, 'header.topline.links'),
-    },
-    links: navLinks(raw.links, 'header.links'),
-    search: {
-      url: internalUrl(search.url, 'header.search.url'),
-      label: text(search.label, 'header.search.label'),
-    },
-    portal: {
-      url: internalUrl(portal.url, 'header.portal.url'),
-      label: text(portal.label, 'header.portal.label'),
-      mobileLabel: text(portal.mobileLabel, 'header.portal.mobileLabel'),
-    },
-  };
+  return loadPage('header', {
+    skipLink: 'text', homeLabel: 'text', navLabel: 'text', menuLabel: 'text',
+    topline: {identity: 'text', 'tagline?': 'text', links: ['link']},
+    links: ['link'],
+    search: {url: 'url', label: 'text'},
+    portal: {url: 'url', label: 'text', mobileLabel: 'text'},
+  });
 }
 
 /** Rodapé: assinatura, colunas de ligações, aviso e barra legal. */
 export function loadFooter() {
-  const raw = loadContent('footer');
-  return {
-    tagline: list(raw.tagline, 'footer.tagline').map((line, i) => text(line, `footer.tagline[${i}]`)),
-    locale: text(raw.locale, 'footer.locale'),
-    columns: list(raw.columns, 'footer.columns').map((column, i) => ({
-      title: text(column?.title, `footer.columns[${i}].title`),
-      links: navLinks(column?.links, `footer.columns[${i}].links`),
-    })),
-    notice: text(raw.notice, 'footer.notice'),
-    copyright: text(raw.copyright, 'footer.copyright'),
-    legal: navLinks(raw.legal, 'footer.legal'),
-    backToTop: text(raw.backToTop, 'footer.backToTop'),
-  };
+  return loadPage('footer', {
+    tagline: ['text'], locale: 'text',
+    columns: [{title: 'text', links: ['link']}],
+    'notice?': 'text', copyright: 'text', legal: ['link'], backToTop: 'text',
+  });
 }
 
 /**
@@ -202,29 +163,14 @@ export function lines(value, caminho) {
 
 /** Blocos que aparecem em todas as páginas: metadados, aviso e chamada final. */
 export function loadSite() {
-  const raw = loadContent('site');
-  const meta = raw.meta ?? {};
-  const cta = raw.cta ?? {};
-  const action = (value, caminho) => ({
-    url: internalUrl(value?.url, caminho + '.url'),
-    label: text(value?.label, caminho + '.label'),
-  });
-  return {
-    meta: {
-      titleSuffix: text(meta.titleSuffix, 'site.meta.titleSuffix'),
-      descriptionSuffix: text(meta.descriptionSuffix, 'site.meta.descriptionSuffix'),
-    },
-    breadcrumbHome: text(raw.breadcrumbHome, 'site.breadcrumbHome'),
-    dialogClose: text(raw.dialogClose, 'site.dialogClose'),
-    notice: text(raw.notice, 'site.notice'),
+  return loadPage('site', {
+    meta: {titleSuffix: 'text', descriptionSuffix: 'text'},
+    breadcrumbHome: 'text', dialogClose: 'text', notice: 'text',
     cta: {
-      eyebrow: text(cta.eyebrow, 'site.cta.eyebrow'),
-      title: lines(cta.title, 'site.cta.title'),
-      text: text(cta.text, 'site.cta.text'),
-      primary: action(cta.primary, 'site.cta.primary'),
-      secondary: action(cta.secondary, 'site.cta.secondary'),
+      eyebrow: 'text', title: 'lines', text: 'text',
+      primary: 'action', secondary: 'action',
     },
-  };
+  });
 }
 
 /**
@@ -249,42 +195,20 @@ export function externalUrl(value, caminho) {
 
 /** Páginas de serviço com a mesma forma: cabeçalho, três cartões e uma acção. */
 export function loadSimplePages() {
-  const raw = loadContent('simple-pages');
-  return {
-    inlineCta: text(raw.inlineCta, 'simple-pages.inlineCta'),
-    pages: list(raw.pages, 'simple-pages.pages').map((page, i) => {
-      const base = `simple-pages.pages[${i}]`;
-      const resources = page.resources;
-      return {
-        url: internalUrl(page.url, base + '.url'),
-        title: text(page.title, base + '.title'),
-        eyebrow: text(page.eyebrow, base + '.eyebrow'),
-        headline: lines(page.headline, base + '.headline'),
-        description: text(page.description, base + '.description'),
-        sectionTitle: text(page.sectionTitle, base + '.sectionTitle'),
-        items: list(page.items, base + '.items').map((item, j) => ({
-          title: text(item?.title, `${base}.items[${j}].title`),
-          text: text(item?.text, `${base}.items[${j}].text`),
-        })),
-        action: {
-          url: internalUrl(page.action?.url, base + '.action.url'),
-          label: text(page.action?.label, base + '.action.label'),
-        },
-        resources: resources === undefined ? null : {
-          secondary: {
-            url: internalUrl(resources.secondary?.url, base + '.resources.secondary.url'),
-            label: text(resources.secondary?.label, base + '.resources.secondary.label'),
-          },
-          prefix: text(resources.prefix, base + '.resources.prefix'),
-          links: list(resources.links, base + '.resources.links').map((link, j) => ({
-            url: externalUrl(link?.url, `${base}.resources.links[${j}].url`),
-            label: text(link?.label, `${base}.resources.links[${j}].label`),
-          })),
-          notice: text(resources.notice, base + '.resources.notice'),
-        },
-      };
-    }),
-  };
+  return loadPage('simple-pages', {
+    inlineCta: 'text',
+    pages: [{
+      url: 'url', title: 'text', eyebrow: 'text', headline: 'lines',
+      description: 'text', sectionTitle: 'text',
+      items: [{title: 'text', text: 'text'}],
+      action: 'action',
+      'resources?': {
+        secondary: 'action', prefix: 'text',
+        links: [{url: 'external', label: 'text'}],
+        notice: 'text',
+      },
+    }],
+  });
 }
 
 /**
@@ -344,27 +268,65 @@ const SHAPES = {
   action: (value, caminho) => ({
     url: internalUrl(value?.url, caminho + '.url'),
     label: text(value?.label, caminho + '.label'),
+    demo: flag(value?.demo, caminho + '.demo'),
   }),
   link: (value, caminho) => navLink(value, caminho),
   iconLink: (value, caminho) => ({...navLink(value, caminho), icon: text(value?.icon, caminho + '.icon')}),
 };
 
-export function shaped(value, shape, caminho) {
+/**
+ * Modo de demonstração, global ao build.
+ *
+ * Decide duas coisas no conteúdo: se a variante `demo: {...}` de um bloco se
+ * sobrepõe ao texto real, e se os itens marcados `"demo": true` são publicados.
+ */
+let DEMO = true;
+export function setDemo(value) {
+  DEMO = value === true;
+}
+export function isDemo() {
+  return DEMO;
+}
+
+export function shaped(raw, shape, caminho) {
+  const variante = raw && typeof raw === 'object' && !Array.isArray(raw) && raw.demo && typeof raw.demo === 'object' && !Array.isArray(raw.demo);
+  const value = variante && DEMO ? {...raw, ...raw.demo} : raw;
   if (typeof shape === 'string') {
     const check = SHAPES[shape];
     if (!check) throw Error('Forma desconhecida em ' + caminho + ': ' + shape);
     return check(value, caminho);
   }
-  if (Array.isArray(shape)) return list(value, caminho).map((item, i) => shaped(item, shape[0], `${caminho}[${i}]`));
+  if (Array.isArray(shape)) {
+    const itens = list(value, caminho).map((item, i) => shaped(item, shape[0], `${caminho}[${i}]`));
+    return DEMO ? itens : itens.filter(item => item?.demo !== true);
+  }
   const out = {};
+  // `"demo": true` marca conteúdo que só existe na demonstração: um item de
+  // lista que desaparece, ou um ficheiro inteiro que tem de ser reescrito.
+  if (value?.demo === true) out.demo = true;
   for (const [key, inner] of Object.entries(shape)) {
     // `chave?` é opcional: ausente dá null, presente é validada como as outras.
     const optional = key.endsWith('?');
     const name = optional ? key.slice(0, -1) : key;
     const found = value?.[name];
-    out[name] = optional && (found === undefined || found === null) ? null : shaped(found, inner, caminho + '.' + name);
+    const resolvido = optional && (found === undefined || found === null) ? null : shaped(found, inner, caminho + '.' + name);
+    // Um bloco opcional marcado como demonstração desaparece fora dela.
+    out[name] = optional && !DEMO && resolvido?.demo === true ? null : resolvido;
   }
   return out;
+}
+
+/**
+ * Variante de demonstração de um bloco de conteúdo.
+ *
+ * O texto real é a chave normal; o que só se diz numa prévia vive em `demo`.
+ * Assim o ficheiro mostra lado a lado o que a escola diz e o que a demonstração
+ * acrescenta, e sair do modo de demonstração não precisa de reescrever nada.
+ */
+export function demoVariant(value, demo) {
+  if (!value || typeof value !== 'object') return value;
+  const {demo: variante, ...real} = value;
+  return demo && variante && typeof variante === 'object' ? {...real, ...variante} : real;
 }
 
 /** Lê um ficheiro de conteúdo e valida-o contra uma forma. */
@@ -386,7 +348,7 @@ export function loadHome() {
     quickPathsLabel: 'text',
     quickPaths: [{url: 'url', icon: 'text', title: 'text', text: 'text'}],
     areas: {eyebrow: 'text', headline: 'lines', text: 'lines', countLabel: 'text'},
-    courses: {eyebrow: 'text', headline: 'lines', link: 'action', note: 'text'},
+    courses: {eyebrow: 'text', headline: 'lines', link: 'action', 'note?': 'text'},
     split: {
       photoAlt: 'text', photoLabel: 'lines', eyebrow: 'text', headline: 'lines',
       text: 'text', items: ['text'], link: 'action',
@@ -428,8 +390,8 @@ export const COURSE_TOKENS = [
 export function loadComponents() {
   return loadPage('components', {
     courseCard: {favouriteLabel: 'text', link: 'text', compare: 'text'},
-    articleCard: {tag: 'text', link: 'text'},
-    eventCard: {tag: 'text', saveLabel: 'text', save: 'text'},
+    articleCard: {'tag?': 'text', link: 'text'},
+    eventCard: {'tag?': 'text', saveLabel: 'text', save: 'text'},
     searchBox: {
       queryLabel: 'text', placeholder: 'text',
       levelLabel: 'text', levelAll: 'text', button: 'text',
@@ -443,7 +405,7 @@ export const PAGE_SHAPES = {
     title: 'text', crumb: 'text',
     split: {
       photoAlt: 'text', photoLabel: 'lines', eyebrow: 'text', headline: 'lines',
-      paragraphs: ['text'], link: 'action',
+      paragraphs: ['text'], 'link?': 'action',
     },
     ideas: {headline: 'lines', items: [{icon: 'text', title: 'text', text: 'text'}]},
   },
@@ -490,7 +452,7 @@ export const PAGE_SHAPES = {
     card: {
       icon: 'text', title: 'text', text: 'text',
       hostedLabel: 'text', portalLabel: 'text', hint: 'text',
-      separator: 'text', demoLabel: 'text', note: 'text', links: ['link'],
+      separator: 'text', 'demoLabel?': 'text', 'note?': 'text', links: ['link'],
     },
   },
   biblioteca: {
@@ -567,17 +529,19 @@ export const PAGE_SHAPES = {
     },
     step3: {eyebrow: 'text', title: 'text', text: 'text', consent: 'text'},
     controls: {back: 'text', draft: 'text', next: 'text'},
+    success: {headline: 'lines', text: 'text', reference: 'text', view: 'text', download: 'text'},
+    errors: {unavailable: 'text', rateLimited: 'text', invalid: 'text', unknown: 'text'},
   },
   // Um ficheiro para as 18 páginas de curso: o que muda entre elas são os dados.
   curso: {
     hero: {
       codeLabel: 'text', apply: {label: 'text'}, save: {icon: 'text', label: 'text'},
-      note: 'text', photoAlt: 'text',
+      'note?': 'text', photoAlt: 'text',
     },
     subnav: {label: 'text', items: [{anchor: 'text', label: 'text'}]},
     presentation: {eyebrow: 'text', headline: 'lines', paragraphs: ['text']},
     skills: {eyebrow: 'text', title: 'text', text: 'text', audienceTitle: 'text', startLabel: 'text'},
-    plan: {eyebrow: 'text', title: 'text', text: 'text', moduleCaption: 'text'},
+    plan: {eyebrow: 'text', title: 'text', text: 'text', 'moduleCaption?': 'text'},
     method: {
       eyebrow: 'text', title: 'text',
       cards: [{icon: 'text', title: 'text', text: 'text'}],
@@ -593,11 +557,11 @@ export const PAGE_SHAPES = {
       eyebrow: 'text', fields: [{label: 'text', value: 'text'}],
       apply: 'text', guide: 'text', compare: 'text', contact: 'link',
     },
-    mobile: {label: 'text', tag: 'text', button: 'text'},
+    mobile: {label: 'text', 'tag?': 'text', button: 'text'},
     related: {eyebrow: 'text', title: 'text', link: 'action'},
   },
   artigo: {
-    tag: 'text',
+    'tag?': 'text',
     byline: {author: 'text', date: 'text', datetime: 'text', readingTime: 'text'},
     coverAlt: 'text',
     share: {copy: 'text', link: 'action'},
@@ -719,7 +683,7 @@ export const PAGE_SHAPES = {
   404: {title: 'text', action: 'action'},
   'mapa-do-site': {
     title: 'text', crumb: 'text',
-    groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},
+    groups: {discover: 'text', courses: 'text', articles: 'text', 'portal?': 'text'},
   },
 };
 

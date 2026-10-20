@@ -5,6 +5,8 @@
     "discover": "Descobrir",
     "courses": "Cursos",
     "articles": "Leituras",
-    "portal": "Portal académico"
+    "demo": {
+      "portal": "Portal académico"
+    }
   }
 }

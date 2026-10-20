@@ -47,6 +47,30 @@ Sem `palette`, o CSS sai byte a byte igual ao de origem.
 
 `portalUrl`, quando configurado com o endereço HTTPS oficial da escola, faz o botão de acesso usar o SIGA Plus existente. Não cria um login nem duplica notas, finanças ou sessões. O perfil local do portal continua explicitamente demonstrativo.
 
+## Publicar sem a demonstração
+
+O site nasce em modo de demonstração: avisa em cada página que a oferta é
+ilustrativa e que as candidaturas não são enviadas. `"demo": false` em
+`school.config.json` desliga isso — e o build só o aceita quando o que o site
+deixa de avisar passa a ser verdade:
+
+| O build exige | Porquê |
+| --- | --- |
+| `api` (`origin` + `campaignSlug`) | Sem destino, o formulário não envia nada. Com ele, a candidatura vai para o SIGA e devolve o número oficial `CAND-…`. |
+| `portalUrl` | Sem ele, o acesso ao portal apontaria para a demonstração. |
+| `catalogue.source` em `src/data.mjs` diferente de `"exemplo"` | Os 18 cursos, os artigos e os eventos de exemplo não podem ser publicados como a oferta de uma escola. |
+| `privacidade`, `acessibilidade` e `candidatura` sem `"demo": true` | Fazem afirmações legais — política de dados, conformidade, consentimento — que só a instituição pode escrever. |
+
+Com isso, o site deixa de publicar as nove páginas do portal demonstrativo e a
+página «Sobre o projecto», e desaparecem os avisos, as etiquetas («LEITURA
+DEMONSTRATIVA», «Curso demonstrativo») e a barra «Prévia institucional». O
+formulário de candidatura passa a carregar os cursos da campanha real e a
+enviar para a API; em caso de falha mostra a mensagem correspondente e não dá
+a candidatura por submetida.
+
+Antes de publicar, confirme a origem na allowlist do SIGA
+(`SIGA_SCHOOL_WEBSITE_ORIGINS`): sem ela, o POST é recusado por CORS.
+
 ## Integração de API incluída
 
 - `GET /api/public/school-website/{campaignSlug}` — nome/contactos públicos autorizados, campanha aberta e cursos superiores activos dessa escola.
