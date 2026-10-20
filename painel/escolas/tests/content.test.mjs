@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage, loadComponents, renderInline, richText, COURSE_TOKENS, GENERATOR_TOKENS} from '../scripts/content.mjs';
@@ -395,4 +396,28 @@ test('as nove páginas do portal passam a validação', () => {
   const financeiro = loadInstitutionalPage('portal-financeiro');
   assert.ok(financeiro.rowValue.includes('{{CURRENCY}}'));
   assert.ok(financeiro.stats.some(s => s.value.includes('{{CURRENCY}}')));
+});
+
+test('não sobra texto visível no gerador', () => {
+  // Varre os três módulos do gerador à procura de frases: o que restar tem de
+  // ser mensagem de erro, código, ou um valor de dados documentado como tal.
+  const permitido = [
+    // Valores comparados com os campos dos cursos em data.mjs (ver cursos.json).
+    'Licenciatura', 'Pós-graduação', 'Curso de curta duração',
+    'Presencial', 'Online', 'Híbrido', 'Diurno', 'Pós-laboral', 'Flexível',
+    'Campus Académico', 'Campus Digital',
+  ];
+  const fontes = ['build.mjs', 'decision-guides.mjs', 'academic-guides.mjs']
+    .map(f => readFileSync(new URL('../scripts/' + f, import.meta.url), 'utf8'));
+  for (const fonte of fontes) {
+    const semComentarios = fonte.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+    // Texto dentro de > ... < que não seja uma expressão nem uma etiqueta.
+    // Só conta texto que venha logo a seguir a uma etiqueta HTML: assim `=>` e
+    // outros `>` do código não passam por frase.
+    const frases = [...semComentarios.matchAll(/<\/?[a-z][^<>]*>([^<>${}`]{15,})</g)].map(m => m[1].trim());
+    for (const frase of frases) {
+      if (permitido.includes(frase)) continue;
+      assert.fail('Texto por extrair do gerador: ' + frase);
+    }
+  }
 });

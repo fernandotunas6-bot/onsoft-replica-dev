@@ -57,6 +57,21 @@ valores de `school.config.json`. Escrever `Viva o {{SCHOOL}}` serve qualquer
 escola; escrever o nome à mão serve uma só. Um marcador que não exista —
 `{{SCHOL}}` — falha na suite de testes, não em produção.
 
+## O que fica no gerador
+
+Três coisas, de propósito:
+
+- **os dados** — cursos, áreas, artigos, eventos, serviços e perguntas
+  frequentes vivem em `src/data.mjs`, e as disciplinas de exemplo do portal em
+  `scripts/build.mjs`;
+- **os valores dos filtros** (`Licenciatura`, `Presencial`, `Diurno`…) — são
+  comparados com os campos dos cursos pelo código do site; mudá-los aqui
+  partiria a filtragem;
+- **a estrutura** — o HTML, os ícones decorativos e as setas.
+
+Um teste (`não sobra texto visível no gerador`) varre os módulos do gerador à
+procura de frases: se alguém voltar a escrever texto no HTML, a suite falha.
+
 ## Antes de publicar
 
 ```sh

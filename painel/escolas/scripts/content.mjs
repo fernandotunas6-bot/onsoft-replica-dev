@@ -51,8 +51,9 @@ export function list(value, caminho) {
 
 /** Valida a navegação e devolve-a na forma que o gerador consome. */
 export function loadNavigation() {
-  const {menus} = loadContent('navigation');
-  return list(menus, 'navigation.menus').map((menu, i) => {
+  const {menus, featureEyebrow} = loadContent('navigation');
+  const eyebrow = text(featureEyebrow, 'navigation.featureEyebrow');
+  const lista = list(menus, 'navigation.menus').map((menu, i) => {
     const base = `navigation.menus[${i}]`;
     const feature = menu.feature ?? {};
     return {
@@ -70,6 +71,8 @@ export function loadNavigation() {
       })),
     };
   });
+  lista.eyebrow = eyebrow;
+  return lista;
 }
 
 /** Sinalizador opcional: ausente é falso, presente tem de ser booleano. */
@@ -212,6 +215,7 @@ export function loadSite() {
       descriptionSuffix: text(meta.descriptionSuffix, 'site.meta.descriptionSuffix'),
     },
     breadcrumbHome: text(raw.breadcrumbHome, 'site.breadcrumbHome'),
+    dialogClose: text(raw.dialogClose, 'site.dialogClose'),
     notice: text(raw.notice, 'site.notice'),
     cta: {
       eyebrow: text(cta.eyebrow, 'site.cta.eyebrow'),
@@ -712,6 +716,7 @@ export const PAGE_SHAPES = {
     preferences: {title: 'text', nameLabel: 'text', namePlaceholder: 'text', motionLabel: 'text', submit: 'text'},
     data: {title: 'text', text: 'text', export: 'text', clear: 'text', link: 'action'},
   },
+  404: {title: 'text', action: 'action'},
   'mapa-do-site': {
     title: 'text', crumb: 'text',
     groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},
