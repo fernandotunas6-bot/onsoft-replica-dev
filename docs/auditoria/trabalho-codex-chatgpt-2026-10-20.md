@@ -366,10 +366,12 @@ isso daqui para a frente cada actualização precisa de ramo e PR próprios.
 
 ### Ainda por fazer — revisto outra vez
 
-1. **#108**: `MERGEABLE / UNSTABLE`, 85 commits à frente da `main` e 6 atrás.
-   Os dois erros de formatação saíram; falta o portão confirmar e falta decidir
-   se a integração BigBlueButton entra, com a árvore de rotas fechada
-   (`routeTree.gen.ts` e `navigation-catalog.ts` continuam sem `aulas-virtuais`).
+1. **#108**: às 20:03 o portão passou — `MERGEABLE / CLEAN`, com «Estilo,
+   acessibilidade e build» verde em 4m14s e os E2E e Lighthouse `skipping`,
+   como é normal numa PR. O ramo está 85 commits à frente da `main` e 6 atrás.
+   Não falta nada técnico: falta **decidir** se a integração BigBlueButton entra,
+   e fechar a árvore de rotas (`routeTree.gen.ts` e `navigation-catalog.ts`
+   continuam sem `aulas-virtuais`).
 2. **#30** (modelos de e-mail): continua o maior bloco ausente por inteiro, e
    agora é o item mais antigo da lista.
 3. **#35**: `CONFLICTING / DIRTY`. Fechar e levantar da `main`.
