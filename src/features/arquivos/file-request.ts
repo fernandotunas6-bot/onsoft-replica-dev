@@ -55,11 +55,7 @@ export function fileMatchesRequest(
   }
 
   if (request.purpose === "finance-document") {
-    return (
-      file.category === "fatura" ||
-      file.category === "recibo" ||
-      file.category === "talao"
-    );
+    return file.category === "fatura" || file.category === "recibo" || file.category === "talao";
   }
   return false;
 }
