@@ -23,7 +23,7 @@ Esta é a documentação **própria** do módulo `school-sites`, diferente do si
 | `/configuracoes/site` | Administrador da escola | Editar e publicar |
 | `/` | SIGA existente | Portal com login e módulos actuais |
 
-Esta fase não cria tabelas, mas **exige a migração RLS** `supabase/migrations/20261020213000_school_website_draft_read_guard.sql` para impedir que alunos ou encarregados leiam rascunhos por acesso directo ao Supabase. Usa o domínio `school_website` da tabela `school_settings`, inserções versionadas, AAL2 e consulta à versão mais recente. Não activar o editor antes da política estar validada e aplicada em ambiente autorizado. `SCHOOL_SITES_ENABLED=true` é um opt-in **server-only**, desligado por omissão, exigido para leitura e publicação. O conteúdo default é calculado, mas não exposto publicamente sem publicação explícita. `published` e `draft` são separados.
+Esta fase não cria tabelas, mas **exige a migração RLS** `supabase/migrations/20261020213000_school_website_draft_read_guard.sql` para impedir que alunos ou encarregados leiam rascunhos por acesso directo ao Supabase. Usa o domínio `school_website` da tabela `school_settings`, inserções versionadas, AAL2 e consulta à versão mais recente. Não activar o editor antes da política estar validada e aplicada em ambiente autorizado. `SCHOOL_SITES_ENABLED=true` é um opt-in **server-only**, desligado por omissão, exigido para leitura e publicação. O conteúdo default é calculado, mas não exposto publicamente sem publicação explícita. O Administrador pode **retirar o site do ar com confirmação e MFA**, sem apagar o histórico. `published` e `draft` são separados.
 
 ## Limites da entrega
 
