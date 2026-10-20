@@ -46,10 +46,14 @@ describe("file picker por finalidade, inspirado no Moodle", () => {
       purpose: "class-material",
       classGroupId: schoolFile.classGroupId,
     };
-    const otherClass = { ...schoolFile, classGroupId: "outra-turma" };
-    expect(fileMatchesRequest(schoolFile, req)).toBe(true);
-    expect(fileMatchesRequest(schoolFile, request("class-material"))).toBe(false);
+    const material = { ...schoolFile, area: "escola" as const, visibility: "school" as const };
+    const otherClass = { ...material, classGroupId: "outra-turma" };
+    const privateMaterial = { ...material, visibility: "private" as const };
+    expect(fileMatchesRequest(material, req)).toBe(true);
+    expect(fileMatchesRequest(material, request("class-material"))).toBe(false);
     expect(fileMatchesRequest(otherClass, req)).toBe(false);
+    expect(fileMatchesRequest(privateMaterial, req)).toBe(false);
+    expect(fileMatchesRequest(schoolFile, req)).toBe(false);
   });
 
   it("arquivos financeiros não aceitam documentos de outra categoria", () => {
