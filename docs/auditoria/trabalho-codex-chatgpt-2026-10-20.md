@@ -1,6 +1,8 @@
 # Trabalho feito com o ChatGPT (Codex) — inventário e estado
 
 Data: 2026-10-20. Base de comparação: `origin/main` em `7d8ce0ec`.
+Actualizado às 07:10 de 20/10: o Codex continuou a trabalhar depois de isto ser
+escrito — há uma PR nova (#188) e um ramo empurrado sem PR, ambos de hoje.
 
 ## Como foi identificado
 
@@ -14,6 +16,17 @@ e do Cursor (13). As mensagens saem em **inglês**, em formato convencional
    (10:50, 19:44, 20:27, 22:37). São árvores anteriores a cada turno; nenhuma
    contém trabalho que a `main` não tenha.
 3. Ramos e PRs sem rodapé de agente, com mensagens em inglês.
+
+Duas destas pistas já não bastam, e convém saber porquê:
+
+- **O inglês deixou de servir.** Os ramos de 19 e 20/10 (#186, #188 e o de
+  aprovisionamento) saem em português. O que distingue continua a ser o rodapé
+  ausente, o nome do ramo com data (`…-20261020`) e muitos commits curtos, às
+  vezes quatro seguidos com a mesma mensagem.
+- **As sessões locais também não.** `~/.codex/sessions` continua em 49
+  ficheiros, o último escrito a 19/10 às 22:39 — e os três ramos acima são todos
+  posteriores. Esse trabalho não passou pelo Codex local desta máquina, por isso
+  contar sessões subestima o que ele fez.
 
 ## Onde o Codex trabalhou
 
@@ -49,7 +62,8 @@ e do Cursor (13). As mensagens saem em **inglês**, em formato convencional
 
 | PR | Ramo | Commits | Diff | Falta na main |
 |---|---|---|---|---|
-| #186 (draft) | `audit/360-institutional-2026-10-19` | 22 | +344/−45 | auditoria de ontem, CI verde às 05:09 |
+| #188 (draft) | `security/signup-verification-staging-boundary-20261020` | 8 | +252/−16 | guarda do bypass de verificação de e-mail no signup; 6 ficheiros, CI verde às 05:49, já com o novo job de lint e build do WEB |
+| #186 (draft) | `audit/360-institutional-2026-10-19` | 23 | +365/−45 | auditoria de ontem; 8 ficheiros, CI verde às 05:55 de hoje |
 | #108 (draft) + #107 | `feat/bigbluebutton-server-adapter-20261008` | 79+1 | +1 880 | 20 dos 23 ficheiros; a `main` só tem a migração `20261008144147_bbb_classroom_metadata.sql` |
 | #113 | `fix/calendar-ics-serialization-20261009` | 2 | +85/−7 | UTF-8 e escape de newlines no ICS |
 | #117 | `fix/react-update-depth-20261009` | 1 | +130/−49 | ciclo React #185 na selecção de períodos |
@@ -65,7 +79,16 @@ e do Cursor (13). As mensagens saem em **inglês**, em formato convencional
 | #27 | `feat/hr-salary-catalog-20260924` | 28 | +2 144/−12 | 21 de 24: 8 migrações de guardas da folha (serialização, pró-rata, frescura dos inputs) |
 | #8 | `security/rls-tenant-hardening-20260906` | 30 | +2 284/−9 | 17 de 20: fachadas `*-secure.ts` de notas, avaliação, pessoas e convites |
 | #1 | `fix/tenant-security-payment-mfa-2026-09-03` | 43 | +2 175/−434 | 9 de 32: workflows `production-gate`, `lockfile-sync`, middleware do ADMIN |
-| #15, #13, #182 | estabilização, portas do CI, Prettier | 4+3+1 | pequeno | pontuais, provavelmente já resolvidos de outra forma |
+| #15, #13, #182 | estabilização, portas do CI, Prettier | 4+3+1 | pequeno | #182 confirmado: a correcção de Prettier já está na `main` por outra via, e o ramo `fix/ci-main-responsive-prettier-20261019` ficou obsoleto. #15 e #13 por confirmar |
+
+### Empurrado hoje, sem PR
+
+- **`audit/provisioning-admin-scope-20261020`** — 2 commits às 07:07 de hoje, em
+  `src/features/saas/provisioning-core.ts` e `provisioning-verify.ts` (+37/−4):
+  passa ao verificador os IDs reais de vínculo e papel, e confirma vínculo, papel
+  e grants do administrador criado no aprovisionamento. Sem PR aberto. O ramo foi
+  empurrado minutos depois deste inventário, por isso o trabalho pode ainda estar
+  a decorrer; a PR é o passo que falta para ser revisto e fundido.
 
 ## Fora deste repositório
 
@@ -85,8 +108,10 @@ e do Cursor (13). As mensagens saem em **inglês**, em formato convencional
 
 ## Por onde começar
 
-1. #186 — é de ontem, tem CI verde e está só a 2 commits da main.
-2. #117 e #113 — correcções pequenas, de 09/10, ainda aplicáveis quase tal e qual.
-3. #30 (modelos de email) — é o maior bloco ausente por inteiro da main.
-4. SIGA_EDU — pôr sob git antes de qualquer outra coisa.
-5. #108/#107 (BigBlueButton) — 1 880 linhas prontas, só a migração entrou.
+1. `audit/provisioning-admin-scope-20261020` — abrir PR. É de hoje e, sem PR,
+   não é revisto nem fundido.
+2. #186 e #188 — de ontem e de hoje, CI verde, pequenos. Tirar do rascunho.
+3. #117 e #113 — correcções pequenas, de 09/10, ainda aplicáveis quase tal e qual.
+4. #30 (modelos de email) — é o maior bloco ausente por inteiro da main.
+5. SIGA_EDU — pôr sob git antes de qualquer outra coisa.
+6. #108/#107 (BigBlueButton) — 1 880 linhas prontas, só a migração entrou.
