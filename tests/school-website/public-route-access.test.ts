@@ -16,6 +16,9 @@ describe("websites escolares — fronteira pública do router", () => {
 
   it("não transforma urls que apenas começam com 'site' em públicas", () => {
     for (const pathname of [
+      "/site/admin",
+      "/site/preview",
+      "/api/public/school-site/editor",
       "/site-admin",
       "/site_privado",
       "/api/public/school-site-private",
