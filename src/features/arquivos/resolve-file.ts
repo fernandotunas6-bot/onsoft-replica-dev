@@ -14,8 +14,12 @@ export async function resolveFileUrl(
   }
   const signed = await signSchoolFile({ data: { id: file.id } });
   if (signed.url) return signed.url;
-  const blob = await readLocalBlob(file.id, viewer);
-  if (blob) return URL.createObjectURL(blob);
+  // Falha na assinatura remota não dá permissão para servir uma cópia local.
+  // O servidor só autoriza o fallback quando confirma que a origem é local.
+  if (signed.local) {
+    const blob = await readLocalBlob(file.id, viewer);
+    if (blob) return URL.createObjectURL(blob);
+  }
   throw new Error("Não foi possível abrir o ficheiro.");
 }
 
