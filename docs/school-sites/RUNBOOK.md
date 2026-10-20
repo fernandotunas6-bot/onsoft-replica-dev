@@ -61,6 +61,20 @@ Exigir revisão manual de `tenant_domains` e do certificado HTTPS do canário an
 9. Suspender tenant em ambiente de ensaio → site não é servido.
 10. Playwright viewport mobile/tablet/desktop, navegação por teclado, leitura de ecrã e Lighthouse.
 
+### Ensaio visual sem produção (executado em 20-10-2026)
+
+A matriz `tests/e2e/school-site-visual.spec.ts` foi executada no Chrome (GitHub Actions), com **8/8 testes aprovados** e um servidor HTTP localhost. A API pública foi interceptada com dados fictícios; as variáveis Supabase apontavam para `127.0.0.1`, não para a base real.
+
+Para repetir sem dados reais, use um servidor local SIGA com um endpoint Supabase de desenvolvimento e chave **fictícia de ensaio**; depois:
+
+```sh
+SIGA_SCHOOL_SITE_VISUAL_E2E=1 \
+VITE_SIGA_URL=http://localhost:3006 \
+bunx playwright test tests/e2e/school-site-visual.spec.ts
+```
+
+A suite valida seis larguras de ecrã (320, 390, 768, 1024, 1440, 1920), navegação para o Portal Escolar, estrutura institucional, scroll horizontal, ausência de rascunhos e movimento reduzido. **Não demonstra pixel-parity com ISPAB** nem substitui ensaios com DNS/TLS, sessão real do administrador ou sandbox de publicação.
+
 ## 5. Rollout
 
 - Nunca executar `supabase db push` ou migrações `drizzle/` na base SGA.
