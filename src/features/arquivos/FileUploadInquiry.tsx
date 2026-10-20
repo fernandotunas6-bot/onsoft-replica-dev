@@ -164,7 +164,11 @@ export function FileUploadInquiryModal({
       (photoLike ? "foto" : suggestFileCategory({ name: firstName, kind: firstKind }));
     const nextArea = initial?.area ?? suggestFileArea(nextCategory, writableAreas, defaultArea);
     const nextTitle = initial?.title?.trim() || defaultTitleFromName(firstName);
-    const nextDescription = initial?.description?.trim() || "";
+    // Nota neutra preenchida automaticamente; não exigir repetição do nome
+    // do ficheiro quando o utilizador não precisa de escrever uma descrição.
+    const nextDescription =
+      initial?.description?.trim() ||
+      (mode === "upload" ? `Ficheiro identificado como ${firstName}.`.slice(0, 800) : "");
     const nextDocumentDate = initial?.documentDate || "";
     const nextReferenceCode =
       initial?.referenceCode?.trim() || generateDocumentCode(prefixForCategory(nextCategory));
@@ -420,26 +424,6 @@ export function FileUploadInquiryModal({
               maxLength={180}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-desc">
-              Descrição <span className="text-destructive">*</span>
-            </Label>
-            <textarea
-              id="file-meta-desc"
-              value={description}
-              onChange={(event) => {
-                setDescription(event.target.value);
-                setFormError(null);
-              }}
-              rows={3}
-              maxLength={800}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Finalidade deste ficheiro"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              {description.trim().length}/{FILE_DESCRIPTION_MIN} mínimos
-            </p>
-          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="file-meta-category">Categoria</Label>
@@ -495,6 +479,26 @@ export function FileUploadInquiryModal({
           >
             <summary className="cursor-pointer text-sm font-medium">Mais opções</summary>
             <div className="mt-3 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-desc">
+                  Descrição <span className="text-destructive">*</span>
+                </Label>
+                <textarea
+                  id="file-meta-desc"
+                  value={description}
+                  onChange={(event) => {
+                    setDescription(event.target.value);
+                    setFormError(null);
+                  }}
+                  rows={3}
+                  maxLength={800}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Finalidade deste ficheiro"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {description.trim().length}/{FILE_DESCRIPTION_MIN} mínimos
+                </p>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="file-meta-date">
