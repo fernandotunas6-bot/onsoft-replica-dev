@@ -8,9 +8,10 @@ export function classifySmokeStatus({
   expected,
   status,
   allowApi500Skip = false,
+  ci = false,
   optionalInCi = false,
 }) {
-  if (optionalInCi && status === 503) return "skip";
+  if (optionalInCi && status === 503) return ci ? "skip" : "fail";
   if (expected.includes(status)) return "pass";
   if (allowApi500Skip && label.startsWith("API") && status === 500) return "skip";
   return "fail";
