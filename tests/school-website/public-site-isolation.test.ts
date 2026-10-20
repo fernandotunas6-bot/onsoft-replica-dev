@@ -1,11 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultSchoolSiteSettings, withPublication } from "@/features/school-site/schema";
+import {
+  defaultSchoolSiteSettings,
+  withPublication,
+  withoutPublication,
+} from "@/features/school-site/schema";
 
 type Row = Record<string, unknown> | null;
 const mock = vi.hoisted(() => ({
   records: {} as Record<string, Row>,
   queries: [] as Array<{ table: string; filters: Array<[string, unknown]> }>,
   failures: {} as Record<string, boolean>,
+  ordering: [] as Array<{ table: string; column: string; ascending: boolean }>,
+  limits: [] as Array<{ table: string; count: number }>,
 }));
 
 vi.mock("@/integrations/supabase/sga-admin", () => ({
@@ -15,8 +21,14 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
       mock.queries.push({ table, filters });
       const chain = {
         select: () => chain,
-        order: () => chain,
-        limit: () => chain,
+        order: (column: string, options: { ascending: boolean }) => {
+          mock.ordering.push({ table, column, ascending: options.ascending });
+          return chain;
+        },
+        limit: (count: number) => {
+          mock.limits.push({ table, count });
+          return chain;
+        },
         eq: (field: string, value: unknown) => {
           filters.push([field, value]);
           return chain;
@@ -38,6 +50,8 @@ const HOSTNAME = "escola-exemplo.portal-siga.com";
 beforeEach(() => {
   vi.stubEnv("SCHOOL_SITES_ENABLED", "true");
   mock.queries.length = 0;
+  mock.ordering.length = 0;
+  mock.limits.length = 0;
   mock.failures = {};
   mock.records = {
     tenant_domains: { tenant_id: "tenant-a" },
@@ -100,6 +114,21 @@ describe("school-site API — isolamento público por hostname", () => {
   it("não publica nem transfere um mero rascunho", async () => {
     mock.records.school_settings = { value: defaultSchoolSiteSettings("Escola A") };
     expect(await loadPublishedSchoolSite(HOSTNAME)).toBeNull();
+  });
+
+  it("não ressuscita uma publicação antiga depois da última versão despublicada", async () => {
+    const oldPublished = withPublication(defaultSchoolSiteSettings("Escola A"));
+    mock.records.school_settings = {
+      version: 3,
+      value: withoutPublication(oldPublished),
+    };
+    expect(await loadPublishedSchoolSite(HOSTNAME)).toBeNull();
+    expect(mock.ordering).toContainEqual({
+      table: "school_settings",
+      column: "version",
+      ascending: false,
+    });
+    expect(mock.limits).toContainEqual({ table: "school_settings", count: 1 });
   });
 
   it("não serve escola de outro hostname, tenant arquivado ou escola arquivada", async () => {
