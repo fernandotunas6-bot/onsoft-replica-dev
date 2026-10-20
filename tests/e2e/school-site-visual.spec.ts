@@ -38,11 +38,11 @@ const fixture = {
   },
 };
 
+// Dados fictícios: sem gravações de sessão nem imagens automáticas.
+test.use({ trace: "off", video: "off", screenshot: "off" });
+
 test.describe("School Sites v1 — estilo institucional e adaptação responsiva", () => {
   test.skip(!enabled, "Apenas com SIGA_SCHOOL_SITE_VISUAL_E2E=1 em localhost.");
-
-  // Fixtures não têm dados reais; não produzir capturas ou traces por omissão.
-  test.use({ trace: "off", video: "off", screenshot: "off" });
 
   test.beforeEach(async ({ page }) => {
     await page.route("**/api/public/school-site", async (route) => {
