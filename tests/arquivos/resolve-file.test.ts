@@ -54,9 +54,7 @@ describe("resolução segura do conteúdo do Arquivo", () => {
       local: false,
       url: "https://storage.example.test/signed",
     });
-    await expect(resolveFileUrl(file, viewer)).resolves.toBe(
-      "https://storage.example.test/signed",
-    );
+    await expect(resolveFileUrl(file, viewer)).resolves.toBe("https://storage.example.test/signed");
     expect(mocks.readLocalBlob).not.toHaveBeenCalled();
   });
 
