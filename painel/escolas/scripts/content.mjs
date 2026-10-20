@@ -302,78 +302,99 @@ export function loadNotices() {
   return notices;
 }
 
-/** Página de entrada: oito secções, todas com texto próprio. */
-export function loadHome() {
-  const raw = loadContent('home');
-  const action = (value, caminho) => ({
+/**
+ * Forma de um ficheiro de conteúdo, declarada em vez de escrita à mão.
+ *
+ * Uma cadeia é um validador (`'text'`, `'lines'`, `'action'`, …); um array de
+ * um elemento é uma lista dessa forma; um objecto é um objecto com as mesmas
+ * chaves. O caminho do erro é construído pelo caminho, pelo que uma chave em
+ * falta continua a dizer onde está: `home.band.steps[1].title`.
+ */
+const SHAPES = {
+  text: (value, caminho) => text(value, caminho),
+  lines: (value, caminho) => lines(value, caminho),
+  url: (value, caminho) => internalUrl(value, caminho),
+  external: (value, caminho) => externalUrl(value, caminho),
+  action: (value, caminho) => ({
     url: internalUrl(value?.url, caminho + '.url'),
     label: text(value?.label, caminho + '.label'),
-  });
-  const {hero, finder, areas, courses, split, band, articles} = raw;
-  return {
-    title: text(raw.title, 'home.title'),
+  }),
+  link: (value, caminho) => navLink(value, caminho),
+};
+
+export function shaped(value, shape, caminho) {
+  if (typeof shape === 'string') {
+    const check = SHAPES[shape];
+    if (!check) throw Error('Forma desconhecida em ' + caminho + ': ' + shape);
+    return check(value, caminho);
+  }
+  if (Array.isArray(shape)) return list(value, caminho).map((item, i) => shaped(item, shape[0], `${caminho}[${i}]`));
+  const out = {};
+  for (const [key, inner] of Object.entries(shape)) out[key] = shaped(value?.[key], inner, caminho + '.' + key);
+  return out;
+}
+
+/** Lê um ficheiro de conteúdo e valida-o contra uma forma. */
+export function loadPage(name, shape) {
+  return shaped(loadContent(name), shape, name);
+}
+
+/** Página de entrada: oito secções, todas com texto próprio. */
+export function loadHome() {
+  return loadPage('home', {
+    title: 'text',
     hero: {
-      eyebrow: text(hero?.eyebrow, 'home.hero.eyebrow'),
-      headline: lines(hero?.headline, 'home.hero.headline'),
-      text: lines(hero?.text, 'home.hero.text'),
-      primary: action(hero?.primary, 'home.hero.primary'),
-      secondary: action(hero?.secondary, 'home.hero.secondary'),
-      small: lines(hero?.small, 'home.hero.small'),
-      photoAlt: text(hero?.photoAlt, 'home.hero.photoAlt'),
-      photoCaption: text(hero?.photoCaption, 'home.hero.photoCaption'),
-      float: lines(hero?.float, 'home.hero.float'),
-      badge: text(hero?.badge, 'home.hero.badge'),
-      side: text(hero?.side, 'home.hero.side'),
+      eyebrow: 'text', headline: 'lines', text: 'lines',
+      primary: 'action', secondary: 'action', small: 'lines',
+      photoAlt: 'text', photoCaption: 'text', float: 'lines', badge: 'text', side: 'text',
     },
-    finder: {
-      eyebrow: text(finder?.eyebrow, 'home.finder.eyebrow'),
-      link: navLink(finder?.link, 'home.finder.link'),
-      tagsLabel: text(finder?.tagsLabel, 'home.finder.tagsLabel'),
-      tags: navLinks(finder?.tags, 'home.finder.tags'),
-    },
-    marquee: list(raw.marquee, 'home.marquee').map((word, i) => text(word, `home.marquee[${i}]`)),
-    quickPathsLabel: text(raw.quickPathsLabel, 'home.quickPathsLabel'),
-    quickPaths: list(raw.quickPaths, 'home.quickPaths').map((path, i) => ({
-      url: internalUrl(path?.url, `home.quickPaths[${i}].url`),
-      icon: text(path?.icon, `home.quickPaths[${i}].icon`),
-      title: text(path?.title, `home.quickPaths[${i}].title`),
-      text: text(path?.text, `home.quickPaths[${i}].text`),
-    })),
-    areas: {
-      eyebrow: text(areas?.eyebrow, 'home.areas.eyebrow'),
-      headline: lines(areas?.headline, 'home.areas.headline'),
-      text: lines(areas?.text, 'home.areas.text'),
-      countLabel: text(areas?.countLabel, 'home.areas.countLabel'),
-    },
-    courses: {
-      eyebrow: text(courses?.eyebrow, 'home.courses.eyebrow'),
-      headline: lines(courses?.headline, 'home.courses.headline'),
-      link: action(courses?.link, 'home.courses.link'),
-      note: text(courses?.note, 'home.courses.note'),
-    },
+    finder: {eyebrow: 'text', link: 'link', tagsLabel: 'text', tags: ['link']},
+    marquee: ['text'],
+    quickPathsLabel: 'text',
+    quickPaths: [{url: 'url', icon: 'text', title: 'text', text: 'text'}],
+    areas: {eyebrow: 'text', headline: 'lines', text: 'lines', countLabel: 'text'},
+    courses: {eyebrow: 'text', headline: 'lines', link: 'action', note: 'text'},
     split: {
-      photoAlt: text(split?.photoAlt, 'home.split.photoAlt'),
-      photoLabel: lines(split?.photoLabel, 'home.split.photoLabel'),
-      eyebrow: text(split?.eyebrow, 'home.split.eyebrow'),
-      headline: lines(split?.headline, 'home.split.headline'),
-      text: text(split?.text, 'home.split.text'),
-      items: list(split?.items, 'home.split.items').map((item, i) => text(item, `home.split.items[${i}]`)),
-      link: action(split?.link, 'home.split.link'),
+      photoAlt: 'text', photoLabel: 'lines', eyebrow: 'text', headline: 'lines',
+      text: 'text', items: ['text'], link: 'action',
     },
     band: {
-      eyebrow: text(band?.eyebrow, 'home.band.eyebrow'),
-      headline: lines(band?.headline, 'home.band.headline'),
-      steps: list(band?.steps, 'home.band.steps').map((step, i) => ({
-        number: text(step?.number, `home.band.steps[${i}].number`),
-        title: text(step?.title, `home.band.steps[${i}].title`),
-        text: text(step?.text, `home.band.steps[${i}].text`),
-      })),
-      action: action(band?.action, 'home.band.action'),
+      eyebrow: 'text', headline: 'lines',
+      steps: [{number: 'text', title: 'text', text: 'text'}],
+      action: 'action',
     },
-    articles: {
-      eyebrow: text(articles?.eyebrow, 'home.articles.eyebrow'),
-      headline: lines(articles?.headline, 'home.articles.headline'),
-      link: action(articles?.link, 'home.articles.link'),
+    articles: {eyebrow: 'text', headline: 'lines', link: 'action'},
+  });
+}
+
+/** Páginas institucionais: uma forma por página, o ficheiro em content/pages/. */
+export const PAGE_SHAPES = {
+  sobre: {
+    title: 'text', crumb: 'text',
+    split: {
+      photoAlt: 'text', photoLabel: 'lines', eyebrow: 'text', headline: 'lines',
+      paragraphs: ['text'], link: 'action',
     },
-  };
+    ideas: {headline: 'lines', items: [{icon: 'text', title: 'text', text: 'text'}]},
+  },
+  'vida-academica': {
+    title: 'text', crumb: 'text', photoAlt: 'text', photoLabel: 'text',
+    items: [{title: 'text', text: 'text', link: 'action'}],
+    articles: {headline: 'lines', ids: ['text']},
+  },
+  campus: {
+    title: 'text', crumb: 'text', altSuffix: 'text',
+    spaces: [{image: 'text', title: 'text', text: 'text'}],
+  },
+  servicos: {
+    title: 'text', crumb: 'text', eyebrow: 'text', headline: 'lines',
+    text: 'lines', cardLabel: 'text',
+  },
+};
+
+/** Lê uma página de content/pages/, validada pela forma declarada acima. */
+export function loadInstitutionalPage(name) {
+  const shape = PAGE_SHAPES[name];
+  if (!shape) throw Error('Página sem forma declarada em content.mjs: ' + name);
+  return loadPage('pages/' + name, shape);
 }

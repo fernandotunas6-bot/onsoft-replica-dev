@@ -1,0 +1,43 @@
+{
+  "title": "Vida académica",
+  "crumb": "Vida académica",
+  "photoAlt": "Pessoas reunidas num evento de partilha de conhecimento",
+  "photoLabel": "UM CONVITE A PARTICIPAR.",
+  "items": [
+    {
+      "title": "Grupos e iniciativas",
+      "text": "Encontre temas em comum e descubra o valor de aprender com outras pessoas.",
+      "link": {
+        "url": "/eventos/",
+        "label": "Explorar a agenda"
+      }
+    },
+    {
+      "title": "Bem-estar e acolhimento",
+      "text": "Conheça orientações para organizar a rotina, procurar apoio e participar com autonomia.",
+      "link": {
+        "url": "/apoio-ao-estudante/",
+        "label": "Encontrar apoio"
+      }
+    },
+    {
+      "title": "Ideias com impacto",
+      "text": "Explore a ligação entre estudo, investigação e desafios da comunidade.",
+      "link": {
+        "url": "/investigacao/",
+        "label": "Conhecer possibilidades"
+      }
+    }
+  ],
+  "articles": {
+    "headline": [
+      "Leve uma nova",
+      "*perspectiva consigo.*"
+    ],
+    "ids": [
+      "como-escolher-o-curso",
+      "aprender-em-comunidade",
+      "organizar-rotina"
+    ]
+  }
+}

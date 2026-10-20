@@ -14,6 +14,7 @@ textos, os rótulos e as ligações. Editar aqui não exige tocar em código.
 | `page-heads.json` | O cabeçalho de cada página, pela rota: olho, título e descrição. |
 | `notices.json` | Os avisos de versão demonstrativa, por chave — o que reescrever na activação de uma escola real. |
 | `simple-pages.json` | As cinco páginas de serviço (secretaria, apoio, carreiras, investigação, bolsas). |
+| `pages/*.json` | Uma página institucional por ficheiro: `sobre`, `vida-academica`, `campus`, `servicos`. |
 
 A identidade da escola — nome, país, idioma, moeda — **não** está aqui: está
 em `../school.config.json`, porque é configuração do cliente e não texto

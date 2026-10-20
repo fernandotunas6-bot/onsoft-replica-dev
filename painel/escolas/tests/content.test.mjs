@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages, loadPageHeads, loadNotices, loadHome, shaped, PAGE_SHAPES, loadInstitutionalPage} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -200,4 +200,33 @@ test('a página de entrada passa a validação', () => {
   assert.ok(home.marquee.length >= 2);
   for (const path of home.quickPaths) assert.ok(path.url.startsWith('/'), path.url);
   for (const tag of home.finder.tags) assert.ok(tag.url.startsWith('/'), tag.url);
+});
+
+test('shaped constrói o caminho do erro até à folha', () => {
+  const shape = {band: {steps: [{title: 'text'}]}};
+  assert.throws(() => shaped({band: {steps: [{title: 'ok'}, {}]}}, shape, 'home'), /home\.band\.steps\[1\]\.title/);
+  assert.throws(() => shaped({band: {}}, shape, 'home'), /home\.band\.steps/);
+  assert.throws(() => shaped({}, {x: 'forma-que-nao-existe'}, 'p'), /Forma desconhecida em p\.x/);
+});
+
+test('as páginas institucionais passam a validação', () => {
+  for (const name of Object.keys(PAGE_SHAPES)) {
+    const page = loadInstitutionalPage(name);
+    assert.ok(page.title.length > 0, name);
+    assert.ok(page.crumb.length > 0, name);
+  }
+  assert.equal(loadInstitutionalPage('sobre').ideas.items.length, 3);
+  assert.equal(loadInstitutionalPage('campus').spaces.length, 4);
+  const vida = loadInstitutionalPage('vida-academica');
+  assert.equal(vida.items.length, 3);
+  assert.equal(vida.articles.ids.length, 3);
+  assert.throws(() => loadInstitutionalPage('pagina-que-nao-existe'), /Página sem forma declarada/);
+});
+
+test('os artigos em destaque existem no catálogo', async () => {
+  // O conteúdo escolhe os artigos pelo id. Um id errado tem de ser um erro de
+  // build, não uma grelha com menos cartões do que o esperado.
+  const {articles} = await import('../src/data.mjs');
+  const ids = new Set(articles.map(a => a.id));
+  for (const id of loadInstitutionalPage('vida-academica').articles.ids) assert.ok(ids.has(id), id);
 });
