@@ -192,3 +192,63 @@ export function loadSite() {
     },
   };
 }
+
+/**
+ * Ligação para fora do site: só https, sem credenciais.
+ *
+ * O site é de uma instituição, e um recurso externo — a agência de bolsas do
+ * país, por exemplo — muda de escola para escola. É a única excepção a
+ * `internalUrl()`, e é explícita: aparece num bloco `resources`, nunca numa
+ * ligação de navegação.
+ */
+export function externalUrl(value, caminho) {
+  text(value, caminho);
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw Error('Ligação externa inválida em ' + caminho + ': ' + value);
+  }
+  if (url.protocol !== 'https:' || url.username || url.password) throw Error('Ligação externa inválida em ' + caminho + ': ' + value);
+  return value;
+}
+
+/** Páginas de serviço com a mesma forma: cabeçalho, três cartões e uma acção. */
+export function loadSimplePages() {
+  const raw = loadContent('simple-pages');
+  return {
+    inlineCta: text(raw.inlineCta, 'simple-pages.inlineCta'),
+    pages: list(raw.pages, 'simple-pages.pages').map((page, i) => {
+      const base = `simple-pages.pages[${i}]`;
+      const resources = page.resources;
+      return {
+        url: internalUrl(page.url, base + '.url'),
+        title: text(page.title, base + '.title'),
+        eyebrow: text(page.eyebrow, base + '.eyebrow'),
+        headline: lines(page.headline, base + '.headline'),
+        description: text(page.description, base + '.description'),
+        sectionTitle: text(page.sectionTitle, base + '.sectionTitle'),
+        items: list(page.items, base + '.items').map((item, j) => ({
+          title: text(item?.title, `${base}.items[${j}].title`),
+          text: text(item?.text, `${base}.items[${j}].text`),
+        })),
+        action: {
+          url: internalUrl(page.action?.url, base + '.action.url'),
+          label: text(page.action?.label, base + '.action.label'),
+        },
+        resources: resources === undefined ? null : {
+          secondary: {
+            url: internalUrl(resources.secondary?.url, base + '.resources.secondary.url'),
+            label: text(resources.secondary?.label, base + '.resources.secondary.label'),
+          },
+          prefix: text(resources.prefix, base + '.resources.prefix'),
+          links: list(resources.links, base + '.resources.links').map((link, j) => ({
+            url: externalUrl(link?.url, `${base}.resources.links[${j}].url`),
+            label: text(link?.label, `${base}.resources.links[${j}].label`),
+          })),
+          notice: text(resources.notice, base + '.resources.notice'),
+        },
+      };
+    }),
+  };
+}

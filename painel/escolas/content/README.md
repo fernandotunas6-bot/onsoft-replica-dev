@@ -10,6 +10,7 @@ textos, os rótulos e as ligações. Editar aqui não exige tocar em código.
 | `header.json` | Barra superior, ligação para a página da instituição, pesquisa e botão do portal. |
 | `footer.json` | Assinatura, colunas de ligações, aviso de versão demonstrativa e barra legal. |
 | `site.json` | Blocos repetidos em todas as páginas: metadados, aviso padrão e chamada final. |
+| `simple-pages.json` | As cinco páginas de serviço (secretaria, apoio, carreiras, investigação, bolsas). |
 
 A identidade da escola — nome, país, idioma, moeda — **não** está aqui: está
 em `../school.config.json`, porque é configuração do cliente e não texto
@@ -33,6 +34,10 @@ quebra a linha entre cada uma.
 `internalUrl()` recusa `https://…`, `//…` e `javascript:…`. Uma ligação para
 fora não se disfarça de página interna. `"external": true` acrescenta a seta
 de saída ao rótulo.
+
+A única saída do site é o bloco `resources` de uma página, onde `externalUrl()`
+aceita `https://` sem credenciais — a agência de bolsas do país é conteúdo da
+escola, não uma excepção escrita no gerador.
 
 ## O nome da escola dentro do texto
 

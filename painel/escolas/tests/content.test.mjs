@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, loadNavigation, loadHeader, loadFooter, loadSite} from '../scripts/content.mjs';
+import {loadContent, text, internalUrl, list, flag, emphasis, lines, renderHeadline, externalUrl, loadNavigation, loadHeader, loadFooter, loadSite, loadSimplePages} from '../scripts/content.mjs';
 import {resolveSchool, createBrand} from '../scripts/school.mjs';
 
 test('uma chave em falta é um erro, não uma página com um buraco', () => {
@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -114,4 +114,28 @@ test('os blocos comuns a todas as páginas passam a validação', () => {
   assert.ok(site.cta.title.length >= 1);
   assert.ok(site.cta.primary.url.startsWith('/'));
   assert.ok(site.cta.secondary.url.startsWith('/'));
+});
+
+test('externalUrl é a única saída do site, e é estreita', () => {
+  assert.equal(externalUrl('https://www.inagbe.gov.ao/', 'r.url'), 'https://www.inagbe.gov.ao/');
+  assert.equal(externalUrl('https://exemplo.ao/bolsas?ano=2026', 'r.url'), 'https://exemplo.ao/bolsas?ano=2026');
+  for (const value of ['http://exemplo.ao/', 'javascript:alert(1)', 'https://u:p@exemplo.ao/', '/bolsas/', 'exemplo.ao']) {
+    assert.throws(() => externalUrl(value, 'r.url'), /r\.url/, JSON.stringify(value));
+  }
+});
+
+test('as páginas de serviço publicadas passam a validação', () => {
+  const {inlineCta, pages} = loadSimplePages();
+  assert.ok(inlineCta.length > 0);
+  assert.equal(pages.length, 5);
+  for (const page of pages) {
+    assert.ok(page.url.startsWith('/'));
+    assert.ok(page.headline.length >= 1);
+    assert.equal(page.items.length, 3);
+    assert.ok(page.action.url.startsWith('/'));
+  }
+  // O bloco de recursos é opcional: só a página de bolsas o traz.
+  const comRecursos = pages.filter(p => p.resources);
+  assert.equal(comRecursos.length, 1);
+  assert.equal(comRecursos[0].resources.links.every(l => l.url.startsWith('https://')), true);
 });
