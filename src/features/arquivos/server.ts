@@ -188,6 +188,8 @@ export async function assertFileRefsInSchool(
   schoolId: string,
   refs: {
     parentId?: string | null;
+    parentArea?: SchoolFileRecord["area"];
+    parentOwnerUserId?: string;
     classGroupId?: string | null;
     relatedPersonId?: string | null;
     relatedUserId?: string | null;
@@ -198,14 +200,18 @@ export async function assertFileRefsInSchool(
     checks.push({
       message: "A pasta escolhida não existe nesta escola.",
       ok: async () => {
-        const { data } = await db
+        let parentQuery = db
           .from("siga_files")
           .select("id, is_folder")
           .eq("id", refs.parentId!)
           .eq("school_id", schoolId)
-          .is("deleted_at", null)
-          .maybeSingle();
-        return Boolean(data?.is_folder);
+          .is("deleted_at", null);
+        if (refs.parentArea) parentQuery = parentQuery.eq("area", refs.parentArea);
+        if (refs.parentArea === "pessoal" && refs.parentOwnerUserId) {
+          parentQuery = parentQuery.eq("owner_user_id", refs.parentOwnerUserId);
+        }
+        const { data, error } = await parentQuery.maybeSingle();
+        return !error && Boolean(data?.is_folder);
       },
     });
   }
@@ -668,6 +674,8 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       try {
         await assertFileRefsInSchool(db, membership.schoolId, {
           parentId: data.parentId,
+          parentArea: data.area,
+          parentOwnerUserId: userId,
           classGroupId: data.classGroupId,
           relatedPersonId: data.relatedPersonId,
           relatedUserId: data.relatedUserId?.trim() || null,
@@ -683,6 +691,8 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     } else {
       await assertFileRefsInSchool(db, membership.schoolId, {
         parentId: data.parentId,
+        parentArea: data.area,
+        parentOwnerUserId: userId,
         classGroupId: data.classGroupId,
         relatedPersonId: data.relatedPersonId,
         relatedUserId: data.relatedUserId?.trim() || null,
@@ -787,7 +797,11 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
       throw new Error("Sem permissão para criar pastas nesta área.");
     }
     const db = await loadSgaAdminClient();
-    await assertFileRefsInSchool(db, membership.schoolId, { parentId: data.parentId });
+    await assertFileRefsInSchool(db, membership.schoolId, {
+      parentId: data.parentId,
+      parentArea: data.area,
+      parentOwnerUserId: userId,
+    });
     const now = new Date().toISOString();
     const payload = {
       id: data.id,
