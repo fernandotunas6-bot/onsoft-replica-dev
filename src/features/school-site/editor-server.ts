@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireSgaWriterFor, requireSgaWriterForWrite } from "@/integrations/supabase/sga-admin";
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { requireSchoolSitesEnabled } from "./feature-gate";
 import { appendSchoolSiteVersion, latestSchoolSiteRow } from "./persistence";
 import {
   defaultSchoolSiteSettings,
@@ -35,6 +36,7 @@ export const getSchoolSiteEditor = createServerFn({ method: "GET" })
       version: number;
       settings: SchoolSiteSettings;
     }> => {
+      requireSchoolSitesEnabled();
       const membership = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
         "Administrador",
       ]);
@@ -58,6 +60,7 @@ export const saveSchoolSiteDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolSiteSaveInputSchema.parse(input))
   .handler(async ({ context, data }) => {
+    requireSchoolSitesEnabled();
     const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
@@ -79,6 +82,7 @@ export const publishSchoolSite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => schoolSitePublishInputSchema.parse(input))
   .handler(async ({ context, data }) => {
+    requireSchoolSitesEnabled();
     const membership = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
