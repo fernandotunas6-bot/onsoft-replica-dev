@@ -100,7 +100,7 @@ A suite valida seis larguras de ecrã (320, 390, 768, 1024, 1440, 1920), navega�
 1. Suspender promoção do deployment.
 2. Restaurar deployment anterior do Worker SIGA pelo processo CI existente.
 3. **Não eliminar** `school_settings` nem `tenant_domains`; preservar rascunhos e snapshots. Manter a política SELECT restritiva mesmo que o website seja desactivado, para não expor rascunhos existentes.
-4. Se a indisponibilidade for específica de um website, remover a publicação no serviço autorizado (operação de despublicação futura com auditoria); não manipular diretamente linhas SQL em produção sem revisão.
+4. Se a indisponibilidade for específica do website, entrar como Administrador com MFA em `/configuracoes/site`, escolher **Retirar website do ar** e confirmar. A operação cria uma nova versão `published: null`, mantém o rascunho e o histórico, e a API pública passa a responder indisponível. Não manipular directamente linhas SQL em produção sem revisão.
 5. Revalidar portal `/`, auth MFA, arquivos, financeiro e rotas PayFlow.
 6. Documentar ocorrência, escopo e escolas afectadas.
 
