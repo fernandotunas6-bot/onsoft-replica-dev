@@ -3,6 +3,7 @@ import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import type { ExistingSchoolFileLocation } from "./find-existing";
 import { fileMatchesRequest } from "./file-request";
 import { assertUploadedSchoolFileMatches } from "./upload-verification";
+import { isMatchingRegisteredUpload } from "./upload-recovery";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -769,6 +770,28 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
         row = mid.data as Record<string, unknown>;
       }
     } else if (first.error) {
+      if (first.error.code === "23505" && data.storageBackend === "sga") {
+        // O INSERT pode ter sido concluído no servidor antes de a resposta
+        // anterior se perder. Nunca substituir um ID com dados divergentes.
+        const previous = await db
+          .from("siga_files")
+          .select(FILE_SELECT)
+          .eq("id", data.id)
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        if (
+          previous.error ||
+          !isMatchingRegisteredUpload(previous.data as Record<string, unknown> | null, {
+            ...data,
+            schoolId: membership.schoolId,
+            ownerUserId: userId,
+          })
+        ) {
+          throw new Error("O identificador do upload já está associado a outro registo.");
+        }
+        return { storage: "sga" as const, record: mapRow(previous.data as Record<string, unknown>) };
+      }
       if (missingFilesTable(first.error)) return { storage: "local" as const, record: null };
       throw publicDatabaseError(first.error, "Não foi possível registar o ficheiro.");
     } else {
