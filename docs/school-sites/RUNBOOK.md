@@ -48,7 +48,17 @@ GROUP BY domain ORDER BY domain;
 
 Exigir revisão manual de `tenant_domains` e do certificado HTTPS do canário antes do deploy.
 
-## 4. Ensaio v1
+## 4. Bloqueio RLS e ordem de activação
+
+**Migração obrigatória ainda não aplicada em produção:** `supabase/migrations/20261020213000_school_website_draft_read_guard.sql`. A política actual de SELECT em `school_settings` é apenas `settings_select_member`: isso inclui alunos e encarregados, pelo que gravar dados editoriais antes da migração exporia rascunhos pela API direct Supabase, apesar do site público esconder esses dados.
+
+1. Rever migração com o snapshot e o DB real, testar duas vezes a idempotência em **staging** com contas de Administrador, Secretaria, Professor, Aluno e Encarregado.
+2. Verificar que o administrador da escola ainda lê e grava o domínio `school_website`, e alunos/encarregados **não** conseguem ler nenhuma versão dele.
+3. Verificar que todos os utilizadores continuam a ler os outros domínios que lhes eram acessíveis antes, sem regressões.
+4. Aplicar à produção **apenas com autorização específica e backup**, antes de activar as novas rotas. Não aplicar automaticamente a partir desta PR.
+5. Depois executar ensaio do website e validar TLS/hostnames; se falhar, não activar a publicação.
+
+## 5. Ensaio v1
 
 1. Admin MFA entra em `/configuracoes/boas-vindas` e segue **Configurar website**.
 2. O editor abre com default mas a API pública `/api/public/school-site` devolve 404.
@@ -75,7 +85,7 @@ bunx playwright test tests/e2e/school-site-visual.spec.ts
 
 A suite valida seis larguras de ecrã (320, 390, 768, 1024, 1440, 1920), navegação para o Portal Escolar, estrutura institucional, scroll horizontal, ausência de rascunhos e movimento reduzido. **Não demonstra pixel-parity com ISPAB** nem substitui ensaios com DNS/TLS, sessão real do administrador ou sandbox de publicação.
 
-## 5. Rollout
+## 6. Rollout
 
 - Nunca executar `supabase db push` ou migrações `drizzle/` na base SGA.
 - PR submetida à revisão e CI completamente verde.
@@ -84,11 +94,11 @@ A suite valida seis larguras de ecrã (320, 390, 768, 1024, 1440, 1920), navega�
 - URLs `/` e callbacks auth existentes continuam intactos.
 - Rever CSP, imagens remotas, privacidade dos contactos, analytics e SEO antes da disponibilização pública ampla.
 
-## 6. Rollback
+## 7. Rollback
 
 1. Suspender promoção do deployment.
 2. Restaurar deployment anterior do Worker SIGA pelo processo CI existente.
-3. **Não eliminar** `school_settings` nem `tenant_domains`; preservar rascunhos publicados para migração.
+3. **Não eliminar** `school_settings` nem `tenant_domains`; preservar rascunhos e snapshots. Manter a política SELECT restritiva mesmo que o website seja desactivado, para não expor rascunhos existentes.
 4. Se a indisponibilidade for específica de um website, remover a publicação no serviço autorizado (operação de despublicação futura com auditoria); não manipular diretamente linhas SQL em produção sem revisão.
 5. Revalidar portal `/`, auth MFA, arquivos, financeiro e rotas PayFlow.
 6. Documentar ocorrência, escopo e escolas afectadas.
