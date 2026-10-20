@@ -62,7 +62,13 @@ async function contar(
  */
 export async function findProvisioningGaps(
   db: unknown,
-  ids: { tenantId: string; schoolId: string; adminUserId: string },
+  ids: {
+    tenantId: string;
+    schoolId: string;
+    adminUserId: string;
+    adminMembershipId: string;
+    adminRoleId: string;
+  },
 ): Promise<ProvisioningGap[]> {
   const client = db as Db;
   const gaps: ProvisioningGap[] = [];
@@ -99,20 +105,32 @@ export async function findProvisioningGaps(
       filters: [
         ["school_id", ids.schoolId],
         ["user_id", ids.adminUserId],
+        ["status", "active"],
       ],
     },
     {
       peca: "papel atribuído",
       detalhe: "sem member_roles a conta não tem permissões na escola",
       table: "member_roles",
-      filters: [["school_id", ids.schoolId]],
+      // É o vínculo e papel do administrador recém-criado, não qualquer
+      // professor/aluno que a escola possa ter entretanto.
+      filters: [
+        ["school_id", ids.schoolId],
+        ["membership_id", ids.adminMembershipId],
+        ["role_id", ids.adminRoleId],
+      ],
     },
     {
       peca: "permissões dos papéis",
       detalhe:
         "sem role_permissions o administrador entra e não consegue gravar nada (has_permission falha)",
       table: "role_permissions",
-      filters: [["school_id", ids.schoolId]],
+      // O bootstrap pode ter permissões noutros papéis, mas isso não dá
+      // ao administrador recém-criado autorização para configurar a escola.
+      filters: [
+        ["school_id", ids.schoolId],
+        ["role_id", ids.adminRoleId],
+      ],
     },
     {
       peca: "papéis da escola",
