@@ -4,8 +4,14 @@ import { describe, expect, it } from "vitest";
 
 const server = readFileSync(resolve(process.cwd(), "src/features/arquivos/server.ts"), "utf8");
 const files = readFileSync(resolve(process.cwd(), "src/features/arquivos/FileBrowser.tsx"), "utf8");
-const grid = readFileSync(resolve(process.cwd(), "src/features/arquivos/FileBrowserGrid.tsx"), "utf8");
-const table = readFileSync(resolve(process.cwd(), "src/features/arquivos/FileBrowserTable.tsx"), "utf8");
+const grid = readFileSync(
+  resolve(process.cwd(), "src/features/arquivos/FileBrowserGrid.tsx"),
+  "utf8",
+);
+const table = readFileSync(
+  resolve(process.cwd(), "src/features/arquivos/FileBrowserTable.tsx"),
+  "utf8",
+);
 
 describe("contrato central de arquivos: limites de segurança", () => {
   it("revalida escola, visibilidade e finalidade sem revelar caminho ou URL", () => {
