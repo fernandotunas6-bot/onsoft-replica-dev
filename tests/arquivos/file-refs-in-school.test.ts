@@ -10,7 +10,14 @@ const SCHOOL = "school-a";
 type Row = Record<string, unknown> & { school_id: string };
 const tables: Record<string, Row[]> = {
   siga_files: [
-    { id: "pasta-a", school_id: SCHOOL, is_folder: true, deleted_at: null },
+    {
+      id: "pasta-a",
+      school_id: SCHOOL,
+      is_folder: true,
+      area: "secretaria",
+      owner_user_id: "conta-a",
+      deleted_at: null,
+    },
     { id: "ficheiro-a", school_id: SCHOOL, is_folder: false, deleted_at: null },
     { id: "pasta-b", school_id: "school-b", is_folder: true, deleted_at: null },
   ],
@@ -79,6 +86,22 @@ describe("referências de um ficheiro", () => {
     await expect(
       assertFileRefsInSchool(fakeDb(), SCHOOL, { relatedUserId: "conta-b" }),
     ).rejects.toThrow(/conta/);
+  });
+
+  it("impede colocar ficheiros na área errada e usar pastas pessoais de outros", async () => {
+    await expect(
+      assertFileRefsInSchool(fakeDb(), SCHOOL, {
+        parentId: "pasta-a",
+        parentArea: "secretaria",
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      assertFileRefsInSchool(fakeDb(), SCHOOL, {
+        parentId: "pasta-a",
+        parentArea: "pessoal",
+        parentOwnerUserId: "conta-a",
+      }),
+    ).rejects.toThrow(/pasta/);
   });
 
   it("a pasta-mãe tem de ser uma pasta", async () => {
