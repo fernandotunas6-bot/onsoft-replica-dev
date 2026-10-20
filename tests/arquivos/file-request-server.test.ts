@@ -104,6 +104,20 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(fn).toContain("else if (!changed)");
   });
 
+  it("fallback de consulta preserva sempre os atributos críticos de autorização", () => {
+    for (const constant of ["FILE_SELECT_CLASS", "FILE_SELECT_BASIC"]) {
+      const select = server.match(new RegExp(`const ${constant} =\\s*"(.*?)"`))?.[1];
+      expect(select).toBeDefined();
+      for (const name of ["is_system", "is_folder", "related_user_id", "storage_backend"]) {
+        expect(select?.split(", ")).toContain(name);
+      }
+    }
+    const singleStart = server.indexOf("export const signSchoolFile = createServerFn");
+    const bulkStart = server.indexOf("export const signSchoolFiles = createServerFn");
+    expect(server.slice(singleStart, bulkStart)).toContain("mapped.isFolder");
+    expect(server.slice(bulkStart)).toContain("!file.isFolder");
+  });
+
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
     expect(files).toContain('"list",\n      account.schoolId');
     expect(files).toContain("account.id,\n      account.role");
