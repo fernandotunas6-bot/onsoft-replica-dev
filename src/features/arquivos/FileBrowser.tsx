@@ -751,6 +751,11 @@ export function FileBrowser({
           schoolId,
           area: targetArea,
           ownerUserId: account.id,
+          parentId: targetFolderId,
+          classGroupId: activeClassId ?? null,
+          relatedPersonId: meta.relatedPersonId ?? null,
+          relatedUserId: meta.relatedUserId || account.id,
+          visibility: meta.visibility,
           storagePath: localStoragePath({
             schoolId,
             area: targetArea,
