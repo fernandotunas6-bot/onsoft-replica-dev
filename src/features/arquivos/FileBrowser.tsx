@@ -936,17 +936,6 @@ export function FileBrowser({
     const target = organizeTarget;
     setOrganizeTarget(null);
     try {
-      await patchLocalFileMeta(target.id, {
-        area: meta.area,
-        visibility: meta.visibility,
-        title: meta.title ?? target.name,
-        description: meta.description || null,
-        category: meta.category ?? "outro",
-        documentDate: meta.documentDate || null,
-        referenceCode: meta.referenceCode || null,
-        relatedUserId: meta.relatedUserId ?? null,
-        relatedPersonId: meta.relatedPersonId ?? null,
-      }, localFileViewer);
       const result = await updateSchoolFileMeta({
         data: {
           id: target.id,
@@ -961,6 +950,21 @@ export function FileBrowser({
           area: meta.area,
         },
       });
+      await patchLocalFileMeta(
+        target.id,
+        {
+          area: meta.area,
+          visibility: meta.visibility,
+          title: meta.title ?? target.name,
+          description: meta.description || null,
+          category: meta.category ?? "outro",
+          documentDate: meta.documentDate || null,
+          referenceCode: meta.referenceCode || null,
+          relatedUserId: meta.relatedUserId ?? null,
+          relatedPersonId: meta.relatedPersonId ?? null,
+        },
+        localFileViewer,
+      );
       if (meta.area !== area) setArea(meta.area);
       if (
         meta.category === "foto" &&
@@ -1004,11 +1008,8 @@ export function FileBrowser({
       return;
     }
     try {
-      await deleteLocalFile(selected.id, {
-        schoolId: account.schoolId,
-        ownerUserId: account.id,
-      });
       await deleteSchoolFile({ data: { id: selected.id } });
+      await deleteLocalFile(selected.id, localFileViewer);
       setSelectedId(null);
       toast.success("Ficheiro removido");
       await refresh();
@@ -1024,12 +1025,8 @@ export function FileBrowser({
     const next = window.prompt("Novo nome do ficheiro", selected.name)?.trim();
     if (!next || next === selected.name) return;
     try {
-      await patchLocalFileMeta(
-        selected.id,
-        { name: next },
-        localFileViewer,
-      );
       const result = await renameSchoolFile({ data: { id: selected.id, name: next } });
+      await patchLocalFileMeta(selected.id, { name: next }, localFileViewer);
       toast[result.localOnly ? "message" : "success"](
         result.localOnly ? "Renomeado neste dispositivo" : "Ficheiro renomeado",
       );
@@ -1044,14 +1041,10 @@ export function FileBrowser({
   const changeVisibility = async (visibility: SchoolFileRecord["visibility"]) => {
     if (!selected || myAccess === "view") return;
     try {
-      await patchLocalFileMeta(
-        selected.id,
-        { visibility },
-        localFileViewer,
-      );
       const result = await setSchoolFileVisibility({
         data: { id: selected.id, visibility },
       });
+      await patchLocalFileMeta(selected.id, { visibility }, localFileViewer);
       if (result.localOnly) {
         toast.message("Nível guardado neste dispositivo", {
           description: "Aplique o SQL premium para sincronizar a auditoria na escola.",
