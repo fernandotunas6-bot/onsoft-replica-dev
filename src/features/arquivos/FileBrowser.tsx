@@ -835,27 +835,32 @@ export function FileBrowser({
             viewer: localFileViewer,
           });
         }
-        const registered = await registerSchoolFile({
-          data: {
-            id,
-            name: record.name,
-            mime: record.mime,
-            sizeBytes: record.sizeBytes,
-            area: record.area,
-            visibility: record.visibility,
-            storagePath: record.storagePath,
-            storageBackend: backend,
-            classGroupId: activeClassId,
-            parentId: targetFolderId,
-            title: record.title ?? undefined,
-            description: record.description ?? undefined,
-            category: record.category ?? undefined,
-            documentDate: record.documentDate ?? undefined,
-            referenceCode: record.referenceCode ?? undefined,
-            relatedUserId: record.relatedUserId,
-            relatedPersonId: record.relatedPersonId,
-          },
-        });
+        // Offline mantém metadados e blob apenas no IndexedDB do utilizador.
+        // Só pedidos cujo blob existe no Storage podem criar registos partilháveis.
+        const registered =
+          backend === "local"
+            ? { storage: "local" as const, record: null }
+            : await registerSchoolFile({
+              data: {
+                id,
+                name: record.name,
+                mime: record.mime,
+                sizeBytes: record.sizeBytes,
+                area: record.area,
+                visibility: record.visibility,
+                storagePath: record.storagePath,
+                storageBackend: backend,
+                classGroupId: activeClassId,
+                parentId: targetFolderId,
+                title: record.title ?? undefined,
+                description: record.description ?? undefined,
+                category: record.category ?? undefined,
+                documentDate: record.documentDate ?? undefined,
+                referenceCode: record.referenceCode ?? undefined,
+                relatedUserId: record.relatedUserId,
+                relatedPersonId: record.relatedPersonId,
+              },
+            });
         assertVerifiedSchoolStorage(
           { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
           backend,
