@@ -60,7 +60,12 @@ export function fileMatchesRequest(
   }
 
   if (request.purpose === "finance-document") {
-    return file.category === "fatura" || file.category === "recibo" || file.category === "talao";
+    // Os comprovativos institucionais são arquivados na Secretaria ou na Escola.
+    // A categoria, isoladamente, não autoriza um documento da pasta pessoal.
+    return (
+      (file.area === "secretaria" || file.area === "escola") &&
+      (file.category === "fatura" || file.category === "recibo" || file.category === "talao")
+    );
   }
   return false;
 }
