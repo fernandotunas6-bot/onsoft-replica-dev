@@ -498,113 +498,113 @@ export function FileUploadInquiryModal({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="file-meta-date">
-                {isPhotoCategory ? "Data da foto" : "Data do documento"}
-              </Label>
-              <Input
-                id="file-meta-date"
-                type="date"
-                value={documentDate}
-                onChange={(event) => setDocumentDate(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="file-meta-ref">ID do documento</Label>
-              <Input
-                id="file-meta-ref"
-                value={referenceCode}
-                onChange={(event) => setReferenceCode(event.target.value.toUpperCase())}
-                placeholder={documentCodeSearchHint()}
-                maxLength={40}
-                className="font-mono text-sm"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                ID gerado automaticamente.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-visibility">Nível de acesso</Label>
-            <select
-              id="file-meta-visibility"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={visibility}
-              disabled={lockRelatedPerson}
-              onChange={(event) =>
-                setVisibility(event.target.value as SchoolFileRecord["visibility"])
-              }
-            >
-              {fileVisibilityOptions.map((value) => (
-                <option key={value} value={value}>
-                  {fileVisibilityMeta[value].label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-user">
-              Utilizador relacionado <span className="text-destructive">*</span>
-            </Label>
-            <select
-              id="file-meta-user"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={relatedUserId}
-              onChange={(event) => {
-                setRelatedUserId(event.target.value);
-                setFormError(null);
-              }}
-            >
-              <option value="">Seleccione a conta SIGA…</option>
-              {(usersQuery.data?.users ?? []).map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                  {user.id === currentUserId ? " (eu)" : ""}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-muted-foreground">
-              Conta predefinida: a sua.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-person-q">
-              {isPhotoCategory ? "Aluno (obrigatório)" : "Relacionar a pessoa (registo)"}
-            </Label>
-            <Input
-              id="file-meta-person-q"
-              value={personQuery}
-              onChange={(event) => setPersonQuery(event.target.value)}
-              placeholder={
-                isPhotoCategory
-                  ? "Procurar por nome ou nº de processo…"
-                  : "Procurar aluno, encarregado, docente…"
-              }
-            />
-            <select
-              className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={relatedPersonId}
-              disabled={lockRelatedPerson}
-              onChange={(event) => {
-                setRelatedPersonId(event.target.value);
-                setFormError(null);
-              }}
-              aria-label={isPhotoCategory ? "Aluno relacionado" : "Pessoa relacionada"}
-            >
-              <option value="">{isPhotoCategory ? "Seleccione o aluno…" : "Nenhuma"}</option>
-              {isPhotoCategory
-                ? (studentsQuery.data?.students ?? []).map((student) => (
-                    <option key={student.personId} value={student.personId}>
-                      {student.name}
-                      {student.registrationNumber ? ` · ${student.registrationNumber}` : ""}
-                    </option>
-                  ))
-                : (peopleQuery.data?.people ?? []).map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.name}
-                      {person.email ? ` · ${person.email}` : ""}
+                    {isPhotoCategory ? "Data da foto" : "Data do documento"}
+                  </Label>
+                  <Input
+                    id="file-meta-date"
+                    type="date"
+                    value={documentDate}
+                    onChange={(event) => setDocumentDate(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="file-meta-ref">ID do documento</Label>
+                  <Input
+                    id="file-meta-ref"
+                    value={referenceCode}
+                    onChange={(event) => setReferenceCode(event.target.value.toUpperCase())}
+                    placeholder={documentCodeSearchHint()}
+                    maxLength={40}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    ID gerado automaticamente.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-visibility">Nível de acesso</Label>
+                <select
+                  id="file-meta-visibility"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={visibility}
+                  disabled={lockRelatedPerson}
+                  onChange={(event) =>
+                    setVisibility(event.target.value as SchoolFileRecord["visibility"])
+                  }
+                >
+                  {fileVisibilityOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {fileVisibilityMeta[value].label}
                     </option>
                   ))}
-            </select>
-          </div>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-user">
+                  Utilizador relacionado <span className="text-destructive">*</span>
+                </Label>
+                <select
+                  id="file-meta-user"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={relatedUserId}
+                  onChange={(event) => {
+                    setRelatedUserId(event.target.value);
+                    setFormError(null);
+                  }}
+                >
+                  <option value="">Seleccione a conta SIGA…</option>
+                  {(usersQuery.data?.users ?? []).map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                      {user.id === currentUserId ? " (eu)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">
+                  Conta predefinida: a sua.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-person-q">
+                  {isPhotoCategory ? "Aluno (obrigatório)" : "Relacionar a pessoa (registo)"}
+                </Label>
+                <Input
+                  id="file-meta-person-q"
+                  value={personQuery}
+                  onChange={(event) => setPersonQuery(event.target.value)}
+                  placeholder={
+                    isPhotoCategory
+                      ? "Procurar por nome ou nº de processo…"
+                      : "Procurar aluno, encarregado, docente…"
+                  }
+                />
+                <select
+                  className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={relatedPersonId}
+                  disabled={lockRelatedPerson}
+                  onChange={(event) => {
+                    setRelatedPersonId(event.target.value);
+                    setFormError(null);
+                  }}
+                  aria-label={isPhotoCategory ? "Aluno relacionado" : "Pessoa relacionada"}
+                >
+                  <option value="">{isPhotoCategory ? "Seleccione o aluno…" : "Nenhuma"}</option>
+                  {isPhotoCategory
+                    ? (studentsQuery.data?.students ?? []).map((student) => (
+                        <option key={student.personId} value={student.personId}>
+                          {student.name}
+                          {student.registrationNumber ? ` · ${student.registrationNumber}` : ""}
+                        </option>
+                      ))
+                    : (peopleQuery.data?.people ?? []).map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                          {person.email ? ` · ${person.email}` : ""}
+                        </option>
+                      ))}
+                </select>
+              </div>
             </div>
           </details>
           {isPhotoCategory ? (
