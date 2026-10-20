@@ -586,7 +586,7 @@ BEGIN
         USING ERRCODE = '42501';
     END IF;
 
-    SELECT pg_catalog.coalesce(pg_catalog.array_agg(DISTINCT id ORDER BY id), ARRAY[]::uuid[])
+    SELECT COALESCE(pg_catalog.array_agg(DISTINCT id ORDER BY id), ARRAY[]::uuid[])
       INTO supplied_user_ids
     FROM pg_catalog.unnest(p_recipient_user_ids) AS candidates(id);
 
@@ -610,7 +610,7 @@ BEGIN
       WHERE g.valid_from <= p_service_date
         AND (g.valid_until IS NULL OR g.valid_until >= p_service_date)
     )
-    SELECT pg_catalog.coalesce(
+    SELECT COALESCE(
       pg_catalog.array_agg(DISTINCT p.user_id ORDER BY p.user_id), ARRAY[]::uuid[]
     ) INTO expected_user_ids
     FROM eligible_people AS e
