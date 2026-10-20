@@ -1,0 +1,37 @@
+name: School sites quality formatting (temporary)
+on:
+  push:
+    branches: [feat/school-sites-multitenant-20261020]
+    paths: [".github/workflows/_school-sites-quality-temp.yml"]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Formatar apenas as alterações school-sites
+        run: |
+          bunx prettier --write \
+            src/features/school/settings-domains.ts \
+            src/routes/site.tsx \
+            tests/school-website/public-site-isolation.test.ts \
+            tests/security/rls-client-migration.test.ts
+      - name: Verificar ficheiro original intacto
+        run: git diff --exit-code -- painel/escolas/
+      - name: Commit de formatação
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/school/settings-domains.ts src/routes/site.tsx tests/school-website/public-site-isolation.test.ts tests/security/rls-client-migration.test.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "style(school-sites): corrigir formatação conforme Prettier do projecto"
+            git fetch origin feat/school-sites-multitenant-20261020
+            git rebase origin/feat/school-sites-multitenant-20261020
+            git push origin HEAD:feat/school-sites-multitenant-20261020
+          fi
