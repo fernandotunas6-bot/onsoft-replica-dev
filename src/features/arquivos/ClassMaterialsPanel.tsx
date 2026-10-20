@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { sqlApplyHint } from "@/lib/sql-doc-hint";
 import { PickFileButton } from "./PickFileButton";
 import { canAccessFileContent, formatFileSize } from "./kinds";
-import { listLocalFiles, patchLocalFileMeta } from "./local-store";
+import { listLocalFiles, patchLocalFileMeta, type LocalFileViewer } from "./local-store";
 import { resolveFileBlob, resolveFileUrl } from "./resolve-file";
 import type { SchoolFileRecord } from "./schemas";
 import { schoolFileShareText } from "./share-text";
@@ -22,8 +22,8 @@ export { schoolFileShareText } from "./share-text";
 const SYSTEM_LOCKED_MSG =
   "Ficheiro do sistema — visível, mas o conteúdo está oculto sem permissão.";
 
-async function downloadRecord(file: SchoolFileRecord) {
-  const blob = await resolveFileBlob(file);
+async function downloadRecord(file: SchoolFileRecord, viewer: LocalFileViewer) {
+  const blob = await resolveFileBlob(file, viewer);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -42,6 +42,7 @@ export function ClassMaterialsPanel({
   className?: string;
 }) {
   const account = useCurrentAccount();
+  const viewer = { schoolId: account.schoolId, ownerUserId: account.id };
   const queryClient = useQueryClient();
   const installed = useInstalledIntegrations();
   const canManage = canWriteModule(account.role, "arquivos");
@@ -87,10 +88,10 @@ export function ClassMaterialsPanel({
 
   const attach = async (file: SchoolFileRecord) => {
     try {
-      await patchLocalFileMeta(file.id, { classGroupId });
       const result = await linkSchoolFileToClass({
         data: { id: file.id, classGroupId },
       });
+      await patchLocalFileMeta(file.id, { classGroupId }, viewer);
       if (result.localOnly) {
         toast.message("Ligado neste dispositivo", {
           description: sqlApplyHint("premium"),
@@ -108,8 +109,8 @@ export function ClassMaterialsPanel({
 
   const detach = async (file: SchoolFileRecord) => {
     try {
-      await patchLocalFileMeta(file.id, { classGroupId: null });
       await linkSchoolFileToClass({ data: { id: file.id, classGroupId: null } });
+      await patchLocalFileMeta(file.id, { classGroupId: null }, viewer);
       toast.success("Material removido da turma");
       await refresh();
     } catch (error) {
@@ -176,7 +177,7 @@ export function ClassMaterialsPanel({
                       toast.error(SYSTEM_LOCKED_MSG);
                       return;
                     }
-                    void resolveFileUrl(file)
+                    void resolveFileUrl(file, viewer)
                       .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
                       .catch((error: Error) => toast.error(error.message));
                   }}
@@ -225,7 +226,7 @@ export function ClassMaterialsPanel({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void downloadRecord(file).catch((error: Error) => toast.error(error.message));
+                      void downloadRecord(file, viewer).catch((error: Error) => toast.error(error.message));
                     }}
                   >
                     <Download className="size-3.5" />
