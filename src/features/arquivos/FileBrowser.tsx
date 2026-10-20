@@ -280,13 +280,13 @@ export function FileBrowser({
   }, [account.role, sortBy, viewMode]);
 
   const classesQuery = useQuery({
-    queryKey: ["arquivos", "class-options"],
+    queryKey: ["arquivos", "class-options", account.id, account.role],
     queryFn: () => listArquivosClassOptions(),
     staleTime: 60_000,
   });
 
   const usersQuery = useQuery({
-    queryKey: ["arquivos", "user-options"],
+    queryKey: ["arquivos", "user-options", account.id, account.role],
     queryFn: () => listArquivosUserOptions(),
     staleTime: 60_000,
   });
@@ -295,6 +295,8 @@ export function FileBrowser({
     queryKey: [
       "arquivos",
       "list",
+      account.id,
+      account.role,
       area,
       debouncedQuery,
       activeClassId ?? "all",
@@ -326,6 +328,8 @@ export function FileBrowser({
       "arquivos",
       "existing-preupload",
       remoteQuery.data?.schoolId,
+      account.id,
+      account.role,
       pendingFiles.map((file) => `${file.name}:${file.size}`).join("|"),
     ],
     enabled: pendingFiles.length > 0 && Boolean(remoteQuery.data?.schoolId),
@@ -347,13 +351,13 @@ export function FileBrowser({
   });
 
   const trailQuery = useQuery({
-    queryKey: ["arquivos", "trail", folderId ?? "root"],
+    queryKey: ["arquivos", "trail", account.id, account.role, folderId ?? "root"],
     queryFn: () => listFolderTrail({ data: { folderId } }),
     staleTime: 30_000,
   });
 
   const foldersQuery = useQuery({
-    queryKey: ["arquivos", "folders", area],
+    queryKey: ["arquivos", "folders", account.id, account.role, area],
     enabled: moveOpen,
     queryFn: () => listSchoolFiles({ data: { area, limit: 48 } }),
     staleTime: 15_000,
@@ -438,7 +442,14 @@ export function FileBrowser({
     [account.id, account.role, files],
   );
   const previewsQuery = useQuery({
-    queryKey: ["arquivos", "previews", imagePreviewIds.join(",")],
+    queryKey: [
+      "arquivos",
+      "previews",
+      remoteQuery.data?.schoolId,
+      account.id,
+      account.role,
+      imagePreviewIds.join(","),
+    ],
     enabled: imagePreviewIds.length > 0,
     queryFn: () => signSchoolFiles({ data: { ids: imagePreviewIds } }),
     staleTime: 5 * 60_000,
@@ -517,7 +528,7 @@ export function FileBrowser({
   }, [account.id, account.role, onPick, pickMode, selected]);
 
   const activityQuery = useQuery({
-    queryKey: ["arquivos", "activity", selected?.id],
+    queryKey: ["arquivos", "activity", account.id, account.role, selected?.id],
     enabled: Boolean(selected && detailsOpen),
     queryFn: () => listSchoolFileActivity({ data: { id: selected!.id, limit: 20 } }),
     staleTime: 15_000,
