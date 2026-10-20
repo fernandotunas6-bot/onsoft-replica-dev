@@ -19,9 +19,11 @@ export function isLocalFileOwnedByViewer(
   row: Pick<LocalMeta, "schoolId" | "ownerUserId">,
   viewer: LocalFileViewer,
 ): boolean {
-  return Boolean(viewer.schoolId && viewer.ownerUserId) &&
+  return (
+    Boolean(viewer.schoolId && viewer.ownerUserId) &&
     row.schoolId === viewer.schoolId &&
-    row.ownerUserId === viewer.ownerUserId;
+    row.ownerUserId === viewer.ownerUserId
+  );
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -172,10 +174,7 @@ export async function listLocalFiles(input: {
   }
 }
 
-export async function saveLocalFolder(
-  record: SchoolFileRecord,
-  viewer: LocalFileViewer,
-) {
+export async function saveLocalFolder(record: SchoolFileRecord, viewer: LocalFileViewer) {
   if (typeof indexedDB === "undefined") return;
   if (!isLocalFileOwnedByViewer(record, viewer)) {
     throw new Error("Não pode guardar uma pasta local de outra conta ou escola.");
@@ -248,10 +247,7 @@ export async function patchLocalFileMeta(
   db.close();
 }
 
-export async function readLocalBlob(
-  id: string,
-  viewer: LocalFileViewer,
-): Promise<Blob | null> {
+export async function readLocalBlob(id: string, viewer: LocalFileViewer): Promise<Blob | null> {
   if (typeof indexedDB === "undefined" || !viewer.schoolId || !viewer.ownerUserId) return null;
   try {
     const db = await openDb();
