@@ -84,7 +84,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
   // O molde do curso usa marcadores que o gerador resolve antes do brand().
   const locais = [...COURSE_TOKENS, ...GENERATOR_TOKENS];
   const semMarcadoresDoCurso = value => value.replace(new RegExp('\\{\\{(' + locais.join('|') + ')\\}\\}', 'g'), 'x');
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso', 'components', 'pages/artigo', 'pages/portal']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura', 'pages/curso', 'components', 'pages/artigo', 'pages/portal', 'pages/escolher-curso', 'pages/planear-custos', 'pages/preparar-candidatura', 'pages/percursos-de-ingresso', 'pages/novos-estudantes']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(semMarcadoresDoCurso(value)), name + ': ' + value);
     }
@@ -351,4 +351,31 @@ test('a moldura do portal e a ficha do artigo passam a validação', () => {
   const artigo = loadInstitutionalPage('artigo');
   assert.match(artigo.byline.datetime, /^\d{4}-\d{2}-\d{2}$/);
   assert.ok(artigo.share.link.url.startsWith('/'));
+});
+
+test('os guias passam a validação e o total de tarefas não está escrito no texto', async () => {
+  const preparar = loadInstitutionalPage('preparar-candidatura');
+  // O número de tarefas vem da lista real; o conteúdo traz só a frase.
+  assert.ok(preparar.summary.count.includes('{{TOTAL}}'));
+  assert.ok(!/\b6\b/.test(preparar.summary.count));
+  const {preparationItems} = await import('../src/admissions.mjs');
+  assert.ok(preparationItems.length >= 1);
+
+  const percursos = loadInstitutionalPage('percursos-de-ingresso');
+  assert.equal(percursos.questions.items.length, 3);
+  assert.equal(percursos.faq.items.length, 4);
+
+  const novos = loadInstitutionalPage('novos-estudantes');
+  for (const bloco of [novos.first, novos.second]) {
+    assert.equal(bloco.items.length, 3);
+    for (const item of bloco.items) assert.ok(item.link.url.startsWith('/'), item.title);
+  }
+
+  const escolher = loadInstitutionalPage('escolher-curso');
+  assert.equal(escolher.questions.items.length, 3);
+  assert.equal(escolher.steps.items.length, 3);
+
+  const custos = loadInstitutionalPage('planear-custos');
+  assert.equal(Object.keys(custos.form.fields).length, 8);
+  assert.equal(Object.keys(custos.summary.rows).length, 4);
 });
