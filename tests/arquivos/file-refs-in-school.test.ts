@@ -18,6 +18,14 @@ const tables: Record<string, Row[]> = {
       owner_user_id: "conta-a",
       deleted_at: null,
     },
+    {
+      id: "pasta-pessoal-a",
+      school_id: SCHOOL,
+      is_folder: true,
+      area: "pessoal",
+      owner_user_id: "conta-a",
+      deleted_at: null,
+    },
     { id: "ficheiro-a", school_id: SCHOOL, is_folder: false, deleted_at: null },
     { id: "pasta-b", school_id: "school-b", is_folder: true, deleted_at: null },
   ],
@@ -100,6 +108,20 @@ describe("referências de um ficheiro", () => {
         parentId: "pasta-a",
         parentArea: "pessoal",
         parentOwnerUserId: "conta-a",
+      }),
+    ).rejects.toThrow(/pasta/);
+    await expect(
+      assertFileRefsInSchool(fakeDb(), SCHOOL, {
+        parentId: "pasta-pessoal-a",
+        parentArea: "pessoal",
+        parentOwnerUserId: "conta-a",
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      assertFileRefsInSchool(fakeDb(), SCHOOL, {
+        parentId: "pasta-pessoal-a",
+        parentArea: "pessoal",
+        parentOwnerUserId: "conta-b",
       }),
     ).rejects.toThrow(/pasta/);
   });
