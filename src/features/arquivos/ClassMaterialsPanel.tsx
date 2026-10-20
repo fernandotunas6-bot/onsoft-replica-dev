@@ -226,7 +226,9 @@ export function ClassMaterialsPanel({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void downloadRecord(file, viewer).catch((error: Error) => toast.error(error.message));
+                      void downloadRecord(file, viewer).catch((error: Error) =>
+                        toast.error(error.message),
+                      );
                     }}
                   >
                     <Download className="size-3.5" />
