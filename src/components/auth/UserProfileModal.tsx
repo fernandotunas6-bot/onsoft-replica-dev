@@ -407,7 +407,10 @@ export function UserProfileModal({
                     onPick={(file) => {
                       void (async () => {
                         try {
-                          const blob = await resolveFileBlob(file, { schoolId: currentUser.schoolId, ownerUserId: currentUser.id });
+                          const blob = await resolveFileBlob(file, {
+                            schoolId: currentUser.schoolId,
+                            ownerUserId: currentUser.id,
+                          });
                           const chosen = new File([blob], file.name, { type: blob.type });
                           await uploadAvatar(chosen);
                         } catch {
