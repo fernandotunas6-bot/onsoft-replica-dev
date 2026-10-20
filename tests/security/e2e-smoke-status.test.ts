@@ -36,8 +36,21 @@ describe("smoke E2E: nunca aprovar verificações não demonstradas", () => {
         status: 503,
         allowApi500Skip: true,
         optionalInCi: true,
+        ci: true,
       }),
     ).toBe("skip");
+  });
+
+  it("fora do CI, PayFlow indisponível reprova", () => {
+    expect(
+      classifySmokeStatus({
+        label: "PAYFLOW EMIS webhook (anon POST)",
+        expected: [401, 503],
+        status: 503,
+        optionalInCi: true,
+        ci: false,
+      }),
+    ).toBe("fail");
   });
 
   it("uma resposta normal do PayFlow opcional pode passar", () => {
