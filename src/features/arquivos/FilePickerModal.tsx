@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { FolderOpen } from "lucide-react";
+import { toast } from "@/lib/toast";
 import { fileMotion } from "@/components/files/file-motion";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { FileBrowser } from "./FileBrowser";
+import { fileMatchesRequest, type SchoolFileRequest } from "./file-request";
+import { resolveRequestedSchoolFile } from "./server";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
 import type { FileArea, FileKind } from "./kinds";
 import type { SchoolFileRecord } from "./schemas";
@@ -12,6 +16,7 @@ export function FilePickerModal({
   area,
   acceptKinds,
   initialRelatedPersonId,
+  request,
   onPick,
 }: {
   open: boolean;
@@ -19,9 +24,12 @@ export function FilePickerModal({
   area?: FileArea | undefined;
   acceptKinds?: readonly FileKind[] | undefined;
   initialRelatedPersonId?: string;
+  /** Contexto de destino: o servidor revalida antes de disponibilizar a referência. */
+  request?: SchoolFileRequest;
   onPick?: ((file: SchoolFileRecord) => void) | undefined;
 }) {
   const { expanded, toggleExpanded, contentClassName } = useExpandableDialog();
+  const [validating, setValidating] = useState(false);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -36,8 +44,9 @@ export function FilePickerModal({
             Escolher arquivo
           </DialogTitle>
           <DialogDescription className="mt-1 text-sm">
-            Lista com pastas, selecção e actividade. Duplo clique ou Enter para escolher; use
-            Expandir para trabalhar em ecrã largo.
+            Procure um ficheiro existente ou carregue um novo. Cada módulo recebe apenas
+            ficheiros autorizados para a finalidade solicitada. Use Expandir para ecrã largo.
+            {validating ? " A verificar permissões…" : ""}
           </DialogDescription>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden bg-secondary/20 p-3">
@@ -47,9 +56,30 @@ export function FilePickerModal({
             acceptKinds={acceptKinds}
             initialRelatedPersonId={initialRelatedPersonId}
             onPick={(file) => {
-              if (file.isFolder) return;
-              onPick?.(file);
-              onOpenChange(false);
+              if (file.isFolder || validating) return;
+              if (request && !fileMatchesRequest(file, request)) {
+                toast.error("Este ficheiro não é adequado à finalidade solicitada.");
+                return;
+              }
+              if (!request || (request.purpose === "general" && file.storageBackend === "local")) {
+                onPick?.(file);
+                onOpenChange(false);
+                return;
+              }
+              setValidating(true);
+              void resolveRequestedSchoolFile({
+                data: { id: file.id, ...request },
+              })
+                .then(() => {
+                  onPick?.(file);
+                  onOpenChange(false);
+                })
+                .catch((error: unknown) => {
+                  toast.error("Não foi possível seleccionar o ficheiro.", {
+                    description: error instanceof Error ? error.message : "Confirme as permissões.",
+                  });
+                })
+                .finally(() => setValidating(false));
             }}
           />
         </div>
