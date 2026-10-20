@@ -954,14 +954,16 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
           throw new Error("Mover criaria um ciclo entre pastas.");
         }
         visited.add(current);
-        const { data: ancestor, error: ancestorError } = await db
+        const ancestorLookup = await db
           .from("siga_files")
           .select("id, parent_id, is_folder, area")
           .eq("id", current)
           .eq("school_id", membership.schoolId)
           .is("deleted_at", null)
           .maybeSingle();
-        if (ancestorError || !ancestor?.is_folder || ancestor.area !== targetArea) {
+        const ancestor: { parent_id: string | null; is_folder: boolean; area: string } | null =
+          ancestorLookup.data;
+        if (ancestorLookup.error || !ancestor?.is_folder || ancestor.area !== targetArea) {
           throw new Error("Hierarquia de pastas inconsistente. Movimento bloqueado.");
         }
         current = ancestor.parent_id ? String(ancestor.parent_id) : null;
