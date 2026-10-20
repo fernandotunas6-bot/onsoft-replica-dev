@@ -97,11 +97,11 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(fn).toContain('purpose: "class-material"');
     expect(fn).toContain("canSeeRow(file, userId, membership.appRole)");
     expect(fn).toContain("canAccessFileContent(file, userId, membership.appRole)");
-    expect(fn).toContain('file.classGroupId');
+    expect(fn).toContain("file.classGroupId");
     expect(fn).toContain('.is("deleted_at", null)');
     expect(fn).toContain('.select("id")');
-    expect(fn).toContain('if (!fallback.data)');
-    expect(fn).toContain('else if (!changed)');
+    expect(fn).toContain("if (!fallback.data)");
+    expect(fn).toContain("else if (!changed)");
   });
 
   it("cache de Arquivos inclui escola, utilizador e papel", () => {
