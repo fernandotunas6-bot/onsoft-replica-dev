@@ -46,6 +46,7 @@ const SQL = `
     e.slug,
     e.nome,
     e.estado,
+    e.estado_escola,
     (e.nif is null)                                                                 as sem_nif,
     (select count(*) from public.subscriptions x where x.tenant_id = e.tenant_id)   as subscricoes,
     (select count(*) from public.tenant_domains x where x.tenant_id = e.tenant_id)  as dominios,
