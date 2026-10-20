@@ -683,7 +683,6 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
         relatedPersonId: data.relatedPersonId,
         relatedUserId: data.relatedUserId?.trim() || null,
       });
-      await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
       const { data: object, error: infoError } = await db.storage
         .from(FILES_BUCKET)
         .info(data.storagePath);
@@ -691,6 +690,35 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
         throw new Error("O ficheiro não foi confirmado no Storage da escola.");
       }
       assertUploadedSchoolFileMatches(object, data.sizeBytes);
+      // Respostas perdidas podem levar à repetição de um registo JÁ concluído.
+      // A quota não deve bloquear essa confirmação, pois não são novos bytes.
+      // Manter a validação de conteúdo e de todas as referências, sem upsert.
+      const registered = await db
+        .from("siga_files")
+        .select(FILE_SELECT)
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (registered.error && !missingOptionalColumn(registered.error)) {
+        throw publicDatabaseError(registered.error, "Não foi possível verificar o envio anterior.");
+      }
+      if (registered.data) {
+        if (
+          !isMatchingRegisteredUpload(registered.data as Record<string, unknown>, {
+            ...data,
+            schoolId: membership.schoolId,
+            ownerUserId: userId,
+          })
+        ) {
+          throw new Error("O identificador do upload já está associado a outro registo.");
+        }
+        return {
+          storage: "sga" as const,
+          record: mapRow(registered.data as Record<string, unknown>),
+        };
+      }
+      await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
     } else {
       await assertFileRefsInSchool(db, membership.schoolId, {
         parentId: data.parentId,
