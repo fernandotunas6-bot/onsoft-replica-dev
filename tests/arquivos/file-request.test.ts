@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  fileMatchesRequest,
-  type SchoolFileRequest,
-} from "@/features/arquivos/file-request";
+import { fileMatchesRequest, type SchoolFileRequest } from "@/features/arquivos/file-request";
 
 const schoolFile = {
   isFolder: false,
@@ -18,16 +15,11 @@ const request = (purpose: SchoolFileRequest["purpose"]): SchoolFileRequest => ({
 
 describe("file picker por finalidade, inspirado no Moodle", () => {
   it("não selecciona pastas e conserva ficheiros locais apenas no uso geral", () => {
-    expect(fileMatchesRequest({ ...schoolFile, isFolder: true }, request("general"))).toBe(false);
-    expect(
-      fileMatchesRequest({ ...schoolFile, storageBackend: "local" }, request("general")),
-    ).toBe(true);
-    expect(
-      fileMatchesRequest(
-        { ...schoolFile, storageBackend: "local" },
-        request("message-attachment"),
-      ),
-    ).toBe(false);
+    const folder = { ...schoolFile, isFolder: true };
+    const local = { ...schoolFile, storageBackend: "local" as const };
+    expect(fileMatchesRequest(folder, request("general"))).toBe(false);
+    expect(fileMatchesRequest(local, request("general"))).toBe(true);
+    expect(fileMatchesRequest(local, request("message-attachment"))).toBe(false);
   });
 
   it("anexos de mensagens exigem ficheiros persistidos na escola", () => {
@@ -39,17 +31,14 @@ describe("file picker por finalidade, inspirado no Moodle", () => {
       purpose: "student-document",
       relatedPersonId: schoolFile.relatedPersonId,
     };
+    const otherArea = { ...schoolFile, area: "escola" as const };
+    const otherVisibility = { ...schoolFile, visibility: "school" as const };
+    const otherPerson = { ...schoolFile, relatedPersonId: "outra-pessoa" };
     expect(fileMatchesRequest(schoolFile, req)).toBe(true);
     expect(fileMatchesRequest(schoolFile, request("student-document"))).toBe(false);
-    expect(
-      fileMatchesRequest({ ...schoolFile, area: "escola" }, req),
-    ).toBe(false);
-    expect(
-      fileMatchesRequest({ ...schoolFile, visibility: "school" }, req),
-    ).toBe(false);
-    expect(
-      fileMatchesRequest({ ...schoolFile, relatedPersonId: "outra-pessoa" }, req),
-    ).toBe(false);
+    expect(fileMatchesRequest(otherArea, req)).toBe(false);
+    expect(fileMatchesRequest(otherVisibility, req)).toBe(false);
+    expect(fileMatchesRequest(otherPerson, req)).toBe(false);
   });
 
   it("materiais respeitam a turma solicitada", () => {
@@ -57,19 +46,17 @@ describe("file picker por finalidade, inspirado no Moodle", () => {
       purpose: "class-material",
       classGroupId: schoolFile.classGroupId,
     };
+    const otherClass = { ...schoolFile, classGroupId: "outra-turma" };
     expect(fileMatchesRequest(schoolFile, req)).toBe(true);
     expect(fileMatchesRequest(schoolFile, request("class-material"))).toBe(false);
-    expect(
-      fileMatchesRequest({ ...schoolFile, classGroupId: "outra-turma" }, req),
-    ).toBe(false);
+    expect(fileMatchesRequest(otherClass, req)).toBe(false);
   });
 
   it("arquivos financeiros não aceitam documentos de outra categoria", () => {
     expect(fileMatchesRequest(schoolFile, request("finance-document"))).toBe(false);
     for (const category of ["fatura", "recibo", "talao"] as const) {
-      expect(
-        fileMatchesRequest({ ...schoolFile, category }, request("finance-document")),
-      ).toBe(true);
+      const financeFile = { ...schoolFile, category };
+      expect(fileMatchesRequest(financeFile, request("finance-document"))).toBe(true);
     }
   });
 });
