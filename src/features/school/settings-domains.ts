@@ -20,10 +20,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
-import {
-  schoolSiteSettingsSchema,
-  type SchoolSiteSettings,
-} from "@/features/school-site/schema";
+import { schoolSiteSettingsSchema, type SchoolSiteSettings } from "@/features/school-site/schema";
 
 type Raw = Record<string, unknown>;
 

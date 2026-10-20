@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  defaultSchoolSiteSettings,
-  withPublication,
-} from "@/features/school-site/schema";
+import { defaultSchoolSiteSettings, withPublication } from "@/features/school-site/schema";
 
 type Row = Record<string, unknown> | null;
 const mock = vi.hoisted(() => ({
