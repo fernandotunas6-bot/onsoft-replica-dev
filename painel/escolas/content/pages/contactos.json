@@ -1,0 +1,33 @@
+{
+  "title": "Contactos",
+  "crumb": "Contactos",
+  "aside": {
+    "headline": ["Mais perto", "da informação certa."],
+    "text": "Os contactos, o endereço e os horários oficiais do {{SCHOOL}} em {{COUNTRY}} ainda precisam de confirmação.",
+    "options": [
+      { "icon": "◎", "title": "Informação institucional", "text": "Contactos oficiais a validar." },
+      { "icon": "↗", "title": "Cursos e ingresso", "link": { "url": "/ingresso/", "label": "Consulte as orientações de ingresso" } },
+      { "icon": "◫", "title": "Serviços académicos", "link": { "url": "/servicos/", "label": "Encontre um serviço" } }
+    ]
+  },
+  "form": {
+    "title": "Prepare a sua mensagem.",
+    "text": "Este formulário gera um ficheiro no seu dispositivo. Não envia e-mail nem abre um pedido institucional.",
+    "name": { "label": "Nome de exemplo", "placeholder": "O seu nome de exemplo" },
+    "email": { "label": "E-mail de exemplo", "placeholder": "nome@example.com" },
+    "subject": {
+      "label": "Assunto",
+      "placeholder": "Seleccione",
+      "options": [
+        "Cursos e ingresso",
+        "Bolsas e apoios",
+        "Apoio ao estudante",
+        "Serviços académicos",
+        "Outro assunto"
+      ]
+    },
+    "message": { "label": "A sua mensagem", "placeholder": "Como podemos ajudar? Use informação fictícia nesta demonstração." },
+    "submit": "Descarregar mensagem",
+    "hint": "Nenhuma mensagem é enviada à instituição."
+  }
+}

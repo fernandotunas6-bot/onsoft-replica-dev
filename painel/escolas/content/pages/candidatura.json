@@ -1,0 +1,69 @@
+{
+  "title": "Candidatura online",
+  "crumb": "Candidatura",
+  "aside": {
+    "eyebrow": "A SUA CANDIDATURA",
+    "steps": [
+      { "number": "1", "title": "Escolha do curso", "text": "O que quer aprender" },
+      { "number": "2", "title": "O seu perfil", "text": "Informações de exemplo" },
+      { "number": "3", "title": "Rever e concluir", "text": "Confirme cada detalhe" }
+    ],
+    "help": {
+      "title": "Ao seu ritmo.",
+      "text": "O rascunho é guardado apenas neste dispositivo. Esta candidatura é uma simulação e não é enviada à instituição.",
+      "link": { "url": "/ajuda/", "label": "Precisa de orientação?", "external": true }
+    }
+  },
+  "step1": {
+    "eyebrow": "PASSO 01 DE 03",
+    "title": "Encontre a sua direcção.",
+    "text": "Seleccione o curso e o seu ponto de partida.",
+    "course": { "label": "Curso de interesse", "placeholder": "Seleccione um curso" },
+    "via": {
+      "label": "Forma de ingresso",
+      "placeholder": "Seleccione",
+      "options": ["Primeiro ingresso", "Transferência", "Segunda formação", "Formação contínua"]
+    },
+    "period": {
+      "label": "Período de interesse",
+      "placeholder": "Seleccione",
+      "options": ["Próximo período disponível", "Quero apenas conhecer as opções"]
+    }
+  },
+  "step2": {
+    "eyebrow": "PASSO 02 DE 03",
+    "title": "Conte-nos um pouco sobre si.",
+    "text": "Preencha com informações fictícias para experimentar o percurso.",
+    "name": { "label": "Nome de exemplo", "placeholder": "Ex.: Joana Exemplo" },
+    "email": { "label": "E-mail de exemplo", "placeholder": "joana@example.com" },
+    "province": {
+      "label": "Província de interesse",
+      "placeholder": "Seleccione",
+      "options": [
+        "Benguela", "Bengo", "Bié", "Cabinda", "Cuando", "Cubango", "Cuanza Norte",
+        "Cuanza Sul", "Cunene", "Huambo", "Huíla", "Icolo e Bengo", "Luanda",
+        "Lunda Norte", "Lunda Sul", "Malanje", "Moxico", "Moxico Leste", "Namibe",
+        "Uíge", "Zaire", "Outra / prefiro não indicar"
+      ]
+    },
+    "motivation": {
+      "label": "O que o motiva a explorar este curso?",
+      "placeholder": "Partilhe uma ideia ou um objectivo (opcional)"
+    },
+    "checklist": {
+      "title": "Preparação para uma candidatura real",
+      "text": "Não faça upload de documentos nesta prévia. Numa candidatura oficial, confirme a lista de requisitos com a instituição.",
+      "items": [
+        "Sei que devo confirmar os documentos de identificação exigidos.",
+        "Sei que devo confirmar os comprovativos de habilitações."
+      ]
+    }
+  },
+  "step3": {
+    "eyebrow": "PASSO 03 DE 03",
+    "title": "O próximo passo, com clareza.",
+    "text": "Reveja os seus dados antes de concluir a demonstração.",
+    "consent": "Compreendo que esta candidatura é demonstrativa, fica guardada apenas neste navegador e não é enviada ao {{SCHOOL}}."
+  },
+  "controls": { "back": "Voltar", "draft": "Guardar rascunho", "next": "Continuar" }
+}

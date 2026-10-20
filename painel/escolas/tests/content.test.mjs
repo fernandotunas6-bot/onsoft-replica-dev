@@ -81,7 +81,7 @@ test('todos os marcadores do conteúdo são marcadores que a identidade conhece'
     if (value && typeof value === 'object') return Object.values(value).flatMap(strings);
     return [];
   };
-  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos']) {
+  for (const name of ['navigation', 'header', 'footer', 'site', 'simple-pages', 'page-heads', 'notices', 'home', 'pages/sobre', 'pages/vida-academica', 'pages/campus', 'pages/servicos', 'pages/privacidade', 'pages/acessibilidade', 'pages/sobre-o-projecto', 'pages/mapa-do-site', 'pages/favoritos', 'pages/comparar', 'pages/candidaturas', 'pages/noticias', 'pages/pesquisa', 'pages/ajuda', 'pages/agenda', 'pages/login', 'pages/biblioteca', 'pages/cursos', 'pages/contactos', 'pages/ingresso', 'pages/candidatura']) {
     for (const value of strings(loadContent(name))) {
       assert.doesNotThrow(() => brand(value), name + ': ' + value);
     }
@@ -294,4 +294,23 @@ test('os rótulos do catálogo são conteúdo, os valores dos filtros não', asy
   const niveis = new Set(courses.map(c => c.level));
   const texto = JSON.stringify(catalogo);
   for (const nivel of niveis) assert.ok(!texto.includes(`"${nivel}"`), nivel);
+});
+
+test('as províncias da candidatura são conteúdo, não código angolano', () => {
+  // Estavam escritas no gerador: 22 províncias de Angola para qualquer escola.
+  const province = loadInstitutionalPage('candidatura').step2.province;
+  assert.ok(province.options.length > 1);
+  assert.ok(province.label.length > 0);
+});
+
+test('as confirmações da candidatura correspondem aos campos do formulário', () => {
+  // O gerador guarda duas confirmações com nomes que o app.js lê. Se o conteúdo
+  // trouxer outro número, o build pára — este teste fixa o número esperado.
+  assert.equal(loadInstitutionalPage('candidatura').step2.checklist.items.length, 2);
+});
+
+test('as opções de contacto trazem texto ou ligação, nunca as duas em falta', () => {
+  for (const option of loadInstitutionalPage('contactos').aside.options) {
+    assert.ok(option.text || option.link, option.title);
+  }
 });

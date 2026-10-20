@@ -486,6 +486,56 @@ export const PAGE_SHAPES = {
       help: {title: 'text', text: 'text', link: 'link'},
     },
   },
+  contactos: {
+    title: 'text', crumb: 'text',
+    aside: {
+      headline: 'lines', text: 'text',
+      options: [{icon: 'text', title: 'text', 'text?': 'text', 'link?': 'action'}],
+    },
+    form: {
+      title: 'text', text: 'text',
+      name: {label: 'text', placeholder: 'text'},
+      email: {label: 'text', placeholder: 'text'},
+      subject: {label: 'text', placeholder: 'text', options: ['text']},
+      message: {label: 'text', placeholder: 'text'},
+      submit: 'text', hint: 'text',
+    },
+  },
+  ingresso: {
+    title: 'text', crumb: 'text', action: 'action',
+    ways: {
+      eyebrow: 'text', headline: 'lines', text: 'lines', linkLabel: 'text',
+      items: [{number: 'text', title: 'text', text: 'text', url: 'url'}],
+    },
+    checklist: {
+      eyebrow: 'text', headline: 'lines', text: 'text', link: 'action',
+      steps: [{number: 'text', title: 'text', text: 'text'}],
+    },
+  },
+  candidatura: {
+    title: 'text', crumb: 'text',
+    aside: {
+      eyebrow: 'text',
+      steps: [{number: 'text', title: 'text', text: 'text'}],
+      help: {title: 'text', text: 'text', link: 'link'},
+    },
+    step1: {
+      eyebrow: 'text', title: 'text', text: 'text',
+      course: {label: 'text', placeholder: 'text'},
+      via: {label: 'text', placeholder: 'text', options: ['text']},
+      period: {label: 'text', placeholder: 'text', options: ['text']},
+    },
+    step2: {
+      eyebrow: 'text', title: 'text', text: 'text',
+      name: {label: 'text', placeholder: 'text'},
+      email: {label: 'text', placeholder: 'text'},
+      province: {label: 'text', placeholder: 'text', options: ['text']},
+      motivation: {label: 'text', placeholder: 'text'},
+      checklist: {title: 'text', text: 'text', items: ['text']},
+    },
+    step3: {eyebrow: 'text', title: 'text', text: 'text', consent: 'text'},
+    controls: {back: 'text', draft: 'text', next: 'text'},
+  },
   'mapa-do-site': {
     title: 'text', crumb: 'text',
     groups: {discover: 'text', courses: 'text', articles: 'text', portal: 'text'},

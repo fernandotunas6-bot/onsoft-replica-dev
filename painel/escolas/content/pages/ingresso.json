@@ -1,0 +1,31 @@
+{
+  "title": "Como candidatar-se",
+  "crumb": "Ingresso",
+  "action": { "url": "/candidatura/", "label": "Experimentar candidatura" },
+  "ways": {
+    "eyebrow": "UM PERCURSO, DIFERENTES PONTOS DE PARTIDA",
+    "headline": ["Como quer *começar?*"],
+    "text": [
+      "Orientações gerais de ingresso.",
+      "Os critérios oficiais dependem do edital do {{SCHOOL}}."
+    ],
+    "linkLabel": "Explorar esta opção",
+    "items": [
+      { "number": "01", "title": "Primeiro ingresso", "text": "Para quem pretende iniciar a primeira formação superior. Confirme as habilitações exigidas, as provas de acesso e o calendário.", "url": "/candidatura/?via=Primeiro%20ingresso" },
+      { "number": "02", "title": "Transferência", "text": "Para quem já frequenta uma instituição e pretende conhecer as condições de transferência e eventual equivalência.", "url": "/percursos-de-ingresso/" },
+      { "number": "03", "title": "Segunda formação", "text": "Para quem já concluiu uma formação superior e procura um novo percurso. Confirme os procedimentos e a documentação.", "url": "/candidatura/?via=Segunda%20forma%C3%A7%C3%A3o" }
+    ]
+  },
+  "checklist": {
+    "eyebrow": "ORGANIZE O PRÓXIMO PASSO",
+    "headline": ["Uma pequena lista.", "*Uma grande ajuda.*"],
+    "text": "Use a lista para preparar uma candidatura real. Confirme todos os requisitos nos canais institucionais.",
+    "link": { "url": "/preparar-candidatura/", "label": "Abrir a minha lista de preparação" },
+    "steps": [
+      { "number": "01", "title": "Encontre a sua área", "text": "Conheça o curso, a formação e as possibilidades." },
+      { "number": "02", "title": "Leia as regras oficiais", "text": "Verifique requisitos, documentação, provas e prazos." },
+      { "number": "03", "title": "Prepare a documentação", "text": "Tenha identificação e comprovativos de habilitações válidos." },
+      { "number": "04", "title": "Reveja e acompanhe", "text": "Use apenas os canais oficiais para concluir a candidatura real." }
+    ]
+  }
+}
