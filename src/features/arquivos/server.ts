@@ -667,7 +667,14 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
     const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
-    if (!canWriteFileArea(membership.appRole, data.area)) {
+    // Professor pode carregar material partilhável apenas para turma
+    // activamente atribuída. Não concede edição genérica da área Escola.
+    const assignedClassUpload =
+      membership.appRole === "Professor" &&
+      Boolean(data.classGroupId) &&
+      data.area === "escola" &&
+      data.visibility === "school";
+    if (!canWriteFileArea(membership.appRole, data.area) && !assignedClassUpload) {
       throw new Error("Sem permissão para gravar nesta área.");
     }
     if (!kindFromFile(data.name, data.mime)) {
