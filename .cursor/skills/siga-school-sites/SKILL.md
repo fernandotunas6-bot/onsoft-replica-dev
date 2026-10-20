@@ -7,6 +7,10 @@ description: Configurar e evoluir websites institucionais multi-tenant da escola
 
 **Antes de programar:** ler `AGENTS.md`, `docs/agents/DATABASE_RULES.md`, `docs/agents/ARCHITECTURE_HARMONIZATION.md`, `docs/architecture/SCHOOL_SITES_MULTITENANT.md` e `docs/school-sites/RUNBOOK.md`.
 
+## Regra visual inviolável
+
+Ler `docs/school-sites/VISUAL_CONTRACT.md`. Não alterar **nenhum** ficheiro em `painel/escolas/**`. Manter integralmente os componentes, CSS, fontes, composição, interacções e fotografias do website ISPAB. Qualquer adaptação multi-tenant é independente e testada lado a lado. Não alegar identidade pixel-perfect sem evidências.
+
 ## Contratos
 
 1. `/site` é público, mas só mostra snapshot explicitamente publicado; `/` mantém o SIGA existente.
