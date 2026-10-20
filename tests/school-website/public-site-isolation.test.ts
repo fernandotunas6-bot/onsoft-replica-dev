@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSchoolSiteSettings, withPublication } from "@/features/school-site/schema";
 
 type Row = Record<string, unknown> | null;
@@ -36,6 +36,7 @@ import { loadPublishedSchoolSite } from "@/features/school-site/public-server";
 const HOSTNAME = "escola-exemplo.portal-siga.com";
 
 beforeEach(() => {
+  vi.stubEnv("SCHOOL_SITES_ENABLED", "true");
   mock.queries.length = 0;
   mock.failures = {};
   mock.records = {
@@ -61,7 +62,14 @@ beforeEach(() => {
   };
 });
 
+afterEach(() => vi.unstubAllEnvs());
+
 describe("school-site API — isolamento público por hostname", () => {
+  it("nunca consulta o banco nem disponibiliza sites se a migração não foi activada", async () => {
+    vi.stubEnv("SCHOOL_SITES_ENABLED", "false");
+    expect(await loadPublishedSchoolSite(HOSTNAME)).toBeNull();
+    expect(mock.queries).toHaveLength(0);
+  });
   it("consulta domínio exacto e escola do tenant, não identidade fornecida pelo browser", async () => {
     const site = await loadPublishedSchoolSite(HOSTNAME);
     expect(site?.schoolName).toBe("Escola A");
