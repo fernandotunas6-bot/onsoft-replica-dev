@@ -2,6 +2,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import type { ExistingSchoolFileLocation } from "./find-existing";
 import { fileMatchesRequest } from "./file-request";
+import { assertUploadedSchoolFileMatches } from "./upload-verification";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -668,26 +669,27 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
       throw new Error("Caminho do ficheiro inválido.");
     }
     const db = await loadSgaAdminClient();
-    // Quota de arquivo do plano. O ficheiro já foi enviado pelo browser: se não
-    // cabe, sai do armazenamento para não ocupar espaço sem registo.
+    // Verificar metadados e quota antes de publicar o registo. Nunca apagar
+    // automaticamente o blob quando uma verificação falha: o mesmo caminho
+    // pode já estar referenciado por um ficheiro legítimo, e a limpeza automática
+    // correria o risco de destruir conteúdo escolar.
     if (data.storageBackend === "sga") {
-      try {
-        await assertFileRefsInSchool(db, membership.schoolId, {
-          parentId: data.parentId,
-          parentArea: data.area,
-          parentOwnerUserId: userId,
-          classGroupId: data.classGroupId,
-          relatedPersonId: data.relatedPersonId,
-          relatedUserId: data.relatedUserId?.trim() || null,
-        });
-        await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
-      } catch (error) {
-        await db.storage
-          .from(FILES_BUCKET)
-          .remove([data.storagePath])
-          .catch(() => undefined);
-        throw error;
+      await assertFileRefsInSchool(db, membership.schoolId, {
+        parentId: data.parentId,
+        parentArea: data.area,
+        parentOwnerUserId: userId,
+        classGroupId: data.classGroupId,
+        relatedPersonId: data.relatedPersonId,
+        relatedUserId: data.relatedUserId?.trim() || null,
+      });
+      await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
+      const { data: object, error: infoError } = await db.storage
+        .from(FILES_BUCKET)
+        .info(data.storagePath);
+      if (infoError) {
+        throw new Error("O ficheiro não foi confirmado no Storage da escola.");
       }
+      assertUploadedSchoolFileMatches(object, data.sizeBytes);
     } else {
       await assertFileRefsInSchool(db, membership.schoolId, {
         parentId: data.parentId,
