@@ -168,7 +168,9 @@ describe("contrato central de arquivos: limites de segurança", () => {
     expect(register).toContain("Boolean(data.classGroupId)");
     expect(register).toContain('data.area === "escola"');
     expect(register).toContain('data.visibility === "school"');
-    expect(register).toContain("!canWriteFileArea(membership.appRole, data.area) && !assignedClassUpload");
+    expect(register).toContain(
+      "!canWriteFileArea(membership.appRole, data.area) && !assignedClassUpload",
+    );
     expect(register).toContain("await assertClassMaterialScope(db, {");
     expect(register).toContain("classGroupId: data.classGroupId");
     expect(register).toContain("roles: membership.allAppRoles ?? [membership.appRole]");
