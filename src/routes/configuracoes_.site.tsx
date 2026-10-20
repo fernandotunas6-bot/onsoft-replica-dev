@@ -1,5 +1,5 @@
 // style-check: route-exempt — gestão do website, separada das restantes definições.
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -27,15 +27,22 @@ const QUERY_KEY = ["school", "website-editor"] as const;
 function SchoolSiteEditorPage() {
   const account = useCurrentAccount();
   const isAdmin = account.roles.includes("Administrador");
+  const schoolId = account.schoolId;
+  const queryKey = [...QUERY_KEY, account.id, schoolId ?? "none"] as const;
   const [draft, setDraft] = useState<SchoolSiteContent | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const client = useQueryClient();
+  // Trocar de escola/conta não pode reutilizar o rascunho da anterior.
+  useEffect(() => {
+    setDraft(null);
+    setNotice(null);
+  }, [account.id, schoolId]);
   const load = useServerFn(getSchoolSiteEditor);
   const save = useServerFn(saveSchoolSiteDraft);
   const publish = useServerFn(publishSchoolSite);
   const query = useQuery({
-    queryKey: QUERY_KEY,
-    enabled: isAdmin,
+    queryKey,
+    enabled: isAdmin && Boolean(schoolId),
     queryFn: () => load(),
     refetchOnWindowFocus: false,
     retry: false,
@@ -52,7 +59,7 @@ function SchoolSiteEditorPage() {
     onSuccess: async () => {
       setDraft(null);
       setNotice("Rascunho guardado. Ainda não foi publicado.");
-      await client.invalidateQueries({ queryKey: QUERY_KEY });
+      await client.invalidateQueries({ queryKey });
     },
     onError: (error) =>
       setNotice(error instanceof Error ? error.message : "Não foi possível guardar."),
@@ -64,7 +71,7 @@ function SchoolSiteEditorPage() {
     },
     onSuccess: async () => {
       setNotice("Website publicado. Verifique a página pública.");
-      await client.invalidateQueries({ queryKey: QUERY_KEY });
+      await client.invalidateQueries({ queryKey });
     },
     onError: (error) =>
       setNotice(error instanceof Error ? error.message : "Não foi possível publicar."),
