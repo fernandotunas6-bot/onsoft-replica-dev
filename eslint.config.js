@@ -24,6 +24,11 @@ export default tseslint.config(
       "modelo de pautas/**",
       "playwright-report/**",
       "reports/**",
+      // Referências locais ignoradas pelo Git; não pertencem ao produto SIGA.
+      "chat/**",
+      // Evidências históricas conservam o formato e os hashes originais.
+      "docs/auditoria/**",
+      "docs/implementation/**",
       // Ficheiros gerados: nunca editados à mão, não há nada a corrigir neles.
       "**/*.gen.ts",
       "src/integrations/supabase/types.ts",

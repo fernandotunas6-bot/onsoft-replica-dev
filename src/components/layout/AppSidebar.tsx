@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+
+import { canPrefetchResources, onIdle } from "@/lib/preload";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Building2,
@@ -35,11 +37,23 @@ import {
 } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
-import { UserProfileModal } from "@/components/auth/UserProfileModal";
 import { AcademicNavTree } from "./AcademicNavTree";
 import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
 const MENU_KEY = "siga:sidebar-open-menus";
+
+/**
+ * Fora do grafo estático da barra: o `AppShell` entra no manifesto da rota `/`, que
+ * é também o ecrã de entrada, e este modal arrastava o `PickFileButton` (28 565
+ * bytes em gzip) para todas as páginas. A barra só existe com sessão iniciada, por
+ * isso aquece-se em tempo livre — o login nunca o pede, quem entrou abre-o na mesma
+ * sem espera.
+ */
+const UserProfileModal = lazy(() =>
+  import("@/components/auth/UserProfileModal").then((module) => ({
+    default: module.UserProfileModal,
+  })),
+);
 
 export function AppSidebar({
   className,
@@ -61,6 +75,17 @@ export function AppSidebar({
   const { school, activeYearLabel } = useSchoolSettings();
   const { signOut, signingOut } = useSignOut();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  // Monta à primeira abertura e fica: desmontar cortava a animação de fecho.
+  const [profileModalMounted, setProfileModalMounted] = useState(false);
+  useEffect(() => {
+    if (profileModalOpen) setProfileModalMounted(true);
+  }, [profileModalOpen]);
+  useEffect(() => {
+    if (!canPrefetchResources()) return;
+    onIdle(() => {
+      void import("@/components/auth/UserProfileModal");
+    });
+  }, []);
   const [profileModalTab, setProfileModalTab] = useState<
     "perfil" | "foto" | "seguranca" | "instituicoes"
   >("perfil");
@@ -501,11 +526,15 @@ export function AppSidebar({
         </div>
       </aside>
 
-      <UserProfileModal
-        open={profileModalOpen}
-        onOpenChange={setProfileModalOpen}
-        defaultTab={profileModalTab}
-      />
+      {profileModalMounted ? (
+        <Suspense fallback={null}>
+          <UserProfileModal
+            open={profileModalOpen}
+            onOpenChange={setProfileModalOpen}
+            defaultTab={profileModalTab}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

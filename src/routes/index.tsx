@@ -35,16 +35,40 @@ import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";
 import { kwanza } from "@/lib/currency";
 import { warmDashboardCharts } from "@/lib/warm-charts";
+import { startDashboardDateClock } from "@/features/dashboard/date-clock";
 import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
 import { canAccessPath } from "@/features/auth/access-policy";
-import { TeacherWorkspaceHint } from "@/features/academic/TeacherWorkspacePanel";
-import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
+import { TeacherWorkspaceHint } from "@/features/academic/TeacherWorkspaceHint";
+import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardChartsSkeleton";
 import { resolvePortalMode } from "@/features/auth/portal-engine";
-import { StudentPortalDashboard } from "@/features/dashboard/portals/StudentPortalDashboard";
-import { GuardianPortalDashboard } from "@/features/dashboard/portals/GuardianPortalDashboard";
-import { TeacherPortalDashboard } from "@/features/dashboard/portals/TeacherPortalDashboard";
-import { AdminPortalDashboard } from "@/features/dashboard/portals/AdminPortalDashboard";
+import { PortalDashboardSkeleton } from "@/features/dashboard/portals/PortalDashboardSkeleton";
 
+/**
+ * Um utilizador vê **um** portal, o do seu papel. Importados estaticamente, os quatro
+ * entravam no grafo da rota `/` — que é também o ecrã de entrada — e arrastavam 55
+ * módulos só deles, incluindo `features/higher-ed/server.ts` e
+ * `pedagogica/attendance-server.ts`. Separados, cada papel carrega só o seu.
+ */
+const StudentPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/StudentPortalDashboard").then((module) => ({
+    default: module.StudentPortalDashboard,
+  })),
+);
+const GuardianPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/GuardianPortalDashboard").then((module) => ({
+    default: module.GuardianPortalDashboard,
+  })),
+);
+const TeacherPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/TeacherPortalDashboard").then((module) => ({
+    default: module.TeacherPortalDashboard,
+  })),
+);
+const AdminPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/AdminPortalDashboard").then((module) => ({
+    default: module.AdminPortalDashboard,
+  })),
+);
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
     default: module.DashboardCharts,
@@ -107,6 +131,7 @@ function Dashboard() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
+  const portalMode = resolvePortalMode(currentUser.role);
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const whatsappNotices = installed.hasCapability("whatsapp.notices");
@@ -118,30 +143,10 @@ function Dashboard() {
   });
 
   useEffect(() => {
-    let timer = 0;
-    const tick = () => {
-      setNow(new Date());
-      if (document.visibilityState === "visible") {
-        timer = window.setTimeout(tick, 1000);
-      }
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        setNow(new Date());
-        tick();
-      } else {
-        window.clearTimeout(timer);
-      }
-    };
-    setNow(new Date());
+    if (portalMode !== "admin") return;
     warmDashboardCharts();
-    tick();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
+    return startDashboardDateClock(setNow);
+  }, [portalMode]);
 
   // Realtime — invalida o overview sempre que dados críticos mudam na BD
   useEffect(() => {
@@ -345,26 +350,26 @@ function Dashboard() {
     "geral",
   );
 
-  const portalMode = resolvePortalMode(currentUser.role);
-
   return (
     <AppShell>
-      {portalMode === "student" ? (
-        <StudentPortalDashboard />
-      ) : portalMode === "guardian" ? (
-        <GuardianPortalDashboard />
-      ) : portalMode === "teacher" ? (
-        <TeacherPortalDashboard />
-      ) : (
-        <AdminPortalDashboard
-          data={data}
-          isLoading={overviewQuery.isLoading}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          now={now}
-          greeting={greeting}
-        />
-      )}
+      <Suspense fallback={<PortalDashboardSkeleton />}>
+        {portalMode === "student" ? (
+          <StudentPortalDashboard />
+        ) : portalMode === "guardian" ? (
+          <GuardianPortalDashboard />
+        ) : portalMode === "teacher" ? (
+          <TeacherPortalDashboard />
+        ) : (
+          <AdminPortalDashboard
+            data={data}
+            isLoading={overviewQuery.isLoading}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            now={now}
+            greeting={greeting}
+          />
+        )}
+      </Suspense>
     </AppShell>
   );
 }

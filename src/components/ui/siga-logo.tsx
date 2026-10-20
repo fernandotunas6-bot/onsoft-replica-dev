@@ -1,24 +1,31 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export type SigaLogoVariant =
-  | "icon"
-  | "3d"
-  | "pwa"
-  | "monochrome"
-  | "dark-hero"
-  | "login"
-  | "horizontal"
-  | "header"
-  | "animated";
-
+/**
+ * Identidade SIGA Plus — só tipografia.
+ *
+ * O ícone-mascote (coruja dourada, `/brands/siga-plus-icon.png` e o `-256.webp`
+ * reduzido) saiu a pedido do dono: a marca nova é o letreiro «SIGA Plus», com o
+ * «Plus» em gradiente (`.siga-wordmark-plus` em styles.css), e o ícone da app é o
+ * «S» em squircle que vem da app Flutter (`public/icons/`, declarado no
+ * `manifest.webmanifest`). Com o mascote saíram as variantes que existiam só para o
+ * mostrar — `icon`, `3d`, `pwa`, `monochrome`, `dark-hero`, `login`, `animated` — e o
+ * `SigaAiLoader`. Nenhuma era usada: os dois sítios que desenham o logótipo
+ * (`InstitutionOnboarding` e `verificar`) usavam a variante horizontal por omissão.
+ */
 export interface SigaLogoProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: SigaLogoVariant;
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
-  color?: string;
-  badgeText?: string;
-  useOfficialImage?: boolean;
 }
+
+/** Tamanhos do letreiro; o `.siga-wordmark` herda o `font-size` de quem o contém. */
+const wordmarkSizes: Record<NonNullable<SigaLogoProps["size"]>, string> = {
+  xs: "text-base",
+  sm: "text-xl",
+  md: "text-2xl",
+  lg: "text-3xl",
+  xl: "text-4xl",
+  "2xl": "text-5xl",
+};
 
 /** Marca tipográfica partilhada; cor reservada à palavra Plus. */
 export function SigaWordmark({ className }: { className?: string }) {
@@ -32,156 +39,10 @@ export function SigaWordmark({ className }: { className?: string }) {
   );
 }
 
-const iconSizes = {
-  xs: 24,
-  sm: 32,
-  md: 44,
-  lg: 64,
-  xl: 96,
-  "2xl": 128,
-};
-
-/**
- * Ícone Mascote Oficial SIGA Plus (/brands/siga-plus-icon-256.webp, reduzido do PNG oficial
- * /brands/siga-plus-icon.png).
- */
-export function SigaMascotIcon({
-  size = 44,
-  className,
-  animated = false,
-}: {
-  size?: number;
-  className?: string;
-  animated?: boolean;
-}) {
+export function SigaLogo({ size = "md", className, ...props }: SigaLogoProps) {
   return (
-    <img
-      // Mostrado a 128 px no máximo: 256 px chega para ecrãs 2x. O PNG original
-      // (1254 px, 670 KB) era pré-carregado em todas as páginas e atrasava o
-      // primeiro conteúdo.
-      src="/brands/siga-plus-icon-256.webp"
-      alt="SIGA Plus Mascot"
-      width={size}
-      height={size}
-      className={cn(
-        "object-contain select-none transition-transform duration-300",
-        animated && "motion-safe:animate-pulse",
-        className,
-      )}
-      style={{ width: size, height: size }}
-    />
-  );
-}
-
-export function SigaLogo({
-  variant = "horizontal",
-  size = "md",
-  color,
-  badgeText,
-  useOfficialImage,
-  className,
-  ...props
-}: SigaLogoProps) {
-  const pixelSize = iconSizes[size];
-
-  // Variante 1: PWA / App Icon 3D com margem de segurança (PNG)
-  if (variant === "3d" || variant === "pwa") {
-    return (
-      <div
-        className={cn(
-          "inline-flex items-center justify-center rounded-3xl bg-white border border-slate-200/80 p-3 shadow-md shadow-amber-500/10",
-          className,
-        )}
-        {...props}
-      >
-        <SigaMascotIcon size={pixelSize} />
-      </div>
-    );
-  }
-
-  // Variante 2: Monocromático (PNG + Texto)
-  if (variant === "monochrome") {
-    return (
-      <div className={cn("inline-flex items-center gap-3 select-none", className)} {...props}>
-        <SigaMascotIcon size={pixelSize} />
-        <span className="font-sans text-xl md:text-2xl font-black tracking-tight text-foreground">
-          SIGA Plus
-        </span>
-      </div>
-    );
-  }
-
-  // Variante 3: Dark Hero / Login Screen (PNG Mascot + Texto Vertical Stack)
-  if (variant === "dark-hero" || variant === "login") {
-    return (
-      <div
-        className={cn(
-          "flex flex-col items-center justify-center text-center select-none py-2",
-          className,
-        )}
-        {...props}
-      >
-        <div className="p-3.5 rounded-3xl bg-slate-900/90 border border-amber-500/30 shadow-xl shadow-amber-500/10 backdrop-blur-md">
-          <SigaMascotIcon size={pixelSize * 1.25} />
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 font-display text-2xl md:text-4xl font-extrabold tracking-tight">
-          <span className="text-white">SIGA</span>
-          <span className="text-[#C59B27]">Plus</span>
-        </div>
-
-        {/* Divisor com Estrela */}
-        <div className="mt-3 flex items-center gap-2 text-[#C59B27]/60 text-xs">
-          <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[#C59B27]/60" />
-          <span className="text-[#C59B27] text-xs">✦</span>
-          <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[#C59B27]/60" />
-        </div>
-      </div>
-    );
-  }
-
-  // Variante 4: Horizontal Header (PNG Mascot + Texto)
-  return (
-    <div className={cn("inline-flex items-center gap-3.5 select-none", className)} {...props}>
-      <SigaMascotIcon size={pixelSize} />
-
-      <div className="relative flex flex-col">
-        <div className="flex items-baseline gap-1.5 leading-none">
-          <span className="font-sans text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
-            SIGA
-          </span>
-          <span className="siga-wordmark-plus font-sans text-2xl md:text-3xl font-semibold tracking-tight">
-            Plus
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Componente animado PNG para estados de carregamento e IA
- */
-export function SigaAiLoader({
-  label = "SIGA Plus a processar…",
-  className,
-}: {
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn("flex flex-col items-center justify-center gap-3 p-6 text-center", className)}
-    >
-      <div className="relative flex items-center justify-center">
-        <div className="absolute size-20 rounded-full bg-[#C59B27]/20 animate-ping" />
-        <div className="relative z-10 p-3 bg-background/90 backdrop-blur-md rounded-2xl border border-[#C59B27]/40 shadow-xl">
-          <SigaMascotIcon size={56} animated />
-        </div>
-      </div>
-      {label && (
-        <p className="text-xs font-semibold text-muted-foreground animate-pulse">{label}</p>
-      )}
+    <div className={cn("inline-flex items-center select-none", className)} {...props}>
+      <SigaWordmark className={wordmarkSizes[size]} />
     </div>
   );
 }

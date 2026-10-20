@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthMotionActive } from "./use-auth-motion-active";
 
 const slides = [
   {
@@ -26,11 +27,12 @@ const slides = [
 /** Textos do painel de entrada que deslizam suavemente para a esquerda. */
 export function AuthHeroSlides() {
   const [index, setIndex] = useState(0);
+  const active = useAuthMotionActive();
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!active) return;
     const id = window.setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [active]);
 
   return (
     <div className="relative max-w-xl">
@@ -48,13 +50,11 @@ export function AuthHeroSlides() {
               aria-hidden={i !== index}
               className={`col-start-1 row-start-1 transition-all duration-700 ease-out ${offset}`}
             >
-              <p className="text-xs font-medium text-muted-foreground">{s.eyebrow}</p>
+              <p className="text-xs font-medium opacity-80">{s.eyebrow}</p>
               <h1 className="mt-4 font-display text-[clamp(28px,3vw,44px)] font-semibold leading-[1.12] tracking-tight">
                 {s.title}
               </h1>
-              <p className="mt-5 max-w-lg text-sm leading-relaxed text-muted-foreground">
-                {s.text}
-              </p>
+              <p className="mt-5 max-w-lg text-sm leading-relaxed opacity-85">{s.text}</p>
             </div>
           );
         })}
@@ -71,7 +71,7 @@ export function AuthHeroSlides() {
             className="flex h-[24px] min-w-[24px] items-center justify-center"
           >
             <span
-              className={`block h-1.5 rounded-full bg-primary transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
+              className={`block h-1.5 rounded-full bg-primary-foreground transition-all duration-500 ${i === index ? "w-6 opacity-90" : "w-1.5 opacity-40"}`}
             />
           </button>
         ))}

@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { assertSafeE2ETarget } from "../../../scripts/siga/e2e-safety.mjs";
 
 /**
  * Senha dos admins que os testes @live criam na produção. Vem de
@@ -29,6 +30,7 @@ function loadRootEnv() {
 
 export function getLiveSupabaseAdmin(): SupabaseClient {
   loadRootEnv();
+  assertSafeE2ETarget();
   const url = process.env.SUPABASE_URL?.trim() || process.env.VITE_SUPABASE_URL?.trim();
   const secret =
     process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -90,9 +92,15 @@ export async function getAcceptedApplicationStudentId(schoolId: string, fullName
   return data;
 }
 
-/** Slugs criados pelos testes Playwright @live (prefixos de uniqueE2ESlug). */
+/**
+ * Slugs criados pelos testes Playwright @live (prefixos de uniqueE2ESlug). Um ou mais
+ * segmentos depois do prefixo: o teste do WEB cria `e2e-web-<id>`, com dois. Tem de
+ * continuar a recusar slugs reais — `minha-escola` inclusive, que é o tenant a que o
+ * desenvolvimento local recorre. O padrão espelha o de `scripts/siga/e2e-cleanup-lib.mjs`
+ * (guardado por `tests/saas/e2e-cleanup.test.ts`).
+ */
 export function isE2ETenantSlug(slug: string) {
-  return /^(e2e|web|mat|gw)-[a-z0-9]+$/i.test(slug.trim());
+  return /^(e2e|web|mat|gw)(-[a-z0-9]+)+$/i.test(slug.trim());
 }
 
 /** Chave dev partilhada — espelha SIGA_GATEWAY_DEV_API_KEY na CI (.env). */

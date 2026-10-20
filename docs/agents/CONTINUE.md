@@ -4,6 +4,113 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Performance — navegação, cache e arranque (2026-10-19)
+
+Data do início: `features/dashboard/date-clock.ts` agenda a próxima hora local,
+suspende escondido e actualiza ao regressar. O portal só mostra data/saudação;
+não repor ticks de 1 s que redesenham o portal inteiro. Relógio e pré-carga dos
+gráficos administrativos ficam só no modo admin. [Ensaios](../performance/2026-10-19/data-do-dashboard.md).
+
+Mensagens não lidas: `useInboxUnread` partilha um canal por QueryClient/conta.
+O último consumidor remove o canal e cancela a fila; os restantes conservam a
+ligação. Rajadas usam `realtimeInvalidator`, com actualização final durante
+leituras lentas; cada canal novo tem UUID. [Evidência deste ciclo](../performance/2026-10-19/mensagens-nao-lidas.md).
+
+Adaptação ao ecrã: `useBreakpoint` só publica quando muda entre mobile/tablet/
+desktop; mantém SSR/ready e limites de 768/1024 px. Gráficos: `warm-charts.ts`
+junta intenções por grupo, respeita visibilidade e ligação limitada antes de
+agendar e antes do import, e permite retentar depois de falha especulativa.
+Carregamento lazy normal preservado; regressões em `breakpoint-lifecycle` e
+`chart-warmup`. Não confundir menos callbacks com menos downloads já deduplicados.
+
+Diagnóstico: `performance-supervisor.ts` guarda os inícios apenas na cache
+observada; limpa-os ao remover queries, mudar visibilidade, pausar a rede ou
+desligar a subscrição. Reutiliza `query.queryHash` e aceita início em `0`.
+Regressões em `tests/ui/performance-supervisor-lifecycle.test.ts`.
+
+Continuação — recursos do acesso: `use-auth-motion-active.ts` acompanha largura
+≥1024 px, movimento reduzido, visibilidade do documento e poupança de dados. Os
+textos mantêm a rotação de 6 s apenas com o painel visível; o vídeo mantém o atraso
+de 600 ms e pausa/retoma a mesma instância. Uma falha conserva o poster e não
+reinicia carregamentos a cada mudança de visibilidade. Nenhuma dimensão ou classe
+visual alterada. Regressões em `tests/ui/auth-motion-lifecycle.test.tsx`.
+
+Contrato persistido na skill `.cursor/skills/siga-performance/SKILL.md`, também
+disponível no catálogo Codex. Mesmo visual, dimensões e funcionalidades; priorizar
+resposta ao toque e optimizações medidas. [Relatório e evidências](../performance/2026-10-19/relatorio.md).
+
+- Pré-busca com a cache React Query, chaves/filtros reais, escola/ano seleccionados,
+  cancelamento e limite de concorrência; sem pedidos especulativos em rede limitada.
+- Realtime junta eventos durante leituras lentas e conserva uma actualização final;
+  limpeza ao desmontar. Documentos e Comunicações reutilizam o mesmo mecanismo.
+- `ImportarDadosPage` e `SubscriptionDetail` não têm consumidores externos: manter
+  as funções privadas nas rotas para não impedir a separação automática do código.
+- Manifesto de produção: base de 42 para 36 ficheiros, 1 435 872 para cerca de
+  1 077 268 bytes (-25%). Não é uma redução medida de latência. Não somar os hashes
+  antigos que possam ficar na pasta de saída para calcular tráfego inicial.
+- Laboratório do login: 12 cliques com título actualizado no frame seguinte em
+  14,5–79,5 ms; zero erros/overflow/CLS. São amostras locais, sem sessão e sem p75 real.
+- Catálogo de temas Shadcn/Tweakcn fora do arranque: `src/lib/appearance.tsx` carrega-o
+  por `import()`. A raiz passou de 1 077 268 para 977 513 bytes nos mesmos 36 ficheiros
+  (-31,9% desde o início do ciclo). Guarda em `tests/ui/first-paint-budget.test.ts`:
+  não voltar a importar `@/config/theme-data` estaticamente nesse ficheiro.
+- Zod na raiz (56 638 bytes, o pedaço `types`) fica identificado e **não** alterado:
+  chega por esquemas de validação de funções de servidor e tirá-lo daí sem perder a
+  validação é trabalho de build. Não trocar validação do servidor por bytes.
+- Suite completa sem credenciais: 3 611 aprovados, 3 ignorados, 0 falhas. O `npm test`
+  não carrega o `.env` (sem `dotenv`/`loadEnv` no `vitest.config.ts`); o risco é só
+  `set -a && . ./.env` na mesma shell.
+- **Medir o build de produção passou a ser possível**: `SIGA_NITRO_PRESET=node-server
+npm run build` e servir `.output/server/index.mjs` por Node (o `wrangler` exige macOS
+  13.5+; o `vite preview` procura `dist/server/`). O pacote do cliente é igual nos dois
+  presets. A variável **nunca** entra num workflow de publicação. Primeira medição em
+  `browser-prod.json`: CLS 0, zero erros, LCP 1 272–2 664 ms no computador e 604–916 ms
+  no telemóvel, feedback ao toque 6,8–81,6 ms. Sem limitação de rede/CPU e sem sessão:
+  **não é INP p75 e as metas de aceitação do dono continuam sem verificação**.
+- **Os 36 recursos são do `__root__`, não da página.** A rota `/` soma 73 ficheiros
+  (1 567 114 bytes) e é o que o ecrã de entrada carrega, porque `/` é o painel e desenha
+  o login sem sessão. Explica por que reduções anteriores não mexeram a nota: foram
+  feitas na lista errada. Ler `routes["/"].preloads`, não só a da raiz.
+- **370 KB de `recharts` entravam no login apesar do `lazy()`**: `index.tsx` importava
+  `DashboardChartsSkeleton` do módulo que importa `recharts`, e o manifesto pré-carrega o
+  grafo estático da rota. O esqueleto passou para
+  `src/features/dashboard/DashboardChartsSkeleton.tsx` (marcação pura, zero imports);
+  guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com o import antigo.
+  Medido: a rota `/` passou a 72 ficheiros/1 549 942 bytes no manifesto, sem pedaços de
+  gráficos, e o carregamento frio desceu 413 880 bytes (−10,1% no computador, −17,4% no
+  telemóvel), com o tipo `script` de 507 643 para 111 235 bytes. **Esses bytes são por
+  comprimir**: o servidor Node local não comprime e a Cloudflare comprime, por isso a
+  poupança real são os 110 362 em gzip (91 808 em brotli) dos três recursos que saíram
+  (`BarChart`, `DashboardCharts`, `PieChart`) — ~110 KB, não 414 KB. O LCP veio mais baixo mas
+  **não se atribui à correcção** — seis corridas locais sem limitação. CLS somado 0,003.
+- Pesos restantes do ecrã de entrada, medidos e **não** alterados: `auth-classroom.mp4`
+  (1 716 956 bytes, 42% do carregamento frio no computador, e toda a diferença para o
+  telemóvel, que não o pede) e `styles-*.css` (234 925 bytes). O vídeo é identidade;
+  não se troca por bytes.
+- `inventory-after.json` é anterior à passagem do catálogo de temas: contém 1 077 268
+  bytes, não os 977 513 da última linha da tabela. O relatório agora avisa.
+- Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
+
+## Sincronização GitHub — 2026-10-19
+
+Integrado `origin/main` (`dcf0825c`) na branch `docs/auditoria-critica-2026-10-06`,
+preservando o trabalho local no commit `19f011da`, sem reescrever histórico.
+Os tipos locais gerados em conjunto com o retrato de 12/10 passam para `types.sga.ts`;
+`types.ts` continua reservado ao Lovable. Os RPCs atómicos já constam desse retrato.
+As entradas de espera de catálogo já presentes no retrato foram retiradas.
+O login mantém os novos factores MFA/passkeys e dispositivos de confiança, com os
+links locais para alternar entre login e registo no mesmo painel.
+Os estados de feedback locais coexistem com os ajustes recentes para telemóvel.
+Não foi aplicado SQL nem executado deploy nesta sincronização. As notas de 08/10
+abaixo são históricas; o estado dos contratos depende do retrato actual e do gate.
+
+Validação: `bun install --frozen-lockfile`, `npm run typecheck`, `npm run lint`
+(0 erros, 47 avisos), `npm run build`, contratos SQL e inventário de 18 módulos aprovados.
+A suite completa terminou com 3 580 testes aprovados, 3 ignorados e 2 falhas: o fixture
+MFA não incluía a reconfirmação recente exigida pelo main e a lista de tabelas ausentes
+ainda incluía as quatro WEB já presentes no retrato. Ambos corrigidos; a repetição dos
+dois ficheiros passou os 13 testes. Os ficheiros de teste ajustados passaram também no lint.
+
 ## Lovable e o main (2026-10-17/18) — ler antes de mexer em tipos ou fazer merge
 
 - **Tipos**: o código usa `src/integrations/supabase/types.sga.ts` (produção, gerado por
@@ -55,7 +162,7 @@ Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e
 - **Não fazer:** agrupar Radix ou módulos da app num só ficheiro (gerava 1–1,6 MB);
   tornar `PickFileButton`/`InstallConsentModal` lazy (o peso é partilhado, não poupa nada).
 - Guarda: `tests/ui/first-paint-budget.test.ts`. Medir localmente: build, `npm run
-  preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
+preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
   `CHROME_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome`. As notas variam
   ±0,04 entre corridas; comparar várias.
 
@@ -112,8 +219,7 @@ gestão académica). Ser administrador da escola nunca dá a Administração Glo
   (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
   **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
   nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
-- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada,
-  2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
+- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada, 2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
   automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
   Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
 - **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em
@@ -263,6 +369,44 @@ do ano depois de o acertar.
   com o código TOTP.
 - Instalação: um só convite discreto («Instalar a aplicação · Agora não», 30 dias);
   nada de Google nem instalação durante a confirmação.
+
+## Correcções e SPECs — 2026-10-08
+
+Seguir o banco actual. [Progresso e evidências](../implementation/2026-10-07/PROGRESSO.md),
+[30 SPECs e contratos](../specs/README.md) e
+[revisão/promoção/reversão SQL](../implementation/2026-10-07/REVISAO_SQL.md).
+Matrícula e ano activo usam RPCs atómicos preparados; importação recusa excesso/CSV inválido;
+grants exigem MFA e E2E com escrita recusa produção. Não houve aplicação SQL nem deploy.
+Os dois RPCs ainda ausentes estão explicitamente em `tests/security/espera-migracao.ts`;
+`check-release-contracts.mjs` bloqueia publicação até catálogo confirmado e ensaio de staging.
+Não retirar o bloqueio para publicar antes do SQL nem restaurar escritas parciais como fallback.
+Gates locais: tipos, lint (0 erros/47 avisos), build, 3 119 testes (3 ignorados) e dois fixtures SQL aprovados.
+A auditoria anterior conserva os seus resultados/hashes; fixtures locais não certificam
+concorrência real, jornada anual ou fornecedores. Alterações locais anteriores preservadas.
+
+## Análise crítica — 2026-10-06
+
+Relatório: [13-auditoria-critica-2026-10-06.md](../auditoria/13-auditoria-critica-2026-10-06.md).
+
+Duas correcções de leitura que mudam o enquadramento de tudo o que vem antes:
+
+- **«49 escolas, 45 alunos, 38 facturas» não é adopção.** 43 das 48 escolas são restos de
+  testes E2E (08–09/09), todas `active`, com 42 subdomínios `tenant_domains` verificados.
+  Das 5 restantes, quatro estão vazias. O uso real é **uma escola, dois alunos, uma nota,
+  quatro facturas**. `siga_assessment_scores` tem 1 linha; `attendance_records` tem 0.
+- **A suite não estava verde.** 1 falha em 3 077 (`tests/finance/appypay-stale-settling`),
+  que o CI não via por ser mais rápido do que a tolerância de 50 ms que o teste media.
+  Corrigida.
+
+Corrigido no commit `305e7972`: a **pauta exportada** (CSV/PDF) decidia a transição por sua
+conta — MFD com os períodos que houvesse, «Transita» por média simples ≥ 10, limiar fixo e
+3 trimestres no selector. Passa a usar `decidePromotionStatus`, o regime da turma e a nota
+mínima do modelo em vigor, como a pauta oficial. Ver §5 e §6 do relatório.
+
+Por decidir (só o dono): rodar a `service_role` e o PAT; limpar os 43 restos de E2E
+(`npm run siga:e2e-cleanup-stale -- --dry-run` identifica 42); projecto de staging; o que
+o PayFlow é (`provider: unconfigured`, `sigaUrl: null`); chaves de assinatura da app
+desktop (**0 releases, 0 tags `v*`, 0 segredos no repositório**); DMARC.
 
 ## Publicar — estado de 2026-10-06
 

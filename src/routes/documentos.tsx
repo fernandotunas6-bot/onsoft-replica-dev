@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute } from "@tanstack/react-router";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
@@ -172,15 +173,16 @@ function DocumentosPage() {
 
   // Realtime — atualiza a lista de pedidos quando há novidades
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
     const channel = supabase
       .channel(`documentos_realtime:${realtimeInstanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "document_requests" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
-        void queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+        realtime.invalidate(["documents", "workspace"], ["dashboard", "overview"]);
       })
       .subscribe();
 
     return () => {
+      realtime.dispose();
       supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);
