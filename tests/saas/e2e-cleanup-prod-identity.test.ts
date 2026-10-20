@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import {
   assertProductionE2ECleanupIdentity,
   assertProductionArtifactCount,
+  assertCleanupAccountOwnedBySchool,
   parseE2ECleanupArgs,
 } from "../../scripts/siga/e2e-cleanup-prod-identity.mjs";
 
@@ -97,5 +98,39 @@ describe("retenção segura de dados institucionais na produção", () => {
       expect(source).toContain(`"${table}"`);
     }
     expect(source).toContain("tenant.id !== approvedTenantId");
+  });
+});
+
+describe("não apagar autenticação partilhada entre escolas", () => {
+  const schoolId = "11111111-2222-4333-8444-555555555555";
+  const otherSchoolId = "99999999-2222-4333-8444-555555555555";
+
+  it("aceita apenas vínculos da escola que será removida", () => {
+    expect(() => assertCleanupAccountOwnedBySchool([schoolId], schoolId)).not.toThrow();
+    expect(() => assertCleanupAccountOwnedBySchool([schoolId, schoolId], schoolId)).not.toThrow();
+  });
+
+  it("recusa conta com qualquer vínculo noutra escola, mesmo antigo", () => {
+    for (const memberships of [[otherSchoolId], [schoolId, otherSchoolId]]) {
+      expect(() => assertCleanupAccountOwnedBySchool(memberships, schoolId)).toThrow(
+        /outras escolas/,
+      );
+    }
+  });
+
+  it("recusa conta sem vínculo confirmado ou sem escola identificada", () => {
+    expect(() => assertCleanupAccountOwnedBySchool([], schoolId)).toThrow(/vínculo incerto/);
+    expect(() => assertCleanupAccountOwnedBySchool([schoolId], null)).toThrow(/bloqueada/);
+  });
+
+  it("valida a conta antes de eliminar escolas e tenants", () => {
+    const source = readFileSync(resolve(process.cwd(), "scripts/siga/e2e-cleanup-lib.mjs"), "utf8");
+    expect(source).toContain("assertCleanupAccountOwnedBySchool(");
+    expect(source.indexOf("assertCleanupAccountOwnedBySchool(")).toBeLessThan(
+      source.indexOf("await purgeSchoolDependencies("),
+    );
+    expect(source.indexOf("assertCleanupAccountOwnedBySchool(")).toBeLessThan(
+      source.indexOf("await admin.from(\"tenants\").delete()"),
+    );
   });
 });
