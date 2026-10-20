@@ -19,10 +19,7 @@ const assignment = {
   status: "active",
 };
 
-function makeDb(
-  input: Partial<Record<TableName, Row[]>> = {},
-  errorTable?: TableName,
-) {
+function makeDb(input: Partial<Record<TableName, Row[]>> = {}, errorTable?: TableName) {
   const rows: Record<TableName, Row[]> = {
     teachers: [teacher],
     people: [],
@@ -61,7 +58,10 @@ function makeDb(
           };
         },
         then<T>(
-          onSuccess: (result: { data: Row[]; error: { message: string; code: string } | null }) => T,
+          onSuccess: (result: {
+            data: Row[];
+            error: { message: string; code: string } | null;
+          }) => T,
         ) {
           return Promise.resolve({
             data: current,
