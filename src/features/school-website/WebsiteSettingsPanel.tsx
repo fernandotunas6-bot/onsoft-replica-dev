@@ -338,10 +338,10 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
             }
           >
             <option value="classic">Azul discreto</option>
-            <option value="prism">Azul, violeta e magenta</option>
+            <option value="prism">Azul e roxo</option>
           </select>
           <p className="text-xs text-muted-foreground">
-            Aplica molduras e movimento suave a alguns destaques. Respeita a preferência de
+            Aplica tons azul e roxo e movimento suave a alguns destaques. Respeita a preferência de
             movimento reduzido do visitante.
           </p>
         </div>

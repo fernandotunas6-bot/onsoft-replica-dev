@@ -1,19 +1,12 @@
 /* Small, optional accents: the approved layout, type and blue palette stay in place. */
-.school-monogram{display:none;pointer-events:none;user-select:none}
-[data-banner-style="prism"]{--prism-violet:#7150eb;--prism-pink:#cf2ba1}
-[data-banner-style="prism"] .hero-visual::before{content:"";position:absolute;inset:5% 0 0 4%;border-radius:22px 50% 50% 22px;background:linear-gradient(135deg,#1667ee 5%,#7356e9 53%,#d839ad);opacity:.24;transform:rotate(-5deg);animation:school-drift 12s ease-in-out infinite alternate;pointer-events:none}
-[data-banner-style="prism"] .hero-photo{border-radius:18px 48% 48% 18px;border:5px solid #fff;outline:1px solid #8a76ec38;box-shadow:0 24px 64px #27378c20,10px 3px 0 #af40bd20}
+[data-banner-style="prism"]{--prism-violet:#7150eb;--prism-purple:#8750d8}
+[data-banner-style="prism"] .hero-visual::before{content:"";position:absolute;inset:5% 0 0 4%;border-radius:80px 12px 80px 12px;background:linear-gradient(135deg,#1667ee 5%,#7356e9 53%,#8750d8);opacity:.24;transform:rotate(-5deg);animation:school-drift 12s ease-in-out infinite alternate;pointer-events:none}
 [data-banner-style="prism"] .hero-photo img{filter:saturate(.88) contrast(1.04)}
 [data-banner-style="prism"] .hero-grid{opacity:.6}
-[data-banner-style="prism"] .hero-visual>.school-monogram{display:block;position:absolute;inset:auto 0 -19% 4%;width:95%;height:auto;color:#e6e7fa;fill:transparent;stroke:currentColor;stroke-width:1.2;font-family:var(--font-heading,Manrope),sans-serif;font-size:156px;font-weight:800;letter-spacing:-9px}
-[data-banner-style="prism"] .blue-band{isolation:isolate;background:linear-gradient(115deg,#154fe6 12%,#5144bb 67%,#792386)}
-[data-banner-style="prism"] .blue-band::before{content:"";position:absolute;z-index:-1;inset:-95% -10% -55% 48%;border:1px solid #ffffff26;border-radius:20px 50% 50% 20px;background:linear-gradient(120deg,#9b69ff1a,#f62ca025);transform:rotate(-28deg);animation:school-drift 16s ease-in-out infinite alternate;pointer-events:none}
-[data-banner-style="prism"] .blue-band>.school-monogram{display:block;position:absolute;z-index:-1;width:60%;max-width:800px;right:-2%;bottom:-22%;fill:transparent;stroke:#ffffff16;stroke-width:1;font-family:Manrope,sans-serif;font-size:160px;font-weight:800}
-[data-banner-style="prism"] .course-hero-image{border-radius:16px 45% 45% 16px;box-shadow:7px -6px 0 #7856e31f,14px 2px 0 #d53caa14,0 20px 45px #243c7a16}
+[data-banner-style="prism"] .blue-band{isolation:isolate;background:linear-gradient(115deg,#154fe6 12%,#5144bb 67%,#442479)}
+[data-banner-style="prism"] .blue-band::before{content:"";position:absolute;z-index:-1;inset:-95% -10% -55% 48%;border:1px solid #ffffff26;border-radius:20px 50% 50% 20px;background:linear-gradient(120deg,#9b69ff1a,#9d65ef25);transform:rotate(-28deg);animation:school-drift 16s ease-in-out infinite alternate;pointer-events:none}
+[data-banner-style="prism"] .course-hero-image{box-shadow:7px -6px 0 #7856e31f,14px 2px 0 #985ce214,0 20px 45px #243c7a16}
 [data-banner-style="prism"] .course-hero-image img{filter:saturate(.88) contrast(1.03)}
-[data-banner-style="prism"] .login-story{isolation:isolate}
-[data-banner-style="prism"] .login-story>.school-monogram{display:block;position:absolute;z-index:-1;width:95%;bottom:-5%;left:3%;fill:transparent;stroke:#6655dd22;stroke-width:1;font-family:Manrope,sans-serif;font-size:158px;font-weight:800}
-[data-banner-style="prism"] .login-story>img{filter:saturate(.8) contrast(1.05);border-radius:14px 110px 110px 14px;box-shadow:7px 0 0 #a459dc24}
 .admission-summary{border:1px solid #dce5f6;border-radius:18px;background:linear-gradient(135deg,#f6f9ff,#faf8ff);padding:22px;margin-top:24px;text-align:left;color:#20314c;overflow-wrap:anywhere}
 .admission-summary-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .admission-summary-heading>span{font-size:13px;font-weight:600}
@@ -29,8 +22,11 @@
 .application-review+.admission-summary{margin-bottom:24px}
 #application-success .admission-summary{max-width:600px;margin:28px auto}
 @keyframes school-drift{from{translate:0 0;rotate:-2deg}to{translate:0 -8px;rotate:2deg}}
-@media(max-width:760px){[data-banner-style="prism"] .hero-photo{border-width:3px}[data-banner-style="prism"] .hero-visual>.school-monogram{bottom:-14%}[data-banner-style="prism"] .blue-band>.school-monogram{width:100%;bottom:-8%}.admission-summary{padding:18px}.admission-summary-heading>strong{font-size:22px}}
 @media(prefers-reduced-motion:reduce){[data-banner-style="prism"] .hero-visual::before,[data-banner-style="prism"] .blue-band::before{animation:none}}
 @media(max-width:760px){.application-aside .admission-summary{margin-top:10px;padding:14px 18px}.application-aside .admission-summary>p,.application-aside .admission-journey{display:none}}
 .reduce-motion [data-banner-style="prism"] .hero-visual::before,.reduce-motion [data-banner-style="prism"] .blue-band::before,html.reduce-motion .hero-visual::before,html.reduce-motion .blue-band::before{animation:none!important}
 html[data-page-hidden="true"] .hero-visual::before,html[data-page-hidden="true"] .blue-band::before{animation-play-state:paused}
+.site-footer{--muted:#cbd5ef;--line:#ffffff26;--blue:#bed0ff;color:#f5f7ff;background:linear-gradient(112deg,#12264e 0%,#1c2856 48%,#322052 100%);border-top:1px solid #6454aa}
+.site-footer .brand{color:#f2f5ff}.site-footer .brand-dot{color:#b8a0f4}.site-footer .locale{color:#cbd5ef}
+.site-footer .footer-demo,.site-footer .footer-bottom{color:#cbd5ef}.site-footer .footer-main h3{color:#f5f7ff}
+.site-footer a:hover{color:#fff!important}.site-footer a:focus-visible{outline:2px solid #c9b7ff;outline-offset:5px;border-radius:3px}

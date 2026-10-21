@@ -1,4 +1,4 @@
-// Decorative additions deliberately leave the CMS text/image binding IDs intact.
+// Presentation additions deliberately preserve the approved image composition and CMS bindings.
 export function admissionFeeLabel(amount) {
   return Number.isSafeInteger(amount) && amount >= 0 && amount <= 100_000_000
     ? new Intl.NumberFormat('pt-AO', {maximumFractionDigits: 0}).format(amount) + ' Kz'
@@ -22,20 +22,6 @@ export function admissionSummaryHTML(config, {completed = false} = {}) {
 export function setupSchoolPresentation(config) {
   const root = document.documentElement;
   root.dataset.bannerStyle = config?.bannerStyle === 'prism' ? 'prism' : 'classic';
-  for (const host of document.querySelectorAll('.hero-visual,.blue-band,.login-story')) {
-    if (host.querySelector('.school-monogram')) continue;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.classList.add('school-monogram');
-    svg.setAttribute('viewBox', '0 0 600 200');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('focusable', 'false');
-    const text = document.createElementNS(svg.namespaceURI, 'text');
-    text.setAttribute('x', '300'); text.setAttribute('y', '150');
-    text.setAttribute('text-anchor', 'middle'); text.setAttribute('textLength', '550');
-    text.setAttribute('lengthAdjust', 'spacingAndGlyphs');
-    text.textContent = String(config?.schoolName || 'ISPAB').slice(0, 30);
-    svg.append(text); host.prepend(svg);
-  }
   const loginStatus = document.querySelector('[data-siga-status]');
   if (loginStatus && config?.portalUrl) loginStatus.textContent = 'Entre com a mesma conta do SIGA Plus. No sistema, utilize e-mail ou Google, quando disponível. A verificação de segurança mantém-se no seu login habitual.';
   const aside = document.querySelector('.application-aside');

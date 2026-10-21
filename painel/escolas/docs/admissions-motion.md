@@ -1,8 +1,10 @@
 # Refinamento do ingresso e apresentação
 
 A estrutura, tipografia e conteúdos existentes mantêm-se. A apresentação opcional
-`prism` usa molduras em D, imagens com tratamento CSS, gradientes e um monograma
-derivado do nome da escola. O estilo `classic` mantém o azul discreto. Animações
+`prism` usa tons azul e roxo e gradientes discretos. A composição original das
+fotografias mantém-se, conforme a correcção do cliente. O rodapé recebe um gradiente
+escuro de azul e roxo; a barra lateral escura do SIGA recebe os mesmos tons.
+O estilo `classic` mantém os destaques em azul discreto. Animações
 respeitam o sistema, a preferência de acessibilidade do site e a visibilidade da página.
 Nenhum campo do manifesto foi renumerado: mantêm-se os 4579 campos e a versão do modelo.
 

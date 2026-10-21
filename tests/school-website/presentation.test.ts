@@ -10,9 +10,9 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 describe("apresentação pública por escola", () => {
-  it("trata o nome como texto e mantém as decorações fora da acessibilidade", () => {
+  it("preserva as fotografias e o conteúdo existentes, sem introduzir conteúdo da referência", () => {
     document.body.innerHTML =
-      '<div class="hero-visual"></div><aside class="application-aside"></aside>';
+      '<div class="hero-visual"><img src="/assets/hero.webp" alt="Estudantes na biblioteca"></div><aside class="application-aside"></aside>';
     setupSchoolPresentation({
       schoolName: "<img src=x onerror=alert(1)>",
       bannerStyle: "prism",
@@ -23,9 +23,10 @@ describe("apresentação pública por escola", () => {
       bannerStyle: "prism",
       admissionFeeAmount: 24000,
     });
-    expect(document.querySelectorAll(".school-monogram")).toHaveLength(1);
-    expect(document.querySelector(".school-monogram")?.getAttribute("aria-hidden")).toBe("true");
-    expect(document.querySelector("img")).toBeNull();
+    expect(document.querySelectorAll("img")).toHaveLength(1);
+    expect(document.querySelector("img")?.getAttribute("src")).toBe("/assets/hero.webp");
+    expect(document.querySelector("img")?.getAttribute("alt")).toBe("Estudantes na biblioteca");
+    expect(document.querySelector(".school-monogram")).toBeNull();
     expect(document.querySelectorAll(".admission-summary")).toHaveLength(1);
     expect(document.querySelector(".admission-summary")?.textContent).toMatch(/24\D000 Kz/);
     expect(admissionSummaryHTML({ admissionFeeAmount: "<script>" })).not.toContain("<script>");
