@@ -1,0 +1,39 @@
+name: Repair dependency audit (temporary)
+on:
+  push:
+    branches: [feat/school-sites-multitenant-20261020]
+    paths: [".github/workflows/_repair-audit-temp.yml"]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Corrigir advisories sem mudar major de dependências directas
+        run: |
+          bun audit fix
+          bun install --frozen-lockfile
+          bun audit --audit-level=high
+          git diff --exit-code -- painel/escolas/
+          if git diff --name-only | grep -Ev '^(bun.lock|package.json)$'; then
+            echo "::error::Mudanças fora do manifesto e lockfile não são permitidas"
+            exit 1
+          fi
+      - name: Publicar correcção verificável no ramo da PR
+        run: |
+          if git diff --quiet -- bun.lock package.json; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock package.json
+          git commit -m "fix(deps): actualizar versões vulneráveis sem major upgrade"
+          git fetch origin feat/school-sites-multitenant-20261020
+          git rebase origin/feat/school-sites-multitenant-20261020
+          git push origin HEAD:feat/school-sites-multitenant-20261020
