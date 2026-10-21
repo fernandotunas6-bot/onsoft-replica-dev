@@ -187,6 +187,7 @@
   "overrides": {
     "@grpc/grpc-js": "1.14.5",
     "@modelcontextprotocol/sdk": "1.32.1",
-    "shell-quote": "1.12.0"
+    "shell-quote": "1.12.0",
+    "@modelcontextprotocol/server": "^2.3.0"
   }
 }
