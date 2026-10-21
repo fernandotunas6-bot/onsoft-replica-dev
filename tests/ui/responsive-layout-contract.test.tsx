@@ -36,7 +36,8 @@ describe("cabeçalhos do SIGA em ecrãs estreitos", () => {
     const breadcrumb = screen.getByRole("navigation", { name: "breadcrumb" });
     expect(breadcrumb.className).toContain("overflow-x-auto");
     expect(breadcrumb.querySelector("ol")?.className).toContain("flex-nowrap");
-    expect(screen.getByRole("link", { name: "Início" }).getAttribute("href")).toBe("/");
+    // The institution owns `/`; private navigation must return to its portal.
+    expect(screen.getByRole("link", { name: "Início" }).getAttribute("href")).toBe("/portal");
   });
 });
 
