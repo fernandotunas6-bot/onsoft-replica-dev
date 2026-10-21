@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Native public-site module.
-import { setupAcademicNavigation } from "../../painel/escolas/src/academic-navigation.mjs";
+import * as navigation from "../../painel/escolas/src/academic-navigation.mjs";
+const { setupAcademicNavigation, isHeaderSearchShortcut } = navigation;
 let controller: ReturnType<typeof setupAcademicNavigation>;
 const mobile = Object.assign(new EventTarget(), { matches: false });
 afterEach(() => {
@@ -24,6 +25,61 @@ function mount() {
   return [...document.querySelectorAll("details")];
 }
 describe("cabeçalho académico", () => {
+  it("cancela a abertura pendente ao dispensar o menu e não fecha por saída de toque num computador híbrido", () => {
+    const [first] = mount();
+    first.dispatchEvent(new Event("pointerenter"));
+    document.body.click();
+    vi.advanceTimersByTime(120);
+    expect(first.open).toBe(false);
+    first.dispatchEvent(new Event("pointerenter"));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    vi.advanceTimersByTime(120);
+    expect(first.open).toBe(false);
+    first.open = true;
+    const leave = new Event("pointerleave");
+    Object.defineProperty(leave, "pointerType", { value: "touch" });
+    first.dispatchEvent(leave);
+    vi.advanceTimersByTime(220);
+    expect(first.open).toBe(true);
+  });
+
+  it("preserva o menu com foco de teclado e fecha ao sair desse grupo", () => {
+    const [first, second] = mount();
+    first
+      .querySelector("summary")!
+      .dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }),
+      );
+    second.dispatchEvent(new Event("pointerenter"));
+    vi.advanceTimersByTime(120);
+    expect(first.open).toBe(true);
+    expect(second.open).toBe(false);
+    expect(document.activeElement).toBe(first.querySelector("a"));
+    second.querySelector("summary")!.focus();
+    expect(first.open).toBe(false);
+  });
+
+  it("fecha e desbloqueia imediatamente o fundo ao escolher uma ligação no menu móvel", async () => {
+    mount();
+    document.querySelector("main")!.inert = false;
+    mobile.matches = true;
+    const nav = document.querySelector("#main-nav")!,
+      toggle = document.querySelector(".mobile-toggle")!;
+    toggle.addEventListener("click", () => nav.classList.toggle("open"));
+    nav.classList.add("open");
+    await Promise.resolve();
+    expect(document.querySelector("main")!.inert).toBe(true);
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
+    nav.querySelector("a")!.addEventListener("click", (e) => e.preventDefault(), { once: true });
+    nav.querySelector("a")!.dispatchEvent(event);
+    expect(nav.classList.contains("open")).toBe(true);
+    // The document observer must not be required to run before the native link action.
+    nav.querySelector("a")!.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }));
+    expect(nav.classList.contains("open")).toBe(false);
+    expect(document.querySelector("main")!.inert).toBe(false);
+    expect(document.body.style.overflow).not.toBe("hidden");
+  });
+
   it("reduz com histerese, mantém um menu aberto e conserva foco de teclado durante a saída do rato", () => {
     const [first, second] = mount();
     vi.stubGlobal("scrollY", 120);
@@ -78,5 +134,30 @@ describe("cabeçalho académico", () => {
     expect(main.inert).toBe(false);
     expect(document.body.style.overflow).toBe("clip");
     expect(document.querySelector(".navigation-scrim")).toBeNull();
+  });
+});
+
+describe("atalho de pesquisa", () => {
+  it.each([
+    "<input>",
+    "<textarea></textarea>",
+    "<select></select>",
+    "<div contenteditable></div>",
+    '<div contenteditable="plaintext-only"></div>',
+    '<div role="textbox"></div>',
+  ])("não interrompe a escrita em %s", (html) => {
+    document.body.innerHTML = html;
+    expect(
+      isHeaderSearchShortcut({ key: "k", ctrlKey: true, target: document.body.firstElementChild }),
+    ).toBe(false);
+  });
+  it("ignora composição e eventos tratados, e aceita um destino sem closest", () => {
+    expect(
+      isHeaderSearchShortcut({ key: "k", ctrlKey: true, target: document, isComposing: true }),
+    ).toBe(false);
+    expect(
+      isHeaderSearchShortcut({ key: "k", ctrlKey: true, target: document, defaultPrevented: true }),
+    ).toBe(false);
+    expect(isHeaderSearchShortcut({ key: "k", metaKey: true, target: document })).toBe(true);
   });
 });

@@ -1,3 +1,10 @@
+export function isHeaderSearchShortcut(event) {
+  if (event.defaultPrevented || event.isComposing || !(event.ctrlKey || event.metaKey) || event.altKey || event.key?.toLowerCase() !== 'k') return false;
+  const target = event.target, owner = target?.closest?.('[contenteditable]');
+  const editable = typeof target?.isContentEditable === 'boolean' ? target.isContentEditable : owner && owner.getAttribute('contenteditable') !== 'false';
+  return !editable && !target?.closest?.('input,textarea,select,[role=textbox]');
+}
+
 /** Progressive header behaviour. Existing disclosures and public links remain the fallback. */
 export function setupAcademicNavigation({doc = document, win = window} = {}) {
   const header = doc.querySelector('.site-header'), nav = doc.querySelector('#main-nav'), toggle = doc.querySelector('.mobile-toggle');
@@ -6,6 +13,8 @@ export function setupAcademicNavigation({doc = document, win = window} = {}) {
   const mobile = win.matchMedia('(max-width:760px)'), hover = win.matchMedia('(hover:hover) and (pointer:fine) and (min-width:761px)');
   const disposers = [], timers = new Map(), activeLinks = new Map(), sections = [...nav.querySelectorAll('.nav-dropdown')];
   const listen = (node, name, fn, options) => {node.addEventListener(name, fn, options);disposers.push(() => node.removeEventListener(name, fn, options));};
+  const cancel = section => {win.clearTimeout(timers.get(section));timers.delete(section);};
+  const cancelPending = () => {for (const section of timers.keys()) cancel(section);};
   const scrim = doc.createElement('div');scrim.className = 'navigation-scrim';scrim.hidden = true;scrim.setAttribute('aria-hidden', 'true');header.after(scrim);
   let frame = 0, condensed = false, locked = false, destroyed = false, originalOverflow, background = [];
   const originalHeight = doc.documentElement.style.getPropertyValue('--site-header-height');
@@ -46,23 +55,32 @@ export function setupAcademicNavigation({doc = document, win = window} = {}) {
   };
   listen(scrim, 'click', () => {if (nav.classList.contains('open')) toggle.click();toggle.focus();});
   const mutation = new win.MutationObserver(syncMobile);mutation.observe(nav, {attributes: true, attributeFilter: ['class']});
-  listen(mobile, 'change', syncMobile);
-  const cancel = section => {win.clearTimeout(timers.get(section));timers.delete(section);};
+  listen(mobile, 'change', () => {cancelPending();syncMobile();});listen(hover, 'change', cancelPending);
+  // Explicit actions take precedence over a delayed hover, including dismissal.
+  listen(doc, 'click', cancelPending);listen(doc, 'keydown', cancelPending);listen(doc, 'pointerdown', cancelPending);
+  listen(nav, 'click', event => {
+    const link = event.target.closest?.('a[href]');
+    if (!mobile.matches || !nav.classList.contains('open') || !link || event.defaultPrevented || event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || (link.target && link.target !== '_self') || link.hasAttribute('download')) return;
+    toggle.click();syncMobile();
+  });
   for (const section of sections) {
     const summary = section.querySelector('summary');
+    const anotherMenuHasFocus = () => sections.some(other => other !== section && other.open && other.querySelector('.mega-menu')?.contains(doc.activeElement));
     listen(section, 'pointerenter', event => {
-      cancel(section);if (!hover.matches || event.pointerType === 'touch') return;
-      timers.set(section, win.setTimeout(() => {timers.delete(section);sections.forEach(other => {other.open = other === section;});}, 90));
+      cancel(section);if (!hover.matches || event.pointerType === 'touch' || anotherMenuHasFocus()) return;
+      timers.set(section, win.setTimeout(() => {timers.delete(section);if (!anotherMenuHasFocus()) sections.forEach(other => {other.open = other === section;});}, 90));
     });
-    listen(section, 'pointerleave', () => {
-      cancel(section);if (!hover.matches) return;
+    listen(section, 'pointerleave', event => {
+      cancel(section);if (!hover.matches || event.pointerType === 'touch') return;
       timers.set(section, win.setTimeout(() => {timers.delete(section);if (!section.contains(doc.activeElement)) section.open = false;}, 180));
     });
+    listen(section, 'focusout', event => {if (!mobile.matches && !section.contains(event.relatedTarget)) {cancel(section);section.open = false;}});
     listen(summary, 'keydown', event => {
       if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
       const links = [...section.querySelectorAll('.mega-menu a[href]')];if (!links.length) return;
       event.preventDefault();cancel(section);sections.forEach(other => {other.open = other === section;});
-      (event.key === 'ArrowDown' ? links[0] : links.at(-1)).focus();
+      const visible = links.filter(link => link.getClientRects().length), targets = visible.length ? visible : links;
+      (event.key === 'ArrowDown' ? targets[0] : targets.at(-1)).focus();
     });
   }
   listen(header, 'keydown', event => {

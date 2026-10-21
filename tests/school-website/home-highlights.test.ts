@@ -26,6 +26,31 @@ function mount(reduced = false) {
 }
 const visible = () => document.querySelector(".hero-photo:not([hidden])")?.textContent;
 describe("destaques da página inicial", () => {
+  it("só muda de destaque com o fim do mesmo gesto de toque", () => {
+    mount(true);
+    const hero = document.querySelector("[data-hero-carousel]")!;
+    const pointer = (name: string, id: number, x: number, primary = true) => {
+      const event = new Event(name, { bubbles: true });
+      Object.assign(event, {
+        pointerType: "touch",
+        pointerId: id,
+        clientX: x,
+        clientY: 10,
+        isPrimary: primary,
+      });
+      hero.dispatchEvent(event);
+    };
+    pointer("pointerdown", 1, 240);
+    pointer("pointerdown", 2, 220, false);
+    pointer("pointerup", 2, 80, false);
+    expect(visible()).toBe("Primeiro");
+    pointer("pointerup", 1, 100);
+    expect(visible()).toBe("Ingresso publicado");
+    pointer("pointerdown", 3, 240);
+    pointer("pointercancel", 3, 220);
+    pointer("pointerup", 3, 100);
+    expect(visible()).toBe("Ingresso publicado");
+  });
   it("roda apenas enquanto visível e pára após uma escolha manual, sem duplicar o carrossel", () => {
     const original = mount();
     setupHomeHighlights();

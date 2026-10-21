@@ -1,5 +1,15 @@
 # Handoff — continuar o SIGA
 
+## Refinamento da navegação académica — 2026-10-21
+
+Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis
+por hover. O foco de teclado não pode ser escondido por outro grupo. Ligações no
+menu móvel desbloqueiam o fundo antes da navegação normal. A pesquisa respeita
+campos editáveis/IME. As secções de ingresso/instituição/novos estudantes têm
+IDs estáveis no HTML inicial: não voltar a depender da API para deep links.
+Swipe só termina com o mesmo ponteiro. Manifesto e 4653 campos inalterados.
+[Reprodução e validação](../../painel/escolas/docs/navigation-polish.md).
+
 ## Cabeçalho e home académica — 2026-10-21
 
 O pedido autoriza os comportamentos de navegação e slides da home, conservando
