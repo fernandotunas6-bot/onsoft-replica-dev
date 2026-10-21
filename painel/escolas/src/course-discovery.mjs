@@ -23,15 +23,39 @@ export function setupCourseDiscovery(courses, {doc = document, navigate = url =>
   const status = doc.createElement('p'); status.className = 'discovery-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   popup.append(list, status); field.append(popup);
   input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', list.id); input.setAttribute('aria-expanded', 'false'); input.setAttribute('autocomplete', 'off');
-  let selected = -1;
+  let selected = -1, composing = false, placementFrame;
+  function place() {
+    if (popup.hidden || form.classList.contains('header-search-form')) return;
+    const viewport = doc.defaultView?.visualViewport, win = doc.defaultView;
+    const top = viewport?.offsetTop || 0, bottom = top + (viewport?.height || win?.innerHeight || doc.documentElement.clientHeight);
+    const bounds = field.getBoundingClientRect(), header = doc.querySelector('.site-header')?.getBoundingClientRect();
+    const start = Math.max(top, header && header.top <= top && header.bottom > top ? header.bottom : top);
+    const below = Math.max(0, bottom - bounds.bottom - 17), above = Math.max(0, bounds.top - start - 17);
+    // Keep the existing list within the visible viewport, including a mobile keyboard.
+    const required = Math.min(popup.scrollHeight, 360, (bottom - top) * .6);
+    const upwards = below < required && above > below;
+    popup.classList.toggle('is-above', upwards);
+    popup.style.maxHeight = Math.max(0, Math.min(required, upwards ? above : below)) + 'px';
+    revealSelection();
+  }
+  const schedulePlacement = () => {
+    if (popup.hidden || placementFrame !== undefined) return;
+    placementFrame = doc.defaultView.requestAnimationFrame(() => {placementFrame = undefined;place();});
+  };
   const options = () => [...list.querySelectorAll('[role=option]')];
-  function close() {popup.hidden = true; selected = -1; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); for (const option of options()) option.setAttribute('aria-selected', 'false');}
+  function close() {if (placementFrame !== undefined) {doc.defaultView.cancelAnimationFrame(placementFrame);placementFrame = undefined;}popup.hidden = true; selected = -1; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); for (const option of options()) option.setAttribute('aria-selected', 'false');}
   function choose(index) {
     const items = options(); if (!items.length) return;
     selected = (index + items.length) % items.length;
     items.forEach((item, i) => item.setAttribute('aria-selected', String(i === selected)));
     input.setAttribute('aria-activedescendant', items[selected].id);
-    items[selected].scrollIntoView?.({block: 'nearest'});
+    revealSelection();
+  }
+  function revealSelection() {
+    const option = options()[selected];if (!option) return;
+    const bounds = popup.getBoundingClientRect(), item = option.getBoundingClientRect();
+    if (item.top < bounds.top) popup.scrollTop += item.top - bounds.top;
+    else if (item.bottom > bounds.bottom) popup.scrollTop += item.bottom - bounds.bottom;
   }
   function update() {
     selected = -1; input.removeAttribute('aria-activedescendant'); list.replaceChildren();
@@ -45,15 +69,17 @@ export function setupCourseDiscovery(courses, {doc = document, navigate = url =>
       link.append(name, detail); item.append(link); list.append(item);
     });
     status.textContent = matches.length ? `${matches.length} ${matches.length === 1 ? 'sugestão disponível' : 'sugestões disponíveis'}. Use as setas para escolher ou pesquise todos os cursos.` : 'Sem sugestões para esta pesquisa. Pode procurar no catálogo completo.';
-    popup.hidden = false; input.setAttribute('aria-expanded', 'true');
+    popup.hidden = false; input.setAttribute('aria-expanded', 'true');place();
   }
   const cleanups = [];
-  const listen = (node, name, callback) => {if (!node) return;node.addEventListener(name, callback);cleanups.push(() => node.removeEventListener(name, callback));};
-  listen(input, 'input', update);
-  listen(input, 'focus', update);
+  const listen = (node, name, callback, options) => {if (!node) return;node.addEventListener(name, callback, options);cleanups.push(() => node.removeEventListener(name, callback, options));};
+  listen(input, 'input', event => {if (!composing && !event.isComposing) update();});
+  listen(input, 'compositionstart', () => {composing = true;close();});
+  listen(input, 'compositionend', () => {composing = false;update();});
+  listen(input, 'focus', () => {if (!composing) update();});
   listen(level, 'change', () => {if (doc.activeElement === input) update(); else close();});
   listen(input, 'keydown', event => {
-    if (event.isComposing) return;
+    if (composing || event.isComposing || event.keyCode === 229) return;
     if (event.key === 'Escape') {if (!popup.hidden) event.preventDefault(); close();}
     else if (event.key === 'Tab') close();
     else if (['ArrowDown', 'ArrowUp'].includes(event.key)) {event.preventDefault(); if (popup.hidden) update(); choose(selected < 0 ? (event.key === 'ArrowDown' ? 0 : options().length - 1) : selected + (event.key === 'ArrowDown' ? 1 : -1));}
@@ -64,6 +90,11 @@ export function setupCourseDiscovery(courses, {doc = document, navigate = url =>
   listen(list, 'click', event => {if (event.target.closest('[role=option]')) close();});
   listen(doc, 'pointerdown', event => {if (!field.contains(event.target)) close();});
   listen(form, 'submit', close);
+  listen(field, 'focusout', event => {if (!field.contains(event.relatedTarget)) close();});
+  listen(doc.defaultView, 'resize', schedulePlacement);
+  listen(doc, 'scroll', event => {if (event.target !== popup) schedulePlacement();}, true);
+  listen(doc.defaultView?.visualViewport, 'resize', schedulePlacement);
+  listen(doc.defaultView?.visualViewport, 'scroll', schedulePlacement);
   let destroyed = false;
   return {destroy() {if (destroyed) return;destroyed = true;cleanups.splice(0).forEach(fn => fn());close();popup.remove();if (!hadFieldClass) field.classList.remove('discovery-field');delete input.dataset.discoveryReady;for (const [attr, value] of originalAttributes) value === null ? input.removeAttribute(attr) : input.setAttribute(attr, value);}};
 }

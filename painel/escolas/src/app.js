@@ -86,7 +86,7 @@ headerSearch?.addEventListener('click',event=>{
   const shortcuts=$('.header-search-shortcuts',dialog);
   for(const path of ['/cursos/','/ingresso/','/servicos/']){const source=$$('#main-nav a[href]').find(a=>a.getAttribute('href')===siteHref(path));if(source){const link=document.createElement('a');link.href=source.href;link.textContent=$('strong',source)?.textContent||source.textContent;shortcuts.append(link)}}
   const input=$('#header-search-q');input.focus();let suggestions;
-  input.addEventListener('keydown',event=>{if(event.key==='Escape'&&input.getAttribute('aria-expanded')!=='true'){event.preventDefault();dialog.close()}});
+  input.addEventListener('keydown',event=>{if(event.isComposing||event.keyCode===229)return;if(event.key==='Escape'&&input.getAttribute('aria-expanded')!=='true'){event.preventDefault();dialog.close()}});
   dialog.addEventListener('close',()=>suggestions?.destroy(),{once:true});
   import('./course-discovery.mjs').then(module=>{if(dialog.open&&input.isConnected)suggestions=module.setupCourseDiscovery(courses,{input,idPrefix:'header'})}).catch(()=>{});
 });
@@ -270,7 +270,7 @@ setupFieldFeedback?.(contactForm);
 await Promise.allSettled([
   $('.home-hero')?import('./home-highlights.mjs').then(module=>{const slides=module.setupHomeHighlights(),rails=module.setupHomeCardRails();window.addEventListener('pagehide',event=>{if(!event.persisted){slides.destroy();rails.destroy()}},{once:true})}):Promise.resolve(),
   /^ispab(?:\s*\(demonstração\))?$/i.test(institution)?import('./brand-wordmark.mjs').then(module=>module.setupInstitutionWordmark({schoolName:institution})):Promise.resolve(),
-  $('#hero-search-q')?import('./course-discovery.mjs').then(module=>module.setupCourseDiscovery(courses)):Promise.resolve(),
+  $('#hero-search-q')?import('./course-discovery.mjs').then(module=>{const controller=module.setupCourseDiscovery(courses);window.addEventListener('pagehide',event=>{if(!event.persisted)controller?.destroy()},{once:true})}):Promise.resolve(),
   $('.academic-page-head,.course-hero')?import('./academic-pages.mjs').then(module=>{const controller=module.setupAcademicPages({courses});window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})}):Promise.resolve(),
   $('.portal-sidebar')?Promise.resolve():import('./academic-motion.mjs').then(module=>{const controller=module.setupAcademicMotion();window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})})
 ]);
