@@ -115,7 +115,15 @@ export function readWebsiteState(value: unknown): WebsiteState {
       },
       published: null,
     };
-  return stateSchema.parse(value);
+  const state = stateSchema.parse(value);
+  // This template only adds scoped access controls; all previous field keys/kinds survive.
+  const upgrade = (content: WebsiteDraft) => {
+    if (content.templateVersion === "2ab6e331ce0e67b8044e")
+      content.templateVersion = websiteTemplate.version;
+  };
+  upgrade(state.draft);
+  if (state.published) upgrade(state.published.content);
+  return state;
 }
 export const changeWebsiteSchema = z
   .object({

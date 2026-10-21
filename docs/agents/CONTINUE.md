@@ -1,5 +1,20 @@
 # Handoff — continuar o SIGA
 
+## Portal do website escolar — 2026-10-21
+
+`/login/` volta a seleccionar estudante ou docentes/administração; não reescrever
+links públicos para o SIGA nem redireccionar todas as páginas `/portal/` do website.
+O portal original permanece demonstrativo sem sessão. A vista autenticada
+`/portal?escola=<slug>&vista=estudante` conserva o visual original em mesma origem
+e consulta `getStudentWebsitePage`: MFA/auth existentes, Aluno e escola activa
+verificados no servidor; IDs de outros estudantes nunca são aceites. Notas,
+agenda, horário e frequência reutilizam as APIs existentes. Outros serviços
+encaminham para os módulos autenticados. [Contrato e verificação](../../painel/escolas/docs/portal-access.md).
+
+Os campos novos usam `data-site-scope`; os 4579 anteriores conservam chave, tipo e
+valor. A única actualização automática de publicação é do modelo compatível
+`2ab6e331ce0e67b8044e`; não generalizar para versões incompatíveis.
+
 Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.

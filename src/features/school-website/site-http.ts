@@ -23,7 +23,6 @@ export async function handleSchoolWebsite(request: Request): Promise<Response | 
         404,
       );
     const page = site.page.endsWith("/") ? site.page : site.page + "/";
-    if (page.startsWith("/portal/")) return Response.redirect(site.portalUrl, 302);
     if (page.startsWith("/noticias/"))
       return Response.redirect(site.origin + site.basePath + "/blog/", 302);
     const [publication, recent] = await Promise.all([

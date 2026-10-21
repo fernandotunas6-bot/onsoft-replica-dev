@@ -75,10 +75,23 @@ describe("website no endereço de cada escola", () => {
   });
   it("os links públicos não tomam os caminhos dos módulos privados", () => {
     expect(schoolWebsiteHref("/calendario/", site())).toBe("/site/calendario/");
-    expect(schoolWebsiteHref("/login/", site())).toContain("/portal?escola=escola-a");
+    expect(schoolWebsiteHref("/login/", site())).toBe("/site/login/");
+    expect(schoolWebsiteHref("/portal/?demo=1", site())).toBe("/site/portal/?demo=1");
     expect(schoolWebsiteHref("/matricula/campaign", site())).toBe("/matricula/campaign");
     expect(schoolWebsiteHref("/api/private", site())).toBe("/api/private");
     expect(schoolWebsiteHref("https://other.example/", site())).toBe("https://other.example/");
+  });
+  it("conserva a escolha por perfil e disponibiliza o portal original no website da escola", () => {
+    const login = renderSchoolWebsite(site(), "/login/", publication)!;
+    expect(login).toContain('href="/site/portal/"');
+    expect(login).toContain('href="/site/portal/?demo=1"');
+    expect(login).toContain("data-student-login");
+    expect(login).toContain("data-siga-login");
+    const portal = renderSchoolWebsite(site(), "/portal/", publication)!;
+    expect(portal).toContain("portal-sidebar");
+    expect(portal).toContain("Modo de demonstração");
+    expect(portal).toContain('"schoolSlug":"escola-a"');
+    expect(portal).toContain('href="/site/portal/notas/"');
   });
   it("metadados e texto editado são escapados sem interpretar substituições $&", () => {
     const html = applyWebsiteValues(
