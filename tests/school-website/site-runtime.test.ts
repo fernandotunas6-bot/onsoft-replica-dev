@@ -5,6 +5,8 @@ import {
   applyPublishedContent,
   connectSchoolWebsite,
 } from "../../painel/escolas/src/site-content.mjs";
+// @ts-expect-error Static website modules are intentionally plain JavaScript.
+import { setupSiteSearch } from "../../painel/escolas/src/search.mjs";
 
 beforeEach(() => {
   document.body.innerHTML =
@@ -13,6 +15,35 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe("sincronização no website", () => {
+  it("a pesquisa utiliza o nome sincronizado e exclui cursos retirados", async () => {
+    document.body.innerHTML =
+      '<form id="site-search-form"><input id="site-query"></form><p id="site-results-count"></p><div id="site-results"></div>';
+    history.replaceState(null, "", "/pesquisa/?q=Engenharia");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json([
+          { url: "/cursos/course-a/", title: "Engenharia retirada", kind: "Curso" },
+          { url: "/cursos/course-b/", title: "Engenharia antiga", kind: "Curso" },
+        ]),
+      ),
+    );
+    setupSiteSearch({
+      courses: [
+        { id: "course-b", name: "Engenharia oficial", description: "", modules: [], careers: [] },
+      ],
+      normal: (value: unknown) => String(value).toLowerCase(),
+      esc: (value: unknown) => String(value),
+    });
+    await vi.waitFor(() =>
+      expect(document.querySelector("#site-results-count")?.textContent).toBe(
+        "1 resultados encontrados",
+      ),
+    );
+    expect(document.querySelector('a[href="/cursos/course-a/"]')).toBeNull();
+    expect(document.querySelector("#site-results")?.textContent).toContain("Engenharia oficial");
+    history.replaceState(null, "", "/");
+  });
   it("actualiza texto sem criar HTML e rejeita URLs executáveis", () => {
     applyPublishedContent(document, {
       heading: '<img src=x onerror="alert(1)">',
