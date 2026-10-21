@@ -134,15 +134,8 @@ Uma arquitectura, três donos:
 
 1. **Convenção de linha no domínio `school_website`** — respondida abaixo, na
    secção 7.
-2. **Âmbito de B.** A página única para as 48 escolas é um produto que o site
-   de ISPAB não cobre, e o contrário também é verdade. Mantê-los é legítimo —
-   mas então são dois produtos com **um** contrato de conteúdo, não dois
-   editores. A alternativa é B ficar com a infra (RLS, flag, hostname, paridade
-   visual) e o conteúdo vir do modelo de A+C.
-3. **Quem escreve a seguir.** Se o GPT continuar na #201 enquanto outro agente
-   mexe nos mesmos 8 ficheiros, o paralelismo volta no dia seguinte. A divisão
-   natural: o lado `painel/escolas` (manifesto nomeado e fusão) de um lado; o
-   lado SIGA (editor, API, testes) do outro, sobre o manifesto novo.
+2. **Âmbito de B** — respondida na secção 8.
+3. **Quem escreve a seguir** — respondida na secção 9.
 
 
 ## 7. Resposta à decisão 1: uma linha com trava optimista
@@ -206,3 +199,65 @@ linha.
 A convenção de linha é necessária, não suficiente: com as duas a escrever uma
 linha só, continuam a escrever **formatos diferentes** na mesma chave. É a
 decisão 2 — um contrato de conteúdo, dois produtos.
+
+
+## 8. Resposta à decisão 2: B fica com a infra, não com um segundo contrato
+
+Recomendação: **um contrato de conteúdo, dois renderizadores.** B mantém a
+migração RLS, a flag, a resolução por hostname e a rota pública; deixa cair o
+esquema próprio e a cópia do desenho.
+
+### Porquê
+
+**As «48 escolas» não são uma audiência hoje.** A auditoria da própria B conta
+48 tenants com **4 activos, 43 arquivados e 1 falhado**, e o retrato de
+produção diz o mesmo por outras palavras: o volume é de ensaio. O argumento de
+alcance que justificava um produto à parte — chegar a todas as escolas sem
+deployment — aplica-se, na prática, a meia dúzia.
+
+**O que B duplica não é o alcance, é o desenho.** São 627 linhas de
+`public-style.css` a reproduzir o aspecto do site de ISPAB, mais testes de
+paridade visual para detectar a deriva entre as duas cópias. Uma cópia que
+precisa de um teste para não divergir é uma cópia que vai divergir.
+
+**O que B tem de único é infra, e essa não colide com nada:** a política
+RESTRICTIVE sobre o domínio (hoje qualquer membro da escola lê os rascunhos
+pela API), a flag `SCHOOL_SITES_ENABLED` desligada por omissão, a resolução por
+hostname sem aceitar `school_id` do browser, e o runbook.
+
+### A forma
+
+Um **contrato** — as chaves nomeadas do conteúdo — e dois **renderizadores**:
+
+- o build estático de `painel/escolas`, que dá o site completo (65 páginas) e
+  precisa de publicação por escola;
+- a rota `/site`, que dá uma página só, sem deployment nenhum, lendo um
+  **subconjunto declarado das mesmas chaves** (`home.hero.*`, `sobre.*`,
+  contactos) em vez de um esquema próprio.
+
+A escola começa na página única no dia em que é criada e passa ao site completo
+quando quiser — e **o que escreveu sobrevive à mudança**, porque as chaves são
+as mesmas. Com dois esquemas, essa passagem é reescrever tudo.
+
+## 9. Resposta à decisão 3: a fronteira é o manifesto
+
+`painel/escolas` de um lado, `src/` do outro, e o manifesto gerado é o contrato
+entre os dois.
+
+O que torna esta divisão limpa é que o editor, a API e o runtime da #201
+consomem o manifesto por **forma**, não por conteúdo:
+`{version, fields:[{key, group, kind, label, value, dataPath?}]}`. Mudar a
+*origem* das chaves — de `sha256` posicional para o nome do campo no conteúdo —
+não muda essa forma. O lado SIGA não precisa de alterar uma linha; só de
+regenerar o `template.json` com o `sync-school-website-template.mjs` que já tem.
+
+Divisão proposta:
+
+| Lado | Quem | O quê |
+| --- | --- | --- |
+| `painel/escolas` | este ramo | manifesto sobre chaves nomeadas, fusão dos 8 ficheiros, build e verificação |
+| `src/features/school-website` | #201 | editor, API pública, permissões, auditoria, testes |
+| `src/features/school-site` | #200 | RLS, flag, hostname, `/site` sobre o mesmo contrato |
+
+Enquanto a fronteira não estiver no sítio, qualquer um dos lados a mexer nos 8
+ficheiros repõe o paralelismo no dia seguinte.
