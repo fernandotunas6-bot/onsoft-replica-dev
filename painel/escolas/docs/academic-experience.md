@@ -10,7 +10,8 @@ Referências públicas consultadas em 21/10/2026:
   organização e ajuda nos campos. Não foi criado um agendamento ou enviado um formulário externo.
 - O cliente também pediu a adaptação do tratamento tipográfico e da textura do
   logótipo. `ispab-wordmark.png` é a imagem ISPAB gerada para esta proposta, com
-  letras robustas e linhas sobrepostas; não é o ficheiro de marca do UNASP.
+  letras robustas, I simples e três linhas curvas sobrepostas no A;
+  não é o ficheiro de marca do UNASP.
 
 ## O que muda
 
