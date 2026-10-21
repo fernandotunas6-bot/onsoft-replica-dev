@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import pages from "@/features/school-website/site-pages.generated.json";
 // @ts-expect-error Native public-site module.
 import * as navigation from "../../painel/escolas/src/academic-navigation.mjs";
 const { setupAcademicNavigation, isHeaderSearchShortcut } = navigation;
@@ -11,9 +12,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
 });
-function mount() {
+function mount(wrapped = false) {
+  mobile.matches = false;
   document.body.innerHTML =
     '<header class="site-header"><a class="brand" href="/">ISPAB</a><button class="mobile-toggle">Menu</button><nav id="main-nav"><details class="nav-dropdown"><summary>Estudar</summary><div class="mega-menu"><a href="/cursos/">Cursos</a><a href="/cursos/?nivel=Outro">Outro</a></div></details><details class="nav-dropdown"><summary>Ingresso</summary><div class="mega-menu"><a href="/ingresso/">Ingresso</a></div></details></nav></header><main></main><footer class="site-footer"></footer>';
+  if (wrapped) {
+    const header = document.querySelector("header")!;
+    header.dataset.navigationContext = "inner";
+    const shell = document.createElement("div");
+    shell.className = "site-navigation";
+    header.before(shell);
+    shell.append(header);
+    shell.getBoundingClientRect = () => ({ height: 104, bottom: 104 }) as DOMRect;
+    header.getBoundingClientRect = () => ({ height: 67, bottom: 104 }) as DOMRect;
+  }
   vi.useFakeTimers();
   mobile.matches = false;
   vi.stubGlobal("matchMedia", (q: string) =>
@@ -159,5 +171,49 @@ describe("atalho de pesquisa", () => {
       isHeaderSearchShortcut({ key: "k", ctrlKey: true, target: document, defaultPrevented: true }),
     ).toBe(false);
     expect(isHeaderSearchShortcut({ key: "k", metaKey: true, target: document })).toBe(true);
+  });
+});
+
+describe("marca e cabeçalho ao navegar", () => {
+  it("define o contexto e junta as duas linhas no HTML inicial, mantendo os portais separados", () => {
+    for (const [path, context] of [
+      ["/", "home"],
+      ["/cursos/engenharia-informatica/", "inner"],
+    ]) {
+      const doc = new DOMParser().parseFromString(pages[path as keyof typeof pages], "text/html");
+      expect(
+        doc
+          .querySelector(".site-navigation>.topline+.site-header")
+          ?.getAttribute("data-navigation-context"),
+      ).toBe(context);
+      expect(doc.querySelector(".site-navigation .brand")?.getAttribute("aria-label")).toBe(
+        "ISPAB, início",
+      );
+      expect(doc.querySelectorAll(".site-header")).toHaveLength(1);
+    }
+    expect(pages["/portal/"]).not.toContain('class="site-navigation"');
+  });
+  it("reserva a altura das duas linhas, actualiza no regresso à página e repõe o contexto inicial", () => {
+    const observe = vi.fn(),
+      disconnect = vi.fn();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = observe;
+        disconnect = disconnect;
+      },
+    );
+    mount(true);
+    expect(observe).toHaveBeenCalledWith(document.querySelector(".site-navigation"));
+    expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("104px");
+    vi.stubGlobal("scrollY", 400);
+    window.dispatchEvent(new Event("pageshow"));
+    vi.advanceTimersByTime(1);
+    expect(document.querySelector("header")?.dataset.condensed).toBe("true");
+    expect(document.querySelector(".brand")?.getAttribute("href")).toBe("/");
+    controller.destroy();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(document.querySelector("header")?.dataset.navigationContext).toBe("inner");
+    expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("");
   });
 });

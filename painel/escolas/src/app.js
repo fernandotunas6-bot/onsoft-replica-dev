@@ -39,6 +39,9 @@ const schoolRuntime=await connectSchoolWebsite({courses,areas,events,articles,se
 refreshWebsiteLinks?.();
 academicNavigation.refresh();
 setupSchoolPresentation(schoolRuntime);
+const institution=schoolRuntime?.schoolName||'ISPAB';
+// Start the confirmed school identity before waiting for the blog and optional page tools.
+const institutionWordmark=/^ispab(?:\s*\(demonstração\))?$/i.test(institution)?import('./brand-wordmark.mjs').then(module=>module.setupInstitutionWordmark({schoolName:institution})).catch(()=>false):Promise.resolve(false);
 const syncMotionVisibility=()=>document.documentElement.dataset.pageHidden=String(document.hidden);
 document.addEventListener('visibilitychange',syncMotionVisibility);syncMotionVisibility();
 import {iconRegex,iconHTML} from './icons.mjs';
@@ -53,7 +56,6 @@ academicNavigation.refresh();
 // Optional field helpers load after navigation is responsive, only on form pages.
 const profileTools=$('#application-form,#contact-form')?await import('./profile-fields.mjs').catch(()=>null):null;
 const {setupApplicationProfile,applicationProfileFields=[],applicationPhoneError,setupFieldFeedback,refreshApplicationHints}=profileTools||{};
-const institution=schoolRuntime?.schoolName||'ISPAB';
 const normal=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const courseById=id=>courses.find(c=>c.id===id);
 const PREFIX=schoolRuntime?.storageId?'siga.school.'+encodeURIComponent(schoolRuntime.storageId)+'.demo.v1.':'ispab.demo.v1.';
@@ -269,7 +271,7 @@ courseTools?.setupCurriculumTools();
 setupFieldFeedback?.(contactForm);
 await Promise.allSettled([
   $('.home-hero')?import('./home-highlights.mjs').then(module=>{const slides=module.setupHomeHighlights(),rails=module.setupHomeCardRails();window.addEventListener('pagehide',event=>{if(!event.persisted){slides.destroy();rails.destroy()}},{once:true})}):Promise.resolve(),
-  /^ispab(?:\s*\(demonstração\))?$/i.test(institution)?import('./brand-wordmark.mjs').then(module=>module.setupInstitutionWordmark({schoolName:institution})):Promise.resolve(),
+  institutionWordmark,
   $('#hero-search-q')?import('./course-discovery.mjs').then(module=>{const controller=module.setupCourseDiscovery(courses);window.addEventListener('pagehide',event=>{if(!event.persisted)controller?.destroy()},{once:true})}):Promise.resolve(),
   $('.academic-page-head,.course-hero')?import('./academic-pages.mjs').then(module=>{const controller=module.setupAcademicPages({courses});window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})}):Promise.resolve(),
   $('.portal-sidebar')?Promise.resolve():import('./academic-motion.mjs').then(module=>{const controller=module.setupAcademicMotion();window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})})
