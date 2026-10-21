@@ -1,5 +1,6 @@
 
 ## Diretiva de execução autónoma (SIGA Plus)
+- [ ] Auditoria geral 2026-10-21: testes, fluxos públicos/autenticados, académico, financeiro, integrações e qualidade; relatório confirmado, sem alterações funcionais nem migrações.
 - [ ] Testar criação de escola e entrada administrativa pelo link — formulário público acessível; bloqueado pelo e-mail de teste e código de verificação do titular. Migração 20261006180000 ausente na base ligada (85 tabelas); produção escolar ainda não verificada.
 - Executar tarefas até conclusão: analisar, implementar, testar, corrigir, validar — sem pedir confirmação.
 - Melhorar sem remover; preservar RLS, permissões, rotas e identidade visual.
