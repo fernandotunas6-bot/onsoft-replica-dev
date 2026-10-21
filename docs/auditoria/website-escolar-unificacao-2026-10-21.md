@@ -261,3 +261,45 @@ Divisão proposta:
 
 Enquanto a fronteira não estiver no sítio, qualquer um dos lados a mexer nos 8
 ficheiros repõe o paralelismo no dia seguinte.
+
+
+## 10. O que a execução corrigiu na própria proposta
+
+A secção 4 propunha que o manifesto passasse a usar **as chaves nomeadas do
+conteúdo** (`home.hero.headline`). Ao executar, medi primeiro se isso era
+alcançável casando os campos do manifesto com os valores do conteúdo:
+
+| | campos vindos do HTML |
+| --- | ---: |
+| correspondência única com uma chave de conteúdo | 2171 (52%) |
+| ambíguos (o mesmo texto em várias chaves) | 855 |
+| sem par (títulos compostos, contagens, imagens, URLs de dados) | 1111 |
+
+52% não chega para servir de identidade, e emitir a chave no momento de
+desenhar obrigaria a distinguir posição de texto e de atributo em cerca de 500
+pontos de interpolação. A proposta estava errada no mecanismo e certa no
+objectivo.
+
+O que resolve o objectivo com uma mudança pequena é **derivar a chave do
+próprio texto**: `sha256(âmbito + atributo + texto normalizado)`, com desempate
+por ordem só entre repetições do mesmo texto no mesmo âmbito.
+
+Medido acrescentando um parágrafo à página de entrada:
+
+| | chaves | ligação intacta | trocaram de texto |
+| --- | ---: | ---: | ---: |
+| pela posição (#201) | 4569 → 4570 | 4423 (96%) | **146** |
+| pelo texto | 4567 → 4568 | 4567 (100%) | 0 |
+
+O número que interessa é o das trocas. As chaves não desapareciam — mudavam de
+dono: o que a escola tivesse escrito para esses 146 campos seria aplicado
+noutros elementos. O guarda de `templateVersion` apanhava-o, mas invalidando
+tudo o que já estava escrito.
+
+Com chaves derivadas do texto, o guarda deixa de precisar de ser uma porta
+fechada: aplica-se o que ainda existe no manifesto e assinala-se
+`data-siga-content="synced-older"` quando a publicação vem de um modelo
+anterior.
+
+Feito no ramo `integration/escolas-site-unificado-20261021`, com a #201
+fundida: 65 páginas, 4567 campos editáveis, 117 testes.
