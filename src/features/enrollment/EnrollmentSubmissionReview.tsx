@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 const labels: Record<string, string> = {
   full_name: "Nome completo",
@@ -99,8 +100,12 @@ export function EnrollmentSubmissionReview({
         Após o envio, a confirmação e o número de processo aparecem nesta página. Guarde o talão. A
         secretaria revê a candidatura antes de confirmar a matrícula.
       </p>
-      <label className="flex items-start gap-3 text-sm">
+      <Label
+        htmlFor="enrollment-review-consent"
+        className="flex items-start gap-3 text-sm font-normal leading-normal"
+      >
         <input
+          id="enrollment-review-consent"
           type="checkbox"
           required
           checked={confirmed}
@@ -109,7 +114,7 @@ export function EnrollmentSubmissionReview({
           className="mt-1 size-4 shrink-0"
         />
         <span>Revi os dados e confirmo o envio desta candidatura à escola.</span>
-      </label>
+      </Label>
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
