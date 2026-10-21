@@ -51,14 +51,19 @@ incompatíveis:
   `.maybeSingle()`.
 - **B** insere **uma linha nova por versão** no mesmo domínio, histórico
   append-only, e lê a de maior `version`
-  (`src/features/school-site/persistence.ts:19,69`). A `UNIQUE` real é
-  `(school_id, domain, version)`, por isso a base aceita.
+  (`src/features/school-site/persistence.ts:19,69`).
 
 Consequência concreta: depois de duas publicações em B, o `.maybeSingle()` de A
 sobre `(school_id, domain)` recebe mais do que uma linha e falha — e o mesmo
 vale para qualquer leitor do convénio actual. Não é um conflito de merge; é um
 conflito em produção, que só aparece quando as duas funcionalidades existirem
 ao mesmo tempo.
+
+> **Correcção, 21/10 (ver secção 11).** A primeira versão deste documento dizia
+> que a restrição da produção era `UNIQUE (school_id, domain)` e que a base
+> recusaria a segunda publicação. É falso: lida da produção, a restrição é
+> `UNIQUE (school_id, domain, version)`. A base **aceita** o modelo de B. O
+> conflito mantém-se — e é pior assim, porque nada falha a escrever.
 
 A política RESTRICTIVE de B sobre esse domínio
 (`20261020213000_school_website_draft_read_guard.sql`) **não** parte A, porque A
@@ -146,26 +151,8 @@ usar o `updateSettingsDomainValue`; o JSON que já desenhou fica intacto.
 
 ### Porquê
 
-**A restrição que está no repositório proíbe o append-only.** A única DDL desta
-tabela, em `supabase/migrations/20260908120000_school_settings_versioned.sql`,
-declara:
-
-```sql
-UNIQUE (school_id, domain)
-```
-
-A #200 assume o contrário («a restrição real é `UNIQUE(school_id, domain,
-version)`»). Se a restrição em produção for a do repositório, a **segunda**
-publicação de uma escola rebenta com violação de unicidade. O retrato de
-produção de 12/10 confirma as colunas (`id, school_id, domain, version, value,
-changed_by, created_at`) mas não regista restrições, por isso isto tem de ser
-confirmado na base antes de qualquer decisão de implementação:
-
-```sql
-select conname, pg_get_constraintdef(oid)
-from pg_constraint
-where conrelid = 'public.school_settings'::regclass and contype = 'u';
-```
+**A restrição não decide isto** — ver a secção 11. A base aceita várias linhas
+por domínio; o que não as aceita é o código que as lê.
 
 **O convénio actual não é desta funcionalidade: é da tabela.** Estão em uso pelo
 menos dez domínios (`academic`, `agt`, `billing`, `branding`, `higher_ed`,
@@ -303,3 +290,62 @@ anterior.
 
 Feito no ramo `integration/escolas-site-unificado-20261021`, com a #201
 fundida: 65 páginas, 4567 campos editáveis, 117 testes.
+
+## 11. A restrição, lida na produção — e a correcção que obriga
+
+Consulta só-leitura ao catálogo, 21/10/2026, projecto `xodgfmxiaunpamctfeea`:
+
+```
+school_settings_school_id_domain_version_key   UNIQUE (school_id, domain, version)
+school_settings_pkey                           PRIMARY KEY (id)
+school_settings_version_check                  CHECK (version > 0)
+```
+
+**A #200 tinha razão e eu estava errado.** A base aceita várias versões do mesmo
+domínio. A secção 7 dizia o contrário, apoiada na única DDL do repositório
+(`supabase/migrations/20260908120000_school_settings_versioned.sql`), que
+declara `UNIQUE (school_id, domain)`. **O ficheiro e a base divergem; a base é
+que vale** — é o mesmo padrão já registado noutras auditorias.
+
+### O que isto muda, e o que não muda
+
+Muda o argumento: a base não impede o modelo da #200. **Não muda a
+recomendação** — e, lida de perto, a produção reforça-a:
+
+| domínio | linhas | escolas | `version` máximo |
+| --- | ---: | ---: | ---: |
+| academic | 47 | 47 | 5 |
+| branding | 2 | 2 | 3 |
+| institution | 2 | 2 | 2 |
+| preferences | 2 | 2 | 5 |
+| pedagogy | 1 | 1 | 5 |
+| print_templates | 1 | 1 | 11 |
+
+Nenhum domínio tem mais linhas do que escolas: **não há uma única linha de
+histórico em toda a tabela**. O `version` sobe na própria linha — onze vezes no
+`print_templates`. O convénio a correr é o do `updateSettingsDomainValue`:
+UPDATE da linha única, `version` como trava optimista, leitura por
+`readSettingsRow` com `.maybeSingle()`.
+
+E é por isso que a restrição permissiva torna o problema **pior**, não melhor:
+com `UNIQUE (school_id, domain)` a segunda publicação falhava na escrita, à
+vista. Como a base aceita, nada falha a escrever — falha a **leitura seguinte**,
+em todos os consumidores do domínio ao mesmo tempo, com a mensagem genérica
+«Não foi possível ler as definições (school_website)».
+
+### Recomendação, inalterada
+
+Uma linha por `(school_id, domain)` com trava optimista. O
+`{schemaVersion, draft, published, publishedAt}` da #200 cabe lá; o histórico de
+publicações, se for mesmo preciso, vai para o `audit_logs` — que a #201 já
+escreve — ou para uma tabela própria.
+
+Fixado em `tests/sql/school-settings-row-convention.mjs`, que corre a tabela com
+a restrição **real** da produção e mostra as duas metades: a segunda linha é
+aceite, e um leitor de linha única passa a ver duas.
+
+### Uma dívida separada
+
+A migração do repositório declara uma restrição que a base não tem. Alinhar o
+ficheiro com a base é trabalho à parte, e tem de ser feito a partir do catálogo,
+não do ficheiro.
