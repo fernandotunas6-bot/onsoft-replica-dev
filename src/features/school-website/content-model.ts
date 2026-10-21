@@ -59,6 +59,8 @@ export const websiteDraftSchema = z
       .string()
       .regex(/^(?:[a-z0-9-]{2,80})?$/)
       .default(""),
+    admissionFeeAmount: z.number().int().min(0).max(100_000_000).nullable().optional(),
+    bannerStyle: z.enum(["classic", "prism"]).optional(),
   })
   .strict();
 export type WebsiteDraft = z.infer<typeof websiteDraftSchema>;
@@ -159,5 +161,14 @@ export function publicWebsiteContent(state: WebsiteState) {
     revision: state.published.revision,
     publishedAt: state.published.publishedAt,
     values: content.values,
+    admissionFeeAmount: content.admissionFeeAmount ?? null,
+    bannerStyle: content.bannerStyle ?? "classic",
   };
+}
+
+/** Informational fee for this published campaign; never an invoice or payment authority. */
+export function publishedAdmissionFee(value: unknown, campaignSlug: string): number | null {
+  const state = readWebsiteState(value);
+  if (!state.published || state.published.content.campaignSlug !== campaignSlug) return null;
+  return state.published.content.admissionFeeAmount ?? null;
 }

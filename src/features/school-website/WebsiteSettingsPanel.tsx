@@ -304,6 +304,50 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
+          <Label htmlFor="website-admission-fee">Taxa de candidatura (Kz)</Label>
+          <Input
+            id="website-admission-fee"
+            type="number"
+            min="0"
+            max="100000000"
+            step="1"
+            placeholder="A confirmar pela escola"
+            value={draft.admissionFeeAmount ?? ""}
+            disabled={busy}
+            onChange={(e) =>
+              changeDraft({
+                ...draft,
+                admissionFeeAmount: e.target.value === "" ? null : Number(e.target.value),
+              })
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Valor informativo publicado no site e na campanha ligada. Não cria cobranças nem activa
+            pagamentos. Deixe vazio para confirmar com a secretaria.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="website-banner-style">Estilo dos destaques</Label>
+          <select
+            id="website-banner-style"
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={draft.bannerStyle ?? "classic"}
+            disabled={busy}
+            onChange={(e) =>
+              changeDraft({ ...draft, bannerStyle: e.target.value as "classic" | "prism" })
+            }
+          >
+            <option value="classic">Azul discreto</option>
+            <option value="prism">Azul e roxo</option>
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Aplica tons azul e roxo e movimento suave a alguns destaques. Respeita a preferência de
+            movimento reduzido do visitante.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
           <Label htmlFor="website-group">Página ou conteúdo</Label>
           <select
             id="website-group"
