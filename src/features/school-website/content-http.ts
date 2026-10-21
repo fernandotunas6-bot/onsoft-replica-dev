@@ -5,6 +5,7 @@ export function createWebsiteContentHandler(
     state: WebsiteState;
     programNames: Record<string, string | null>;
     campaignOpen?: boolean;
+    allowedOrigins?: string[];
   } | null>,
 ) {
   return async (request: Request, code: string) => {
@@ -27,7 +28,8 @@ export function createWebsiteContentHandler(
       if (
         origin &&
         origin !== new URL(request.url).origin &&
-        origin !== websiteOrigin(state.published.content.websiteUrl)
+        origin !== websiteOrigin(state.published.content.websiteUrl) &&
+        !loaded?.allowedOrigins?.includes(origin)
       )
         return reply(403, { error: "origin_not_allowed" });
       if (origin) {

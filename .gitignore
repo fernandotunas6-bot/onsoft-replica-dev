@@ -84,3 +84,6 @@ client_secret_*.json
 /Imagem do ChatGPT*
 /* - cópia.*
 /*#*.png
+
+# School website assets are rebuilt from painel/escolas before SIGA dev/build.
+/public/_school-website/

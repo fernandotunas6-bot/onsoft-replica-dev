@@ -1,6 +1,6 @@
 # Website institucional por escola — ISPAB
 
-Website independente preparado para a Onsoft oferecer a escolas clientes. O visual aprovado é conservado: 65 páginas, 18 exemplos de formação e portal demonstrativo. Não substitui os cinco produtos do ecossistema nem a operação escolar no SIGA.
+Website independente preparado para a Onsoft oferecer a escolas clientes. O visual aprovado é conservado: 66 páginas, 18 exemplos de formação e portal demonstrativo. Não substitui os cinco produtos do ecossistema nem a operação escolar no SIGA.
 
 ## Executar
 
@@ -63,3 +63,12 @@ Ver o [guia de edição, publicação e activação](../../docs/architecture/SCH
 Sem campanha, com escola suspensa ou serviço indisponível, a API falha fechada. O cliente não faz fallback para dados de outra escola e não repete POST automaticamente. Após `submission_unknown`, reconciliar no SIGA antes de reenviar. A API não fornece consulta anónima de candidaturas: não expor candidatos por referência, e-mail ou nome.
 
 Ver [documentação da ligação](../../docs/architecture/SCHOOL_WEBSITE_API.md).
+
+
+## Website para todas as escolas e blog
+
+O SIGA reutiliza este template no subdomínio de cada escola e nos seus domínios próprios verificados. Um endereço alternativo em `/escolas/{slug}/` funciona na origem central sem wildcard. As páginas públicas usam `/site/` no hostname da escola; o sistema autenticado usa `/portal`. O build Vite prepara os recursos automaticamente.
+
+O administrador gere artigos em **Definições → Blog da escola**. Há rascunhos, publicação independente, arquivo e restauração, com isolamento por escola. O blog comercial da Onsoft permanece separado. O website gerido renderiza os artigos no servidor; uma cópia estática usa `blogUrl` ou deriva a API a partir de `contentUrl`.
+
+Antes da implantação SIGA, aplicar a migração de protecção dos conteúdos referida no [guia](../../docs/architecture/SCHOOL_WEBSITE_CONTENT.md). Sem ela, a edição/publicação fica bloqueada. Não houve alteração à base de produção nesta entrega.

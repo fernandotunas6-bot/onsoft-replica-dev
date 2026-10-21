@@ -12,6 +12,8 @@ import {
   readWebsiteState,
   WEBSITE_DOMAIN,
 } from "./content-model";
+import { schoolSiteLinks } from "./school-sites";
+import { requireSchoolWebStorage } from "./storage-guard";
 
 export const getSchoolWebsiteEditor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -20,6 +22,7 @@ export const getSchoolWebsiteEditor = createServerFn({ method: "GET" })
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
+    await requireSchoolWebStorage(db);
     const [settings, school, programs, campaigns] = await Promise.all([
       db
         .from("school_settings")
@@ -43,6 +46,7 @@ export const getSchoolWebsiteEditor = createServerFn({ method: "GET" })
       school: school.data,
       programs: programs.data ?? [],
       campaigns: campaigns.data ?? [],
+      links: await schoolSiteLinks(db, member.schoolId),
     };
   });
 
@@ -54,6 +58,11 @@ export const changeSchoolWebsite = createServerFn({ method: "POST" })
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
+    await requireSchoolWebStorage(db);
+    if (data.draft && data.action === "publish" && !data.draft.websiteUrl) {
+      const links = await schoolSiteLinks(db, member.schoolId);
+      if (links) data.draft.websiteUrl = new URL(links.websiteUrl).origin;
+    }
     if (data.draft) {
       if (data.draft.campaignSlug) {
         const campaign = await db

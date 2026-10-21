@@ -33,7 +33,7 @@ afterEach(cleanup);
 describe("editor no portal do administrador", () => {
   it("apresenta campos editáveis por secção e guarda rascunhos sem publicar", async () => {
     mount();
-    await screen.findByLabelText("Endereço público do site");
+    await screen.findByLabelText("Domínio para hospedagem externa (opcional)");
     fireEvent.change(screen.getByLabelText("Página ou conteúdo"), {
       target: { value: "Cursos · Engenharia Informática" },
     });
@@ -69,6 +69,6 @@ describe("editor no portal do administrador", () => {
     mocks.load.mockRejectedValue(Error("Sem permissão para esta operação na escola."));
     mount();
     expect((await screen.findByRole("alert")).textContent).toMatch(/Sem permissão/);
-    expect(screen.queryByLabelText("Endereço público do site")).toBeNull();
+    expect(screen.queryByLabelText("Domínio para hospedagem externa (opcional)")).toBeNull();
   });
 });

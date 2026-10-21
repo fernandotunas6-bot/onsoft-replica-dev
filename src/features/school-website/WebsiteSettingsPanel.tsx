@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { actionIcons } from "@/lib/app-icons";
+import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { changeSchoolWebsite, getSchoolWebsiteEditor } from "./content-server";
 import {
@@ -121,7 +122,16 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
   async function copyConfiguration() {
     try {
       await navigator.clipboard.writeText(
-        JSON.stringify({ portalUrl: window.location.origin + "/", contentUrl: endpoint }, null, 2),
+        JSON.stringify(
+          {
+            portalUrl: query.data?.links?.portalUrl ?? window.location.origin + "/portal",
+            storageId: query.data?.school.public_code,
+            contentUrl: endpoint,
+            blogUrl: endpoint.replace("/school-content/", "/school-blog/"),
+          },
+          null,
+          2,
+        ),
       );
       setMessage(
         "Configuração copiada. Guarde-a em school-runtime.json na raiz do website, uma única vez.",
@@ -161,6 +171,44 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           {dirty ? "Tem alterações por guardar." : "Rascunho guardado."}
         </p>
       </div>
+      {query.data?.links && (
+        <div className="space-y-3 rounded-xl border border-border p-4 text-sm">
+          <h4 className="font-medium">Endereços da escola</h4>
+          <p className="text-muted-foreground">
+            O website utiliza o subdomínio atribuído à escola ou o domínio próprio já verificado. A
+            identidade é carregada automaticamente.
+          </p>
+          <a
+            className="block break-all text-primary underline"
+            href={query.data.links.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {query.data.links.websiteUrl}
+          </a>
+          <p className="text-xs text-muted-foreground">Endereço alternativo na plataforma:</p>
+          <a
+            className="block break-all text-primary underline"
+            href={query.data.links.fallbackUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {query.data.links.fallbackUrl}
+          </a>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => openSettingsPanel("identidade")}>
+              Gerir domínio próprio
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openSettingsPanel("website.blog")}>
+              Administrar blog
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Domínios próprios só são usados após verificação e encaminhamento DNS/HTTPS para a
+            plataforma. O blog acompanha os mesmos endereços.
+          </p>
+        </div>
+      )}
       {message && (
         <p role="status" className="rounded-lg border p-3 text-sm">
           {message}
@@ -181,7 +229,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
         </p>
       )}
       <div className="space-y-2">
-        <Label htmlFor="website-origin">Endereço público do site</Label>
+        <Label htmlFor="website-origin">Domínio para hospedagem externa (opcional)</Label>
         <Input
           id="website-origin"
           type="url"
@@ -191,8 +239,8 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           onChange={(e) => setDraft({ ...draft, websiteUrl: e.target.value })}
         />
         <p className="text-xs text-muted-foreground">
-          Este é o único domínio externo autorizado a ler os conteúdos no navegador. A ligação é
-          independente da abertura das candidaturas.
+          Os domínios verificados da escola funcionam automaticamente. Preencha este campo apenas se
+          também publicar o website noutra hospedagem, como uma prévia externa.
         </p>
       </div>
       <details className="rounded-xl border border-border p-3">
@@ -272,7 +320,9 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       <fieldset disabled={busy || templateMismatch} className="space-y-4">
         <legend className="sr-only">Conteúdo de {group}</legend>
         {filtered.slice(page * 24, (page + 1) * 24).map((field) => {
-          const value = draft.values[field.key] ?? field.value;
+          const value =
+            draft.values[field.key] ??
+            field.value.replaceAll("ISPAB", query.data?.school.name ?? "ISPAB");
           const id = "website-field-" + field.key;
           return (
             <div key={field.key} className="space-y-2 rounded-xl border border-border p-3">

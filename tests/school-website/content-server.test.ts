@@ -55,7 +55,10 @@ beforeEach(() => {
     insert: mocks.insert,
   };
   mocks.from.mockReturnValue(chain);
-  mocks.admin.mockResolvedValue({ from: mocks.from });
+  mocks.admin.mockResolvedValue({
+    from: mocks.from,
+    rpc: vi.fn(async () => ({ data: true, error: null })),
+  });
   mocks.insert.mockResolvedValue({ error: null });
   mocks.update.mockImplementation(async (_db, _school, _domain, change) => change(null));
 });

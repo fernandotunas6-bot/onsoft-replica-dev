@@ -17,8 +17,8 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     shortName: "Início",
     description: "Painel e atalhos do dia.",
     mark: "siga-dashboard",
-    navPath: "/",
-    target: { type: "route", to: "/" },
+    navPath: "/portal",
+    target: { type: "route", to: "/portal" },
   },
   {
     id: "siga-alunos",

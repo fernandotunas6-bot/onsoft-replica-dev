@@ -59,3 +59,6 @@ form label input:focus-visible,form label select:focus-visible,form label textar
 
 /* Preserve the normal menu size; scroll its contents on short desktop viewports. */
 @media(min-width:761px){.mega-menu{max-height:var(--menu-max-height,calc(100dvh - 128px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}}
+
+/* Institutional identity and published school articles. */
+.brand>span{max-width:min(48vw,220px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.brand img{width:36px;height:36px;object-fit:contain}.school-blog-cover{width:100%;max-height:480px;object-fit:cover;border-radius:20px;margin-bottom:28px}.blog-pagination{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:36px}.article-card p{color:var(--muted);font-size:14px;line-height:1.7;overflow-wrap:anywhere}

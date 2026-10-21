@@ -32,10 +32,16 @@ import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaig
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { actionIcons } from "@/lib/app-icons";
 
 const WebsiteSettingsPanel = lazy(() =>
   import("@/features/school-website/WebsiteSettingsPanel").then((module) => ({
     default: module.WebsiteSettingsPanel,
+  })),
+);
+const BlogSettingsPanel = lazy(() =>
+  import("@/features/school-website/BlogSettingsPanel").then((module) => ({
+    default: module.BlogSettingsPanel,
   })),
 );
 
@@ -88,6 +94,13 @@ function useSettingsPanels(): StackPanel[] {
             icon: Globe,
             tone: "info",
             to: "website",
+          },
+          {
+            label: "Blog da escola",
+            description: "Artigos, rascunhos e publicação no website",
+            icon: actionIcons.edit,
+            tone: "info",
+            to: "website.blog",
           },
           {
             label: "Destaques",
@@ -195,6 +208,18 @@ function useSettingsPanels(): StackPanel[] {
         render: () => (
           <Suspense fallback={<p role="status">A carregar o editor…</p>}>
             <WebsiteSettingsPanel />
+          </Suspense>
+        ),
+      },
+      {
+        id: "website.blog",
+        title: "Blog da escola",
+        description: "Notícias e artigos públicos da sua instituição.",
+        icon: actionIcons.edit,
+        tone: "info",
+        render: () => (
+          <Suspense fallback={<p role="status">A carregar o blog…</p>}>
+            <BlogSettingsPanel />
           </Suspense>
         ),
       },

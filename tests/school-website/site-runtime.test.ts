@@ -1,10 +1,8 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
-import {
-  applyPublishedContent,
-  connectSchoolWebsite,
-} from "../../painel/escolas/src/site-content.mjs";
+import * as siteRuntime from "../../painel/escolas/src/site-content.mjs";
+const { applyPublishedContent, connectSchoolWebsite } = siteRuntime;
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
 import { setupSiteSearch } from "../../painel/escolas/src/search.mjs";
 
@@ -151,7 +149,9 @@ describe("sincronização no website", () => {
       "fetch",
       vi.fn(async () => Response.json({ portalUrl: "/invalid-relative" })),
     );
-    await expect(connectSchoolWebsite({ courses: [] })).resolves.toBeUndefined();
+    await expect(connectSchoolWebsite({ courses: [] })).resolves.toMatchObject({
+      portalUrl: "/invalid-relative",
+    });
   });
   it("encaminha candidaturas abertas ao formulário oficial e bloqueia campanhas encerradas", async () => {
     for (const isOpen of [true, false]) {

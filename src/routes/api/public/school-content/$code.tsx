@@ -3,10 +3,12 @@ import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
 import { readWebsiteState, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 import { createWebsiteContentHandler } from "@/features/school-website/content-http";
+import { schoolWebStorageReady } from "@/features/school-website/storage-guard";
 
 // style-check: route-exempt — API pública de conteúdos; sem interface de operação.
 const handle = createWebsiteContentHandler(async (code) => {
   const db = await loadSgaAdminClient();
+  if (!(await schoolWebStorageReady(db))) return null;
   const { data: school, error } = await db
     .from("schools")
     .select("id, status, tenant_id")
@@ -61,7 +63,19 @@ const handle = createWebsiteContentHandler(async (code) => {
     if (campaign.error) throw new Error("Campaign lookup failed");
     campaignOpen = campaign.data?.is_open === true;
   }
-  return { state, programNames, campaignOpen };
+  let allowedOrigins: string[] = [];
+  if (school.tenant_id) {
+    const domains = await db
+      .from("tenant_domains")
+      .select("hostname, type, verified_at")
+      .eq("tenant_id", school.tenant_id)
+      .eq("status", "active");
+    if (domains.error) throw new Error("Domain lookup failed");
+    allowedOrigins = domains.data
+      .filter((domain) => domain.type === "siga_subdomain" || domain.verified_at)
+      .map((domain) => `https://${domain.hostname}`);
+  }
+  return { state, programNames, campaignOpen, allowedOrigins };
 });
 export const Route = createFileRoute("/api/public/school-content/$code")({
   server: {
