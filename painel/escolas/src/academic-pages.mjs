@@ -1,3 +1,5 @@
+import {setupSectionNavigation} from './course-tools.mjs';
+
 const labelOf = node => {
   const copy = node.cloneNode(true);for (const br of copy.querySelectorAll('br')) br.replaceWith(' ');
   return copy.textContent.replace(/\s+/g, ' ').trim();
@@ -10,7 +12,7 @@ export function setupAcademicPages({doc = document, win = window} = {}) {
   const hero = doc.querySelector('.academic-page-head'), courseHero = doc.querySelector('main>.course-hero');
   if (!hero && !courseHero) return {destroy() {}};
   (hero || courseHero).setAttribute('data-academic-enhanced', 'true');
-  let observer, resize;
+  let resize;
   const cleanups = [];
   if (courseHero) {
     const summary = doc.querySelector('.course-summary'), facts = summary?.querySelectorAll('dl>div');
@@ -67,18 +69,11 @@ export function setupAcademicPages({doc = document, win = window} = {}) {
       const measure = () => nav.style.setProperty('--academic-nav-top', Math.ceil(header?.getBoundingClientRect().height || 80) + 'px');
       measure();if (header && win.ResizeObserver) {resize = new win.ResizeObserver(measure);resize.observe(header);}
       if (!usesResourceLinks) {
-        const activate = link => {for (const a of links) {a.classList.toggle('current', a === link);if (a === link) a.setAttribute('aria-current', 'location');else a.removeAttribute('aria-current');}};
-        const initial = links.find(a => a.hash === win.location.hash) || links[0];activate(initial);
-        const clicked = event => {const a = event.target.closest('a');if (links.includes(a)) activate(a);};nav.addEventListener('click', clicked);cleanups.push(() => nav.removeEventListener('click', clicked));
-        if (win.IntersectionObserver) {
-          const visible = new Set();observer = new win.IntersectionObserver(changes => {
-            for (const change of changes) change.isIntersecting ? visible.add(change.target) : visible.delete(change.target);
-            const index = entries.findIndex(entry => visible.has(entry.section));if (index >= 0) activate(links[index]);
-          }, {rootMargin: '-20% 0px -55% 0px', threshold: 0});entries.forEach(entry => observer.observe(entry.section));
-        }
+        const navigation = setupSectionNavigation({nav, pairs: entries.map((entry, index) => ({link: links[index], section: entry.section})), doc, win});
+        cleanups.push(() => navigation.destroy());
       }
     }
   }
   let destroyed = false;
-  return {destroy() {if (destroyed) return;destroyed = true;observer?.disconnect();resize?.disconnect();for (const cleanup of cleanups.reverse()) cleanup();(hero || courseHero).removeAttribute('data-academic-enhanced');}};
+  return {destroy() {if (destroyed) return;destroyed = true;resize?.disconnect();for (const cleanup of cleanups.reverse()) cleanup();(hero || courseHero).removeAttribute('data-academic-enhanced');}};
 }

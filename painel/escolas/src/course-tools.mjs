@@ -28,17 +28,60 @@ export function setupCurriculumTools(doc = document) {
   modules.forEach(module => module.addEventListener('toggle', sync)); sync();
 }
 
+/** Follow the same reading position used by native section anchors. */
+export function setupSectionNavigation({nav, pairs, doc = document, win = window} = {}) {
+  if (!nav || !pairs?.length || nav.dataset.sectionNavigationReady) return {destroy() {}};
+  nav.dataset.sectionNavigationReady = 'true';
+  const links = pairs.map(pair => pair.link), scroller = nav.querySelector('.wrap') || nav;
+  const previous = links.map(link => ({link, current: link.classList.contains('current'), aria: link.getAttribute('aria-current')}));
+  let observer, frame, destroyed = false;
+  const reveal = link => {
+    if (scroller.scrollWidth <= scroller.clientWidth) return;
+    const bounds = scroller.getBoundingClientRect(), item = link.getBoundingClientRect();
+    if (item.left < bounds.left) scroller.scrollLeft += item.left - bounds.left - 12;
+    else if (item.right > bounds.right) scroller.scrollLeft += item.right - bounds.right + 12;
+  };
+  const activate = link => {
+    for (const item of links) {
+      item.classList.toggle('current', item === link);
+      if (item === link) item.setAttribute('aria-current', 'location');else item.removeAttribute('aria-current');
+    }
+    reveal(link);
+  };
+  const fromHash = () => activate((pairs.find(pair => pair.link.hash === win.location.hash) || pairs[0]).link);
+  const clicked = event => {const link = event.target.closest?.('a[href^="#"]');if (links.includes(link)) activate(link);};
+  const observe = () => {
+    if (destroyed || !win.IntersectionObserver) return;
+    observer?.disconnect?.();
+    const height = win.innerHeight || doc.documentElement.clientHeight || 800;
+    const style = node => win.getComputedStyle?.(node);
+    const offset = (parseFloat(style(doc.documentElement)?.scrollPaddingTop) || 0) + (parseFloat(style(pairs[0].section)?.scrollMarginTop) || 0);
+    // A narrow band prevents a small remnant of the previous section stealing the current marker.
+    const line = Math.min(height - 2, Math.max(1, Math.ceil(offset) + 1)), visible = new Set();
+    const currentObserver = new win.IntersectionObserver(entries => {
+      if (destroyed || observer !== currentObserver) return;
+      for (const entry of entries) entry.isIntersecting ? visible.add(entry.target) : visible.delete(entry.target);
+      const current = pairs.find(pair => visible.has(pair.section));if (current) activate(current.link);
+    }, {rootMargin: `-${line}px 0px -${height - line - 1}px 0px`, threshold: 0});
+    observer = currentObserver;pairs.forEach(pair => observer.observe(pair.section));
+  };
+  const resized = () => {
+    if (frame !== undefined) return;
+    frame = win.requestAnimationFrame(() => {frame = undefined;observe();});
+  };
+  fromHash();observe();nav.addEventListener('click', clicked);
+  win.addEventListener?.('hashchange', fromHash);win.addEventListener?.('resize', resized);
+  return {destroy() {
+    if (destroyed) return;destroyed = true;observer?.disconnect?.();
+    if (frame !== undefined) win.cancelAnimationFrame(frame);
+    nav.removeEventListener('click', clicked);win.removeEventListener?.('hashchange', fromHash);win.removeEventListener?.('resize', resized);
+    for (const {link, current, aria} of previous) {link.classList.toggle('current', current);if (aria === null) link.removeAttribute('aria-current');else link.setAttribute('aria-current', aria);}
+    delete nav.dataset.sectionNavigationReady;
+  }};
+}
+
 export function setupCourseNavigation({doc = document, win = window} = {}) {
-  const nav = doc.querySelector('.course-subnav'); if (!nav || !win.IntersectionObserver) return;
-  const links = [...nav.querySelectorAll('a[href^="#"]')];
-  const pairs = links.map(link => ({link, section: doc.getElementById(link.hash.slice(1))})).filter(pair => pair.section);
-  const visible = new Set();
-  const activate = link => {for (const item of links) {item.classList.toggle('current', item === link); if (item === link) item.setAttribute('aria-current', 'location'); else item.removeAttribute('aria-current');}};
-  const observer = new win.IntersectionObserver(entries => {
-    for (const entry of entries) entry.isIntersecting ? visible.add(entry.target) : visible.delete(entry.target);
-    const first = pairs.find(pair => visible.has(pair.section)); if (first) activate(first.link);
-  }, {rootMargin: '-15% 0px -55% 0px', threshold: 0});
-  pairs.forEach(pair => observer.observe(pair.section));
-  const initial = pairs.find(pair => pair.link.hash === win.location.hash) || pairs[0]; if (initial) activate(initial.link);
-  nav.addEventListener('click', event => {const link = event.target.closest('a[href^="#"]'); if (links.includes(link)) activate(link);});
+  const nav = doc.querySelector('.course-subnav');
+  const pairs = [...(nav?.querySelectorAll('a[href^="#"]') || [])].map(link => ({link, section: doc.getElementById(link.hash.slice(1))})).filter(pair => pair.section);
+  return setupSectionNavigation({nav, pairs, doc, win});
 }

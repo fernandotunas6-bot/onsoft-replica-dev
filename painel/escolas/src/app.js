@@ -204,7 +204,8 @@ if(catalogueFilters&&filterToggle){
 const courseAction=$('[data-course-action]');
 if(courseAction&&'IntersectionObserver'in window){new IntersectionObserver(entries=>{courseAction.hidden=entries[0].isIntersecting},{threshold:0}).observe($('.course-hero'))}
 const courseTools=$('.course-subnav')?await import('./course-tools.mjs').catch(()=>null):null;
-courseTools?.setupCourseNavigation();
+const courseNavigation=courseTools?.setupCourseNavigation();
+if(courseNavigation)window.addEventListener('pagehide',event=>{if(!event.persisted)courseNavigation.destroy()},{once:true});
 $$('[data-course-guide]').forEach(button=>button.addEventListener('click',()=>{const c=courseById(button.dataset.courseGuide);if(!c)return;const specs=getCourseSpecs(c);const text=demoHeader()+`FICHA DEMONSTRATIVA DE FORMAÇÃO
 
 ${c.name}
