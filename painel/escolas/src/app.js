@@ -4,7 +4,7 @@ import {connectSchoolWebsite} from './site-content.mjs';
 import {siteAsset,siteHref,mountWebsiteLinks} from './site-urls.mjs';
 import {setupSchoolBlog} from './school-blog.mjs';
 import {setupSchoolPresentation,admissionSummaryHTML,admissionFeeLabel} from './presentation.mjs';
-import {setupAcademicNavigation,isHeaderSearchShortcut} from './academic-navigation.mjs';
+import {setupAcademicNavigation,isHeaderSearchShortcut,restoreHeaderFocus} from './academic-navigation.mjs';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const dialog=$('#site-dialog');
 const refreshWebsiteLinks=mountWebsiteLinks();
@@ -16,7 +16,7 @@ function syncSidebar(){if(portalSidebar)portalSidebar.inert=sidebarMedia.matches
 sidebarMedia.addEventListener('change',syncSidebar);syncSidebar();
 const scrollBehavior=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.classList.contains('reduce-motion')?'instant':'smooth';
 function closeMobile(restoreFocus=false){if(restoreFocus&&navigationMedia.matches&&nav?.contains(document.activeElement))mobileToggle?.focus();nav?.classList.remove('open');mobileToggle?.setAttribute('aria-expanded','false');mobileToggle?.setAttribute('aria-label','Abrir navegação');syncMainNavigation()}
-navigationMedia.addEventListener('change',()=>{closeMobile(true);$$('.nav-dropdown').forEach(el=>el.open=false)});syncMainNavigation();
+navigationMedia.addEventListener('change',()=>{const focused=document.activeElement,restore=focused?.closest('.site-header');closeMobile(true);$$('.nav-dropdown').forEach(el=>el.open=false);if(restore)restoreHeaderFocus(focused)});syncMainNavigation();
 mobileToggle?.addEventListener('click',()=>{const open=!nav.classList.contains('open');nav.classList.toggle('open',open);mobileToggle.setAttribute('aria-expanded',String(open));mobileToggle.setAttribute('aria-label',open?'Fechar navegação':'Abrir navegação');syncMainNavigation()});
 // Fit open desktop menus to the actual visible viewport, including short screens.
 function fitOpenMenus(){
@@ -84,7 +84,7 @@ headerSearch?.addEventListener('click',event=>{
   closeMobile();$$('.nav-dropdown').forEach(node=>node.open=false);
   const label=headerSearch.getAttribute('aria-label')||'Pesquisar no site';
   showDialog(`<h2>${esc(label)}</h2><form class="header-search-form" action="${esc(siteHref('/pesquisa/'))}" method="get"><div class="header-search-field"><label class="sr-only" for="header-search-q">O que procura?</label><input id="header-search-q" name="q" type="search" placeholder="Curso, serviço ou informação" maxlength="150" required></div><button class="button" type="submit">Pesquisar <span aria-hidden="true">↗</span></button></form><nav class="header-search-shortcuts" aria-label="Caminhos frequentes"></nav>`);
-  dialogRestoreFocus=()=>{if(opener?.isConnected)opener.focus()};
+  dialogRestoreFocus=()=>restoreHeaderFocus(opener);
   const shortcuts=$('.header-search-shortcuts',dialog);
   for(const path of ['/cursos/','/ingresso/','/servicos/']){const source=$$('#main-nav a[href]').find(a=>a.getAttribute('href')===siteHref(path));if(source){const link=document.createElement('a');link.href=source.href;link.textContent=$('strong',source)?.textContent||source.textContent;shortcuts.append(link)}}
   const input=$('#header-search-q');input.focus();let suggestions;

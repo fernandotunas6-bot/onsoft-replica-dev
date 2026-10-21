@@ -79,6 +79,20 @@ it("permite usar o menu enquanto os conteúdos e o blog estão pendentes, sem du
     mobile.matches = false;
     mobile.dispatchEvent(new Event("change"));
     expect(nav.inert).toBe(false);
+    // Closing a disclosure at a breakpoint must leave the keyboard on its visible summary.
+    mobile.matches = true;
+    mobile.dispatchEvent(new Event("change"));
+    toggle.click();
+    nav.querySelector("details")!.open = true;
+    courseLink.focus();
+    mobile.matches = false;
+    mobile.dispatchEvent(new Event("change"));
+    expect(document.activeElement).toBe(nav.querySelector("summary"));
+    const outside = document.querySelector<HTMLInputElement>("#contact-form input")!;
+    outside.focus();
+    mobile.matches = true;
+    mobile.dispatchEvent(new Event("change"));
+    expect(document.activeElement).toBe(outside);
   } finally {
     releaseContent({});
     releaseBlog();

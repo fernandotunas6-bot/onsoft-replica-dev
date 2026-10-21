@@ -3,11 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import pages from "@/features/school-website/site-pages.generated.json";
 // @ts-expect-error Native public-site module.
 import * as navigation from "../../painel/escolas/src/academic-navigation.mjs";
-const { setupAcademicNavigation, isHeaderSearchShortcut } = navigation;
+const { setupAcademicNavigation, isHeaderSearchShortcut, restoreHeaderFocus } = navigation;
 let controller: ReturnType<typeof setupAcademicNavigation>;
 const mobile = Object.assign(new EventTarget(), { matches: false });
 afterEach(() => {
   controller?.destroy();
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   document.body.innerHTML = "";
@@ -215,5 +216,62 @@ describe("marca e cabeçalho ao navegar", () => {
     expect(disconnect).toHaveBeenCalledTimes(1);
     expect(document.querySelector("header")?.dataset.navigationContext).toBe("inner");
     expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("");
+  });
+});
+
+describe("continuidade do foco no cabeçalho", () => {
+  function fixture() {
+    document.body.innerHTML =
+      '<header class="site-header"><a class="brand" href="/">ISPAB</a><button class="mobile-toggle">Menu</button><nav id="main-nav"><details class="nav-dropdown"><summary>Estudar</summary><div class="mega-menu"><a href="/cursos/">Cursos</a></div></details></nav><a class="header-search" href="/pesquisa/">Pesquisar</a><a class="portal-action" href="/login/">Portal</a></header><a class="outside" href="#main">Conteúdo</a>';
+    vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
+      new DOMRect(),
+    ] as unknown as DOMRectList);
+    mobile.matches = false;
+    vi.stubGlobal("matchMedia", () => mobile);
+    return {
+      brand: document.querySelector(".brand")!,
+      toggle: document.querySelector("button")!,
+      nav: document.querySelector<HTMLElement>("nav")!,
+      section: document.querySelector("details")!,
+      summary: document.querySelector("summary")!,
+      link: document.querySelector(".mega-menu a")!,
+      search: document.querySelector(".header-search")!,
+    };
+  }
+  it("repõe o foco no título do submenu fechado e conserva um destino ainda visível", () => {
+    const { summary, link, search, section } = fixture();
+    const focus = vi.spyOn(summary, "focus");
+    restoreHeaderFocus(link);
+    expect(document.activeElement).toBe(summary);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    section.open = true;
+    restoreHeaderFocus(link);
+    expect(document.activeElement).toBe(link);
+    restoreHeaderFocus(search);
+    expect(document.activeElement).toBe(search);
+  });
+  it("usa o botão móvel para o menu fechado e a marca para um botão oculto no desktop", () => {
+    const { brand, toggle, nav, link } = fixture();
+    mobile.matches = true;
+    nav.inert = true;
+    restoreHeaderFocus(link);
+    expect(document.activeElement).toBe(toggle);
+    mobile.matches = false;
+    nav.inert = false;
+    restoreHeaderFocus(toggle);
+    expect(document.activeElement).toBe(brand);
+    const portal = document.querySelector<HTMLElement>(".portal-action")!;
+    vi.spyOn(portal, "getClientRects").mockReturnValue([] as unknown as DOMRectList);
+    restoreHeaderFocus(portal);
+    expect(document.activeElement).toBe(brand);
+  });
+  it("preserva o foco fora do cabeçalho e oferece um controlo visível se a origem foi removida", () => {
+    const { link, search } = fixture();
+    const outside = document.querySelector(".outside")!;
+    restoreHeaderFocus(outside);
+    expect(document.activeElement).toBe(outside);
+    link.remove();
+    restoreHeaderFocus(link);
+    expect(document.activeElement).toBe(search);
   });
 });

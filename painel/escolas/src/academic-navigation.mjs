@@ -5,6 +5,24 @@ export function isHeaderSearchShortcut(event) {
   return !editable && !target?.closest?.('input,textarea,select,[role=textbox]');
 }
 
+/** A hidden submenu or mobile control cannot receive focus after a dialog/viewport change. */
+export function restoreHeaderFocus(opener, {doc = document, win = window} = {}) {
+  const header = doc.querySelector('.site-header'), nav = header?.querySelector('#main-nav'), toggle = header?.querySelector('.mobile-toggle');
+  const mobile = win.matchMedia('(max-width:760px)').matches;
+  const fallback = () => mobile ? toggle : header?.querySelector('.brand,.header-search,summary');
+  let target = opener?.isConnected ? opener : header?.querySelector('.header-search') || fallback();
+  if (target && header?.contains(target)) {
+    if (mobile && nav?.contains(target) && (nav.inert || !nav.classList.contains('open'))) target = toggle;
+    else if (!mobile && target === toggle) target = fallback();
+    else {
+      const section = target.closest('.nav-dropdown');
+      if (section && !section.open && section.querySelector('.mega-menu')?.contains(target)) target = section.querySelector('summary');
+    }
+    if (target && (!target.getClientRects().length || target.closest('[inert]'))) target = fallback();
+  }
+  target?.focus({preventScroll: true});return target;
+}
+
 /** Progressive header behaviour. Existing disclosures and public links remain the fallback. */
 export function setupAcademicNavigation({doc = document, win = window} = {}) {
   const header = doc.querySelector('.site-header'), nav = doc.querySelector('#main-nav'), toggle = doc.querySelector('.mobile-toggle');
