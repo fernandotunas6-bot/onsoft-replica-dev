@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MediaFrame } from "@/components/ui/media-frame";
 import { actionIcons } from "@/lib/app-icons";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -324,6 +325,10 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
             draft.values[field.key] ??
             field.value.replaceAll("ISPAB", query.data?.school.name ?? "ISPAB");
           const id = "website-field-" + field.key;
+          const imagePreview =
+            field.kind === "image" && safePublicUrl(value, true)
+              ? previewImage(value, draft.websiteUrl)
+              : undefined;
           return (
             <div key={field.key} className="space-y-2 rounded-xl border border-border p-3">
               <Label htmlFor={id} className="break-words">
@@ -378,12 +383,13 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
                   onChange={(e) => changeValue(field.key, e.target.value)}
                 />
               )}
-              {field.kind === "image" && safePublicUrl(value, true) && (
-                <img
-                  src={previewImage(value, draft.websiteUrl)}
+              {imagePreview && (
+                <MediaFrame
+                  src={imagePreview}
                   alt="Pré-visualização da imagem seleccionada"
-                  className="h-24 max-w-full rounded-md object-cover"
-                  loading="lazy"
+                  ratio="3/2"
+                  rounded="rounded-md"
+                  className="w-36 max-w-full"
                 />
               )}
               {field.kind === "asset" && (

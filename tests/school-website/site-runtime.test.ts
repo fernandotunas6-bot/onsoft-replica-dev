@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
 import * as siteRuntime from "../../painel/escolas/src/site-content.mjs";
+
 const { applyPublishedContent, connectSchoolWebsite } = siteRuntime;
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
 import { setupSiteSearch } from "../../painel/escolas/src/search.mjs";
