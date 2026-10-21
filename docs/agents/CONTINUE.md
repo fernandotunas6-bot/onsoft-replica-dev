@@ -4,6 +4,14 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Website escolar — navegação antes da API (2026-10-21)
+
+Os eventos de navegação e a adaptação dos links arrancam antes dos pedidos de
+configuração, conteúdos e blog. `mountWebsiteLinks` devolve uma função para reaplicar
+os links existentes após conteúdos, conservando um único observador. Não voltar a
+adiar o menu nem perder o prefixo da escola durante estes pedidos. Regressão em
+`tests/school-website/navigation-startup.test.ts`; [ensaio e comparação visual](../../painel/escolas/docs/navigation-startup.md).
+
 ## Refinamento dos editores escolares (2026-10-21)
 
 Website e blog mantêm o visual. Os atalhos do website para domínio/blog e os
