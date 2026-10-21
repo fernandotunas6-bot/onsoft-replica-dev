@@ -16,11 +16,15 @@ export function StudentWebsitePortal() {
   const frame = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
   const [frameError, setFrameError] = useState(false);
+  const [origin, setOrigin] = useState<string | null>(null);
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
   const eligible =
     account.role === "Aluno" && Boolean(account.schoolId && account.schoolSlug && account.id);
   const source =
-    typeof window !== "undefined" && eligible
-      ? studentPortalFramePath(window.location.origin, account.schoolSlug || "", getSigaLoginUrl())
+    origin && eligible
+      ? studentPortalFramePath(origin, account.schoolSlug || "", getSigaLoginUrl())
       : null;
   useEffect(() => {
     if (!eligible || !source) return;
