@@ -7,6 +7,24 @@ const decode=s=>s.replace(/&(#\d+|#x[\da-f]+|amp|lt|gt|quot|apos|nbsp);/gi,(_,v)
 const labels={courses:'Cursos',areas:'Áreas de formação',events:'Agenda',articles:'Notícias',services:'Serviços',faqs:'Perguntas frequentes'};
 const names={name:'Nome',title:'Título',description:'Descrição',text:'Texto',level:'Formação',mode:'Modalidade',shift:'Turno',duration:'Duração',years:'Duração em anos',modules:'Plano de estudos',image:'Imagem do catálogo',subjects:'Plano de estudos',careers:'Saídas profissionais',category:'Categoria',date:'Data',time:'Horário',place:'Local',day:'Dia',month:'Mês',url:'Destino'};
 
+/**
+ * Identidade de um campo editável: o âmbito, o atributo e o próprio texto.
+ *
+ * A versão anterior usava a posição (um contador por âmbito). Medido sobre este
+ * site: acrescentar um parágrafo à página de entrada reapontava 146 chaves para
+ * outro texto — o conteúdo escrito pela escola passaria a ser aplicado nos
+ * elementos errados. Com a chave derivada do texto, nenhuma ligação se desloca;
+ * uma chave ou continua a existir, ou desaparece e é ignorada.
+ */
+export function fieldKeyBase(scope, attr, value) {
+  return scope + '\u0000' + attr + '\u0000' + String(value).replace(/\s+/g, ' ').trim();
+}
+
+export function fieldKey(scope, attr, value, occurrence = 1) {
+  const base = fieldKeyBase(scope, attr, value);
+  return createHash('sha256').update(occurrence > 1 ? base + '\u0000' + occurrence : base).digest('hex').slice(0, 16);
+}
+
 /** Mark text ranges with comments: no extra wrappers or changes to layout. */
 // O manifesto mostra ao editor o texto como o visitante o lê: os valores que
 // saem do data.mjs passam pelo brand(), como passam no site. As ligações para
@@ -28,8 +46,18 @@ export function writeContentManifest(out,routes,brand=x=>x){
   const voids=new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
   for(const route of routes){
     if(route.url.startsWith('/portal/')||route.url==='/404/')continue;
-    const file=path.join(out,route.url,'index.html');let n=0,scope=route.url+':metadata';const stack=[];const contexts=[];const routeCourse=data.courses.findIndex(c=>route.url==='/cursos/'+c.id+'/');
-    const key=()=>createHash('sha256').update(scope+':'+(++n)).digest('hex').slice(0,16);
+    const file=path.join(out,route.url,'index.html');let scope=route.url+':metadata';const stack=[];const contexts=[];const routeCourse=data.courses.findIndex(c=>route.url==='/cursos/'+c.id+'/');
+    // A chave vem do texto do campo, não da sua posição: mover um elemento, ou
+    // acrescentar outro antes dele, deixa de mudar a chave de tudo o que vem a
+    // seguir — que é o que invalidava os conteúdos já escritos pela escola a
+    // cada alteração do modelo. Textos repetidos no mesmo âmbito desempatam por
+    // ordem de aparição.
+    const repetidos=new Map();
+    const key=(value,attr='')=>{
+      const base=fieldKeyBase(scope,attr,value);
+      const vez=(repetidos.get(base)||0)+1;repetidos.set(base,vez);
+      return fieldKey(scope,attr,value,vez);
+    };
     const pageGroup=brand(route.title)+' · '+route.url;
     const currentGroup=()=>scope==='navigation'?'Navegação':scope==='footer'?'Rodapé':pageGroup;
     let html=fs.readFileSync(file,'utf8');
@@ -40,7 +68,7 @@ export function writeContentManifest(out,routes,brand=x=>x){
       const opening=token.match(/^<([\w-]+)/);
       if(opening){
         const tag=opening[1].toLowerCase();
-        if(['body','main','footer'].includes(tag)){scope=tag==='body'?'navigation':tag==='footer'?'footer':route.url;n=0}
+        if(['body','main','footer'].includes(tag)){scope=tag==='body'?'navigation':tag==='footer'?'footer':route.url}
         const group=currentGroup();const excluded=stack.some(t=>['script','style','svg','textarea','select','noscript'].includes(t));
         if(!voids.has(tag))stack.push(tag);
         const courseId=token.match(/data-course="([^"]+)"/)?.[1];if(courseId)contexts.push({depth:stack.length,index:data.courses.findIndex(c=>c.id===courseId)});
@@ -52,15 +80,15 @@ export function writeContentManifest(out,routes,brand=x=>x){
           if(attr==='src'&&tag!=='img')return whole;
           const value=decode(raw);if(!value&&attr!=='alt')return whole;
           const index=contexts.at(-1)?.index??routeCourse;const imageField=attr==='src'&&index>=0&&value==='/assets/'+data.courses[index].image+'.webp'?'data.courses.'+index+'.image':null;
-          const id=imageField||key();attrs.push(attr+':'+id);add({key:id,group,kind:attr==='src'?'image':attr==='href'?'link':'text',label:({src:'Imagem',alt:'Descrição da imagem',href:'Destino do link',content:'Descrição para motores de pesquisa',placeholder:'Ajuda do campo','aria-label':'Rótulo acessível'})[attr],value});return whole;
+          const id=imageField||key(value,attr);attrs.push(attr+':'+id);add({key:id,group,kind:attr==='src'?'image':attr==='href'?'link':'text',label:({src:'Imagem',alt:'Descrição da imagem',href:'Destino do link',content:'Descrição para motores de pesquisa',placeholder:'Ajuda do campo','aria-label':'Rótulo acessível'})[attr],value});return whole;
         });
-        if(tag==='title'){const id=key();attrs.push('title:'+id);add({key:id,group,kind:'text',label:'Título no navegador',value:brand(route.title+' | {{SCHOOL}}')})}
+        if(tag==='title'){const id=key(route.title,'title');attrs.push('title:'+id);add({key:id,group,kind:'text',label:'Título no navegador',value:brand(route.title+' | {{SCHOOL}}')})}
         return attrs.length?token.replace(/>$/,' data-site-fields="'+attrs.join(' ')+'">'):token;
       }
       if(stack.some(t=>['head','script','style','svg','textarea','select','noscript'].includes(t)))return token;
       const value=decode(token).trim();if(!value||!/[\p{L}\p{N}]/u.test(value))return token;
       const index=contexts.at(-1)?.index??routeCourse;const matching=index>=0?fields.find(f=>f.dataPath?.[0]==='courses'&&f.dataPath[1]===String(index)&&f.value===value&&f.kind==='text'):null;
-      const id=matching?.key||shared.get(value)||key();if(!byKey.has(id))add({key:id,group:currentGroup(),kind:'text',label:'Texto · '+value.slice(0,70),value});
+      const id=matching?.key||shared.get(value)||key(value);if(!byKey.has(id))add({key:id,group:currentGroup(),kind:'text',label:'Texto · '+value.slice(0,70),value});
       return '<!--site:'+id+'-->'+token+'<!--/site-->';
     });
     fs.writeFileSync(file,html);

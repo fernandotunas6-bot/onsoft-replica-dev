@@ -32,7 +32,11 @@ export async function connectSchoolWebsite(data){
     const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),6000);
     let payload;try{const response=await fetch(url,{credentials:'omit',cache:'no-store',signal:abort.signal});if(!response.ok)throw Error('unavailable');payload=await response.json()}finally{clearTimeout(timer)}
     const manifest=await fetch('/content-bindings.json').then(r=>r.json());
-    if(payload.apiVersion!==1||payload.templateVersion!==manifest.version||!payload.values||typeof payload.values!=='object')throw Error('version');
+    if(payload.apiVersion!==1||!payload.values||typeof payload.values!=='object')throw Error('version');
+    // A chave de cada campo vem do seu texto, não da sua posição, por isso um
+    // modelo mais recente não desloca ligações: aplica-se o que ainda existe e
+    // ignora-se o resto. A versão fica como sinal, não como porta fechada.
+    const modeloActual=payload.templateVersion===manifest.version;
     if(payload.admissions){
       const destination=payload.admissions.isOpen&&typeof payload.admissions.path==='string'&&/^\/matricula\/[a-z0-9-]{2,80}$/.test(payload.admissions.path)?new URL(payload.admissions.path,url.origin).href:null;
       for(const link of document.querySelectorAll('a[href]'))if(new URL(link.href).pathname==='/candidatura/'){
@@ -54,7 +58,7 @@ export async function connectSchoolWebsite(data){
       const current=location.pathname.match(/^\/cursos\/([^/]+)\//)?.[1];
       if(current&&unavailable.has(current)){const main=document.querySelector('main');if(main){const section=document.createElement('section');section.className='wrap section empty-state';const h=document.createElement('h1');h.textContent='Curso indisponível';const p=document.createElement('p');p.textContent='Este curso deixou de estar activo no sistema académico. Consulte os restantes percursos.';const a=document.createElement('a');a.className='button';a.href='/cursos/';a.textContent='Explorar cursos';section.append(h,p,a);main.replaceChildren(section)}}
     }
-    document.documentElement.dataset.sigaContent='synced';
+    document.documentElement.dataset.sigaContent=modeloActual?'synced':'synced-older';
   }catch{
     document.documentElement.dataset.sigaContent='unavailable';
     const notice=document.createElement('div');notice.className='notice wrap';notice.setAttribute('role','status');const p=document.createElement('p');p.textContent='A sincronização com o SIGA Plus está indisponível. Esta página apresenta os conteúdos de demonstração incluídos no website; confirme as informações no sistema académico.';notice.append(p);document.querySelector('main')?.prepend(notice);

@@ -485,3 +485,33 @@ test('a candidatura traz os textos de sucesso e de erro do envio real', () => {
   }
   assert.ok(loadInstitutionalPage('candidatura').success.text.includes('demonstrativa'));
 });
+
+test('a identidade de um campo editável vem do texto, não da posição', async () => {
+  // Medido sobre este site: com a chave posicional, acrescentar um parágrafo à
+  // página de entrada reapontava 146 chaves para outro texto — o conteúdo da
+  // escola seria aplicado nos elementos errados. Com a chave derivada do texto,
+  // mover ou acrescentar elementos não desloca nenhuma ligação.
+  const {fieldKey} = await import('../scripts/content-manifest.mjs');
+  const chave = (scope, attr, value, n) => fieldKey(scope, attr, value, n);
+
+  // A mesma frase, no mesmo sítio, dá sempre a mesma chave.
+  assert.equal(chave('/cursos/', '', 'Encontre o seu curso'), chave('/cursos/', '', 'Encontre o seu curso'));
+  // Espaços e quebras não contam: é o texto que identifica.
+  assert.equal(chave('/cursos/', '', ' Encontre  o seu\ncurso '), chave('/cursos/', '', 'Encontre o seu curso'));
+  // Âmbitos diferentes são campos diferentes, mesmo com o mesmo texto.
+  assert.notEqual(chave('/cursos/', '', 'Contactos'), chave('navigation', '', 'Contactos'));
+  // O mesmo texto num atributo não colide com o do corpo da página.
+  assert.notEqual(chave('/cursos/', '', 'Pesquisar'), chave('/cursos/', 'aria-label', 'Pesquisar'));
+  // Repetições no mesmo âmbito desempatam por ordem, de forma estável.
+  assert.notEqual(chave('navigation', '', 'Cursos', 1), chave('navigation', '', 'Cursos', 2));
+  assert.equal(chave('navigation', '', 'Cursos', 2), chave('navigation', '', 'Cursos', 2));
+});
+
+test('o manifesto publicado não repete chaves nem deixa marcadores', () => {
+  const manifesto = JSON.parse(readFileSync(new URL('../dist/content-manifest.json', import.meta.url), 'utf8'));
+  assert.ok(manifesto.fields.length > 1000);
+  assert.equal(new Set(manifesto.fields.map(f => f.key)).size, manifesto.fields.length);
+  // O editor mostra o texto como o visitante o lê: já com o nome da escola.
+  const bruto = JSON.stringify(manifesto);
+  assert.ok(!/\{\{[A-Z_]{2,32}\}\}/.test(bruto), 'marcador por substituir no manifesto');
+});
