@@ -107,6 +107,24 @@ bunx playwright test tests/e2e/school-site-visual.spec.ts
 
 A suite valida seis larguras de ecrã (320, 390, 768, 1024, 1440, 1920), navegação para o Portal Escolar, estrutura institucional, scroll horizontal, ausência de rascunhos e movimento reduzido. **Não demonstra pixel-parity com ISPAB** nem substitui ensaios com DNS/TLS, sessão real do administrador ou sandbox de publicação.
 
+### Comparação ISPAB × SIGA em Chrome (21-10-2026)
+
+O workflow `.github/workflows/school-site-visual.yml` reconstruiu a
+**referência original**, sem modificar os seus ficheiros, e executou
+`tests/e2e/school-site-visual.spec.ts` com
+`tests/e2e/school-site-reference-parity.spec.ts` numa aplicação local
+com dados fictícios. **11/11 testes passaram** (GitHub Actions
+`39546647842`): seis larguras para o SIGA, acessibilidade básica,
+estado não publicado, movimento reduzido e dois ensaios lado a lado
+a 390 e 1440 px. O workflow guarda quatro capturas no artefacto
+`school-sites-ispab-comparacao-visual` durante sete dias.
+
+Foram comparadas fontes DM Sans/Manrope, presença de cabeçalho e hero,
+altura do cabeçalho em desktop, proporção da grelha e ausência de scroll
+horizontal. **Isto não comprova identidade de píxeis** nem dispensa a
+revisão humana do menu aberto, das 60 páginas ISPAB, do conteúdo
+verdadeiro, da sessão autenticada e dos domínios públicos.
+
 ## 6. Rollout
 
 - Nunca executar `supabase db push` ou migrações `drizzle/` na base SGA.
