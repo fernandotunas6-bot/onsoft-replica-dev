@@ -26,7 +26,14 @@ export type SchoolSite = {
 };
 export function schoolSiteRequest(url: URL) {
   const host = url.hostname.toLowerCase().replace(/\.$/, "");
+  let configuredHost = "";
+  try {
+    configuredHost = new URL(getSigaLoginUrl()).hostname;
+  } catch {
+    /* Invalid deployment config grants no extra host. */
+  }
   const centralHosts = [
+    configuredHost,
     getPlatformDomain(),
     `app.${getPlatformDomain()}`,
     LEGACY_PLATFORM_DOMAIN,
