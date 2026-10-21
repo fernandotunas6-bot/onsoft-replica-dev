@@ -13,12 +13,19 @@ escrito — há uma PR nova (#188) e um ramo empurrado sem PR, ambos de hoje.
 > documento; as secções acima ficam como foram escritas, para se poder ver o que
 > caducou e com que rapidez.
 
-> **Quarta actualização, 20:05 de 20/10.** A base passou a `7cc34b15` (#197) e
+> **Quarta actualização, 19:36 de 20/10.** A base passou a `7cc34b15` (#197) e
 > há três correcções ao retrato das 19:30: a #108 **não** está verde (o lint
 > falha por 11 erros de Prettier num commit nosso), o Codex **passou a deixar
 > rodapé** (`Co-Authored-By: Codex <codex@openai.com>`, primeiro caso na #196) e
 > não resta nenhum ramo do Codex sem PR. Ver
-> [«Quarta actualização»](#quarta-actualização-2005-de-2010) no fim.
+> [«Quarta actualização»](#quarta-actualização-1936-de-2010) no fim.
+
+> **Quinta actualização, 19:50 de 20/10.** Base em `12b98882`. Corrige duas
+> afirmações da quarta — o carimbo das horas (era 19:36, e os «18:05» do retrato
+> das 19:30 eram UTC) e a autoria dos erros de lint (8 dos 11 nossos, 3 do
+> próprio ramo da #108, de 08/10) — e registra que **este inventário fundiu**
+> às 19:40, com #107, #113, #117 e #198. Ver
+> [«Quinta actualização»](#quinta-actualização-1950-de-2010).
 
 ## Como foi identificado
 
@@ -237,7 +244,7 @@ está velho.
 6. `App_Edu` — 962 ficheiros por commitar. É o que resta fora do controlo de
    versões, agora que o SIGA_EDU saiu da lista.
 
-## Quarta actualização, 20:05 de 20/10
+## Quarta actualização, 19:36 de 20/10
 
 Base `origin/main` em `7cc34b15` — mudou outra vez, meia hora depois do retrato
 anterior: a #197 (publicação do website ISPAB por Direct Upload) entrou às
@@ -286,7 +293,7 @@ sem PR nenhuma, nenhum é do Codex: 7 são do Claude (`ccr-*`, `claude/*`,
 `audit/timetable-enrollment-2026-10-10`), mais a `main` e a `report` do
 `gpt-engineer-app[bot]`, de 10/08.
 
-### Estado das PRs do inventário, às 20:05
+### Estado das PRs do inventário, às 19:36
 
 | PR | GitHub diz | Observação |
 |---|---|---|
@@ -308,5 +315,65 @@ inventário.
 2. **#113, #117, #107**: verdes e limpas. Falta fundir — nada técnico as segura.
 3. **#30** (modelos de e-mail): continua o maior bloco ausente por inteiro.
 4. **#35**: fechar e levantar da `main`.
-5. **`App_Edu`**: 962 ficheiros por commitar, confirmado às 20:0x. Último commit
+5. **`App_Edu`**: 962 ficheiros por commitar, confirmado às 19:3x. Último commit
    do repositório: `5ee9cdf1`.
+
+## Quinta actualização, 19:50 de 20/10
+
+Base `origin/main` em `12b98882`. Catorze minutos depois do retrato anterior, e
+já há três coisas a corrigir — duas delas *neste* documento.
+
+### Correcção: o carimbo das horas
+
+A quarta actualização foi escrita às **19:36**, não às 20:05. O fuso aqui é WAT
+(UTC+1) e a hora foi lida do relógio errado. Pela mesma razão, o retrato das
+19:30 diz que sete PRs «fundiram entre as 18:05 e as 18:17» — eram **19:05 e
+19:17** locais; 18:05 é o que o GitHub devolve, em UTC. Os carimbos acima foram
+corrigidos; a confusão fica registada porque é a segunda vez que uma afirmação
+deste documento cai por medição, não por mudança do mundo.
+
+### Correcção: os 11 erros de lint não eram todos nossos
+
+A quarta actualização diz «a culpa é nossa». É dois terços verdade. Dos 11
+erros de `prettier/prettier` do portão:
+
+| Erros | Ficheiro | Commit |
+|---|---|---|
+| 8 | `tests/integrations/bigbluebutton-service.test.ts` | `6cb9e741`, nosso, das 19:32 |
+| 3 | `scripts/worker-secrets.mjs` | `0ba4602b`, do ramo, de 08/10 |
+
+Os 3 são quatro entradas `BBB_*` no catálogo `NOT_WORKER_SECRETS` com linhas
+acima dos 100 caracteres do `printWidth`. Quer dizer que **o portão da #108 já
+estava vermelho antes do nosso commit** — o retrato das 19:30, que anunciou
+«116/116 verdes», não mediu o portão em momento nenhum. Na `main` o mesmo
+ficheiro está limpo (`prettier` e `eslint` verificados em `12b98882`): o defeito
+é do ramo.
+
+Ambos corrigidos e empurrados: `a0eb4e18` (fixture) e `316a7b05` (catálogo).
+Só formatação, e com `eslint .` no ramo inteiro a dar **0 erros, 47 avisos**.
+
+### Cinco PRs fundiram enquanto isto se escrevia
+
+Entre as **19:40 e as 19:41** locais entraram, por esta ordem: #107 (plano
+BigBlueButton), **#190 — este inventário**, #113 (ICS), #117 (ciclo React) e
+#198 (cache dos recursos públicos). A base saltou de `7cc34b15` para
+`12b98882` e as PRs abertas passaram de 29 para 24.
+
+Com isso fecham-se os itens 2 e 3 do roteiro das 19:36 — as três PRs «verdes e
+limpas, nada técnico as segura» foram fundidas oito minutos depois de a frase
+ser escrita. E há uma consequência prática: **o inventário está na `main`**, por
+isso daqui para a frente cada actualização precisa de ramo e PR próprios.
+
+### Ainda por fazer — revisto outra vez
+
+1. **#108**: às 20:03 o portão passou — `MERGEABLE / CLEAN`, com «Estilo,
+   acessibilidade e build» verde em 4m14s e os E2E e Lighthouse `skipping`,
+   como é normal numa PR. O ramo está 85 commits à frente da `main` e 6 atrás.
+   Não falta nada técnico: falta **decidir** se a integração BigBlueButton entra,
+   e fechar a árvore de rotas (`routeTree.gen.ts` e `navigation-catalog.ts`
+   continuam sem `aulas-virtuais`).
+2. **#30** (modelos de e-mail): continua o maior bloco ausente por inteiro, e
+   agora é o item mais antigo da lista.
+3. **#35**: `CONFLICTING / DIRTY`. Fechar e levantar da `main`.
+4. **`App_Edu`**: 962 ficheiros por commitar. O único trabalho que resta fora do
+   controlo de versões.
