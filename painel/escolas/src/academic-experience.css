@@ -1,9 +1,11 @@
 /* Academic interactions extend the approved blue/purple design and original photos. */
 .brand-wordmark-art{display:none}
 @supports (mask-image:url("")) or (-webkit-mask-image:url("")){
-  .brand.ispab-wordmark>svg{display:none}
+  .brand.ispab-wordmark{gap:4px}
+  .brand.ispab-wordmark>svg{display:block;flex:none;width:26px;height:26px}
   .brand.ispab-wordmark>span:not(.brand-wordmark-art){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
-  .brand.ispab-wordmark .brand-wordmark-art{display:block;flex:none;width:146px;height:38px;background:linear-gradient(115deg,#1558ee 15%,#6243c2 100%);-webkit-mask-image:var(--institution-wordmark);mask-image:var(--institution-wordmark);-webkit-mask-size:100% auto;mask-size:100% auto;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+  .brand.ispab-wordmark .brand-wordmark-art{display:block;flex:none;width:116px;height:30px;background:linear-gradient(115deg,#1558ee 15%,#6243c2 100%);-webkit-mask-image:var(--institution-wordmark);mask-image:var(--institution-wordmark);-webkit-mask-size:100% auto;mask-size:100% auto;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+  .site-footer .brand.ispab-wordmark>svg{color:#f5f7ff}
   .site-footer .brand.ispab-wordmark .brand-wordmark-art{background:#f5f7ff}
 }
 .discovery-field{position:relative}

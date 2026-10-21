@@ -37,7 +37,8 @@ mantêm-se compatíveis: nenhum campo editorial foi renumerado ou removido.
    discreto. O conteúdo fica legível sem animação. Preferências do sistema/site,
    foco por teclado, separador em segundo plano e desmontagem são respeitados.
 6. A marca ISPAB usa a imagem gerada como máscara, em azul/roxo no cabeçalho e clara
-   no rodapé. O texto editável e acessível permanece no documento. A marca anterior
+   no rodapé. O ícone académico original precede a imagem reduzida, sem aumentar
+   a largura do conjunto. O texto editável e acessível permanece no documento. A marca anterior
    fica disponível se a imagem falhar. Um logótipo carregado pela escola tem prioridade,
    e outras escolas não recebem a marca ISPAB.
 
