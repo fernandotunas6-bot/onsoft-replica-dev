@@ -1,35 +1,57 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-const mocks = vi.hoisted(() => ({ load: vi.fn(), change: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  load: vi.fn(),
+  change: vi.fn(),
+  navigate: vi.fn(),
+  schoolId: "school-a",
+}));
+vi.mock("@/lib/settings-deep-link", () => ({ openSettingsPanel: mocks.navigate }));
 vi.mock("@/features/auth/use-school-settings", () => ({
-  useSchoolSettings: () => ({ school: { id: "school-a" } }),
+  useSchoolSettings: () => ({ school: { id: mocks.schoolId } }),
 }));
 vi.mock("@/features/school-website/content-server", () => ({
   getSchoolWebsiteEditor: mocks.load,
   changeSchoolWebsite: mocks.change,
 }));
 import { WebsiteSettingsPanel } from "@/features/school-website/WebsiteSettingsPanel";
-import { readWebsiteState, websiteTemplate } from "@/features/school-website/content-model";
-const mount = () =>
-  render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
-      <WebsiteSettingsPanel />
-    </QueryClientProvider>,
-  );
+import {
+  changeWebsiteState,
+  readWebsiteState,
+  websiteTemplate,
+} from "@/features/school-website/content-model";
+const mount = () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    client,
+    ...render(
+      <QueryClientProvider client={client}>
+        <WebsiteSettingsPanel />
+      </QueryClientProvider>,
+    ),
+  };
+};
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.schoolId = "school-a";
   mocks.load.mockResolvedValue({
     school: { name: "ISPAB", public_code: "ISPAB" },
     state: readWebsiteState(null),
     programs: [{ id: "11111111-1111-4111-8111-111111111111", name: "Engenharia oficial" }],
+    campaigns: [{ slug: "admissao", title: "Admissão", is_open: true }],
+    links: {
+      websiteUrl: "https://school.example",
+      fallbackUrl: "https://platform.example/escolas/school",
+    },
   });
   mocks.change.mockResolvedValue({ ...readWebsiteState(null), revision: 1 });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 describe("editor no portal do administrador", () => {
   it("apresenta campos editáveis por secção e guarda rascunhos sem publicar", async () => {
     mount();
@@ -70,5 +92,130 @@ describe("editor no portal do administrador", () => {
     mount();
     expect((await screen.findByRole("alert")).textContent).toMatch(/Sem permissão/);
     expect(screen.queryByLabelText("Domínio para hospedagem externa (opcional)")).toBeNull();
+  });
+  it.each(["Administrar blog", "Gerir domínio próprio"])(
+    "protege alterações antes de %s",
+    async (button) => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      mount();
+      const input = await screen.findByLabelText("Domínio para hospedagem externa (opcional)");
+      fireEvent.change(input, { target: { value: "https://school.example" } });
+      fireEvent.click(screen.getByRole("button", { name: button }));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(mocks.navigate).not.toHaveBeenCalled();
+      expect((input as HTMLInputElement).value).toBe("https://school.example");
+      confirm.mockReturnValue(true);
+      fireEvent.click(screen.getByRole("button", { name: button }));
+      expect(mocks.navigate).toHaveBeenCalledTimes(1);
+    },
+  );
+  it("conserva o rascunho durante uma falha de actualização e permite retentar", async () => {
+    const { client } = mount();
+    fireEvent.change(await screen.findByLabelText("Domínio para hospedagem externa (opcional)"), {
+      target: { value: "https://school.example" },
+    });
+    mocks.load.mockRejectedValueOnce(Error("Ligação interrompida"));
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ["school-website"] });
+    });
+    expect((await screen.findByRole("alert")).textContent).toContain("Ligação interrompida");
+    expect(
+      (screen.getByLabelText("Domínio para hospedagem externa (opcional)") as HTMLInputElement)
+        .value,
+    ).toBe("https://school.example");
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(
+      (screen.getByLabelText("Domínio para hospedagem externa (opcional)") as HTMLInputElement)
+        .value,
+    ).toBe("https://school.example");
+  });
+  it.each([
+    "Domínio para hospedagem externa (opcional)",
+    "Candidaturas oficiais",
+    "Sincronizar com um curso do SIGA",
+  ])("limpa a confirmação de gravação ao editar %s", async (label) => {
+    mount();
+    await screen.findByLabelText("Página ou conteúdo");
+    fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+    await screen.findByText(/Rascunho guardado. O site mantém/);
+    if (label.startsWith("Sincronizar"))
+      fireEvent.change(screen.getByLabelText("Página ou conteúdo"), {
+        target: { value: "Cursos · Engenharia Informática" },
+      });
+    fireEvent.change(screen.getByLabelText(label), {
+      target: {
+        value: label.startsWith("Sincronizar")
+          ? "11111111-1111-4111-8111-111111111111"
+          : label === "Candidaturas oficiais"
+            ? "admissao"
+            : "https://school.example",
+      },
+    });
+    expect(screen.queryByText(/Rascunho guardado. O site mantém/)).toBeNull();
+    expect(screen.getByText(/Tem alterações por guardar/)).toBeTruthy();
+  });
+  it("mantém alterações locais ao retirar a publicação e usa a nova revisão ao guardar", async () => {
+    const published = changeWebsiteState(readWebsiteState(null), {
+      expectedRevision: 0,
+      action: "publish",
+      draft: { ...readWebsiteState(null).draft, websiteUrl: "https://published.example" },
+    });
+    mocks.load.mockResolvedValue({
+      school: { name: "ISPAB", public_code: "ISPAB" },
+      state: published,
+      programs: [],
+    });
+    let persisted = published;
+    mocks.change.mockImplementation(async ({ data }) => {
+      persisted = changeWebsiteState(persisted, data);
+      return persisted;
+    });
+    mount();
+    fireEvent.change(await screen.findByLabelText("Domínio para hospedagem externa (opcional)"), {
+      target: { value: "https://school.example" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Retirar publicação da API" }));
+    await screen.findByText(/Publicação retirada/);
+    expect(
+      (screen.getByLabelText("Domínio para hospedagem externa (opcional)") as HTMLInputElement)
+        .value,
+    ).toBe("https://school.example");
+    fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+    await waitFor(() => expect(mocks.change).toHaveBeenCalledTimes(2));
+    expect(mocks.change.mock.calls[1][0].data).toMatchObject({
+      expectedRevision: 2,
+      draft: { websiteUrl: "https://school.example" },
+    });
+    await screen.findByText(/Rascunho guardado. O site mantém/);
+    expect(persisted.draft.websiteUrl).toBe("https://school.example");
+  });
+  it("navega sem confirmação quando não há alterações e limpa o aviso após mudar de escola", async () => {
+    const confirm = vi.spyOn(window, "confirm");
+    const view = mount();
+    const input = await screen.findByLabelText("Domínio para hospedagem externa (opcional)");
+    fireEvent.click(screen.getByRole("button", { name: "Administrar blog" }));
+    expect(mocks.navigate).toHaveBeenCalledWith("website.blog");
+    expect(confirm).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: "https://school-a.example" } });
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    mocks.schoolId = "school-b";
+    view.rerender(
+      <QueryClientProvider client={view.client}>
+        <WebsiteSettingsPanel />
+      </QueryClientProvider>,
+    );
+    expect(
+      (
+        (await screen.findByLabelText(
+          "Domínio para hospedagem externa (opcional)",
+        )) as HTMLInputElement
+      ).value,
+    ).toBe("");
+    const nextEvent = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(nextEvent);
+    expect(nextEvent.defaultPrevented).toBe(false);
   });
 });

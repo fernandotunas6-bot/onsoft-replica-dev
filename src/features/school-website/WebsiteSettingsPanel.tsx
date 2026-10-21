@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MediaFrame } from "@/components/ui/media-frame";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { actionIcons } from "@/lib/app-icons";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { changeSchoolWebsite, getSchoolWebsiteEditor } from "./content-server";
+import { useDraftUnloadWarning } from "./use-draft-unload-warning";
 import {
   safePublicUrl,
   websiteTemplate,
@@ -54,14 +56,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
     }
   }, [query.data, state]);
   const dirty = Boolean(state && draft && JSON.stringify(state.draft) !== JSON.stringify(draft));
-  useEffect(() => {
-    if (!dirty) return;
-    const prevent = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    window.addEventListener("beforeunload", prevent);
-    return () => window.removeEventListener("beforeunload", prevent);
-  }, [dirty]);
+  useDraftUnloadWarning(dirty);
   const groups = useMemo(
     () => [...new Set(websiteTemplate.fields.map((field) => field.group))],
     [],
@@ -85,6 +80,14 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       current ? { ...current, values: { ...current.values, [key]: value } } : current,
     );
   };
+  const changeDraft = (next: WebsiteDraft) => {
+    setMessage("");
+    setError("");
+    setDraft(next);
+  };
+  const navigate = (panel: string) => {
+    if (!busy && confirmDiscardChanges(dirty)) openSettingsPanel(panel);
+  };
   async function act(action: "save" | "publish" | "restore" | "unpublish") {
     if (!state || !draft) return;
     setBusy(true);
@@ -99,7 +102,8 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
         },
       });
       setState(next);
-      setDraft(next.draft);
+      // Withdrawing a publication must not overwrite a local, unsaved draft.
+      if (action !== "unpublish") setDraft(next.draft);
       setMessage(
         {
           save: "Rascunho guardado. O site mantém a versão publicada.",
@@ -142,15 +146,15 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       setError("Não foi possível copiar. Utilize o endereço da API indicado abaixo.");
     }
   }
-  if (query.isError)
-    return (
-      <div role="alert" className="space-y-3">
-        <p>{query.error.message}</p>
-        <Button variant="outline" onClick={() => query.refetch()}>
-          Tentar novamente
-        </Button>
-      </div>
-    );
+  const loadError = query.isError ? (
+    <div role="alert" className="space-y-3">
+      <p>{query.error.message}</p>
+      <Button variant="outline" onClick={() => query.refetch()}>
+        Tentar novamente
+      </Button>
+    </div>
+  ) : null;
+  if (loadError && (!state || !draft)) return loadError;
   if (!draft || !state)
     return (
       <p role="status" className="text-sm text-muted-foreground">
@@ -198,10 +202,20 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
             {query.data.links.fallbackUrl}
           </a>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => openSettingsPanel("identidade")}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => navigate("identidade")}
+            >
               Gerir domínio próprio
             </Button>
-            <Button variant="outline" size="sm" onClick={() => openSettingsPanel("website.blog")}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => navigate("website.blog")}
+            >
               Administrar blog
             </Button>
           </div>
@@ -211,6 +225,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           </p>
         </div>
       )}
+      {loadError}
       {message && (
         <p role="status" className="rounded-lg border p-3 text-sm">
           {message}
@@ -238,7 +253,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           placeholder="https://www.instituicao.ao"
           value={draft.websiteUrl}
           disabled={busy}
-          onChange={(e) => setDraft({ ...draft, websiteUrl: e.target.value })}
+          onChange={(e) => changeDraft({ ...draft, websiteUrl: e.target.value })}
         />
         <p className="text-xs text-muted-foreground">
           Os domínios verificados da escola funcionam automaticamente. Preencha este campo apenas se
@@ -272,7 +287,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
           value={draft.campaignSlug}
           disabled={busy}
-          onChange={(e) => setDraft({ ...draft, campaignSlug: e.target.value })}
+          onChange={(e) => changeDraft({ ...draft, campaignSlug: e.target.value })}
         >
           <option value="">Manter candidatura demonstrativa</option>
           {(query.data?.campaigns ?? []).map((campaign) => (
@@ -348,7 +363,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
                       const programBindings = { ...draft.programBindings };
                       if (e.target.value) programBindings[field.key] = e.target.value;
                       else delete programBindings[field.key];
-                      setDraft({ ...draft, programBindings });
+                      changeDraft({ ...draft, programBindings });
                     }}
                   >
                     <option value="">Gerir o nome no website</option>
@@ -406,7 +421,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
                   onClick={() => {
                     const values = { ...draft.values };
                     delete values[field.key];
-                    setDraft({ ...draft, values });
+                    changeDraft({ ...draft, values });
                   }}
                 >
                   Repor conteúdo inicial

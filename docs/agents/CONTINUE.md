@@ -4,6 +4,17 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Refinamento dos editores escolares (2026-10-21)
+
+Website e blog mantêm o visual. Os atalhos do website para domínio/blog e os
+botões Novo artigo/Voltar à lista protegem rascunhos por guardar. Fecho/reload
+tem aviso nativo apenas enquanto há alterações, com limpeza ao desmontar ou
+mudar de escola. Falhas de actualização não escondem os formulários já abertos.
+Retirar publicação/arquivar/restaurar um artigo conserva as edições locais e
+usa a revisão devolvida pelo servidor na próxima gravação. Sem alteração de
+API, autorização ou base de dados. Regressões em `tests/school-website/*ui.test.tsx`;
+contrato e limites em [SCHOOL_WEBSITE_CONTENT.md](../architecture/SCHOOL_WEBSITE_CONTENT.md).
+
 ## Performance — cache dos recursos públicos (2026-10-20)
 
 Política do vídeo, fontes, ícones e marcas em `nitro.routeRules` (`vite.config.ts`):
