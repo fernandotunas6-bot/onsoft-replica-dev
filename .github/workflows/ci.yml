@@ -73,6 +73,21 @@ jobs:
       - name: Instalar dependências
         run: bun install --frozen-lockfile
 
+      # Contrato de fidelidade visual: os websites escolares novos usam o
+      # modelo ISPAB como referência, mas NUNCA alteram o site original.
+      - name: Preservar website escola ISPAB original
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'feat/school-sites-')
+        env:
+          TARGET_BASE: ${{ github.base_ref }}
+        run: |
+          changed="$(git diff --name-only "origin/${TARGET_BASE}...HEAD" -- painel/escolas/)"
+          if [ -n "$changed" ]; then
+            echo "::error::O website ISPAB original foi modificado por uma PR school-sites."
+            echo "$changed"
+            exit 1
+          fi
+          echo "Website ISPAB preservado: nenhum ficheiro em painel/escolas foi alterado."
+
       - name: Checklist de estilo (IconChip / MediaFrame / paleta)
         env:
           STYLE_CHECK_CHANGED_FROM: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}

@@ -1,0 +1,34 @@
+name: School Sites — segurança RLS isolada
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261020213000_school_website_draft_read_guard.sql"
+      - "tests/sql/school-website-draft-read-guard.mjs"
+      - ".github/workflows/school-sites-rls.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: school-sites-rls-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rls:
+    name: PostgreSQL isolado — rascunhos, versões e escolas
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Instalar PGlite isoladamente
+        run: npm install --no-save --silent --prefix "$RUNNER_TEMP/pglite" @electric-sql/pglite@0.3.14
+      - name: Aplicar duas vezes a migração e validar RLS em 5 perfis
+        run: node tests/sql/school-website-draft-read-guard.mjs
+        env:
+          SIGA_SQL_TEST_MODULE_PATH: ${{ runner.temp }}/pglite/node_modules/@electric-sql/pglite/dist/index.js

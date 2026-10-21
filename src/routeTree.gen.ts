@@ -28,6 +28,7 @@ import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
+import { Route as SiteRouteImport } from './routes/site'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
 import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -50,6 +51,7 @@ import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configurac
 import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
+import { Route as ConfiguracoesSiteRouteImport } from './routes/configuracoes_.site'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
@@ -70,6 +72,7 @@ import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
+import { Route as ApiPublicSchoolSiteRouteImport } from './routes/api/public/school-site'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
@@ -226,6 +229,11 @@ const SaasAdminRoute = SaasAdminRouteImport.update({
   path: '/saas-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SiteRoute = SiteRouteImport.update({
+  id: '/site',
+  path: '/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TesourariaRoute = TesourariaRouteImport.update({
   id: '/tesouraria',
   path: '/tesouraria',
@@ -338,6 +346,11 @@ const ConfiguracoesInicioRoute = ConfiguracoesInicioRouteImport.update({
   path: '/configuracoes/inicio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfiguracoesSiteRoute = ConfiguracoesSiteRouteImport.update({
+  id: '/configuracoes_/site',
+  path: '/configuracoes/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -438,6 +451,11 @@ const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
 const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
   id: '/api/cron/saas-lifecycle',
   path: '/api/cron/saas-lifecycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSchoolSiteRoute = ApiPublicSchoolSiteRouteImport.update({
+  id: '/api/public/school-site',
+  path: '/api/public/school-site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
@@ -783,6 +801,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/site': typeof SiteRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -804,6 +823,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
+  '/configuracoes/site': typeof ConfiguracoesSiteRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -825,6 +845,7 @@ export interface FileRoutesByFullPath {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/public/school-site': typeof ApiPublicSchoolSiteRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -906,6 +927,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/site': typeof SiteRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -927,6 +949,7 @@ export interface FileRoutesByTo {
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
+  '/configuracoes/site': typeof ConfiguracoesSiteRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -948,6 +971,7 @@ export interface FileRoutesByTo {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/public/school-site': typeof ApiPublicSchoolSiteRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1030,6 +1054,7 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
   '/saas-admin': typeof SaasAdminRoute
+  '/site': typeof SiteRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1051,6 +1076,7 @@ export interface FileRoutesById {
   '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
+  '/configuracoes_/site': typeof ConfiguracoesSiteRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -1072,6 +1098,7 @@ export interface FileRoutesById {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/public/school-site': typeof ApiPublicSchoolSiteRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1155,6 +1182,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
+    | '/site'
     | '/tesouraria'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
@@ -1176,6 +1204,7 @@ export interface FileRouteTypes {
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
+    | '/configuracoes/site'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1197,6 +1226,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/public/school-site'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1278,6 +1308,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
+    | '/site'
     | '/tesouraria'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
@@ -1299,6 +1330,7 @@ export interface FileRouteTypes {
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
+    | '/configuracoes/site'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1320,6 +1352,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/public/school-site'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1401,6 +1434,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/planos-aula'
     | '/saas-admin'
+    | '/site'
     | '/tesouraria'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
@@ -1422,6 +1456,7 @@ export interface FileRouteTypes {
     | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
+    | '/configuracoes_/site'
     | '/convite/$token'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1443,6 +1478,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/public/school-site'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1525,6 +1561,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
   SaasAdminRoute: typeof SaasAdminRoute
+  SiteRoute: typeof SiteRoute
   TesourariaRoute: typeof TesourariaRoute
   VerificarRoute: typeof VerificarRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1536,6 +1573,7 @@ export interface RootRouteChildren {
   ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
+  ConfiguracoesSiteRoute: typeof ConfiguracoesSiteRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   PedagogicaCatalogoRoute: typeof PedagogicaCatalogoRoute
@@ -1554,6 +1592,7 @@ export interface RootRouteChildren {
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
+  ApiPublicSchoolSiteRoute: typeof ApiPublicSchoolSiteRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
@@ -1726,6 +1765,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SaasAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/site': {
+      id: '/site'
+      path: '/site'
+      fullPath: '/site'
+      preLoaderRoute: typeof SiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tesouraria': {
       id: '/tesouraria'
       path: '/tesouraria'
@@ -1880,6 +1926,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesInicioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes_/site': {
+      id: '/configuracoes_/site'
+      path: '/configuracoes/site'
+      fullPath: '/configuracoes/site'
+      preLoaderRoute: typeof ConfiguracoesSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/convite/$token': {
       id: '/convite/$token'
       path: '/convite/$token'
@@ -2018,6 +2071,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/saas-lifecycle'
       fullPath: '/api/cron/saas-lifecycle'
       preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/school-site': {
+      id: '/api/public/school-site'
+      path: '/api/public/school-site'
+      fullPath: '/api/public/school-site'
+      preLoaderRoute: typeof ApiPublicSchoolSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/audit-logs': {
@@ -2671,6 +2731,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
   SaasAdminRoute: SaasAdminRoute,
+  SiteRoute: SiteRoute,
   TesourariaRoute: TesourariaRoute,
   VerificarRoute: VerificarRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
@@ -2683,6 +2744,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
+  ConfiguracoesSiteRoute: ConfiguracoesSiteRoute,
   ConviteTokenRoute: ConviteTokenRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   PedagogicaCatalogoRoute: PedagogicaCatalogoRoute,
@@ -2701,6 +2763,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
+  ApiPublicSchoolSiteRoute: ApiPublicSchoolSiteRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,

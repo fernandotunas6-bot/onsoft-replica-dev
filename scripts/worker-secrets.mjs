@@ -54,6 +54,10 @@ export const OPTIONAL_WORKER_VARS = [
   "PLATFORM_DOMAIN",
   // Origens públicas autorizadas por campanha; configuração não sensível, sem wildcards.
   "SIGA_SCHOOL_WEBSITE_ORIGINS",
+  // Opt-in server-only. Nunca configurar como true antes de validar
+  // school_website_drafts_admin_read_guard (RLS) em staging e produção.
+  // Sem variável, os websites permanecem desligados por omissão.
+  "SCHOOL_SITES_ENABLED",
   "APPYPAY_ENV",
   "APPYPAY_CLIENT_ID",
   "APPYPAY_RESOURCE",

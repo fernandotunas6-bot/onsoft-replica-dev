@@ -68,6 +68,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // equipa da plataforma. A rota exige platform_admins + aal2; a lógica está em
   // src/features/saas/tenant-billing.ts, que recebe o cliente de quem chama.
   "src/routes/api/saas/tenants.billing.tsx",
+  // Websites públicos por hostname: um visitante anónimo não pode consultar
+  // tenant_domains/tenants via RLS. O servidor restringe ao hostname exacto,
+  // status activo, escola activa e APENAS o snapshot publicado/consentido.
+  // Nunca exporta linhas do banco, rascunhos ou service_role para o browser.
+  "src/features/school-site/public-server.ts",
   "src/features/school/admin-welcome.ts",
   // Ensino Superior: `program_subject_prerequisites` e `course_unit_enrollments`
   // não têm política nenhuma para `authenticated` (só o servidor lhes toca). Cada

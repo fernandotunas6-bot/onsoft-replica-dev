@@ -1,0 +1,627 @@
+/*
+ * SIGA School Sites — apresentação institucional inspirada no website
+ * escolar existente em painel/escolas (ISPAB).
+ *
+ * Todos os seletores estão limitados a .school-site:
+ * não afectam o AppShell, a autenticação nem as páginas administrativas.
+ * Não importa o CSS global/JS/conteúdo demonstrativo do ISPAB.
+ */
+.school-site {
+  --school-site-blue: #1558ee;
+  --school-site-accent: #1558ee;
+  --school-site-ink: #142c4d;
+  --school-site-text: #2b405c;
+  --school-site-muted: #536781;
+  --school-site-soft: #f6f8fd;
+  --school-site-line: #e0e7f1;
+  min-height: 100vh;
+  background: #fff;
+  color: var(--school-site-text);
+  font-family: "DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  isolation: isolate;
+}
+
+.school-site *,
+.school-site *::before,
+.school-site *::after {
+  box-sizing: border-box;
+}
+
+.school-site a {
+  color: inherit;
+  text-decoration: none;
+}
+.school-site a:focus-visible,
+.school-site summary:focus-visible {
+  outline: 3px solid var(--school-site-accent);
+  outline-offset: 4px;
+}
+.school-site h1,
+.school-site h2,
+.school-site h3 {
+  color: var(--school-site-ink);
+  font-family: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+}
+.school-site__container {
+  width: min(1240px, calc(100% - 96px));
+  margin-inline: auto;
+}
+.school-site__skip {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  z-index: 100;
+  border-radius: 8px;
+  padding: 12px 18px;
+  background: var(--school-site-ink);
+  color: #fff !important;
+}
+.school-site__skip:focus {
+  top: 12px;
+}
+.school-site__topline {
+  border-bottom: 1px solid #e6ecf6;
+  background: #f0f4fc;
+  color: #62728b;
+  font-size: 11px;
+}
+.school-site__top-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 36px;
+}
+.school-site__top-inner a:hover {
+  color: var(--school-site-accent);
+}
+.school-site__header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--school-site-line);
+  background: rgb(255 255 255 / 97%);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 4px 18px rgb(33 61 104 / 2%);
+}
+.school-site__header-inner {
+  display: flex;
+  min-height: 83px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+.school-site__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  max-width: 53%;
+  color: var(--school-site-ink) !important;
+  font-family: "Manrope", "Inter", sans-serif;
+  font-size: clamp(15px, 2vw, 24px);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.15;
+}
+.school-site__brand-name {
+  overflow-wrap: anywhere;
+}
+.school-site__brand-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #dce6f8;
+  border-radius: 10px;
+  background: #edf3ff;
+  color: var(--school-site-accent);
+}
+.school-site__nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(12px, 2vw, 32px);
+}
+.school-site__nav > a:not(.school-site__button) {
+  font-size: 13px;
+  font-weight: 550;
+  transition: color 160ms ease;
+}
+.school-site__nav > a:not(.school-site__button):hover {
+  color: var(--school-site-accent);
+}
+.school-site__button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  border: 1px solid var(--school-site-accent);
+  border-radius: 8px;
+  padding: 12px 20px;
+  background: var(--school-site-accent);
+  color: var(--school-site-accent-ink, #fff) !important;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  text-align: center;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.school-site__button:hover {
+  box-shadow: 0 7px 24px rgb(21 88 238 / 15%);
+  transform: translateY(-2px);
+}
+.school-site__text-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 16px;
+  color: var(--school-site-ink) !important;
+  font-size: 13px;
+  font-weight: 650;
+}
+.school-site__text-link:hover {
+  color: var(--school-site-accent) !important;
+}
+.school-site__menu {
+  display: none;
+}
+
+.school-site__hero {
+  display: grid;
+  min-height: 560px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 62px);
+  padding-block: 58px 65px;
+}
+.school-site__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #577094;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.school-site__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--school-site-accent);
+  box-shadow: 0 0 0 4px #1558ee12;
+}
+.school-site__headline {
+  margin: 22px 0 24px;
+  font-size: clamp(40px, 5.6vw, 76px);
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
+}
+.school-site__headline-accent {
+  position: relative;
+  color: var(--school-site-accent);
+}
+.school-site__headline-accent::after {
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  left: 0;
+  height: 8px;
+  border-top: 4px solid #bfd2fa;
+  border-radius: 50%;
+  content: "";
+  transform: rotate(-3deg);
+}
+.school-site__intro {
+  max-width: 480px;
+  margin: 0;
+  color: var(--school-site-muted);
+  font-size: clamp(15px, 1.5vw, 18px);
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.school-site__hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+}
+.school-site__hero-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+  color: var(--school-site-muted);
+  font-size: 12px;
+}
+.school-site__note-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #d7e3fa;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fff, #edf3ff);
+  color: var(--school-site-accent);
+  font-size: 20px;
+}
+.school-site__hero-visual {
+  position: relative;
+  height: clamp(330px, 35vw, 460px);
+  margin-right: 10px;
+}
+.school-site__paper-grid {
+  position: absolute;
+  inset: 0 0 4px 0;
+  border-radius: 95px 14px 95px 14px;
+  background-color: #edf3ff;
+  background-image:
+    linear-gradient(#d5e2f940 1px, transparent 1px),
+    linear-gradient(90deg, #d5e2f940 1px, transparent 1px);
+  background-size: 48px 48px;
+  box-shadow: inset 0 0 55px #d8e7ff60;
+  transform: rotate(5deg);
+}
+.school-site__photo {
+  position: absolute !important;
+  inset: 28px 25px 22px 23px;
+  width: auto !important;
+  height: auto !important;
+  overflow: hidden;
+  border-radius: 80px 12px 80px 12px !important;
+  box-shadow: 0 22px 50px #1b43631c;
+  aspect-ratio: auto !important;
+}
+.school-site__photo img {
+  width: 100%;
+  height: 100%;
+  object-position: 40% center;
+  filter: saturate(0.94) contrast(1.015);
+}
+.school-site__photo-fallback {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 76% 30%, #bed3fe 0 15%, transparent 15.5%),
+    linear-gradient(145deg, #e5eeff, #cfdfff);
+}
+.school-site__photo-fallback > span {
+  max-width: 90%;
+  color: #35598b;
+  font-size: clamp(28px, 4vw, 56px);
+  font-weight: 650;
+  letter-spacing: -0.05em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.school-site__photo-caption {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 58px 25px 25px;
+  background: linear-gradient(transparent, #152b3ab8);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.school-site__photo-fallback .school-site__photo-caption {
+  background: linear-gradient(transparent, #2446789e);
+}
+.school-site__photo-caption > span:last-child {
+  font-size: 24px;
+}
+.school-site__float {
+  position: absolute;
+  top: 0;
+  right: -13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e2e9f4;
+  border-radius: 10px;
+  padding: 12px 18px;
+  background: rgb(255 255 255 / 98%);
+  box-shadow: 0 10px 30px #1b3a6410;
+  color: var(--school-site-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  transform: rotate(3deg);
+}
+.school-site__float-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 7px;
+  background: #e1f2b5;
+  color: #345320;
+  font-size: 23px;
+}
+.school-site__badge {
+  position: absolute;
+  bottom: 0;
+  left: -20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e4eaf1;
+  border-radius: 8px;
+  padding: 12px 18px;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 6px 25px #11223e10;
+  font-size: 11px;
+  font-weight: 600;
+}
+.school-site__badge::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #668e59;
+  content: "";
+}
+.school-site__section {
+  padding-block: 78px;
+}
+.school-site__section-soft {
+  border-top: 1px solid var(--school-site-line);
+  background: var(--school-site-soft);
+}
+.school-site__section-head {
+  max-width: 720px;
+}
+.school-site__section-head h2 {
+  margin: 13px 0 18px;
+  font-size: clamp(29px, 3vw, 42px);
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+}
+.school-site__section-head p {
+  margin: 0;
+  color: var(--school-site-muted);
+  font-size: 15px;
+  line-height: 1.85;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.school-site__services {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px;
+  margin-top: 34px;
+}
+.school-site__service {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 184px;
+  border: 1px solid #dfe6ef;
+  border-radius: 12px;
+  padding: 25px;
+  background: linear-gradient(130deg, #ffffffaa, #edf3ff);
+  box-shadow: 0 3px 10px #173b5b02;
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+.school-site__service:hover {
+  border-color: #bfd1ed;
+  box-shadow: 0 12px 26px #203d6309;
+  transform: translateY(-3px);
+}
+.school-site__service h3 {
+  margin: 0;
+  font-size: 20px;
+}
+.school-site__service p {
+  margin: 0;
+  color: var(--school-site-muted);
+  font-size: 13px;
+}
+.school-site__service > span:last-child {
+  margin-top: auto;
+  color: var(--school-site-accent);
+  font-size: 13px;
+  font-weight: 650;
+}
+.school-site__contacts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+.school-site__contacts address {
+  display: grid;
+  gap: 12px;
+  color: var(--school-site-muted);
+  font-size: 14px;
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+.school-site__contacts address p {
+  margin: 0;
+}
+.school-site__footer {
+  border-top: 1px solid var(--school-site-line);
+  background: #fff;
+}
+.school-site__footer-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-block: 48px 40px;
+}
+.school-site__footer-main p {
+  max-width: 400px;
+  color: var(--school-site-muted);
+  font-size: 13px;
+}
+.school-site__footer-bottom {
+  border-top: 1px solid var(--school-site-line);
+  padding-block: 18px;
+  color: var(--school-site-muted);
+  font-size: 11px;
+}
+@media (min-width: 1500px) {
+  .school-site__container {
+    width: min(1320px, calc(100% - 96px));
+  }
+}
+@media (max-width: 1000px) {
+  .school-site__container {
+    width: min(100% - 60px, 1240px);
+  }
+  .school-site__hero {
+    gap: 28px;
+  }
+  .school-site__headline {
+    font-size: clamp(38px, 5.5vw, 60px);
+  }
+}
+@media (max-width: 760px) {
+  .school-site__container {
+    width: calc(100% - 40px);
+  }
+  .school-site__top-inner {
+    font-size: 10px;
+  }
+  .school-site__header-inner {
+    min-height: 72px;
+    gap: 12px;
+  }
+  .school-site__brand {
+    max-width: 62%;
+    font-size: 17px;
+  }
+  .school-site__brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+  .school-site__nav {
+    display: none;
+  }
+  .school-site__menu {
+    display: block;
+    position: relative;
+    margin-left: auto;
+  }
+  .school-site__menu > summary {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--school-site-line);
+    border-radius: 8px;
+    padding: 8px 14px;
+    list-style: none;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .school-site__menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .school-site__menu[open] > nav {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    display: flex;
+    min-width: 215px;
+    flex-direction: column;
+    gap: 3px;
+    border: 1px solid var(--school-site-line);
+    border-radius: 12px;
+    padding: 8px;
+    background: #fff;
+    box-shadow: 0 15px 40px #11223e1b;
+  }
+  .school-site__menu nav a {
+    padding: 12px;
+    font-size: 13px;
+  }
+  .school-site__hero {
+    min-height: 0;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding-block: 47px 62px;
+  }
+  .school-site__headline {
+    font-size: clamp(38px, 9vw, 55px);
+    letter-spacing: -0.052em;
+  }
+  .school-site__hero-visual {
+    height: 345px;
+    margin: 0 8px;
+  }
+  .school-site__float {
+    right: -10px;
+    padding: 9px 12px;
+  }
+  .school-site__badge {
+    bottom: -8px;
+    left: -11px;
+  }
+  .school-site__section {
+    padding-block: 58px;
+  }
+  .school-site__services,
+  .school-site__contacts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 370px) {
+  .school-site__container {
+    width: calc(100% - 30px);
+  }
+  .school-site__hero-visual {
+    height: 295px;
+  }
+  .school-site__photo {
+    inset: 22px 16px 15px;
+    border-radius: 54px 9px 54px 9px !important;
+  }
+  .school-site__float {
+    font-size: 10px;
+    gap: 7px;
+    padding: 8px 10px;
+  }
+  .school-site__float-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+  .school-site__badge {
+    max-width: 85%;
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .school-site *,
+  .school-site *::before,
+  .school-site *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
