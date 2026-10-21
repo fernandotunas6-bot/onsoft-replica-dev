@@ -66,6 +66,12 @@ execSync("npx vite build --mode production", {
 const wranglerPath = path.resolve(".output/server/wrangler.json");
 if (fs.existsSync(wranglerPath)) {
   const config = JSON.parse(fs.readFileSync(wranglerPath, "utf-8"));
+  // Nitro otherwise derives `tanstack-start-ts` from package.json, creating a
+  // different Worker instead of updating the one behind the platform domains.
+  config.name =
+    envVars["CLOUDFLARE_WORKER_NAME"] ||
+    process.env.CLOUDFLARE_WORKER_NAME ||
+    "fernandotunas6-bot-onsoft-replica-dev";
   config.vars = {
     ...config.vars,
     SUPABASE_URL,

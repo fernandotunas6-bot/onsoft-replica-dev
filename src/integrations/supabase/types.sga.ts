@@ -20,31 +20,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       academic_levels: {
@@ -12282,6 +12257,131 @@ export type Database = {
           },
         ]
       }
+      tenant_billing_profiles: {
+        Row: {
+          auto_suspend: boolean
+          billing_address: string | null
+          billing_contact_name: string | null
+          billing_email: string | null
+          billing_nif: string | null
+          billing_paused: boolean
+          billing_paused_at: string | null
+          billing_paused_by: string | null
+          billing_paused_reason: string | null
+          billing_paused_until: string | null
+          billing_period: string
+          billing_phone: string | null
+          created_at: string
+          currency_code: string
+          discount_pct: number
+          due_day: number
+          fixed_amount_aoa: number | null
+          grace_days: number
+          institution_type: string
+          invoice_by_email: boolean
+          min_billable_students: number
+          notes: string | null
+          payment_methods: string[]
+          payment_terms_days: number
+          price_per_student_aoa: number | null
+          pricing_model: string
+          public_official_code: string | null
+          public_requirements: Json
+          public_review_notes: string | null
+          public_review_status: string
+          public_reviewed_at: string | null
+          public_reviewed_by: string | null
+          public_supervising_body: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_suspend?: boolean
+          billing_address?: string | null
+          billing_contact_name?: string | null
+          billing_email?: string | null
+          billing_nif?: string | null
+          billing_paused?: boolean
+          billing_paused_at?: string | null
+          billing_paused_by?: string | null
+          billing_paused_reason?: string | null
+          billing_paused_until?: string | null
+          billing_period?: string
+          billing_phone?: string | null
+          created_at?: string
+          currency_code?: string
+          discount_pct?: number
+          due_day?: number
+          fixed_amount_aoa?: number | null
+          grace_days?: number
+          institution_type?: string
+          invoice_by_email?: boolean
+          min_billable_students?: number
+          notes?: string | null
+          payment_methods?: string[]
+          payment_terms_days?: number
+          price_per_student_aoa?: number | null
+          pricing_model?: string
+          public_official_code?: string | null
+          public_requirements?: Json
+          public_review_notes?: string | null
+          public_review_status?: string
+          public_reviewed_at?: string | null
+          public_reviewed_by?: string | null
+          public_supervising_body?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_suspend?: boolean
+          billing_address?: string | null
+          billing_contact_name?: string | null
+          billing_email?: string | null
+          billing_nif?: string | null
+          billing_paused?: boolean
+          billing_paused_at?: string | null
+          billing_paused_by?: string | null
+          billing_paused_reason?: string | null
+          billing_paused_until?: string | null
+          billing_period?: string
+          billing_phone?: string | null
+          created_at?: string
+          currency_code?: string
+          discount_pct?: number
+          due_day?: number
+          fixed_amount_aoa?: number | null
+          grace_days?: number
+          institution_type?: string
+          invoice_by_email?: boolean
+          min_billable_students?: number
+          notes?: string | null
+          payment_methods?: string[]
+          payment_terms_days?: number
+          price_per_student_aoa?: number | null
+          pricing_model?: string
+          public_official_code?: string | null
+          public_requirements?: Json
+          public_review_notes?: string | null
+          public_review_status?: string
+          public_reviewed_at?: string | null
+          public_reviewed_by?: string | null
+          public_supervising_body?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_billing_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_domains: {
         Row: {
           check_count: number
@@ -13852,6 +13952,7 @@ export type Database = {
         Returns: Json
       }
       school_logo_folder_ok: { Args: { p_folder: string }; Returns: boolean }
+      school_web_storage_ready: { Args: never; Returns: boolean }
       settle_gateway_payment_service: {
         Args: {
           amount: number
@@ -14188,9 +14289,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       communication_channel: ["email", "sms", "whatsapp"],

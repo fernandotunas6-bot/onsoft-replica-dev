@@ -187,7 +187,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     if (!activePlan || pathname === "/" || pathname.startsWith("/api/")) return;
     if (!planIncludesPath(pathname, activePlan)) {
       toast.error("Este módulo não está incluído no plano da sua escola.");
-      void router.navigate({ to: "/" });
+      void router.navigate({ to: "/portal" });
     }
   }, [pathname, activePlan, router]);
 
