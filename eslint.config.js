@@ -13,6 +13,8 @@ export default tseslint.config(
       "dist",
       ".output",
       ".vinxi",
+      // Copied build output of the independently checked school-site panel.
+      "public/_school-website/**",
       // Cada painel do ecossistema tem o seu próprio eslint.config e o seu
       // próprio script `lint` (ver painel/*/package.json). Lintá-los a partir
       // da raiz analisava ~490 ficheiros com um config que não é o deles
