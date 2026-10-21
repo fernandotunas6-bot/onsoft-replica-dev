@@ -22,6 +22,10 @@ jobs:
           # bun audit fix devolve 1 mesmo quando restam apenas advisories baixos.
           # A verificação crítica abaixo continua a falhar em HIGH/CRITICAL.
           bun audit fix || true
+          # Lovable fixa MCP 2.0.0 com duas falhas altas. Override transitivo
+          # restrito à versão corrigida, validado por audit + CI completo.
+          npm pkg set 'overrides.@modelcontextprotocol/server=^2.3.0'
+          bun install
           bun install --frozen-lockfile
           bun audit --audit-level=high
           git diff --exit-code -- painel/escolas/
