@@ -20,4 +20,5 @@ export function mountWebsiteLinks(){
   };
   update(document);
   new MutationObserver(changes=>{for(const change of changes)for(const node of change.addedNodes)if(node.nodeType===1)update(node)}).observe(document.body,{childList:true,subtree:true});
+  return ()=>update(document);
 }

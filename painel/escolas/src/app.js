@@ -3,52 +3,10 @@ import {courses,areas,events,articles,services,faqs} from './data.mjs';
 import {connectSchoolWebsite} from './site-content.mjs';
 import {siteAsset,siteHref,mountWebsiteLinks} from './site-urls.mjs';
 import {setupSchoolBlog} from './school-blog.mjs';
-const schoolRuntime=await connectSchoolWebsite({courses,areas,events,articles,services,faqs});
-import {iconRegex,iconHTML} from './icons.mjs';
-import {getCourseSpecs} from './course-specs.mjs';
-function iconify(root){if(!root)return;if(root.nodeType!==1||root.closest('svg,script,style,textarea,select,input'))return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:node=>node.parentElement?.closest('svg,script,style,textarea,select,input')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});const textNodes=[];while(walker.nextNode())textNodes.push(walker.currentNode);for(const node of textNodes){iconRegex.lastIndex=0;if(!iconRegex.test(node.textContent))continue;iconRegex.lastIndex=0;const parts=node.textContent.split(iconRegex);const symbols=node.textContent.match(iconRegex);const fragment=document.createDocumentFragment();parts.forEach((part,i)=>{if(part)fragment.append(document.createTextNode(part));if(symbols?.[i]){const template=document.createElement('template');template.innerHTML=iconHTML(symbols[i]);fragment.append(template.content)}});node.replaceWith(fragment)}}
-const iconObserver=new MutationObserver(changes=>{for(const change of changes){if(change.type==='characterData')iconify(change.target.parentElement);else for(const added of change.addedNodes){if(added.nodeType===1&&!added.matches('svg'))iconify(added);else if(added.nodeType===3)iconify(added.parentElement)}}});
-iconObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-await setupSchoolBlog(schoolRuntime,{esc});
-mountWebsiteLinks();
-const institution=schoolRuntime?.schoolName||'ISPAB';
-const normal=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const courseById=id=>courses.find(c=>c.id===id);
-const PREFIX=schoolRuntime?.storageId?'siga.school.'+encodeURIComponent(schoolRuntime.storageId)+'.demo.v1.':'ispab.demo.v1.';
-let toastTimer;
-function toast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4300)}
-function read(key,fallback){try{const raw=localStorage.getItem(PREFIX+key);return raw?JSON.parse(raw):fallback}catch{return fallback}}
-function save(key,value){try{localStorage.setItem(PREFIX+key,JSON.stringify(value));return true}catch{toast('Não foi possível guardar. Verifique o armazenamento do navegador.');return false}}
-function remove(key){try{localStorage.removeItem(PREFIX+key);return true}catch{toast('Não foi possível apagar os dados neste navegador.');return false}}
-function ids(key){const value=read(key,[]);return Array.isArray(value)?[...new Set(value.filter(v=>typeof v==='string'&&courseById(v)))].slice(0,key==='compare'?3:courses.length):[]}
-function records(){const value=read('applications',[]);return Array.isArray(value)?value.filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&typeof x.name==='string'&&courseById(x.course)&&typeof x.created==='string').slice(0,50):[]}
-function requests(){const value=read('requests',[]);return Array.isArray(value)?value.filter(x=>x&&typeof x.id==='string'&&typeof x.type==='string'&&typeof x.description==='string').slice(0,100):[]}
-function draft(){const d=read('draft',null);return d&&typeof d==='object'&&!Array.isArray(d)?d:null}
-function date(value){const d=new Date(value);return isNaN(d)?'Data não disponível':d.toLocaleDateString('pt-AO',{day:'2-digit',month:'long',year:'numeric'})}
-const dialog=$('#site-dialog');let dialogOpener=null,dialogRestoreFocus=null;
-function showDialog(html){if(!dialog.open){dialogOpener=document.activeElement;dialogRestoreFocus=null;}$('#dialog-content').innerHTML=html;const heading=$('#dialog-content h2');if(heading){if(!heading.id)heading.id='site-dialog-title';dialog.setAttribute('aria-labelledby',heading.id)}else dialog.removeAttribute('aria-labelledby');if(!dialog.open)dialog.showModal()}
-dialog?.addEventListener('close',()=>{const restore=dialogRestoreFocus;dialogRestoreFocus=null;dialogOpener=null;restore?.()});
-$('.dialog-close')?.addEventListener('click',()=>dialog.close());
-dialog?.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
-function confirmAction(title,text,action){showDialog(`<span class="eyebrow">CONTROLO DOS SEUS DADOS</span><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="text-button" data-cancel>Cancelar</button><button class="button" data-confirm>Confirmar <span>✓</span></button></div>`);$('[data-cancel]',dialog).addEventListener('click',()=>dialog.close());$('[data-confirm]',dialog).addEventListener('click',()=>{dialog.close();action()})}
-function download(name,text,type='text/plain;charset=utf-8'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function demoHeader(){return institution+' — DEMONSTRAÇÃO SEM VALIDADE ACADÉMICA\nDados ilustrativos. Este ficheiro não é um documento oficial.\nGerado em '+new Date().toLocaleString('pt-AO')+'\n\n'}
-// Personal preparation only: no applicant data, eligibility score or API submission.
-function preparationIds(){const value=read('preparation',[]);return Array.isArray(value)?[...new Set(value.filter(id=>preparationItems.some(item=>item.id===id)))]:[]}
-const preparationProgress=$('#preparation-progress');
-if(preparationProgress){
-  let completed=new Set(preparationIds());
-  function renderPreparation(){for(const input of $$('[data-preparation]'))input.checked=completed.has(input.dataset.preparation);preparationProgress.value=completed.size;$('#preparation-count').textContent=completed.size+' de '+preparationItems.length+' tarefas esclarecidas';}
-  for(const input of $$('[data-preparation]'))input.addEventListener('change',()=>{if(input.checked)completed.add(input.dataset.preparation);else completed.delete(input.dataset.preparation);save('preparation',[...completed]);renderPreparation()});
-  $('#preparation-reset').addEventListener('click',()=>confirmAction('Recomeçar a lista de preparação?','Só as marcações desta lista serão apagadas. Os restantes dados da demonstração serão mantidos.',()=>{if(remove('preparation')){completed.clear();renderPreparation();toast('Lista de preparação reiniciada.')}}));
-  $('#preparation-download').addEventListener('click',()=>{const text=demoHeader()+'A MINHA PREPARAÇÃO\nLista pessoal, sem validação de requisitos ou submissão institucional.\n\n'+preparationItems.map(item=>(completed.has(item.id)?'[x] ':'[ ] ')+item.title+'\n'+item.text+'\n').join('\n');download('ispab-lista-de-preparacao.txt',text)});
-  window.addEventListener('storage',event=>{if(event.key===null||event.key===PREFIX+'preparation'){completed=new Set(preparationIds());renderPreparation();}});
-  renderPreparation();
-}
-
-// Shared navigation.
+const dialog=$('#site-dialog');
+const refreshWebsiteLinks=mountWebsiteLinks();
+// Navigation must respond before awaiting school configuration, content or blog requests.
 const nav=$('#main-nav'),mobileToggle=$('.mobile-toggle'),navigationMedia=matchMedia('(max-width:760px)');
 function syncMainNavigation(){if(nav)nav.inert=navigationMedia.matches&&!nav.classList.contains('open')}
 const portalSidebar=$('.portal-sidebar'),sidebarMedia=matchMedia('(max-width:760px)');
@@ -71,6 +29,51 @@ $$('.nav-dropdown').forEach(el=>el.addEventListener('toggle',()=>{if(el.open)$$(
 document.addEventListener('click',e=>{if(!e.target.closest('.site-header')){$$('.nav-dropdown').forEach(el=>el.open=false);closeMobile(true)}if(!e.target.closest('.portal-sidebar')&&!e.target.closest('.portal-menu')){$('.portal-sidebar')?.classList.remove('open');$('.portal-menu')?.setAttribute('aria-expanded','false');syncSidebar()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!dialog?.open){const dropdown=document.activeElement?.closest('.nav-dropdown[open]');if(nav?.classList.contains('open')&&navigationMedia.matches)closeMobile(true);else if(dropdown)$('summary',dropdown)?.focus();$$('.nav-dropdown').forEach(el=>el.open=false);if(portalSidebar?.classList.contains('open')&&portalSidebar.contains(document.activeElement))$('.portal-menu')?.focus();portalSidebar?.classList.remove('open');$('.portal-menu')?.setAttribute('aria-expanded','false');syncSidebar()}});
 $('.portal-menu')?.addEventListener('click',()=>{const sidebar=$('.portal-sidebar');const open=sidebar.classList.toggle('open');$('.portal-menu').setAttribute('aria-expanded',String(open));syncSidebar()});
+const schoolRuntime=await connectSchoolWebsite({courses,areas,events,articles,services,faqs});
+refreshWebsiteLinks?.();
+import {iconRegex,iconHTML} from './icons.mjs';
+import {getCourseSpecs} from './course-specs.mjs';
+function iconify(root){if(!root)return;if(root.nodeType!==1||root.closest('svg,script,style,textarea,select,input'))return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:node=>node.parentElement?.closest('svg,script,style,textarea,select,input')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});const textNodes=[];while(walker.nextNode())textNodes.push(walker.currentNode);for(const node of textNodes){iconRegex.lastIndex=0;if(!iconRegex.test(node.textContent))continue;iconRegex.lastIndex=0;const parts=node.textContent.split(iconRegex);const symbols=node.textContent.match(iconRegex);const fragment=document.createDocumentFragment();parts.forEach((part,i)=>{if(part)fragment.append(document.createTextNode(part));if(symbols?.[i]){const template=document.createElement('template');template.innerHTML=iconHTML(symbols[i]);fragment.append(template.content)}});node.replaceWith(fragment)}}
+const iconObserver=new MutationObserver(changes=>{for(const change of changes){if(change.type==='characterData')iconify(change.target.parentElement);else for(const added of change.addedNodes){if(added.nodeType===1&&!added.matches('svg'))iconify(added);else if(added.nodeType===3)iconify(added.parentElement)}}});
+iconObserver.observe(document.body,{childList:true,subtree:true,characterData:true});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+await setupSchoolBlog(schoolRuntime,{esc});
+refreshWebsiteLinks?.();
+const institution=schoolRuntime?.schoolName||'ISPAB';
+const normal=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const courseById=id=>courses.find(c=>c.id===id);
+const PREFIX=schoolRuntime?.storageId?'siga.school.'+encodeURIComponent(schoolRuntime.storageId)+'.demo.v1.':'ispab.demo.v1.';
+let toastTimer;
+function toast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4300)}
+function read(key,fallback){try{const raw=localStorage.getItem(PREFIX+key);return raw?JSON.parse(raw):fallback}catch{return fallback}}
+function save(key,value){try{localStorage.setItem(PREFIX+key,JSON.stringify(value));return true}catch{toast('Não foi possível guardar. Verifique o armazenamento do navegador.');return false}}
+function remove(key){try{localStorage.removeItem(PREFIX+key);return true}catch{toast('Não foi possível apagar os dados neste navegador.');return false}}
+function ids(key){const value=read(key,[]);return Array.isArray(value)?[...new Set(value.filter(v=>typeof v==='string'&&courseById(v)))].slice(0,key==='compare'?3:courses.length):[]}
+function records(){const value=read('applications',[]);return Array.isArray(value)?value.filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&typeof x.name==='string'&&courseById(x.course)&&typeof x.created==='string').slice(0,50):[]}
+function requests(){const value=read('requests',[]);return Array.isArray(value)?value.filter(x=>x&&typeof x.id==='string'&&typeof x.type==='string'&&typeof x.description==='string').slice(0,100):[]}
+function draft(){const d=read('draft',null);return d&&typeof d==='object'&&!Array.isArray(d)?d:null}
+function date(value){const d=new Date(value);return isNaN(d)?'Data não disponível':d.toLocaleDateString('pt-AO',{day:'2-digit',month:'long',year:'numeric'})}
+let dialogOpener=null,dialogRestoreFocus=null;
+function showDialog(html){if(!dialog.open){dialogOpener=document.activeElement;dialogRestoreFocus=null;}$('#dialog-content').innerHTML=html;const heading=$('#dialog-content h2');if(heading){if(!heading.id)heading.id='site-dialog-title';dialog.setAttribute('aria-labelledby',heading.id)}else dialog.removeAttribute('aria-labelledby');if(!dialog.open)dialog.showModal()}
+dialog?.addEventListener('close',()=>{const restore=dialogRestoreFocus;dialogRestoreFocus=null;dialogOpener=null;restore?.()});
+$('.dialog-close')?.addEventListener('click',()=>dialog.close());
+dialog?.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
+function confirmAction(title,text,action){showDialog(`<span class="eyebrow">CONTROLO DOS SEUS DADOS</span><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="text-button" data-cancel>Cancelar</button><button class="button" data-confirm>Confirmar <span>✓</span></button></div>`);$('[data-cancel]',dialog).addEventListener('click',()=>dialog.close());$('[data-confirm]',dialog).addEventListener('click',()=>{dialog.close();action()})}
+function download(name,text,type='text/plain;charset=utf-8'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function demoHeader(){return institution+' — DEMONSTRAÇÃO SEM VALIDADE ACADÉMICA\nDados ilustrativos. Este ficheiro não é um documento oficial.\nGerado em '+new Date().toLocaleString('pt-AO')+'\n\n'}
+// Personal preparation only: no applicant data, eligibility score or API submission.
+function preparationIds(){const value=read('preparation',[]);return Array.isArray(value)?[...new Set(value.filter(id=>preparationItems.some(item=>item.id===id)))]:[]}
+const preparationProgress=$('#preparation-progress');
+if(preparationProgress){
+  let completed=new Set(preparationIds());
+  function renderPreparation(){for(const input of $$('[data-preparation]'))input.checked=completed.has(input.dataset.preparation);preparationProgress.value=completed.size;$('#preparation-count').textContent=completed.size+' de '+preparationItems.length+' tarefas esclarecidas';}
+  for(const input of $$('[data-preparation]'))input.addEventListener('change',()=>{if(input.checked)completed.add(input.dataset.preparation);else completed.delete(input.dataset.preparation);save('preparation',[...completed]);renderPreparation()});
+  $('#preparation-reset').addEventListener('click',()=>confirmAction('Recomeçar a lista de preparação?','Só as marcações desta lista serão apagadas. Os restantes dados da demonstração serão mantidos.',()=>{if(remove('preparation')){completed.clear();renderPreparation();toast('Lista de preparação reiniciada.')}}));
+  $('#preparation-download').addEventListener('click',()=>{const text=demoHeader()+'A MINHA PREPARAÇÃO\nLista pessoal, sem validação de requisitos ou submissão institucional.\n\n'+preparationItems.map(item=>(completed.has(item.id)?'[x] ':'[ ] ')+item.title+'\n'+item.text+'\n').join('\n');download('ispab-lista-de-preparacao.txt',text)});
+  window.addEventListener('storage',event=>{if(event.key===null||event.key===PREFIX+'preparation'){completed=new Set(preparationIds());renderPreparation();}});
+  renderPreparation();
+}
+
 $('#portal-notifications')?.addEventListener('click',()=>showDialog('<span class="eyebrow">AVISOS DO PORTAL</span><h2>Uma experiência para explorar.</h2><p>Este portal usa um perfil fictício e dados de exemplo. Não há notificações institucionais ligadas à sua conta.</p><h3>O que pode fazer agora?</h3><ul><li>Explorar disciplinas e horários ilustrativos.</li><li>Guardar uma candidatura demonstrativa.</li><li>Preparar e acompanhar um pedido local.</li></ul><a class="button" href="/portal/pedidos/">Explorar requerimentos <span>↗</span></a>'));
 const rawPreferences=read('preferences',{});const preferences=rawPreferences&&typeof rawPreferences==='object'&&!Array.isArray(rawPreferences)?rawPreferences:{};if(preferences?.reducedMotion)document.documentElement.classList.add('reduce-motion');
 if('IntersectionObserver'in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&!preferences?.reducedMotion){document.documentElement.classList.add('motion-ready');const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.06});$$('.reveal').forEach(el=>observer.observe(el))}
