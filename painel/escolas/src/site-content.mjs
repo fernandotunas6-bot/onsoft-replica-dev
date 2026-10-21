@@ -28,12 +28,16 @@ export async function connectSchoolWebsite(data){
     if(sitePathname().startsWith('/portal/')){if(!new URLSearchParams(location.search).has('demo')){location.replace(portal);return}for(const link of document.querySelectorAll('a[href^="/portal/"]')){const u=new URL(link.href);u.searchParams.set('demo','1');link.href=u.href}}
   }
   if(!config.contentUrl)return config;
+  // Connected schools only display their own published fee and visual preference.
+  config.admissionFeeAmount=null;config.bannerStyle='classic';
   try{
     const url=new URL(config.contentUrl);if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))return;
     const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),6000);
     let payload=config.content;try{if(!payload){const response=await fetch(url,{credentials:'omit',cache:'no-store',signal:abort.signal});if(!response.ok)throw Error('unavailable');payload=await response.json()}}finally{clearTimeout(timer)}
     const manifest=await fetch(siteAsset('/content-bindings.json')).then(r=>r.json());
     if(payload.apiVersion!==1||payload.templateVersion!==manifest.version||!payload.values||typeof payload.values!=='object')throw Error('version');
+    config.admissionFeeAmount=Number.isSafeInteger(payload.admissionFeeAmount)&&payload.admissionFeeAmount>=0&&payload.admissionFeeAmount<=100_000_000?payload.admissionFeeAmount:null;
+    config.bannerStyle=payload.bannerStyle==='prism'?'prism':'classic';
     if(payload.admissions){
       const destination=payload.admissions.isOpen&&typeof payload.admissions.path==='string'&&/^\/matricula\/[a-z0-9-]{2,80}$/.test(payload.admissions.path)?new URL(payload.admissions.path,url.origin).href:null;
       for(const link of document.querySelectorAll('a[href]'))if(new URL(link.href).pathname==='/candidatura/'){

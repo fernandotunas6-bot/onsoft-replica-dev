@@ -83,14 +83,17 @@ const notFound=`${pageHead('UM NOVO CAMINHO À SUA ESPERA','Esta página tomou<b
 write('/404/','Página não encontrada',notFound);fs.copyFileSync(out+'/404/index.html',out+'/404.html');
 fs.writeFileSync(out+'/search-index.json',JSON.stringify(routes.filter(r=>!r.url.startsWith('/portal/')&&r.url!='/404/').map(r=>({...r,searchText:searchContent.get(r.url)||'',kind:r.url.startsWith('/cursos/')&&r.url!='/cursos/'?'Curso':'Página'}))));
 fs.writeFileSync(out+'/data.json',JSON.stringify({courses,areas,events}));
-fs.copyFileSync('src/calendar.mjs',out+'/calendar.mjs');fs.copyFileSync('src/search.mjs',out+'/search.mjs');fs.copyFileSync('src/budget.mjs',out+'/budget.mjs');fs.copyFileSync('src/admissions.mjs',out+'/admissions.mjs');fs.writeFileSync(out+'/app.js',brand(fs.readFileSync('src/app.js','utf8')).replaceAll('ispab.demo.v1.',()=>school.id+'.demo.v1.'));fs.copyFileSync('src/data.mjs',out+'/data.mjs');fs.copyFileSync('src/icons.mjs',out+'/icons.mjs');fs.copyFileSync('src/course-specs.mjs',out+'/course-specs.mjs');fs.writeFileSync(out+'/style.css',fs.readFileSync('src/style.css','utf8')+'\n'+fs.readFileSync('src/refinements.css','utf8')+'\n'+fs.readFileSync('src/polish.css','utf8'));
+fs.copyFileSync('src/calendar.mjs',out+'/calendar.mjs');fs.copyFileSync('src/search.mjs',out+'/search.mjs');fs.copyFileSync('src/budget.mjs',out+'/budget.mjs');fs.copyFileSync('src/admissions.mjs',out+'/admissions.mjs');fs.writeFileSync(out+'/app.js',brand(fs.readFileSync('src/app.js','utf8')).replaceAll('ispab.demo.v1.',()=>school.id+'.demo.v1.'));fs.copyFileSync('src/data.mjs',out+'/data.mjs');fs.copyFileSync('src/icons.mjs',out+'/icons.mjs');fs.copyFileSync('src/course-specs.mjs',out+'/course-specs.mjs');fs.writeFileSync(out+'/style.css',fs.readFileSync('src/style.css','utf8')+'\n'+fs.readFileSync('src/refinements.css','utf8')+'\n'+fs.readFileSync('src/polish.css','utf8')+'\n'+fs.readFileSync('src/motion.css','utf8'));
 fs.writeFileSync('docs/routes.json',JSON.stringify(routes,null,2));
 console.log(`Built ${routes.length} pages with ${courses.length} individual courses.`);
 
 fs.copyFileSync('src/site-content.mjs',out+'/site-content.mjs');
 const runtimeConfig=JSON.parse(fs.readFileSync('school.config.json','utf8'));
+if(runtimeConfig.admissionFeeAmount!=null&&(!Number.isSafeInteger(runtimeConfig.admissionFeeAmount)||runtimeConfig.admissionFeeAmount<0||runtimeConfig.admissionFeeAmount>100_000_000))throw Error('Taxa de candidatura inválida');
 for(const name of ['portalUrl','contentUrl'])if(runtimeConfig[name]){const u=new URL(runtimeConfig[name]);if(u.protocol!=='https:'||u.username||u.password||u.hash||(name==='contentUrl'&&u.search)||(name==='portalUrl'&&[...u.searchParams.keys()].some(k=>k!=='escola')))throw Error('URL institucional inválido: '+name);}
-fs.writeFileSync(out+'/school-runtime.json',JSON.stringify({schoolName:runtimeConfig.shortName,portalUrl:runtimeConfig.portalUrl||'',contentUrl:runtimeConfig.contentUrl||''}));
+fs.writeFileSync(out+'/school-runtime.json',JSON.stringify({schoolName:runtimeConfig.shortName,portalUrl:runtimeConfig.portalUrl||'',contentUrl:runtimeConfig.contentUrl||'',admissionFeeAmount:runtimeConfig.admissionFeeAmount??null,bannerStyle:runtimeConfig.bannerStyle==='prism'?'prism':'classic'}));
 writeContentManifest(out,routes);
 
 for(const file of ['site-urls.mjs','school-blog.mjs'])fs.copyFileSync('src/'+file,out+'/'+file);
+
+fs.copyFileSync('src/presentation.mjs',out+'/presentation.mjs');

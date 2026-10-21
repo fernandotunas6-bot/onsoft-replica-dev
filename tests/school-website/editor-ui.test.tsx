@@ -219,3 +219,17 @@ describe("editor no portal do administrador", () => {
     expect(nextEvent.defaultPrevented).toBe(false);
   });
 });
+
+it("guarda a taxa e o estilo por escola sem os publicar antecipadamente", async () => {
+  mount();
+  fireEvent.change(await screen.findByLabelText("Taxa de candidatura (Kz)"), {
+    target: { value: "24000" },
+  });
+  fireEvent.change(screen.getByLabelText("Estilo dos destaques"), { target: { value: "prism" } });
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await waitFor(() => expect(mocks.change).toHaveBeenCalled());
+  expect(mocks.change.mock.calls[0][0].data).toMatchObject({
+    action: "save",
+    draft: { admissionFeeAmount: 24000, bannerStyle: "prism" },
+  });
+});
