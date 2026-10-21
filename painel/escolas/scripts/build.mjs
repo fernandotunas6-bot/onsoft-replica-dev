@@ -84,7 +84,7 @@ const notFound=`${pageHead('UM NOVO CAMINHO À SUA ESPERA','Esta página tomou<b
 write('/404/','Página não encontrada',notFound);fs.copyFileSync(out+'/404/index.html',out+'/404.html');
 fs.writeFileSync(out+'/search-index.json',JSON.stringify(routes.filter(r=>!r.url.startsWith('/portal/')&&r.url!='/404/').map(r=>({...r,searchText:searchContent.get(r.url)||'',kind:r.url.startsWith('/cursos/')&&r.url!='/cursos/'?'Curso':'Página'}))));
 fs.writeFileSync(out+'/data.json',JSON.stringify({courses,areas,events}));
-fs.copyFileSync('src/calendar.mjs',out+'/calendar.mjs');fs.copyFileSync('src/search.mjs',out+'/search.mjs');fs.copyFileSync('src/budget.mjs',out+'/budget.mjs');fs.copyFileSync('src/admissions.mjs',out+'/admissions.mjs');fs.writeFileSync(out+'/app.js',brand(fs.readFileSync('src/app.js','utf8')).replaceAll('ispab.demo.v1.',()=>school.id+'.demo.v1.'));fs.copyFileSync('src/data.mjs',out+'/data.mjs');fs.copyFileSync('src/icons.mjs',out+'/icons.mjs');fs.copyFileSync('src/course-specs.mjs',out+'/course-specs.mjs');fs.writeFileSync(out+'/style.css',fs.readFileSync('src/style.css','utf8')+'\n'+fs.readFileSync('src/refinements.css','utf8')+'\n'+fs.readFileSync('src/polish.css','utf8')+'\n'+fs.readFileSync('src/motion.css','utf8')+'\n'+fs.readFileSync('src/academic-experience.css','utf8')+'\n'+fs.readFileSync('src/academic-pages.css','utf8'));
+fs.copyFileSync('src/calendar.mjs',out+'/calendar.mjs');fs.copyFileSync('src/search.mjs',out+'/search.mjs');fs.copyFileSync('src/budget.mjs',out+'/budget.mjs');fs.copyFileSync('src/admissions.mjs',out+'/admissions.mjs');fs.writeFileSync(out+'/app.js',brand(fs.readFileSync('src/app.js','utf8')).replaceAll('ispab.demo.v1.',()=>school.id+'.demo.v1.'));fs.copyFileSync('src/data.mjs',out+'/data.mjs');fs.copyFileSync('src/icons.mjs',out+'/icons.mjs');fs.copyFileSync('src/course-specs.mjs',out+'/course-specs.mjs');fs.writeFileSync(out+'/style.css',fs.readFileSync('src/style.css','utf8')+'\n'+fs.readFileSync('src/refinements.css','utf8')+'\n'+fs.readFileSync('src/polish.css','utf8')+'\n'+fs.readFileSync('src/motion.css','utf8')+'\n'+fs.readFileSync('src/academic-experience.css','utf8')+'\n'+fs.readFileSync('src/academic-pages.css','utf8')+'\n'+fs.readFileSync('src/navigation-motion.css','utf8'));
 fs.writeFileSync('docs/routes.json',JSON.stringify(routes,null,2));
 console.log(`Built ${routes.length} pages with ${courses.length} individual courses.`);
 
@@ -104,3 +104,5 @@ for(const file of ['academic-motion.mjs','course-discovery.mjs','course-tools.mj
 fs.copyFileSync('src/student-portal.mjs',out+'/student-portal.mjs');
 
 fs.copyFileSync('src/academic-pages.mjs',out+'/academic-pages.mjs');
+
+for(const file of ['academic-navigation.mjs','home-highlights.mjs'])fs.copyFileSync('src/'+file,out+'/'+file);

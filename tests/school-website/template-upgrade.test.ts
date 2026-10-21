@@ -6,7 +6,7 @@ import {
   websiteTemplate,
 } from "@/features/school-website/content-model";
 describe("actualizações aditivas do website escolar", () => {
-  it.each(["2ab6e331ce0e67b8044e", "5fd4cbb7d43915bde5c6"])(
+  it.each(["2ab6e331ce0e67b8044e", "5fd4cbb7d43915bde5c6", "b7bb3fc0893638fd4fd6"])(
     "conserva a publicação, o rascunho e as edições de %s",
     (templateVersion) => {
       const key = websiteTemplate.fields.find((f) => f.kind === "text")!.key;

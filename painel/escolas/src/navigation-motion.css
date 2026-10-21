@@ -1,0 +1,58 @@
+/* Behaviour inspired by the academic navigation, within the existing ISPAB design. */
+.site-header[data-navigation-ready] .header-inner{transition:min-height .22s ease}
+.site-header[data-navigation-ready] .brand-wordmark-art{transition:width .22s ease,height .22s ease,opacity .18s ease}
+.site-header[data-navigation-ready] .brand>svg{transition:width .22s ease,height .22s ease}
+.site-header[data-condensed=true]{box-shadow:0 5px 22px #14295410;background:#fffffff7}
+.site-header[data-condensed=true] .header-inner{min-height:66px}
+.site-header[data-condensed=true] .nav-dropdown>summary,.site-header[data-condensed=true] .simple-nav{padding-block:20px}
+.site-header[data-condensed=true] .brand.ispab-wordmark .brand-wordmark-art{width:100px;height:26px}
+.site-header[data-condensed=true] .brand.ispab-wordmark>svg{width:23px;height:23px}
+.site-header[data-condensed=true] .brand>img{max-height:28px;width:auto;object-fit:contain}
+.site-header .brand:focus-visible{outline-offset:8px}
+.nav-dropdown.navigation-current-section>summary{color:var(--blue)}
+#main-nav a[aria-current=page]{color:var(--blue)}
+.mega-menu a:focus-visible{outline-offset:1px}
+.navigation-scrim[hidden]{display:none}
+.navigation-scrim{position:fixed;inset:0;z-index:38;background:#10234c3d;backdrop-filter:blur(2px)}
+.course-subnav{position:sticky;top:var(--site-header-height,87px);z-index:34;backdrop-filter:blur(12px)}
+.academic-section-nav{top:var(--site-header-height,var(--academic-nav-top,87px))}
+#apresentacao,#competencias,#plano,#carreiras,#ingresso,.academic-section-target{scroll-margin-top:calc(var(--site-header-height,87px) + 80px)}
+@media(min-width:761px){
+ .site-header[data-condensed=true][data-navigation-context=inner] .brand.ispab-wordmark .brand-wordmark-art{width:0;opacity:0}
+ .site-header[data-condensed=true][data-navigation-context=inner] .brand.ispab-wordmark{gap:0}
+ .site-header[data-condensed=true][data-navigation-context=inner] .brand.ispab-wordmark>svg{width:28px;height:28px}
+}
+.hero-carousel{position:absolute;inset:0;touch-action:pan-y}
+.hero-carousel .hero-photo[hidden]{display:none!important}
+.hero-additional-slide .hero-photo-caption a{color:white;display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;font-weight:500;font-size:12px;line-height:1.6}
+.home-slide-controls{position:absolute;right:25px;bottom:-28px;display:flex;align-items:center;gap:5px;z-index:3;padding:3px;background:#fffffff2;border:1px solid #dce5f5;border-radius:30px;box-shadow:0 5px 16px #243c7710}
+.home-slide-controls button,.home-rail-controls button{display:grid;place-items:center;width:32px;height:32px;background:transparent;color:#31547d;border:0;border-radius:50%;font-size:22px;line-height:1;padding:0;cursor:pointer}
+.home-slide-controls button:hover,.home-rail-controls button:hover{background:#edf2ff;color:var(--blue)}
+.home-slide-controls button:focus-visible,.home-rail-controls button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.home-slide-controls>button:last-of-type{font-size:12px;border-left:1px solid #e2e9f7;border-radius:0 20px 20px 0}
+.home-slide-controls button:disabled,.home-rail-controls button:disabled{opacity:.4;cursor:default}
+.home-slide-dots{display:flex;gap:2px;align-items:center}
+.home-slide-dots button{width:21px;height:32px}
+.home-slide-dots button::before{content:'';width:6px;height:6px;border-radius:50%;background:#c8d4eb}
+.home-slide-dots button[aria-pressed=true]::before{width:17px;border-radius:5px;background:linear-gradient(90deg,#1558ee,#7952d8)}
+.home-rail-controls{display:none}
+.header-search-form{margin-top:25px;display:flex;gap:10px;flex-wrap:wrap}
+.header-search-field{flex:1;min-width:180px;position:relative}
+.header-search-field input{width:100%;min-height:50px;border:1px solid #cbd9ee;border-radius:7px;padding:13px 16px;color:var(--deep);background:#f8faff}
+.header-search-form .course-suggestions{position:relative;top:auto;left:auto;right:auto;max-height:260px;margin-top:10px;box-shadow:none}
+.header-search-shortcuts{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:25px;font-size:12px;color:var(--blue)}
+@media(max-width:760px){
+ .site-header[data-condensed=true] .header-inner{min-height:62px}
+ .site-header[data-condensed=true] .brand.ispab-wordmark .brand-wordmark-art{width:104px;height:27px}
+ .site-header[data-navigation-ready] #main-nav{max-height:var(--navigation-max-height,calc(100dvh - var(--site-header-height,74px)));overscroll-behavior-y:contain}
+ .site-header[data-navigation-ready] .nav-dropdown>summary,.site-header[data-navigation-ready] .simple-nav{padding-block:17px;min-height:48px}
+ .home-slide-controls{right:24px;bottom:-33px}
+ .home-card-rail{display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:calc(100% - 24px);gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scroll-padding-inline:2px;padding:3px 2px 14px;margin-inline:-2px;overscroll-behavior-x:contain}
+ .home-card-rail>article{scroll-snap-align:start;min-width:0}
+ .home-rail-controls{display:flex;justify-content:flex-end;gap:7px;margin:-14px 0 13px}
+ .home-rail-controls button{width:36px;height:36px;border:1px solid #dce5f5;background:#fff}
+ .header-search-form{flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){.site-header[data-navigation-ready] .header-inner,.site-header[data-navigation-ready] .brand-wordmark-art,.site-header[data-navigation-ready] .brand>svg{transition:none}}
+.reduce-motion .site-header .header-inner,.reduce-motion .site-header .brand-wordmark-art,.reduce-motion .site-header .brand>svg{transition:none!important}
+@media(forced-colors:active){.home-slide-dots button::before{background:CanvasText}.home-slide-dots button[aria-pressed=true]::before{background:Highlight}.navigation-scrim{backdrop-filter:none;background:transparent}}

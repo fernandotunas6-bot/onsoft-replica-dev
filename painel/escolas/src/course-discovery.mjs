@@ -11,14 +11,15 @@ export function findCourseSuggestions(courses, query, level = '') {
   }).sort((a, b) => Number(normal(b.name).startsWith(normal(query))) - Number(normal(a.name).startsWith(normal(query))) || a.name.localeCompare(b.name, 'pt')).slice(0, 5);
 }
 
-export function setupCourseDiscovery(courses, {doc = document, navigate = url => location.assign(url)} = {}) {
-  const input = doc.querySelector('#hero-search-q'), form = input?.form;
+export function setupCourseDiscovery(courses, {doc = document, navigate = url => location.assign(url), input = doc.querySelector('#hero-search-q'), idPrefix = 'hero'} = {}) {
+  const form = input?.form;
   if (!input || !form || input.dataset.discoveryReady) return;
+  const originalAttributes = new Map(['role','aria-autocomplete','aria-controls','aria-expanded','autocomplete','aria-activedescendant'].map(name => [name, input.getAttribute(name)]));
   input.dataset.discoveryReady = 'true';
   const field = input.parentElement, level = form.querySelector('#hero-search-level');
-  field.classList.add('discovery-field');
+  const hadFieldClass = field.classList.contains('discovery-field');field.classList.add('discovery-field');
   const popup = doc.createElement('div'); popup.className = 'course-suggestions'; popup.hidden = true;
-  const list = doc.createElement('ul'); list.id = 'hero-course-options'; list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', 'Sugestões de cursos');
+  const list = doc.createElement('ul'); list.id = idPrefix + '-course-options'; list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', 'Sugestões de cursos');
   const status = doc.createElement('p'); status.className = 'discovery-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   popup.append(list, status); field.append(popup);
   input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-controls', list.id); input.setAttribute('aria-expanded', 'false'); input.setAttribute('autocomplete', 'off');
@@ -38,7 +39,7 @@ export function setupCourseDiscovery(courses, {doc = document, navigate = url =>
     const matches = findCourseSuggestions(courses, input.value, level?.value || '');
     matches.forEach((course, i) => {
       const item = doc.createElement('li'); item.setAttribute('role', 'presentation');
-      const link = doc.createElement('a'); link.href = siteHref('/cursos/' + encodeURIComponent(course.id) + '/'); link.id = 'hero-course-option-' + i; link.setAttribute('role', 'option'); link.setAttribute('aria-selected', 'false'); link.tabIndex = -1;
+      const link = doc.createElement('a'); link.href = siteHref('/cursos/' + encodeURIComponent(course.id) + '/'); link.id = idPrefix + '-course-option-' + i; link.setAttribute('role', 'option'); link.setAttribute('aria-selected', 'false'); link.tabIndex = -1;
       const name = doc.createElement('strong'); name.textContent = course.name;
       const detail = doc.createElement('span'); detail.textContent = [course.level, course.mode, course.duration].filter(Boolean).join(' · ');
       link.append(name, detail); item.append(link); list.append(item);
@@ -46,10 +47,12 @@ export function setupCourseDiscovery(courses, {doc = document, navigate = url =>
     status.textContent = matches.length ? `${matches.length} ${matches.length === 1 ? 'sugestão disponível' : 'sugestões disponíveis'}. Use as setas para escolher ou pesquise todos os cursos.` : 'Sem sugestões para esta pesquisa. Pode procurar no catálogo completo.';
     popup.hidden = false; input.setAttribute('aria-expanded', 'true');
   }
-  input.addEventListener('input', update);
-  input.addEventListener('focus', update);
-  level?.addEventListener('change', () => {if (doc.activeElement === input) update(); else close();});
-  input.addEventListener('keydown', event => {
+  const cleanups = [];
+  const listen = (node, name, callback) => {if (!node) return;node.addEventListener(name, callback);cleanups.push(() => node.removeEventListener(name, callback));};
+  listen(input, 'input', update);
+  listen(input, 'focus', update);
+  listen(level, 'change', () => {if (doc.activeElement === input) update(); else close();});
+  listen(input, 'keydown', event => {
     if (event.isComposing) return;
     if (event.key === 'Escape') {if (!popup.hidden) event.preventDefault(); close();}
     else if (event.key === 'Tab') close();
@@ -57,8 +60,10 @@ export function setupCourseDiscovery(courses, {doc = document, navigate = url =>
     else if (event.key === 'Enter' && !popup.hidden && selected >= 0) {event.preventDefault(); const href = options()[selected]?.getAttribute('href'); if (href) {close(); navigate(href);}}
   });
   // Keep focus in the combobox while choosing with a pointer; links still support normal navigation.
-  list.addEventListener('mousedown', event => event.preventDefault());
-  list.addEventListener('click', event => {if (event.target.closest('[role=option]')) close();});
-  doc.addEventListener('pointerdown', event => {if (!field.contains(event.target)) close();});
-  form.addEventListener('submit', close);
+  listen(list, 'mousedown', event => event.preventDefault());
+  listen(list, 'click', event => {if (event.target.closest('[role=option]')) close();});
+  listen(doc, 'pointerdown', event => {if (!field.contains(event.target)) close();});
+  listen(form, 'submit', close);
+  let destroyed = false;
+  return {destroy() {if (destroyed) return;destroyed = true;cleanups.splice(0).forEach(fn => fn());close();popup.remove();if (!hadFieldClass) field.classList.remove('discovery-field');delete input.dataset.discoveryReady;for (const [attr, value] of originalAttributes) value === null ? input.removeAttribute(attr) : input.setAttribute(attr, value);}};
 }
