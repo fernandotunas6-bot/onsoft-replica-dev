@@ -1,12 +1,11 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
-import {
-  applyPublishedContent,
-  connectSchoolWebsite,
-} from "../../painel/escolas/src/site-content.mjs";
+import * as siteContent from "../../painel/escolas/src/site-content.mjs";
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
 import { setupSiteSearch } from "../../painel/escolas/src/search.mjs";
+
+const { applyPublishedContent, connectSchoolWebsite } = siteContent;
 
 beforeEach(() => {
   document.body.innerHTML =
@@ -88,7 +87,11 @@ describe("sincronização no website", () => {
       fetchMock.mock.calls.find(([url]) => String(url).startsWith("https://"))?.[1],
     ).toMatchObject({ credentials: "omit", cache: "no-store" });
   });
-  it("recusa versões incompatíveis e informa o visitante quando a API falha", async () => {
+  it("aplica a publicação de um modelo anterior e assinala-o", async () => {
+    // A chave de cada campo vem do seu texto, não da sua posição: uma publicação
+    // de um modelo anterior já não pode cair no elemento errado. Ou a chave
+    // ainda existe no documento, ou não é aplicada. Por isso a versão passou a
+    // ser um sinal — `synced-older` — em vez de deitar fora a publicação toda.
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string | URL) =>
@@ -99,14 +102,31 @@ describe("sincronização no website", () => {
             : Response.json({
                 apiVersion: 1,
                 templateVersion: "old",
-                values: { heading: "Não aplicar" },
+                values: { heading: "Texto publicado", ausente: "Nunca aplicado" },
               }),
+      ),
+    );
+    await connectSchoolWebsite({ courses: [] });
+    expect(document.documentElement.dataset.sigaContent).toBe("synced-older");
+    expect(document.querySelector("main")?.textContent).toContain("Texto publicado");
+    // Uma chave que já não existe no documento não tem onde ser aplicada.
+    expect(document.querySelector("main")?.textContent).not.toContain("Nunca aplicado");
+  });
+  it("informa o visitante quando a API falha e mantém a demonstração", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL) =>
+        String(url) === "/school-runtime.json"
+          ? Response.json({ contentUrl: "https://siga.example/api/public/school-content/ISPAB" })
+          : String(url) === "/content-bindings.json"
+            ? Response.json({ version: "new", fields: [] })
+            : new Response("", { status: 503 }),
       ),
     );
     await connectSchoolWebsite({ courses: [] });
     expect(document.documentElement.dataset.sigaContent).toBe("unavailable");
     expect(document.querySelector("[role=status]")?.textContent).toMatch(/demonstração/);
-    expect(document.querySelector("main")?.textContent).not.toContain("Não aplicar");
+    expect(document.querySelector("main")?.textContent).toContain("Inicial");
   });
   it("um curso desactivado deixa o catálogo e as opções de candidatura", async () => {
     document

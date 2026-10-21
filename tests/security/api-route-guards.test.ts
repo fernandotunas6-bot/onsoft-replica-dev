@@ -44,6 +44,8 @@ const PUBLIC_BY_DESIGN: Record<string, string> = {
   "finance/gateway.confirm.tsx": "webhook de gateway autenticado por apiKey da escola",
   "finance/gateway.unitel.confirm.tsx": "webhook de gateway autenticado por apiKey da escola",
   "integrations/zoom/callback.tsx": "callback OAuth do Zoom, validado por state",
+  "public/school-content/$code.tsx":
+    "conteúdo publicado do website da escola, resolvido pelo public_code; o visitante é anónimo e não há identidade para o RLS autorizar. Devolve só state.published (publicWebsiteContent ignora o rascunho), recusa escolas arquivadas ou com tenant bloqueado, e o CORS compara a origem exacta do website publicado",
 };
 
 /** Expressões que contam como verificação de identidade ou de origem. */

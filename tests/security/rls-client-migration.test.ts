@@ -55,6 +55,18 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Website escolar (2026-10-21): a API pública de conteúdos serve um visitante
+  // anónimo — não há JWT para o RLS autorizar a leitura da publicação de uma
+  // escola. Devolve só `state.published`; o rascunho não passa por
+  // `publicWebsiteContent`. Escolas arquivadas ou com tenant bloqueado não
+  // respondem, e a origem é comparada exactamente.
+  "src/routes/api/public/school-content/$code.tsx",
+  // O editor do mesmo website: `requireSgaWriterFor("gestao", …, ["Administrador"])`
+  // corre antes de qualquer leitura ou escrita privilegiada, e a escola vem da
+  // membership validada no servidor, nunca do browser. Candidato a migrar para
+  // `context.supabase` quando existir a política RESTRICTIVE do domínio
+  // `school_website` (PR #200), que é o que falta para o RLS poder decidir.
+  "src/features/school-website/content-server.ts",
   // Acesso do administrador da escola (Smart School Onboarding, 2026-10-15): lê o
   // estado da conta no Supabase Auth (e-mail confirmado, último acesso, 2FA), os
   // papéis e permissões da escola e o tenant — nada disso é legível pelo JWT. A
