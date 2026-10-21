@@ -90,7 +90,7 @@ console.log(`Built ${routes.length} pages with ${courses.length} individual cour
 fs.copyFileSync('src/site-content.mjs',out+'/site-content.mjs');
 const runtimeConfig=JSON.parse(fs.readFileSync('school.config.json','utf8'));
 for(const name of ['portalUrl','contentUrl'])if(runtimeConfig[name]){const u=new URL(runtimeConfig[name]);if(u.protocol!=='https:'||u.username||u.password||u.hash||(name==='contentUrl'&&u.search)||(name==='portalUrl'&&[...u.searchParams.keys()].some(k=>k!=='escola')))throw Error('URL institucional inválido: '+name);}
-fs.writeFileSync(out+'/school-runtime.json',JSON.stringify({portalUrl:runtimeConfig.portalUrl||'',contentUrl:runtimeConfig.contentUrl||''}));
+fs.writeFileSync(out+'/school-runtime.json',JSON.stringify({schoolName:runtimeConfig.shortName,portalUrl:runtimeConfig.portalUrl||'',contentUrl:runtimeConfig.contentUrl||''}));
 writeContentManifest(out,routes);
 
 for(const file of ['site-urls.mjs','school-blog.mjs'])fs.copyFileSync('src/'+file,out+'/'+file);

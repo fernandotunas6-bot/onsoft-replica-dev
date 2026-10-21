@@ -127,6 +127,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           {
             portalUrl: query.data?.links?.portalUrl ?? window.location.origin + "/portal",
             storageId: query.data?.school.public_code,
+            schoolName: query.data?.school.name,
             contentUrl: endpoint,
             blogUrl: endpoint.replace("/school-content/", "/school-blog/"),
           },
