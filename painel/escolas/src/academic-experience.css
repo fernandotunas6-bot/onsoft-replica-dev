@@ -48,3 +48,38 @@
 .reduce-motion .nav-dropdown[open] .mega-menu,.reduce-motion .module-list details[open]>p,.reduce-motion #faq-list details[open]>p,.reduce-motion .resource-details[open]>p{animation:none!important}
 .reduce-motion .area-card,.reduce-motion .course-card,.reduce-motion .info-card,.reduce-motion .service-card,.reduce-motion .article-card,.reduce-motion .resource-card,.reduce-motion .text-link .inline-icon,.reduce-motion .course-subnav a::after{transition:none!important;translate:none!important}
 @media(forced-colors:active){.course-suggestions [aria-selected=true]{outline:2px solid Highlight}.academic-field-feedback{color:CanvasText}#application-form [aria-invalid=true],#contact-form [aria-invalid=true]{outline:2px solid CanvasText}}
+
+/* Role-specific access extends the existing login composition. */
+.portal-primary-choice{padding:22px;margin:24px 0;background:linear-gradient(120deg,#eef4ff,#f5f0ff);border:1px solid #dce4fa;border-radius:14px}
+.portal-primary-choice h3{font-size:22px;letter-spacing:-.6px;margin:10px 0}
+.portal-primary-choice p,.portal-staff-choice p{font-size:12px;line-height:1.8;color:var(--muted);margin:10px 0 18px}
+.portal-primary-choice .eyebrow{font-size:9px}
+.portal-staff-choice h3{font-size:15px;margin:22px 0 0}
+.login-card>[data-siga-login]{color:var(--blue);border:1px solid #d6e1f6;background:#fff;box-shadow:none}
+.portal-access-resources{padding-bottom:70px}
+.portal-access-resources h2{font-size:28px;letter-spacing:-.8px;margin-bottom:24px}
+.portal-access-resources>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.portal-access-resources>div>a{padding:22px 18px;border:1px solid #e0e6f2;border-radius:12px;background:#f8faff;display:grid;gap:10px}
+.portal-access-resources strong{font-size:13px;line-height:1.6;display:flex;justify-content:space-between;gap:12px}
+.portal-access-resources small{font-size:11px;line-height:1.7;color:var(--muted)}
+.portal-access-resources details{padding:22px 0;border-bottom:1px solid #e0e6f2;margin-top:20px;font-size:13px}
+.portal-access-resources details p{font-size:12px;line-height:1.9;max-width:760px;margin-top:15px;color:var(--muted)}
+.portal-body[data-portal-mode=connected] .stat-card strong{font-size:24px;line-height:1.4;overflow-wrap:anywhere}
+.portal-body[data-portal-mode=connected] .portal-panel{margin-top:22px}
+.portal-body[data-portal-mode=connected] .portal-panel>h2{font-size:21px;margin-bottom:18px}
+.portal-body[data-portal-mode=connected] .portal-panel>p{font-size:13px;line-height:1.8;margin:15px 0}
+.portal-body[data-portal-mode=connected] .portal-panel>.button,.portal-body[data-portal-mode=connected] .portal-panel>.text-link,.portal-body[data-portal-mode=connected] .portal-panel>.outline-button{margin:15px 15px 0 0}
+.student-profile{display:grid;gap:16px;font-size:13px;margin:22px 0}
+.student-profile div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:15px}
+.student-profile dd{overflow-wrap:anywhere;margin:0}
+@media(max-width:900px){.portal-access-resources>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.portal-primary-choice{padding:18px;margin:20px 0}.portal-primary-choice h3{font-size:21px}.portal-access-resources>div{grid-template-columns:1fr}.portal-access-resources h2{font-size:25px}.portal-access-resources{padding-bottom:45px}.student-profile div{grid-template-columns:1fr;gap:6px}}
+
+.portal-primary-choice .button{width:100%;justify-content:space-between}
+@media(max-width:760px){.login-layout .login-card{order:-1}}
+
+.student-account-link{display:flex;margin-top:16px;font-size:12px;justify-content:space-between}
+
+.login-layout{align-items:start}
+.login-card>.auth-button{margin-top:14px}
+.portal-staff-choice p{margin-bottom:4px}

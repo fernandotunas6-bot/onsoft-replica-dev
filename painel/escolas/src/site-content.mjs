@@ -22,10 +22,18 @@ export async function connectSchoolWebsite(data){
   // This navigation hands authentication to the existing SIGA, including its MFA.
   const portal=portalUrl(config.portalUrl);
   if(portal){
-    for(const link of document.querySelectorAll('a[href]'))if(link.getAttribute('href')==='/login/'||link.hasAttribute('data-siga-login'))link.href=portal;
+    for(const link of document.querySelectorAll('a[href]'))if(link.hasAttribute('data-siga-login'))link.href=portal;
     const enter=document.querySelector('[data-siga-login]');if(enter){enter.href=portal;enter.removeAttribute('aria-disabled')}
     document.querySelector('[data-siga-status]')?.replaceChildren(document.createTextNode('Utilize a mesma conta do sistema académico. A palavra-passe e a verificação de segurança são tratadas no SIGA Plus.'));
-    if(sitePathname().startsWith('/portal/')){if(!new URLSearchParams(location.search).has('demo')){location.replace(portal);return}for(const link of document.querySelectorAll('a[href^="/portal/"]')){const u=new URL(link.href);u.searchParams.set('demo','1');link.href=u.href}}
+    const student=new URL(portal);student.searchParams.set('vista','estudante');
+    for(const link of document.querySelectorAll('[data-student-login]')){link.href=student.href;link.removeAttribute('aria-disabled')}
+
+  }
+  if(document.body.classList.contains('portal-body')){
+    const connected=new URLSearchParams(location.search).get('connected')==='1';
+    if(connected){document.body.dataset.portalMode='connected';document.querySelector('main')?.replaceChildren();document.querySelector('.sidebar-profile')?.replaceChildren();}
+    const module=await import('./student-portal.mjs').catch(()=>null);
+    if(module)module.setupStudentPortal(config,{connected});else if(connected){const p=document.createElement('p');p.setAttribute('role','alert');p.textContent='Não foi possível abrir o portal. Recarregue esta página.';document.querySelector('main')?.append(p)}
   }
   if(!config.contentUrl)return config;
   // Connected schools only display their own published fee and visual preference.

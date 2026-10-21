@@ -17,7 +17,6 @@ export function schoolWebsiteHref(
     return ASSET_BASE + value;
   const [pathname] = value.split(/[?#]/);
   if (pathname === "/") return site.homePath + value.slice(1);
-  if (pathname === "/login/" || pathname.startsWith("/portal/")) return site.portalUrl;
   if (pathname.startsWith("/noticias/")) return site.basePath + "/blog/";
   if (pages[pathname] || pathname.startsWith("/blog/")) return site.basePath + value;
   return value;
@@ -99,22 +98,13 @@ export function renderSchoolWebsite(
       );
     }
   }
-  if (path === "/login/") {
-    html = html.replace(
-      /<div class="or">[\s\S]*?<\/div>\s*<a[^>]*class="outline-button demo-login"[^>]*>[\s\S]*?<\/a>/,
-      "",
-    );
-    html = html.replace(
-      /<div class="login-note">[\s\S]*?<\/div>/,
-      '<div class="login-note"><p>Utilize as credenciais emitidas pela escola. A conta e a verificação de segurança são geridas pelo SIGA Plus.</p></div>',
-    );
-  }
   html = html.replace(
     /\b(href|src|action)="(\/[^"]*)"/g,
     (_whole, attr, raw) => `${attr}="${schoolWebsiteHref(raw, site)}"`,
   );
   const bootstrap = JSON.stringify({
     schoolName: site.name,
+    schoolSlug: site.slug,
     storageId: site.publicCode,
     portalUrl: site.portalUrl,
     contentUrl: `${site.origin}/api/public/school-content/${encodeURIComponent(site.publicCode)}`,

@@ -152,7 +152,7 @@ renderRequests();
 $('#request-form')?.addEventListener('submit',e=>{e.preventDefault();const form=e.currentTarget;const data=new FormData(form);const description=String(data.get('description')).trim();if(description.length<10){form.elements.description.setCustomValidity('Descreva o pedido com pelo menos 10 caracteres.');form.elements.description.reportValidity();return}const all=requests();if(all.length>=100){toast('Limite local atingido. Exporte e apague pedidos antigos.');return}const r={id:'PED-DEMO-'+crypto.randomUUID().slice(0,6).toUpperCase(),type:String(data.get('type')),description,created:new Date().toISOString()};if(save('requests',[r,...all])){form.reset();renderRequests();toast('Pedido demonstrativo guardado neste navegador. Não foi enviado.')}});
 $('#request-form textarea')?.addEventListener('input',e=>e.target.setCustomValidity(''));
 document.addEventListener('click',e=>{const button=e.target.closest('[data-delete-request]');if(button)confirmAction('Apagar este pedido local?','O pedido demonstrativo será removido deste navegador.',()=>{if(save('requests',requests().filter(r=>r.id!==button.dataset.deleteRequest))){renderRequests();toast('Pedido local apagado.')}})});
-const preferenceForm=$('#preferences-form'),welcomeHeading=$('.portal-welcome h2');
+const preferenceForm=$('#preferences-form'),welcomeHeading=document.body.dataset.portalMode==='connected'?null:$('.portal-welcome h2');
 const defaultWelcome=welcomeHeading?[...welcomeHeading.childNodes].map(node=>node.cloneNode(true)):[];
 function syncPreferences(){
   const raw=read('preferences',{}),value=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
