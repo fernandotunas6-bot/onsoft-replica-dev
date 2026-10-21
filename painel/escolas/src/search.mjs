@@ -22,6 +22,7 @@ export function setupSiteSearch({courses,normal,esc}){
       const data=await response.json();if(!Array.isArray(data)||!data.length)throw Error('Invalid index');
       index=data.filter(row=>row&&typeof row.title==='string'&&typeof row.url==='string'&&row.url.startsWith('/')&&!row.url.startsWith('//')&&!row.url.startsWith('/portal/')).map((row,order)=>{
         const course=courses.find(course=>row.url==='/cursos/'+course.id+'/');
+        if(course)row={...row,title:course.name};
         return {...row,kind:typeof row.kind==='string'?row.kind:'Página',order,titleNormal:normal(row.title),hay:normal(row.title+' '+row.url+' '+(typeof row.searchText==='string'?row.searchText:'')+' '+(course?[course.description,...course.modules,...course.careers].join(' '):''))};
       });
       if(!index.length)throw Error('Empty index');render();
