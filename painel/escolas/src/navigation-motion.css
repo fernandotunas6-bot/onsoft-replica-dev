@@ -1,3 +1,9 @@
+/* Keep the two existing header rows together, without removing their space in the page. */
+/* Reserve the current two-row layout even before JavaScript is available. */
+:root:has(.site-navigation){--site-header-height:125px}
+.site-navigation{position:sticky;top:0;z-index:40}
+.site-navigation>.site-header{position:relative;top:auto}
+.site-header .brand{min-width:44px;min-height:44px;justify-content:center}
 /* Behaviour inspired by the academic navigation, within the existing ISPAB design. */
 .site-header[data-navigation-ready] .header-inner{transition:min-height .22s ease}
 .site-header[data-navigation-ready] .brand-wordmark-art{transition:width .22s ease,height .22s ease,opacity .18s ease}
@@ -18,9 +24,13 @@
 .academic-section-nav{top:var(--site-header-height,var(--academic-nav-top,87px))}
 #apresentacao,#competencias,#plano,#carreiras,#ingresso,.academic-section-target{scroll-margin-top:calc(var(--site-header-height,87px) + 80px)}
 @media(min-width:761px){
- .site-header[data-condensed=true][data-navigation-context=inner] .brand.ispab-wordmark .brand-wordmark-art{width:0;opacity:0}
- .site-header[data-condensed=true][data-navigation-context=inner] .brand.ispab-wordmark{gap:0}
- .site-header[data-condensed=true][data-navigation-context=inner] .brand.ispab-wordmark>svg{width:28px;height:28px}
+ .site-header .mega-menu{max-height:min(var(--menu-max-height,100dvh),calc(100dvh - var(--site-header-height,125px) - 12px))}
+ :root:has(.site-header[data-navigation-context=inner]){--site-header-height:105px}
+ .site-header[data-navigation-context=inner] .header-inner{min-height:66px}
+ .site-header[data-navigation-context=inner] .nav-dropdown>summary,.site-header[data-navigation-context=inner] .simple-nav{padding-block:20px}
+ .site-header[data-navigation-context=inner] .brand.ispab-wordmark .brand-wordmark-art{width:0;opacity:0}
+ .site-header[data-navigation-context=inner] .brand.ispab-wordmark{gap:0}
+ .site-header[data-navigation-context=inner] .brand.ispab-wordmark>svg{width:28px;height:28px}
 }
 .hero-carousel{position:absolute;inset:0;touch-action:pan-y}
 .hero-carousel .hero-photo[hidden]{display:none!important}
@@ -42,6 +52,7 @@
 .header-search-form .course-suggestions{position:relative;top:auto;left:auto;right:auto;max-height:260px;margin-top:10px;box-shadow:none}
 .header-search-shortcuts{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:25px;font-size:12px;color:var(--blue)}
 @media(max-width:760px){
+ :root:has(.site-navigation){--site-header-height:103px}
  .site-header[data-condensed=true] .header-inner{min-height:62px}
  .site-header[data-condensed=true] .brand.ispab-wordmark .brand-wordmark-art{width:104px;height:27px}
  .site-header[data-navigation-ready] #main-nav{max-height:var(--navigation-max-height,calc(100dvh - var(--site-header-height,74px)));overscroll-behavior-y:contain}

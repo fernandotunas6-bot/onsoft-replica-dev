@@ -9,6 +9,7 @@ export function isHeaderSearchShortcut(event) {
 export function setupAcademicNavigation({doc = document, win = window} = {}) {
   const header = doc.querySelector('.site-header'), nav = doc.querySelector('#main-nav'), toggle = doc.querySelector('.mobile-toggle');
   if (!header || !nav || !toggle || header.dataset.navigationReady) return {refresh() {}, destroy() {}};
+  const shell = header.closest('.site-navigation') || header, originalContext = header.getAttribute('data-navigation-context');
   header.dataset.navigationReady = 'true';header.dataset.navigationContext = doc.querySelector('.home-hero') ? 'home' : 'inner';
   const mobile = win.matchMedia('(max-width:760px)'), hover = win.matchMedia('(hover:hover) and (pointer:fine) and (min-width:761px)');
   const disposers = [], timers = new Map(), activeLinks = new Map(), sections = [...nav.querySelectorAll('.nav-dropdown')];
@@ -20,7 +21,7 @@ export function setupAcademicNavigation({doc = document, win = window} = {}) {
   const originalHeight = doc.documentElement.style.getPropertyValue('--site-header-height');
   const originalMenuHeight = header.style.getPropertyValue('--navigation-max-height');
   const measure = () => {if (!destroyed) {
-    const rect = header.getBoundingClientRect(), viewport = win.visualViewport;
+    const rect = shell.getBoundingClientRect(), viewport = win.visualViewport;
     doc.documentElement.style.setProperty('--site-header-height', Math.ceil(rect.height) + 'px');
     header.style.setProperty('--navigation-max-height', Math.max(0, (viewport?.height || win.innerHeight) + (viewport?.offsetTop || 0) - rect.bottom - 8) + 'px');
   }};
@@ -90,9 +91,9 @@ export function setupAcademicNavigation({doc = document, win = window} = {}) {
     if (event.shiftKey && doc.activeElement === focusable[0]) {event.preventDefault();focusable.at(-1).focus();}
     else if (!event.shiftKey && doc.activeElement === focusable.at(-1)) {event.preventDefault();focusable[0].focus();}
   });
-  listen(win, 'scroll', schedule, {passive: true});listen(win, 'resize', measure, {passive: true});
+  listen(win, 'scroll', schedule, {passive: true});listen(win, 'pageshow', schedule);listen(win, 'resize', measure, {passive: true});
   if (win.visualViewport) listen(win.visualViewport, 'resize', measure, {passive: true});
-  const resize = win.ResizeObserver ? new win.ResizeObserver(measure) : null;resize?.observe(header);
+  const resize = win.ResizeObserver ? new win.ResizeObserver(measure) : null;resize?.observe(shell);
   renderScroll();refresh();syncMobile();
   return {refresh, destroy() {
     if (destroyed) return;destroyed = true;if (frame) win.cancelAnimationFrame(frame);for (const timer of timers.values()) win.clearTimeout(timer);
@@ -100,6 +101,6 @@ export function setupAcademicNavigation({doc = document, win = window} = {}) {
     if (locked) {doc.body.style.overflow = originalOverflow;background.forEach(([node, inert]) => {node.inert = inert;});}
     if (originalHeight) doc.documentElement.style.setProperty('--site-header-height', originalHeight);else doc.documentElement.style.removeProperty('--site-header-height');
     if (originalMenuHeight) header.style.setProperty('--navigation-max-height', originalMenuHeight);else {header.style.removeProperty('--navigation-max-height');if (!header.getAttribute('style')) header.removeAttribute('style');}
-    delete header.dataset.navigationReady;delete header.dataset.navigationContext;delete header.dataset.condensed;
+    delete header.dataset.navigationReady;if (originalContext === null) delete header.dataset.navigationContext;else header.setAttribute('data-navigation-context', originalContext);delete header.dataset.condensed;
   }};
 }
