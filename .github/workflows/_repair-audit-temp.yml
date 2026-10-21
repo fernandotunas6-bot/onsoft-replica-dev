@@ -19,7 +19,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Corrigir advisories sem mudar major de dependências directas
         run: |
-          bun audit fix
+          # bun audit fix devolve 1 mesmo quando restam apenas advisories baixos.
+          # A verificação crítica abaixo continua a falhar em HIGH/CRITICAL.
+          bun audit fix || true
           bun install --frozen-lockfile
           bun audit --audit-level=high
           git diff --exit-code -- painel/escolas/
