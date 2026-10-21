@@ -132,10 +132,8 @@ Uma arquitectura, três donos:
 
 ## 6. Decisões que não são técnicas
 
-1. **Convenção de linha no domínio `school_website`.** Uma linha com trava
-   optimista (como todo o SIGA hoje, e como A) ou histórico append-only (como
-   B). Não podem coexistir na mesma chave. Se o histórico for para ficar, o
-   caminho que não parte ninguém é um domínio próprio, não o mesmo.
+1. **Convenção de linha no domínio `school_website`** — respondida abaixo, na
+   secção 7.
 2. **Âmbito de B.** A página única para as 48 escolas é um produto que o site
    de ISPAB não cobre, e o contrário também é verdade. Mantê-los é legítimo —
    mas então são dois produtos com **um** contrato de conteúdo, não dois
@@ -145,3 +143,66 @@ Uma arquitectura, três donos:
    mexe nos mesmos 8 ficheiros, o paralelismo volta no dia seguinte. A divisão
    natural: o lado `painel/escolas` (manifesto nomeado e fusão) de um lado; o
    lado SIGA (editor, API, testes) do outro, sobre o manifesto novo.
+
+
+## 7. Resposta à decisão 1: uma linha com trava optimista
+
+Recomendação: **uma linha por `(school_id, domain)` com trava optimista**, como
+todo o resto do SIGA. A #200 deixa de inserir uma linha por versão e passa a
+usar o `updateSettingsDomainValue`; o JSON que já desenhou fica intacto.
+
+### Porquê
+
+**A restrição que está no repositório proíbe o append-only.** A única DDL desta
+tabela, em `supabase/migrations/20260908120000_school_settings_versioned.sql`,
+declara:
+
+```sql
+UNIQUE (school_id, domain)
+```
+
+A #200 assume o contrário («a restrição real é `UNIQUE(school_id, domain,
+version)`»). Se a restrição em produção for a do repositório, a **segunda**
+publicação de uma escola rebenta com violação de unicidade. O retrato de
+produção de 12/10 confirma as colunas (`id, school_id, domain, version, value,
+changed_by, created_at`) mas não regista restrições, por isso isto tem de ser
+confirmado na base antes de qualquer decisão de implementação:
+
+```sql
+select conname, pg_get_constraintdef(oid)
+from pg_constraint
+where conrelid = 'public.school_settings'::regclass and contype = 'u';
+```
+
+**O convénio actual não é desta funcionalidade: é da tabela.** Estão em uso pelo
+menos dez domínios (`academic`, `agt`, `billing`, `branding`, `higher_ed`,
+`institution`, `pedagogy`, `print_templates`, `spotlight`,
+`teacher_contact_visibility`) e doze chamadas ao helper partilhado. Mudar a
+convenção num domínio só significa passar a ter duas na mesma tabela, e a
+partir daí cada leitor tem de saber qual é qual. É o tipo de divergência que
+não dá erro — dá dados errados.
+
+**A #200 não precisa do histórico para ter o que quer.** O JSON que ela própria
+desenhou já separa rascunho e publicação: `{schemaVersion, draft, published,
+publishedAt}`. Rascunho, publicação e detecção de edição concorrente cabem numa
+linha, com `version` como trava — que é o que a #201 faz. As linhas por versão
+dão «todas as publicações passadas», que nenhuma das duas funcionalidades pede
+na v1.
+
+**Se o histórico for mesmo preciso**, o sítio é o `audit_logs` — que a #201 já
+escreve antes de gravar — ou uma tabela própria. Não a chave de uma tabela de
+estado partilhada por dez funcionalidades.
+
+### O que fica de pé da #200
+
+A migração RLS `20261020213000_school_website_draft_read_guard.sql` continua
+necessária e serve as duas: hoje qualquer membro da escola — incluindo alunos e
+encarregados — pode ler o domínio pela API. A flag `SCHOOL_SITES_ENABLED`, a
+resolução por hostname e a paridade visual também não dependem da convenção de
+linha.
+
+### O que isto ainda não resolve
+
+A convenção de linha é necessária, não suficiente: com as duas a escrever uma
+linha só, continuam a escrever **formatos diferentes** na mesma chave. É a
+decisão 2 — um contrato de conteúdo, dois produtos.
