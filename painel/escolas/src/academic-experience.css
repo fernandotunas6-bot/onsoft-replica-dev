@@ -1,0 +1,48 @@
+/* Academic interactions extend the approved blue/purple design and original photos. */
+.brand-wordmark-art{display:none}
+@supports (mask-image:url("")) or (-webkit-mask-image:url("")){
+  .brand.ispab-wordmark>svg{display:none}
+  .brand.ispab-wordmark>span:not(.brand-wordmark-art){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+  .brand.ispab-wordmark .brand-wordmark-art{display:block;flex:none;width:146px;height:38px;background:linear-gradient(115deg,#1558ee 15%,#6243c2 100%);-webkit-mask-image:var(--institution-wordmark);mask-image:var(--institution-wordmark);-webkit-mask-size:100% auto;mask-size:100% auto;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+  .site-footer .brand.ispab-wordmark .brand-wordmark-art{background:#f5f7ff}
+}
+.discovery-field{position:relative}
+.course-suggestions{position:absolute;top:calc(100% + 9px);left:-7px;right:-7px;z-index:60;max-height:min(360px,60vh);overflow:auto;overscroll-behavior:contain;background:#fff;border:1px solid #dce5f4;border-radius:14px;box-shadow:0 18px 40px #192f6e20;text-align:left}
+.course-suggestions[hidden],.academic-field-feedback[hidden]{display:none}
+.course-suggestions ul{list-style:none;padding:6px;margin:0}
+.course-suggestions li{padding:0;margin:0}
+.course-suggestions [role=option]{display:grid;gap:4px;padding:12px 14px;border-radius:9px;color:var(--deep);text-decoration:none;overflow-wrap:anywhere}
+.course-suggestions [role=option]:hover,.course-suggestions [aria-selected=true]{background:linear-gradient(110deg,#edf4ff,#f3efff)}
+.course-suggestions strong{font-size:13px;font-weight:650;line-height:1.55}
+.course-suggestions [role=option]>span{font-size:11px;line-height:1.6;color:var(--muted)}
+.discovery-status{font-size:11px;line-height:1.65;color:var(--muted);padding:10px 16px 12px;border-top:1px solid #e6edf8;margin:0}
+.curriculum-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px 20px;background:linear-gradient(110deg,#f5f8ff,#f9f7ff);border:1px solid #e0e6f4;border-radius:12px;padding:17px;margin-top:24px}
+.curriculum-tools label{display:grid;gap:8px;font-size:12px;font-weight:600;line-height:1.6}
+.curriculum-tools input{width:100%;min-width:0;min-height:44px;font-size:13px;padding:10px 12px;background:#fff;border:1px solid #d3dded;border-radius:7px;color:var(--deep)}
+.curriculum-tools button{min-height:44px;font-size:11px;color:var(--blue);text-align:left;white-space:normal}
+.curriculum-tools button:disabled{color:var(--muted);cursor:default}
+.curriculum-count{grid-column:1/-1;font-size:11px!important;color:var(--muted);line-height:1.65!important;margin:0!important;min-height:18px}
+.academic-field-hint,.academic-field-counter,.academic-field-feedback{display:block;font-size:11px;font-weight:400;line-height:1.65;margin-top:7px;overflow-wrap:anywhere}
+.academic-field-hint,.academic-field-counter{color:var(--muted)}
+.academic-field-counter{text-align:right;font-size:10px}
+.academic-field-feedback{color:#a02445}
+#application-form [aria-invalid=true],#contact-form [aria-invalid=true]{border-color:#b83a59;box-shadow:0 0 0 2px #b83a5910}
+.course-subnav a::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#1558ee,#7952d8);border-radius:2px;transform:scaleX(0);transform-origin:left;transition:transform .22s ease}
+.course-subnav a.current::after{transform:scaleX(1)}
+@keyframes academic-menu-in{from{opacity:.7;translate:0 6px}to{opacity:1;translate:0 0}}
+@keyframes academic-detail-in{from{opacity:.6;translate:0 4px}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:no-preference){
+  .nav-dropdown[open] .mega-menu{animation:academic-menu-in .18s ease-out both}
+  .module-list details[open]>p,#faq-list details[open]>p,.resource-details[open]>p{animation:academic-detail-in .22s ease-out}
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  .area-card,.course-card,.info-card,.service-card,.article-card,.resource-card{transition:translate .22s ease,box-shadow .22s ease,border-color .22s ease}
+  .area-card:hover,.course-card:hover,.info-card:hover,.service-card:hover,.article-card:hover,.resource-card:hover{translate:0 -3px;box-shadow:0 12px 30px #25376b12}
+  .text-link .inline-icon{transition:translate .2s ease}
+  .text-link:hover .inline-icon{translate:3px 0}
+}
+@media(max-width:760px){.curriculum-tools{grid-template-columns:1fr;padding:15px;gap:10px}.curriculum-tools input{font-size:16px}.curriculum-tools button{min-height:40px}.course-suggestions strong{font-size:13px}.course-suggestions [role=option]{padding:12px 10px}.course-suggestions{left:-3px;right:-3px}}
+@media(prefers-reduced-motion:reduce){.course-subnav a::after{transition:none}}
+.reduce-motion .nav-dropdown[open] .mega-menu,.reduce-motion .module-list details[open]>p,.reduce-motion #faq-list details[open]>p,.reduce-motion .resource-details[open]>p{animation:none!important}
+.reduce-motion .area-card,.reduce-motion .course-card,.reduce-motion .info-card,.reduce-motion .service-card,.reduce-motion .article-card,.reduce-motion .resource-card,.reduce-motion .text-link .inline-icon,.reduce-motion .course-subnav a::after{transition:none!important;translate:none!important}
+@media(forced-colors:active){.course-suggestions [aria-selected=true]{outline:2px solid Highlight}.academic-field-feedback{color:CanvasText}#application-form [aria-invalid=true],#contact-form [aria-invalid=true]{outline:2px solid CanvasText}}
