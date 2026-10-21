@@ -1,0 +1,27 @@
+{
+  "courseCard": {
+    "favouriteLabel": "Guardar {{COURSE}} nos favoritos",
+    "link": "Conhecer o curso",
+    "compare": "Comparar"
+  },
+  "articleCard": {
+    "link": "Ler a história",
+    "demo": {
+      "tag": "LEITURA DEMONSTRATIVA"
+    }
+  },
+  "eventCard": {
+    "saveLabel": "Descarregar {{EVENT}} para a agenda — evento demonstrativo",
+    "save": "Guardar na agenda",
+    "demo": {
+      "tag": "EVENTO ILUSTRATIVO"
+    }
+  },
+  "searchBox": {
+    "queryLabel": "Nome ou área do curso",
+    "placeholder": "O que quer aprender?",
+    "levelLabel": "Nível de formação",
+    "levelAll": "Todas as formações",
+    "button": "Encontrar curso"
+  }
+}

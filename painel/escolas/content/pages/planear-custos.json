@@ -1,0 +1,72 @@
+{
+  "title": "Planear custos de estudo",
+  "crumb": "Planear custos",
+  "form": {
+    "title": "A sua estimativa pessoal",
+    "text": "Preencha todos os campos. Use 0 apenas quando quiser excluir uma despesa. Não há valores oficiais pré-preenchidos.",
+    "amountPlaceholder": "Valor em {{CURRENCY}}",
+    "selectPlaceholder": "Seleccione",
+    "trainingLegend": "Formação",
+    "livingLegend": "Dia a dia",
+    "fields": {
+      "tuition": {
+        "label": "Valor de cada prestação de propina ({{CURRENCY}})",
+        "hint": "Confirme a tabela de propinas com a instituição."
+      },
+      "installments": {
+        "label": "Número de prestações consideradas"
+      },
+      "upfront": {
+        "label": "Despesas únicas no período ({{CURRENCY}})",
+        "hint": "Por exemplo, matrícula, equipamento ou materiais. Inclua cada despesa uma única vez."
+      },
+      "months": {
+        "label": "Número de meses do planeamento"
+      },
+      "transport": {
+        "label": "Transporte por mês ({{CURRENCY}})",
+        "hint": "Inclua as deslocações previstas."
+      },
+      "meals": {
+        "label": "Alimentação por mês ({{CURRENCY}})",
+        "hint": "Considere o que pretende reservar por mês."
+      },
+      "housing": {
+        "label": "Alojamento por mês ({{CURRENCY}})",
+        "hint": "Inclua apenas o custo que pretende considerar."
+      },
+      "other": {
+        "label": "Outras despesas por mês ({{CURRENCY}})",
+        "hint": "Por exemplo, internet ou materiais recorrentes."
+      }
+    },
+    "submit": "Calcular estimativa",
+    "reset": "Limpar valores"
+  },
+  "summary": {
+    "label": "Resumo da estimativa",
+    "eyebrow": "O SEU PLANEAMENTO",
+    "title": "Veja o conjunto.",
+    "state": "Preencha os campos para calcular a sua estimativa.",
+    "resultLabel": "Estimativa calculada",
+    "rows": {
+      "budget-tuition": "Propinas no período",
+      "budget-living": "Despesas do dia a dia",
+      "budget-upfront": "Despesas únicas",
+      "budget-total": "Total estimado"
+    },
+    "download": "Descarregar estimativa",
+    "note": "Inclui apenas as despesas que introduzir. Confirme valores, datas de cobrança e condições de bolsas antes de decidir.",
+    "link": {
+      "url": "/bolsas/",
+      "label": "Orientações sobre apoios"
+    }
+  },
+  "inlineCta": {
+    "text": "Precisa de esclarecer propinas, taxas ou condições?",
+    "action": {
+      "url": "/contactos/?assunto=Propinas%20e%20custos",
+      "label": "Preparar pedido de informação"
+    }
+  }
+}

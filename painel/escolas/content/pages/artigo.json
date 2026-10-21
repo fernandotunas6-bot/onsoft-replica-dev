@@ -1,0 +1,19 @@
+{
+  "byline": {
+    "author": "Redacção do projecto",
+    "date": "20 de Outubro de 2026",
+    "datetime": "2026-10-20",
+    "readingTime": "3 min de leitura"
+  },
+  "coverAlt": "Ambiente académico ilustrativo",
+  "share": {
+    "copy": "Copiar link",
+    "link": {
+      "url": "/noticias/",
+      "label": "Continuar a ler"
+    }
+  },
+  "demo": {
+    "tag": "CONTEÚDO EDITORIAL DEMONSTRATIVO"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Preparar a candidatura",
+  "crumb": "Preparar a candidatura",
+  "summary": {
+    "title": "A minha preparação",
+    "count": "0 de {{TOTAL}} tarefas esclarecidas",
+    "download": "Descarregar a lista",
+    "reset": "Recomeçar",
+    "progressLabel": "Tarefas de preparação esclarecidas"
+  },
+  "inlineCta": {
+    "text": "Quer conhecer o formulário? Use apenas dados fictícios na demonstração.",
+    "action": { "url": "/candidatura/", "label": "Experimentar candidatura" }
+  }
+}

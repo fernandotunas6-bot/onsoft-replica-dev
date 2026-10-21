@@ -1,0 +1,11 @@
+{
+  "title": "Espaços e campus",
+  "crumb": "Campus",
+  "altSuffix": "— imagem ilustrativa",
+  "spaces": [
+    { "image": "campus", "title": "Espaços de aprendizagem", "text": "Ambientes pensados para o encontro entre teoria, prática e novas perguntas." },
+    { "image": "teacher", "title": "Salas e laboratórios", "text": "Possibilidades para experimentar, investigar e aprender em colaboração." },
+    { "image": "hero", "title": "Biblioteca e estudo", "text": "Um lugar para explorar referências e aprofundar o conhecimento." },
+    { "image": "community", "title": "Convívio e comunidade", "text": "Encontros que ampliam a experiência para além das aulas." }
+  ]
+}

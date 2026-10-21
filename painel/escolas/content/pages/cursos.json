@@ -1,0 +1,40 @@
+{
+  "title": "Encontre o seu curso",
+  "crumb": "Cursos",
+  "search": {
+    "label": "Pesquisar cursos",
+    "placeholder": "Pesquise por curso, tema ou competência",
+    "button": "Pesquisar"
+  },
+  "favourites": { "icon": "♡", "label": "Favoritos" },
+  "compare": { "icon": "⇄", "label": "Comparar" },
+  "mobileFilters": { "icon": "☷", "label": "Filtros", "hint": "Encontre o percurso certo para si." },
+  "countLabel": "cursos para explorar",
+  "sort": {
+    "label": "Ordenar por",
+    "featured": "Destaques",
+    "az": "Nome A–Z",
+    "duration": "Menor duração"
+  },
+  "empty": {
+    "icon": "⌕",
+    "title": "Nenhum curso encontrado.",
+    "text": "Experimente outra palavra ou remova alguns filtros.",
+    "button": "Limpar filtros"
+  },
+  "compareBar": { "text": "cursos seleccionados", "button": "Comparar agora" },
+  "filters": {
+    "title": "Filtrar cursos",
+    "clear": "Limpar",
+    "area": { "label": "Área do conhecimento", "all": "Todas as áreas" },
+    "level": { "label": "Nível de formação", "all": "Todas as formações" },
+    "mode": { "label": "Modalidade" },
+    "shift": { "label": "Turno", "all": "Todos os turnos" },
+    "unit": { "label": "Unidade", "all": "Todas as unidades" },
+    "help": {
+      "title": "Não sabe por onde começar?",
+      "text": "Compare percursos e descubra o que combina consigo.",
+      "link": { "url": "/ingresso/", "label": "Orientação para ingresso", "external": true }
+    }
+  }
+}

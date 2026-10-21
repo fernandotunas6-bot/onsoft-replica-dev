@@ -1,0 +1,24 @@
+{
+  "title": "Guia de novos estudantes",
+  "crumb": "Novos estudantes",
+  "first": {
+    "headline": ["Depois do resultado,", "*qual é o próximo passo?*"],
+    "items": [
+      { "title": "Confirme a admissão e a matrícula", "text": "Consulte o resultado no canal oficial e confirme o prazo e as condições de matrícula. Guarde o comprovativo institucional. Uma candidatura submetida não equivale a matrícula.", "link": { "url": "/ingresso/", "label": "Rever o percurso de ingresso" } },
+      { "title": "Active os acessos institucionais", "text": "Peça instruções para o portal, o e-mail e os recursos de aprendizagem. Use palavras-passe próprias e confirme o endereço antes de iniciar sessão.", "link": { "url": "/login/", "label": "Conhecer o portal demonstrativo" } },
+      { "title": "Organize horários e deslocações", "text": "Confirme o calendário real, o turno, a localização das aulas e eventuais actividades de recepção antes de planear a primeira semana.", "link": { "url": "/calendario/", "label": "Explorar o calendário de exemplo" } }
+    ]
+  },
+  "second": {
+    "headline": ["Encontre o apoio.", "*Crie a sua rotina.*"],
+    "items": [
+      { "title": "Aprender a estudar", "text": "Distribua o estudo ao longo da semana, registe prazos e consulte fontes fiáveis. Na biblioteca, encontra recursos abertos para começar.", "link": { "url": "/biblioteca/", "label": "Explorar recursos de estudo" } },
+      { "title": "Pedir orientação", "text": "Anote dúvidas sobre matrícula, documentos e funcionamento académico. A secretaria pode indicar o serviço responsável por cada questão.", "link": { "url": "/servicos/secretaria/", "label": "Conhecer a secretaria" } },
+      { "title": "Participar com apoio", "text": "Identifique necessidades de acessibilidade e conciliação com trabalho ou família. Procure orientação cedo e confirme os apoios efectivamente disponíveis.", "link": { "url": "/apoio-ao-estudante/", "label": "Encontrar orientações de apoio" } }
+    ]
+  },
+  "inlineCta": {
+    "text": "Para familiares e pessoas de apoio: ajudem a organizar perguntas, respeitando a autonomia e a privacidade do estudante.",
+    "action": { "url": "/contactos/?assunto=Acolhimento", "label": "Preparar questões de acolhimento" }
+  }
+}

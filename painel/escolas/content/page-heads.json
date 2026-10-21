@@ -1,0 +1,218 @@
+{
+  "/cursos/": {
+    "eyebrow": "O SEU FUTURO COMEÇA COM UMA DESCOBERTA",
+    "headline": [
+      "Encontre o curso.",
+      "*Imagine as possibilidades.*"
+    ],
+    "description": "Explore o catálogo, compare percursos e escolha o próximo passo com mais confiança."
+  },
+  "/favoritos/": {
+    "eyebrow": "UM LUGAR PARA AS SUAS DESCOBERTAS",
+    "headline": [
+      "Guarde ideias.",
+      "*Volte às possibilidades.*"
+    ],
+    "description": "Os seus cursos guardados ficam disponíveis neste navegador."
+  },
+  "/comparar/": {
+    "eyebrow": "UMA ESCOLHA COM MAIS PERSPECTIVAS",
+    "headline": [
+      "Lado a lado.",
+      "*Mais fácil de escolher.*"
+    ],
+    "description": "Compare até três cursos e descubra as diferenças que importam para si."
+  },
+  "/ingresso/": {
+    "eyebrow": "O SEU PRIMEIRO PASSO",
+    "headline": [
+      "Uma nova jornada.",
+      "*Comece com confiança.*"
+    ],
+    "description": "Conheça o percurso de candidatura e prepare as perguntas certas para dar o próximo passo."
+  },
+  "/candidatura/": {
+    "eyebrow": "O PRÓXIMO CAPÍTULO É SEU",
+    "headline": [
+      "O seu caminho",
+      "*começa com uma escolha.*"
+    ],
+    "description": "Explore a candidatura em três etapas. Pode guardar um rascunho e continuar neste navegador."
+  },
+  "/candidaturas/": {
+    "eyebrow": "CADA PASSO, NO SEU LUGAR",
+    "headline": [
+      "A sua jornada.",
+      "*Sempre por perto.*"
+    ],
+    "description": "Consulte os rascunhos e as candidaturas demonstrativas guardados neste navegador."
+  },
+  "/sobre/": {
+    "eyebrow": "CONHECIMENTO QUE APROXIMA FUTUROS",
+    "headline": [
+      "Uma nova perspectiva.",
+      "*Muitas possibilidades.*"
+    ],
+    "description": "{{SCHOOL}} · {{COUNTRY}}. Uma experiência digital pensada para aproximar formação, pessoas e conhecimento."
+  },
+  "/vida-academica/": {
+    "eyebrow": "APRENDER TAMBÉM É PERTENCER",
+    "headline": [
+      "O campus é feito",
+      "*de encontros.*"
+    ],
+    "description": "Trocas, projectos, perguntas e descobertas. Explore possibilidades para enriquecer a sua experiência."
+  },
+  "/campus/": {
+    "eyebrow": "ESPAÇOS PARA PENSAR ALÉM",
+    "headline": [
+      "Onde as ideias",
+      "*encontram espaço.*"
+    ],
+    "description": "Uma visão ilustrativa de ambientes para aprender, partilhar e construir."
+  },
+  "/servicos/": {
+    "eyebrow": "O APOIO CERTO, NO MOMENTO CERTO",
+    "headline": [
+      "Mais simples.",
+      "*Mais perto de si.*"
+    ],
+    "description": "Encontre orientações, recursos e caminhos para a sua experiência académica."
+  },
+  "/biblioteca/": {
+    "eyebrow": "CURIOSIDADE SEM FRONTEIRAS",
+    "headline": [
+      "O conhecimento",
+      "*está à sua espera.*"
+    ],
+    "description": "Descubra fontes abertas e ferramentas para pesquisar, ler e aprender."
+  },
+  "/eventos/": {
+    "eyebrow": "ENCONTROS QUE ABREM PERSPECTIVAS",
+    "headline": [
+      "Uma ideia.",
+      "*Um novo encontro.*"
+    ],
+    "description": "Explore uma agenda de exemplo e experimente guardar actividades no seu calendário."
+  },
+  "/calendario/": {
+    "eyebrow": "ENCONTROS QUE ABREM PERSPECTIVAS",
+    "headline": [
+      "O seu tempo.",
+      "*Novas possibilidades.*"
+    ],
+    "description": "Explore uma agenda de exemplo e experimente guardar actividades no seu calendário."
+  },
+  "/noticias/": {
+    "eyebrow": "IDEIAS PARA LEVAR CONSIGO",
+    "headline": [
+      "Uma nova leitura.",
+      "*Uma nova perspectiva.*"
+    ],
+    "description": "Orientações, histórias e ideias para a sua jornada académica. Conteúdo editorial demonstrativo."
+  },
+  "/ajuda/": {
+    "eyebrow": "COMO PODEMOS AJUDAR?",
+    "headline": [
+      "Boas perguntas.",
+      "*Respostas claras.*"
+    ],
+    "description": "Encontre orientações sobre cursos, candidaturas e a experiência do portal."
+  },
+  "/contactos/": {
+    "eyebrow": "UMA CONVERSA PODE ABRIR CAMINHOS",
+    "headline": [
+      "Vamos encontrar",
+      "*o próximo passo.*"
+    ],
+    "description": "Organize a sua questão para a instituição. Nesta prévia, pode preparar e descarregar uma mensagem."
+  },
+  "/pesquisa/": {
+    "eyebrow": "ENCONTRE UM NOVO CAMINHO",
+    "headline": [
+      "O que procura",
+      "*está mais perto.*"
+    ],
+    "description": "Pesquise cursos, orientações e serviços num só lugar."
+  },
+  "/privacidade/": {
+    "eyebrow": "CLAREZA SOBRE OS SEUS DADOS",
+    "headline": [
+      "A sua informação.",
+      "*Com transparência.*"
+    ],
+    "description": "Saiba como funciona o tratamento de dados nesta versão demonstrativa."
+  },
+  "/acessibilidade/": {
+    "eyebrow": "UMA EXPERIÊNCIA PARA MAIS PESSOAS",
+    "headline": [
+      "Acesso claro.",
+      "*Participação com autonomia.*"
+    ],
+    "description": "Recursos para navegar e explorar esta experiência."
+  },
+  "/sobre-o-projecto/": {
+    "eyebrow": "UMA PRÉVIA PARA EXPLORAR",
+    "headline": [
+      "{{SCHOOL}}.",
+      "*Uma experiência em construção.*"
+    ],
+    "description": "Um website demonstrativo para o {{SCHOOL}}, em {{COUNTRY}}, com conteúdo e jornadas para validação."
+  },
+  "/mapa-do-site/": {
+    "eyebrow": "TODOS OS CAMINHOS",
+    "headline": [
+      "Encontre o seu",
+      "*próximo destino.*"
+    ],
+    "description": "Explore as páginas e os serviços desta experiência."
+  },
+  "/404/": {
+    "eyebrow": "UM NOVO CAMINHO À SUA ESPERA",
+    "headline": [
+      "Esta página tomou",
+      "*outro rumo.*"
+    ],
+    "description": "O endereço que procura não foi encontrado. Continue a explorar a experiência."
+  },
+  "/escolher-curso/": {
+    "eyebrow": "UMA ESCOLHA COM MAIS CONTEXTO",
+    "headline": [
+      "O seu interesse.",
+      "*O seu próximo caminho.*"
+    ],
+    "description": "Compare o que quer aprender com a rotina que consegue construir. Use estas perguntas para explorar possibilidades, ao seu ritmo."
+  },
+  "/planear-custos/": {
+    "eyebrow": "UMA ESTIMATIVA FEITA POR SI",
+    "headline": [
+      "Planeie os estudos.",
+      "*Cuide do seu orçamento.*"
+    ],
+    "description": "Organize os custos da formação e da sua rotina em {{CURRENCY_NAME}}. Introduza os valores que pretende considerar e escolha o período."
+  },
+  "/preparar-candidatura/": {
+    "eyebrow": "UM PASSO DE CADA VEZ",
+    "headline": [
+      "Mais organização.",
+      "*Mais confiança.*"
+    ],
+    "description": "Prepare as perguntas e decisões que antecedem uma candidatura. Esta lista pessoal não substitui o edital nem valida requisitos."
+  },
+  "/percursos-de-ingresso/": {
+    "eyebrow": "CADA PERCURSO TEM O SEU PONTO DE PARTIDA",
+    "headline": [
+      "Traga a sua experiência.",
+      "*Esclareça o caminho.*"
+    ],
+    "description": "Orientações para quem já estudou no ensino superior ou obteve habilitações noutro país."
+  },
+  "/novos-estudantes/": {
+    "eyebrow": "UM NOVO COMEÇO, COM ORIENTAÇÃO",
+    "headline": [
+      "O primeiro dia.",
+      "*E tudo o que vem depois.*"
+    ],
+    "description": "Um guia de preparação para a transição para o ensino superior, desde a confirmação da admissão à organização da primeira semana."
+  }
+}

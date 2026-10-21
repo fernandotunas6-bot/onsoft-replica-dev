@@ -1,0 +1,9 @@
+{
+  "title": "O meu horário",
+  "info": "Horário semanal ilustrativo. Para consultar aulas reais, utilize os canais académicos oficiais.",
+  "panel": { "title": "Semana de exemplo", "grid": "Semana", "list": "Lista" },
+  "timeColumn": "Horário",
+  "days": ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"],
+  "empty": "—",
+  "listNote": "Exemplo"
+}

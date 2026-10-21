@@ -1,0 +1,16 @@
+{
+  "title": "Central de ajuda",
+  "crumb": "Central de ajuda",
+  "aside": {
+    "title": "Encontre o que precisa.",
+    "text": "Pesquise uma palavra nas perguntas frequentes.",
+    "placeholder": "Ex.: candidatura",
+    "searchLabel": "Pesquisar perguntas"
+  },
+  "help": {
+    "title": "Ainda tem dúvidas?",
+    "text": "Prepare uma mensagem com a sua questão.",
+    "link": { "url": "/contactos/", "label": "Ir para contactos" }
+  },
+  "empty": "Nenhuma resposta encontrada. Experimente outra palavra."
+}

@@ -1,0 +1,23 @@
+{
+  "title": "O meu perfil",
+  "profile": {
+    "initials": "JE",
+    "name": "Joana Exemplo",
+    "course": "Engenharia Informática · 1.º ano",
+    "status": "Perfil fictício de demonstração"
+  },
+  "preferences": {
+    "title": "Preferências neste navegador",
+    "nameLabel": "Como prefere ser tratado na demonstração?",
+    "namePlaceholder": "Joana",
+    "motionLabel": "Reduzir animações neste navegador",
+    "submit": "Guardar preferências"
+  },
+  "data": {
+    "title": "Os seus dados locais",
+    "text": "Favoritos, comparações, rascunhos, candidaturas demonstrativas e pedidos ficam apenas neste dispositivo. Não são sincronizados com uma conta.",
+    "export": "Exportar dados locais",
+    "clear": "Apagar dados da demonstração",
+    "link": { "url": "/privacidade/", "label": "Como são tratados os dados" }
+  }
+}

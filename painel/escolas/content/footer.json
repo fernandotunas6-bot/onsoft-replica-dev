@@ -1,0 +1,113 @@
+{
+  "tagline": [
+    "Conhecimento que aproxima.",
+    "Possibilidades que transformam."
+  ],
+  "locale": "{{COUNTRY}} · Ensino superior",
+  "columns": [
+    {
+      "title": "Encontre o seu caminho",
+      "links": [
+        {
+          "url": "/cursos/",
+          "label": "Cursos"
+        },
+        {
+          "url": "/ingresso/",
+          "label": "Formas de ingresso"
+        },
+        {
+          "url": "/bolsas/",
+          "label": "Bolsas e apoios"
+        },
+        {
+          "url": "/candidatura/",
+          "label": "Candidatura"
+        },
+        {
+          "url": "/preparar-candidatura/",
+          "label": "Preparar a candidatura"
+        }
+      ]
+    },
+    {
+      "title": "Viva o {{SCHOOL}}",
+      "links": [
+        {
+          "url": "/sobre/",
+          "label": "A instituição"
+        },
+        {
+          "url": "/vida-academica/",
+          "label": "Vida académica"
+        },
+        {
+          "url": "/novos-estudantes/",
+          "label": "Novos estudantes"
+        },
+        {
+          "url": "/investigacao/",
+          "label": "Investigação e extensão"
+        },
+        {
+          "url": "/noticias/",
+          "label": "Notícias e histórias"
+        },
+        {
+          "url": "/eventos/",
+          "label": "Eventos"
+        }
+      ]
+    },
+    {
+      "title": "Estamos por perto",
+      "links": [
+        {
+          "url": "/servicos/",
+          "label": "Serviços académicos"
+        },
+        {
+          "url": "/login/",
+          "label": "Portal académico"
+        },
+        {
+          "url": "/biblioteca/",
+          "label": "Biblioteca"
+        },
+        {
+          "url": "/ajuda/",
+          "label": "Central de ajuda"
+        },
+        {
+          "url": "/contactos/",
+          "label": "Contactos"
+        }
+      ]
+    }
+  ],
+  "copyright": "{{SCHOOL}}",
+  "legal": [
+    {
+      "url": "/privacidade/",
+      "label": "Privacidade"
+    },
+    {
+      "url": "/acessibilidade/",
+      "label": "Acessibilidade"
+    },
+    {
+      "url": "/mapa-do-site/",
+      "label": "Mapa do site"
+    },
+    {
+      "url": "/sobre-o-projecto/",
+      "label": "Sobre o projecto",
+      "demo": true
+    }
+  ],
+  "backToTop": "Voltar ao topo",
+  "demo": {
+    "notice": "Versão demonstrativa do {{SCHOOL}}. Cursos, imagens, eventos e dados académicos ilustrativos. As candidaturas e os pedidos desta prévia não são enviados à instituição.",
+    "copyright": "{{SCHOOL}} · Prévia de website"
+  }
+}

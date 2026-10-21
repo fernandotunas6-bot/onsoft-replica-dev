@@ -26,7 +26,7 @@ for(const [index,event] of events.entries()){
   assert(text.includes('DTSTART:'+expected[index][0]+'\r\n'));
   assert(text.includes('DTEND:'+expected[index][1]+'\r\n'));
   assert(text.includes('SUMMARY:[DEMONSTRAÇÃO] '));
-  assert(text.includes('UID:'+event.id+'-demo-2026@ispab.example\r\n'));
+  assert(text.includes('UID:'+event.id+'-demo-2026@escola.example\r\n'));
   for(const line of exported.split('\r\n'))assert(Buffer.byteLength(line,'utf8')<=75);
 }
 console.log('Calendar checks passed: WAT, midnight/year boundaries, UTF-8 folding, escaping and sample events.');

@@ -1,0 +1,38 @@
+{
+  "title": "Visão geral",
+  "welcome": {
+    "eyebrow": "CADA DIA, UMA NOVA POSSIBILIDADE.",
+    "greeting": "Olá, Joana",
+    "question": "Vamos mais longe?",
+    "text": "A sua jornada académica, organizada num só lugar.",
+    "action": { "url": "/portal/disciplinas/", "label": "Ver as minhas disciplinas" },
+    "note": ["O próximo passo", "**começa consigo.**"]
+  },
+  "stats": [
+    { "icon": "▤", "value": "4", "label": "Disciplinas de exemplo", "color": "blue" },
+    { "icon": "▥", "value": "15,5 / 20", "label": "Média ilustrativa", "color": "purple" },
+    { "icon": "◷", "value": "8 h", "label": "Aulas semanais de exemplo", "color": "lime" },
+    { "icon": "↗", "value": "0", "label": "Candidaturas locais", "color": "sand" }
+  ],
+  "week": {
+    "title": "A sua semana",
+    "link": { "url": "/portal/horarios/", "label": "Ver horário", "external": true },
+    "days": ["SEG", "TER", "QUA"],
+    "note": "Horário ilustrativo"
+  },
+  "quick": {
+    "title": "Acessos rápidos",
+    "items": [
+      { "url": "/portal/notas/", "icon": "▥", "label": "Notas e frequência" },
+      { "url": "/portal/documentos/", "icon": "▧", "label": "Documentos" },
+      { "url": "/portal/pedidos/", "icon": "⊕", "label": "Requerimentos" },
+      { "url": "/candidatura/", "icon": "↗", "label": "Nova candidatura" }
+    ]
+  },
+  "radar": {
+    "title": "No radar da comunidade",
+    "link": { "url": "/eventos/", "label": "Ver agenda", "external": true },
+    "note": "Evento demonstrativo",
+    "saveLabel": "Guardar {{EVENT}}"
+  }
+}

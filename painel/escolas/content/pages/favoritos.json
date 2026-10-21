@@ -1,0 +1,10 @@
+{
+  "title": "Os meus cursos favoritos",
+  "crumb": "Favoritos",
+  "empty": {
+    "icon": "♡",
+    "title": "O seu próximo favorito está por descobrir.",
+    "text": "Toque no coração de um curso para o guardar aqui.",
+    "action": { "url": "/cursos/", "label": "Explorar cursos" }
+  }
+}

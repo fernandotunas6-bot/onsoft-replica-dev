@@ -18,9 +18,58 @@ A prévia está em `http://127.0.0.1:4174`. Publique `dist/` no host estático e
 
 ## Configuração por cliente
 
-`school.config.json` contém o identificador local, o nome curto e o país. O nome/país são aplicados ao gerar o website; o identificador separa o armazenamento demonstrativo de cada escola. O idioma e os conteúdos pedagógicos continuam a precisar de revisão para cada instituição.
+`school.config.json` contém o identificador local, o nome curto, o país, o idioma, o símbolo da moeda e o nome da moeda (`currencyName`, usado no corpo das frases; por omissão é o próprio símbolo). O nome/país são aplicados ao gerar o website; o identificador separa o armazenamento demonstrativo de cada escola. O idioma e os conteúdos pedagógicos continuam a precisar de revisão para cada instituição.
+
+Os textos, rótulos e ligações do site estão em `content/` — navegação, cabeçalho, rodapé e os blocos repetidos em todas as páginas. São ficheiros JSON validados no build: uma chave em falta é um erro com o caminho no JSON, e o conteúdo é sempre escapado. Ver `content/README.md`.
+
+### Cores
+
+`palette`, em `school.config.json`, muda os tokens de cor do site:
+
+```json
+"palette": { "blue": "#1a7f4b", "deep": "#0d2a1b" }
+```
+
+Os tokens são `blue` (cor de marca: botões, ligações, ênfase dos títulos,
+pontos), `deep` (títulos), `text`, `muted`, `line`, `soft` e `lime`. Só é
+preciso nomear os que mudam; o build acrescenta um `:root` no fim do CSS com
+esses e a `<meta name="theme-color">` segue o `blue`. Sem `palette`, o CSS sai
+tal como está.
+
+Com `blue` configurado, o build roda a **família de azuis do CSS inteiro** para
+a cor da escola: mesma luminosidade, mesma relação entre tons, outro matiz.
+Isto apanha as cerca de 600 cores escritas à mão — incluindo o gradiente do
+`.button` em `polish.css`, que se sobrepunha ao `var(--blue)` e mantinha o
+botão principal azul numa escola verde. O lima do desenho e as cores dos
+cartões de área (roxo, areia) ficam como estão, por estarem fora da família.
+
+Sem `palette`, o CSS sai byte a byte igual ao de origem.
 
 `portalUrl`, quando configurado com o endereço HTTPS oficial da escola, faz o botão de acesso usar o SIGA Plus existente. Não cria um login nem duplica notas, finanças ou sessões. O perfil local do portal continua explicitamente demonstrativo.
+
+## Publicar sem a demonstração
+
+O site nasce em modo de demonstração: avisa em cada página que a oferta é
+ilustrativa e que as candidaturas não são enviadas. `"demo": false` em
+`school.config.json` desliga isso — e o build só o aceita quando o que o site
+deixa de avisar passa a ser verdade:
+
+| O build exige | Porquê |
+| --- | --- |
+| `api` (`origin` + `campaignSlug`) | Sem destino, o formulário não envia nada. Com ele, a candidatura vai para o SIGA e devolve o número oficial `CAND-…`. |
+| `portalUrl` | Sem ele, o acesso ao portal apontaria para a demonstração. |
+| `catalogue.source` em `src/data.mjs` diferente de `"exemplo"` | Os 18 cursos, os artigos e os eventos de exemplo não podem ser publicados como a oferta de uma escola. |
+| `privacidade`, `acessibilidade` e `candidatura` sem `"demo": true` | Fazem afirmações legais — política de dados, conformidade, consentimento — que só a instituição pode escrever. |
+
+Com isso, o site deixa de publicar as nove páginas do portal demonstrativo e a
+página «Sobre o projecto», e desaparecem os avisos, as etiquetas («LEITURA
+DEMONSTRATIVA», «Curso demonstrativo») e a barra «Prévia institucional». O
+formulário de candidatura passa a carregar os cursos da campanha real e a
+enviar para a API; em caso de falha mostra a mensagem correspondente e não dá
+a candidatura por submetida.
+
+Antes de publicar, confirme a origem na allowlist do SIGA
+(`SIGA_SCHOOL_WEBSITE_ORIGINS`): sem ela, o POST é recusado por CORS.
 
 ## Integração de API incluída
 

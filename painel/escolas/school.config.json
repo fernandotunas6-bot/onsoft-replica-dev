@@ -2,5 +2,8 @@
   "id": "ispab",
   "shortName": "ISPAB",
   "country": "Angola",
+  "lang": "pt-AO",
+  "currency": "Kz",
+  "currencyName": "kwanzas",
   "portalUrl": ""
 }

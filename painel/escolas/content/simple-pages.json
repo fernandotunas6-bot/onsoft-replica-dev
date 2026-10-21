@@ -1,0 +1,170 @@
+{
+  "inlineCta": "Transforme a informação no seu próximo passo.",
+  "pages": [
+    {
+      "url": "/servicos/secretaria/",
+      "title": "Secretaria académica",
+      "eyebrow": "ORIENTAÇÃO PARA O SEU PERCURSO",
+      "headline": [
+        "Cada etapa,",
+        "*bem acompanhada.*"
+      ],
+      "description": "Encontre orientações para preparar pedidos e acompanhar a sua jornada académica.",
+      "sectionTitle": "O que pode organizar.",
+      "items": [
+        {
+          "title": "Declarações e comprovativos",
+          "text": "Confirme com a instituição os tipos de documentos disponíveis, os critérios de emissão e os prazos aplicáveis."
+        },
+        {
+          "title": "Matrícula e percurso",
+          "text": "Reúna as dúvidas sobre inscrição, renovação de matrícula, mudança de turno e equivalências."
+        },
+        {
+          "title": "Requerimentos",
+          "text": "Experimente um pedido demonstrativo e acompanhe o seu registo local no portal."
+        }
+      ],
+      "action": {
+        "url": "/contactos/?assunto=Servi%C3%A7os%20acad%C3%A9micos",
+        "label": "Preparar um pedido"
+      },
+      "demo": {
+        "action": {
+          "url": "/portal/pedidos/",
+          "label": "Explorar requerimentos"
+        }
+      }
+    },
+    {
+      "url": "/apoio-ao-estudante/",
+      "title": "Apoio ao estudante",
+      "eyebrow": "NINGUÉM APRENDE SOZINHO",
+      "headline": [
+        "Há sempre espaço",
+        "*para pedir apoio.*"
+      ],
+      "description": "Uma experiência académica mais acolhedora começa por saber onde procurar orientação.",
+      "sectionTitle": "Encontre o seu ponto de apoio.",
+      "items": [
+        {
+          "title": "Orientação académica",
+          "text": "Organize as suas dúvidas sobre o percurso, a rotina de estudo e os próximos passos. A secretaria pode indicar o canal institucional adequado."
+        },
+        {
+          "title": "Acessibilidade e inclusão",
+          "text": "Identifique barreiras de acesso, necessidades de adaptação e recursos que apoiam a participação. As medidas disponíveis devem ser confirmadas com a instituição."
+        },
+        {
+          "title": "Rotina e bem-estar",
+          "text": "Reserve tempo para descanso, alimentação e relações de apoio. Se precisar de acompanhamento especializado, procure um serviço de saúde qualificado."
+        }
+      ],
+      "action": {
+        "url": "/contactos/?assunto=Apoio%20ao%20estudante",
+        "label": "Preparar uma mensagem"
+      }
+    },
+    {
+      "url": "/carreiras/",
+      "title": "Carreiras e estágios",
+      "eyebrow": "O CONHECIMENTO ENCONTRA O MUNDO",
+      "headline": [
+        "O próximo passo",
+        "*também se prepara.*"
+      ],
+      "description": "Ideias práticas para explorar áreas de actuação e desenvolver a sua apresentação profissional.",
+      "sectionTitle": "Prepare o seu caminho.",
+      "items": [
+        {
+          "title": "Construa o seu CV",
+          "text": "Organize formação, competências e projectos com exemplos concretos. Adapte o currículo ao objectivo e mantenha as informações claras e actualizadas."
+        },
+        {
+          "title": "Dê visibilidade aos projectos",
+          "text": "Um portefólio pode reunir trabalhos de estudo, iniciativas e desafios que ajudaram a desenvolver competências. Peça autorização antes de expor trabalhos de terceiros."
+        },
+        {
+          "title": "Conheça a área",
+          "text": "Pesquise organizações, converse com profissionais e confirme a legitimidade das oportunidades. Esta prévia não publica vagas ou estágios oficiais."
+        }
+      ],
+      "action": {
+        "url": "/cursos/",
+        "label": "Explorar percursos de formação"
+      }
+    },
+    {
+      "url": "/investigacao/",
+      "title": "Investigação e extensão",
+      "eyebrow": "PERGUNTAS QUE ABREM CAMINHOS",
+      "headline": [
+        "Conhecimento em diálogo",
+        "*com a sociedade.*"
+      ],
+      "description": "Uma visão de ensino superior que aproxima perguntas, investigação e desafios da comunidade.",
+      "sectionTitle": "Explore possibilidades.",
+      "items": [
+        {
+          "title": "Iniciação à investigação",
+          "text": "Aprenda a formular perguntas, analisar fontes e organizar uma investigação com rigor e responsabilidade."
+        },
+        {
+          "title": "Projectos interdisciplinares",
+          "text": "Cruze perspectivas de diferentes áreas para compreender melhor um problema e desenvolver soluções fundamentadas."
+        },
+        {
+          "title": "Extensão e comunidade",
+          "text": "Explore como o conhecimento pode dialogar com necessidades locais. Projectos e parcerias reais serão apresentados após validação institucional."
+        }
+      ],
+      "action": {
+        "url": "/biblioteca/",
+        "label": "Encontrar referências abertas"
+      }
+    },
+    {
+      "url": "/bolsas/",
+      "title": "Bolsas e apoios",
+      "eyebrow": "PLANEIE O SEU FUTURO",
+      "headline": [
+        "Mais informação.",
+        "*Melhores decisões.*"
+      ],
+      "description": "Saiba que perguntas fazer ao explorar bolsas, apoios e condições de acesso à formação.",
+      "sectionTitle": "O que confirmar antes de avançar.",
+      "items": [
+        {
+          "title": "Critérios e elegibilidade",
+          "text": "Consulte o regulamento oficial do apoio: quem pode candidatar-se, documentos exigidos, compatibilidades e critérios de selecção."
+        },
+        {
+          "title": "Calendário e condições",
+          "text": "Confirme as datas, os montantes, as responsabilidades, a duração e as condições de manutenção do apoio."
+        },
+        {
+          "title": "Canais oficiais",
+          "text": "Em {{COUNTRY}}, pode consultar informação pública no INAGBE. A existência de uma bolsa para o {{SCHOOL}} ou para um curso específico precisa de confirmação."
+        }
+      ],
+      "action": {
+        "url": "/contactos/?assunto=Bolsas%20e%20apoios",
+        "label": "Preparar pedido de informação"
+      },
+      "resources": {
+        "secondary": {
+          "url": "/planear-custos/",
+          "label": "Planear os meus custos"
+        },
+        "prefix": "Recurso externo:",
+        "links": [
+          {
+            "url": "https://www.inagbe.gov.ao/",
+            "label": "INAGBE — Instituto Nacional de Gestão de Bolsas de Estudo"
+          }
+        ],
+        "notice": "Não há bolsas, descontos ou condições financeiras anunciados pelo {{SCHOOL}} nesta prévia."
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "title": "Requerimentos e pedidos",
+  "info": "Crie e acompanhe pedidos demonstrativos neste navegador. Nenhum pedido é enviado ao {{SCHOOL}}.",
+  "form": {
+    "title": "Um novo pedido.",
+    "text": "Experimente organizar uma questão para os serviços académicos.",
+    "type": {
+      "label": "Tipo de pedido",
+      "placeholder": "Seleccione",
+      "options": [
+        "Informação académica",
+        "Declaração de matrícula",
+        "Consulta de equivalências",
+        "Apoio ao estudante",
+        "Outro pedido"
+      ]
+    },
+    "description": { "label": "Descrição", "placeholder": "Use informação fictícia nesta demonstração." },
+    "submit": "Guardar pedido demonstrativo"
+  },
+  "list": { "title": "Os meus pedidos locais", "icon": "◷" }
+}

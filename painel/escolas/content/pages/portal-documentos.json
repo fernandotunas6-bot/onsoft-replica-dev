@@ -1,0 +1,17 @@
+{
+  "title": "Documentos e comprovativos",
+  "info": "Apenas modelos de consulta. Os ficheiros descarregados são claramente marcados como exemplos sem validade académica.",
+  "icon": "▧",
+  "status": "Modelo sem validade",
+  "download": "Descarregar exemplo",
+  "cards": [
+    { "id": "percurso", "title": "Resumo do percurso", "text": "Dados académicos demonstrativos organizados num ficheiro de texto." },
+    { "id": "notas", "title": "Resumo de notas", "text": "Um exemplo de consulta para conhecer a estrutura do portal." },
+    { "id": "candidaturas", "title": "As minhas candidaturas locais", "text": "Exporte os registos da demonstração guardados neste navegador." }
+  ],
+  "official": {
+    "title": "Precisa de um documento oficial?",
+    "text": "A emissão real depende da secretaria académica, dos requisitos e dos procedimentos institucionais.",
+    "link": { "url": "/servicos/secretaria/", "label": "Consultar orientações da secretaria" }
+  }
+}
