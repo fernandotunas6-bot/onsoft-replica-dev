@@ -37,7 +37,9 @@ it("inventaria commits, conflitos e PRs sem mudar branches ou alterações locai
   const clean = commit("new.txt", "Independent work");
   git("update-ref", "refs/remotes/origin/feature/clean", clean);
   git("checkout", "main");
-  const base = commit("shared.txt", "Main work");
+  commit("shared.txt", "Main work");
+  git("cherry-pick", clean);
+  const base = git("rev-parse", "HEAD");
   git("update-ref", "refs/remotes/origin/main", base);
   git("update-ref", "refs/remotes/origin/included", initial);
   writeFileSync(join(root, "unsaved.txt"), "Do not commit or discard this");
@@ -76,6 +78,7 @@ it("inventaria commits, conflitos e PRs sem mudar branches ou alterações locai
     claudeBranches: 1,
     dirtyWorktrees: 1,
     prsWithUncapturedHead: 1,
+    withoutUniqueNonMergePatch: 1,
   });
   expect(
     data.branches.find((branch: { name: string }) => branch.name === "claude/conflict"),
@@ -88,7 +91,13 @@ it("inventaria commits, conflitos e PRs sem mudar branches ou alterações locai
   });
   expect(
     data.branches.find((branch: { name: string }) => branch.name === "feature/clean"),
-  ).toMatchObject({ sha: clean, changedFiles: ["new.txt"], mergeToBase: "clean-tree-only" });
+  ).toMatchObject({
+    sha: clean,
+    changedFiles: ["new.txt"],
+    mergeToBase: "clean-tree-only",
+    patchUniqueCommits: 0,
+    patchEquivalentCommits: 1,
+  });
   expect(inventoryMarkdown(data)).toContain("CI FAILURE");
   expect(inventoryMarkdown(data)).toContain("rascunho");
   expect(data.pullRequests.find((pr: { number: number }) => pr.number === 11)).toMatchObject({
