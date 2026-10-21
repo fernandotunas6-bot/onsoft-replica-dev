@@ -132,14 +132,69 @@ Dois ficheiros a notar na raiz:
   **não** rastreado (`.gitignore:79`). O `firebase-applet-config.json` esse é
   rastreado, mas só contém configuração pública de cliente Firebase.
 
+## App desktop: continua sem actualização automática
+
+Quatro releases publicadas, a última **v1.2.2 a 10/10** (11 dias). Os ficheiros
+da v1.2.2 incluem o `SIGA.Desktop_universal.app.tar.gz`, que é o artefacto que
+o updater do Tauri consome — mas **não há um único ficheiro `.sig`**. Sem
+assinatura o updater recusa o pacote, pelo que cada versão continua a ser uma
+reinstalação à mão para quem já tem a app.
+
+## PayFlow: esquema completo, base vazia
+
+O D1 `siga-payflow` tem **16 tabelas** e 6 migrações aplicadas. O campo
+`num_tables` da API da Cloudflare diz `0` — mente, como já tinha mentido antes;
+só a consulta directa ao `sqlite_master` serve.
+
+Mas todas as contagens são zero: 0 escolas, 0 alunos, 0 pagamentos, 0 eventos,
+0 facturas, 0 transacções EMIS, 0 comprovativos de transferência. A camada de
+pagamentos está publicada e nunca processou nada.
+
+O `siga-yft-db` tem igualmente 16 tabelas (`Students`, `Enrollments`,
+`Transactions`, `Notices`, …), do sistema de estudo YFT.
+
+## Trabalho recente sem PR: cerca de 267 ficheiros invisíveis
+
+São 70 ramos remotos; **8 não têm PR nenhum**. Três deles têm trabalho de
+funcionalidade recente e substancial.
+
+Medido por conteúdo contra a main, não pelo ponto de divergência — a main funde
+por squash, pelo que o diff de três pontos sozinho sobre-estima:
+
+| Ramo | Difere da main | Último commit | Assunto |
+|---|---|---|---|
+| `ccr-b4b58ce3-7k7ae1` | 128 ficheiros | 18/10 | Estudo YFT (94), `mobile-flutter` e CI do Flutter |
+| `ccr-680ee371-6vebkz` | 95 ficheiros | 18/10 | Nº de aluno em arquivos, listas e impressão; cobranças AppyPay; reconciliação da portaria (61 em `src/features`) |
+| `claude/ecstatic-shannon-wek2yt` | 44 ficheiros | 19/10 | Cobrança configurável, assinaturas no ADMIN, configuração inicial da escola nova (`painel/admin` e `painel/web`) |
+| `ccr-1cb32a3f-afnzyp` | 24 ficheiros | 07/10 | — |
+| `claude/sharp-volta-npr0aj` | 13 de 14 | 30/09 | parcialmente fundido |
+| `ccr-06c00242-8oyfbz` | 68 de 78 | 30/09 | parcialmente fundido |
+| `audit/timetable-enrollment-2026-10-10` | 3 ficheiros | 10/10 | — |
+| `report` | 1 ficheiro | 10/08 | — |
+
+Os dois casos em que o número desce (78→68, 14→13) são a prova de que a medição
+por conteúdo funciona: parte já entrou na main por squash. Nos três ramos
+grandes não desce nada — o trabalho nunca foi fundido e ninguém o está a rever.
+
+Ressalva honesta: «difere da main» não garante que os 128 ficheiros sejam todos
+trabalho novo e aproveitável. Um ramo velho difere também por a main ter
+avançado. O que está estabelecido é que não foi fundido; se vale a pena
+recuperar decide-se ramo a ramo.
+
 ## Por onde pegar
 
 1. **Rotação do token da Cloudflare.** Nada mais importa até isto: 9 dias de
    trabalho fundido estão parados à porta. Precisa do dono da conta.
-2. **Semear o conteúdo dos websites escolares** (`web_school_showcase`,
+2. **Abrir PR para os três ramos grandes** (`ccr-b4b58ce3-7k7ae1`,
+   `ccr-680ee371-6vebkz`, `claude/ecstatic-shannon-wek2yt`) ou arquivá-los por
+   decisão explícita. Enquanto ficam sem PR, não são revistos nem fundidos, e
+   envelhecem contra uma main que avança.
+3. **Semear o conteúdo dos websites escolares** (`web_school_showcase`,
    `web_blog_posts`) e dar um CNAME próprio a `ispab.` — ou o 200 do wildcard
    continua a esconder que o site não existe.
-3. **Limpar as 43 escolas de E2E** (precisa de `SIGA_CLEANUP_ALLOW_PRODUCTION=1`;
+4. **Limpar as 43 escolas de E2E** (precisa de `SIGA_CLEANUP_ALLOW_PRODUCTION=1`;
    o dry-run salta o guarda).
-4. Fechar os avisos baratos: protecção de palavras-passe vazadas, e a revisão
+5. **Assinar as releases desktop** (`.sig`), ou a actualização automática
+   continua a não existir.
+6. Fechar os avisos baratos: protecção de palavras-passe vazadas, e a revisão
    dos 18 `SECURITY DEFINER`.
