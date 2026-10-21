@@ -4,9 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const { PGlite } = await import(
-  process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite"
-);
+const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite");
 const db = new PGlite();
 const A = "00000000-0000-0000-0000-00000000000a";
 const B = "00000000-0000-0000-0000-00000000000b";
@@ -63,7 +61,11 @@ try {
     ORDER BY policyname
   `);
   assert.deepEqual(policies, [
-    { policyname: "school_website_drafts_admin_read_guard", permissive: "RESTRICTIVE", cmd: "SELECT" },
+    {
+      policyname: "school_website_drafts_admin_read_guard",
+      permissive: "RESTRICTIVE",
+      cmd: "SELECT",
+    },
     { policyname: "settings_select_member", permissive: "PERMISSIVE", cmd: "SELECT" },
   ]);
 
@@ -100,7 +102,10 @@ try {
   ]);
 
   // Ter papel administrativo sem membership não abre outra escola.
-  assert.deepEqual(await visibleFor("authenticated", "00000000-0000-0000-0000-00000000000c", true), []);
+  assert.deepEqual(
+    await visibleFor("authenticated", "00000000-0000-0000-0000-00000000000c", true),
+    [],
+  );
 
   // Nenhuma política permissiva publica dados para anon.
   assert.deepEqual(await visibleFor("anon", A, true), []);
