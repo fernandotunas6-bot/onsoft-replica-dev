@@ -245,5 +245,6 @@ setupFieldFeedback?.(contactForm);
 await Promise.allSettled([
   /^ispab(?:\s*\(demonstração\))?$/i.test(institution)?import('./brand-wordmark.mjs').then(module=>module.setupInstitutionWordmark({schoolName:institution})):Promise.resolve(),
   $('#hero-search-q')?import('./course-discovery.mjs').then(module=>module.setupCourseDiscovery(courses)):Promise.resolve(),
+  $('.academic-page-head,.course-hero')?import('./academic-pages.mjs').then(module=>{const controller=module.setupAcademicPages({courses});window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})}):Promise.resolve(),
   $('.portal-sidebar')?Promise.resolve():import('./academic-motion.mjs').then(module=>{const controller=module.setupAcademicMotion();window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})})
 ]);

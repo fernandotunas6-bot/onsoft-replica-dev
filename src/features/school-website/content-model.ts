@@ -116,9 +116,9 @@ export function readWebsiteState(value: unknown): WebsiteState {
       published: null,
     };
   const state = stateSchema.parse(value);
-  // This template only adds scoped access controls; all previous field keys/kinds survive.
+  // These additive templates retain every previous field, adding portal controls and page images.
   const upgrade = (content: WebsiteDraft) => {
-    if (content.templateVersion === "2ab6e331ce0e67b8044e")
+    if (["2ab6e331ce0e67b8044e", "5fd4cbb7d43915bde5c6"].includes(content.templateVersion))
       content.templateVersion = websiteTemplate.version;
   };
   upgrade(state.draft);
