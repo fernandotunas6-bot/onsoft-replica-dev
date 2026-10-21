@@ -59,6 +59,27 @@ Exigir revisão manual de `tenant_domains` e do certificado HTTPS do canário an
 5. O módulo é **fail-closed**: no Worker, `SCHOOL_SITES_ENABLED` está ausente ou diferente de `true` por omissão. Só configurar `SCHOOL_SITES_ENABLED=true` **depois** de confirmar a migração RLS, as permissões e o canário. Na ausência da flag, o editor recusa leituras/gravações e a API pública responde como indisponível. Não usar `VITE_` (não expor como flag de cliente).
 6. Depois executar ensaio do website e validar TLS/hostnames; se falhar, não activar a publicação.
 
+### Ensaio de comportamento RLS sem dados reais (21-10-2026)
+
+O workflow `.github/workflows/school-sites-rls.yml` executou com sucesso
+`tests/sql/school-website-draft-read-guard.mjs` usando PostgreSQL/PGlite
+isolado, na execução GitHub Actions `39546047292`.
+
+- Aplicou a migração verdadeira **duas vezes**, sem duplicar políticas.
+- Comprovou que membros comuns da escola A não lêem rascunhos
+  `school_website`, mas mantêm leitura de outros domínios permitidos.
+- Comprovou que o administrador da escola A lê as versões de A, mas não B,
+  e vice-versa, e que nenhuma versão fica legível para `anon`.
+- Simulou a função `private.has_permission` com autorização isolada de teste:
+  **não equivale** a testar a função e os JWT/MFA reais do SGA.
+
+Entre os projectos Supabase ligados só está activo `Sga` (produção);
+outro projecto encontra-se inactivo e não foi identificado como staging.
+Por isso, **não aplicar a migração a produção nem activar
+`SCHOOL_SITES_ENABLED`** antes de validar num staging independente e
+autorizado, com sessões reais de todos os perfis e cópia controlada do esquema,
+sem dados pessoais de alunos.
+
 ## 5. Ensaio v1
 
 1. Admin MFA entra em `/configuracoes/boas-vindas` e segue **Configurar website**.
