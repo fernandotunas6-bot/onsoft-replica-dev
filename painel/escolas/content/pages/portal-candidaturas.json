@@ -1,0 +1,7 @@
+{
+  "title": "As minhas candidaturas",
+  "inlineCta": {
+    "text": "Pronto para explorar um novo percurso?",
+    "action": { "url": "/candidatura/", "label": "Nova candidatura demonstrativa" }
+  }
+}

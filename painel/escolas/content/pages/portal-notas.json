@@ -1,0 +1,14 @@
+{
+  "title": "Notas e frequência",
+  "info": "Notas e presenças fictícias para demonstrar a consulta académica. Não é uma pauta oficial.",
+  "stats": [
+    { "icon": "▥", "value": "15,5 / 20", "label": "Média ilustrativa", "color": "blue" },
+    { "icon": "✓", "value": "91,5%", "label": "Frequência ilustrativa", "color": "lime" },
+    { "icon": "▤", "value": "4", "label": "Disciplinas no exemplo", "color": "purple" }
+  ],
+  "panel": { "title": "Desempenho por disciplina", "export": "Exportar exemplo" },
+  "columns": ["Disciplina", "Nota de exemplo", "Frequência", "Registo"],
+  "rowSubtitle": "1.º ano · 1.º semestre",
+  "gradeScale": "/ 20",
+  "rowStatus": "Ilustrativo"
+}

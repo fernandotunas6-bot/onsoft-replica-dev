@@ -1,0 +1,25 @@
+{
+  "title": "Transferências e estudos no estrangeiro",
+  "crumb": "Outros percursos de ingresso",
+  "questions": {
+    "headline": ["O que perguntar *antes de avançar.*"],
+    "items": [
+      { "title": "Transferência de instituição", "text": "Confirme se a via está disponível, para que curso e ano, e quais os prazos. Pergunte se é necessário ter matrícula activa e como são analisadas as unidades curriculares." },
+      { "title": "Reconhecimento de estudos", "text": "Pergunte se serão pedidos histórico de notas, programas das disciplinas ou cargas horárias, e em que formato. A análise de equivalências é distinta da decisão de admissão." },
+      { "title": "Habilitações obtidas no estrangeiro", "text": "Confirme a entidade competente para reconhecimento das habilitações e se são exigidas traduções, autenticações ou outros procedimentos. Evite despesas antes de obter a orientação oficial." }
+    ]
+  },
+  "faq": {
+    "headline": ["Prepare uma conversa *mais esclarecida.*"],
+    "items": [
+      { "question": "Posso assumir que as minhas disciplinas terão equivalência?", "answer": "Não. Peça informação sobre o processo, os critérios, os documentos e eventuais custos. Aguarde a decisão formal antes de reorganizar o seu percurso." },
+      { "question": "E se eu viver fora de {{COUNTRY}}?", "answer": "Pergunte quais as condições de candidatura aplicáveis ao seu caso, se as etapas exigem presença e como obter apoio. Questões migratórias devem ser esclarecidas junto das autoridades competentes; esta prévia não presta esse serviço." },
+      { "question": "Como partilhar documentos com segurança?", "answer": "Confirme primeiro o destinatário e o canal institucional. Esta demonstração não recebe certificados, documentos de identidade ou outros anexos. Não partilhe documentos pessoais por canais não verificados." },
+      { "question": "Quais são os próximos passos?", "answer": "Prepare uma lista das formações e disciplinas concluídas, identifique o curso pretendido e reúna as dúvidas. Contacte a instituição para obter a lista oficial de requisitos antes de submeter qualquer pedido." }
+    ]
+  },
+  "inlineCta": {
+    "text": "Leve as perguntas certas para o seu caso.",
+    "action": { "url": "/contactos/?assunto=Transfer%C3%AAncias%20e%20habilita%C3%A7%C3%B5es", "label": "Preparar uma mensagem" }
+  }
+}

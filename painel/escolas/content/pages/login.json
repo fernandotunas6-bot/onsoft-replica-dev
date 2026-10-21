@@ -1,0 +1,37 @@
+{
+  "title": "Entrar no portal",
+  "crumb": "Acesso ao portal",
+  "story": {
+    "eyebrow": "UM LUGAR PARA A SUA JORNADA",
+    "headline": [
+      "O seu campus.",
+      "*Mais perto de si.*"
+    ],
+    "text": "Disciplinas, horários, candidaturas e serviços. Uma visão organizada da experiência académica.",
+    "photoAlt": "Estudantes a colaborar na biblioteca"
+  },
+  "card": {
+    "icon": "◫",
+    "title": "Bem-vindo ao {{SCHOOL}}.",
+    "text": "A sua conta académica, num só lugar.",
+    "portalLabel": "Entrar no SIGA Plus",
+    "hint": "Utilize a mesma conta do sistema académico. A palavra-passe e a verificação de segurança são tratadas no SIGA Plus.",
+    "status": "O acesso institucional será disponibilizado após configurar o endereço do SIGA Plus.",
+    "separator": "ou explore a experiência",
+    "links": [
+      {
+        "url": "/candidaturas/",
+        "label": "Sou candidato"
+      },
+      {
+        "url": "/ajuda/",
+        "label": "Preciso de ajuda",
+        "external": true
+      }
+    ],
+    "demo": {
+      "note": "O portal contém um perfil fictício e dados académicos de exemplo. As informações oficiais são consultadas no SIGA Plus.",
+      "demoLabel": "Explorar portal demonstrativo"
+    }
+  }
+}

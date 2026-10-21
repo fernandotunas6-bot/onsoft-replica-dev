@@ -1,0 +1,6 @@
+{
+  "events": { "title": "Eventos", "crumb": "Eventos" },
+  "calendar": { "title": "Calendário académico", "crumb": "Calendário" },
+  "month": "Novembro de 2026",
+  "timezone": "Fuso horário de {{COUNTRY}} · WAT (UTC+1)"
+}

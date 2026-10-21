@@ -1,0 +1,35 @@
+{
+  "label": "PORTAL ACADÉMICO",
+  "navLabel": "Menu do portal",
+  "sidebar": {
+    "links": [
+      { "icon": "ⓘ", "url": "/ajuda/", "label": "Central de ajuda", "external": true },
+      { "icon": "↗", "url": "/", "label": "Voltar ao website" }
+    ],
+    "signOut": { "icon": "⇥", "label": "Terminar sessão" }
+  },
+  "profile": {
+    "initials": "JE",
+    "name": "Joana Exemplo",
+    "role": "Perfil demonstrativo",
+    "viewLabel": "Ver perfil"
+  },
+  "header": {
+    "menuLabel": "Abrir menu do portal",
+    "eyebrow": "O SEU ESPAÇO ACADÉMICO",
+    "searchLabel": "Pesquisar",
+    "noticesLabel": "Ver avisos demonstrativos"
+  },
+  "demoStrip": {
+    "icon": "◉",
+    "title": "Modo de demonstração",
+    "text": "Perfil e dados fictícios · Sem ligação ao sistema académico",
+    "link": { "url": "/sobre-o-projecto/", "label": "Saiba mais", "external": true }
+  },
+  "pageEyebrow": "{{SCHOOL}} / PORTAL ACADÉMICO",
+  "semester": "2026 / 2027 · Exemplo",
+  "footer": {
+    "text": "{{SCHOOL}} · Portal demonstrativo",
+    "link": { "url": "/privacidade/", "label": "Dados guardados apenas neste navegador", "external": true }
+  }
+}

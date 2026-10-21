@@ -4,7 +4,7 @@ import path from 'node:path';
 const root=path.resolve('dist');
 const port=Number(process.env.SCHOOL_SITE_PORT||4174);
 if(!Number.isInteger(port)||port<1024||port>65535)throw Error('Porta inválida.');
-const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.jpg':'image/jpeg','.png':'image/png'};
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.jpg':'image/jpeg','.webp':'image/webp','.png':'image/png'};
 http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,'http://localhost');

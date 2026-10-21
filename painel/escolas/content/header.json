@@ -1,0 +1,42 @@
+{
+  "skipLink": "Saltar para o conteúdo",
+  "homeLabel": "{{SCHOOL}}, início",
+  "navLabel": "Navegação principal",
+  "menuLabel": "Abrir navegação",
+  "topline": {
+    "identity": "{{SCHOOL}} · {{COUNTRY}}",
+    "links": [
+      {
+        "url": "/candidaturas/",
+        "label": "Área do candidato"
+      },
+      {
+        "url": "/ajuda/",
+        "label": "Ajuda"
+      },
+      {
+        "url": "/contactos/",
+        "label": "Contactos",
+        "external": true
+      }
+    ],
+    "demo": {
+      "tagline": "Prévia institucional"
+    }
+  },
+  "links": [
+    {
+      "url": "/sobre/",
+      "label": "O {{SCHOOL}}"
+    }
+  ],
+  "search": {
+    "url": "/pesquisa/",
+    "label": "Pesquisar no site"
+  },
+  "portal": {
+    "url": "/login/",
+    "label": "Portal académico",
+    "mobileLabel": "Entrar no portal"
+  }
+}

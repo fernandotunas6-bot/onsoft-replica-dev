@@ -1,0 +1,21 @@
+{
+  "title": "Biblioteca e recursos",
+  "crumb": "Biblioteca",
+  "headline": ["Abra uma nova", "*janela de conhecimento.*"],
+  "text": [
+    "Recursos externos de acesso público.",
+    "A disponibilidade depende de cada plataforma."
+  ],
+  "cardLabel": "Explorar recurso",
+  "resources": [
+    { "icon": "▤", "eyebrow": "Artigos científicos", "title": "DOAJ", "text": "Directório de revistas de acesso aberto em diversas áreas.", "url": "https://doaj.org/" },
+    { "icon": "◎", "eyebrow": "Investigação em acesso aberto", "title": "SciELO", "text": "Biblioteca de publicações científicas, incluindo conteúdos em português.", "url": "https://scielo.org/" },
+    { "icon": "⌘", "eyebrow": "Materiais de aprendizagem", "title": "MIT OpenCourseWare", "text": "Recursos de disciplinas e materiais de estudo disponibilizados pelo MIT.", "url": "https://ocw.mit.edu/" },
+    { "icon": "▥", "eyebrow": "Livros e fundamentos", "title": "OpenStax", "text": "Livros de estudo abertos para explorar conceitos de diferentes áreas.", "url": "https://openstax.org/" }
+  ],
+  "guide": {
+    "title": "Antes de citar, investigue a fonte.",
+    "text": "Verifique autoria, data, método e contexto. Distinga opinião de evidência e consulte as orientações de referência bibliográfica do seu curso.",
+    "link": { "url": "/noticias/organizar-rotina/", "label": "Organizar a rotina de estudo" }
+  }
+}

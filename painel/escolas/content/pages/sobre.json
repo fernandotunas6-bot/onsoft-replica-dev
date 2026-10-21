@@ -1,0 +1,48 @@
+{
+  "title": "Conheça o {{SCHOOL}}",
+  "crumb": "O {{SCHOOL}}",
+  "split": {
+    "photoAlt": "Arquitectura universitária ilustrativa",
+    "photoLabel": [
+      "APRENDER É UM",
+      "MOVIMENTO CONTÍNUO."
+    ],
+    "eyebrow": "UMA EXPERIÊNCIA CENTRADA EM PESSOAS",
+    "headline": [
+      "Do primeiro interesse",
+      "ao *próximo capítulo.*"
+    ],
+    "paragraphs": [
+      "Este website organiza a experiência do {{SCHOOL}} em torno de quem aprende: descobrir uma área, compreender o ingresso, acompanhar o percurso e encontrar serviços.",
+      "A visão combina ensino, investigação e relação com a comunidade. A história institucional, os órgãos de gestão, os reconhecimentos e a oferta oficial serão incorporados após validação."
+    ],
+    "link": {
+      "url": "/sobre-o-projecto/",
+      "label": "Conhecer esta prévia",
+      "demo": true
+    }
+  },
+  "ideas": {
+    "headline": [
+      "Ideias que orientam",
+      "*esta experiência.*"
+    ],
+    "items": [
+      {
+        "icon": "◎",
+        "title": "Pessoas no centro",
+        "text": "Uma navegação clara para estudantes, candidatos, docentes e comunidade."
+      },
+      {
+        "icon": "✳",
+        "title": "Conhecimento em movimento",
+        "text": "Espaço para descobrir, questionar, investigar e construir novas perspectivas."
+      },
+      {
+        "icon": "↗",
+        "title": "Possibilidades de futuro",
+        "text": "Percursos de aprendizagem ligados aos interesses e aos próximos passos de cada pessoa."
+      }
+    ]
+  }
+}

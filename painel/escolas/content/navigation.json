@@ -1,0 +1,179 @@
+{
+  "featureEyebrow": "O SEU PRÓXIMO PASSO",
+  "menus": [
+    {
+      "title": "Estudar",
+      "feature": {
+        "title": "Um futuro com a sua assinatura.",
+        "text": "Explore conhecimentos que combinam com os seus interesses.",
+        "url": "/cursos/",
+        "label": "Descobrir cursos"
+      },
+      "links": [
+        {
+          "url": "/cursos/",
+          "label": "Todos os cursos",
+          "sub": "Encontre a sua área de formação"
+        },
+        {
+          "url": "/cursos/?nivel=Licenciatura",
+          "label": "Licenciaturas",
+          "sub": "Comece a sua jornada académica"
+        },
+        {
+          "url": "/cursos/?nivel=Pós-graduação",
+          "label": "Pós-graduação",
+          "sub": "Aprofunde os seus conhecimentos"
+        },
+        {
+          "url": "/cursos/?nivel=Curso%20de%20curta%20dura%C3%A7%C3%A3o",
+          "label": "Cursos de curta duração",
+          "sub": "Novas competências, novos caminhos"
+        },
+        {
+          "url": "/escolher-curso/",
+          "label": "Como escolher um curso",
+          "sub": "Interesses, rotina e próximos passos"
+        },
+        {
+          "url": "/comparar/",
+          "label": "Comparar cursos",
+          "sub": "Escolha com mais confiança"
+        },
+        {
+          "url": "/favoritos/",
+          "label": "Os meus favoritos",
+          "sub": "Volte às suas descobertas"
+        }
+      ]
+    },
+    {
+      "title": "Ingresso",
+      "feature": {
+        "title": "O primeiro passo é seu.",
+        "text": "Da escolha do curso à preparação da sua candidatura.",
+        "url": "/ingresso/",
+        "label": "Ver formas de ingresso"
+      },
+      "links": [
+        {
+          "url": "/ingresso/",
+          "label": "Como candidatar-se",
+          "sub": "Conheça cada etapa do percurso"
+        },
+        {
+          "url": "/candidatura/",
+          "label": "Iniciar candidatura",
+          "sub": "Experimente a inscrição online"
+        },
+        {
+          "url": "/candidaturas/",
+          "label": "Acompanhar candidatura",
+          "sub": "Consulte os seus registos locais"
+        },
+        {
+          "url": "/preparar-candidatura/",
+          "label": "Preparar a candidatura",
+          "sub": "Uma lista pessoal para se organizar"
+        },
+        {
+          "url": "/percursos-de-ingresso/",
+          "label": "Outros percursos",
+          "sub": "Transferências e estudos no estrangeiro"
+        },
+        {
+          "url": "/bolsas/",
+          "label": "Bolsas e apoios",
+          "sub": "Oriente o seu planeamento"
+        },
+        {
+          "url": "/calendario/",
+          "label": "Calendário",
+          "sub": "Organize os próximos passos"
+        }
+      ]
+    },
+    {
+      "title": "Vida académica",
+      "feature": {
+        "title": "Conhecimento em movimento.",
+        "text": "Descubra uma experiência que vai além da sala de aula.",
+        "url": "/vida-academica/",
+        "label": "Explorar a vida académica"
+      },
+      "links": [
+        {
+          "url": "/vida-academica/",
+          "label": "Viver o campus",
+          "sub": "Aprender também é pertencer"
+        },
+        {
+          "url": "/novos-estudantes/",
+          "label": "Novos estudantes",
+          "sub": "Prepare a chegada e a primeira semana"
+        },
+        {
+          "url": "/campus/",
+          "label": "Espaços e campus",
+          "sub": "Explore a visão do ambiente académico"
+        },
+        {
+          "url": "/investigacao/",
+          "label": "Investigação e extensão",
+          "sub": "Ideias em contacto com a sociedade"
+        },
+        {
+          "url": "/noticias/",
+          "label": "Notícias e histórias",
+          "sub": "Leituras para a sua jornada"
+        },
+        {
+          "url": "/eventos/",
+          "label": "Agenda de eventos",
+          "sub": "Encontros que abrem perspectivas"
+        }
+      ]
+    },
+    {
+      "title": "Serviços",
+      "feature": {
+        "title": "Mais simples. Mais próximo.",
+        "text": "Serviços organizados à volta da sua experiência académica.",
+        "url": "/servicos/",
+        "label": "Encontrar um serviço"
+      },
+      "links": [
+        {
+          "url": "/servicos/",
+          "label": "Todos os serviços",
+          "sub": "Encontre o apoio de que precisa"
+        },
+        {
+          "url": "/biblioteca/",
+          "label": "Biblioteca",
+          "sub": "Fontes abertas e recursos de estudo"
+        },
+        {
+          "url": "/apoio-ao-estudante/",
+          "label": "Apoio ao estudante",
+          "sub": "Acolhimento e orientação"
+        },
+        {
+          "url": "/carreiras/",
+          "label": "Carreiras e estágios",
+          "sub": "Prepare o próximo passo"
+        },
+        {
+          "url": "/servicos/secretaria/",
+          "label": "Secretaria académica",
+          "sub": "Informações e requerimentos"
+        },
+        {
+          "url": "/ajuda/",
+          "label": "Central de ajuda",
+          "sub": "Respostas às suas perguntas"
+        }
+      ]
+    }
+  ]
+}

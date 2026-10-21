@@ -1,0 +1,58 @@
+{
+  "title": "Sobre o projecto",
+  "crumb": "Sobre o projecto",
+  "sections": [
+    {
+      "title": "O que está disponível",
+      "paragraphs": [
+        "Catálogo com pesquisa e filtros, páginas de curso, favoritos, comparação, candidatura em três etapas, área do candidato e portal com disciplinas, notas, horários, documentos e pedidos demonstrativos."
+      ]
+    },
+    {
+      "title": "O que precisa de integração",
+      "paragraphs": [
+        "Os dados académicos não são oficiais. Não existe submissão institucional de candidaturas, análise de documentos, cobrança, matrícula ou sistema de notas conectado. A entrada institucional está preparada para encaminhar ao login existente do SIGA Plus, sem recolher palavras-passe neste website. O administrador pode gerir os conteúdos públicos pelo SIGA, após activar a ligação pela API."
+      ]
+    },
+    {
+      "title": "Identidade e informação institucional",
+      "paragraphs": [
+        "O nome {{SCHOOL}} e o país {{COUNTRY}} foram fornecidos para esta proposta. A designação completa, os contactos, a história, o campus e a oferta oficial precisam de validação. Não são declarados credenciamentos, rankings ou parcerias. As imagens são ilustrativas."
+      ]
+    },
+    {
+      "title": "Referências de experiência",
+      "paragraphs": [
+        "Pesquisa realizada em 20 de Outubro de 2026. As referências orientam a estrutura; não existe afiliação a estas instituições nem reprodução do seu conteúdo."
+      ],
+      "links": [
+        {
+          "url": "https://unasp.br/cursos/",
+          "label": "UNASP",
+          "text": "organização dos cursos, ingresso e serviços ao aluno."
+        },
+        {
+          "url": "https://www.ox.ac.uk/admissions",
+          "label": "University of Oxford",
+          "text": "descoberta de cursos e orientação de candidaturas."
+        },
+        {
+          "url": "https://www.harvard.edu/",
+          "label": "Harvard University",
+          "text": "ligação entre ensino, pesquisa, vida no campus e serviços."
+        },
+        {
+          "url": "https://www.zoom.com/",
+          "label": "Zoom",
+          "text": "hierarquia de navegação e apresentação de serviços. Não há salas ou videochamadas."
+        }
+      ]
+    },
+    {
+      "title": "Dados da demonstração",
+      "paragraphs": [
+        "Os registos criados pelo visitante ficam apenas no navegador. Consulte a [informação de privacidade](/privacidade/) e use dados fictícios ao experimentar os formulários."
+      ]
+    }
+  ]
+}

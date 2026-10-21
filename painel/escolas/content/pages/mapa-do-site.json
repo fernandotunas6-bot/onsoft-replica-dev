@@ -1,0 +1,12 @@
+{
+  "title": "Mapa do site",
+  "crumb": "Mapa do site",
+  "groups": {
+    "discover": "Descobrir",
+    "courses": "Cursos",
+    "articles": "Leituras",
+    "demo": {
+      "portal": "Portal académico"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "title": "Como escolher um curso",
+  "crumb": "Escolher um curso",
+  "questions": {
+    "headline": ["Antes de escolher,", "*faça três perguntas.*"],
+    "items": [
+      { "title": "O que desperta a minha curiosidade?", "text": "Que temas procura por vontade própria? Que problemas gostaria de compreender ou resolver? Comece por interesses concretos, sem precisar de definir já uma profissão." },
+      { "title": "Como quero aprender?", "text": "Prefere experimentar, investigar, criar ou trabalhar com pessoas? Leia os temas das disciplinas e procure exemplos de actividades. Um nome de curso não conta toda a história." },
+      { "title": "Como cabe na minha rotina?", "text": "Considere turno, deslocações, tempo de estudo, trabalho e responsabilidades familiares. Confirme os horários e a modalidade reais antes de decidir." }
+    ]
+  },
+  "areas": {
+    "eyebrow": "COMECE POR UMA ÁREA",
+    "headline": ["Siga a *sua curiosidade.*"],
+    "text": ["Explore áreas e percursos de exemplo.", "A oferta oficial depende de validação."],
+    "cardLabel": "Explorar percursos"
+  },
+  "steps": {
+    "headline": ["Transforme opções", "*numa escolha informada.*"],
+    "items": [
+      { "number": "01", "title": "Guarde dois ou três percursos", "text": "Use os favoritos para reunir opções. Compare temas de estudo, duração, turno e modalidade no comparador.", "link": { "url": "/comparar/", "label": "Abrir o comparador" } },
+      { "number": "02", "title": "Confirme o que ainda não sabe", "text": "Pergunte pelos requisitos, plano oficial, actividades práticas e condições de acesso à profissão. As possibilidades profissionais desta prévia são ilustrativas.", "link": { "url": "/contactos/?assunto=Escolha%20do%20curso", "label": "Preparar perguntas" } },
+      { "number": "03", "title": "Planeie tempo e custos", "text": "Considere as despesas da formação e do dia a dia. Confirme valores e apoios antes de assumir compromissos.", "link": { "url": "/planear-custos/", "label": "Organizar uma estimativa" } }
+    ]
+  }
+}
