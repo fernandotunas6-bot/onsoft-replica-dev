@@ -37,9 +37,9 @@ export function setupHomeHighlights({doc = document, win = window} = {}) {
   listen(region, 'pointerenter', event => {if (event.pointerType !== 'touch') {hovered = true;schedule();}});
   listen(region, 'pointerleave', () => {hovered = false;schedule();});
   listen(region, 'focusin', () => {paused = true;schedule();});
-  listen(hero, 'pointerdown', event => {if (event.pointerType === 'touch' && !event.target.closest('a,button')) pointer = {x: event.clientX, y: event.clientY};});
-  listen(hero, 'pointercancel', () => {pointer = null;});
-  listen(hero, 'pointerup', event => {if (!pointer) return;const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;pointer = null;if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) show(index + (dx < 0 ? 1 : -1), true);});
+  listen(hero, 'pointerdown', event => {if (event.pointerType === 'touch' && event.isPrimary !== false && !event.target.closest('a,button')) pointer = {id: event.pointerId, x: event.clientX, y: event.clientY};});
+  listen(hero, 'pointercancel', event => {if (pointer?.id === event.pointerId) pointer = null;});
+  listen(hero, 'pointerup', event => {if (!pointer || pointer.id !== event.pointerId) return;const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;pointer = null;if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) show(index + (dx < 0 ? 1 : -1), true);});
   listen(media, 'change', () => {if (reduced()) animation?.cancel();schedule();});listen(doc, 'visibilitychange', schedule);
   listen(win, 'pagehide', () => {suspended = true;schedule();});listen(win, 'pageshow', () => {suspended = false;schedule();});
   const preference = new win.MutationObserver(() => {if (reduced()) animation?.cancel();schedule();});preference.observe(doc.documentElement, {attributes: true, attributeFilter: ['class']});

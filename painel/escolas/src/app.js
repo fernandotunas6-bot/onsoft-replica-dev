@@ -4,7 +4,7 @@ import {connectSchoolWebsite} from './site-content.mjs';
 import {siteAsset,siteHref,mountWebsiteLinks} from './site-urls.mjs';
 import {setupSchoolBlog} from './school-blog.mjs';
 import {setupSchoolPresentation,admissionSummaryHTML,admissionFeeLabel} from './presentation.mjs';
-import {setupAcademicNavigation} from './academic-navigation.mjs';
+import {setupAcademicNavigation,isHeaderSearchShortcut} from './academic-navigation.mjs';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const dialog=$('#site-dialog');
 const refreshWebsiteLinks=mountWebsiteLinks();
@@ -90,7 +90,7 @@ headerSearch?.addEventListener('click',event=>{
   dialog.addEventListener('close',()=>suggestions?.destroy(),{once:true});
   import('./course-discovery.mjs').then(module=>{if(dialog.open&&input.isConnected)suggestions=module.setupCourseDiscovery(courses,{input,idPrefix:'header'})}).catch(()=>{});
 });
-document.addEventListener('keydown',event=>{if(!event.defaultPrevented&&(event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='k'&&!event.target.closest('input,textarea,select,[contenteditable=true]')&&headerSearch&&!dialog?.open){event.preventDefault();headerSearch.click()}});
+document.addEventListener('keydown',event=>{if(isHeaderSearchShortcut(event)&&headerSearch&&!dialog?.open){event.preventDefault();headerSearch.click()}});
 function confirmAction(title,text,action){showDialog(`<span class="eyebrow">CONTROLO DOS SEUS DADOS</span><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="text-button" data-cancel>Cancelar</button><button class="button" data-confirm>Confirmar <span>✓</span></button></div>`);$('[data-cancel]',dialog).addEventListener('click',()=>dialog.close());$('[data-confirm]',dialog).addEventListener('click',()=>{dialog.close();action()})}
 function download(name,text,type='text/plain;charset=utf-8'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function demoHeader(){return institution+' — DEMONSTRAÇÃO SEM VALIDADE ACADÉMICA\nDados ilustrativos. Este ficheiro não é um documento oficial.\nGerado em '+new Date().toLocaleString('pt-AO')+'\n\n'}

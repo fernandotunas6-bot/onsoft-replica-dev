@@ -17,6 +17,31 @@ const pages = {
   '/ajuda/': ['student', 'support'],
 };
 
+// Stable section destinations exist in HTML before school content or optional JS loads.
+export function prepareAcademicSectionAnchors(body) {
+  if ([...body.matchAll(/<a\b(?=[^>]*\bclass="[^"]*\b(?:service-card|resource-card)\b[^"]*")(?=[^>]*\bhref="[^"]+")[^>]*>/g)].length > 1) return body;
+  const sections = [];let depth = 0, current;
+  for (const match of body.matchAll(/<!--[\s\S]*?-->|<\/?section\b[^>]*>/gi)) {
+    const tag = match[0];if (tag.startsWith('<!--')) continue;
+    if (tag.startsWith('</')) {
+      if (--depth === 0 && current && !/\b(?:page-head|cta)\b/.test(current.tag.match(/\bclass="([^"]*)"/)?.[1] || '') && /<h2\b/i.test(body.slice(current.start, match.index))) sections.push(current);
+    } else {if (depth === 0) current = {start: match.index, tag};depth++;}
+  }
+  if (sections.length < 2) return body;
+  const used = new Set([...body.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
+  const changes = sections.map((section, index) => {
+    let tag = section.tag;
+    if (!/\bid="/.test(tag)) {
+      let id = 'academic-section-' + (index + 1), suffix = 1;while (used.has(id)) id = 'academic-section-' + (index + 1) + '-' + suffix++;
+      used.add(id);tag = tag.replace(/>$/, ` id="${id}">`);
+    }
+    if (!/\bclass="[^"]*\bacademic-section-target\b/.test(tag)) tag = /\bclass="/.test(tag) ? tag.replace(/\bclass="([^"]*)"/, (_, classes) => `class="${classes} academic-section-target"`) : tag.replace(/>$/, ' class="academic-section-target">');
+    return {...section, replacement: tag};
+  });
+  for (const change of changes.reverse()) body = body.slice(0, change.start) + change.replacement + body.slice(change.start + change.tag.length);
+  return body;
+}
+
 // Scoped image fields add visual options without renumbering published text or links.
 export function decorateAcademicPage(url, body) {
   if (url === '/') {
@@ -42,5 +67,5 @@ export function decorateAcademicPage(url, body) {
       return opening + `<div class="service-card-photo" data-site-scope="service-illustration-${id}"><img src="/assets/${photo}.webp" alt="" width="1200" height="800" loading="lazy" decoding="async"></div>`;
     });
   }
-  return body;
+  return art ? prepareAcademicSectionAnchors(body) : body;
 }
