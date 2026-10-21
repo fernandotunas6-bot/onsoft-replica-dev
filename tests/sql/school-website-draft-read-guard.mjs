@@ -66,7 +66,11 @@ try {
       permissive: "RESTRICTIVE",
       cmd: "SELECT",
     },
-    { policyname: "settings_select_member", permissive: "PERMISSIVE", cmd: "SELECT" },
+    {
+      policyname: "settings_select_member",
+      permissive: "PERMISSIVE",
+      cmd: "SELECT",
+    },
   ]);
 
   async function visibleFor(role, school, admin) {
