@@ -19,4 +19,9 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
 // O mesmo retrato já inclui merge_school_subjects e os dois RPCs atómicos.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  // Migração 20261021051004_school_website_content_server_only.sql. A sonda
+  // service-only devolve false/erro até à aplicação; os editores recusam
+  // gravar com mensagem explícita, e o público não recebe publicações.
+  "school_web_storage_ready",
+]);
