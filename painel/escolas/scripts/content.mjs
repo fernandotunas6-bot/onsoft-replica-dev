@@ -451,7 +451,7 @@ export const PAGE_SHAPES = {
     story: {eyebrow: 'text', headline: 'lines', text: 'text', photoAlt: 'text'},
     card: {
       icon: 'text', title: 'text', text: 'text',
-      hostedLabel: 'text', portalLabel: 'text', hint: 'text',
+      portalLabel: 'text', hint: 'text', status: 'text',
       separator: 'text', 'demoLabel?': 'text', 'note?': 'text', links: ['link'],
     },
   },

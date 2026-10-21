@@ -273,13 +273,15 @@ test('as páginas de texto corrido passam a validação', () => {
   assert.equal(loadInstitutionalPage('privacidade').sections.every(s => s.links === null), true);
 });
 
-test('o botão de acesso ao portal tem os dois rótulos no conteúdo', () => {
-  // Antes, o rótulo do SIGA Plus era uma substituição de texto sobre o HTML já
-  // gerado. Agora é conteúdo, e o gerador escolhe qual usar.
+test('o acesso ao portal é sempre o SIGA, com ou sem endereço configurado', () => {
+  // O acesso da hospedagem saiu: o website não recolhe palavras-passe. Com
+  // `portalUrl` configurado o botão leva ao SIGA; sem ele fica desactivado e o
+  // `status` explica porquê — e o runtime pode preencher os dois.
   const card = loadInstitutionalPage('login').card;
-  assert.ok(card.hostedLabel.length > 0);
   assert.ok(card.portalLabel.length > 0);
-  assert.notEqual(card.hostedLabel, card.portalLabel);
+  assert.ok(card.status.length > 0);
+  assert.notEqual(card.hint, card.status);
+  assert.equal(card.hostedLabel, undefined);
 });
 
 test('os recursos da biblioteca são ligações externas validadas', () => {
