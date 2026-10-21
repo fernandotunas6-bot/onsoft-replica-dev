@@ -4,6 +4,7 @@ import {connectSchoolWebsite} from './site-content.mjs';
 import {siteAsset,siteHref,mountWebsiteLinks} from './site-urls.mjs';
 import {setupSchoolBlog} from './school-blog.mjs';
 import {setupSchoolPresentation,admissionSummaryHTML,admissionFeeLabel} from './presentation.mjs';
+import {setupAcademicNavigation} from './academic-navigation.mjs';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const dialog=$('#site-dialog');
 const refreshWebsiteLinks=mountWebsiteLinks();
@@ -30,10 +31,13 @@ $$('.nav-dropdown').forEach(el=>el.addEventListener('toggle',()=>{if(el.open)$$(
 document.addEventListener('click',e=>{if(!e.target.closest('.site-header')){$$('.nav-dropdown').forEach(el=>el.open=false);closeMobile(true)}if(!e.target.closest('.portal-sidebar')&&!e.target.closest('.portal-menu')){$('.portal-sidebar')?.classList.remove('open');$('.portal-menu')?.setAttribute('aria-expanded','false');syncSidebar()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!dialog?.open){const dropdown=document.activeElement?.closest('.nav-dropdown[open]');if(nav?.classList.contains('open')&&navigationMedia.matches)closeMobile(true);else if(dropdown)$('summary',dropdown)?.focus();$$('.nav-dropdown').forEach(el=>el.open=false);if(portalSidebar?.classList.contains('open')&&portalSidebar.contains(document.activeElement))$('.portal-menu')?.focus();portalSidebar?.classList.remove('open');$('.portal-menu')?.setAttribute('aria-expanded','false');syncSidebar()}});
 $('.portal-menu')?.addEventListener('click',()=>{const sidebar=$('.portal-sidebar');const open=sidebar.classList.toggle('open');$('.portal-menu').setAttribute('aria-expanded',String(open));syncSidebar()});
+const academicNavigation=setupAcademicNavigation();
+window.addEventListener('pagehide',event=>{if(!event.persisted)academicNavigation.destroy()},{once:true});
 // Local demonstration forms never fall back to sending their fields in a URL while initialising.
 $$('#application-form,#contact-form').forEach(form=>form.addEventListener('submit',event=>event.preventDefault()));
 const schoolRuntime=await connectSchoolWebsite({courses,areas,events,articles,services,faqs});
 refreshWebsiteLinks?.();
+academicNavigation.refresh();
 setupSchoolPresentation(schoolRuntime);
 const syncMotionVisibility=()=>document.documentElement.dataset.pageHidden=String(document.hidden);
 document.addEventListener('visibilitychange',syncMotionVisibility);syncMotionVisibility();
@@ -45,6 +49,7 @@ iconObserver.observe(document.body,{childList:true,subtree:true,characterData:tr
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 await setupSchoolBlog(schoolRuntime,{esc});
 refreshWebsiteLinks?.();
+academicNavigation.refresh();
 // Optional field helpers load after navigation is responsive, only on form pages.
 const profileTools=$('#application-form,#contact-form')?await import('./profile-fields.mjs').catch(()=>null):null;
 const {setupApplicationProfile,applicationProfileFields=[],applicationPhoneError,setupFieldFeedback,refreshApplicationHints}=profileTools||{};
@@ -67,6 +72,25 @@ function showDialog(html){if(!dialog.open){dialogOpener=document.activeElement;d
 dialog?.addEventListener('close',()=>{const restore=dialogRestoreFocus;dialogRestoreFocus=null;dialogOpener=null;restore?.()});
 $('.dialog-close')?.addEventListener('click',()=>dialog.close());
 dialog?.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
+// The normal search URL remains available for new tabs, modified clicks and no JavaScript.
+const headerSearch=$('.header-search');
+headerSearch?.setAttribute('aria-keyshortcuts','Control+K Meta+K');
+headerSearch?.addEventListener('click',event=>{
+  if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||!dialog)return;
+  event.preventDefault();if(dialog.open)return;
+  const opener=document.activeElement;
+  closeMobile();$$('.nav-dropdown').forEach(node=>node.open=false);
+  const label=headerSearch.getAttribute('aria-label')||'Pesquisar no site';
+  showDialog(`<h2>${esc(label)}</h2><form class="header-search-form" action="${esc(siteHref('/pesquisa/'))}" method="get"><div class="header-search-field"><label class="sr-only" for="header-search-q">O que procura?</label><input id="header-search-q" name="q" type="search" placeholder="Curso, serviço ou informação" maxlength="150" required></div><button class="button" type="submit">Pesquisar <span aria-hidden="true">↗</span></button></form><nav class="header-search-shortcuts" aria-label="Caminhos frequentes"></nav>`);
+  dialogRestoreFocus=()=>{if(opener?.isConnected)opener.focus()};
+  const shortcuts=$('.header-search-shortcuts',dialog);
+  for(const path of ['/cursos/','/ingresso/','/servicos/']){const source=$$('#main-nav a[href]').find(a=>a.getAttribute('href')===siteHref(path));if(source){const link=document.createElement('a');link.href=source.href;link.textContent=$('strong',source)?.textContent||source.textContent;shortcuts.append(link)}}
+  const input=$('#header-search-q');input.focus();let suggestions;
+  input.addEventListener('keydown',event=>{if(event.key==='Escape'&&input.getAttribute('aria-expanded')!=='true'){event.preventDefault();dialog.close()}});
+  dialog.addEventListener('close',()=>suggestions?.destroy(),{once:true});
+  import('./course-discovery.mjs').then(module=>{if(dialog.open&&input.isConnected)suggestions=module.setupCourseDiscovery(courses,{input,idPrefix:'header'})}).catch(()=>{});
+});
+document.addEventListener('keydown',event=>{if(!event.defaultPrevented&&(event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='k'&&!event.target.closest('input,textarea,select,[contenteditable=true]')&&headerSearch&&!dialog?.open){event.preventDefault();headerSearch.click()}});
 function confirmAction(title,text,action){showDialog(`<span class="eyebrow">CONTROLO DOS SEUS DADOS</span><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="dialog-actions"><button class="text-button" data-cancel>Cancelar</button><button class="button" data-confirm>Confirmar <span>✓</span></button></div>`);$('[data-cancel]',dialog).addEventListener('click',()=>dialog.close());$('[data-confirm]',dialog).addEventListener('click',()=>{dialog.close();action()})}
 function download(name,text,type='text/plain;charset=utf-8'){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function demoHeader(){return institution+' — DEMONSTRAÇÃO SEM VALIDADE ACADÉMICA\nDados ilustrativos. Este ficheiro não é um documento oficial.\nGerado em '+new Date().toLocaleString('pt-AO')+'\n\n'}
@@ -243,6 +267,7 @@ if($('#study-budget-form')){const {setupBudget}=await import('./budget.mjs');set
 courseTools?.setupCurriculumTools();
 setupFieldFeedback?.(contactForm);
 await Promise.allSettled([
+  $('.home-hero')?import('./home-highlights.mjs').then(module=>{const slides=module.setupHomeHighlights(),rails=module.setupHomeCardRails();window.addEventListener('pagehide',event=>{if(!event.persisted){slides.destroy();rails.destroy()}},{once:true})}):Promise.resolve(),
   /^ispab(?:\s*\(demonstração\))?$/i.test(institution)?import('./brand-wordmark.mjs').then(module=>module.setupInstitutionWordmark({schoolName:institution})):Promise.resolve(),
   $('#hero-search-q')?import('./course-discovery.mjs').then(module=>module.setupCourseDiscovery(courses)):Promise.resolve(),
   $('.academic-page-head,.course-hero')?import('./academic-pages.mjs').then(module=>{const controller=module.setupAcademicPages({courses});window.addEventListener('pagehide',event=>{if(!event.persisted)controller.destroy()},{once:true})}):Promise.resolve(),

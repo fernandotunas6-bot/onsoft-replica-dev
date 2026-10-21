@@ -1,5 +1,16 @@
 # Handoff — continuar o SIGA
 
+## Cabeçalho e home académica — 2026-10-21
+
+O pedido autoriza os comportamentos de navegação e slides da home, conservando
+composição, cores, dados e marca. `academic-navigation.mjs` inicializa antes da API:
+não adiar o menu por sincronização. Cabeçalho compacto, hover/teclado, menu móvel
+com fundo isolado e pesquisa no diálogo existente. `home-highlights.mjs` só na home:
+rotação suspensa por foco, movimento reduzido, invisibilidade e escolha manual;
+cartões deslizáveis apenas no telemóvel. Oito campos novos, todos os 4645 anteriores
+intactos. Compatibilidade explícita também com `b7bb3fc0893638fd4fd6`.
+[Observação UNASP e contrato](../../painel/escolas/docs/navigation-and-home.md).
+
 ## Apresentação das páginas académicas — 2026-10-21
 
 Os cursos têm fotografia em faixa larga e resumo com acções; os cabeçalhos

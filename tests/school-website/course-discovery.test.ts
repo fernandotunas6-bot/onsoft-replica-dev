@@ -89,3 +89,22 @@ describe("descoberta de cursos", () => {
     );
   });
 });
+
+it("isola a pesquisa do cabeçalho e limpa sugestões, estados e eventos ao fechar", () => {
+  document.body.innerHTML = '<form><div><input id="header-search-q"></div></form>';
+  const input = document.querySelector<HTMLInputElement>("input")!;
+  const controller = setupCourseDiscovery(
+    [{ id: "engenharia", name: "Engenharia", description: "Curso", modules: [], careers: [] }],
+    { input, idPrefix: "header" },
+  );
+  input.value = "engenharia";
+  input.dispatchEvent(new Event("input"));
+  expect(document.querySelector("#header-course-options")).not.toBeNull();
+  expect(document.querySelector("#hero-course-options")).toBeNull();
+  controller.destroy();
+  controller.destroy();
+  expect(input.hasAttribute("aria-activedescendant")).toBe(false);
+  expect(document.querySelector(".course-suggestions")).toBeNull();
+  input.dispatchEvent(new Event("input"));
+  expect(document.querySelector(".course-suggestions")).toBeNull();
+});

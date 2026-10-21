@@ -118,7 +118,11 @@ export function readWebsiteState(value: unknown): WebsiteState {
   const state = stateSchema.parse(value);
   // These additive templates retain every previous field, adding portal controls and page images.
   const upgrade = (content: WebsiteDraft) => {
-    if (["2ab6e331ce0e67b8044e", "5fd4cbb7d43915bde5c6"].includes(content.templateVersion))
+    if (
+      ["2ab6e331ce0e67b8044e", "5fd4cbb7d43915bde5c6", "b7bb3fc0893638fd4fd6"].includes(
+        content.templateVersion,
+      )
+    )
       content.templateVersion = websiteTemplate.version;
   };
   upgrade(state.draft);
