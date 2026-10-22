@@ -602,3 +602,46 @@ Por decidir ou pendentes (dono):
   nome da escola e os períodos); falta `DTSTAMP` nos eventos ICS; a pesquisa de planos filtra
   depois do limite; alunos e encarregados vêem os planos publicados de todas as turmas; alguns
   erros do calendário (reabrir o ano anterior, sequência) são ignorados.
+
+## 23. API directa, integrações, antigos alunos e planos (2026-10-18)
+
+Pela API directa (PostgREST), contornando o servidor — confirmado na produção (só leituras):
+
+- **API1 (alto) — Candidaturas públicas gravadas directamente.** `anon` tinha INSERT em
+  `enrollment_applications` (com política) e lia os formulários abertos: com a chave pública,
+  um ciclo de pedidos enchia a lista da secretaria sem o limite por IP, sem o bloqueio da escola
+  suspensa e sem validação. Migração `20261018110000`: só o servidor (que já faz tudo isto).
+- **API2 — Links das aulas online.** Qualquer membro (alunos incluídos) lia os `join_url` de
+  todas as aulas de `siga_lesson_meetings`, e um professor podia trocar o link da aula de um
+  colega. Migração `20261018120000`: só o servidor (que já mostra o link só a quem é da turma).
+- **CT4 — Cartões de catraca em duplicado.** Índice único de um cartão activo por pessoa
+  (migração `20261018100000`; produção sem repetidos). O servidor trata a corrida (23505)
+  devolvendo o cartão que ficou, e um erro de leitura deixa de passar por «não tem cartão».
+
+Integrações:
+
+- **IN1 — Quota da plataforma por pedido.** Cada pedido levava até 50 destinatários: eram 1000
+  SMS/WhatsApp/e-mails por hora por escola pagos pela plataforma. Passa a contar cada
+  destinatário (200 por hora), depois de todos os filtros.
+- **IN2 — Ler a configuração engolia erros.** Uma falha momentânea passava por «sem
+  configuração» e a gravação seguinte gerava outra chave do gateway (os pagamentos deixavam de
+  ser reconciliados) ou apagava as capacidades. Passa a erro.
+- **IN3 — Opt-out que falhava aberto.** Se a leitura de quem desligou os comunicados falhasse,
+  a mensagem seguia para todos. Agora não se envia. E-mails comparados sem maiúsculas.
+
+Antigos alunos e planos de aula:
+
+- **AL1 — Evento de outra escola.** A inscrição num evento não confirmava a escola do evento.
+- **AL2 — Estatísticas, público de campanha e exportação** cortados nas 1000 linhas: leem tudo.
+- **LP2 — Alunos e encarregados** viam os planos publicados de todas as turmas; ficam com as do
+  aluno ou dos educandos. A pesquisa de planos passa a ir à base (antes filtrava depois do
+  limite).
+
+Por fazer (dono ou ciclo seguinte):
+
+- Chaves Resend e WhatsApp da escola ainda vão em claro para o ecrã do Administrador (mascarar
+  como a do gateway).
+- Ligar o Zoom usa a guarda de leitura e não verifica a escola bloqueada.
+- Webhook Resend: erros ignorados e eventos fora de ordem.
+- Pesquisa de antigos alunos só sobre os primeiros 150–200 perfis (pede paginação real na UI).
+- Link de matrícula falha se outra escola tiver o mesmo nome (sufixo no slug).

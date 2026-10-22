@@ -34,6 +34,30 @@ import { runDeviceGatePassWebhook } from "./device-webhook-handler";
 import { schoolTodayIso } from "@/lib/school-date";
 import { readAllPages } from "@/integrations/supabase/read-all-pages";
 
+/**
+ * O cartão activo da pessoa. Com dois pedidos ao mesmo tempo nasciam dois cartões
+ * activos; daí em diante `.maybeSingle()` dava erro (duas linhas), o erro era
+ * ignorado e cada pedido criava mais um. A base passa a ter um índice único
+ * (20261018100000); aqui lê-se o mais antigo e um erro de leitura não passa por
+ * «não tem cartão».
+ */
+async function activeCardOf(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  personId: string,
+) {
+  const { data, error } = await db
+    .from("siga_access_cards")
+    .select("*")
+    .eq("school_id", schoolId)
+    .eq("person_id", personId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw publicDatabaseError(error, "Não foi possível ler o cartão.");
+  return data?.[0] ?? null;
+}
+
 /** Hora e minuto de Luanda (o servidor corre em UTC: `getHours()` dava uma hora a menos). */
 function luandaClock(iso: string): { hour: number; label: string } {
   const parts = new Intl.DateTimeFormat("pt-PT", {
@@ -199,17 +223,8 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
 
     if (!personId) throw new Error("Pessoa não identificada para emissão de cartão.");
 
-    const { data: existingCard } = await db
-      .from("siga_access_cards")
-      .select("*")
-      .eq("school_id", membership.schoolId)
-      .eq("person_id", personId)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (existingCard) {
-      return existingCard;
-    }
+    const existingCard = await activeCardOf(db, membership.schoolId, personId);
+    if (existingCard) return existingCard;
 
     const { cardNumber, barcode } = generateAccessCardIdentifiers();
     const qrSecret = crypto.randomUUID();
@@ -228,7 +243,14 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
       .select("*")
       .single();
 
-    if (error) throw publicDatabaseError(error, "Não foi possível gerar o cartão virtual.");
+    if (error) {
+      // Dois pedidos ao mesmo tempo: o outro já criou o cartão activo.
+      if (error.code === "23505") {
+        const winner = await activeCardOf(db, membership.schoolId, personId);
+        if (winner) return winner;
+      }
+      throw publicDatabaseError(error, "Não foi possível gerar o cartão virtual.");
+    }
     return created;
   });
 
@@ -495,13 +517,7 @@ export const issueAccessCard = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: existing } = await db
-      .from("siga_access_cards")
-      .select("*")
-      .eq("school_id", membership.schoolId)
-      .eq("person_id", data.personId)
-      .eq("status", "active")
-      .maybeSingle();
+    const existing = await activeCardOf(db, membership.schoolId, data.personId);
     if (existing) return existing;
 
     const rfid = data.rfidTag && data.rfidTag.trim() ? normalizeRfidTag(data.rfidTag) : null;
@@ -532,7 +548,13 @@ export const issueAccessCard = createServerFn({ method: "POST" })
       .select("*")
       .single();
 
-    if (error) throw publicDatabaseError(error, "Não foi possível emitir o cartão.");
+    if (error) {
+      if (error.code === "23505") {
+        const winner = await activeCardOf(db, membership.schoolId, data.personId);
+        if (winner) return winner;
+      }
+      throw publicDatabaseError(error, "Não foi possível emitir o cartão.");
+    }
     return created;
   });
 

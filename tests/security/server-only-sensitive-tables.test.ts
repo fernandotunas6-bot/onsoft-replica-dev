@@ -49,6 +49,8 @@ const MIGRATIONS = {
   ],
   // Registo das acções do ADMIN: nem os administradores da plataforma o alteram.
   "supabase/migrations/20261017100000_saas_audit_logs_server_only.sql": ["saas_audit_logs"],
+  // Links das aulas online: alunos liam os de todas as turmas; professores mudavam os alheios.
+  "supabase/migrations/20261018120000_lesson_meetings_server_only.sql": ["siga_lesson_meetings"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

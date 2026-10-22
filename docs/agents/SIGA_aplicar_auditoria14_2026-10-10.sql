@@ -14,6 +14,9 @@
 --   percorrer a tabela de auditoria inteira a cada código.
 -- + 2026-10-17: o registo de auditoria do ADMIN (saas_audit_logs) fica só com o
 --   servidor: os administradores da plataforma deixam de o poder alterar ou apagar.
+-- + 2026-10-18: um só cartão de catraca activo por pessoa (índice único); a matrícula
+--   pública deixa de se poder gravar directamente pela API (só pelo servidor); as
+--   reuniões Zoom das aulas ficam só com o servidor.
 -- Nenhuma mexe em dados. Ensaiadas em PGlite (tests/sql/timetable-room-placeholders.mjs,
 -- tests/sql/merge-people.mjs e tests/sql/early-enrollment.mjs): cada uma corre duas vezes.
 -- Confirmar no fim com a consulta do fundo deste ficheiro (deve dar "aplicada").
@@ -733,6 +736,65 @@ REVOKE ALL ON public.saas_audit_logs FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.saas_audit_logs TO service_role;
 
 
+-- ══════════ 20261018100000_access_cards_one_active_per_person.sql ══════════
+-- Catracas: um só cartão activo por pessoa em cada escola.
+--
+-- Emitir o cartão lia «já tem cartão activo?» e, se não, criava um. Dois pedidos ao
+-- mesmo tempo (duplo clique, duas abas) criavam dois cartões activos; daí em diante a
+-- leitura com `.maybeSingle()` dava erro (duas linhas), o erro era ignorado e cada
+-- pedido seguinte criava mais um cartão. Leitura de 2026-10-18: 2 cartões, nenhum
+-- repetido, por isso o índice cria-se sem mexer em dados. O servidor trata a recusa
+-- (23505) devolvendo o cartão que ficou. Idempotente.
+
+CREATE UNIQUE INDEX IF NOT EXISTS siga_access_cards_one_active_per_person
+  ON public.siga_access_cards (school_id, person_id)
+  WHERE status = 'active';
+
+
+-- ══════════ 20261018110000_enrollment_public_server_only.sql ══════════
+-- Matrícula pública: só pelo servidor.
+--
+-- Leitura de 2026-10-18: `anon` podia gravar candidaturas directamente pela API
+-- (política «Public insert open enrollment applications» e INSERT por coluna) e ler os
+-- formulários abertos (política «Public read open enrollment forms»). Com a chave anon,
+-- que é pública, um ciclo de POST a /rest/v1/enrollment_applications enchia a lista da
+-- secretaria sem passar por `submitPublicEnrollment`: sem o limite de 10 por hora por
+-- IP, sem o bloqueio da escola suspensa e sem a validação dos dados.
+--
+-- Nenhum código usa este caminho: o formulário público lê e grava pelo servidor, com a
+-- chave de serviço. As políticas de leitura da secretaria (authenticated) ficam.
+-- Não mexe em dados. Idempotente.
+
+DROP POLICY IF EXISTS "Public insert open enrollment applications" ON public.enrollment_applications;
+DROP POLICY IF EXISTS "Public read open enrollment forms" ON public.enrollment_forms;
+REVOKE ALL ON public.enrollment_applications FROM anon;
+REVOKE ALL ON public.enrollment_forms FROM anon;
+REVOKE INSERT (school_id, form_id, full_name, payload, status)
+  ON public.enrollment_applications FROM anon;
+
+
+-- ══════════ 20261018120000_lesson_meetings_server_only.sql ══════════
+-- Reuniões Zoom das aulas: só com o servidor.
+--
+-- Leitura de 2026-10-18: `authenticated` tinha todos os privilégios em
+-- `siga_lesson_meetings`; a política de leitura deixava qualquer membro da escola
+-- (alunos e encarregados incluídos) ler os `join_url` de todas as aulas, e as de escrita
+-- deixavam um professor mudar ou apagar a reunião da aula de um colega — por exemplo
+-- trocar o link por outro. O servidor (src/features/integrations/zoom.ts) já mostra o
+-- link só a quem é da turma e só deixa o professor mexer nas suas aulas, com a chave de
+-- serviço; nenhum ecrã lê a tabela directamente. Tabela vazia hoje. Não mexe em dados.
+-- Padrão das tabelas sensíveis (docs/agents/DATABASE_RULES.md, regra 5). Idempotente.
+
+ALTER TABLE public.siga_lesson_meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.siga_lesson_meetings FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS siga_lesson_meetings_read ON public.siga_lesson_meetings;
+DROP POLICY IF EXISTS "Staff manage lesson meetings in own school (insert)" ON public.siga_lesson_meetings;
+DROP POLICY IF EXISTS "Staff manage lesson meetings in own school (update)" ON public.siga_lesson_meetings;
+DROP POLICY IF EXISTS "Staff manage lesson meetings in own school (delete)" ON public.siga_lesson_meetings;
+REVOKE ALL ON public.siga_lesson_meetings FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.siga_lesson_meetings TO service_role;
+
+
 -- ══════════ Confirmar ══════════
 SELECT
   CASE
@@ -783,4 +845,34 @@ SELECT
                             WHERE rolname IN ('anon', 'authenticated'))))
       THEN 'aplicada'
     ELSE 'por aplicar'
-  END AS "20261017100000 auditoria do ADMIN";
+  END AS "20261017100000 auditoria do ADMIN",
+  CASE
+    WHEN to_regclass('public.siga_access_cards_one_active_per_person') IS NOT NULL
+      THEN 'aplicada'
+    ELSE 'por aplicar'
+  END AS "20261018100000 cartão activo único",
+  CASE
+    WHEN NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+                     AND policyname IN ('Public insert open enrollment applications',
+                                        'Public read open enrollment forms'))
+     AND NOT EXISTS (SELECT 1 FROM information_schema.column_privileges
+                     WHERE table_schema = 'public' AND grantee = 'anon'
+                       AND table_name IN ('enrollment_applications', 'enrollment_forms'))
+     AND NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants
+                     WHERE table_schema = 'public' AND grantee = 'anon'
+                       AND table_name IN ('enrollment_applications', 'enrollment_forms'))
+      THEN 'aplicada'
+    ELSE 'por aplicar'
+  END AS "20261018110000 matrícula pública só no servidor",
+  CASE
+    WHEN (SELECT relforcerowsecurity FROM pg_class
+          WHERE oid = to_regclass('public.siga_lesson_meetings'))
+     AND NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+                     AND tablename = 'siga_lesson_meetings')
+     AND NOT EXISTS (SELECT 1 FROM pg_class c, aclexplode(c.relacl) a
+                     WHERE c.oid = to_regclass('public.siga_lesson_meetings')
+                       AND (a.grantee = 0 OR a.grantee IN (SELECT oid FROM pg_roles
+                            WHERE rolname IN ('anon', 'authenticated'))))
+      THEN 'aplicada'
+    ELSE 'por aplicar'
+  END AS "20261018120000 reuniões Zoom só no servidor";

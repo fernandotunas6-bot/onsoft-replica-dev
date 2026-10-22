@@ -7,6 +7,7 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { assertAssessmentTermNotLocked } from "@/features/academic/sga-grades";
+import { escapeLikePattern } from "@/lib/like-pattern";
 import {
   createLessonPlanInputSchema,
   deleteLessonPlanInputSchema,
@@ -258,6 +259,45 @@ function isLessonPlanStaff(membership: { appRole: string; allAppRoles?: string[]
   return ["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role));
 }
 
+/**
+ * Turmas que um aluno ou encarregado pode ver: as das matrículas do próprio aluno ou dos
+ * seus educandos. `null` para quem não é aluno nem encarregado. Antes viam os planos
+ * publicados de todas as turmas da escola.
+ */
+async function familyClassGroupIds(
+  db: Db,
+  membership: { schoolId: string; appRole: string; allAppRoles?: string[] },
+  userId: string,
+): Promise<string[] | null> {
+  if (isLessonPlanStaff(membership)) return null;
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  if (!roles.some((role) => role === "Aluno" || role === "Encarregado")) return null;
+  const { resolveUserLinkedEntities } = await import("@/features/auth/server");
+  const linked = await resolveUserLinkedEntities(db, membership.schoolId, userId);
+  const studentIds = [
+    ...new Set(
+      [linked.student_id, ...linked.linked_students.map((row) => row.student_id)].filter(
+        (id): id is string => Boolean(id),
+      ),
+    ),
+  ];
+  if (!studentIds.length) return [];
+  const { data, error } = await db
+    .from("enrollments")
+    .select("class_group_id")
+    .eq("school_id", membership.schoolId)
+    .in("student_id", studentIds)
+    .in("status", ["active", "pending"]);
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar os planos de aula.");
+  return [
+    ...new Set(
+      (data ?? [])
+        .map((row: { class_group_id: string | null }) => row.class_group_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+}
+
 async function ownTeacherIds(db: Db, schoolId: string, userId: string) {
   const ids = new Set<string>();
   const { data: direct } = await db
@@ -350,6 +390,15 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       .limit(data.limit);
     // Rascunhos são do corpo docente; alunos e encarregados só vêem os publicados.
     if (!isLessonPlanStaff(membership)) query = query.eq("status", "published");
+    const familyClasses = await familyClassGroupIds(db, membership, context.userId);
+    if (familyClasses) {
+      if (!familyClasses.length) return { available: true, plans: [] };
+      query = query.in("class_group_id", familyClasses);
+    }
+    // A pesquisa vai à base: filtrada depois do limite, um plano antigo com o título
+    // procurado nunca aparecia.
+    if (data.query?.trim())
+      query = query.ilike("title", `%${escapeLikePattern(data.query.trim())}%`);
     if (data.classGroupId) query = query.eq("class_group_id", data.classGroupId);
     if (data.subjectId) query = query.eq("subject_id", data.subjectId);
     if (data.term) query = query.eq("term", data.term);
@@ -359,14 +408,7 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       if (isMissingRelation(error)) return { available: false, plans: [] };
       throw publicDatabaseError(error, "Não foi possível carregar os planos de aula.");
     }
-    const rows = (plans ?? []) as Array<Record<string, unknown>>;
-    const filtered = data.query
-      ? rows.filter((row) =>
-          String(row["title"] ?? "")
-            .toLowerCase()
-            .includes(data.query!.trim().toLowerCase()),
-        )
-      : rows;
+    const filtered = (plans ?? []) as Array<Record<string, unknown>>;
 
     const planIds = filtered.map((row) => String(row["id"] ?? ""));
     const { data: components } = planIds.length
@@ -450,6 +492,10 @@ export const getLessonPlan = createServerFn({ method: "GET" })
     if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano de aula.");
     if (!plan) throw new Error("Plano de aula não encontrado.");
     if (!isLessonPlanStaff(membership) && plan.status !== "published") {
+      throw new Error("Plano de aula não encontrado.");
+    }
+    const familyClasses = await familyClassGroupIds(db, membership, context.userId);
+    if (familyClasses && !familyClasses.includes(String(plan.class_group_id))) {
       throw new Error("Plano de aula não encontrado.");
     }
     const { data: components } = await db

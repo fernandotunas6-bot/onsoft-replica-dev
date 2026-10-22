@@ -45,3 +45,18 @@ describe("planos de aula com avaliações", () => {
     expect(update).toContain('.from("siga_lesson_plan_components")');
   });
 });
+
+describe("planos de aula para alunos e encarregados", () => {
+  const src = readFileSync("src/features/lesson-plans/server.ts", "utf8");
+  it("ficam com as turmas do aluno ou dos educandos (lista e plano)", () => {
+    for (const name of ["listLessonPlans", "getLessonPlan"]) {
+      const fn = src.slice(src.indexOf(`export const ${name} =`));
+      expect(fn.slice(0, 3000), name).toContain("familyClassGroupIds(");
+    }
+  });
+  it("a pesquisa vai à base, antes do limite", () => {
+    const fn = src.slice(src.indexOf("export const listLessonPlans ="));
+    expect(fn).toContain('.ilike("title"');
+    expect(fn).not.toContain(".includes(data.query");
+  });
+});

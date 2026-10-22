@@ -284,13 +284,15 @@ export const getAlumniOverview = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .eq("status", "published")
         .gte("starts_at", new Date().toISOString()),
-      db
+      // Todas as linhas: acima de 1000 perfis, a taxa de emprego e o total de
+      // contribuições saíam de uma parte só.
+      pagedReadClient(db)
         .from("alumni_profiles")
         .select(
           "employment_status, open_to_opportunities, verified_at, graduation_year, profile_completion, province",
         )
         .eq("school_id", membership.schoolId),
-      db
+      pagedReadClient(db)
         .from("alumni_contributions")
         .select("amount, currency, hours")
         .eq("school_id", membership.schoolId),
@@ -695,6 +697,16 @@ export const registerAlumniForEvent = createServerFn({ method: "POST" })
     const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
+    // O evento também tem de ser desta escola: a chave estrangeira é só pelo id, e um
+    // id de outra escola deixava o título e a data desse evento na ficha do alumni.
+    const { data: event, error: eventError } = await db
+      .from("alumni_events")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("id", data.eventId)
+      .maybeSingle();
+    if (eventError) throw publicDatabaseError(eventError, "Não foi possível validar o evento.");
+    if (!event) throw new Error("Evento não encontrado nesta escola.");
     const { error } = await db.from("alumni_event_registrations").upsert(
       {
         school_id: membership.schoolId,
