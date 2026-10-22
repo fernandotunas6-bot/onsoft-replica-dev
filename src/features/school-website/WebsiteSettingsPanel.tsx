@@ -10,6 +10,7 @@ import { actionIcons } from "@/lib/app-icons";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { changeSchoolWebsite, getSchoolWebsiteEditor } from "./content-server";
+import { editableWebsitePages } from "./page-appearance";
 import { WebsiteThemePanel } from "./WebsiteThemePanel";
 import { useDraftUnloadWarning } from "./use-draft-unload-warning";
 import {
@@ -354,6 +355,17 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
         programs={query.data?.programs ?? []}
         busy={busy || templateMismatch}
         onChange={changeDraft}
+        onEditPage={(path) => {
+          const route = editableWebsitePages.find((page) => page.url === path);
+          const contentGroup = route && `${route.title} · ${route.url}`;
+          if (!contentGroup || !groups.includes(contentGroup)) return;
+          setGroup(contentGroup);
+          setPage(0);
+          setSearch("");
+          const picker = document.getElementById("website-group");
+          picker?.scrollIntoView?.({ block: "start", behavior: "auto" });
+          picker?.focus({ preventScroll: true });
+        }}
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">

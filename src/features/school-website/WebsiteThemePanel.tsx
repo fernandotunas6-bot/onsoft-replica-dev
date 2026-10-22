@@ -14,6 +14,7 @@ import {
 } from "../../../painel/escolas/src/design.mjs";
 import { designOptionGroups } from "./website-design-options";
 import routes from "../../../painel/escolas/docs/routes.json";
+import { copyPageAppearance, editableWebsitePages } from "./page-appearance";
 import type { WebsiteDraft } from "./content-model";
 const colors: [keyof Appearance, string][] = [
   ["primary", "Cor principal"],
@@ -40,6 +41,7 @@ export function WebsiteThemePanel({
   logoUrl,
   programs = emptyPrograms,
   onChange,
+  onEditPage,
 }: {
   draft: WebsiteDraft;
   schoolName: string;
@@ -47,6 +49,7 @@ export function WebsiteThemePanel({
   logoUrl?: string | null;
   programs?: { id: string; name: string }[];
   onChange: (draft: WebsiteDraft) => void;
+  onEditPage?: (path: string) => void;
 }) {
   const design = draft.design ?? defaultDesign(),
     themes = [...builtInThemes, ...design.installedThemes];
@@ -57,7 +60,27 @@ export function WebsiteThemePanel({
     [customOnly, setCustomOnly] = useState(false),
     [previewPage, setPreviewPage] = useState("/"),
     [width, setWidth] = useState("desktop"),
-    [loading, setLoading] = useState(false);
+    [loading, setLoading] = useState(false),
+    [sourcePage, setSourcePage] = useState(""),
+    [copyMode, setCopyMode] = useState<"merge" | "replace">("merge"),
+    [notice, setNotice] = useState(""),
+    [copied, setCopied] = useState<{
+      target: string;
+      previous: Partial<Appearance> | undefined;
+      after: string;
+    } | null>(null);
+  const selectScope = (path: string) => {
+    setScope(path);
+    setPreviewPage(path || "/");
+    setSourcePage("");
+    setCopyMode("merge");
+    setError("");
+    setNotice("");
+  };
+  const customPages = editableWebsitePages.filter(
+    (page) => Object.keys(design.pages[page.url] ?? {}).length > 0,
+  );
+  const sources = customPages.filter((page) => page.url !== scope);
   const selected = themes.find((theme) => theme.id === design.activeTheme) ?? builtInThemes[0];
   const options = scope ? (design.pages[scope] ?? {}) : design.overrides;
   const inherited = { ...selected.appearance, ...(scope ? design.overrides : {}) };
@@ -109,6 +132,8 @@ export function WebsiteThemePanel({
   };
   const change = (next: WebsiteDesign) => {
     setError("");
+    setNotice("");
+    setCopied(null);
     onChange({ ...draft, design: next });
   };
   const adjust = (key: string, value: string) => {
@@ -290,23 +315,145 @@ export function WebsiteThemePanel({
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={scope}
             onChange={(event) => {
-              setScope(event.target.value);
-              setPreviewPage(event.target.value || "/");
+              selectScope(event.target.value);
             }}
           >
             <option value="">Todo o website</option>
-            {routes
-              .filter((route) => !route.url.startsWith("/portal/") && route.url !== "/404/")
-              .map((route) => (
-                <option key={route.url} value={route.url}>
-                  {route.title}
-                </option>
-              ))}
+            {editableWebsitePages.map((route) => (
+              <option key={route.url} value={route.url}>
+                {route.title}
+              </option>
+            ))}
           </select>
           <p className="text-xs text-muted-foreground">
             As páginas herdam o tema geral. Ajustes específicos mantêm-se quando muda de tema.
           </p>
         </div>
+        {customPages.length > 0 && (
+          <details className="rounded-lg border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Páginas personalizadas ({customPages.length})
+            </summary>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {customPages.map((page) => (
+                <Button
+                  key={page.url}
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={scope === page.url}
+                  onClick={() => selectScope(page.url)}
+                >
+                  {page.title} · {Object.keys(design.pages[page.url]).length}{" "}
+                  {Object.keys(design.pages[page.url]).length === 1 ? "ajuste" : "ajustes"}
+                </Button>
+              ))}
+            </div>
+          </details>
+        )}
+        {scope && (
+          <div className="space-y-3 rounded-lg border border-border p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium">
+                Personalização de {editableWebsitePages.find((page) => page.url === scope)?.title}
+              </p>
+              {onEditPage && (
+                <Button variant="outline" size="sm" onClick={() => onEditPage(scope)}>
+                  Editar textos e imagens desta página
+                </Button>
+              )}
+            </div>
+            {sources.length > 0 ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="website-style-source">Copiar personalizações de</Label>
+                    <select
+                      id="website-style-source"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={sourcePage}
+                      onChange={(event) => setSourcePage(event.target.value)}
+                    >
+                      <option value="">Escolher página de origem</option>
+                      {sources.map((page) => (
+                        <option key={page.url} value={page.url}>
+                          {page.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="website-style-copy-mode">Como aplicar os estilos</Label>
+                    <select
+                      id="website-style-copy-mode"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      value={copyMode}
+                      onChange={(event) => setCopyMode(event.target.value as "merge" | "replace")}
+                    >
+                      <option value="merge">Juntar aos ajustes desta página</option>
+                      <option value="replace">Substituir os ajustes desta página</option>
+                    </select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  A cópia inclui as opções visuais definidas na origem. Em Juntar, essas opções
+                  prevalecem quando já existe um ajuste igual. Em Substituir, a página passa a usar
+                  apenas os ajustes copiados. O tema geral e os conteúdos são geridos separadamente.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!sources.some((page) => page.url === sourcePage)}
+                  onClick={() => {
+                    setNotice("");
+                    try {
+                      const next = copyPageAppearance(design, sourcePage, scope, copyMode);
+                      const previous = design.pages[scope];
+                      change(next);
+                      setCopied({
+                        target: scope,
+                        previous: previous ? { ...previous } : undefined,
+                        after: JSON.stringify(next),
+                      });
+                      setNotice("Personalizações copiadas para o rascunho desta página.");
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "Não foi possível copiar os estilos.",
+                      );
+                    }
+                  }}
+                >
+                  Copiar personalizações
+                </Button>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Personalize outra página para poder reutilizar os seus ajustes aqui.
+              </p>
+            )}
+            {copied?.target === scope && copied.after === JSON.stringify(design) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const pages = { ...design.pages };
+                  if (copied.previous) pages[scope] = copied.previous;
+                  else delete pages[scope];
+                  change({ ...design, pages });
+                  setNotice("A cópia foi desfeita no rascunho.");
+                }}
+              >
+                Desfazer cópia
+              </Button>
+            )}
+            {notice && (
+              <p role="status" className="text-xs text-muted-foreground">
+                {notice}
+              </p>
+            )}
+          </div>
+        )}
         <div className="space-y-3 rounded-lg bg-muted/40 p-3">
           <div className="space-y-1">
             <Label htmlFor="website-design-search">Pesquisar opções de aparência</Label>
@@ -475,13 +622,11 @@ export function WebsiteThemePanel({
                 setPreviewPage(event.target.value);
               }}
             >
-              {routes
-                .filter((route) => !route.url.startsWith("/portal/") && route.url !== "/404/")
-                .map((route) => (
-                  <option key={route.url} value={route.url}>
-                    {route.title}
-                  </option>
-                ))}
+              {editableWebsitePages.map((route) => (
+                <option key={route.url} value={route.url}>
+                  {route.title}
+                </option>
+              ))}
             </select>
           </div>
           <div className="space-y-1">

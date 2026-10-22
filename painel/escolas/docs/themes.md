@@ -32,6 +32,14 @@ A pesquisa ignora acentos e aceita combinações como `botões cápsula`. O filt
 
 Ao escolher uma página para personalizar, essa página fica também seleccionada para a pré-visualização. Os tamanhos disponíveis são computador (1280 px), tablet (820 px) e telemóvel (até 390 px). A prévia mostra o fundo escolhido e a taxa de candidatura configurada. A marca demonstrativa é carregada como imagem PNG incorporada na prévia, preservando o isolamento do iframe; o ficheiro estático é reutilizado na sessão e pode ser novamente pedido após uma falha. Alterações nos conteúdos, tema, identidade, cursos associados ou página seleccionada marcam a prévia existente como desactualizada, até utilizar novamente Pré-visualizar rascunho. Alterar filtros ou o tamanho da janela não modifica o rascunho nem publica alterações.
 
+## Reutilizar a aparência entre páginas
+
+A lista Páginas personalizadas permite abrir directamente as páginas que têm ajustes próprios. Dentro da personalização de uma página, escolha uma origem e utilize Copiar personalizações. **Juntar** mantém os ajustes exclusivos do destino e dá prioridade aos valores copiados nas opções em comum. **Substituir** usa apenas os ajustes explícitos da origem. A configuração resultante é validada, incluindo o contraste, antes de alterar o rascunho.
+
+A cópia afecta apenas o estilo do destino. Os conteúdos, cursos associados, tema geral e restantes páginas mantêm a sua configuração. Desfazer cópia repõe os ajustes anteriores do destino enquanto a configuração visual permanece igual à resultante dessa cópia; uma alteração visual posterior invalida esse atalho. Guardar/Publicar continuam explícitos. Não é possível copiar de/para o portal, a página 404 ou a própria origem.
+
+O atalho Editar textos e imagens desta página abre o grupo correspondente no editor de conteúdos, limpa o filtro de campos e leva o foco ao selector da página, preservando o rascunho.
+
 ## Instalação de temas
 
 Formato JSON `siga-school-theme`, versão 1, até 32 KB e oito temas próprios por escola. Não se trata de um instalador de temas PHP/ZIP do WordPress. Os pacotes seleccionam os layouts suportados e opções de apresentação; não executam JavaScript, CSS livre, HTML ou plugins.
