@@ -1,7 +1,14 @@
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createServerFn } from "@tanstack/react-start";
 import { normalizeStoredPhone } from "@/lib/angola-phone";
 import { sgaClient } from "@/integrations/supabase/sga";
+import {
+  workflowRpcClient,
+  atomicStudentResultSchema,
+  assertWorkflowRpcAvailable,
+} from "@/integrations/supabase/workflow-rpcs";
+import { requireAal2 } from "@/features/hr/require-aal2";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -425,7 +432,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     return mapped.filter(
       (row) =>
         row.full_name.toLowerCase().includes(query) ||
-        row.registration_number.toLowerCase().includes(query) ||
+        numberMatches(row.registration_number, query) ||
         (row.email ?? "").toLowerCase().includes(query) ||
         (row.phone ?? "").toLowerCase().includes(query) ||
         (row.national_id ?? "").toLowerCase().includes(query) ||
@@ -762,154 +769,71 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
+    requireAal2(context.claims, "Matricular alunos");
+    // Um reenvio de uma operação já concluída não acrescenta alunos e deve
+    // funcionar mesmo quando o primeiro pedido ocupou o último lugar do plano.
     const db = await loadSgaAdminClient();
-
-    await assertCanAddStudentForSchool(membership.schoolId);
-
-    const personInput = data.person;
-    const fullName = personInput.full_name.trim();
-    if (!fullName) throw new Error("Nome do aluno é obrigatório.");
-
-    const personPayload: TablesInsert<"people"> = {
-      school_id: membership.schoolId,
-      full_name: fullName,
-      preferred_name:
-        personInput.preferred_name || personInput.first_name || fullName.split(/\s+/)[0],
-      email: personInput.email || null,
-      phone: personInput.phone_primary
-        ? (normalizeStoredPhone(personInput.phone_primary) ?? personInput.phone_primary)
-        : null,
-      national_id: personInput.nif || null,
-      date_of_birth: personInput.birth_date || null,
-      sex:
-        personInput.sex === "M"
-          ? "male"
-          : personInput.sex === "F"
-            ? "female"
-            : personInput.sex || null,
-      status: "active",
-      created_by: context.userId,
-      updated_by: context.userId,
-    };
-    const hasGeography = Boolean(
-      personInput.province ||
-      personInput.municipality ||
-      personInput.commune ||
-      personInput.address,
-    );
-    if (hasGeography) {
-      personPayload["province"] = personInput.province || null;
-      personPayload["municipality"] = personInput.municipality || null;
-      personPayload["commune"] = personInput.commune || null;
-      personPayload["address"] = personInput.address || null;
-    }
-
-    const { data: person, error: personError } = await db
-      .from("people")
-      .insert(personPayload)
+    const { data: completed, error: requestError } = await db
+      .from("audit_logs")
       .select("id")
-      .single();
-    if (personError && hasGeography && isMissingPeopleGeography(personError)) {
-      throw new Error(
-        "A localização do aluno não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+      .eq("school_id", membership.schoolId)
+      .eq("actor_user_id", context.userId)
+      .eq("request_id", data.requestId)
+      .eq("action", "students.enrollment_created")
+      .limit(1)
+      .maybeSingle();
+    if (requestError)
+      throw publicDatabaseError(
+        requestError,
+        "Não foi possível confirmar o estado deste pedido. Tente novamente.",
       );
-    }
-    if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
-
-    // register_student cria o aluno (+ 1º encarregado) numa transação atómica: gera o
-    // número de processo por sequência própria (nunca duplica sob pedidos simultâneos,
-    // ao contrário do insert directo anterior) e valida a pessoa/encarregado antes de gravar.
-    const firstGuardian = (data.guardians ?? [])[0];
-    const { data: registered, error: registerError } = await sgaClient(context.supabase).rpc(
-      "register_student",
+    if (!completed) await assertCanAddStudentForSchool(membership.schoolId);
+    const person = data.person;
+    const fullName = person.full_name.trim();
+    const { data: result, error } = await workflowRpcClient(context.supabase).rpc(
+      "siga_enroll_new_student_atomic",
       {
-        school_id: membership.schoolId,
-        person_id: person.id,
-        admission_date: data.admittedOn ?? schoolTodayIso(),
-        // `undefined` e não `null`: os parâmetros `guardian_person_id` e
-        // `relationship` de `register_student` têm `DEFAULT NULL` na base, pelo
-        // que omitir e passar NULL dão o mesmo resultado — e os tipos gerados da
-        // produção declaram-nos opcionais, não nulláveis.
-        guardian_person_id: firstGuardian?.guardian_person_id ?? undefined,
-        relationship: firstGuardian
-          ? mapSgaGuardianRelationship(firstGuardian.relationship)
-          : undefined,
-        primary_guardian: firstGuardian?.is_primary ?? false,
-        financial_responsibility: firstGuardian?.is_primary ?? false,
-        pickup_authorization: firstGuardian?.authorized_pickup ?? true,
+        p_school_id: membership.schoolId,
+        p_request_id: data.requestId,
+        p_person: {
+          full_name: fullName,
+          preferred_name: person.preferred_name || person.first_name || fullName.split(/\s+/)[0],
+          email: person.email || null,
+          phone: person.phone_primary ? normalizeStoredPhone(person.phone_primary) : null,
+          national_id: person.nif || null,
+          date_of_birth: person.birth_date || null,
+          sex:
+            person.sex === "M"
+              ? "male"
+              : person.sex === "F"
+                ? "female"
+                : person.sex === "outro"
+                  ? "other"
+                  : null,
+          province: person.province || null,
+          municipality: person.municipality || null,
+          commune: person.commune || null,
+          address: person.address || null,
+          notes: person.notes || null,
+        },
+        p_guardians: data.guardians.map((guardian) => ({
+          ...guardian,
+          relationship: mapSgaGuardianRelationship(guardian.relationship),
+        })),
+        p_class_group_id: data.classGroupId ?? null,
+        p_academic_year_id: data.academicYearId ?? null,
+        p_admission_date: data.admittedOn ?? null,
       },
     );
-    if (registerError) {
-      // Compensa o insert de people acima — sem isto, uma falha aqui (ex.: 2FA em
-      // falta) deixa uma pessoa órfã sem aluno associado.
-      await db.from("people").delete().eq("id", person.id);
-      if (rpcAuthError(registerError)) {
-        throw new Error(
-          "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos.",
-        );
-      }
-      throw publicDatabaseError(registerError, "Não foi possível concluir a matrícula.");
-    }
-    const studentOutcome = registered as {
-      studentId: string;
-      studentNumber: string;
-      status: string;
-    };
-
-    // Restantes encarregados (2º em diante) — relação secundária, sem o mesmo risco de
-    // corrida do registo principal, mantida como antes.
-    for (const guardian of (data.guardians ?? []).slice(1)) {
-      await linkGuardian(db, {
-        schoolId: membership.schoolId,
-        studentId: studentOutcome.studentId,
-        guardianPersonId: guardian.guardian_person_id,
-        relationship: guardian.relationship,
-        isPrimary: guardian.is_primary,
-        userId: context.userId,
-      });
-    }
-
-    let enrollmentOutcome: { enrollmentId: string; enrollmentNumber: string } | null = null;
-    if (data.classGroupId && data.academicYearId) {
-      const { data: enrolled, error: enrollError } = await sgaClient(context.supabase).rpc(
-        "enroll_student",
-        {
-          school_id: membership.schoolId,
-          student_id: studentOutcome.studentId,
-          class_group_id: data.classGroupId,
-          enrolled_on: data.admittedOn ?? schoolTodayIso(),
-        },
+    assertWorkflowRpcAvailable(error);
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível concluir a matrícula. Nenhum registo foi criado.",
       );
-      if (enrollError) {
-        if (rpcAuthError(enrollError)) {
-          throw new Error(
-            "Aluno criado, mas esta conta precisa de 2FA activo para o matricular numa turma.",
-          );
-        }
-        throw publicDatabaseError(enrollError, "Aluno criado, mas falhou a matrícula na turma.");
-      }
-      enrollmentOutcome = enrolled as { enrollmentId: string; enrollmentNumber: string };
-    }
-
+    const outcome = atomicStudentResultSchema.parse(result);
     queueTenantUsageSync(membership.schoolId);
-
-    const finalStatus = enrollmentOutcome ? "active" : studentOutcome.status;
-    await recordStudentStatusHistory(db, {
-      schoolId: membership.schoolId,
-      studentId: studentOutcome.studentId,
-      previousStatus: null,
-      newStatus: finalStatus,
-      reason: enrollmentOutcome ? "Nova matrícula interna com turma" : "Nova matrícula interna",
-      changedBy: context.userId,
-    });
-
-    return {
-      id: studentOutcome.studentId,
-      student_number: studentOutcome.studentNumber,
-      status: finalStatus,
-      person_id: person.id,
-      enrollment_number: enrollmentOutcome?.enrollmentNumber ?? null,
-    };
+    return outcome;
   });
 
 export const changeStudentStatus = createServerFn({ method: "POST" })
@@ -1251,8 +1175,8 @@ export const listEnrollments = createServerFn({ method: "GET" })
         if (!q) return true;
         return (
           row.student_name.toLowerCase().includes(q) ||
-          row.registration_number.toLowerCase().includes(q) ||
-          row.enrollment_number.toLowerCase().includes(q) ||
+          numberMatches(row.registration_number, q) ||
+          numberMatches(row.enrollment_number, q) ||
           row.class_name.toLowerCase().includes(q)
         );
       });

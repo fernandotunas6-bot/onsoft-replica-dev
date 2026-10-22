@@ -1,0 +1,2 @@
+# As regras de cache dos recursos públicos são geradas pelo Nitro (vite.config.ts).
+# Não repetir aqui os caminhos: o preset Cloudflare acrescenta as regras a este ficheiro.

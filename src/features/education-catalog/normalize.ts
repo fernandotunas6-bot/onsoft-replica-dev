@@ -9,6 +9,7 @@
  * equivalência só vale quando o texto bate exactamente com um nome,
  * sinónimo ou código conhecido, ou difere numa só letra.
  */
+import { COURSE_KIND_ISCED, GLOBAL_COURSES, type GlobalCourse } from "./data/courses";
 import { GLOBAL_SUBJECTS, type GlobalSubject } from "./data/subjects";
 import { editDistance, normalizeText } from "./search";
 
@@ -166,4 +167,81 @@ export function findSubjectDuplicates(names: readonly string[]) {
   return [...groups.entries()]
     .filter(([, list]) => list.length > 1)
     .map(([code, list]) => ({ code, names: list }));
+}
+
+/**
+ * Sigla ou abreviatura solta: «MAT», «EM», «em», «fq», «Filos.», «TICs». Numa
+ * escola «EM» é Estudo do Meio, noutra Educação Moral — não vale como nome.
+ */
+function looksLikeAbbreviation(text: string) {
+  if (/^[A-ZÀ-Ý0-9.]{1,6}$/.test(text)) return true;
+  if (/\s/.test(text)) return false;
+  return text.endsWith(".") || text.replace(/\./g, "").length <= 4;
+}
+
+/**
+ * Código do catálogo para um NOME escrito pela escola ou numa folha, só por
+ * correspondência exacta (nome, nome local ou sinónimo). Siglas e abreviaturas
+ * soltas não contam, em maiúsculas ou minúsculas. Para juntar coisas que já
+ * são da escola sem adivinhar.
+ */
+export function subjectCatalogKey(raw: unknown): string | null {
+  const text = String(raw ?? "").trim();
+  if (!text || looksLikeAbbreviation(text)) return null;
+  const match = resolveSubject(text);
+  return match?.via === "exact" ? match.subject.code : null;
+}
+
+/** Ensino superior (ISCED 5–8) ou ensino não superior (até ISCED 4). */
+export type CourseScope = "higher" | "school";
+
+/**
+ * O âmbito de um nível de ensino da escola, pelo código ou nome: «ES»,
+ * «Ensino Superior», «Licenciatura» → superior; o resto → não superior.
+ */
+export function levelScope(
+  level: { code?: string | null; name?: string | null } | null | undefined,
+): CourseScope | null {
+  if (!level) return null;
+  const text = normalizeText(`${level.code ?? ""} ${level.name ?? ""}`);
+  if (!text) return null;
+  return /\b(es|superior|licenciaturas?|bacharelato|mestrados?|doutoramentos?|universit\w*|graduacao|pos graduacao)\b/.test(
+    text,
+  )
+    ? "higher"
+    : "school";
+}
+
+const inScope = (course: GlobalCourse, scope: CourseScope) =>
+  scope === "higher" ? COURSE_KIND_ISCED[course.kind] >= 5 : COURSE_KIND_ISCED[course.kind] < 5;
+
+let courseIndex: Map<string, GlobalCourse[]> | null = null;
+
+/**
+ * Código do catálogo para o NOME de um curso («Ciências Económico-Jurídicas» →
+ * SEC-CEJ), só por nome ou sinónimo exactos. Siglas soltas («CEJ», «INF») não
+ * contam. Com o âmbito (superior ou não), só cursos desse âmbito: «Contabilidade»
+ * num nível superior não é o curso técnico. Um nome que serve dois cursos
+ * (dentro do âmbito) não aponta para nenhum.
+ */
+export function courseCatalogKey(raw: unknown, scope?: CourseScope | null): string | null {
+  const text = String(raw ?? "").trim();
+  if (!text || looksLikeAbbreviation(text)) return null;
+  if (!courseIndex) {
+    courseIndex = new Map();
+    for (const c of GLOBAL_COURSES) {
+      for (const key of [c.name, ...c.aliases]) {
+        if (looksLikeAbbreviation(key)) continue;
+        const k = normalizeText(key);
+        if (!k) continue;
+        const list = courseIndex.get(k) ?? [];
+        if (!list.includes(c)) list.push(c);
+        courseIndex.set(k, list);
+      }
+    }
+  }
+  const matches = (courseIndex.get(normalizeText(text)) ?? []).filter(
+    (c) => !scope || inScope(c, scope),
+  );
+  return matches.length === 1 ? matches[0]!.code : null;
 }

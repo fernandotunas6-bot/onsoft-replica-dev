@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
@@ -300,7 +301,7 @@ export function AttendanceCallDialog({
     .filter((st) =>
       search
         ? st.full_name.toLowerCase().includes(search.toLowerCase()) ||
-          st.student_number.toLowerCase().includes(search.toLowerCase())
+          numberMatches(st.student_number, search)
         : true,
     )
     .filter((st) => statusFilter === "all" || statusOf(st.student_id) === statusFilter)

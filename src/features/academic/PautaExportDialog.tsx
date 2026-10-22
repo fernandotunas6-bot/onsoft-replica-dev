@@ -15,18 +15,44 @@ import {
 } from "@/components/ui/dialog";
 import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
+import {
+  getPeriodCountForCycle,
+  getPeriodLabel,
+  getPeriodsForCycle,
+  inferTeachingCycle,
+} from "@/lib/angola-academic";
 import { buildPautaExportRows, type PautaGradeInput } from "./pauta-export";
+import type { PromotionRules } from "./assessment-model";
 
 type Props = {
   termGrades: ReadonlyArray<PautaGradeInput>;
-  classGroups: ReadonlyArray<{ id: string; name: string }>;
+  classGroups: ReadonlyArray<{
+    id: string;
+    name: string;
+    /** Classe e curso da turma: derivam o ciclo, e o ciclo decide regime e transição. */
+    grade_name?: string;
+    course_name?: string;
+  }>;
+  /** `schools.evaluation_periods` — 2 ou 3; o Ensino Superior ignora-a (é semestral). */
+  evaluationPeriods?: number | undefined;
+  /** Nota mínima do modelo em vigor (`usePassingValue`). */
+  passing?: number | undefined;
+  /** Regras de transição do modelo em vigor (`useActiveAssessmentRule`). */
+  promotionRules?: PromotionRules | undefined;
   disabled?: boolean;
 };
 
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export function PautaExportDialog({ termGrades, classGroups, disabled }: Props) {
+export function PautaExportDialog({
+  termGrades,
+  classGroups,
+  evaluationPeriods,
+  passing,
+  promotionRules,
+  disabled,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [classId, setClassId] = useState(classGroups[0]?.id ?? "");
   const [period, setPeriod] = useState<string>("1");
@@ -43,9 +69,17 @@ export function PautaExportDialog({ termGrades, classGroups, disabled }: Props) 
   }, [classGrades]);
   const selected = picked ?? new Set(subjects.map(([id]) => id));
   const effectiveClass = classId || classGroups[0]?.id || "";
-  const className = classGroups.find((c) => c.id === effectiveClass)?.name ?? "Turma";
-  const periodNumber = period === "anual" ? "anual" : Number(period);
-  const periodLabel = period === "anual" ? "Anual" : `${period}º Trimestre`;
+  const group = classGroups.find((c) => c.id === effectiveClass);
+  const className = group?.name ?? "Turma";
+  // O regime é da turma, não da escola: numa escola com Superior e Secundário, um só
+  // número não servia os dois (getPeriodCountForCycle trata o Superior como semestral).
+  const cycle = inferTeachingCycle(group?.grade_name, group?.course_name);
+  const periodCount = getPeriodCountForCycle(cycle, evaluationPeriods);
+  const periods = getPeriodsForCycle(cycle, evaluationPeriods);
+  // Uma turma de 2 períodos não deve oferecer o 3.º: ficava uma pauta vazia.
+  const safePeriod = period !== "anual" && Number(period) > periodCount ? "anual" : period;
+  const periodNumber = safePeriod === "anual" ? "anual" : Number(safePeriod);
+  const periodLabel = safePeriod === "anual" ? "Anual" : getPeriodLabel(cycle, Number(safePeriod));
 
   const build = () => {
     const chosen = subjects.filter(([id]) => selected.has(id));
@@ -57,6 +91,7 @@ export function PautaExportDialog({ termGrades, classGroups, disabled }: Props) 
       classGrades,
       chosen.map(([id]) => id),
       periodNumber,
+      { periodCount, cycle, passing, promotionRules },
     );
     if (rows.length === 0) {
       toast.error("Não há notas para esta turma e período.");
@@ -147,12 +182,14 @@ export function PautaExportDialog({ termGrades, classGroups, disabled }: Props) 
               <select
                 id="pauta-periodo"
                 className={selectClass}
-                value={period}
+                value={safePeriod}
                 onChange={(e) => setPeriod(e.target.value)}
               >
-                <option value="1">1º Trimestre</option>
-                <option value="2">2º Trimestre</option>
-                <option value="3">3º Trimestre</option>
+                {periods.map((p) => (
+                  <option key={p} value={String(p)}>
+                    {getPeriodLabel(cycle, p)}
+                  </option>
+                ))}
                 <option value="anual">Anual (média final)</option>
               </select>
             </div>

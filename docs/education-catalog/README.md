@@ -95,6 +95,51 @@ fica no registo de auditoria (`academic.subject.renamed_to_catalog`). O servidor
 revisão e só aplica o que ele próprio sugere, e só se o nome não mudou entretanto. Usa o
 cliente do utilizador (RLS), não o privilegiado.
 
+### Ligar ao catálogo
+
+`subjects.catalog_subject_code` (migração `20261012120000_subjects_catalog_link.sql`, só
+`ALTER TABLE`, sem chave estrangeira — o catálogo vive no código; formato verificado por
+`CHECK`) diz de que disciplina do catálogo se trata, sem mudar o nome nem o código. Em
+**Rever disciplinas → Ligação ao catálogo**:
+- as reconhecidas pelo nome exacto (nome, nome local, sinónimo; nunca siglas soltas nem
+  letras trocadas) ligam-se de uma vez;
+- as próprias da escola podem ligar-se à mão («Mat. Aplicada» → Matemática) ou ficar como
+  estão.
+
+A ligação à mão não as torna duplicadas (duplicados e nomes continuam só pelo nome). O
+servidor recalcula a revisão e só grava o que ela sugere ou um código que o catálogo
+conhece, nunca por cima de uma ligação existente; 2FA, Administrador/Secretaria, política
+de UPDATE e auditoria (`academic.subject.linked_to_catalog`). Antes da migração, a revisão
+lê com `select("*")`, mostra «fica disponível depois de aplicada…» e não grava nada.
+Ensaio: `tests/sql/subjects-catalog-link.mjs`.
+
+Ao criar — «Nova» disciplina, «Usar modelo de estrutura» e importação — a disciplina com
+nome exacto do catálogo fica logo ligada (`catalog-link.ts`). É um passo a seguir à
+criação e tolerante: sem a coluna, ou se falhar, a disciplina fica criada e por ligar.
+
+Cursos: a mesma migração acrescenta `programs.catalog_course_code`. O modelo de
+estrutura, a importação de cursos e «Novo curso» do ensino superior ligam o curso novo
+pelo nome ou sinónimo (`courseCatalogKey`: nunca siglas, e um nome que serve dois cursos
+do catálogo, como «Enfermagem», não liga).
+
+Os cursos que já existem ligam-se em Pedagógica → Estrutura → **Ligar cursos**
+(`course-review.ts`, `CourseReviewDialog.tsx`; servidor em `curriculum-templates-server.ts`):
+os reconhecidos pelo nome de uma vez, os próprios da escola à mão (a lista diz o tipo:
+«Curso técnico — Enfermagem», «Licenciatura — Enfermagem») ou ficam como estão. `programs`
+não tem política de escrita para utilizadores: grava com o cliente privilegiado, na escola
+da membership, só o que a revisão (recalculada no servidor) sugere ou um código que o
+catálogo conhece, nunca por cima de uma ligação; Administrador/Secretaria, 2FA, auditoria
+(`academic.program.linked_to_catalog`).
+
+### Adopção pelas escolas (ADMIN)
+
+ADMIN → Catálogos globais → **Adopção pelas escolas** (`GET
+/api/saas/education-catalog/adoption`, só administradores da plataforma; contagem em
+`adoption.ts`, leitura em `platform-ops.ts`): por escola e no total, disciplinas e cursos
+ligados ao catálogo, por ligar com o nome já reconhecido, e próprios da escola. Só lê; a
+ligação faz-se em cada escola. Antes da migração 20261012120000 uma sonda de uma linha
+deteta a falta da coluna e a página diz que a ligação ainda não está activa.
+
 ## Criar disciplina com o catálogo
 
 Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
@@ -144,8 +189,35 @@ novo.
   (`is_aal2`) e `academic.subjects.manage`; o servidor exige ainda Administrador/Secretaria e
   só aceita um grupo que a revisão reconhece como a mesma disciplina. Auditado
   (`academic.subject.merged`, com o que mudou).
-- Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
+- A migração está aplicada (2026-10-10). Sem ela, o botão respondia «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
+
+## Importação de dados
+
+- **Disciplinas:** uma linha da folha é dada como «já cadastrada» pelo mesmo código, pelo
+  mesmo nome ou pela mesma disciplina do catálogo escrita de outra forma. Antes só o código
+  contava: «MATEM | Matemática» numa escola com «MAT | Matemática» criava outra Matemática.
+- **Notas, presenças, avaliações:** a disciplina da folha procura-se por código ou nome
+  exactos; se nada bater, pela equivalência do catálogo («L. Portuguesa» → «Língua
+  Portuguesa»), só por nome, nunca por siglas soltas, e só quando aponta para uma única
+  disciplina da escola. Notas e presenças associadas assim ficam com aviso na pré-visualização.
+- **Cursos:** código (único na escola), ou — no mesmo nível de ensino — nome, ou o mesmo
+  curso do catálogo por nome ou sinónimo («Ciências Económico-Jurídicas» = «Ciências
+  Económicas e Jurídicas»). «Informática» no médio e na licenciatura são cursos
+  diferentes. O catálogo só procura cursos do âmbito do nível (`levelScope`: superior ou
+  não superior), por isso «Contabilidade» numa licenciatura não é o curso técnico; sem
+  nível, um nome que serve dois cursos («Enfermagem») não aponta para nenhum.
+- **Siglas soltas** nunca contam como nome, em maiúsculas ou minúsculas («EM», «em», «fq»,
+  «Filos.»).
+- **Classes (turmas, preçário de propinas):** código ou nome exactos; se nada bater, a mesma
+  classe escrita de outra forma («10a classe», «décima classe» → «10ª Classe»), pelo número
+  e pela unidade (classe ≠ ano), só quando é uma. Nas turmas fica com aviso.
+- **Horários:** a disciplina segue a mesma regra das notas (catálogo só por nome, com aviso).
+- **Histórico académico:** «8a classe» e «oitava classe» são o mesmo histórico que «8ª
+  Classe»: reimportar actualiza a linha existente (que fica com a classe como estava
+  escrita) em vez de criar outra.
+- **Períodos (notas, avaliações):** além de «1º Trimestre» e «Segundo Trimestre», aceita
+  «I Trimestre», «III trimestre» e «T2». Nunca um 4.º período.
 
 ## API de pesquisa (Mobile V4, WEB, integrações)
 
@@ -181,6 +253,26 @@ não aparece no primário; Termodinâmica só no superior; «Estudo do Meio» n�
 superior. `validateSubjectContext()` devolve o motivo («Física não é uma disciplina de
 «Ensino Primário».»). Curso ou classe que não pertencem à etapa são recusados.
 
+### Contexto de nível por área (2026-10-10)
+
+Cada área de formação (Saúde, Informática, Gestão, Engenharia, Construção, Agricultura,
+Direito, Educação, Artes, Turismo, Comunicação, Transportes, Ambiente) tem a sua regra em
+`SUBJECT_AREA_LEVELS` (`data/subjects.ts`): **nenhuma começa antes do ISCED 3**, e a via
+geral só existe para Artes (Desenho, História da Arte) e Ambiente (Ecologia).
+
+- `areasForContext(ctx)` — as áreas que existem no nível escolhido, com quantas disciplinas
+  cada uma tem nele. O primário e o I ciclo não têm nenhuma.
+- `subjectsForContext(ctx, { area })` e `searchSubjects(q, ctx, limit, area)` — só a área,
+  e só dentro do nível. Uma área fora do nível é recusada com o motivo («A área Saúde não
+  existe em «Ensino Primário»: começa no nível ISCED 3 (técnico-profissional, ensino
+  superior).»); `validateAreaContext()` devolve-o sem lançar.
+- API: `type=areas&stage=AO-ETP` e `type=subjects&stage=AO-ETP&area=saude` (400 com o
+  motivo quando a área não existe no nível).
+- Página: no modo «Disciplinas», chips com as áreas do nível; no primário aparece a
+  explicação em vez dos chips.
+- Teste `tests/education-catalog/area-level-context.test.ts`: toda a disciplina com área
+  cabe na regra da área, nenhuma etapa ISCED 0–2 sugere disciplinas de especialidade.
+
 ## Pesquisa
 
 Corre sobre os dados empacotados — funciona sem rede, sem base e sem IA. Com ~170 registos
@@ -210,14 +302,25 @@ maior existente e, se outro pedido gravou o mesmo número ao mesmo tempo, tenta 
 UUID continua a ser a chave primária. Os códigos não são credenciais e não vão em URLs
 públicas de dados pessoais.
 
-## Aplicar (dono, SQL Editor) — não aplicado
+## Aplicado na produção (2026-10-10)
 
-1. `supabase/migrations/20261010120000_global_education_catalog.sql` (idempotente; tabelas
-   novas, nenhuma alteração a tabelas existentes).
-2. `supabase/seeds/education/catalog.sql` (idempotente).
-3. `supabase/migrations/20261010150000_merge_school_subjects.sql` (só cria a função).
-4. Recapturar o retrato (`npm run siga:db-snapshot`) e tirar `merge_school_subjects` de
-   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`).
+1. `20261010120000_global_education_catalog.sql` e `20261010150000_merge_school_subjects.sql`
+   — no histórico da produção com estes números. Confirmado: as 9 tabelas com RLS forçada,
+   `anon` sem acesso, `authenticated` só com SELECT, `identifier_sequences` só para o
+   servidor, `merge_school_subjects` SECURITY DEFINER com EXECUTE para `authenticated`.
+2. `supabase/seeds/education/catalog.sql` — carregada por partes (o plano curricular numa
+   forma compacta equivalente, provada em PGlite contra o ficheiro). Verificação: as
+   impressões md5 das 8 tabelas (ordenadas com `COLLATE "C"`) são iguais às do ficheiro
+   carregado em PGlite — 9 fontes, 9 níveis, 41 áreas, 8 países, 115 disciplinas, 54
+   cursos, 20 etapas, 614 entradas de plano.
+3. **Falta (dono, com o CLI ligado):** recapturar o retrato (`npm run siga:db-snapshot`) e
+   os tipos (`npm run siga:gen-types`), e tirar `merge_school_subjects` de
+   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`) — o teste
+   `colunas-inexistentes` obriga a isso assim que o retrato mostrar a função. Não se fez
+   aqui porque o retrato só se gera com o CLI e não se escreve à mão.
+
+Se a carga mudar (`npm run siga:catalog-seed`), voltar a correr o ficheiro inteiro: é
+idempotente (`ON CONFLICT … DO UPDATE`).
 
 Ensaio local: `SIGA_SQL_TEST_MODULE_PATH=<…/pglite/dist/index.js> node tests/sql/education-catalog.mjs`
 — migração e carga duas vezes, contagens iguais, chaves estrangeiras, estados, anon sem
@@ -230,8 +333,8 @@ não há nada em `TABELAS_AUSENTES_DA_PRODUCAO`.
 
 - ~~Assistente de estrutura para Moçambique e Portugal~~ (feito, ver acima).
 - ~~Juntar duplicados~~ (feito; falta aplicar a migração).
-- Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code` (colunas novas, por
-  `ALTER TABLE`) e usar `findSubjectDuplicates` para propor fusões com mapeamento auditado.
+- ~~Ligar `subjects.catalog_subject_code` e `programs.catalog_course_code`~~ (feito ao
+  criar, em «Rever disciplinas» e em «Ligar cursos»; falta aplicar a migração).
 - Documentos e pautas a resolverem nomes pelo catálogo (mantendo o nome à data da emissão).
 - Painel de governação no ADMIN (aprovar propostas, versões, comparar, restaurar) com
   `catalog_review_queue`.

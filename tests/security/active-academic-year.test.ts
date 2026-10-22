@@ -71,14 +71,14 @@ describe("escolher o ano activo (Calendário Lectivo)", () => {
     return source.slice(start, source.indexOf("export const ", start + 1));
   };
 
-  it("só a Administração torna um ano activo; fecha os outros antes de activar", () => {
+  it("só a Administração torna um ano activo, numa transacção", () => {
     const set = fn("setActiveAcademicYear");
     expect(set).toMatch(
       /requireSgaWriterForWrite\(\s*"pedagogica",[\s\S]{0,80}\["Administrador"\]/,
     );
-    expect(set).toMatch(/\.eq\("school_id", membership\.schoolId\)\s*\.maybeSingle\(\)/);
-    expect(set.indexOf("error: closeError")).toBeGreaterThan(-1);
-    expect(set.indexOf("error: closeError")).toBeLessThan(set.indexOf("error: activateError"));
+    expect(set).toContain('"siga_save_active_academic_year"');
+    expect(set).toContain("p_school_id: membership.schoolId");
+    expect(set).not.toContain('.from("academic_years")');
   });
 
   it("a lista dos anos activos é da Administração e da Secretaria", () => {

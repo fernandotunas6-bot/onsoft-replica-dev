@@ -29,6 +29,9 @@ interface Stats {
   suspendedTenants: number
   totalStudents: number
   mrrAoa: number
+  pastDueTenants?: number
+  trialExpiredTenants?: number
+  exemptTenants?: number
 }
 
 function formatAoa(value: number) {
@@ -103,7 +106,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel SaaS</h1>
           <p className="text-muted-foreground">
-            Visão operacional da plataforma — tenants, trials, MRR e eventos recentes.
+            Escolas, trials, receita mensal e eventos recentes da plataforma.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -122,7 +125,7 @@ export default function DashboardPage() {
       {needsAuth ? (
         <Card>
           <CardContent className="py-8 text-sm text-muted-foreground">
-            Inicie sessão como `platform_admins`.{" "}
+            Inicie sessão como administrador da plataforma.{" "}
             <Link className="underline" href="/sign-in">
               Entrar
             </Link>
@@ -136,25 +139,53 @@ export default function DashboardPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Escolas", value: stats?.totalTenants },
-          { label: "Activas", value: stats?.activeTenants },
-          { label: "Em trial", value: stats?.trialTenants },
-          { label: "Suspensas", value: stats?.suspendedTenants },
-          { label: "Alunos (usage)", value: stats?.totalStudents },
-          { label: "MRR", value: stats ? formatAoa(stats.mrrAoa) : undefined },
+          { label: "Escolas", value: stats?.totalTenants, href: "/tenants" },
+          { label: "Activas (a pagar)", value: stats?.activeTenants, href: "/tenants" },
+          { label: "Em trial", value: stats?.trialTenants, href: "/tenants" },
+          {
+            label: "Trial expirado",
+            value: stats?.trialExpiredTenants,
+            href: "/tasks",
+            warn: (stats?.trialExpiredTenants ?? 0) > 0,
+          },
+          {
+            label: "Em atraso",
+            value: stats?.pastDueTenants,
+            href: "/tasks",
+            warn: (stats?.pastDueTenants ?? 0) > 0,
+          },
+          { label: "Suspensas", value: stats?.suspendedTenants, href: "/tenants" },
+          { label: "Sem cobrança", value: stats?.exemptTenants, href: "/tenants" },
+          {
+            label: "Receita mensal (MRR)",
+            value: stats ? formatAoa(stats.mrrAoa) : undefined,
+            href: "/subscriptions",
+          },
         ].map((item) => (
-          <Card key={item.label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{item.label}</CardDescription>
-              <CardTitle className="text-2xl">
-                {loading ? "…" : item.value ?? "—"}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+          <Link key={item.label} href={item.href} className="rounded-xl">
+            <Card
+              className={
+                item.warn
+                  ? "h-full border-amber-500/50 bg-amber-500/5 transition-colors hover:bg-amber-500/10"
+                  : "h-full transition-colors hover:bg-muted/40"
+              }
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>{item.label}</CardDescription>
+                <CardTitle className="text-2xl tabular-nums">
+                  {loading ? "…" : (item.value ?? "—")}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </Link>
         ))}
       </div>
+      <p className="-mt-3 text-xs text-muted-foreground">
+        A receita mensal conta só escolas activas e cobradas: trials, escolas em atraso, públicas
+        e com cobranças pausadas ficam de fora. Alunos activos: {loading ? "…" : (stats?.totalStudents ?? "—")}.
+      </p>
 
       <div>
         <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
@@ -176,7 +207,7 @@ export default function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base">Eventos recentes</CardTitle>
-            <CardDescription>Últimos registos de `saas_audit_logs`</CardDescription>
+            <CardDescription>Últimas alterações feitas na plataforma</CardDescription>
           </div>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/audit">Ver auditoria</Link>

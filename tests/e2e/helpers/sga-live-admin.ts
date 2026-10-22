@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { assertSafeE2ETarget } from "../../../scripts/siga/e2e-safety.mjs";
 
 /**
  * Senha dos admins que os testes @live criam na produção. Vem de
@@ -29,6 +30,7 @@ function loadRootEnv() {
 
 export function getLiveSupabaseAdmin(): SupabaseClient {
   loadRootEnv();
+  assertSafeE2ETarget();
   const url = process.env.SUPABASE_URL?.trim() || process.env.VITE_SUPABASE_URL?.trim();
   const secret =
     process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -90,9 +92,15 @@ export async function getAcceptedApplicationStudentId(schoolId: string, fullName
   return data;
 }
 
-/** Slugs criados pelos testes Playwright @live (prefixos de uniqueE2ESlug). */
+/**
+ * Slugs criados pelos testes Playwright @live (prefixos de uniqueE2ESlug). Um ou mais
+ * segmentos depois do prefixo: o teste do WEB cria `e2e-web-<id>`, com dois. Tem de
+ * continuar a recusar slugs reais — `minha-escola` inclusive, que é o tenant a que o
+ * desenvolvimento local recorre. O padrão espelha o de `scripts/siga/e2e-cleanup-lib.mjs`
+ * (guardado por `tests/saas/e2e-cleanup.test.ts`).
+ */
 export function isE2ETenantSlug(slug: string) {
-  return /^(e2e|web|mat|gw)-[a-z0-9]+$/i.test(slug.trim());
+  return /^(e2e|web|mat|gw)(-[a-z0-9]+)+$/i.test(slug.trim());
 }
 
 /** Chave dev partilhada — espelha SIGA_GATEWAY_DEV_API_KEY na CI (.env). */
@@ -399,23 +407,37 @@ export async function seedE2EGatewayFixture(
     .single();
   if (personError) throw new Error(personError.message);
 
-  const studentNumber = `EST-${String(Math.floor(100000 + Math.random() * 900000))}`;
-  const { data: student, error: studentErr } = await admin
-    .from("students")
-    .insert({
-      school_id: schoolId,
-      person_id: person.id,
-      student_number: studentNumber,
-      admission_date: today,
-      status: "active",
-      ...(userId ? { created_by: userId, updated_by: userId } : {}),
-    })
-    .select("id")
-    .single();
+  // A chave de serviço não passa pelos RPC (exigem sessão com MFA), por isso o
+  // número vai escrito à mão. Até a migração 20261012140000 ser aplicada a base
+  // só aceita EST-/MAT-; depois, só «1» + ano + 4 dígitos. Tenta-se o formato
+  // novo e, se a regra da base o recusar (23514), o antigo. Os números altos
+  // (9000–9999) ficam para os testes, longe da contagem das escolas.
+  const yy = new Date().toISOString().slice(2, 4);
+  const testNumber = (legacyPrefix: "EST" | "MAT", legacy: boolean) =>
+    legacy
+      ? `${legacyPrefix}-${String(Math.floor(900000 + Math.random() * 100000))}`
+      : `1${yy}${9000 + Math.floor(Math.random() * 1000)}`;
+  const insertStudent = (legacy: boolean) =>
+    admin
+      .from("students")
+      .insert({
+        school_id: schoolId,
+        person_id: person.id,
+        student_number: testNumber("EST", legacy),
+        admission_date: today,
+        status: "active",
+        ...(userId ? { created_by: userId, updated_by: userId } : {}),
+      })
+      .select("id")
+      .single();
+  let studentResult = await insertStudent(false);
+  const legacyNumbers = studentResult.error?.code === "23514";
+  if (legacyNumbers) studentResult = await insertStudent(true);
+  const { data: student, error: studentErr } = studentResult;
   if (studentErr) throw new Error(`Falha ao criar estudante: ${studentErr.message}`);
   const studentId = student.id;
 
-  const enrollmentNumber = `MAT-${String(Math.floor(100000 + Math.random() * 900000))}`;
+  const enrollmentNumber = testNumber("MAT", legacyNumbers);
   const { data: enrollment, error: enrollmentErr } = await admin
     .from("enrollments")
     .insert({

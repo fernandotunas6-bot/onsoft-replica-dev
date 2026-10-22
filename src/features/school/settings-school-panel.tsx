@@ -539,7 +539,10 @@ export function SchoolSettingsPanel() {
                   onPick={(file) => {
                     void (async () => {
                       try {
-                        const blob = await resolveFileBlob(file);
+                        const blob = await resolveFileBlob(file, {
+                          schoolId: currentUser.schoolId,
+                          ownerUserId: currentUser.id,
+                        });
                         const asFile = new File([blob], file.name, {
                           type: file.mime || blob.type,
                         });

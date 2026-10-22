@@ -7,6 +7,10 @@
  * Recebe o cliente já autorizado (ver curriculum-templates-server.ts): este
  * ficheiro não decide quem pode escrever.
  */
+import {
+  linkNewProgramsToCatalog,
+  linkNewSubjectsToCatalog,
+} from "@/features/education-catalog/catalog-link";
 import { resolveSubject } from "@/features/education-catalog/normalize";
 import type { CurriculumPlan } from "./curriculum-templates";
 
@@ -119,9 +123,25 @@ export async function applyCurriculumPlan(
     const { data, error } = await db
       .from("programs")
       .upsert(programRows, { onConflict: "school_id,code", ignoreDuplicates: true })
-      .select("id");
+      .select("id, code");
     fail(error, "os cursos");
     created.cursos = data?.length ?? 0;
+    // Superior e não superior em separado: «Contabilidade» é outro curso em cada um.
+    const higherByCode = new Map(
+      plan.programs.map((p) => [p.code, { name: p.name, higher: p.higherEducation }]),
+    );
+    const newPrograms = (data ?? []).map((r) => ({
+      id: String(r["id"]),
+      ...(higherByCode.get(String(r["code"])) ?? { name: "", higher: false }),
+    }));
+    for (const scope of ["higher", "school"] as const) {
+      await linkNewProgramsToCatalog(
+        db,
+        schoolId,
+        newPrograms.filter((c) => c.higher === (scope === "higher")),
+        scope,
+      );
+    }
   }
   const { data: programData, error: programErr } = await db
     .from("programs")
@@ -213,6 +233,15 @@ export async function applyCurriculumPlan(
     fail(error, "as disciplinas");
     created.disciplinas = data?.length ?? 0;
     for (const r of data ?? []) subjectByCode.set(String(r["code"]), String(r["id"]));
+    const nameByCode = new Map(newSubjects.map((s) => [s.code, s.name]));
+    await linkNewSubjectsToCatalog(
+      db,
+      schoolId,
+      (data ?? []).map((r) => ({
+        id: String(r["id"]),
+        name: nameByCode.get(String(r["code"])) ?? "",
+      })),
+    );
   }
   const subjectId = (code: string) => {
     const def = plan.subjects.find((s) => s.code === code);

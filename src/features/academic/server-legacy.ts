@@ -1,4 +1,5 @@
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
@@ -985,6 +986,10 @@ export const createSubject = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar a disciplina.");
+    // «Matemática», «Inglês»: fica ligada ao catálogo (se a migração já foi aplicada).
+    await linkNewSubjectsToCatalog(db, membership.schoolId, [
+      { id: subject.id, name: subject.name },
+    ]);
     return subject;
   });
 
@@ -1997,6 +2002,8 @@ export type StudentAcademicHistoryYear = {
   status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
   /** Resultado registado pela secretaria (Exames → Resultado final); null se ainda não houver. */
   official: { outcome: string; finalAverage: number | null } | null;
+  /** Nota mínima de aprovação do modelo de avaliação em vigor (não um 10 fixo). */
+  passingValue: number;
 };
 
 /**
@@ -2222,6 +2229,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         overallMfd: summary?.overallMfd ?? null,
         status: summary?.status ?? "PENDENTE",
         official: officialByYear.get(String(year?.["name"] ?? "")) ?? null,
+        passingValue: activeRule.passing,
       };
     });
 

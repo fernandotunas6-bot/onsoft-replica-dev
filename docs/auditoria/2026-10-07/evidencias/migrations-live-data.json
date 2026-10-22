@@ -1,0 +1,764 @@
+{
+  "migrations": [
+    {
+      "version": "00000000000000",
+      "name": "foundation"
+    },
+    {
+      "version": "20260803073844",
+      "name": "installer_database_health"
+    },
+    {
+      "version": "20260803073912",
+      "name": "installer_database_health"
+    },
+    {
+      "version": "20260803074307",
+      "name": "configure_school_owner"
+    },
+    {
+      "version": "20260803074905",
+      "name": "configure_school_identity_campus"
+    },
+    {
+      "version": "20260803075400",
+      "name": "configure_academic_structure"
+    },
+    {
+      "version": "20260803075944",
+      "name": "configure_assessment_rules"
+    },
+    {
+      "version": "20260803080418",
+      "name": "configure_financial_plan"
+    },
+    {
+      "version": "20260803080859",
+      "name": "configure_default_modules"
+    },
+    {
+      "version": "20260803081331",
+      "name": "finalize_installation_health"
+    },
+    {
+      "version": "20260803091116",
+      "name": "enforce_storage_path_structure"
+    },
+    {
+      "version": "20260803091321",
+      "name": "audit_academic_calendar_changes"
+    },
+    {
+      "version": "20260803115847",
+      "name": "fix_installer_rpc_signatures"
+    },
+    {
+      "version": "20260803120153",
+      "name": "remove_academic_loop_shadow"
+    },
+    {
+      "version": "20260803120328",
+      "name": "create_people_registry"
+    },
+    {
+      "version": "20260803120815",
+      "name": "create_students_and_guardians"
+    },
+    {
+      "version": "20260803121220",
+      "name": "create_teachers_and_subjects"
+    },
+    {
+      "version": "20260803121613",
+      "name": "create_class_groups_and_enrollments"
+    },
+    {
+      "version": "20260803122035",
+      "name": "create_class_subjects_and_timetable"
+    },
+    {
+      "version": "20260803122453",
+      "name": "create_attendance_register"
+    },
+    {
+      "version": "20260803125335",
+      "name": "add_attendance_reopen_workflow"
+    },
+    {
+      "version": "20260803131627",
+      "name": "enforce_attendance_assignment_integrity"
+    },
+    {
+      "version": "20260803132920",
+      "name": "snapshot_attendance_rosters"
+    },
+    {
+      "version": "20260803150600",
+      "name": "complete_phase2_class_roster_and_enrollment"
+    },
+    {
+      "version": "20260803160000",
+      "name": "create_assessment_core"
+    },
+    {
+      "version": "20260803160100",
+      "name": "create_assessment_rpcs"
+    },
+    {
+      "version": "20260803165000",
+      "name": "refine_assessment_configuration"
+    },
+    {
+      "version": "20260803172200",
+      "name": "create_secretariat_documents"
+    },
+    {
+      "version": "20260803180000",
+      "name": "expand_secretariat_services"
+    },
+    {
+      "version": "20260803181000",
+      "name": "refine_secretariat_module_catalog"
+    },
+    {
+      "version": "20260803182000",
+      "name": "seed_secretary_role"
+    },
+    {
+      "version": "20260803183000",
+      "name": "assign_school_roles"
+    },
+    {
+      "version": "20260803200000",
+      "name": "create_finance_contracts_invoices_receipts"
+    },
+    {
+      "version": "20260803210000",
+      "name": "allow_installer_step_revision"
+    },
+    {
+      "version": "20260803220000",
+      "name": "create_communication_core"
+    },
+    {
+      "version": "20260803221000",
+      "name": "communication_event_notifications"
+    },
+    {
+      "version": "20260803222000",
+      "name": "create_guardian_portal"
+    },
+    {
+      "version": "20260803223000",
+      "name": "create_student_portal"
+    },
+    {
+      "version": "20260903074356",
+      "name": "add_zoom_lesson_meetings"
+    },
+    {
+      "version": "20260903074402",
+      "name": "harden_zoom_meeting_public_fields"
+    },
+    {
+      "version": "20260924004749",
+      "name": "reconcile_zoom_lesson_meetings"
+    },
+    {
+      "version": "20260924005124",
+      "name": "assessment_rule_sets"
+    },
+    {
+      "version": "20260924005132",
+      "name": "capture_undeclared_production_tables"
+    },
+    {
+      "version": "20260924005143",
+      "name": "import_engine_schema"
+    },
+    {
+      "version": "20260924005201",
+      "name": "student_history_schema"
+    },
+    {
+      "version": "20260924005307",
+      "name": "security_function_hardening"
+    },
+    {
+      "version": "20260924005322",
+      "name": "remove_duplicate_indexes"
+    },
+    {
+      "version": "20260924005903",
+      "name": "core_fk_index_coverage"
+    },
+    {
+      "version": "20260924005914",
+      "name": "remove_new_duplicate_assessment_index"
+    },
+    {
+      "version": "20260924010418",
+      "name": "refine_import_engine_premium_spec"
+    },
+    {
+      "version": "20260924010712",
+      "name": "add_import_table_specs_catalog"
+    },
+    {
+      "version": "20260924010725",
+      "name": "harden_import_table_specs_rls"
+    },
+    {
+      "version": "20260924010749",
+      "name": "enrich_import_table_specs_dependencies"
+    },
+    {
+      "version": "20260924011323",
+      "name": "authorize_billing_settings_for_controlled_import"
+    },
+    {
+      "version": "20260924011357",
+      "name": "harden_person_roles_privileges"
+    },
+    {
+      "version": "20260924012020",
+      "name": "authorize_enrollment_applications_controlled_import"
+    },
+    {
+      "version": "20260924012304",
+      "name": "govern_validated_export_targets"
+    },
+    {
+      "version": "20260924012347",
+      "name": "govern_validated_application_attendance_exports"
+    },
+    {
+      "version": "20260924014117",
+      "name": "timetable_school_reference_guard_20260924"
+    },
+    {
+      "version": "20260924014124",
+      "name": "optimize_rls_auth_initplans"
+    },
+    {
+      "version": "20260924014255",
+      "name": "reconcile_published_timetable_dates_20260924"
+    },
+    {
+      "version": "20260924015442",
+      "name": "prioritize_high_value_fk_indexes_20260924"
+    },
+    {
+      "version": "20260924015500",
+      "name": "remove_redundant_targeted_indexes_20260924"
+    },
+    {
+      "version": "20260924023635",
+      "name": "academic_evidence_persistence_20260924"
+    },
+    {
+      "version": "20260924025647",
+      "name": "academic_evidence_integrity_followup_20260924"
+    },
+    {
+      "version": "20260924034631",
+      "name": "hr_identity_unique_school_login_20260924"
+    },
+    {
+      "version": "20260924034635",
+      "name": "hr_qr_active_session_guard_20260924"
+    },
+    {
+      "version": "20260924034640",
+      "name": "hr_qr_payroll_review_gate_20260924"
+    },
+    {
+      "version": "20260924034644",
+      "name": "hr_confirm_independent_review_20260924"
+    },
+    {
+      "version": "20260924035044",
+      "name": "hr_teacher_lesson_review_decision_20260924"
+    },
+    {
+      "version": "20260924035140",
+      "name": "delivery_published_schedule_guard_20260924"
+    },
+    {
+      "version": "20260924035943",
+      "name": "hr_salary_catalog_versioning_20260924"
+    },
+    {
+      "version": "20260924040220",
+      "name": "hr_salary_reference_guards_20260924"
+    },
+    {
+      "version": "20260924040425",
+      "name": "hr_salary_change_review_20260924"
+    },
+    {
+      "version": "20260924040513",
+      "name": "hr_salary_amendment_atomic_20260924"
+    },
+    {
+      "version": "20260924040537",
+      "name": "hr_salary_step_amount_consistency_20260924"
+    },
+    {
+      "version": "20260924040630",
+      "name": "hr_payroll_salary_snapshot_guard_20260924"
+    },
+    {
+      "version": "20260924040650",
+      "name": "hr_payroll_effective_salary_calculation_20260924"
+    },
+    {
+      "version": "20260924040800",
+      "name": "hr_salary_amendment_ledger_guard_20260924"
+    },
+    {
+      "version": "20260924040825",
+      "name": "hr_payroll_missing_employees_guard_20260924"
+    },
+    {
+      "version": "20260924041013",
+      "name": "hr_payroll_fail_atomic_20260924"
+    },
+    {
+      "version": "20260924041032",
+      "name": "hr_payroll_calendar_proration_20260924"
+    },
+    {
+      "version": "20260924041040",
+      "name": "hr_payroll_proration_approval_guard_20260924"
+    },
+    {
+      "version": "20260924041143",
+      "name": "hr_salary_version_no_overlap_20260924"
+    },
+    {
+      "version": "20260924041329",
+      "name": "hr_salary_request_active_contract_guard_20260924"
+    },
+    {
+      "version": "20260924041346",
+      "name": "hr_salary_amendment_previous_effective_value_20260924"
+    },
+    {
+      "version": "20260924041444",
+      "name": "hr_salary_review_authorization_guards_20260924"
+    },
+    {
+      "version": "20260924052433",
+      "name": "hr_salary_unique_approved_and_effective_date_20260924"
+    },
+    {
+      "version": "20260924052445",
+      "name": "hr_payroll_approval_calculation_freshness_20260924"
+    },
+    {
+      "version": "20260924083329",
+      "name": "hr_salary_payroll_transaction_serialization_20260924"
+    },
+    {
+      "version": "20260924083453",
+      "name": "hr_payroll_reject_multiple_contracts_same_period_20260924"
+    },
+    {
+      "version": "20260924083547",
+      "name": "hr_payroll_stale_item_approval_guard_20260924"
+    },
+    {
+      "version": "20260924083613",
+      "name": "hr_payroll_prorate_partial_employment_20260924"
+    },
+    {
+      "version": "20260924083641",
+      "name": "hr_payroll_partial_service_approval_alignment_20260924"
+    },
+    {
+      "version": "20260924084225",
+      "name": "hr_salary_ledger_contract_scoped_payroll_guard_20260924"
+    },
+    {
+      "version": "20260924084310",
+      "name": "hr_payroll_input_freshness_guard_20260924"
+    },
+    {
+      "version": "20260924084340",
+      "name": "hr_payroll_input_freshness_indexes_20260924"
+    },
+    {
+      "version": "20260924084713",
+      "name": "hr_payroll_events_only_during_effective_service_20260924"
+    },
+    {
+      "version": "20260924084758",
+      "name": "hr_salary_luanda_civil_day_cutoff_20260924"
+    },
+    {
+      "version": "20260924085031",
+      "name": "hr_lock_finalized_payroll_source_events_20260924"
+    },
+    {
+      "version": "20260924085120",
+      "name": "hr_payroll_sources_serialize_with_approval_20260924"
+    },
+    {
+      "version": "20260924085244",
+      "name": "hr_payroll_prevent_hard_delete_review_sources_20260924"
+    },
+    {
+      "version": "20260924085316",
+      "name": "hr_payroll_remuneration_policy_snapshot_20260924"
+    },
+    {
+      "version": "20260924090013",
+      "name": "hr_salary_retired_version_immutable_20260924"
+    },
+    {
+      "version": "20260924090041",
+      "name": "hr_payroll_remuneration_policy_history_guard_20260924"
+    },
+    {
+      "version": "20260924090126",
+      "name": "hr_payroll_approval_arithmetic_guard_20260924"
+    },
+    {
+      "version": "20260924090207",
+      "name": "hr_salary_draft_step_deletion_fix_20260924"
+    },
+    {
+      "version": "20260924091514",
+      "name": "hr_payroll_block_unmapped_validated_adjustments_20260924"
+    },
+    {
+      "version": "20260924091558",
+      "name": "hr_payroll_pending_input_approval_guard_20260924"
+    },
+    {
+      "version": "20260924091751",
+      "name": "hr_published_salary_scale_source_immutability_20260924"
+    },
+    {
+      "version": "20260925082553",
+      "name": "secure_profile_self_updates_and_private_helper_search_paths"
+    },
+    {
+      "version": "20260925091210",
+      "name": "google_workspace_encrypted_user_school_oauth"
+    },
+    {
+      "version": "20260925091422",
+      "name": "align_google_workspace_oauth_session_binding"
+    },
+    {
+      "version": "20260925095143",
+      "name": "institutional_access_requests"
+    },
+    {
+      "version": "20260925100358",
+      "name": "harden_google_workspace_vault"
+    },
+    {
+      "version": "20260925100629",
+      "name": "staged_institutional_enrollment"
+    },
+    {
+      "version": "20260925100908",
+      "name": "separate_preapproval_and_replay_guard"
+    },
+    {
+      "version": "20260925103322",
+      "name": "fix_auth_profile_creation_and_reconcile_missing_profiles_20260925"
+    },
+    {
+      "version": "20260927135818",
+      "name": "enrollment_policies_staff_only"
+    },
+    {
+      "version": "20260927140443",
+      "name": "core_write_policies_school_role"
+    },
+    {
+      "version": "20260927140510",
+      "name": "core_read_policies_school_role"
+    },
+    {
+      "version": "20260927140537",
+      "name": "storage_files_logos_hardening"
+    },
+    {
+      "version": "20260927140708",
+      "name": "revoke_public_validate_issued_document"
+    },
+    {
+      "version": "20260927142939",
+      "name": "fanout_announcements_without_notification_preferences"
+    },
+    {
+      "version": "20260927151552",
+      "name": "revoke_dead_portal_identity_functions"
+    },
+    {
+      "version": "20260927151816",
+      "name": "drop_duplicate_assessment_items_index"
+    },
+    {
+      "version": "20260927163915",
+      "name": "attendance_rates_in_bulk"
+    },
+    {
+      "version": "20260927173720",
+      "name": "pauta_component_kinds"
+    },
+    {
+      "version": "20260927190338",
+      "name": "assessment_rule_calculation_options"
+    },
+    {
+      "version": "20260927191632",
+      "name": "grade_sheet_versions"
+    },
+    {
+      "version": "20260927200124",
+      "name": "close_member_writes_branding_mail_events"
+    },
+    {
+      "version": "20260927201358",
+      "name": "academic_history_linked"
+    },
+    {
+      "version": "20260927201937",
+      "name": "assessment_item_schedule_purpose"
+    },
+    {
+      "version": "20260927202314",
+      "name": "school_location_fields"
+    },
+    {
+      "version": "20260928091952",
+      "name": "course_unit_enrollments_prerequisites"
+    },
+    {
+      "version": "20260929050707",
+      "name": "turnstile_devices_server_only"
+    },
+    {
+      "version": "20260929084854",
+      "name": "revoke_default_anon_table_grants"
+    },
+    {
+      "version": "20260929133523",
+      "name": "class_groups_room"
+    },
+    {
+      "version": "20260930070335",
+      "name": "terms_batch_save_and_qr_assurance"
+    },
+    {
+      "version": "20260930070505",
+      "name": "save_academic_calendar_fix_min_uuid"
+    },
+    {
+      "version": "20260930154438",
+      "name": "grade_sheet_functions_execute"
+    },
+    {
+      "version": "20260930154517",
+      "name": "sensitive_tables_school_staff_only"
+    },
+    {
+      "version": "20260930160544",
+      "name": "drop_duplicate_member_read_policies"
+    },
+    {
+      "version": "20260930162029",
+      "name": "signup_leads_and_billing_proofs"
+    },
+    {
+      "version": "20260930165651",
+      "name": "drop_legacy_writes_without_mfa"
+    },
+    {
+      "version": "20260930171753",
+      "name": "money_writes_require_mfa"
+    },
+    {
+      "version": "20260930173735",
+      "name": "hr_role_by_school_membership"
+    },
+    {
+      "version": "20260930173814",
+      "name": "billing_settings_and_exemption"
+    },
+    {
+      "version": "20260930180721",
+      "name": "audit_atomic_workflows_and_school_context"
+    },
+    {
+      "version": "20260930181338",
+      "name": "retire_unusable_legacy_rpc_surface"
+    },
+    {
+      "version": "20260930181339",
+      "name": "capture_audit_production_tables"
+    },
+    {
+      "version": "20260930193133",
+      "name": "hr_atomic_payment_confirmation"
+    },
+    {
+      "version": "20261001070135",
+      "name": "hr_atomic_payment_destination"
+    },
+    {
+      "version": "20261002051817",
+      "name": "reclose_physical_access_secrets_20261002"
+    },
+    {
+      "version": "20261002062355",
+      "name": "chat_conversations"
+    },
+    {
+      "version": "20261002062506",
+      "name": "chat_tables_revoke_anon_grants"
+    },
+    {
+      "version": "20261002090137",
+      "name": "gateway_settlement_atomic"
+    },
+    {
+      "version": "20261002091039",
+      "name": "attendance_sessions_unique_slot_day"
+    },
+    {
+      "version": "20261002091048",
+      "name": "one_active_academic_year"
+    },
+    {
+      "version": "20261002091121",
+      "name": "harden_teacher_qr_attendance"
+    },
+    {
+      "version": "20261002100000",
+      "name": "chat_integrity"
+    },
+    {
+      "version": "20261002160000",
+      "name": "annual_sheet_requires_all_terms"
+    },
+    {
+      "version": "20261003070000",
+      "name": "announcements_audience_rls"
+    },
+    {
+      "version": "20261004120000",
+      "name": "register_payment_applies_late_fee"
+    },
+    {
+      "version": "20261004120443",
+      "name": "chat_integrity_created_by_on_delete_set_null"
+    },
+    {
+      "version": "20261004120727",
+      "name": "annual_sheet_requires_all_terms"
+    },
+    {
+      "version": "20261004120832",
+      "name": "annual_sheet_requires_all_terms_fix_exam_average"
+    },
+    {
+      "version": "20261004130000",
+      "name": "hr_reverse_payroll_payment"
+    },
+    {
+      "version": "20261004140000",
+      "name": "student_special_statuses"
+    },
+    {
+      "version": "20261004220451",
+      "name": "security_hardening_phase1_20261004"
+    },
+    {
+      "version": "20261004220527",
+      "name": "business_fk_index_coverage_20261004"
+    },
+    {
+      "version": "20261004220648",
+      "name": "merge_duplicate_permissive_select_policies_20261004"
+    },
+    {
+      "version": "20261004220739",
+      "name": "merge_remaining_permissive_policies_20261004"
+    },
+    {
+      "version": "20261004221507",
+      "name": "audit_role_permissions_statement_level_20261004"
+    },
+    {
+      "version": "20261004222220",
+      "name": "rls_set_based_school_access_20261004"
+    },
+    {
+      "version": "20261004222611",
+      "name": "rls_teacher_scope_and_staff_sets_20261004"
+    },
+    {
+      "version": "20261004223042",
+      "name": "realtime_publish_school_screens"
+    },
+    {
+      "version": "20261005010000",
+      "name": "assessment_closed_term_guard"
+    },
+    {
+      "version": "20261005020000",
+      "name": "direct_writes_require_mfa"
+    },
+    {
+      "version": "20261005030000",
+      "name": "school_row_role_policies"
+    },
+    {
+      "version": "20261005081124",
+      "name": "late_fee_one_rule"
+    },
+    {
+      "version": "20261005081139",
+      "name": "propinas_import_into_billing_rules"
+    },
+    {
+      "version": "20261005081328",
+      "name": "hr_confirm_payment_free_expense_number"
+    },
+    {
+      "version": "20261005081417",
+      "name": "hr_reverse_payroll_payment_lock_states"
+    },
+    {
+      "version": "20261005143409",
+      "name": "teacher_qr_inner_functions_not_callable"
+    },
+    {
+      "version": "20261005150000",
+      "name": "fee_items_grade_level"
+    },
+    {
+      "version": "20261005160000",
+      "name": "student_scholarships"
+    },
+    {
+      "version": "20261005170000",
+      "name": "class_group_waitlist"
+    },
+    {
+      "version": "20261006090000",
+      "name": "course_unit_shift"
+    },
+    {
+      "version": "20261006100000",
+      "name": "enrollment_class_change"
+    }
+  ]
+}

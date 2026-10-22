@@ -22,20 +22,11 @@ const MAX_SAMPLES = 120;
 
 const slowQueries: SlowQueryEntry[] = [];
 const queryTimings: number[] = [];
-const queryStart = new Map<string, number>();
 let lastTapMs: number | null = null;
 
 declare global {
   interface Window {
     __sigaPerf?: PerfSnapshot;
-  }
-}
-
-function queryHash(key: unknown) {
-  try {
-    return JSON.stringify(key);
-  } catch {
-    return String(key);
   }
 }
 
@@ -81,6 +72,10 @@ export function getPerfSnapshot(): PerfSnapshot {
 
 export function attachPerformanceSupervisor(queryClient: QueryClient) {
   if (typeof window === "undefined") return () => {};
+  // Tempos pertencem a esta cache e não podem sobreviver à remoção de uma query.
+  const queryStart = new Map<string, number>();
+  const onVisibilityChange = () => queryStart.clear();
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
   const onTap = () => {
     if (document.visibilityState !== "visible") return;
@@ -89,21 +84,28 @@ export function attachPerformanceSupervisor(queryClient: QueryClient) {
   window.addEventListener("pointerdown", onTap, { passive: true });
 
   const unsub = queryClient.getQueryCache().subscribe((event) => {
-    if (document.visibilityState !== "visible") return;
     const query = event?.query;
-    if (!query || event.type !== "updated") return;
+    if (!query) return;
+    const hash = query.queryHash;
+    if (event.type === "removed" || document.visibilityState !== "visible") {
+      queryStart.delete(hash);
+      return;
+    }
+    if (event.type !== "updated") return;
 
-    const hash = queryHash(query.queryKey);
-    const { fetchStatus, status, dataUpdatedAt, errorUpdatedAt } = query.state;
+    const { fetchStatus, dataUpdatedAt, errorUpdatedAt } = query.state;
 
     if (fetchStatus === "fetching") {
       if (!queryStart.has(hash)) queryStart.set(hash, performance.now());
       return;
     }
 
-    if (fetchStatus !== "idle") return;
+    if (fetchStatus !== "idle") {
+      queryStart.delete(hash);
+      return;
+    }
     const start = queryStart.get(hash);
-    if (!start) return;
+    if (start === undefined) return;
     queryStart.delete(hash);
 
     const endedAt = Math.max(dataUpdatedAt, errorUpdatedAt);
@@ -125,6 +127,8 @@ export function attachPerformanceSupervisor(queryClient: QueryClient) {
 
   return () => {
     window.removeEventListener("pointerdown", onTap);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
     unsub();
+    queryStart.clear();
   };
 }

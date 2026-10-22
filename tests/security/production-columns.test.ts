@@ -18,6 +18,8 @@ type Snapshot = {
 };
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as Snapshot;
 const columns = new Map(snapshot.tabelas.map((t) => [t.tabela, new Set(t.colunas)]));
+// Contratos atómicos já presentes no retrato; conservar a mensagem de indisponibilidade.
+const workflowFunctions = ["siga_enroll_new_student_atomic", "siga_save_active_academic_year"];
 
 function walk(dir: string, out: string[] = []) {
   for (const name of readdirSync(dir)) {
@@ -85,6 +87,19 @@ describe("colunas usadas existem na produção", () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it("RPCs atómicos têm migração e falham de forma explícita se indisponíveis", () => {
+    const sql = readFileSync(
+      "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",
+      "utf8",
+    );
+    const client = readFileSync("src/integrations/supabase/workflow-rpcs.ts", "utf8");
+    for (const name of workflowFunctions) {
+      expect(sql).toContain(`FUNCTION public.${name}(`);
+      expect(client).toContain(name);
+    }
+    expect(client).toContain('error?.code === "PGRST202"');
   });
 
   it("valores literais de estado são os que a base aceita", () => {

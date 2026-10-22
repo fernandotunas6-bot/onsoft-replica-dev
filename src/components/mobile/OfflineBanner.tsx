@@ -1,6 +1,7 @@
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, CloudOff, LoaderCircle, Wifi } from "lucide-react";
+import { CloudOff, Wifi } from "lucide-react";
 
 import { useOnlineStatus } from "@/hooks/use-breakpoint";
 import { notifyInBackground } from "@/lib/desktop-notifications";
@@ -96,14 +97,14 @@ export function OfflineBanner() {
   } else {
     text = sent ? "Alterações enviadas." : "Ligação restaurada.";
   }
-  const Icon = offline ? CloudOff : sending ? LoaderCircle : sent ? CheckCircle2 : Wifi;
+  const Icon = offline ? CloudOff : Wifi;
 
   return (
     <div
       role="status"
       aria-live="polite"
       className={cn(
-        "flex items-center gap-2 px-4 py-1.5 text-[11px]",
+        "flex min-h-[44px] items-start gap-2.5 px-4 py-3 text-[12px] leading-[20px]",
         offline
           ? "bg-warning/15 text-warning-strong"
           : sending
@@ -111,7 +112,11 @@ export function OfflineBanner() {
             : "bg-success/10 text-success-strong",
       )}
     >
-      <Icon className={cn("size-3.5 shrink-0", sending && "animate-spin")} aria-hidden />
+      {sending || sent ? (
+        <FeedbackIcon state={sending ? "processing" : "success"} className="size-3.5" />
+      ) : (
+        <Icon className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
+      )}
       <span className="min-w-0">{text}</span>
     </div>
   );
