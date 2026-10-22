@@ -2,19 +2,12 @@
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { DebouncedSearchInput, SEARCH_DEBOUNCE_MS } from "@/components/filters/debounced-search-input";
+  DebouncedSearchInput,
+  SEARCH_DEBOUNCE_MS,
+} from "@/components/filters/debounced-search-input";
 
 afterEach(() => {
   cleanup();
