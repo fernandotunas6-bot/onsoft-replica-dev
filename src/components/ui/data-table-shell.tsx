@@ -13,7 +13,7 @@ export const DataTableShell = React.forwardRef<HTMLDivElement, DataTableShellPro
       <div
         ref={ref}
         className={cn(
-          "overflow-hidden rounded-xl border border-border/80 bg-card shadow-card transition-all",
+          "overflow-hidden rounded-xl border border-border/80 bg-card shadow-card transition-[border-color,background-color] duration-(--siga-motion-fast) motion-reduce:transition-none",
           className,
         )}
         {...props}
