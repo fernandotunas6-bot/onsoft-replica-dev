@@ -91,7 +91,10 @@ function contactLine(identity: SchoolSiteIdentity): string {
  * da escola ao que vem a seguir («Semente do Saber· Angola»).
  */
 function tidy(value: string): string {
-  return value.replace(/[ \t]{2,}/g, " ").replace(/ +([.,;:])/g, "$1").trim();
+  return value
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ +([.,;:])/g, "$1")
+    .trim();
 }
 
 export function applySchoolIdentity(value: string, identity: SchoolSiteIdentity): string {

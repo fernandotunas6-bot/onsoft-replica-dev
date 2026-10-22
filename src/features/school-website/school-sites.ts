@@ -145,7 +145,9 @@ export async function loadSchoolSite(
     .eq("tenant_id", tenantId)
     .maybeSingle();
   if (school.error) throw new Error("School lookup failed");
-  if (!school.data || school.data.status === "archived") return null;
+  // Uma escola em qualquer estado diferente de active (incluindo estados futuros)
+  // não pode disponibilizar páginas institucionais, mesmo com domínio activo.
+  if (!school.data || school.data.status !== "active") return null;
   const storageReady = await schoolWebStorageReady(db);
   const [settings, domains] = await Promise.all([
     storageReady

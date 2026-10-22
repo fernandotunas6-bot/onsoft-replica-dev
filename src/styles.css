@@ -1296,7 +1296,6 @@ h6,
   background-image: linear-gradient(110deg, #a898ff, #ed8ee4 48%, #ffad80);
 }
 
-
 /*
  * Poster do vídeo do ecrã de entrada (1.º frame de public/auth-classroom.mp4, 1280×720,
  * WebP ~16 KB) embutido no CSS, só em ecrãs ≥ 1024 px. É o maior elemento do ecrã de
@@ -1477,4 +1476,14 @@ h6,
   .auth-view[data-auth-motion="on"][data-auth-view] {
     animation: none;
   }
+}
+
+/* Blue and purple enrich the existing dark navigation without changing its layout. */
+[data-sidebar="siga"] {
+  background-image: linear-gradient(
+    155deg,
+    oklch(0.27 0.075 260 / 46%),
+    transparent 48%,
+    oklch(0.25 0.08 300 / 48%)
+  );
 }

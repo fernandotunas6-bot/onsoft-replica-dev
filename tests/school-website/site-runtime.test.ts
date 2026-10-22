@@ -83,7 +83,7 @@ describe("sincronização no website", () => {
     await connectSchoolWebsite(data);
     expect(document.documentElement.dataset.sigaContent).toBe("synced");
     expect(data.courses[0].name).toBe('Engenharia "A"');
-    expect(document.querySelector("a")?.href).toBe("https://siga.example/");
+    expect(document.querySelector("a")?.getAttribute("href")).toBe("/login/");
     expect(document.querySelector("[data-siga-login]")?.hasAttribute("aria-disabled")).toBe(false);
     expect(document.querySelector("[data-siga-login]")?.getAttribute("href")).toBe(
       "https://siga.example/",

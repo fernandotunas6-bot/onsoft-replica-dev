@@ -7,6 +7,7 @@ import {
 } from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { authRedirectError, withoutAuthRedirectError } from "@/lib/auth-redirect-error";
+import { portalLoginReturn } from "@/features/auth/portal-login-return";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
@@ -545,7 +546,7 @@ export function AuthGate({
             ? undefined
             : window.location.pathname.startsWith("/.lovable/oauth/consent")
               ? window.location.href
-              : window.location.origin,
+              : (portalLoginReturn(window.location.href) ?? window.location.origin),
       },
     });
     if (oauthError) {

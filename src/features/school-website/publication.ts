@@ -55,6 +55,7 @@ export async function loadSchoolPublication(
     admissions = { isOpen, path: isOpen ? `/matricula/${encodeURIComponent(slug)}` : null };
   }
   return {
+    ...publication,
     apiVersion: 1,
     templateVersion: publication?.templateVersion ?? websiteTemplate.version,
     values,

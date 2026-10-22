@@ -71,9 +71,10 @@ export function getTenantAccessBlock(
  * decisões sobre a própria instituição a tiram do ar: suspensa, cancelada,
  * arquivada ou com o provisionamento falhado.
  */
-export function getPublicSiteBlock(
-  tenant: TenantAccessSnapshot | null | undefined,
-): { blocked: boolean; reason?: TenantAccessBlockReason } {
+export function getPublicSiteBlock(tenant: TenantAccessSnapshot | null | undefined): {
+  blocked: boolean;
+  reason?: TenantAccessBlockReason;
+} {
   if (!tenant?.status) return { blocked: false };
   if (tenant.status === "cancelled") return { blocked: true, reason: "cancelled" };
   if (["suspended", "archived", "provisioning_failed"].includes(tenant.status))

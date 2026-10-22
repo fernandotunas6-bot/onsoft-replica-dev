@@ -25,7 +25,7 @@ export function writeContentManifest(out,routes){
   const voids=new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
   for(const route of routes){
     if(route.url.startsWith('/portal/')||route.url==='/404/')continue;
-    const file=path.join(out,route.url,'index.html');let n=0,scope=route.url+':metadata';const stack=[];const contexts=[];const routeCourse=data.courses.findIndex(c=>route.url==='/cursos/'+c.id+'/');
+    const file=path.join(out,route.url,'index.html');let n=0,scope=route.url+':metadata';const stack=[];const contexts=[];const scopes=[];const routeCourse=data.courses.findIndex(c=>route.url==='/cursos/'+c.id+'/');
     const key=()=>createHash('sha256').update(scope+':'+(++n)).digest('hex').slice(0,16);
     const pageGroup=route.title+' · '+route.url;
     const currentGroup=()=>scope==='navigation'?'Navegação':scope==='footer'?'Rodapé':pageGroup;
@@ -33,13 +33,14 @@ export function writeContentManifest(out,routes){
     html=html.replace(/<!--[\s\S]*?-->|<![^>]*>|<\/?[a-zA-Z][^>]*>|[^<]+/g,token=>{
       if(token.startsWith('<!'))return token;
       const closing=token.match(/^<\/([\w-]+)/);
-      if(closing){const i=stack.lastIndexOf(closing[1].toLowerCase());if(i>=0){stack.splice(i);while(contexts.at(-1)?.depth>=i+1)contexts.pop()}return token}
+      if(closing){const i=stack.lastIndexOf(closing[1].toLowerCase());if(i>=0){stack.splice(i);while(contexts.at(-1)?.depth>=i+1)contexts.pop();while(scopes.at(-1)?.depth>=i+1){const previous=scopes.pop();scope=previous.scope;n=previous.n}}return token}
       const opening=token.match(/^<([\w-]+)/);
       if(opening){
         const tag=opening[1].toLowerCase();
         if(['body','main','footer'].includes(tag)){scope=tag==='body'?'navigation':tag==='footer'?'footer':route.url;n=0}
         const group=currentGroup();const excluded=stack.some(t=>['script','style','svg','textarea','select','noscript'].includes(t));
         if(!voids.has(tag))stack.push(tag);
+        const namedScope=token.match(/data-site-scope="([a-z0-9-]+)"/)?.[1];if(namedScope){scopes.push({depth:stack.length,scope,n});scope=route.url+':'+namedScope;n=0}
         const courseId=token.match(/data-course="([^"]+)"/)?.[1];if(courseId)contexts.push({depth:stack.length,index:data.courses.findIndex(c=>c.id===courseId)});
         if(excluded||['script','style','svg','link'].includes(tag))return token;
         const attrs=[];
