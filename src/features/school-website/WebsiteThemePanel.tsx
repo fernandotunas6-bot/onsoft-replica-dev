@@ -15,6 +15,12 @@ import {
 import { designOptionGroups } from "./website-design-options";
 import routes from "../../../painel/escolas/docs/routes.json";
 import { copyPageAppearance, editableWebsitePages } from "./page-appearance";
+import {
+  createStyleHistory,
+  recordStyleHistory,
+  moveStyleHistory,
+  styleFingerprint,
+} from "./style-history";
 import type { WebsiteDraft } from "./content-model";
 const colors: [keyof Appearance, string][] = [
   ["primary", "Cor principal"],
@@ -42,6 +48,7 @@ export function WebsiteThemePanel({
   programs = emptyPrograms,
   onChange,
   onEditPage,
+  publishedDraft,
 }: {
   draft: WebsiteDraft;
   schoolName: string;
@@ -50,12 +57,17 @@ export function WebsiteThemePanel({
   programs?: { id: string; name: string }[];
   onChange: (draft: WebsiteDraft) => void;
   onEditPage?: (path: string) => void;
+  publishedDraft?: WebsiteDraft | null;
 }) {
   const design = draft.design ?? defaultDesign(),
     themes = [...builtInThemes, ...design.installedThemes];
   const [scope, setScope] = useState(""),
     [error, setError] = useState(""),
-    [preview, setPreview] = useState<{ html: string; stamp: string; page: string } | null>(null),
+    [previews, setPreviews] = useState<
+      Record<"draft" | "published", { html: string; stamp: string; page: string } | null>
+    >({ draft: null, published: null }),
+    [previewSource, setPreviewSource] = useState<"draft" | "published">("draft"),
+    [history, setHistory] = useState(() => createStyleHistory(draft.design)),
     [search, setSearch] = useState(""),
     [customOnly, setCustomOnly] = useState(false),
     [previewPage, setPreviewPage] = useState("/"),
@@ -66,9 +78,14 @@ export function WebsiteThemePanel({
     [notice, setNotice] = useState(""),
     [copied, setCopied] = useState<{
       target: string;
-      previous: Partial<Appearance> | undefined;
       after: string;
     } | null>(null);
+  const source = publishedDraft && previewSource === "published" ? "published" : "draft";
+  const previewDraft = source === "published" ? publishedDraft! : draft;
+  const preview = previews[source];
+  const historyValid = history.expected === styleFingerprint(draft.design);
+  const canUndo = historyValid && history.past.length > 0,
+    canRedo = historyValid && history.future.length > 0;
   const selectScope = (path: string) => {
     setScope(path);
     setPreviewPage(path || "/");
@@ -85,8 +102,8 @@ export function WebsiteThemePanel({
   const options = scope ? (design.pages[scope] ?? {}) : design.overrides;
   const inherited = { ...selected.appearance, ...(scope ? design.overrides : {}) };
   const stamp = useMemo(
-    () => JSON.stringify({ draft, schoolName, logoUrl, programs }),
-    [draft, schoolName, logoUrl, programs],
+    () => JSON.stringify({ draft: previewDraft, schoolName, logoUrl, programs }),
+    [previewDraft, schoolName, logoUrl, programs],
   );
   const normalize = (value: string) =>
     value
@@ -134,7 +151,25 @@ export function WebsiteThemePanel({
     setError("");
     setNotice("");
     setCopied(null);
+    setHistory(recordStyleHistory(history, draft.design, next));
     onChange({ ...draft, design: next });
+  };
+  const travelStyles = (direction: "undo" | "redo") => {
+    const step = moveStyleHistory(history, draft.design, direction);
+    if (!step) return false;
+    const next = { ...draft };
+    if (step.design) next.design = step.design;
+    else delete next.design;
+    setHistory(step.history);
+    setCopied(null);
+    setError("");
+    setNotice(
+      direction === "undo"
+        ? "Última alteração visual desfeita no rascunho."
+        : "Alteração visual refeita no rascunho.",
+    );
+    onChange(next);
+    return true;
   };
   const adjust = (key: string, value: string) => {
     const next = { ...options };
@@ -200,23 +235,26 @@ export function WebsiteThemePanel({
         /^ISPAB/i.test(schoolName) && !logoUrl
           ? await loadWebsitePreviewWordmark(window.location.origin)
           : null;
-      const values = { ...draft.values };
-      for (const [key, id] of Object.entries(draft.programBindings)) {
+      const values = { ...previewDraft.values };
+      for (const [key, id] of Object.entries(previewDraft.programBindings)) {
         const program = programs.find((item) => item.id === id);
         if (program) values[key] = program.name;
       }
-      setPreview({
-        html: websiteDraftPreview(
-          { ...draft, values },
-          previewPage,
-          schoolName,
-          window.location.origin,
-          logoUrl,
-          wordmark,
-        ),
-        stamp,
-        page: previewPage,
-      });
+      setPreviews((current) => ({
+        ...current,
+        [source]: {
+          html: websiteDraftPreview(
+            { ...previewDraft, values },
+            previewPage,
+            schoolName,
+            window.location.origin,
+            logoUrl,
+            wordmark,
+          ),
+          stamp,
+          page: previewPage,
+        },
+      }));
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Não foi possível preparar a pré-visualização.",
@@ -246,6 +284,30 @@ export function WebsiteThemePanel({
       )}
       <fieldset disabled={busy || loading} className="space-y-4">
         <legend className="sr-only">Aparência do website</legend>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!canUndo}
+              onClick={() => travelStyles("undo")}
+            >
+              Desfazer ajuste visual
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!canRedo}
+              onClick={() => travelStyles("redo")}
+            >
+              Refazer ajuste visual
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Até 20 alterações visuais nesta sessão. Desfazer e refazer preservam os textos e cursos
+            do rascunho actual.
+          </p>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           {themes.map((theme) => (
             <article key={theme.id} className="space-y-2 rounded-lg border border-border p-3">
@@ -407,11 +469,9 @@ export function WebsiteThemePanel({
                     setNotice("");
                     try {
                       const next = copyPageAppearance(design, sourcePage, scope, copyMode);
-                      const previous = design.pages[scope];
                       change(next);
                       setCopied({
                         target: scope,
-                        previous: previous ? { ...previous } : undefined,
                         after: JSON.stringify(next),
                       });
                       setNotice("Personalizações copiadas para o rascunho desta página.");
@@ -432,27 +492,23 @@ export function WebsiteThemePanel({
                 Personalize outra página para poder reutilizar os seus ajustes aqui.
               </p>
             )}
-            {copied?.target === scope && copied.after === JSON.stringify(design) && (
+            {canUndo && copied?.target === scope && copied.after === JSON.stringify(design) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  const pages = { ...design.pages };
-                  if (copied.previous) pages[scope] = copied.previous;
-                  else delete pages[scope];
-                  change({ ...design, pages });
-                  setNotice("A cópia foi desfeita no rascunho.");
+                  if (travelStyles("undo")) setNotice("A cópia foi desfeita no rascunho.");
                 }}
               >
                 Desfazer cópia
               </Button>
             )}
-            {notice && (
-              <p role="status" className="text-xs text-muted-foreground">
-                {notice}
-              </p>
-            )}
           </div>
+        )}
+        {notice && (
+          <p role="status" className="text-xs text-muted-foreground">
+            {notice}
+          </p>
         )}
         <div className="space-y-3 rounded-lg bg-muted/40 p-3">
           <div className="space-y-1">
@@ -611,6 +667,24 @@ export function WebsiteThemePanel({
           visitante tem prioridade. O logótipo próprio continua em Identidade da escola; textos,
           imagens e ligações estão no editor de conteúdos abaixo.
         </p>
+        {publishedDraft && (
+          <div className="space-y-1">
+            <Label htmlFor="theme-preview-source">Versão para comparar</Label>
+            <select
+              id="theme-preview-source"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={source}
+              onChange={(event) => setPreviewSource(event.target.value as "draft" | "published")}
+            >
+              <option value="draft">Rascunho actual</option>
+              <option value="published">Última publicação</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Alterne entre as prévias geradas para comparar a mesma página. Esta escolha não repõe
+              nem publica conteúdos. Os controlos de aparência continuam a editar o rascunho.
+            </p>
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label htmlFor="theme-preview-page">Página para pré-visualizar</Label>
@@ -644,7 +718,7 @@ export function WebsiteThemePanel({
           </div>
         </div>
         <Button variant="outline" onClick={() => void showPreview()}>
-          Pré-visualizar rascunho
+          {source === "published" ? "Pré-visualizar publicação" : "Pré-visualizar rascunho"}
         </Button>
       </fieldset>
       {loading && (
@@ -655,15 +729,15 @@ export function WebsiteThemePanel({
       {preview && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Pré-visualização de{" "}
+            {source === "published" ? "Última publicação de" : "Rascunho de"}{" "}
             {routes.find((route) => route.url === preview.page)?.title ?? preview.page}. Ligações,
             formulários e animações estão desactivados nesta janela.
           </p>
           <div className="overflow-auto rounded-lg border bg-muted">
             {(preview.stamp !== stamp || preview.page !== previewPage) && (
               <p role="status" className="p-3 text-sm">
-                A pré-visualização está desactualizada. Utilize Pré-visualizar rascunho para ver as
-                alterações actuais.
+                A pré-visualização está desactualizada. Gere novamente a prévia da versão
+                seleccionada para ver as alterações actuais.
               </p>
             )}
             <iframe

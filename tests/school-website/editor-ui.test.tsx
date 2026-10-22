@@ -416,3 +416,39 @@ it("um atalho abre o grupo de conteúdos da página e dá foco ao selector", asy
   expect(document.activeElement).toBe(selector);
   expect(mocks.change).not.toHaveBeenCalled();
 });
+
+it("desfaz e refaz a apresentação no rascunho mantendo os textos e sem publicar", () => {
+  const view = mountAppearance({
+    ...readWebsiteState(null).draft,
+    values: { "data.courses.0.name": "Curso preservado" },
+  });
+  expect(
+    (screen.getByRole("button", { name: "Desfazer ajuste visual" }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar Editorial" }));
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar Essencial" }));
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer ajuste visual" }));
+  expect(view.getDraft().design?.activeTheme).toBe("editorial");
+  fireEvent.click(screen.getByRole("button", { name: "Refazer ajuste visual" }));
+  expect(view.getDraft().design?.activeTheme).toBe("minimal");
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer ajuste visual" }));
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer ajuste visual" }));
+  expect(view.getDraft().design).toBeUndefined();
+  expect(view.getDraft().values["data.courses.0.name"]).toBe("Curso preservado");
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+it("oferece comparação apenas quando existe uma publicação e não altera o rascunho ao escolher a versão", async () => {
+  const published = changeWebsiteState(null, {
+    expectedRevision: 0,
+    action: "publish",
+    draft: { ...readWebsiteState(null).draft, websiteUrl: "https://school.example" },
+  });
+  mocks.load.mockResolvedValue({ ...(await mocks.load()), state: published });
+  mount();
+  const picker = await screen.findByLabelText("Versão para comparar");
+  fireEvent.change(picker, { target: { value: "published" } });
+  expect(screen.getByRole("button", { name: "Pré-visualizar publicação" })).toBeTruthy();
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.change(picker, { target: { value: "draft" } });
+  expect(screen.getByRole("button", { name: "Pré-visualizar rascunho" })).toBeTruthy();
+});
