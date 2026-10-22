@@ -360,3 +360,59 @@ it("mostra a herança real da página e permite remover uma cor personalizada in
   );
   expect(mocks.change).not.toHaveBeenCalled();
 });
+
+it("copia estilos para o rascunho e desfaz a cópia sem perder conteúdos ou outras páginas", async () => {
+  const { parseWebsiteDesign } = await import("../../painel/escolas/src/design.mjs");
+  const input = {
+    ...readWebsiteState(null).draft,
+    values: { "data.courses.0.name": "Nome preservado" },
+    design: parseWebsiteDesign({
+      activeTheme: "campus",
+      pages: {
+        "/ingresso/": { buttonShape: "pill", motion: "fade" },
+        "/cursos/": { fontBody: "editorial" },
+      },
+    }),
+  };
+  const view = mountAppearance(input);
+  fireEvent.change(screen.getByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  fireEvent.change(screen.getByLabelText("Copiar personalizações de"), {
+    target: { value: "/ingresso/" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Copiar personalizações" }));
+  expect(view.getDraft().design?.pages["/cursos/"]).toEqual({
+    fontBody: "editorial",
+    buttonShape: "pill",
+    motion: "fade",
+  });
+  expect(view.getDraft().values).toEqual(input.values);
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer cópia" }));
+  expect(view.getDraft().design).toEqual(input.design);
+  fireEvent.change(screen.getByLabelText("Como aplicar os estilos"), {
+    target: { value: "replace" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Copiar personalizações" }));
+  expect(view.getDraft().design?.pages["/cursos/"]).toEqual({
+    buttonShape: "pill",
+    motion: "fade",
+  });
+  fireEvent.change(screen.getByLabelText("Tipo de letra do corpo"), {
+    target: { value: "humanist" },
+  });
+  expect(screen.queryByRole("button", { name: "Desfazer cópia" })).toBeNull();
+  expect(view.getDraft().design?.pages["/cursos/"]?.fontBody).toBe("humanist");
+});
+it("um atalho abre o grupo de conteúdos da página e dá foco ao selector", async () => {
+  mount();
+  fireEvent.change(await screen.findByLabelText("Personalizar aparência de"), {
+    target: { value: "/ingresso/" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Editar textos e imagens desta página" }));
+  const selector = screen.getByLabelText("Página ou conteúdo") as HTMLSelectElement;
+  expect(selector.value).toBe("Como candidatar-se · /ingresso/");
+  expect(document.activeElement).toBe(selector);
+  expect(mocks.change).not.toHaveBeenCalled();
+});
