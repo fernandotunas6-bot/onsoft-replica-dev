@@ -241,7 +241,18 @@ export type AcademicSettings = {
   passing_grade: number;
 };
 
+export type StudentAccessSettings = {
+  /** Os alunos podem entrar com o número de aluno (1260001) e a senha da conta. */
+  student_number_login: boolean;
+};
+
 export const SETTINGS_DOMAINS = {
+  student_access: {
+    label: "Acesso dos alunos",
+    parse: (value: unknown): StudentAccessSettings => ({
+      student_number_login: asRecord(value)["student_number_login"] === true,
+    }),
+  },
   billing: {
     label: "Cobrança",
     parse: (value: unknown): BillingSettings => {
