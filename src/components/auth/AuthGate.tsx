@@ -735,7 +735,7 @@ export function AuthGate({
               <div className="mt-6">
                 <MfaChallenge
                   factors={mfaFactors}
-                  intro="Falta confirmar que é você. Só é pedido neste dispositivo de 30 em 30 dias, ou se algo mudar."
+                  intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
                   cancelLabel="Usar outra conta"
                   onCancel={() => {
                     setMfaFactors(null);
