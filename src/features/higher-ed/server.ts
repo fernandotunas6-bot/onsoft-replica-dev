@@ -1006,7 +1006,7 @@ async function findIssuedCertificate(
 
 /**
  * Emite o certificado de conclusão: número da série «certificate» da escola
- * (document_sequences, «CE-000001») e código de verificação para /verificar, no mesmo
+ * (numeração da escola, «1260001») e código de verificação para /verificar, no mesmo
  * registo que os outros documentos oficiais. Só a Direcção e a Secretaria, com 2FA, e
  * só para quem concluiu o curso. Repetir devolve o mesmo certificado.
  */
