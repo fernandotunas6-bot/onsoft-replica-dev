@@ -38,8 +38,8 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-border/70 bg-card text-center",
-        compact ? "px-4 py-6" : "px-6 py-10",
+        "flex min-w-0 max-w-full flex-col items-center justify-center text-center",
+        compact ? "px-4 py-6" : "px-6 py-8",
         className,
       )}
       role="status"
@@ -48,26 +48,34 @@ export function EmptyState({
         <span className="relative mb-4 block size-16" aria-hidden>
           <SigaMascot size={64} tilt={-6} className="left-0 top-0" />
         </span>
-      ) : compact ? (
-        <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary-soft text-primary">
-          <Icon className="size-5" strokeWidth={1.8} aria-hidden />
-        </span>
       ) : (
-        // Na cor da área da página (tom em <html data-tone>).
-        <span className="empty-chip mb-3" aria-hidden>
-          <Icon className="size-6" strokeWidth={1.8} />
+        <span
+          className={cn(
+            "mb-3 flex shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground",
+            compact ? "size-10" : "size-11",
+          )}
+          aria-hidden
+        >
+          <Icon className="size-5" strokeWidth={1.8} />
         </span>
       )}
-      <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
-      {description ? (
-        <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted-foreground">
+      <h3 className="max-w-full text-[14px] font-semibold text-foreground [overflow-wrap:anywhere]">
+        {title}
+      </h3>
+      {description?.trim() ? (
+        <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
           {description}
         </p>
       ) : null}
       {action ? (
-        <div className="mt-4">{action}</div>
+        <div className="mt-4 min-w-0 max-w-full">{action}</div>
       ) : actionLabel && onAction ? (
-        <Button type="button" size="sm" className="mt-4" onClick={onAction}>
+        <Button
+          type="button"
+          size="sm"
+          className="mt-4 h-auto min-h-9 max-w-full whitespace-normal break-words py-2"
+          onClick={onAction}
+        >
           {actionLabel}
         </Button>
       ) : null}

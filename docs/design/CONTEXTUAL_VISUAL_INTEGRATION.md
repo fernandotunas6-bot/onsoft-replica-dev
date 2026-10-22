@@ -23,6 +23,7 @@ conversa; essa referência visual continua por confirmar.
 | Cabeçalhos e painéis | `src/components/layout/PageHeader.tsx` | Manter hierarquia curta, breadcrumbs e estatísticas recolhíveis acessíveis |
 | Cartões e indicadores | `src/components/ui/stat-card.tsx`, `src/components/ui/card.tsx` | Aplicar o acabamento partilhado e preservar tons de estado explícitos |
 | Pesquisa e filtros | `src/components/filters/ListFilterBar.tsx`, `src/components/filters/debounced-search-input.tsx` | Preservar debounce, parâmetros, rótulos e remoção individual de filtros |
+| Estados vazios e listas | `src/components/ui/empty-state.tsx`, `src/components/ui/data-table-shell.tsx`, `src/components/ui/pagination.tsx` | Preservar acções, mascote de primeiro uso, todas as colunas e destinos da paginação |
 
 A navegação mobile continua a pertencer ao AppShell existente;
 não montar uma segunda sidebar ou uma segunda árvore de autorização.
@@ -65,3 +66,7 @@ Os testes existentes de aparência cobrem o catálogo assíncrono e a precedênc
 das variáveis. A integração da PR #245 acrescenta ensaios reais de alvos de toque,
 movimento reduzido e composição IME. A comparação com as imagens de outra conversa
 permanece pendente.
+
+A sincronização até `1d4b6d37` incorpora a paginação portuguesa e os testes de menus
+da PR #245. Estados vazios e tabelas foram refinados sobre essa base; a paginação
+admite quebra de linha em larguras estreitas. Capturas e verificações no relatório.
