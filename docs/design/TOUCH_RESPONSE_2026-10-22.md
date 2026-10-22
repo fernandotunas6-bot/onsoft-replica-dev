@@ -55,3 +55,8 @@ Com movimento normal, o estilo computado da animação de abertura é 0,2 s; com
 movimento reduzido, o nome da animação é `none`. Isto não mede INP ou FPS.
 As capturas e os resultados estão no [relatório de integração](../visual/2026-10-22/README.md).
 Sessão autenticada, leitores de ecrã e dispositivos físicos continuam pendentes.
+
+Sincronização adicional até `22670f4c`: combinadas as actualizações concorrentes
+do modal e o suporte de movimento reduzido em Popover/Tooltip. A reserva de 32 px
+do cabeçalho foi mantida por já separar o alvo táctil no ensaio real. Os detalhes
+e os resultados finais de integração estão no relatório acima.

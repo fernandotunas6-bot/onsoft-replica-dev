@@ -167,9 +167,12 @@ SSR e Nitro Cloudflare concluído com código 0. Sem merge, deploy ou alteraçõ
 ## Continuação — integração do trabalho de outro agente (#245)
 
 Identificada e combinada a [PR #245](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/245),
-branch `refine/touch-response-modal-search-20261022`, commit `e4db10fa`. A integração
+branch `refine/touch-response-modal-search-20261022`, inicialmente `e4db10fa`,
+sincronizada até `22670f4c`. A integração
 preserva os dois históricos e os ajustes de textos/formulários longos da #244.
-O único conflito foi no relatório, conservando a versão mais recente e completa.
+Na primeira combinação só houve conflito no relatório, conservando a versão mais
+recente. A sincronização seguinte também sobrepôs a reserva do cabeçalho: mantidos
+os 32 px já medidos sem sobreposição, em vez de aumentar para 44 px adicionais.
 
 - Botões de fechar Dialog/Sheet com alvo de 44 × 44 px, sem aumentar as classes do
   ícone; cabeçalhos reservam espaço para evitar sobreposição com títulos longos.
@@ -177,6 +180,7 @@ O único conflito foi no relatório, conservando a versão mais recente e comple
   desactiva a animação. DataTableShell deixa de transicionar propriedades de layout.
 - Pesquisa aguarda o fim da composição IME antes do debounce existente de 220 ms.
   Começar composição cancela uma pesquisa anterior ainda pendente.
+- Popovers e dicas de ajuda seguem a preferência de movimento reduzido.
 
 | Componente integrado | Desktop 1440 px | Tablet 834 px | Telemóvel 390 px |
 | --- | --- | --- | --- |
@@ -191,9 +195,11 @@ com estilo computado de 0,2 s; com movimento reduzido, `animation-name: none`.
 Não são medições de latência de rede, INP ou FPS. Sem erros JavaScript.
 [Resultados](integrated-touch-results.json).
 
-Validação final: 42 testes aprovados em sete ficheiros; ESLint dos cinco ficheiros
+Validação: 42 testes aprovados em sete ficheiros; ESLint dos sete ficheiros
 de código/teste desta integração sem erros/avisos; zero diagnósticos sintácticos e
-semânticos TypeScript dirigidos aos 17 ficheiros de código/testes da PR.
+semânticos TypeScript dirigidos aos ficheiros de código/testes da PR.
+Após sincronizar Popover/Tooltip: zero diagnósticos dirigidos aos 19 ficheiros;
+ambos sem animação nos cenários de movimento reduzido em Chromium.
 Build final cliente, SSR e Nitro Cloudflare aprovado (código 0). O ensaio anterior
 dos formulários longos foi repetido nas cinco dimensões, incluindo 320 × 568 e
 390 × 420 px, preservando submissão de demonstração, Escape e acesso às acções.

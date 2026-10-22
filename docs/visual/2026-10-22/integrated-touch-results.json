@@ -17,6 +17,8 @@
       "overflow": false
     },
     "imeRequests": 1,
+    "popoverAnimation": "none",
+    "tooltipAnimation": "none",
     "focusTrap": true,
     "focusRestored": true,
     "errors": []
@@ -39,6 +41,8 @@
       "overflow": false
     },
     "imeRequests": 1,
+    "popoverAnimation": "none",
+    "tooltipAnimation": "none",
     "focusTrap": true,
     "focusRestored": true,
     "errors": []
@@ -61,6 +65,8 @@
       "overflow": false
     },
     "imeRequests": 1,
+    "popoverAnimation": "none",
+    "tooltipAnimation": "none",
     "focusTrap": true,
     "focusRestored": true,
     "errors": []
@@ -83,6 +89,8 @@
       "overflow": false
     },
     "imeRequests": 1,
+    "popoverAnimation": "enter",
+    "tooltipAnimation": "enter",
     "focusTrap": true,
     "focusRestored": true,
     "errors": []
@@ -105,6 +113,8 @@
       "overflow": false
     },
     "imeRequests": 1,
+    "popoverAnimation": "enter",
+    "tooltipAnimation": "enter",
     "focusTrap": true,
     "focusRestored": true,
     "errors": []
@@ -127,6 +137,8 @@
       "overflow": false
     },
     "imeRequests": 1,
+    "popoverAnimation": "enter",
+    "tooltipAnimation": "enter",
     "focusTrap": true,
     "focusRestored": true,
     "errors": []
