@@ -4,9 +4,13 @@ Trabalho disponível na [PR #244](https://github.com/fernandotunas6-bot/onsoft-r
 branch `refine/contextual-sidebar`. Comparações e limites no
 [relatório visual](../visual/2026-10-22/README.md).
 
-Este documento prepara a integração pedida com o trabalho de outro agente.
-A branch, PR ou imagens desse trabalho ainda não foram identificadas; não se
-declara que os dois visuais foram unidos. O visual existente continua a ser a base.
+Este documento orienta a integração pedida com o trabalho de outros agentes.
+Foi identificada a [PR #245](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/245),
+branch `refine/touch-response-modal-search-20261022`, commit `e4db10fa`.
+A contribuição de toque, transições e pesquisa foi combinada com os refinamentos
+de modais desta branch, conservando os dois históricos. Evidências no relatório
+visual. Isto não identifica nem comprova uma reprodução das imagens de outra
+conversa; essa referência visual continua por confirmar.
 
 ## Onde aplicar o visual
 
@@ -58,4 +62,6 @@ Já existem testes de transição claro/escuro e densidade que renderizam a side
 real com fronteiras de conta/router substituídas e preservam os destinos e a
 escolha de áreas. Estes testes verificam comportamento, não contraste renderizado.
 Os testes existentes de aparência cobrem o catálogo assíncrono e a precedência
-das variáveis. A comparação com o visual do outro agente permanece pendente.
+das variáveis. A integração da PR #245 acrescenta ensaios reais de alvos de toque,
+movimento reduzido e composição IME. A comparação com as imagens de outra conversa
+permanece pendente.

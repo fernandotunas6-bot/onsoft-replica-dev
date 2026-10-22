@@ -54,6 +54,29 @@ describe("interacção dos componentes partilhados", () => {
 });
 
 describe("pesquisa sem atrasos artificiais durante a composição", () => {
+  it("cancela uma pesquisa pendente quando começa a composição", () => {
+    vi.useFakeTimers();
+    const onChange = vi.fn();
+    render(
+      <DebouncedSearchInput
+        field={{ name: "q", label: "Pesquisar aluno" }}
+        value=""
+        onChange={onChange}
+      />,
+    );
+    const search = screen.getByRole("textbox", { name: "Pesquisar aluno" });
+    fireEvent.change(search, { target: { value: "A" } });
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.compositionStart(search);
+    fireEvent.change(search, { target: { value: "Á" } });
+    act(() => vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS * 2));
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(search);
+    act(() => vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS - 1));
+    expect(onChange).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("q", "Á");
+  });
   it("não envia pedidos incompletos de um teclado IME", () => {
     vi.useFakeTimers();
     const onChange = vi.fn();

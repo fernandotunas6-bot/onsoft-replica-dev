@@ -15,8 +15,10 @@ cores de estado explícitas mantêm-se. Comparação controlada e limites:
 
 Para ligar o visual de outro agente, consultar os
 [pontos de integração e contrato de aparência](../design/CONTEXTUAL_VISUAL_INTEGRATION.md).
-A referência externa ainda não foi identificada; não confundir esta preparação
-com integração concluída. Preservar os testes de navegação e o catálogo lazy de temas.
+A PR #245 (`e4db10fa`) foi identificada e combinada nesta branch: toque de 44 px,
+movimento reduzido e pesquisa IME. Preservar os dois históricos, os ajustes recentes
+dos modais, os testes de navegação e o catálogo lazy de temas. Isto não confirma a
+reprodução das imagens de outra conversa, que continuam por identificar.
 
 ## Refinamento da navegação académica — 2026-10-21
 
