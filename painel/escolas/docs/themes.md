@@ -26,6 +26,12 @@ O modo textual da marca é uma escolha explícita do administrador e apresenta o
 
 A pré-visualização usa os textos do rascunho, os nomes dos cursos associados e o logótipo da escola. É estática, isolada num iframe sem permissões: não executa scripts, navegação ou operações de candidatura. Os efeitos podem ser verificados no website publicado. A preferência do visitante por movimento reduzido tem prioridade.
 
+## Encontrar opções e conferir o rascunho
+
+A pesquisa ignora acentos e aceita combinações como `botões cápsula`. O filtro de opções personalizadas mostra apenas as substituições do âmbito seleccionado, e as secções com alterações recebem uma indicação. Cada cor pode voltar à herança individualmente. Nos selectores, `Herdar` mostra o valor do tema para ajustes globais, ou o valor geral para ajustes de uma página. Repor uma secção remove todas as suas substituições, mesmo com filtros activos.
+
+Ao escolher uma página para personalizar, essa página fica também seleccionada para a pré-visualização. Os tamanhos disponíveis são computador (1280 px), tablet (820 px) e telemóvel (até 390 px). A prévia mostra o fundo escolhido e a taxa de candidatura configurada. A marca demonstrativa é carregada como imagem PNG incorporada na prévia, preservando o isolamento do iframe; o ficheiro estático é reutilizado na sessão e pode ser novamente pedido após uma falha. Alterações nos conteúdos, tema, identidade, cursos associados ou página seleccionada marcam a prévia existente como desactualizada, até utilizar novamente Pré-visualizar rascunho. Alterar filtros ou o tamanho da janela não modifica o rascunho nem publica alterações.
+
 ## Instalação de temas
 
 Formato JSON `siga-school-theme`, versão 1, até 32 KB e oito temas próprios por escola. Não se trata de um instalador de temas PHP/ZIP do WordPress. Os pacotes seleccionam os layouts suportados e opções de apresentação; não executam JavaScript, CSS livre, HTML ou plugins.

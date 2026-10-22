@@ -302,3 +302,45 @@ it("organiza opções avançadas e repõe apenas a secção escolhida antes de g
     draft: { design: { overrides: { buttonShape: "pill" } } },
   });
 });
+
+it("pesquisa opções sem acentos e filtra apenas as personalizações sem alterar o rascunho", async () => {
+  mount();
+  const search = await screen.findByLabelText("Pesquisar opções de aparência");
+  fireEvent.change(search, { target: { value: "rodape" } });
+  expect(screen.getByLabelText("Composição do rodapé")).toBeTruthy();
+  expect(screen.queryByLabelText("Tipo de letra do corpo")).toBeNull();
+  fireEvent.change(search, { target: { value: "botões cápsula" } });
+  fireEvent.change(screen.getByLabelText("Forma dos botões"), { target: { value: "pill" } });
+  fireEvent.change(search, { target: { value: "" } });
+  fireEvent.click(screen.getByLabelText("Mostrar apenas opções personalizadas"));
+  expect(screen.getByLabelText("Forma dos botões")).toBeTruthy();
+  expect(screen.queryByLabelText("Cor principal")).toBeNull();
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Repor botões e ligações" }));
+  expect(screen.getByText(/Nenhuma opção corresponde/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+  expect(screen.getByLabelText("Cor principal")).toBeTruthy();
+});
+it("mostra a herança real da página e permite remover uma cor personalizada individualmente", async () => {
+  const state = readWebsiteState(null);
+  const { parseWebsiteDesign } = await import("../../painel/escolas/src/design.mjs");
+  state.draft.design = parseWebsiteDesign({
+    activeTheme: "campus",
+    overrides: { buttonShape: "pill", primary: "#183d70" },
+    pages: { "/cursos/": { buttonShape: "square", primary: "#1558ee" } },
+  });
+  mocks.load.mockResolvedValue({ ...(await mocks.load()), state });
+  mount();
+  fireEvent.change(await screen.findByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  const shape = screen.getByLabelText("Forma dos botões") as HTMLSelectElement;
+  expect(shape.value).toBe("square");
+  expect(shape.options[0].text).toBe("Herdar (Cápsula)");
+  fireEvent.click(screen.getByRole("button", { name: "Herdar cor principal" }));
+  expect((screen.getByLabelText("Cor principal") as HTMLInputElement).value).toBe("#183d70");
+  expect((screen.getByLabelText("Página para pré-visualizar") as HTMLSelectElement).value).toBe(
+    "/cursos/",
+  );
+  expect(mocks.change).not.toHaveBeenCalled();
+});

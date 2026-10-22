@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   builtInThemes,
   parseThemePackage,
@@ -15,7 +15,10 @@ import {
   validateWebsiteDraft,
   websiteTemplate,
 } from "@/features/school-website/content-model";
-import { websiteDraftPreview } from "@/features/school-website/website-preview";
+import {
+  websiteDraftPreview,
+  loadWebsitePreviewWordmark,
+} from "@/features/school-website/website-preview";
 const custom = () => ({
   ...structuredClone(builtInThemes[1]),
   id: "custom-instituto",
@@ -28,6 +31,7 @@ const draft = () => ({
   design: parseWebsiteDesign({ activeTheme: "campus" }),
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.innerHTML = "";
   document.documentElement.removeAttribute("style");
   for (const key of Object.keys(document.documentElement.dataset))
@@ -246,4 +250,42 @@ it("guarda e publica opções avançadas com substituições por página e resta
       pages: { "/cursos/": { buttonHover: "javascript:alert(1)" } },
     }),
   ).toThrow();
+});
+
+it("a prévia inclui o fundo escolhido e a taxa actual da candidatura sem activar operações", () => {
+  const input = { ...draft(), admissionFeeAmount: 24000, bannerStyle: "prism" as const };
+  const html = websiteDraftPreview(input, "/candidatura/", "ISPAB", "https://portal.example");
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  expect(doc.documentElement.dataset.bannerStyle).toBe("prism");
+  expect(
+    doc.querySelector(".admission-summary-heading strong")?.textContent?.replace(/\D/g, ""),
+  ).toBe("24000");
+  expect(doc.querySelector("script")).toBeNull();
+  expect(doc.querySelector("a[href]")).toBeNull();
+  expect(doc.querySelector("button:not([disabled])")).toBeNull();
+});
+
+it("carrega a marca PNG apenas uma vez para a prévia isolada e permite repetir após falha", async () => {
+  const fetcher = vi.spyOn(globalThis, "fetch");
+  fetcher.mockResolvedValueOnce(new Response("indisponível", { status: 503 }));
+  expect(await loadWebsitePreviewWordmark("https://preview-art.example")).toBeNull();
+  fetcher.mockResolvedValueOnce(
+    new Response(new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0]), {
+      headers: { "Content-Type": "image/png" },
+    }),
+  );
+  const artwork = await loadWebsitePreviewWordmark("https://preview-art.example");
+  expect(artwork).toBe("data:image/png;base64,iVBORw0KGgoA");
+  expect(await loadWebsitePreviewWordmark("https://preview-art.example")).toBe(artwork);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenLastCalledWith(
+    "https://preview-art.example/_school-website/assets/ispab-wordmark.png",
+    expect.objectContaining({ credentials: "omit" }),
+  );
+  const html = websiteDraftPreview(draft(), "/", "ISPAB", "https://portal.example", null, artwork);
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  expect(doc.querySelector(".brand-wordmark-art")?.getAttribute("style")).toContain(
+    "data:image/png;base64,",
+  );
+  expect(doc.querySelector("script")).toBeNull();
 });
