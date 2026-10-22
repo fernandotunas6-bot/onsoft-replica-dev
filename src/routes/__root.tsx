@@ -24,6 +24,7 @@ import { EntityFocusProvider } from "@/features/intelligence/entity-focus-contex
 import { isPublicAppPath } from "@/lib/public-paths";
 import { RouteErrorScreen } from "@/components/error/RouteErrorScreen";
 import { TenantProvider } from "@/features/saas/tenant-context";
+import { TenantAccessBarrier } from "@/features/saas/TenantAccessBarrier";
 import { PageLoading } from "@/components/ui/page-loading";
 import { readSessionHint } from "@/features/auth/session-hint";
 
@@ -98,9 +99,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png", sizes: "180x180" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
-    // Antes do resto: num motor antigo (ex.: Mac com o Safari por actualizar, também na
-    // app desktop) explica como actualizar em vez de deixar um ecrã que não responde.
-    scripts: [{ src: "/browser-check.js" }],
+    // Num motor antigo (ex.: Mac com o Safari por actualizar, também na app desktop)
+    // explica como actualizar em vez de deixar um ecrã que não responde. `defer`: corre
+    // antes dos módulos da app, mas não trava o primeiro desenho da página (síncrono,
+    // ficava na fila atrás dos pré-carregamentos e atrasava-o ~0,5 s).
+    scripts: [{ src: "/browser-check.js", defer: true }],
   }),
   // Pista de sessão para o SSR desenhar logo o ecrã de entrada (ver session-hint.ts).
   loader: async () => ({ sessionHint: await readSessionHint() }),
@@ -198,19 +201,30 @@ function RootComponent() {
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
             {isPublic ? (
-              <Outlet />
+              // Escola bloqueada fecha a matrícula online. Entrar, definir senha
+              // e verificar documentos continuam: sem /auth o administrador nem
+              // chegava à assinatura para a regularizar.
+              pathname.startsWith("/matricula") ? (
+                <TenantAccessBarrier>
+                  <Outlet />
+                </TenantAccessBarrier>
+              ) : (
+                <Outlet />
+              )
             ) : (
               <AuthGate sessionHint={sessionHint}>
                 <OfflineOutboxSync />
-                <SchoolYearProvider>
-                  <SchoolBrandAppearanceSync />
-                  <EntityFocusProvider>
-                    <RouteAccessGate>
-                      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                      <Outlet />
-                    </RouteAccessGate>
-                  </EntityFocusProvider>
-                </SchoolYearProvider>
+                <TenantAccessBarrier allowSchoolAdmin>
+                  <SchoolYearProvider>
+                    <SchoolBrandAppearanceSync />
+                    <EntityFocusProvider>
+                      <RouteAccessGate>
+                        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                        <Outlet />
+                      </RouteAccessGate>
+                    </EntityFocusProvider>
+                  </SchoolYearProvider>
+                </TenantAccessBarrier>
               </AuthGate>
             )}
           </div>

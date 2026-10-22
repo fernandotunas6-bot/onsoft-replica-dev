@@ -49,7 +49,7 @@ export const Route = createFileRoute("/importar")({
   component: ImportarDadosPage,
 });
 
-export function ImportarDadosPage() {
+function ImportarDadosPage() {
   const { school, activeYearLabel, selectedYearId } = useSchoolSettings();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.id });

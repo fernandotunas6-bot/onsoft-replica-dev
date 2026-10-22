@@ -41,7 +41,7 @@ export function BottomSheet({
         <DrawerPrimitive.Overlay className="fixed inset-0 z-50 bg-(--siga-overlay)" />
         <DrawerPrimitive.Content
           className={cn(
-            "fixed inset-x-0 bottom-0 z-[55] flex flex-col rounded-t-2xl border-t border-border bg-card",
+            "fixed inset-x-0 bottom-0 z-[55] mx-auto flex w-full max-w-[720px] flex-col rounded-t-[24px] border border-b-0 border-border bg-card shadow-float",
             // O painel em si não recebe anel (não é alvo de interacção), mas
             // o foco dentro dele tem de continuar visível.
             "outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -72,13 +72,13 @@ export function BottomSheetHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex shrink-0 items-start gap-3 px-4 pb-3 pt-3">
+    <div className="flex shrink-0 items-start gap-3 px-5 pb-4 pt-4">
       <div className="min-w-0 flex-1">
-        <DrawerPrimitive.Title className="truncate text-base font-medium text-foreground">
+        <DrawerPrimitive.Title className="break-words pr-1 text-[18px] font-semibold leading-snug text-foreground">
           {title}
         </DrawerPrimitive.Title>
         {description ? (
-          <DrawerPrimitive.Description className="mt-0.5 text-xs text-muted-foreground">
+          <DrawerPrimitive.Description className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
             {description}
           </DrawerPrimitive.Description>
         ) : null}
@@ -89,7 +89,7 @@ export function BottomSheetHeader({
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          className="touch-target -mr-1.5 -mt-1.5 inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="touch-target -mr-1.5 -mt-1.5 inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-5" />
         </button>
@@ -107,7 +107,7 @@ export function BottomSheetBody({
   className?: string;
 }) {
   return (
-    <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-2", className)}>
+    <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4", className)}>
       {children}
     </div>
   );
@@ -124,7 +124,7 @@ export function BottomSheetFooter({
   return (
     <div
       className={cn(
-        "shrink-0 border-t border-border bg-card px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]",
+        "shrink-0 border-t border-border bg-card px-5 pt-4 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]",
         className,
       )}
     >

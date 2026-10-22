@@ -20,6 +20,8 @@ import {
 } from "./siga/payflow-bindings.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// Falhar antes de builds, secrets ou publicação de qualquer app incompatível.
+execSync("node scripts/siga/check-release-contracts.mjs", { cwd: root, stdio: "inherit" });
 
 // Carregar variáveis de ambiente do .env da raiz
 const envFile = path.resolve(root, ".env");

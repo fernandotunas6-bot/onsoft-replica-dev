@@ -64,15 +64,17 @@ export function PageHeader({
 
   const trail: PageCrumb[] =
     crumbs ??
-    ([{ label: "Início", to: "/" }, { label: group }, { label: title }] satisfies PageCrumb[]);
+    ([
+      { label: "Início", to: "/portal" },
+      { label: group },
+      { label: title },
+    ] satisfies PageCrumb[]);
 
   return (
     <div className="relative isolate space-y-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
-      {/* Brilho na cor da área (tom em <html data-tone>, ver AreaToneSync). */}
-      <div aria-hidden="true" className="page-header-glow" />
       {!hideBreadcrumb ? (
-        <Breadcrumb className="relative">
-          <BreadcrumbList className="text-[11px] sm:text-xs">
+        <Breadcrumb className="relative max-w-full overflow-x-auto [scrollbar-width:thin]">
+          <BreadcrumbList className="w-max min-w-full flex-nowrap whitespace-nowrap text-[11px] sm:w-auto sm:flex-wrap sm:whitespace-normal sm:text-xs">
             {trail.map((crumb, index) => {
               const isLast = index === trail.length - 1;
               // O separador é `<li>`: tem de ser irmão do item, não filho —
@@ -100,25 +102,29 @@ export function PageHeader({
           </BreadcrumbList>
         </Breadcrumb>
       ) : null}
-      <div className="relative flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="relative flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-3 sm:items-center">
+        <div className="flex w-full min-w-0 items-start gap-3 sm:w-auto sm:flex-1">
           {headerMark}
-          <div>
+          <div className="min-w-0 flex-1">
             {/* O grupo já aparece no caminho de navegação; repeti-lo em
                 maiúsculas por cima do título era ruído. */}
             {hideBreadcrumb ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
-            <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">
+            <h1 className="break-words font-display text-[20px] font-semibold leading-tight tracking-tight md:text-[24px]">
               {title}
             </h1>
             <ShortDescription
               text={description}
-              className="mt-0.5 max-w-2xl text-xs text-muted-foreground md:text-sm"
+              className="mt-1.5 max-w-2xl break-words text-sm leading-relaxed text-muted-foreground"
             />
           </div>
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -177,9 +183,8 @@ export function StatGrid({
         return (
           <div
             key={item.label}
-            className="hover-lift group relative overflow-hidden rounded-xl border border-border/80 bg-card p-3.5 shadow-card hover:border-primary/30"
+            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-card"
           >
-            <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/70 to-primary/0 opacity-0 transition-opacity group-hover:opacity-100" />
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
@@ -196,7 +201,7 @@ export function StatGrid({
                   tone={tone}
                   size="sm"
                   label={item.label}
-                  className="transition-transform duration-150 group-hover:scale-105"
+                  className="shrink-0"
                 />
               ) : null}
             </div>

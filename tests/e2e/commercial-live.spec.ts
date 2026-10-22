@@ -54,34 +54,57 @@ test.describe("Provisionamento comercial @live", () => {
     }
   });
 
-  test("wizard WEB conclui com ecrã de sucesso", async ({ page }) => {
+  test("wizard WEB percorre os 7 passos e apresenta as 3 entradas", async ({ page }) => {
+    test.setTimeout(180_000);
     const slug = uniqueE2ESlug("web");
     const email = `e2e+${slug}@siga-plus.test`;
+    const school = `Escola Live ${slug}`;
+    const nif = `5417${String(Date.now() % 1_000_000).padStart(6, "0")}`;
+    const continuar = page.getByRole("button", { name: /Continuar/ });
 
     try {
       await page.goto(`${ECOSYSTEM_E2E_URLS.web}/start`);
-      await page.getByLabel("Nome da instituição").fill(`Escola Live ${slug}`);
-      await page.getByRole("button", { name: /Continuar/ }).click();
 
+      // 1. Instituição (nome, NIF e nível) e 2. Localização.
+      await page.getByLabel("Nome oficial da instituição").fill(school);
+      await page.getByLabel("NIF da instituição").fill(nif);
+      await page.getByRole("checkbox", { name: /Ensino Primário/ }).click();
+      await continuar.click();
+      await expect(page.getByText("Passo 2 de 7")).toBeVisible();
+      await page.getByRole("combobox").first().click();
+      await page.getByRole("option", { name: "Huambo", exact: true }).click();
+      await page.getByLabel("Município").fill("Huambo");
+      await continuar.click();
+
+      // 3. Responsável; 4. Plano; 5. Conta do administrador.
+      await expect(page.getByText("Passo 3 de 7")).toBeVisible();
       await page.getByLabel("Nome do responsável").fill("Live Director");
       await page.getByLabel("E-mail", { exact: true }).fill(email);
-      await page.getByRole("button", { name: /Continuar/ }).click();
+      await continuar.click();
+      await expect(page.getByText("Passo 4 de 7")).toBeVisible();
+      await continuar.click();
+      await expect(page.getByText("Passo 5 de 7")).toBeVisible();
+      await expect(page.getByLabel("E-mail da conta SIGA")).toHaveValue(email);
+      await page.getByLabel("Senha de acesso").fill("Escola2026e2e");
+      await page.getByLabel("Confirmar senha").fill("Escola2026e2e");
+      await continuar.click();
 
-      await page.getByRole("button", { name: "Start" }).click();
-      await page.getByRole("button", { name: /Continuar/ }).click();
-      await page.getByRole("button", { name: /Continuar/ }).click();
-
+      // 6. Endereço; 7. Revisão e criação (apenas num staging autorizado).
+      await expect(page.getByText("Passo 6 de 7")).toBeVisible();
       await page.getByLabel("Subdomínio SIGA").fill(slug);
-      await page.getByRole("button", { name: /Continuar/ }).click();
+      await continuar.click();
+      await expect(page.getByText("Passo 7 de 7")).toBeVisible();
+      await expect(page.getByText(school).first()).toBeVisible();
       await page.getByRole("button", { name: /Criar escola/ }).click();
 
-      await expect(
-        page.getByRole("heading", { name: "Pedido da escola registado com sucesso" }),
-      ).toBeVisible({ timeout: 60_000 });
-      await expect(page.getByRole("link", { name: /Entrar no SIGA Plus/ })).toBeVisible();
-      await expect(page.getByRole("link", { name: /Control Center \(ADMIN\)/ })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Acesso do administrador" })).toBeVisible();
-      await expect(page.getByText(`${slug}.portal-siga.com`)).toBeVisible();
+      // O sucesso actual dá três escolhas de entrada. Não confundir a
+      // presença de links com a prova de uma sessão/admin autenticada.
+      await expect(page.getByText(`${school} está criada`)).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText("1. Escola criada")).toBeVisible();
+      await expect(page.getByRole("link", { name: /Painel Administrativo/ })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Portal Escolar/ })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Assistente de configuração/ })).toBeVisible();
+      await expect(page.getByText(`${slug}.portal-siga.com`).first()).toBeVisible();
     } finally {
       await cleanupE2ETenantBySlug(slug, email).catch(() => undefined);
     }

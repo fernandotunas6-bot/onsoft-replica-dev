@@ -6,8 +6,10 @@
 import { spawn } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertSafeE2ETarget } from "./e2e-safety.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+assertSafeE2ETarget();
 
 function run(command, args, env = process.env) {
   return new Promise((resolvePromise, reject) => {

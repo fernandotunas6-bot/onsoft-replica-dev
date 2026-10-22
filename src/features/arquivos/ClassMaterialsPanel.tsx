@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { sqlApplyHint } from "@/lib/sql-doc-hint";
 import { PickFileButton } from "./PickFileButton";
 import { canAccessFileContent, formatFileSize } from "./kinds";
-import { listLocalFiles, patchLocalFileMeta } from "./local-store";
+import { listLocalFiles, patchLocalFileMeta, type LocalFileViewer } from "./local-store";
 import { resolveFileBlob, resolveFileUrl } from "./resolve-file";
 import type { SchoolFileRecord } from "./schemas";
 import { schoolFileShareText } from "./share-text";
@@ -22,8 +22,8 @@ export { schoolFileShareText } from "./share-text";
 const SYSTEM_LOCKED_MSG =
   "Ficheiro do sistema — visível, mas o conteúdo está oculto sem permissão.";
 
-async function downloadRecord(file: SchoolFileRecord) {
-  const blob = await resolveFileBlob(file);
+async function downloadRecord(file: SchoolFileRecord, viewer: LocalFileViewer) {
+  const blob = await resolveFileBlob(file, viewer);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -42,13 +42,14 @@ export function ClassMaterialsPanel({
   className?: string;
 }) {
   const account = useCurrentAccount();
+  const viewer = { schoolId: account.schoolId, ownerUserId: account.id };
   const queryClient = useQueryClient();
   const installed = useInstalledIntegrations();
   const canManage = canWriteModule(account.role, "arquivos");
   const whatsappOn = installed.hasCapability("whatsapp.class_groups");
 
   const remoteQuery = useQuery({
-    queryKey: ["arquivos", "turma", classGroupId],
+    queryKey: ["arquivos", "turma", account.schoolId, account.id, account.role, classGroupId],
     queryFn: () =>
       listSchoolFiles({
         data: { classGroupId, limit: 24 },
@@ -78,7 +79,7 @@ export function ClassMaterialsPanel({
 
   const refresh = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["arquivos", "turma", classGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ["arquivos", "turma"] }),
       queryClient.invalidateQueries({ queryKey: ["arquivos", "local-turma"] }),
       queryClient.invalidateQueries({ queryKey: ["arquivos", "list"] }),
       queryClient.invalidateQueries({ queryKey: ["arquivos", "local"] }),
@@ -87,10 +88,10 @@ export function ClassMaterialsPanel({
 
   const attach = async (file: SchoolFileRecord) => {
     try {
-      await patchLocalFileMeta(file.id, { classGroupId });
       const result = await linkSchoolFileToClass({
         data: { id: file.id, classGroupId },
       });
+      await patchLocalFileMeta(file.id, { classGroupId }, viewer);
       if (result.localOnly) {
         toast.message("Ligado neste dispositivo", {
           description: sqlApplyHint("premium"),
@@ -108,8 +109,14 @@ export function ClassMaterialsPanel({
 
   const detach = async (file: SchoolFileRecord) => {
     try {
-      await patchLocalFileMeta(file.id, { classGroupId: null });
+      if (file.storageBackend === "local") {
+        await patchLocalFileMeta(file.id, { classGroupId: null }, viewer);
+        toast.message("Removido neste dispositivo");
+        await refresh();
+        return;
+      }
       await linkSchoolFileToClass({ data: { id: file.id, classGroupId: null } });
+      await patchLocalFileMeta(file.id, { classGroupId: null }, viewer);
       toast.success("Material removido da turma");
       await refresh();
     } catch (error) {
@@ -142,6 +149,7 @@ export function ClassMaterialsPanel({
           <PickFileButton
             label="Anexar"
             area="escola"
+            request={{ purpose: "class-material", classGroupId }}
             size="sm"
             variant="outline"
             onPick={(file) => void attach(file)}
@@ -161,6 +169,7 @@ export function ClassMaterialsPanel({
         <ul className="mt-2 space-y-1.5">
           {files.map((file) => {
             const contentOpen = canAccessFileContent(file, account.id, account.role);
+            const shareable = file.storageBackend === "sga";
             return (
               <li
                 key={file.id}
@@ -176,7 +185,7 @@ export function ClassMaterialsPanel({
                       toast.error(SYSTEM_LOCKED_MSG);
                       return;
                     }
-                    void resolveFileUrl(file)
+                    void resolveFileUrl(file, viewer)
                       .then((url) => window.open(url, "_blank", "noopener,noreferrer"))
                       .catch((error: Error) => toast.error(error.message));
                   }}
@@ -185,6 +194,7 @@ export function ClassMaterialsPanel({
                   <span className="ml-2 text-[11px] font-normal text-muted-foreground">
                     {formatFileSize(file.sizeBytes)}
                     {file.isSystem && !contentOpen ? " · Protegido" : ""}
+                    {!shareable ? " · Só neste dispositivo" : ""}
                   </span>
                 </button>
                 <div className="flex gap-1">
@@ -193,7 +203,8 @@ export function ClassMaterialsPanel({
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2"
-                    title="Copiar referência"
+                    title={shareable ? "Copiar referência" : "Ficheiro não sincronizado"}
+                    disabled={!shareable}
                     onClick={() =>
                       void copyRef(file).catch((error: Error) => toast.error(error.message))
                     }
@@ -206,6 +217,8 @@ export function ClassMaterialsPanel({
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2 text-[11px] font-semibold"
+                      disabled={!shareable}
+                      title={shareable ? "Partilhar no WhatsApp" : "Ficheiro não sincronizado"}
                       onClick={() =>
                         void shareWhatsApp(file).catch((error: Error) => toast.error(error.message))
                       }
@@ -225,7 +238,9 @@ export function ClassMaterialsPanel({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void downloadRecord(file).catch((error: Error) => toast.error(error.message));
+                      void downloadRecord(file, viewer).catch((error: Error) =>
+                        toast.error(error.message),
+                      );
                     }}
                   >
                     <Download className="size-3.5" />

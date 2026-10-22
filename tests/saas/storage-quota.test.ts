@@ -20,13 +20,15 @@ describe("quota de arquivo do plano (auditoria 13, A3)", () => {
     expect(() => assertStorageCapacity(500 * GB, GB, null)).not.toThrow();
   });
 
-  it("registerSchoolFile verifica a quota antes de gravar e tira o objecto enviado", () => {
+  it("registerSchoolFile verifica a quota e o blob sem eliminar objectos existentes", () => {
     const source = readFileSync("src/features/arquivos/server.ts", "utf8");
     const start = source.indexOf("export const registerSchoolFile");
     const body = source.slice(start, source.indexOf("export const", start + 1));
     const quota = body.indexOf("assertCanStoreBytesForSchool(");
     expect(quota).toBeGreaterThan(-1);
     expect(quota).toBeLessThan(body.indexOf('from("siga_files").insert'));
-    expect(body.slice(quota)).toContain(".remove([data.storagePath])");
+    expect(body).toContain(".info(data.storagePath)");
+    expect(body).toContain("assertUploadedSchoolFileMatches(object, data.sizeBytes)");
+    expect(body).not.toContain(".remove([data.storagePath])");
   });
 });
