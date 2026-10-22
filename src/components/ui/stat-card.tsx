@@ -55,7 +55,7 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       value,
       subtitle,
       icon: Icon,
-      tone = "primary",
+      tone = "neutral",
       trend,
       to,
       search,
@@ -70,14 +70,16 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     const content = (
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card transition-[border-color,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
-          to && "hover:border-primary/40 hover:shadow-subtle cursor-pointer",
+          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 transition-colors duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
+          to && "hover:border-primary/40 cursor-pointer",
           className,
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{title}</span>
-          <div className="flex items-center gap-1.5">
+          <span className="min-w-0 break-words text-xs font-medium text-muted-foreground">
+            {title}
+          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
             {action ? <div>{action}</div> : null}
             {Icon ? (
               <div
@@ -96,8 +98,8 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
           </div>
         </div>
 
-        <div className="mt-3 flex items-baseline justify-between gap-2">
-          <div className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+          <div className="min-w-0 break-words font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {value}
           </div>
           {trend ? (

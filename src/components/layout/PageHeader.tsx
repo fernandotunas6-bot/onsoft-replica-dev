@@ -1,4 +1,4 @@
-import { Fragment, useState, type ElementType, type ReactNode } from "react";
+import { Fragment, useId, useState, type ElementType, type ReactNode } from "react";
 import { MoreInfo } from "@/components/ui/more-info";
 import { splitDescription } from "@/lib/split-description";
 import { Link } from "@tanstack/react-router";
@@ -153,6 +153,7 @@ export function StatGrid({
   collapsible?: boolean;
   storageKey?: string;
 }) {
+  const statsId = useId();
   const lsKey = collapsible && storageKey ? `siga:stats-${storageKey}` : null;
 
   const [visible, setVisible] = useState<boolean>(() => {
@@ -227,12 +228,14 @@ export function StatGrid({
           type="button"
           onClick={toggle}
           aria-expanded={visible}
+          aria-controls={statsId}
           aria-label={visible ? "Ocultar estatísticas" : "Ver estatísticas"}
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <ChevronDown
+            aria-hidden="true"
             className={cn(
-              "size-3.5 transition-transform duration-200",
+              "size-3.5 transition-transform duration-200 motion-reduce:transition-none",
               visible ? "rotate-0" : "-rotate-90",
             )}
           />
@@ -240,9 +243,11 @@ export function StatGrid({
         </button>
       </div>
       <div
+        id={statsId}
         aria-hidden={!visible}
+        inert={!visible}
         className={cn(
-          "grid transition-all duration-200 ease-in-out",
+          "grid transition-all duration-200 ease-in-out motion-reduce:transition-none",
           visible ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
         )}
       >

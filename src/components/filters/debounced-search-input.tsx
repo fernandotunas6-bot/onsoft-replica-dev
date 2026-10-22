@@ -32,13 +32,16 @@ function DebouncedSearchInput({
         <p className="mb-1.5 text-[12px] font-medium text-muted-foreground">{field.label}</p>
       ) : null}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground" />
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-2.5 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={field.placeholder ?? "Pesquisar…"}
           className="h-[44px] min-w-0 rounded-xl pl-[36px] text-[16px] lg:min-h-[44px] lg:text-[14px]"
-          aria-label={field["aria-label"] ?? field.placeholder ?? "Pesquisar"}
+          aria-label={field["aria-label"] ?? field.label ?? field.placeholder ?? "Pesquisar"}
         />
       </div>
     </div>

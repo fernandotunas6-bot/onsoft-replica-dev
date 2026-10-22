@@ -88,3 +88,29 @@ Enter/setas/Escape e retorno do foco mantêm-se aprovados. ESLint sem erros (avi
 preexistente de Fast Refresh em `PageHeader.tsx`). Build final do cliente, SSR e Nitro Cloudflare concluído com código 0.
 
 Continuam pendentes a revisão autenticada e o `tsc` global. Sem merge ou deploy.
+
+## Continuação — indicadores e filtros discretos
+
+- `StatCard` usa tom neutro por omissão, sem sombras decorativas; tons explícitos
+  de aviso, erro, sucesso e informação permanecem. Rótulos e valores longos podem
+  quebrar linha, e a tendência pode passar para a linha seguinte sem sobreposição.
+- A barra de filtros usa o mesmo raio discreto dos cartões. Os botões dos filtros
+  activos têm nomes acessíveis que explicam qual o filtro a remover. A pesquisa
+  usa o seu rótulo como nome acessível, preservando o placeholder e o debounce.
+- Estatísticas recolhidas mantêm o estado dos filhos mas usam `inert`, impedindo
+  foco nos controlos invisíveis. O botão referencia a região com `aria-controls`;
+  as transições respeitam movimento reduzido.
+
+Validação: 41 testes de componentes/contratos mais 18 testes das páginas de início,
+alunos, financeiro e portais aprovados (59 em dez ficheiros). Diagnósticos sintácticos
+e semânticos dirigidos aos 12 ficheiros de código/testes desta PR = zero.
+
+Chromium, ensaio controlado em 1440/390 px: Tab ignora a acção oculta, a acção fica
+acessível ao expandir e o filtro escolhido é removido sem alterar os restantes.
+Sem transbordo horizontal do documento. Capturas de componentes reais com valores
+de demonstração, não de uma sessão escolar autenticada:
+[desktop](list-controls-desktop.png) e [telemóvel](list-controls-mobile.png).
+
+Build final do cliente, SSR e Nitro Cloudflare aprovado (código 0); ESLint sem erros, com um aviso preexistente de Fast Refresh. Não houve alterações de APIs,
+regras financeiras/académicas, permissões ou base de dados. O `tsc` global e a
+revisão autenticada continuam pendentes; sem merge ou deploy.
