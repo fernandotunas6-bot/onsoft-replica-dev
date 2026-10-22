@@ -103,7 +103,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Aluno",
           items: [
-            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Académico",
               icon: moduleIcons.pedagogy,
@@ -159,7 +159,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Encarregado",
           items: [
-            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Desempenho",
               icon: moduleIcons.academicReports,
@@ -217,7 +217,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Professor",
           items: [
-            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Frequência",
               icon: moduleIcons.attendance,
@@ -288,7 +288,7 @@ export function getPortalNavigation(
     {
       title: "Principal",
       items: [
-        { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+        { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
         { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
       ],
     },

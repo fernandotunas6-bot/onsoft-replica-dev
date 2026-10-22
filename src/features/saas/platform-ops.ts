@@ -15,6 +15,9 @@ import type {
 } from "@/features/saas/types";
 import { isMissingTableError, profileFromRow } from "@/features/saas/tenant-billing";
 import {
+  addMonthsClamped,
+  isInTrial,
+  trialExtensionError,
   isTrialExpired,
   monthlyRevenueOf,
   resolveStatusChange,
@@ -150,16 +153,19 @@ export async function fetchSaaSStats(): Promise<SaaSStats> {
   };
 
   for (const t of tenants ?? []) {
-    if (t.status === "active") stats.activeTenants += 1;
-    if (t.status === "trial") stats.trialTenants += 1;
+    const trialExpired = isTrialExpired(t, now);
+    const inTrial = isInTrial(t);
+    if (t.status === "active" && !inTrial && !t.billing_exempt) stats.activeTenants += 1;
+    if (inTrial && !trialExpired) stats.trialTenants += 1;
     if (t.status === "suspended") stats.suspendedTenants += 1;
     if (t.status === "past_due") stats.pastDueTenants += 1;
     if (t.billing_exempt) stats.exemptTenants += 1;
-    if (isTrialExpired(t, now)) stats.trialExpiredTenants += 1;
+    if (trialExpired) stats.trialExpiredTenants += 1;
     stats.totalStorageGb += t.max_storage_gb || 10;
     stats.mrrAoa += monthlyRevenueOf(
       {
         tenantStatus: String(t.status),
+        subscriptionStatus: t.subscription_status ?? null,
         billingExempt: Boolean(t.billing_exempt),
         profile: profiles.get(t.id) ?? null,
         plan:
@@ -235,35 +241,6 @@ export async function updateTenantStatus(input: {
   return { success: true };
 }
 
-/**
- * Soma meses sem passar para o mês seguinte: `setMonth` levava 31 de Janeiro + 1 mês
- * a 3 de Março, e cada renovação parte do fim anterior, por isso os dias a mais
- * acumulavam-se. Fica no último dia do mês quando o dia não existe.
- */
-export function addMonthsClamped(base: Date, months: number): Date {
-  const end = new Date(base);
-  const day = end.getUTCDate();
-  end.setUTCDate(1);
-  end.setUTCMonth(end.getUTCMonth() + months);
-  const lastDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0)).getUTCDate();
-  end.setUTCDate(Math.min(day, lastDay));
-  return end;
-}
-
-/**
- * Prolongar o trial grava `subscription_status = trialing` e põe o fim do período no
- * fim do trial: numa escola que já paga, apagava o período pago (e a tarefa diária
- * punha-a em atraso quando o «trial» acabasse). Só se prolonga um trial.
- */
-export function trialExtensionAllowed(tenant: {
-  status: string;
-  subscription_status: string | null;
-}): boolean {
-  if (tenant.subscription_status === "trialing" || tenant.status === "trial") return true;
-  // Escola antiga sem estado de assinatura: só se ainda não estiver activa.
-  return !tenant.subscription_status && tenant.status !== "active";
-}
-
 export async function updateTenantSubscription(input: {
   tenantId: string;
   plan_code?: "start" | "professional" | "business" | "enterprise";
@@ -281,19 +258,14 @@ export async function updateTenantSubscription(input: {
     .maybeSingle();
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar a escola.");
   if (!tenant) throw new Error("Escola não encontrada.");
-  const paying = input.confirm_payment_months ?? input.confirm_payment_billing;
-  if (
-    input.extend_trial_days &&
-    !paying &&
-    !trialExtensionAllowed({
-      status: String(tenant.status ?? ""),
-      subscription_status: (tenant.subscription_status as string | null) ?? null,
-    })
-  ) {
-    throw new Error(
-      "A escola já tem assinatura paga: o trial não se prolonga (passaria a «em trial» e perdia o fim do período pago).",
-    );
+  if (input.extend_trial_days && !input.confirm_payment_months && !input.confirm_payment_billing) {
+    const refusal = trialExtensionError({
+      status: String(tenant.status),
+      subscription_status: tenant.subscription_status as string | null,
+    });
+    if (refusal) throw new Error(refusal);
   }
+  const paying = input.confirm_payment_months ?? input.confirm_payment_billing;
   if (paying && input.payment_reference?.trim()) {
     // O mesmo pagamento registado duas vezes (repetição depois de um erro de rede)
     // somava dois períodos pagos.

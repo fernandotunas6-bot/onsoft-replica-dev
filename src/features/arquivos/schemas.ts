@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { fileRequestPurposes } from "./file-request";
 
 export const fileAreaOptions = ["escola", "secretaria", "pessoal", "publico"] as const;
 export const fileVisibilityOptions = ["private", "school", "public"] as const;
@@ -98,6 +99,14 @@ export const listArquivosInputSchema = z.object({
 });
 export type ListArquivosInput = z.infer<typeof listArquivosInputSchema>;
 
+/**
+ * Pesquisa limitada por nomes exactos, sem devolver ficheiros de outras escolas.
+ * Os tamanhos são comparados no browser apenas para sinalizar correspondências.
+ */
+export const findExistingSchoolFilesInputSchema = z.object({
+  names: z.array(z.string().trim().min(1).max(180)).min(1).max(40),
+});
+
 export const registerSchoolFileInputSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(180),
@@ -147,6 +156,14 @@ export const archiveFinanceDocumentInputSchema = z.object({
   amountLabel: z.string().trim().max(80).optional(),
 });
 export type ArchiveFinanceDocumentInput = z.infer<typeof archiveFinanceDocumentInputSchema>;
+
+/** Ids de outras escolas nunca podem ser validados por um cliente externo. */
+export const resolveRequestedSchoolFileSchema = z.object({
+  id: z.string().uuid(),
+  purpose: z.enum(fileRequestPurposes),
+  relatedPersonId: z.string().uuid().nullable().optional(),
+  classGroupId: z.string().uuid().nullable().optional(),
+});
 
 export const schoolFileIdInputSchema = z.object({
   id: z.string().uuid(),

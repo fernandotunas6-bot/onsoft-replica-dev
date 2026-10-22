@@ -1,11 +1,8 @@
 import * as React from "react";
 import {
-  CheckCircle2,
   Clock,
   AlertCircle,
-  XCircle,
   RotateCcw,
-  RefreshCw,
   UserCheck,
   UserX,
   UserPlus,
@@ -18,6 +15,7 @@ import {
   PauseCircle,
   PieChart,
 } from "lucide-react";
+import { FeedbackIcon, type FeedbackState } from "@/components/ui/feedback-icon";
 import { cn } from "@/lib/utils";
 import {
   resolveStatus,
@@ -36,22 +34,25 @@ const statusIcons: Partial<Record<StatusKey, React.ElementType>> = {
   active: UserCheck,
   inactive: UserX,
   pending: Clock,
-  approved: CheckCircle2,
-  rejected: XCircle,
   overdue: AlertCircle,
-  paid: CheckCircle2,
   partial: PieChart,
-  cancelled: XCircle,
-  processing: RefreshCw,
   refunded: RotateCcw,
   candidate: UserPlus,
   debt: CircleAlert,
-  failed: XCircle,
   draft: FileEdit,
   closed: Lock,
   suspended: PauseCircle,
   transferred: MoveRight,
   graduated: GraduationCap,
+};
+
+const feedbackStates: Partial<Record<StatusKey, FeedbackState>> = {
+  approved: "success",
+  paid: "success",
+  rejected: "rejected",
+  cancelled: "rejected",
+  failed: "error",
+  processing: "processing",
 };
 
 export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -65,6 +66,7 @@ export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
   ({ status, label, showIcon = true, size = "md", className, ...props }, ref) => {
     const resolved = resolveStatus(String(status));
     const Icon = (resolved.key ? statusIcons[resolved.key] : undefined) ?? CircleDot;
+    const feedbackState = resolved.key ? feedbackStates[resolved.key] : undefined;
     const displayLabel = label || resolved.label;
 
     return (
@@ -81,10 +83,19 @@ export const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
         {...props}
       >
         {showIcon ? (
-          <Icon
-            className={cn("shrink-0", size === "sm" ? "size-3" : "size-3.5")}
-            aria-hidden="true"
-          />
+          feedbackState ? (
+            <FeedbackIcon
+              state={feedbackState}
+              animated={false}
+              className={size === "sm" ? "size-3" : "size-3.5"}
+            />
+          ) : (
+            <Icon
+              strokeWidth={1.8}
+              className={cn("shrink-0", size === "sm" ? "size-3" : "size-3.5")}
+              aria-hidden="true"
+            />
+          )
         ) : (
           <span
             className={cn(

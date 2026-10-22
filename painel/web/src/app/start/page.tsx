@@ -65,6 +65,11 @@ const PAYMENT_ACCOUNT_NAME = String(import.meta.env["VITE_PAYMENT_ACCOUNT_NAME"]
 const SUPPORT_WHATSAPP = String(import.meta.env["VITE_SUPPORT_WHATSAPP"] ?? "").replace(/\D/g, "")
 const SUPPORT_EMAIL = String(import.meta.env["VITE_SUPPORT_EMAIL"] ?? "").trim()
 
+// Estes endereços não recebem correio. Em builds públicos o utilizador deve
+// corrigir o endereço antes de chegar à verificação por código. O servidor
+// confirma, de forma independente, se um E2E isolado pode utilizá-los.
+const RESERVED_SIGNUP_TEST_EMAIL = /\.(test|example|invalid|localhost)$/i
+
 const schema = z.object({
   name: z.string().trim().min(2, "Nome da escola obrigatório"),
   // Obrigatório e validado do mesmo modo que no servidor. Era opcional, e o
@@ -101,7 +106,14 @@ const schema = z.object({
   contact_email: z.string().trim().email("E-mail do responsável inválido"),
   plan_code: z.enum(["start", "professional", "business", "enterprise"]),
   admin_name: z.string().trim().min(2, "Nome do administrador obrigatório"),
-  admin_email: z.string().trim().email("E-mail do administrador inválido"),
+  admin_email: z
+    .string()
+    .trim()
+    .email("E-mail do administrador inválido")
+    .refine(
+      (email) => import.meta.env.DEV || !RESERVED_SIGNUP_TEST_EMAIL.test(email),
+      "Endereço reservado para testes. Indique um e-mail verdadeiro para criar a escola.",
+    ),
   // Espelha adminPasswordSchema no servidor. Se o formulário aceitasse o que o
   // servidor recusa, o cliente só via o erro depois de submeter tudo.
   admin_password: z
@@ -453,9 +465,9 @@ export function StartSchoolWizard() {
   }, [slug])
 
   const adminEmail = (values.admin_email ?? "").trim().toLowerCase()
-  // Domínios reservados (.test, .example…) não recebem e-mail: o servidor
-  // dispensa-os da confirmação (testes E2E), e o assistente também.
-  const reservedTestEmail = /\.(test|example|invalid|localhost)$/i.test(adminEmail)
+  // O atalho de UI só existe no servidor de desenvolvimento. Mesmo aí, o
+  // servidor valida o projecto staging antes de dispensar qualquer código.
+  const reservedTestEmail = import.meta.env.DEV && RESERVED_SIGNUP_TEST_EMAIL.test(adminEmail)
   const emailVerified =
     reservedTestEmail || Boolean(verification && verification.email === adminEmail)
 

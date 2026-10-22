@@ -245,6 +245,18 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       overview.yearPhase = progress.phase;
     }
 
+    /**
+     * As turmas são lidas uma vez e reutilizadas: o bloco dos alunos e o do
+     * heatmap faziam exactamente a mesma consulta (`id, name, grade_level_id`
+     * da mesma escola) no mesmo pedido, e ambos correm sob a mesma condição.
+     * Fica `null` se o primeiro bloco falhar, e aí o heatmap lê por si.
+     */
+    let classGroups: Array<{
+      id: string;
+      name: string;
+      grade_level_id: string | null;
+    }> | null = null;
+
     if (capabilities.students) {
       // Totais de alunos, matrículas, sexo e idade sobre todas as linhas: os alunos
       // vinham cortados nas 1000, as matrículas nas 500, e as fichas iam num só
@@ -314,6 +326,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           name: string;
           grade_level_id: string | null;
         }>;
+        // Só se reutiliza o que veio bem. O Supabase devolve `data: null` com erro
+        // sem lançar: guardar `[]` nesse caso faria o heatmap herdar a falha em
+        // vez de tentar por si.
+        classGroups = groupsResult.error ? null : groups;
         const gradeLevelIds = [
           ...new Set(groups.map((row) => row.grade_level_id).filter(Boolean)),
         ] as string[];
@@ -425,7 +441,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         // Amostra: o servidor devolve no máximo 1000 notas por pedido (o `limit(5000)`
         // antigo recebia as mesmas 1000). Ler todas as notas da escola em cada abertura
         // do painel seria pesado; o cálculo exacto pede uma agregação na base.
-        const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
+        const [{ data: heatmapGrades }, groupsForHeatmap, { data: heatmapSubjects }] =
           await Promise.all([
             db
               .from("siga_assessment_scores")
@@ -434,9 +450,17 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
               )
               .eq("school_id", schoolId)
               .limit(1000),
-            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+            // Já vieram acima, na mesma consulta: só se lêem outra vez se aquele
+            // bloco tiver caído na degradação graciosa.
+            classGroups
+              ? Promise.resolve({ data: classGroups })
+              : db
+                  .from("class_groups")
+                  .select("id, name, grade_level_id")
+                  .eq("school_id", schoolId),
             db.from("subjects").select("id, name, code").eq("school_id", schoolId),
           ]);
+        const heatmapGroups = groupsForHeatmap.data;
 
         const { data: heatmapEnrollments } = await readAllPages((from, to) =>
           db

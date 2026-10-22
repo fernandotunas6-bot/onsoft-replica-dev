@@ -2,14 +2,13 @@
 /**
  * Smoke test manual/automático do ecossistema (Fase 13).
  * Requer apps locais a correr. Não cria tenants reais.
- * SIGA_E2E_CI=1 — tolera 500 nas APIs SaaS quando Supabase não está configurado.
+ * HTTP 500 só é SKIP com SIGA_E2E_ALLOW_API_500_SKIP=1 em CI sem staging.
  */
-const CI = process.env.SIGA_E2E_CI === "1";
+import { classifySmokeStatus } from "./e2e-smoke-status.mjs";
 
-function expectStatus(item) {
-  if (!CI || !item.label.startsWith("API")) return item.expect;
-  return [...new Set([...item.expect, 500])];
-}
+const CI = process.env.SIGA_E2E_CI === "1";
+const ALLOW_API_500_SKIP = CI && process.env.SIGA_E2E_ALLOW_API_500_SKIP === "1";
+const REQUIRE_COMPLETE = process.env.SIGA_E2E_REQUIRE_COMPLETE === "1";
 
 const endpoints = [
   { label: "SIGA", url: "http://localhost:3006/", expect: [200, 302] },
@@ -144,6 +143,8 @@ const endpoints = [
 ];
 
 let failed = 0;
+let passed = 0;
+let skipped = 0;
 
 for (const item of endpoints) {
   try {
@@ -153,13 +154,23 @@ for (const item of endpoints) {
       headers: item.body ? { "Content-Type": "application/json" } : undefined,
       body: item.body,
     });
-    const ok = expectStatus(item).includes(res.status);
-    const mark = ok ? "OK" : "FAIL";
+    const status = classifySmokeStatus({
+      label: item.label,
+      expected: item.expect,
+      status: res.status,
+      allowApi500Skip: ALLOW_API_500_SKIP,
+      ci: CI,
+      optionalInCi: item.optionalInCi,
+    });
+    const mark = status === "pass" ? "OK" : status === "skip" ? "SKIP" : "FAIL";
     console.log(`${mark}  ${item.label} → ${res.status} ${item.url}`);
-    if (!ok) failed += 1;
+    if (status === "pass") passed += 1;
+    else if (status === "skip") skipped += 1;
+    else failed += 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (CI && item.optionalInCi) {
+      skipped += 1;
       console.log(`SKIP ${item.label} → ${message}`);
       continue;
     }
@@ -168,11 +179,20 @@ for (const item of endpoints) {
   }
 }
 
-if (failed > 0) {
-  console.error(`\n${failed} verificação(ões) falharam. Confirme: npm run dev:ecosystem`);
+console.log(`\nSmoke E2E — ${passed} aprovadas, ${failed} falhadas, ${skipped} ignoradas.`);
+if (skipped > 0) {
+  console.warn(
+    "Cobertura parcial: verificações ignoradas NÃO validam os serviços respectivos (ex.: PayFlow).",
+  );
+}
+
+if (failed > 0 || (REQUIRE_COMPLETE && skipped > 0)) {
+  console.error(
+    `\nSmoke inconclusivo: ${failed} falhas e ${skipped} ignoradas. Confirme: npm run dev:ecosystem`,
+  );
   process.exit(1);
 }
 
 console.log(
-  "\nSmoke E2E local OK — fluxo comercial pode ser testado em http://localhost:5174/start",
+  "\nSmoke E2E público concluído — o provisionamento real e as integrações ignoradas exigem validação independente.",
 );

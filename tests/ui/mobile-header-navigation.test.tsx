@@ -5,6 +5,7 @@ import { MobileHeader } from "@/components/mobile/MobileHeader";
 
 const navigation = vi.hoisted(() => ({
   canGoBack: false,
+  pathname: "/alunos/exemplo",
   back: vi.fn(),
   navigate: vi.fn(),
 }));
@@ -13,7 +14,7 @@ vi.mock("@tanstack/react-router", () => ({
   useCanGoBack: () => navigation.canGoBack,
   useRouter: () => ({ history: { back: navigation.back }, navigate: navigation.navigate }),
   useRouterState: ({ select }: { select: (state: unknown) => unknown }) =>
-    select({ location: { pathname: "/alunos/exemplo" } }),
+    select({ location: { pathname: navigation.pathname } }),
 }));
 vi.mock("@/features/auth/use-current-account", () => ({
   useCurrentAccount: () => ({ name: "Utilizador", initials: "U" }),
@@ -41,6 +42,7 @@ function renderHeader(onOpenContext = vi.fn()) {
 
 beforeEach(() => {
   navigation.canGoBack = false;
+  navigation.pathname = "/alunos/exemplo";
   vi.clearAllMocks();
 });
 afterEach(() => {
@@ -72,5 +74,28 @@ describe("voltar dentro do SIGA", () => {
     expect(onOpenContext).toHaveBeenCalledOnce();
     expect(navigation.back).not.toHaveBeenCalled();
     expect(navigation.navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe("acessibilidade do cabeçalho compacto", () => {
+  it("mantém a pesquisa, notificações e conta alcançáveis pelo teclado", () => {
+    renderHeader();
+    for (const name of ["Pesquisar no SIGA", "Notificações", "Abrir painel da conta"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button.className).toContain("focus-visible:ring-2");
+    }
+  });
+
+  it("abre o contexto na raiz sem perder o acesso à escola", () => {
+    navigation.pathname = "/";
+    const openContext = vi.fn();
+    renderHeader(openContext);
+    const button = screen.getByRole("button", {
+      name: "Alterar escola, ano lectivo ou período",
+    });
+    expect(button.getAttribute("aria-haspopup")).toBe("dialog");
+    fireEvent.click(button);
+    expect(openContext).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Utilizador/)).toBeTruthy();
   });
 });

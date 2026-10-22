@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FileCover } from "./FileCover";
 import { isImageFileKind, resolveFileUrl } from "./resolve-file";
 import type { SchoolFileRecord } from "./schemas";
+import type { LocalFileViewer } from "./local-store";
 
 /**
  * Capa com miniatura real para imagens raster; SVG e docs mantêm o ícone do tipo.
@@ -14,12 +15,14 @@ export function FileCoverTile({
   className,
   resolvedPreviewUrl,
   locked,
+  viewer,
 }: {
   file: SchoolFileRecord;
   selected?: boolean;
   className?: string;
   resolvedPreviewUrl?: string | null | undefined;
   locked?: boolean;
+  viewer?: LocalFileViewer;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const batched = resolvedPreviewUrl !== undefined;
@@ -35,7 +38,11 @@ export function FileCoverTile({
     }
     let cancelled = false;
     let objectUrl: string | null = null;
-    void resolveFileUrl(file)
+    if (!viewer) {
+      setPreviewUrl(null);
+      return;
+    }
+    void resolveFileUrl(file, viewer)
       .then((url) => {
         if (cancelled) {
           if (url.startsWith("blob:")) URL.revokeObjectURL(url);
@@ -55,7 +62,16 @@ export function FileCoverTile({
     // muda a cada render e reexecutaria o efeito (revogando o blob) sem
     // necessidade nenhuma.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batched, file.id, file.kind, file.storageBackend, file.storagePath, locked]);
+  }, [
+    batched,
+    file.id,
+    file.kind,
+    file.storageBackend,
+    file.storagePath,
+    locked,
+    viewer?.schoolId,
+    viewer?.ownerUserId,
+  ]);
 
   return (
     <FileCover

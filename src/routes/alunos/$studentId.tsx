@@ -286,7 +286,7 @@ function StudentDetail() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
     retry: false,
   });
   const documentsQuery = useQuery({
@@ -604,7 +604,7 @@ function StudentDetail() {
         status:
           subject.mfd == null
             ? "Pendente"
-            : subject.mfd >= angolaGradeScale.passing
+            : subject.mfd >= (year.passingValue ?? angolaGradeScale.passing)
               ? "Aprovado"
               : "Reprovado",
       })),

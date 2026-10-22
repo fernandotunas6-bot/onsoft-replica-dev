@@ -119,6 +119,7 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
     // chegou a falhar por isso.
     const CONCORRENCIA = 4;
     const recusados: string[] = [];
+    const inacessiveis: string[] = [];
     const fila = [...alvos];
 
     /**
@@ -133,23 +134,39 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
       });
     }
 
+    // Devolve `null` quando a sonda nunca chegou ao fim. O comentário acima dizia
+    // que isso é ruído, mas o código fazia `throw` à segunda tentativa e pintava a
+    // suite de vermelho — foi o que aconteceu a 19/10 com um `ECONNRESET`. Agora o
+    // ruído é contado à parte e só a recusa da produção é achado.
     async function sondarComRetentativa(tabela: string, colunas: string) {
-      for (let tentativa = 0; ; tentativa += 1) {
+      const TENTATIVAS = 3;
+      for (let tentativa = 0; tentativa < TENTATIVAS; tentativa += 1) {
         try {
           const r = await sondarUmaVez(tabela, colunas);
           // 429/5xx é a produção a dizer "agora não", não "este select é inválido".
-          if (r.ok || tentativa >= 1 || (r.status !== 429 && r.status < 500)) return r;
-        } catch (erro) {
-          if (tentativa >= 1) throw erro;
+          if (r.ok || (r.status !== 429 && r.status < 500)) return r;
+        } catch {
+          /* soquete caído: tentar de novo antes de desistir */
         }
-        await new Promise((r) => setTimeout(r, 750));
+        // Sem espera depois da última tentativa. Com recuos longos, uma falha total
+        // de rede gastava os 180 s do prazo e o teste morria por timeout — a guarda
+        // de "nenhuma sonda chegou" nunca chegava a correr e a mensagem saía
+        // ilegível. Assim, 200+ alvos inacessíveis cabem no prazo com folga.
+        if (tentativa < TENTATIVAS - 1) {
+          await new Promise((r) => setTimeout(r, 400 * (tentativa + 1)));
+        }
       }
+      return null;
     }
 
     async function sondar() {
       for (let alvo = fila.pop(); alvo; alvo = fila.pop()) {
         const { ficheiro, tabela, colunas } = alvo;
         const resposta = await sondarComRetentativa(tabela, colunas);
+        if (!resposta) {
+          inacessiveis.push(`${tabela}(${colunas.slice(0, 60)})`);
+          continue;
+        }
         if (resposta.ok) continue;
         if (AUSENCIAS_CONHECIDAS.has(tabela)) continue;
 
@@ -169,11 +186,22 @@ describe.skipIf(!podeSondar)("selects do código vs. produção (ao vivo)", () =
     await Promise.all(Array.from({ length: CONCORRENCIA }, sondar));
     recusados.sort();
 
+    // Ruído tolera-se; cegueira não. Se nenhuma sonda chegou à produção, o teste não
+    // verificou nada e tem de dizê-lo, em vez de passar a verde por omissão.
+    expect(
+      inacessiveis.length,
+      `Nenhuma das ${alvos.length} sondas chegou à produção — rede, credenciais ou a base ` +
+        `em baixo. O teste não verificou nada; não confundir com "está tudo bem".`,
+    ).toBeLessThan(alvos.length);
+
     expect(
       recusados,
       `A produção recusou estes selects. Uma recusa não devolve zero linhas — devolve erro, ` +
         `e quase sempre o chamador trata-o como "não há dados": o ecrã fica vazio para sempre ` +
-        `sem ninguém ver um erro.\n${recusados.join("\n")}`,
+        `sem ninguém ver um erro.\n${recusados.join("\n")}` +
+        (inacessiveis.length
+          ? `\n(${inacessiveis.length} sondas não chegaram ao fim e não contam como achado.)`
+          : ""),
     ).toEqual([]);
   }, 180_000);
 

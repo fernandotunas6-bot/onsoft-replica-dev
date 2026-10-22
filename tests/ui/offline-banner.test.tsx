@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MutationObserver,
   QueryClient,
@@ -16,9 +16,11 @@ const setNetwork = (online: boolean) =>
   });
 
 describe("aviso de ligação com gravações à espera", () => {
+  beforeEach(() => vi.useFakeTimers());
   afterEach(() => {
     cleanup();
     onlineManager.setOnline(true);
+    vi.useRealTimers();
   });
 
   it("conta as gravações à espera, mostra o envio e confirma", async () => {
@@ -38,20 +40,20 @@ describe("aviso de ligação com gravações à espera", () => {
     act(() => {
       void new MutationObserver(client, { mutationFn: save }).mutate();
     });
-    await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toContain("1 alteração à espera"),
-    );
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByRole("status").textContent).toContain("1 alteração à espera");
 
     setNetwork(true);
-    await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toContain("A enviar 1 alteração"),
-    );
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByRole("status").textContent).toContain("A enviar 1 alteração");
 
     act(() => finish("ok"));
-    await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toContain("Alterações enviadas."),
-    );
-    await waitFor(() => expect(screen.queryByRole("status")).toBeNull(), { timeout: 4000 });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByRole("status").textContent).toContain("Alterações enviadas.");
+    await act(() => vi.advanceTimersByTimeAsync(2999));
+    expect(screen.getByRole("status").textContent).toContain("Alterações enviadas.");
+    await act(() => vi.advanceTimersByTimeAsync(1));
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("fechar com gravações por enviar pede confirmação", async () => {
@@ -67,7 +69,8 @@ describe("aviso de ligação com gravações à espera", () => {
         mutationFn: () => new Promise<string>(() => {}),
       }).mutate();
     });
-    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("à espera"));
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByRole("status").textContent).toContain("à espera");
 
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);

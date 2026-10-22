@@ -102,7 +102,7 @@ export function TopbarCalendar() {
           title="Agenda escolar"
         >
           <CalendarDays className="size-5" />
-          <span className="hidden text-xs font-medium capitalize xl:inline">
+          <span className="hidden text-xs font-medium capitalize min-[1800px]:inline">
             {formatTopbarDate(today)}
           </span>
         </Button>

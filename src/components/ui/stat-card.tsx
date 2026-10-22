@@ -27,20 +27,20 @@ const toneStyles: Record<StatCardTone, { iconWrap: string; iconColor: string }> 
     iconColor: "text-primary",
   },
   success: {
-    iconWrap: "bg-emerald-500/10 border-emerald-500/20",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
+    iconWrap: "bg-success/10 border-success/20",
+    iconColor: "text-success-strong",
   },
   warning: {
-    iconWrap: "bg-amber-500/10 border-amber-500/20",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconWrap: "bg-warning/10 border-warning/20",
+    iconColor: "text-warning-strong",
   },
   info: {
-    iconWrap: "bg-sky-500/10 border-sky-500/20",
-    iconColor: "text-sky-600 dark:text-sky-400",
+    iconWrap: "bg-info/10 border-info/20",
+    iconColor: "text-info-strong",
   },
   destructive: {
     iconWrap: "bg-destructive/10 border-destructive/20",
-    iconColor: "text-destructive",
+    iconColor: "text-destructive-strong",
   },
   neutral: {
     iconWrap: "bg-muted/60 border-border",
@@ -70,7 +70,7 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     const content = (
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card motion-safe:transition-[border-color,box-shadow] motion-safe:duration-150",
+          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card transition-[border-color,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
           to && "hover:border-primary/40 hover:shadow-subtle cursor-pointer",
           className,
         )}
@@ -86,7 +86,11 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                   toneConfig.iconWrap,
                 )}
               >
-                <Icon className={cn("size-4", toneConfig.iconColor)} aria-hidden="true" />
+                <Icon
+                  className={cn("size-4", toneConfig.iconColor)}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
               </div>
             ) : null}
           </div>

@@ -82,6 +82,15 @@ const businessMessages = new Set([
   "A mensagem tem de pertencer à escola da conversa.",
   "O anexo tem de ser um ficheiro da escola da conversa.",
   "Só pode responder a mensagens da mesma conversa.",
+
+  "A turma tem de pertencer à escola e ao ano lectivo seleccionados.",
+  "Este pedido já foi concluído com outros dados. Abra uma nova matrícula.",
+  "Indique encarregados distintos e apenas um principal.",
+  "Encarregado inválido para esta escola.",
+  "A data de admissão não pode ser futura.",
+  "Ano lectivo não encontrado.",
+  "Indique o nome e as datas válidas do ano lectivo.",
+  "Limite de alunos do plano atingido. Actualize o plano no portal comercial SIGA Plus.",
 ]);
 
 function constraintMessage(message: string | undefined): string | null {
@@ -130,7 +139,15 @@ export function publicDatabaseError(error: DatabaseError, fallback: string): Err
   // A mensagem devolvida ao browser é deliberadamente vaga; sem este registo
   // no servidor um 23502/23503 fica invisível para quem depura.
   if (typeof window === "undefined") {
-    console.error("[db] %s %s", error.code ?? "(sem código)", error.message ?? fallback);
+    // Mensagens PG podem incluir valores de BI/e-mail ou SQL. Conservar só
+    // o código e o nome de uma restrição conhecida, nunca o texto bruto.
+    const code = /^[A-Z0-9]{5,10}$/.test(error.code ?? "") ? error.code : "unknown";
+    const name = /constraint "([a-z0-9_]+)"/i.exec(error.message ?? "")?.[1];
+    console.error(
+      "[db] code=%s constraint=%s",
+      code,
+      name && constraintMessages[name] ? name : "unknown",
+    );
   }
   const missingTable =
     error.code === "42P01" ||

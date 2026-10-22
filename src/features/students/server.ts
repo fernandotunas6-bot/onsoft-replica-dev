@@ -2,6 +2,13 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";
 import { reportSigaError } from "@/lib/ops-report";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
+import { sgaClient } from "@/integrations/supabase/sga";
+import {
+  workflowRpcClient,
+  atomicStudentResultSchema,
+  assertWorkflowRpcAvailable,
+} from "@/integrations/supabase/workflow-rpcs";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -682,121 +689,71 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
-    // register_student e enroll_student exigem 2FA: verificado antes de criar a
-    // pessoa, em vez de a criar e apagar a seguir.
-    requireAal2(context.claims, "Matricular um aluno");
+    requireAal2(context.claims, "Matricular alunos");
+    // Um reenvio de uma operação já concluída não acrescenta alunos e deve
+    // funcionar mesmo quando o primeiro pedido ocupou o último lugar do plano.
     const db = await loadSgaAdminClient();
-
-    await assertCanAddStudentForSchool(membership.schoolId);
-
-    const admittedOn = data.admittedOn ?? schoolTodayIso();
-    // Turma cheia, ano por abrir ou data fora do ano: recusado antes de criar o aluno.
-    const classGroup = data.classGroupId
-      ? await assertClassAcceptsEnrollment(db, {
-          schoolId: membership.schoolId,
-          classGroupId: data.classGroupId,
-          academicYearId: data.academicYearId ?? null,
-          enrolledOn: admittedOn,
-        })
-      : null;
-
-    const { payload: personPayload, hasGeography } = buildPersonInsert(data.person, {
-      schoolId: membership.schoolId,
-      userId: context.userId,
-    });
-    if (!personPayload.full_name) throw new Error("Nome do aluno é obrigatório.");
-    const { data: person, error: personError } = await db
-      .from("people")
-      .insert(personPayload)
+    const { data: completed, error: requestError } = await db
+      .from("audit_logs")
       .select("id")
-      .single();
-    if (personError && hasGeography && isMissingPeopleGeography(personError)) {
-      throw new Error(
-        "A localização do aluno não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+      .eq("school_id", membership.schoolId)
+      .eq("actor_user_id", context.userId)
+      .eq("request_id", data.requestId)
+      .eq("action", "students.enrollment_created")
+      .limit(1)
+      .maybeSingle();
+    if (requestError)
+      throw publicDatabaseError(
+        requestError,
+        "Não foi possível confirmar o estado deste pedido. Tente novamente.",
       );
-    }
-    if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
-
-    // register_student cria o aluno (+ 1º encarregado) numa transação atómica, com o
-    // número de processo da sequência própria.
-    const [firstGuardian, ...otherGuardians] = data.guardians ?? [];
-    const registered = await registerStudentRpc(context.supabase, {
-      schoolId: membership.schoolId,
-      personId: person.id,
-      admissionDate: admittedOn,
-      guardian: firstGuardian
-        ? {
-            personId: firstGuardian.guardian_person_id,
-            relationship: firstGuardian.relationship,
-            isPrimary: firstGuardian.is_primary,
-            pickup: firstGuardian.authorized_pickup,
-          }
-        : null,
-    });
-    if (!registered.ok) {
-      // Compensa o insert de people acima: sem aluno, a pessoa ficava órfã.
-      await db.from("people").delete().eq("id", person.id);
-      throw rpcFailureError(registered, { fallback: "Não foi possível concluir a matrícula." });
-    }
-    const studentOutcome = registered.value;
-
-    for (const guardian of otherGuardians) {
-      await linkGuardian(db, {
-        schoolId: membership.schoolId,
-        studentId: studentOutcome.studentId,
-        guardianPersonId: guardian.guardian_person_id,
-        relationship: guardian.relationship,
-        isPrimary: guardian.is_primary,
-        userId: context.userId,
-      });
-    }
-
-    let enrollmentNumber: string | null = null;
-    if (classGroup) {
-      const enrolled = await enrollStudentRpc(context.supabase, {
-        schoolId: membership.schoolId,
-        studentId: studentOutcome.studentId,
-        classGroupId: classGroup.id,
-        enrolledOn: admittedOn,
-      });
-      if (!enrolled.ok) {
-        throw rpcFailureError(enrolled, {
-          auth: "Aluno criado, mas esta conta precisa de 2FA activo para o matricular numa turma.",
-          fallback: "Aluno criado, mas falhou a matrícula na turma.",
-        });
-      }
-      enrollmentNumber = enrolled.value.enrollmentNumber;
-    }
-
-    // O BI também em `person_documents`, como ao aceitar uma candidatura. No fim e sem
-    // parar a matrícula: o aluno já existe e o documento é secundário.
-    await syncBiDocumentFromNif(
-      db,
-      membership.schoolId,
-      person.id,
-      personPayload.national_id,
-      context.userId,
-    ).catch((error) => console.error("[matricula] documento BI por registar", person.id, error));
-
+    if (!completed) await assertCanAddStudentForSchool(membership.schoolId);
+    const person = data.person;
+    const fullName = person.full_name.trim();
+    const { data: result, error } = await workflowRpcClient(context.supabase).rpc(
+      "siga_enroll_new_student_atomic",
+      {
+        p_school_id: membership.schoolId,
+        p_request_id: data.requestId,
+        p_person: {
+          full_name: fullName,
+          preferred_name: person.preferred_name || person.first_name || fullName.split(/\s+/)[0],
+          email: person.email || null,
+          phone: person.phone_primary ? normalizeStoredPhone(person.phone_primary) : null,
+          national_id: person.nif || null,
+          date_of_birth: person.birth_date || null,
+          sex:
+            person.sex === "M"
+              ? "male"
+              : person.sex === "F"
+                ? "female"
+                : person.sex === "outro"
+                  ? "other"
+                  : null,
+          province: person.province || null,
+          municipality: person.municipality || null,
+          commune: person.commune || null,
+          address: person.address || null,
+          notes: person.notes || null,
+        },
+        p_guardians: data.guardians.map((guardian) => ({
+          ...guardian,
+          relationship: mapSgaGuardianRelationship(guardian.relationship),
+        })),
+        p_class_group_id: data.classGroupId ?? null,
+        p_academic_year_id: data.academicYearId ?? null,
+        p_admission_date: data.admittedOn ?? null,
+      },
+    );
+    assertWorkflowRpcAvailable(error);
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível concluir a matrícula. Nenhum registo foi criado.",
+      );
+    const outcome = atomicStudentResultSchema.parse(result);
     queueTenantUsageSync(membership.schoolId);
-
-    const finalStatus = enrollmentNumber ? "active" : studentOutcome.status;
-    await recordStudentStatusHistory(db, {
-      schoolId: membership.schoolId,
-      studentId: studentOutcome.studentId,
-      previousStatus: null,
-      newStatus: finalStatus,
-      reason: enrollmentNumber ? "Nova matrícula interna com turma" : "Nova matrícula interna",
-      changedBy: context.userId,
-    });
-
-    return {
-      id: studentOutcome.studentId,
-      student_number: studentOutcome.studentNumber,
-      status: finalStatus,
-      person_id: person.id,
-      enrollment_number: enrollmentNumber,
-    };
+    return outcome;
   });
 
 export const changeStudentStatus = createServerFn({ method: "POST" })

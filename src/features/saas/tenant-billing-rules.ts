@@ -578,6 +578,8 @@ export function describeTenantBilling(
 export function monthlyRevenueOf(
   input: {
     tenantStatus: string;
+    /** Assinatura ainda em trial (escola «activa» mas sem pagar). */
+    subscriptionStatus?: string | null;
     billingExempt: boolean;
     profile: TenantBillingProfile | null;
     plan: PlanPrices | null;
@@ -586,6 +588,7 @@ export function monthlyRevenueOf(
   now: Date = new Date(),
 ): number {
   if (input.tenantStatus !== "active" || input.billingExempt) return 0;
+  if (input.subscriptionStatus === "trialing") return 0;
   if (!input.profile) return Math.max(0, Number(input.plan?.price_aoa_monthly) || 0);
   const state = billingStateOf(input.profile, now);
   if (!state.charging) return 0;
@@ -596,6 +599,49 @@ export function monthlyRevenueOf(
     state,
   });
   return round2(charge.total / Math.max(1, charge.months));
+}
+
+/**
+ * A escola ainda não paga: estado `trial`, ou `active` com a assinatura em
+ * `trialing` (as escolas criadas pelo WEB ficam assim). Contar estas como activas
+ * punha o preço de tabela delas na receita mensal sem terem pago nada.
+ */
+export function isInTrial(tenant: { status: string; subscription_status?: string | null }) {
+  return (
+    tenant.status === "trial" ||
+    (tenant.status === "active" && tenant.subscription_status === "trialing")
+  );
+}
+
+/**
+ * Soma meses sem transbordar: 31/01 + 1 mês é 28/02 (ou 29), não 03/03.
+ * `Date#setMonth` transbordava e um mês pago virava um mês e três dias.
+ */
+export function addMonthsClamped(date: Date, months: number): Date {
+  const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
+}
+
+/**
+ * Prolongar o trial só serve a quem ainda não paga. Numa escola com a assinatura
+ * activa, a extensão punha-a de volta em `trialing` e, no fim desse trial, o
+ * SIGA bloqueava uma escola que tinha pago.
+ */
+export function trialExtensionError(tenant: {
+  status: string;
+  subscription_status?: string | null;
+}): string | null {
+  if (tenant.status === "active" && tenant.subscription_status === "active") {
+    return "Esta escola já paga: para dar mais tempo, registe o pagamento recebido (Gerir → Pagamento recebido) ou pause as cobranças.";
+  }
+  return null;
 }
 
 /** Trial terminado sem isenção: o SIGA bloqueia as gravações. */

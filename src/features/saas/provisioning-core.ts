@@ -380,6 +380,8 @@ async function runProvisioning(
   trace.stage = "admin";
 
   let adminUserId: string | null = null;
+  let adminMembershipId: string | null = null;
+  let adminRoleId: string | null = null;
   let adminAccount: SchoolAdminAccount | null = null;
   const adminForCleanup = () =>
     adminUserId ? { userId: adminUserId, createdHere: !adminAccount?.reusedAccount } : null;
@@ -422,6 +424,8 @@ async function runProvisioning(
       );
     }
 
+    adminMembershipId = membership.id as string;
+
     // Procurar role 'owner' global (is_system=true) ou específico da escola
     const { data: existingRole } = await db
       .from("roles")
@@ -446,6 +450,8 @@ async function runProvisioning(
         throw publicDatabaseError(roleErr, "Não foi possível preparar o papel de administrador.");
       roleId = createdRole.id as string;
     }
+
+    adminRoleId = roleId;
 
     // member_roles.school_id é NOT NULL — sem ele o provisionamento falhava
     // sempre com 23502 no último passo do administrador.
@@ -557,7 +563,16 @@ async function runProvisioning(
   // pior do que uma criação falhada: o cliente recebe confirmação, tenta entrar,
   // e encontra um produto partido sem ninguém saber porquê.
   trace.stage = "verify";
-  const gaps = await findProvisioningGaps(db, { tenantId, schoolId, adminUserId });
+  if (!adminUserId || !adminMembershipId || !adminRoleId) {
+    throw new Error("Não foi possível verificar o acesso do administrador recém-criado.");
+  }
+  const gaps = await findProvisioningGaps(db, {
+    tenantId,
+    schoolId,
+    adminUserId,
+    adminMembershipId,
+    adminRoleId,
+  });
   if (gaps.length > 0) {
     await cleanupSchool(schoolId, adminForCleanup());
     await cleanupTenant();

@@ -1945,6 +1945,8 @@ export type StudentAcademicHistoryYear = {
   status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
   /** Resultado registado pela secretaria (Exames → Resultado final); null se ainda não houver. */
   official: { outcome: string; finalAverage: number | null } | null;
+  /** Nota mínima de aprovação do modelo de avaliação em vigor (não um 10 fixo). */
+  passingValue: number;
 };
 
 /**
@@ -2170,6 +2172,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         overallMfd: summary?.overallMfd ?? null,
         status: summary?.status ?? "PENDENTE",
         official: officialByYear.get(String(year?.["name"] ?? "")) ?? null,
+        passingValue: activeRule.passing,
       };
     });
 

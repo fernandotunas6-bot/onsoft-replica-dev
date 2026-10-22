@@ -44,6 +44,13 @@ function slot(over: Partial<ScheduleSlot>): ScheduleSlot {
 }
 
 describe("conflito de sala — o cliente", () => {
+  it("os marcadores são os mesmos da guarda e do trigger (e «s/n»)", () => {
+    // Literais de propósito: timetable-guard-alignment.test.ts procura-os aqui.
+    expect(MARCADORES).toEqual(
+      expect.arrayContaining(["sala", "a definir", "sem sala fixa", "s/n"]),
+    );
+  });
+
   it.each(MARCADORES)("não acusa conflito quando ambas dizem %s", (marcador) => {
     const conflitos = detectScheduleConflicts([
       slot({ id: "a", class_group_id: "turma-1", label: marcador }),
