@@ -56,6 +56,31 @@ export function getTenantAccessBlock(
   return { blocked: false };
 }
 
+/**
+ * Bloqueio do **website público** da escola, que não é o mesmo do portal.
+ *
+ * `getTenantAccessBlock` serve o portal: trial expirado ou mensalidade em
+ * atraso fecham a operação — notas, propinas, matrículas — e é a alavanca de
+ * cobrança. Aplicá-lo ao website institucional punia quem não é cliente: a
+ * 2026-10-21 as três escolas reais da produção respondiam «Esta página não
+ * está disponível» a quem procurasse a instituição, porque o período
+ * experimental tinha acabado em Setembro e Outubro. O candidato não é a parte
+ * em falta na relação comercial.
+ *
+ * Fica de pé, portanto, enquanto a escola existir como instituição. Só as
+ * decisões sobre a própria instituição a tiram do ar: suspensa, cancelada,
+ * arquivada ou com o provisionamento falhado.
+ */
+export function getPublicSiteBlock(
+  tenant: TenantAccessSnapshot | null | undefined,
+): { blocked: boolean; reason?: TenantAccessBlockReason } {
+  if (!tenant?.status) return { blocked: false };
+  if (tenant.status === "cancelled") return { blocked: true, reason: "cancelled" };
+  if (["suspended", "archived", "provisioning_failed"].includes(tenant.status))
+    return { blocked: true, reason: "suspended" };
+  return { blocked: false };
+}
+
 export function sumTenantUsageStudents(
   rows: Array<{ active_students_count?: number | null }> | null | undefined,
 ): number {

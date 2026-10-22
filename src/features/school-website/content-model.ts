@@ -59,6 +59,17 @@ export const websiteDraftSchema = z
       .string()
       .regex(/^(?:[a-z0-9-]{2,80})?$/)
       .default(""),
+    /**
+     * Páginas do modelo que esta escola já adoptou, além das de identidade
+     * (ver `site-scope`). Ausente — e não `[]` — significa «sem âmbito
+     * declarado: tudo», que é como se comportam os conteúdos gravados antes
+     * de o âmbito existir. `[]` é a escolha explícita de publicar só a
+     * identidade, e é com isso que uma escola nova nasce.
+     */
+    adoptedPages: z
+      .array(z.string().regex(/^\/[a-z0-9/-]*\/$/).max(120))
+      .max(200)
+      .optional(),
   })
   .strict();
 export type WebsiteDraft = z.infer<typeof websiteDraftSchema>;
