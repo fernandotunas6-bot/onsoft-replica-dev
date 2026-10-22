@@ -3,14 +3,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * `20261014140000_timetable_guard_alignment.sql` — auditoria de horários de 10/10.
+ * `20261022081131_timetable_guard_alignment.sql` — auditoria de horários de 10/10.
  *
  * Veio de `audit/timetable-enrollment-2026-10-10`, um ramo que esteve sem PR e cujo
  * único teste vivia em `scripts/`, onde o `include` do vitest
  * (`tests/**\/*.test.{ts,tsx}`) nunca o apanhava — nunca correu uma vez.
  */
 const migracao = readFileSync(
-  resolve(__dirname, "../../supabase/migrations/20261014140000_timetable_guard_alignment.sql"),
+  resolve(__dirname, "../../supabase/migrations/20261022081131_timetable_guard_alignment.sql"),
   "utf8",
 );
 

@@ -1,4 +1,4 @@
--- SGA ONLY — STAGED; do not deploy without staging tests (see docs/audits/SGA_SECURITY_SCHEDULE_AUDIT_2026-09-24.md).
+-- SGA — APLICADA na produção a 2026-10-22 (versão 20261022081131). Idempotente.
 -- Idempotent. Three hardening fixes found in the 2026-10-10 timetable audit:
 --
 -- 1. Room rule alignment. guard_timetable_slot_conflicts() compared rooms as raw
