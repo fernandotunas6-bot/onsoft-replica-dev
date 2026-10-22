@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { HardDrive, Users } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
@@ -156,8 +156,14 @@ export function FileBrowserTable({
               </td>
               <td className="px-3 py-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold">
-                  <Users className="size-3 opacity-70" />
-                  {fileVisibilityMeta[file.visibility].short}
+                  {file.storageBackend === "local" ? (
+                    <HardDrive className="size-3 opacity-70" />
+                  ) : (
+                    <Users className="size-3 opacity-70" />
+                  )}
+                  {file.storageBackend === "local"
+                    ? "Só neste dispositivo"
+                    : fileVisibilityMeta[file.visibility].short}
                 </span>
               </td>
               <td className="max-w-[14rem] px-3 py-3 text-xs text-muted-foreground">

@@ -1,11 +1,66 @@
-import { useEffect, useId, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { listChatConversations } from "@/features/messages/chat-server";
 import type { ChatConversation } from "@/features/messages/chat-schemas";
 import { supabase } from "@/integrations/supabase/client";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 
 export const chatSummaryQueryKey = (userId: string) => ["messages", "chat-summary", userId];
+
+type UnreadSubscription = { consumers: number; dispose: () => void };
+const unreadSubscriptions = new WeakMap<QueryClient, Map<string, UnreadSubscription>>();
+
+/** O sino, a coluna e a lista de colegas partilham a cache e o seu canal. */
+function subscribeChatSummary(queryClient: QueryClient, userId: string) {
+  let subscriptions = unreadSubscriptions.get(queryClient);
+  if (!subscriptions) {
+    subscriptions = new Map();
+    unreadSubscriptions.set(queryClient, subscriptions);
+  }
+  let subscription = subscriptions.get(userId);
+  if (!subscription) {
+    const realtime = realtimeInvalidator(queryClient);
+    const refresh = () => realtime.invalidate(chatSummaryQueryKey(userId));
+    // Um nome novo evita reutilizar um canal cuja remoção ainda está em curso.
+    const channel = supabase
+      .channel(`chat_unread_${userId}_${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "siga_chat_messages" },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "siga_chat_members",
+          filter: `user_id=eq.${userId}`,
+        },
+        refresh,
+      )
+      .subscribe();
+    subscription = {
+      consumers: 0,
+      dispose: () => {
+        realtime.dispose();
+        void supabase.removeChannel(channel);
+      },
+    };
+    subscriptions.set(userId, subscription);
+  }
+  subscription.consumers++;
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    if (--subscription.consumers > 0) return;
+    subscription.dispose();
+    subscriptions.delete(userId);
+    if (!subscriptions.size) unreadSubscriptions.delete(queryClient);
+  };
+}
 
 export type ChatUnreadRow = {
   conversationId: string;
@@ -46,7 +101,6 @@ export function chatUnreadRows(conversations: ChatConversation[]): ChatUnreadRow
 export function useInboxUnread() {
   const currentUser = useCurrentAccount();
   const queryClient = useQueryClient();
-  const instanceId = useId();
   const queryKey = useMemo(() => chatSummaryQueryKey(currentUser.id), [currentUser.id]);
 
   const summaryQuery = useQuery({
@@ -59,31 +113,10 @@ export function useInboxUnread() {
 
   useEffect(() => {
     if (!currentUser.id) return;
-    const refresh = () => void queryClient.invalidateQueries({ queryKey });
     // A RLS só entrega as mensagens das conversas de que a conta é membro, e
     // a leitura própria muda `siga_chat_members` (abrir a conversa no chat).
-    const channel = supabase
-      .channel(`chat_unread_${currentUser.id}_${instanceId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "siga_chat_messages" },
-        refresh,
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "siga_chat_members",
-          filter: `user_id=eq.${currentUser.id}`,
-        },
-        refresh,
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [currentUser.id, instanceId, queryClient, queryKey]);
+    return subscribeChatSummary(queryClient, currentUser.id);
+  }, [currentUser.id, queryClient]);
 
   const conversations = useMemo(() => summaryQuery.data ?? [], [summaryQuery.data]);
   const unread = useMemo(() => chatUnreadRows(conversations), [conversations]);

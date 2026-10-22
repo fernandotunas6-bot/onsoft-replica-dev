@@ -90,8 +90,8 @@ export function WizardModal({
         onSubmit={handleSubmit}
         className={
           visualPanel
-            ? "grid min-h-0 max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden lg:min-h-[78dvh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
-            : "flex min-h-0 flex-1 flex-col"
+            ? "grid min-h-0 min-w-0 max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden lg:min-h-[78dvh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
+            : "flex min-h-0 min-w-0 flex-1 flex-col"
         }
       >
         {visualPanel ? (
@@ -107,8 +107,8 @@ export function WizardModal({
         />
 
         {/* Stepper Progress Bar */}
-        <div className="shrink-0 border-b border-border bg-muted/10 px-6 py-2.5">
-          <div className="flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="shrink-0 border-b border-border bg-card px-5 py-3">
+          <div className="flex min-w-0 items-center justify-between gap-2 overflow-x-auto">
             {steps.map((step, idx) => {
               const isCompleted = idx < currentStepIndex;
               const isCurrent = idx === currentStepIndex;
@@ -120,22 +120,22 @@ export function WizardModal({
                     aria-current={isCurrent ? "step" : undefined}
                     aria-label={`Etapa ${idx + 1}: ${step.label}`}
                     onClick={() => isCompleted && !isSubmitting && onStepChange(idx)}
-                    className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-md px-1 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring enabled:hover:bg-muted lg:min-h-0 lg:py-1 lg:text-xs"
+                    className="flex min-h-[44px] max-w-[260px] shrink-0 items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] leading-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring enabled:hover:bg-muted"
                   >
                     <span
                       aria-hidden
-                      className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                      className={`flex size-[28px] shrink-0 items-center justify-center rounded-full text-[12px] font-medium ${
                         isCompleted
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-primary-soft text-primary-strong"
                           : isCurrent
                             ? "bg-primary text-primary-foreground shadow-xs"
                             : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {isCompleted ? <Check className="size-3.5" aria-hidden /> : idx + 1}
+                      {isCompleted ? <Check className="size-[16px]" aria-hidden /> : idx + 1}
                     </span>
                     <span
-                      className={`font-medium whitespace-nowrap ${
+                      className={`max-w-[200px] whitespace-normal break-words font-medium ${
                         isCurrent
                           ? "text-foreground font-semibold"
                           : isCompleted
@@ -149,8 +149,8 @@ export function WizardModal({
                   {idx < steps.length - 1 && (
                     <div
                       aria-hidden
-                      className={`h-0.5 min-w-4 flex-1 ${
-                        idx < currentStepIndex ? "bg-emerald-600" : "bg-border"
+                      className={`h-[2px] min-w-[16px] flex-1 ${
+                        idx < currentStepIndex ? "bg-primary/40" : "bg-border"
                       }`}
                     />
                   )}
@@ -177,7 +177,7 @@ export function WizardModal({
                 size="sm"
                 onClick={handlePrev}
                 disabled={isSubmitting}
-                className="text-xs"
+                className="h-auto min-h-[44px] max-w-full whitespace-normal rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
               >
                 Anterior
               </Button>

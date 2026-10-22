@@ -82,7 +82,7 @@ describe("ano lectivo: um activo de cada vez", () => {
   });
 
   it("calendário lectivo verifica o fecho do ano anterior", () => {
-    expect(read("src/features/calendar/server.ts")).toMatch(/error: closeError/);
+    expect(read("src/features/calendar/server.ts")).toContain("siga_save_active_academic_year");
   });
 });
 

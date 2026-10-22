@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { realtimeInvalidator } from "@/lib/realtime-invalidate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ import {
   announcementAudienceOptions,
   announcementChannelOptions,
   announcementStatusOptions,
+  SCHEDULED_CHANNEL_MESSAGE,
 } from "@/features/communications/schemas";
 import {
   archiveSchoolAnnouncement,
@@ -191,6 +193,7 @@ function ComunicacoesPage() {
   });
 
   useEffect(() => {
+    const realtime = realtimeInvalidator(queryClient);
     const channel = supabase
       .channel(`school_announcements_realtime:${realtimeInstanceId}`)
       .on(
@@ -201,14 +204,13 @@ function ComunicacoesPage() {
           table: "school_announcements",
         },
         () => {
-          void queryClient.invalidateQueries({
-            queryKey: ["communications", "announcements"],
-          });
+          realtime.invalidate(["communications", "announcements"]);
         },
       )
       .subscribe();
 
     return () => {
+      realtime.dispose();
       void supabase.removeChannel(channel);
     };
   }, [queryClient, realtimeInstanceId]);
@@ -478,7 +480,11 @@ function ComunicacoesPage() {
     const form = formRef.current;
     if (!form) return;
     if (!form.reportValidity()) return;
-    const scheduledFor = readAnnouncementForm(form).scheduledFor;
+    const { scheduledFor, channel } = readAnnouncementForm(form);
+    if (scheduledFor && channel !== "portal") {
+      toast.error("Não foi possível agendar", { description: SCHEDULED_CHANNEL_MESSAGE });
+      return;
+    }
     void saveAnnouncement(form, scheduledFor ? "scheduled" : "draft");
   };
 

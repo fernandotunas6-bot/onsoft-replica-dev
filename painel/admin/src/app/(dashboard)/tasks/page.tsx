@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getAdminAccessToken } from "@/lib/admin-session"
 import {
-  fetchSaasSubscriptions,
+  fetchSaasTenants,
   fetchTenantDomains,
-  type SubscriptionRow,
+  type SaasTenantRow,
   type TenantDomainRow,
 } from "@/lib/saas-api"
 
@@ -22,12 +22,22 @@ type TaskItem = {
   severity: "high" | "medium" | "low"
 }
 
+const SEVERITY_LABEL: Record<TaskItem["severity"], string> = {
+  high: "Urgente",
+  medium: "Esta semana",
+  low: "Quando puder",
+}
+
+function schoolHref(tenant: SaasTenantRow, tab: string) {
+  return `/tenants/escola?id=${encodeURIComponent(tenant.id)}&tab=${tab}`
+}
+
 function daysUntil(iso: string) {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
 }
 
 export default function TasksPage() {
-  const [subs, setSubs] = useState<SubscriptionRow[]>([])
+  const [tenants, setTenants] = useState<SaasTenantRow[]>([])
   const [domains, setDomains] = useState<TenantDomainRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -43,14 +53,11 @@ export default function TasksPage() {
       return
     }
     setNeedsAuth(false)
-    const [s, d] = await Promise.all([
-      fetchSaasSubscriptions(token),
-      fetchTenantDomains(token),
-    ])
-    if (!s.ok && !d.ok) {
-      setError(s.error || d.error || "Falha ao carregar fila.")
-    }
-    setSubs(s.subscriptions ?? [])
+    const [s, d] = await Promise.all([fetchSaasTenants(token), fetchTenantDomains(token)])
+    // Uma das fontes a falhar escondia tarefas sem aviso: mostra-se qual falhou.
+    const failures = [s.ok ? null : s.error, d.ok ? null : d.error].filter(Boolean)
+    if (failures.length) setError(failures.join(" · ") || "Falha ao carregar fila.")
+    setTenants(s.tenants ?? [])
     setDomains(d.domains ?? [])
     setLoading(false)
   }, [])
@@ -62,24 +69,47 @@ export default function TasksPage() {
   const tasks = useMemo(() => {
     const items: TaskItem[] = []
 
-    for (const sub of subs) {
-      if (sub.status === "past_due" || sub.status === "unpaid") {
+    // Escolas isentas (cobrança pausada ou pública aprovada) não geram tarefas
+    // de cobrança nem de trial: não há nada a cobrar.
+    for (const tenant of tenants) {
+      const name = tenant.name || tenant.slug
+      if (tenant.status === "provisioning_failed") {
         items.push({
-          id: `sub-due-${sub.id}`,
-          title: `Subscrição em atraso — ${sub.tenant_name || sub.tenant_slug || sub.tenant_id}`,
-          detail: `${sub.plan_name || sub.plan_code || "plano"} · ${sub.status}`,
-          href: `/subscriptions?tenant=${encodeURIComponent(sub.tenant_slug || "")}`,
+          id: `tenant-failed-${tenant.id}`,
+          title: `Criação falhou — ${name}`,
+          detail: "Rever o registo e voltar a criar a escola.",
+          href: schoolHref(tenant, "registo"),
           severity: "high",
         })
       }
-      if (sub.status === "trialing") {
-        const left = daysUntil(sub.current_period_end)
-        if (left <= 7) {
+      if (tenant.billing_exempt) continue
+      if (tenant.status === "past_due") {
+        items.push({
+          id: `tenant-due-${tenant.id}`,
+          title: `Escola em atraso — ${name}`,
+          detail: "Só de consulta. Registar o pagamento recebido ou pausar as cobranças.",
+          href: schoolHref(tenant, "plano"),
+          severity: "high",
+        })
+      }
+      const inTrial = tenant.status === "trial" || tenant.subscription_status === "trialing"
+      if (inTrial && tenant.trial_ends_at && tenant.status !== "suspended") {
+        const left = daysUntil(tenant.trial_ends_at)
+        const end = new Date(tenant.trial_ends_at).toLocaleDateString("pt-AO")
+        if (left < 0) {
           items.push({
-            id: `sub-trial-${sub.id}`,
-            title: `Trial a expirar em ${left} dia(s) — ${sub.tenant_name || sub.tenant_slug}`,
-            detail: `Fim: ${new Date(sub.current_period_end).toLocaleDateString("pt-AO")}`,
-            href: `/tenants`,
+            id: `tenant-trial-expired-${tenant.id}`,
+            title: `Trial expirado — ${name}`,
+            detail: `Terminou a ${end}. Prolongar o trial, registar pagamento ou pausar as cobranças.`,
+            href: schoolHref(tenant, "plano"),
+            severity: "high",
+          })
+        } else if (left <= 7) {
+          items.push({
+            id: `tenant-trial-${tenant.id}`,
+            title: `Trial a expirar em ${left} dia(s) — ${name}`,
+            detail: `Fim: ${end}`,
+            href: schoolHref(tenant, "plano"),
             severity: left <= 2 ? "high" : "medium",
           })
         }
@@ -109,7 +139,7 @@ export default function TasksPage() {
 
     const order = { high: 0, medium: 1, low: 2 }
     return items.sort((a, b) => order[a.severity] - order[b.severity])
-  }, [subs, domains])
+  }, [tenants, domains])
 
   return (
     <div className="flex flex-col gap-6 px-4 lg:px-6">
@@ -117,7 +147,7 @@ export default function TasksPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Fila operacional</h1>
           <p className="text-muted-foreground">
-            Tarefas reais derivadas de subscrições e domínios — não é a lista demo do template.
+            Escolas em atraso, trials a acabar, criações falhadas e domínios por verificar.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -195,7 +225,7 @@ export default function TasksPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{task.title}</span>
                   <Badge variant={task.severity === "high" ? "destructive" : "secondary"}>
-                    {task.severity}
+                    {SEVERITY_LABEL[task.severity]}
                   </Badge>
                 </div>
                 <p className="text-muted-foreground">{task.detail}</p>

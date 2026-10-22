@@ -161,6 +161,53 @@ async function loadPlan(db: Db, schoolId: string, programId: string) {
   return { units, prerequisites };
 }
 
+/**
+ * Planos de vários cursos numa leitura só, para relatórios que percorrem a escola
+ * inteira. O `loadPlan` acima faz 3 consultas por curso (cadeiras, disciplinas,
+ * precedências); num mapa de 30 cursos isso eram 90 idas à base. Aqui são 2, e as
+ * precedências ficam de fora porque quem conta graduados só precisa das cadeiras.
+ */
+async function loadPlanUnitsByProgram(db: Db, schoolId: string, programIds: string[]) {
+  const byProgram = new Map<string, PlanUnit[]>();
+  if (!programIds.length) return byProgram;
+  const rows: Row[] = [];
+  // Mesmo corte de 300 que o resto do ficheiro usa nos `in(...)`.
+  for (let start = 0; start < programIds.length; start += 300) {
+    const { data, error } = await db
+      .from("program_subjects")
+      .select("id, program_id, subject_id, semester, credits")
+      .eq("school_id", schoolId)
+      .in("program_id", programIds.slice(start, start + 300))
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .order("semester");
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano do curso.");
+    rows.push(...((data ?? []) as Row[]));
+  }
+  const subjectIds = [...new Set(rows.map((row) => str(row.subject_id)))];
+  const subjectById = new Map<string, Row>();
+  for (let start = 0; start < subjectIds.length; start += 300) {
+    const { data } = await db
+      .from("subjects")
+      .select("id, name, code")
+      .eq("school_id", schoolId)
+      .in("id", subjectIds.slice(start, start + 300));
+    for (const subject of (data ?? []) as Row[]) subjectById.set(str(subject.id), subject);
+  }
+  for (const row of rows) {
+    const list = byProgram.get(str(row.program_id)) ?? [];
+    list.push({
+      id: str(row.id),
+      subjectId: str(row.subject_id),
+      name: str(subjectById.get(str(row.subject_id))?.name) || "Cadeira",
+      semester: Number(row.semester),
+      credits: Number(row.credits),
+    });
+    byProgram.set(str(row.program_id), list);
+  }
+  return byProgram;
+}
+
 const RECORD_COLUMNS =
   "id, student_id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at";
 
@@ -2627,21 +2674,42 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     // Graduados: estudantes com todas as cadeiras do plano concluídas.
     const regulation = await regulationOf(db, schoolId);
     const graduatesBy = new Map<string, { total: number; averages: number[] }>();
-    for (const programId of programIds) {
-      const { units } = await loadPlan(db, schoolId, programId);
-      if (!units.length) continue;
-      const { data: recordRows } = await db
-        .from("course_unit_enrollments")
-        .select(RECORD_COLUMNS)
-        .eq("school_id", schoolId)
-        .eq("program_id", programId)
-        .limit(50000);
-      const byStudent = new Map<string, UnitRecord[]>();
-      for (const row of (recordRows ?? []) as Row[]) {
-        const list = byStudent.get(str(row.student_id)) ?? [];
-        list.push(toRecord(row));
-        byStudent.set(str(row.student_id), list);
+    // Antes: 4 consultas por curso (3 do plano + as inscrições), e o `limit(50000)`
+    // por curso cortava em silêncio uma escola grande. Agora são 2 consultas para
+    // todos os planos e páginas de 1000 até acabarem, sem tecto escondido.
+    const unitsByProgram = await loadPlanUnitsByProgram(db, schoolId, programIds);
+    const recordsByProgram = new Map<string, Map<string, UnitRecord[]>>();
+    const RECORD_PAGE = 1000;
+    for (let start = 0; start < programIds.length; start += 300) {
+      const slice = programIds.slice(start, start + 300);
+      for (let from = 0; ; from += RECORD_PAGE) {
+        const { data, error } = await db
+          .from("course_unit_enrollments")
+          .select(`${RECORD_COLUMNS}, program_id`)
+          // `order` fixo: sem ele a paginação pode repetir ou saltar linhas.
+          .order("id")
+          .eq("school_id", schoolId)
+          .in("program_id", slice)
+          .range(from, from + RECORD_PAGE - 1);
+        if (error)
+          throw publicDatabaseError(error, "Não foi possível carregar as inscrições em cadeiras.");
+        const page = (data ?? []) as Row[];
+        for (const row of page) {
+          const programId = str(row.program_id);
+          const byStudent = recordsByProgram.get(programId) ?? new Map<string, UnitRecord[]>();
+          const studentId = str(row.student_id);
+          const list = byStudent.get(studentId) ?? [];
+          list.push(toRecord(row));
+          byStudent.set(studentId, list);
+          recordsByProgram.set(programId, byStudent);
+        }
+        if (page.length < RECORD_PAGE) break;
       }
+    }
+    for (const programId of programIds) {
+      const units = unitsByProgram.get(programId) ?? [];
+      if (!units.length) continue;
+      const byStudent = recordsByProgram.get(programId) ?? new Map<string, UnitRecord[]>();
       const entry = { total: 0, averages: [] as number[] };
       for (const records of byStudent.values()) {
         const done = completedUnitIds(records);

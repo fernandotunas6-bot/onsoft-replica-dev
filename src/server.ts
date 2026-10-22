@@ -63,6 +63,12 @@ export default {
 
 async function handle(request: Request, env: unknown, ctx: unknown): Promise<Response> {
   try {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === "/" || /^\/(?:site|escolas|blog)(?:\/|$)/.test(pathname)) {
+      const { handleSchoolWebsite } = await import("@/features/school-website/site-http");
+      const website = await handleSchoolWebsite(request);
+      if (website) return withSecurityHeaders(website);
+    }
     if (new URL(request.url).pathname === CSP_REPORT_PATH) {
       return withSecurityHeaders(await handleCspReport(request));
     }

@@ -24,6 +24,7 @@ export function describeSubscription(
     subscriptionStatus: string | null;
     trialEndsAt: string | null;
     periodEnd: string | null;
+    billing?: { mode: "charging" | "paused" | "exempt"; label: string; reason: string | null };
   },
   now: Date,
 ): SubscriptionState {
@@ -43,6 +44,18 @@ export function describeSubscription(
       label: "Cancelada",
       detail: "A assinatura foi cancelada. Fale com a equipa para a reactivar.",
       tone: "muted",
+      trialProgress: null,
+    };
+  }
+  // Sem cobrança, o trial e os atrasos deixam de contar (tenant-billing-rules.ts).
+  if (data.billing && data.billing.mode !== "charging") {
+    return {
+      label: data.billing.mode === "exempt" ? "Isenta" : "Cobranças pausadas",
+      detail:
+        data.billing.mode === "exempt"
+          ? "Escola pública: não paga o plano. O acesso continua normalmente."
+          : `${data.billing.label}${data.billing.reason ? ` — ${data.billing.reason}` : ""}. O acesso continua normalmente.`,
+      tone: "info",
       trialProgress: null,
     };
   }
