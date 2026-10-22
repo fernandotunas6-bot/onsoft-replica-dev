@@ -58,6 +58,9 @@ const PUBLIC_SERVER_FNS: Record<string, string> = {
   "src/features/enrollment/server.ts:submitPublicEnrollment":
     "Submissão de matrícula por um candidato sem conta; escreve apenas na própria candidatura.",
 
+  "src/features/access/student-access-server.ts:studentNumberLoginAvailable":
+    "Lida no ecrã de entrada, antes de haver sessão. Não aceita entrada do cliente — deriva a escola do cabeçalho Host do pedido — e devolve um só booleano: se aquela escola aceita entrada pelo número de aluno.",
+
   // ─── Verificação por código ou chave: o segredo vem no pedido ────────────────
   "src/features/documents/verification.ts:verifyIssuedDocument":
     "Verificação de um documento emitido pelo seu código, com limite de taxa por IP partilhado entre instâncias.",
