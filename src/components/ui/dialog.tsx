@@ -44,7 +44,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-0 top-0 inline-flex size-11 items-center justify-center rounded-lg text-muted-foreground cursor-pointer transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none data-[state=open]:bg-accent motion-reduce:transition-none">
+      <DialogPrimitive.Close className="absolute right-0 top-0 inline-flex size-[44px] items-center justify-center rounded-lg text-muted-foreground cursor-pointer transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none data-[state=open]:bg-accent motion-reduce:transition-none">
         <X aria-hidden="true" className="h-4 w-4" />
         <span className="sr-only">Fechar</span>
       </DialogPrimitive.Close>
