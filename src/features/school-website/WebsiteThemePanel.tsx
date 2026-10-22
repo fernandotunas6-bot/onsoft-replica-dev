@@ -12,6 +12,7 @@ import {
   type WebsiteDesign,
   type ThemePackage,
 } from "../../../painel/escolas/src/design.mjs";
+import { designOptionGroups } from "./website-design-options";
 import routes from "../../../painel/escolas/docs/routes.json";
 import type { WebsiteDraft } from "./content-model";
 const colors: [keyof Appearance, string][] = [
@@ -25,32 +26,6 @@ const colors: [keyof Appearance, string][] = [
   ["footer", "Fundo do rodapé"],
   ["footerText", "Texto do rodapé"],
 ];
-const choices = {
-  motion: {
-    label: "Efeitos de entrada",
-    values: {
-      original: "Actual",
-      fade: "Aparecimento suave",
-      rise: "Deslizar discretamente",
-      none: "Sem animações",
-    },
-  },
-  photos: {
-    label: "Apresentação das imagens",
-    values: { original: "Actual", clean: "Limpa", framed: "Moldura de cor" },
-  },
-  radius: {
-    label: "Cantos e botões",
-    values: { original: "Actuais", rounded: "Arredondados", square: "Rectos" },
-  },
-  header: {
-    label: "Comportamento do logótipo",
-    values: {
-      contextual: "Compacto nas páginas internas",
-      full: "Marca completa em todas as páginas",
-    },
-  },
-};
 const defaultDesign = (): WebsiteDesign => ({
   activeTheme: "campus",
   installedThemes: [],
@@ -278,43 +253,68 @@ export function WebsiteThemePanel({
             As páginas herdam o tema geral. Ajustes específicos mantêm-se quando muda de tema.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {colors.map(([key, label]) => (
-            <div key={key} className="space-y-1">
-              <Label htmlFor={"theme-" + key}>{label}</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id={"theme-" + key}
-                  type="color"
-                  value={appearance[key]}
-                  onChange={(event) => adjust(key, event.target.value)}
-                  className="h-10 w-16 p-1"
-                />
-                <span className="text-xs text-muted-foreground">{appearance[key]}</span>
+        <details className="rounded-lg border border-border p-3" open>
+          <summary className="cursor-pointer text-sm font-medium">Cores e fundos</summary>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {colors.map(([key, label]) => (
+              <div key={key} className="space-y-1">
+                <Label htmlFor={"theme-" + key}>{label}</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id={"theme-" + key}
+                    type="color"
+                    value={appearance[key]}
+                    onChange={(event) => adjust(key, event.target.value)}
+                    className="h-10 w-16 p-1"
+                  />
+                  <span className="text-xs text-muted-foreground">{appearance[key]}</span>
+                </div>
               </div>
+            ))}
+          </div>
+        </details>
+        {designOptionGroups.map((group) => (
+          <details key={group.title} className="rounded-lg border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">{group.title}</summary>
+            <p className="mt-2 text-xs text-muted-foreground">{group.description}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {group.controls.map(({ key, label, values }) => (
+                <div key={key} className="space-y-1">
+                  <Label htmlFor={"theme-" + key}>{label}</Label>
+                  <select
+                    id={"theme-" + key}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={options[key] ?? ""}
+                    onChange={(event) => adjust(key, event.target.value)}
+                  >
+                    <option value="">Herdar ({values[appearance[key]] ?? appearance[key]})</option>
+                    {Object.entries(values).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {Object.entries(choices).map(([key, choice]) => (
-            <div key={key} className="space-y-1">
-              <Label htmlFor={"theme-" + key}>{choice.label}</Label>
-              <select
-                id={"theme-" + key}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={options[key as keyof Appearance] ?? ""}
-                onChange={(event) => adjust(key, event.target.value)}
-              >
-                <option value="">Herdar do tema</option>
-                {Object.entries(choice.values).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-3"
+              onClick={() => {
+                const next = { ...options };
+                for (const { key } of group.controls) delete next[key];
+                change(
+                  scope
+                    ? { ...design, pages: { ...design.pages, [scope]: next } }
+                    : { ...design, overrides: next },
+                );
+              }}
+            >
+              Repor {group.title.toLowerCase()}
+            </Button>
+          </details>
+        ))}
         <Button
           variant="outline"
           size="sm"

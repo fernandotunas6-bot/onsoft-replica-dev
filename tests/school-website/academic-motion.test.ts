@@ -143,3 +143,21 @@ it("o efeito de aparecimento não desloca os cartões e a opção sem animaçõe
   expect(document.querySelector("article")?.textContent).toBe("Curso publicado");
   disabled.destroy();
 });
+
+it("aplica aproximação suave com o ritmo escolhido e cancela quando o visitante reduz movimento", () => {
+  document.body.innerHTML = '<article class="info-card">Informação</article>';
+  document.documentElement.dataset.websiteMotion = "zoom";
+  document.documentElement.dataset.websiteMotionSpeed = "calm";
+  const env = environment(),
+    controller = setupAcademicMotion({ doc: document, win: env.win });
+  env.instances[0].callback([{ target: document.querySelector("article")!, isIntersecting: true }]);
+  expect(env.animate.mock.calls[0][0]).toEqual([
+    { opacity: 0.55, transform: "scale(.97)" },
+    { opacity: 1, transform: "scale(1)" },
+  ]);
+  expect(env.animate.mock.calls[0][1]?.duration).toBe(650);
+  env.change(true);
+  expect(env.animations[0].cancel).toHaveBeenCalledTimes(1);
+  controller.destroy();
+  delete document.documentElement.dataset.websiteMotionSpeed;
+});
