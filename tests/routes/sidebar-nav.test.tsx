@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ReactNode } from "react";
 import "./_harness";
@@ -154,6 +154,7 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
 
   it("leva o ?tab=presencas no item de topo Frequência do portal do Aluno", () => {
     papel = "Aluno";
+    currentSearch = { tab: "presencas" };
 
     renderSidebar();
 
@@ -170,5 +171,36 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
 
     const semTab = linksTo("/pedagogica").filter((link) => !link.search?.["tab"]);
     expect(semTab).toEqual([]);
+  });
+});
+
+describe("AppSidebar — contexto", () => {
+  it("mostra apenas o módulo activo e permite consultar todas as áreas", () => {
+    currentPathname = "/faturas";
+    renderSidebar();
+    expect(linksTo("/faturas")).toHaveLength(1);
+    expect(linksTo("/alunos")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: "Gestão de Alunos" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+    expect(linksTo("/alunos").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Voltar ao módulo" }));
+    expect(linksTo("/alunos")).toHaveLength(0);
+  });
+
+  it("não restaura menus acumulados de outra sessão", () => {
+    currentPathname = "/portal";
+    localStorage.setItem(
+      "siga:sidebar-open-menus",
+      JSON.stringify(["Gestão de Alunos", "Caixa e Pagamentos"]),
+    );
+    renderSidebar();
+    expect(linksTo("/alunos")).toHaveLength(0);
+    expect(linksTo("/faturas")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+    expect(linksTo("/alunos").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Caixa e Pagamentos" }));
+    expect(linksTo("/alunos")).toHaveLength(0);
+    expect(linksTo("/faturas")).toHaveLength(1);
   });
 });

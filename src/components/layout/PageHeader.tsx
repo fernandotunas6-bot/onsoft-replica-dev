@@ -59,7 +59,7 @@ export function PageHeader({
     (logoUrl?.trim() ? (
       <LogoChip src={logoUrl.trim()} size="lg" label={title} />
     ) : icon ? (
-      <IconChip icon={icon} size="lg" label={title} />
+      <IconChip icon={icon} tone="muted" size="md" label={title} />
     ) : null);
 
   const trail: PageCrumb[] =
@@ -179,11 +179,11 @@ export function StatGrid({
   ) : items && items.length > 0 ? (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
-        const tone = item.tone ?? "primary";
+        const tone = item.tone ?? "muted";
         return (
           <div
             key={item.label}
-            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-card"
+            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-4"
           >
             <div className="flex items-start justify-between gap-2.5">
               <div className="min-w-0">
@@ -264,14 +264,14 @@ export function Panel({
   children: ReactNode;
 }) {
   const panelMark = logoUrl?.trim() ? (
-    <LogoChip src={logoUrl.trim()} tone={tone ?? "primary"} size="sm" label={title} />
+    <LogoChip src={logoUrl.trim()} tone={tone ?? "muted"} size="sm" label={title} />
   ) : icon ? (
-    <IconChip icon={icon} tone={tone ?? "primary"} size="sm" label={title} />
+    <IconChip icon={icon} tone={tone ?? "muted"} size="sm" label={title} />
   ) : null;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-soft">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-muted/30 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {panelMark}
           <div className="min-w-0">

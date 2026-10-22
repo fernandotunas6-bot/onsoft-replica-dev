@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { canPrefetchResources, onIdle } from "@/lib/preload";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   Building2,
+  LayoutGrid,
   ChevronDown,
   CircleHelp,
   CreditCard,
@@ -30,17 +32,16 @@ import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { withHigherEdVocabulary } from "@/features/auth/nav-vocabulary";
 import { isHigherEdOnly } from "@/features/academic/period-model";
-import {
-  getPortalNavigation,
-  isNavChildActive,
-  mergeOpenMenus,
-} from "@/features/auth/portal-engine";
+import { getPortalNavigation, isNavChildActive } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
 import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
 
-const MENU_KEY = "siga:sidebar-open-menus";
+import {
+  getNavigationContext,
+  isContextDestinationActive,
+} from "@/features/auth/contextual-navigation";
 
 /**
  * Fora do grafo estático da barra: o `AppShell` entra no manifesto da rota `/`, que
@@ -105,41 +106,22 @@ export function AppSidebar({
     const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
     return higherEdOnly ? withHigherEdVocabulary(groups) : groups;
   }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
-  // Memoizado para o efeito abaixo poder depender dele directamente. Antes
-  // dependia só de `pathname`, o que deixava de fora a mudança de
-  // `visibleGroups` (papel/grants/plano): os menus recém-visíveis não abriam.
-  const parentsOfActive = useMemo(
-    () =>
-      visibleGroups
-        .flatMap((g) => g.items)
-        .filter((i) => i.children?.some((c) => c.to === pathname))
-        .map((i) => i.label),
-    [visibleGroups, pathname],
-  );
-  const [openMenus, setOpenMenus] = useState<string[]>(parentsOfActive);
-
+  const context = getNavigationContext(visibleGroups, pathname, locationSearch);
+  const [areaPicker, setAreaPicker] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const navigationKey = JSON.stringify([
+    pathname,
+    locationSearch,
+    currentUser.schoolId,
+    currentUser.role,
+  ]);
   useEffect(() => {
-    const stored = localStorage.getItem(MENU_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as string[];
-        setOpenMenus((prev) => Array.from(new Set([...parsed, ...prev])));
-      } catch {
-        /* ignore malformed value */
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    setOpenMenus((prev) => mergeOpenMenus(prev, parentsOfActive));
-  }, [parentsOfActive]);
-
-  const toggle = (label: string) =>
-    setOpenMenus((prev) => {
-      const next = prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label];
-      localStorage.setItem(MENU_KEY, JSON.stringify(next));
-      return next;
-    });
+    setAreaPicker(false);
+    setOpenMenus((prev) => (prev.length ? [] : prev));
+  }, [navigationKey]);
+  const contextual = Boolean(context && !areaPicker);
+  const displayedGroups = contextual && context ? [context] : visibleGroups;
+  const toggle = (label: string) => setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
 
   return (
     <>
@@ -147,7 +129,7 @@ export function AppSidebar({
         data-sidebar="siga"
         className={cn(
           "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-          "lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm",
+          "lg:rounded-xl lg:border lg:border-sidebar-border",
           collapsed ? "w-[64px]" : "w-[240px]",
           className,
         )}
@@ -301,16 +283,32 @@ export function AppSidebar({
             collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
           )}
         >
-          {canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
+          <div className="pt-3 pb-1">
+            <NavButtonRow
+              label={
+                contextual ? "Todas as áreas" : context ? "Voltar ao módulo" : "Áreas de trabalho"
+              }
+              icon={contextual ? LayoutGrid : ArrowLeft}
+              collapsed={collapsed}
+              onClick={() => setAreaPicker((open) => !open)}
+              expanded={!contextual}
+              className={!context ? "hidden" : undefined}
+            />
+          </div>
+          {contextual &&
+          pathname.startsWith("/pedagogica") &&
+          canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
             <AcademicNavTree collapsed={collapsed} />
           ) : null}
-          {visibleGroups.map((group) => (
+          {displayedGroups.map((group) => (
             <div key={group.title}>
               <NavSubheader title={group.title} collapsed={collapsed} />
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const isOpen = openMenus.includes(item.label);
-                  const childActive = item.children?.some((c) => c.to === pathname) ?? false;
+                  const childActive =
+                    item.children?.some((c) => isNavChildActive(c, pathname, locationSearch)) ??
+                    false;
 
                   // Flyout: com a barra recolhida, o rato revela um painel lateral
                   // com o rótulo e os sub-itens do menu.
@@ -330,7 +328,12 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={isNavChildActive(child, pathname, locationSearch)}
+                                    active={isContextDestinationActive(
+                                      child,
+                                      displayedGroups,
+                                      pathname,
+                                      locationSearch,
+                                    )}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />
@@ -374,7 +377,12 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={isNavChildActive(child, pathname, locationSearch)}
+                                    active={isContextDestinationActive(
+                                      child,
+                                      displayedGroups,
+                                      pathname,
+                                      locationSearch,
+                                    )}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />
@@ -396,11 +404,12 @@ export function AppSidebar({
                         label={item.label}
                         icon={item.icon}
                         collapsed={collapsed}
-                        active={isNavChildActive(
+                        active={isContextDestinationActive(
                           {
                             to: item.to as string,
                             ...(item.search ? { search: item.search } : {}),
                           },
+                          displayedGroups,
                           pathname,
                           locationSearch,
                         )}
