@@ -25,6 +25,11 @@ import {
   readWebsiteState,
   websiteTemplate,
 } from "@/features/school-website/content-model";
+
+// Em cache fria a avaliação dos módulos e a primeira renderização consomem o
+// orçamento de 5s por omissão, e o custo cai em quem correr primeiro. Mesmo
+// limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 35_000 });
 const mount = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {

@@ -12,6 +12,11 @@ vi.mock("@/features/school-website/blog-server", () => ({
 }));
 import { BlogSettingsPanel } from "@/features/school-website/BlogSettingsPanel";
 import { changeSchoolBlogState } from "@/features/school-website/blog-model";
+
+// Em cache fria a avaliação dos módulos e a primeira renderização consomem o
+// orçamento de 5s por omissão, e o custo cai em quem correr primeiro. Mesmo
+// limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 20_000 });
 const mount = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
