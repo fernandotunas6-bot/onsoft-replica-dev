@@ -163,3 +163,42 @@ verificação em dispositivos físicos, teclado virtual ou sessão escolar auten
 Diagnósticos sintácticos e semânticos TypeScript dirigidos aos 14 ficheiros de
 código/testes da PR = zero; o `tsc` global continua pendente. Build final de cliente,
 SSR e Nitro Cloudflare concluído com código 0. Sem merge, deploy ou alterações de dados.
+
+## Continuação — integração do trabalho de outro agente (#245)
+
+Identificada e combinada a [PR #245](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/245),
+branch `refine/touch-response-modal-search-20261022`, commit `e4db10fa`. A integração
+preserva os dois históricos e os ajustes de textos/formulários longos da #244.
+O único conflito foi no relatório, conservando a versão mais recente e completa.
+
+- Botões de fechar Dialog/Sheet com alvo de 44 × 44 px, sem aumentar as classes do
+  ícone; cabeçalhos reservam espaço para evitar sobreposição com títulos longos.
+- Sheet com abertura de 200 ms e fecho de 150 ms no código; movimento reduzido
+  desactiva a animação. DataTableShell deixa de transicionar propriedades de layout.
+- Pesquisa aguarda o fim da composição IME antes do debounce existente de 220 ms.
+  Começar composição cancela uma pesquisa anterior ainda pendente.
+
+| Componente integrado | Desktop 1440 px | Tablet 834 px | Telemóvel 390 px |
+| --- | --- | --- | --- |
+| Diálogo com formulário longo | [Captura](integrated-dialog-1440.png) | [Captura](integrated-dialog-834.png) | [Captura](integrated-dialog-390.png) |
+| Painel com título longo | [Captura](integrated-sheet-1440.png) | [Captura](integrated-sheet-834.png) | [Captura](integrated-sheet-390.png) |
+
+Chromium: seis cenários (três larguras × movimento normal/reduzido), componentes
+reais, dados fictícios. Alvos de fecho medidos em 44 × 44 px, títulos separados do
+fecho, diálogo sem transbordo, foco contido no painel e devolvido ao botão após fechar.
+A composição IME emite uma única alteração com o texto final. Abertura do painel
+com estilo computado de 0,2 s; com movimento reduzido, `animation-name: none`.
+Não são medições de latência de rede, INP ou FPS. Sem erros JavaScript.
+[Resultados](integrated-touch-results.json).
+
+Validação final: 42 testes aprovados em sete ficheiros; ESLint dos cinco ficheiros
+de código/teste desta integração sem erros/avisos; zero diagnósticos sintácticos e
+semânticos TypeScript dirigidos aos 17 ficheiros de código/testes da PR.
+Build final cliente, SSR e Nitro Cloudflare aprovado (código 0). O ensaio anterior
+dos formulários longos foi repetido nas cinco dimensões, incluindo 320 × 568 e
+390 × 420 px, preservando submissão de demonstração, Escape e acesso às acções.
+
+A contribuição de interacção da #245 está integrada nesta branch. A reprodução
+exacta de imagens de outra conversa não foi confirmada. Sessão real, teclado
+virtual, leitores de ecrã, dispositivos físicos e `tsc` global continuam pendentes.
+Sem integração em main, deploy ou migrações.

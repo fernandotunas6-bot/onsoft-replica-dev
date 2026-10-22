@@ -1,0 +1,134 @@
+[
+  {
+    "width": 390,
+    "reducedMotion": "reduce",
+    "sheet": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "animation": "none",
+      "duration": "1e-05s",
+      "rootFont": "12px"
+    },
+    "dialog": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "overflow": false
+    },
+    "imeRequests": 1,
+    "focusTrap": true,
+    "focusRestored": true,
+    "errors": []
+  },
+  {
+    "width": 834,
+    "reducedMotion": "reduce",
+    "sheet": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "animation": "none",
+      "duration": "1e-05s",
+      "rootFont": "12px"
+    },
+    "dialog": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "overflow": false
+    },
+    "imeRequests": 1,
+    "focusTrap": true,
+    "focusRestored": true,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "reducedMotion": "reduce",
+    "sheet": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "animation": "none",
+      "duration": "1e-05s",
+      "rootFont": "11px"
+    },
+    "dialog": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "overflow": false
+    },
+    "imeRequests": 1,
+    "focusTrap": true,
+    "focusRestored": true,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "reducedMotion": "no-preference",
+    "sheet": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "animation": "enter",
+      "duration": "0.2s",
+      "rootFont": "12px"
+    },
+    "dialog": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "overflow": false
+    },
+    "imeRequests": 1,
+    "focusTrap": true,
+    "focusRestored": true,
+    "errors": []
+  },
+  {
+    "width": 834,
+    "reducedMotion": "no-preference",
+    "sheet": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "animation": "enter",
+      "duration": "0.2s",
+      "rootFont": "12px"
+    },
+    "dialog": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "overflow": false
+    },
+    "imeRequests": 1,
+    "focusTrap": true,
+    "focusRestored": true,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "reducedMotion": "no-preference",
+    "sheet": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "animation": "enter",
+      "duration": "0.2s",
+      "rootFont": "11px"
+    },
+    "dialog": {
+      "closeWidth": 44,
+      "closeHeight": 44,
+      "headerClear": true,
+      "overflow": false
+    },
+    "imeRequests": 1,
+    "focusTrap": true,
+    "focusRestored": true,
+    "errors": []
+  }
+]
