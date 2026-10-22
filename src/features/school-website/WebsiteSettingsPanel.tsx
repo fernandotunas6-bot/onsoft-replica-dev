@@ -350,6 +350,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       </div>
       <WebsiteThemePanel
         draft={draft}
+        publishedDraft={state?.published?.content ?? null}
         schoolName={query.data?.school.name ?? "Escola"}
         logoUrl={query.data?.school.logo_url}
         programs={query.data?.programs ?? []}

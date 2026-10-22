@@ -40,6 +40,14 @@ A cópia afecta apenas o estilo do destino. Os conteúdos, cursos associados, te
 
 O atalho Editar textos e imagens desta página abre o grupo correspondente no editor de conteúdos, limpa o filtro de campos e leva o foco ao selector da página, preservando o rascunho.
 
+## Rever e recuperar alterações visuais
+
+Desfazer ajuste visual e Refazer ajuste visual conservam até 20 alterações nesta sessão do editor, incluindo temas, opções e cópias entre páginas. As operações preservam os textos e cursos do rascunho actual. Uma nova edição depois de desfazer limpa o refazer. Uma configuração substituída externamente invalida a sequência anterior; a troca de escola e o recarregamento começam outra sessão. Num rascunho sem tema configurado, desfazer a primeira escolha recupera exactamente esse estado anterior.
+
+Quando existe uma publicação, Versão para comparar permite gerar e alternar entre Rascunho actual e Última publicação. Cada versão conserva a sua prévia mais recente para a página escolhida e indica quando precisa de ser gerada novamente. A comparação usa os textos e estilos da versão seleccionada e a identidade/cursos associados actuais da escola. Alternar versões não publica, não restaura conteúdos e não muda os ajustes do rascunho. As prévias permanecem isoladas e sem operações activas.
+
+O aviso de alterações por guardar é activado e retirado com o estado confirmado do editor, incluindo no blog, para não continuar a pedir confirmação depois de guardar.
+
 ## Instalação de temas
 
 Formato JSON `siga-school-theme`, versão 1, até 32 KB e oito temas próprios por escola. Não se trata de um instalador de temas PHP/ZIP do WordPress. Os pacotes seleccionam os layouts suportados e opções de apresentação; não executam JavaScript, CSS livre, HTML ou plugins.
