@@ -129,3 +129,37 @@ São testes de comportamento em jsdom, sem medição de contraste ou nova compar
 visual. ESLint do teste alterado sem erros/avisos e zero diagnósticos TypeScript
 dirigidos aos mesmos 12 ficheiros. Não houve alteração do código de produção;
 o build aprovado no incremento anterior não foi repetido. Sem merge ou deploy.
+
+## Continuação — modais com textos e formulários longos
+
+`Dialog` e `AlertDialog` partilhados passam a ter títulos e descrições que quebram
+referências longas, acções com quebra de texto e espaçamento uniforme. O cabeçalho
+do diálogo reserva espaço para fechar; títulos em várias linhas deixam de usar
+entrelinha compactada. No diálogo de formulário, o conteúdo usa `min-w-0` e
+`overscroll-contain`. A confirmação mantém o seu comportamento próprio de Radix;
+não foram alteradas as regras de confirmação, descarte ou submissão.
+
+| Cenário controlado | Antes | Depois |
+| --- | --- | --- |
+| Formulário, desktop 1440 px | [Antes](dialog-before-1440.png) | [Depois](dialog-after-1440.png) |
+| Formulário, telemóvel 390 px | [Antes](dialog-before-390.png) | [Depois](dialog-after-390.png) |
+| Acções após deslocação, 390 × 420 px | [Antes](dialog-footer-before-390.png) | [Depois](dialog-footer-after-390.png) |
+| Confirmação, telemóvel 390 px | [Antes](alert-before-390.png) | [Depois](alert-after-390.png) |
+
+As capturas usam os componentes reais e dados fictícios, incluindo nome comprido,
+referência sem espaços, oito campos e rótulos de acção extensos. O caso limite
+reproduz transbordo horizontal em ambos os modais anteriores e acção cortada no
+formulário mobile. Após a alteração, os dois modais não transbordam nas dimensões
+1440 × 900, 834 × 900, 390 × 900, 320 × 568 e 390 × 420 px. A acção do formulário
+fica dentro da viewport depois de deslocar o conteúdo. Submissão de demonstração,
+Escape, retorno do foco e cancelamento da confirmação foram exercitados.
+[Resultados medidos](dialog-results.json).
+
+Os 13 testes existentes de `modal-shell`, `modal-system` e `wizard-modal` passaram,
+incluindo protecção de alterações não guardadas e confirmação de descarte. ESLint
+dos dois ficheiros alterados sem erros/avisos. O ensaio Chromium não substitui a
+verificação em dispositivos físicos, teclado virtual ou sessão escolar autenticada.
+
+Diagnósticos sintácticos e semânticos TypeScript dirigidos aos 14 ficheiros de
+código/testes da PR = zero; o `tsc` global continua pendente. Build final de cliente,
+SSR e Nitro Cloudflare concluído com código 0. Sem merge, deploy ou alterações de dados.
