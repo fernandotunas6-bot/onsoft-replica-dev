@@ -35,7 +35,7 @@ function environment(reduced = false) {
     onfinish: (() => void) | null;
     oncancel: (() => void) | null;
   }[] = [];
-  const animate = vi.fn(() => {
+  const animate = vi.fn((_frames?: Keyframe[], _options?: KeyframeAnimationOptions) => {
     const animation = {
       cancel: vi.fn(),
       pause: vi.fn(),
@@ -74,6 +74,7 @@ afterEach(() => {
   delete (Element.prototype as Partial<Element>).animate;
   document.body.innerHTML = "";
   document.documentElement.className = "";
+  delete document.documentElement.dataset.websiteMotion;
 });
 describe("movimento académico progressivo", () => {
   it("mantém conteúdo visível, anima uma vez e termina ao focar um controlo", () => {
@@ -127,4 +128,18 @@ describe("movimento académico progressivo", () => {
     await vi.waitFor(() => expect(env.animations[0].cancel).toHaveBeenCalledTimes(1));
     controller.destroy();
   });
+});
+
+it("o efeito de aparecimento não desloca os cartões e a opção sem animações mantém o conteúdo", () => {
+  document.body.innerHTML = '<article class="course-card">Curso publicado</article>';
+  document.documentElement.dataset.websiteMotion = "fade";
+  const env = environment(),
+    controller = setupAcademicMotion({ doc: document, win: env.win });
+  env.instances[0].callback([{ target: document.querySelector("article")!, isIntersecting: true }]);
+  expect(env.animate.mock.calls[0][0]).toEqual([{ opacity: 0.55 }, { opacity: 1 }]);
+  controller.destroy();
+  document.documentElement.dataset.websiteMotion = "none";
+  const disabled = setupAcademicMotion({ doc: document, win: env.win });
+  expect(document.querySelector("article")?.textContent).toBe("Curso publicado");
+  disabled.destroy();
 });

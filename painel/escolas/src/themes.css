@@ -1,0 +1,31 @@
+/* Optional themes. An installation without a published design keeps the approved presentation. */
+html[data-website-design] body{background:var(--theme-background);color:var(--text)}
+html[data-website-design] :is(.soft-bg,.academic-course-overview,.course-subnav){background:var(--soft)}
+html[data-website-design] :is(.button,.button.small){background:var(--blue);border-color:var(--blue);color:var(--theme-on-primary)}
+html[data-website-design] :is(.button.white,.outline-button){background:var(--theme-background);color:var(--blue)}
+html[data-website-design] .blue-band{background:linear-gradient(115deg,var(--blue),var(--theme-secondary))}
+html[data-website-design] .site-footer{background:linear-gradient(112deg,var(--theme-footer),color-mix(in srgb,var(--theme-footer) 80%,var(--theme-secondary)));color:var(--theme-footer-text);--muted:var(--theme-footer-text)}
+html[data-website-design] .site-footer :is(h3,a,.locale,.footer-demo,.footer-bottom){color:var(--theme-footer-text)}
+html[data-website-design] .brand-wordmark-art{background:linear-gradient(115deg,var(--blue) 15%,var(--theme-secondary) 100%)}
+html[data-website-design] .site-footer .brand-wordmark-art{background:var(--theme-footer-text)}
+html[data-website-theme="editorial"] .hero-copy{border-left:3px solid var(--blue);padding-left:24px}
+html[data-website-theme="editorial"] :is(.course-card,.article-card,.service-card,.info-card){box-shadow:none;border-radius:4px;border-top:3px solid var(--blue)}
+html[data-website-theme="editorial"] .academic-page-head h1{letter-spacing:-1.5px}
+html[data-website-theme="minimal"] :is(.course-card,.article-card,.service-card,.info-card,.finder){box-shadow:none;background:var(--theme-background)}
+html[data-website-theme="minimal"] :is(.hero-copy h1,.page-head h1){letter-spacing:-1.5px}
+html[data-website-radius="rounded"] :is(.course-card,.article-card,.service-card,.info-card,.finder,.academic-page-art,.hero-photo){border-radius:22px}
+html[data-website-radius="rounded"] :is(.button,.outline-button){border-radius:999px}
+html[data-website-radius="square"] :is(.course-card,.article-card,.service-card,.info-card,.finder,.button,.outline-button,.academic-page-art,.hero-photo){border-radius:2px}
+html[data-website-photos="clean"] :is(.hero-photo,.academic-page-art,.course-hero-image){box-shadow:none}
+html[data-website-photos="clean"] :is(.hero-photo img,.academic-page-art img,.course-hero-image img){filter:none}
+html[data-website-photos="clean"] .academic-photo-orbit{display:none}
+html[data-website-photos="framed"] :is(.hero-photo,.academic-page-art,.course-hero-image){box-shadow:0 0 0 5px var(--theme-background),0 0 0 6px var(--theme-secondary)}
+html[data-website-motion="fade"] :is(.hero-float,.hero-badge,.hero-spark,.band-star,.marquee>div){animation:none}
+html[data-website-motion="none"] *,html[data-website-motion="none"] *::before,html[data-website-motion="none"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(min-width:761px){html[data-website-header="full"] .site-header .brand.ispab-wordmark{gap:4px}html[data-website-header="full"] .site-header .brand.ispab-wordmark .brand-wordmark-art{width:100px;height:26px;opacity:1}html[data-website-header="full"] .site-header .brand.ispab-wordmark>svg{width:23px;height:23px}}
+@media(max-width:760px){html[data-website-theme="editorial"] .hero-copy{padding-left:16px}}
+
+html[data-website-design] :is(.course-card,.article-card,.info-card,.service-card,.resource-card,.finder,.site-header,.mega-menu,.course-suggestions,.application-form){background:var(--theme-background);color:var(--text)}
+html[data-website-design] :is(input,select,textarea){background:var(--theme-background);color:var(--text)}
+html[data-website-design] .topline{background:var(--soft);color:var(--text)}
+html[data-website-design] .site-footer .brand.ispab-wordmark>svg{color:var(--theme-footer-text)}

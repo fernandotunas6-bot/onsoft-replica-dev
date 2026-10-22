@@ -106,3 +106,7 @@ fs.copyFileSync('src/student-portal.mjs',out+'/student-portal.mjs');
 fs.copyFileSync('src/academic-pages.mjs',out+'/academic-pages.mjs');
 
 for(const file of ['academic-navigation.mjs','home-highlights.mjs'])fs.copyFileSync('src/'+file,out+'/'+file);
+
+fs.copyFileSync('src/design.mjs',out+'/design.mjs');fs.appendFileSync(out+'/style.css','\n'+fs.readFileSync('src/themes.css','utf8'));
+
+const {builtInThemes}=await import('../src/design.mjs');fs.mkdirSync(out+'/themes',{recursive:true});for(const theme of builtInThemes)fs.writeFileSync(out+'/themes/'+theme.id+'.json',JSON.stringify({...theme,id:'custom-'+theme.id},null,2));

@@ -64,3 +64,26 @@ describe("apresentação pública por escola", () => {
     },
   );
 });
+
+it("ignora o tema de configuração estática numa escola ligada se a API não publica um tema", async () => {
+  const { builtInThemes, publishDesign, parseWebsiteDesign } =
+    await import("../../painel/escolas/src/design.mjs");
+  document.body.innerHTML = "<main></main>";
+  const design = publishDesign(parseWebsiteDesign({ activeTheme: builtInThemes[1].id }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url === "/school-runtime.json"
+        ? Response.json({
+            schoolName: "Escola B",
+            design,
+            contentUrl: "https://school.example/api/public/school-content/B",
+          })
+        : url === "/content-bindings.json"
+          ? Response.json({ version: "v1", fields: [] })
+          : Response.json({ apiVersion: 1, templateVersion: "v1", values: {} }),
+    ),
+  );
+  const config = await connectSchoolWebsite({ courses: [] });
+  expect(config.design).toBeNull();
+});

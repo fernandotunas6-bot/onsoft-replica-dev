@@ -111,3 +111,18 @@ describe("website no endereço de cada escola", () => {
     expect(html.match(/<script\b/g)).toHaveLength(2);
   });
 });
+
+it("aplica o tema publicado na resposta inicial de cada escola, sem contaminar o template nem outra escola", async () => {
+  const { parseWebsiteDesign, publishDesign } = await import("../../painel/escolas/src/design.mjs");
+  const design = publishDesign(
+    parseWebsiteDesign({ activeTheme: "editorial", pages: { "/cursos/": { motion: "none" } } }),
+  );
+  const a = renderSchoolWebsite(site("Escola A"), "/cursos/", { ...publication, design })!;
+  const b = renderSchoolWebsite(site("Escola B"), "/cursos/", publication)!;
+  expect(a).toContain('data-website-theme="editorial"');
+  expect(a).toContain('data-website-motion="none"');
+  expect(a).toContain("--blue:#183d70");
+  expect(a).toContain('"themeId":"editorial"');
+  expect(b).not.toContain("data-website-theme=");
+  expect(b).not.toContain("themeId");
+});

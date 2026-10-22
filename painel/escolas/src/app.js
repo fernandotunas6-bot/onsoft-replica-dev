@@ -14,7 +14,7 @@ function syncMainNavigation(){if(nav)nav.inert=navigationMedia.matches&&!nav.cla
 const portalSidebar=$('.portal-sidebar'),sidebarMedia=matchMedia('(max-width:760px)');
 function syncSidebar(){if(portalSidebar)portalSidebar.inert=sidebarMedia.matches&&!portalSidebar.classList.contains('open')}
 sidebarMedia.addEventListener('change',syncSidebar);syncSidebar();
-const scrollBehavior=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.documentElement.classList.contains('reduce-motion')?'instant':'smooth';
+const scrollBehavior=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||(document.documentElement.classList.contains('reduce-motion')||document.documentElement.dataset.websiteMotion==='none')?'instant':'smooth';
 function closeMobile(restoreFocus=false){if(restoreFocus&&navigationMedia.matches&&nav?.contains(document.activeElement))mobileToggle?.focus();nav?.classList.remove('open');mobileToggle?.setAttribute('aria-expanded','false');mobileToggle?.setAttribute('aria-label','Abrir navegação');syncMainNavigation()}
 navigationMedia.addEventListener('change',()=>{const focused=document.activeElement,restore=focused?.closest('.site-header');closeMobile(true);$$('.nav-dropdown').forEach(el=>el.open=false);if(restore)restoreHeaderFocus(focused)});syncMainNavigation();
 mobileToggle?.addEventListener('click',()=>{const open=!nav.classList.contains('open');nav.classList.toggle('open',open);mobileToggle.setAttribute('aria-expanded',String(open));mobileToggle.setAttribute('aria-label',open?'Fechar navegação':'Abrir navegação');syncMainNavigation()});

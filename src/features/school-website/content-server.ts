@@ -30,7 +30,7 @@ export const getSchoolWebsiteEditor = createServerFn({ method: "GET" })
         .eq("school_id", member.schoolId)
         .eq("domain", WEBSITE_DOMAIN)
         .maybeSingle(),
-      db.from("schools").select("public_code, name").eq("id", member.schoolId).single(),
+      db.from("schools").select("public_code, name, logo_url").eq("id", member.schoolId).single(),
       db
         .from("programs")
         .select("id, name")

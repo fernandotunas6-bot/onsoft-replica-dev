@@ -5,7 +5,7 @@ export function setupAcademicMotion({doc = document, win = window} = {}) {
   if (doc.querySelector('.portal-shell,.portal-sidebar') || !win.IntersectionObserver) return {refresh() {}, destroy() {}};
   const media = win.matchMedia('(prefers-reduced-motion: reduce)');
   const pending = new Set(), seen = new WeakSet(), running = new Map();
-  let disabled = media.matches || doc.documentElement.classList.contains('reduce-motion'), destroyed = false;
+  let disabled = media.matches || (doc.documentElement.classList.contains('reduce-motion') || doc.documentElement.dataset.websiteMotion === 'none'), destroyed = false;
   const stop = () => {for (const animation of running.values()) animation.cancel(); running.clear();};
   const observer = new win.IntersectionObserver(entries => {
     for (const entry of entries) {
@@ -15,7 +15,8 @@ export function setupAcademicMotion({doc = document, win = window} = {}) {
       if (!node.animate || node.contains(doc.activeElement)) continue;
       const siblings = [...(node.parentElement?.children || [])].filter(child => child.matches(targets));
       const delay = Math.min(Math.max(siblings.indexOf(node), 0), 3) * 45;
-      const animation = node.animate([{opacity: .55, transform: 'translateY(16px)'}, {opacity: 1, transform: 'translateY(0)'}], {duration: 440, delay, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'});
+      const keyframes = doc.documentElement.dataset.websiteMotion === 'fade' ? [{opacity:.55},{opacity:1}] : [{opacity:.55,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}];
+      const animation = node.animate(keyframes, {duration: 440, delay, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'});
       running.set(node, animation);
       animation.onfinish = animation.oncancel = () => running.delete(node);
     }
@@ -31,14 +32,14 @@ export function setupAcademicMotion({doc = document, win = window} = {}) {
     for (const node of pending) if (!node.isConnected) {pending.delete(node); observer.unobserve(node);}
   }
   function preferenceChanged() {
-    const next = media.matches || doc.documentElement.classList.contains('reduce-motion');
+    const next = media.matches || (doc.documentElement.classList.contains('reduce-motion') || doc.documentElement.dataset.websiteMotion === 'none');
     if (next === disabled) return;
     disabled = next;
     if (disabled) {stop(); observer.disconnect(); pending.clear();}
     else refresh();
   }
   const preferences = new win.MutationObserver(preferenceChanged);
-  preferences.observe(doc.documentElement, {attributes: true, attributeFilter: ['class']});
+  preferences.observe(doc.documentElement, {attributes: true, attributeFilter: ['class','data-website-motion']});
   media.addEventListener('change', preferenceChanged);
   const visibilityChanged = () => {for (const animation of running.values()) doc.hidden ? animation.pause() : animation.play(); if (!doc.hidden) refresh();};
   const focused = event => {for (const [node, animation] of running) if (node.contains(event.target)) animation.cancel();};
