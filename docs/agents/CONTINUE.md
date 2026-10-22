@@ -13,6 +13,11 @@ automático do router quando `active` não é explícito; não retirar esse fall
 cores de estado explícitas mantêm-se. Comparação controlada e limites:
 [relatório visual](../visual/2026-10-22/README.md). Sem deploy nem SQL.
 
+Para ligar o visual de outro agente, consultar os
+[pontos de integração e contrato de aparência](../design/CONTEXTUAL_VISUAL_INTEGRATION.md).
+A referência externa ainda não foi identificada; não confundir esta preparação
+com integração concluída. Preservar os testes de navegação e o catálogo lazy de temas.
+
 ## Refinamento da navegação académica — 2026-10-21
 
 Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis

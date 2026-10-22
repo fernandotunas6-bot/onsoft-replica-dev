@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
+import { applyAppearance, type AppearanceState } from "@/lib/appearance";
 import "./_harness";
 
 /**
@@ -155,6 +156,11 @@ afterEach(() => {
   currentPathname = "/pedagogica";
   currentSearch = {};
   localStorage.clear();
+  document.documentElement.style.cssText = "";
+  document.documentElement.classList.remove("dark");
+  for (const key of ["accent", "sidebarTheme", "density"]) {
+    delete document.documentElement.dataset[key];
+  }
 });
 
 describe("AppSidebar — parâmetros de pesquisa nos links", () => {
@@ -240,6 +246,43 @@ describe("AppSidebar — teclado na barra recolhida", () => {
 });
 
 describe("AppSidebar — contexto e perfil", () => {
+  it.each(["claro", "tinta"])(
+    "conserva o contexto ao alternar aparência com sidebar %s",
+    (sidebar) => {
+      currentPathname = "/faturas";
+      const view = renderSidebar();
+      fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+      fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+      const destinations = linksTo("/alunos");
+      expect(destinations.length).toBeGreaterThan(0);
+
+      const appearance: AppearanceState = {
+        mode: "light",
+        accent: "violeta",
+        sidebar,
+        radius: 0.875,
+        density: "comfortable",
+        shadcnTheme: "",
+        tweakcnTheme: "",
+        importedTheme: null,
+        customVars: {},
+        schoolBrand: null,
+        preferPersonalAccent: false,
+      };
+      applyAppearance(appearance);
+      const lightActive = document.documentElement.style.getPropertyValue("--sidebar-active");
+      expect(lightActive).not.toBe("");
+      applyAppearance({ ...appearance, mode: "dark", density: "compact" });
+      view.rerenderSidebar();
+      expect(document.documentElement.classList.contains("dark")).toBe(true);
+      expect(document.documentElement.dataset.density).toBe("compact");
+      expect(linksTo("/alunos")).toEqual(destinations);
+      expect(screen.getByRole("button", { name: "Voltar ao módulo" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Voltar ao módulo" }));
+      expect(linksTo("/faturas")).toHaveLength(1);
+      expect(linksTo("/alunos")).toHaveLength(0);
+    },
+  );
   it("conserva a escolha de áreas num rerender com a mesma pesquisa", () => {
     currentPathname = "/faturas";
     const view = renderSidebar();

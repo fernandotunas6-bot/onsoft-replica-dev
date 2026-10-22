@@ -1,0 +1,61 @@
+# Ligação do novo visual à navegação contextual
+
+Trabalho disponível na [PR #244](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/244),
+branch `refine/contextual-sidebar`. Comparações e limites no
+[relatório visual](../visual/2026-10-22/README.md).
+
+Este documento prepara a integração pedida com o trabalho de outro agente.
+A branch, PR ou imagens desse trabalho ainda não foram identificadas; não se
+declara que os dois visuais foram unidos. O visual existente continua a ser a base.
+
+## Onde aplicar o visual
+
+| Responsabilidade | Ponto existente | Compatibilidade a conservar |
+| --- | --- | --- |
+| Cores, densidade e raio | `src/lib/appearance.tsx`, `src/styles.css` | Usar tokens semânticos; manter as escolhas pessoais e a marca escolar |
+| Marca institucional | `src/lib/brand-tokens.ts` | Reutilizar a conversão existente e os dados da escola activa |
+| Sidebar e menus recolhidos | `src/components/layout/AppSidebar.tsx`, `NavItem.tsx` | Conservar contexto, links com pesquisa, portal Radix e retorno do foco |
+| Resolução do módulo | `src/features/auth/contextual-navigation.ts` | Continuar a receber o catálogo autorizado; não duplicar destinos |
+| Cabeçalhos e painéis | `src/components/layout/PageHeader.tsx` | Manter hierarquia curta, breadcrumbs e estatísticas recolhíveis acessíveis |
+| Cartões e indicadores | `src/components/ui/stat-card.tsx`, `src/components/ui/card.tsx` | Aplicar o acabamento partilhado e preservar tons de estado explícitos |
+| Pesquisa e filtros | `src/components/filters/ListFilterBar.tsx`, `src/components/filters/debounced-search-input.tsx` | Preservar debounce, parâmetros, rótulos e remoção individual de filtros |
+
+A navegação mobile continua a pertencer ao AppShell existente;
+não montar uma segunda sidebar ou uma segunda árvore de autorização.
+
+## Contrato de aparência existente
+
+`applyAppearance` aplica presets SIGA, Shadcn, Tweakcn e tema importado, nesta ordem.
+A marca escolar aplica-se quando não existe tema externo nem preferência por accent
+pessoal. As variáveis manuais sobrepõem as camadas anteriores; o raio escolhido é
+reaplicado no fim. O catálogo de temas carrega por `import()` e a geração mais
+recente impede que uma resposta tardia reponha uma aparência antiga.
+
+O novo acabamento deve usar `--background`, `--foreground`, `--border`,
+`--primary`, `--muted-foreground` e a família `--sidebar-*` existente. Para a
+selecção na sidebar, conservar `--sidebar-active`: o preset claro e os escuros já
+derivam valores diferentes. Não substituir essa regra por texto branco fixo.
+
+Mudar apenas tema ou densidade não deve fechar o módulo aberto, repor a lista de
+áreas ou mudar a página. Mudar rota, escola ou papel continua a actualizar o
+contexto. A visibilidade dos menus acompanha as permissões existentes; não
+substitui autorização de rota ou servidor.
+
+## Verificação ao receber a outra implementação
+
+1. Registar a branch/commit ou as imagens efectivamente recebidas e comparar os
+   ficheiros partilhados com esta PR antes de integrar.
+2. Aplicar os estilos nos pontos acima, conservando os comportamentos existentes;
+   resolver sobreposições sem substituir ficheiros inteiros de forma cega.
+3. Executar os testes de `sidebar-nav`, `contextual-navigation`,
+   `appearance-theme-catalogue`, `appearance-sem-ciclo-de-render`,
+   `page-header-breadcrumb-contract` e `shared-list-controls`.
+4. Comparar as mesmas páginas em 1440/834/390 px, incluindo sidebar recolhida,
+   teclado, tema claro/escuro, nomes longos e filtros. Distinguir ensaio controlado
+   de sessão escolar autenticada no relatório.
+
+Já existem testes de transição claro/escuro e densidade que renderizam a sidebar
+real com fronteiras de conta/router substituídas e preservam os destinos e a
+escolha de áreas. Estes testes verificam comportamento, não contraste renderizado.
+Os testes existentes de aparência cobrem o catálogo assíncrono e a precedência
+das variáveis. A comparação com o visual do outro agente permanece pendente.

@@ -114,3 +114,18 @@ de demonstração, não de uma sessão escolar autenticada:
 Build final do cliente, SSR e Nitro Cloudflare aprovado (código 0); ESLint sem erros, com um aviso preexistente de Fast Refresh. Não houve alterações de APIs,
 regras financeiras/académicas, permissões ou base de dados. O `tsc` global e a
 revisão autenticada continuam pendentes; sem merge ou deploy.
+
+## Continuação — compatibilidade para ligar o novo visual
+
+Foram documentados os [pontos de integração](../../design/CONTEXTUAL_VISUAL_INTEGRATION.md)
+para o trabalho do outro agente, com as camadas de aparência, componentes partilhados
+e comportamentos de navegação a preservar. A branch/PR ou imagens desse trabalho
+ainda não foram identificadas: a integração com esse visual não está concluída.
+
+Validação deste incremento: 26 testes aprovados em quatro ficheiros, incluindo dois
+casos novos com a sidebar real e `applyAppearance`. Alternar claro/escuro e densidade
+preserva a escolha de áreas e os destinos, com presets de sidebar claro e tinta.
+São testes de comportamento em jsdom, sem medição de contraste ou nova comparação
+visual. ESLint do teste alterado sem erros/avisos e zero diagnósticos TypeScript
+dirigidos aos mesmos 12 ficheiros. Não houve alteração do código de produção;
+o build aprovado no incremento anterior não foi repetido. Sem merge ou deploy.
