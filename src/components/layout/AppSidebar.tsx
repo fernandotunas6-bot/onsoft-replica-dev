@@ -102,9 +102,11 @@ export function AppSidebar({
   // Instituição só de Ensino Superior: «Estudantes» em vez de «Alunos».
   const higherEdOnly = isHigherEdOnly(school?.pedagogy?.teachingLevels ?? []);
   const visibleGroups = useMemo(() => {
-    const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
+    const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
+      isAlumni: currentUser.isAlumni,
+    });
     return higherEdOnly ? withHigherEdVocabulary(groups) : groups;
-  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
+  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly, currentUser.isAlumni]);
   // Memoizado para o efeito abaixo poder depender dele directamente. Antes
   // dependia só de `pathname`, o que deixava de fora a mudança de
   // `visibleGroups` (papel/grants/plano): os menus recém-visíveis não abriam.

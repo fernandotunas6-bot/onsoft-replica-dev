@@ -337,6 +337,20 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       );
     }
 
+    // Antigo aluno: só quem tem processo Alumni nesta escola vê o «Meu Portal Alumni»
+    // (antes aparecia a todos os alunos, também aos que ainda estudam).
+    let isAlumni = false;
+    if (membership?.schoolId && linkedEntities.person_id) {
+      const { data: alumniRow } = await db
+        .from("alumni_profiles")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("person_id", linkedEntities.person_id)
+        .limit(1)
+        .maybeSingle();
+      isAlumni = Boolean(alumniRow);
+    }
+
     const allAppRoles = [...(membership?.allAppRoles ?? [])];
     if (linkedEntities.student_id && !allAppRoles.includes("Aluno")) {
       allAppRoles.push("Aluno");
@@ -370,6 +384,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       roles: allAppRoles,
       grants,
       linkedEntities,
+      is_alumni: isAlumni,
       schools: userSchools,
     };
   });

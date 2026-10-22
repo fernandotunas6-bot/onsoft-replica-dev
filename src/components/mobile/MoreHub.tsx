@@ -32,8 +32,11 @@ export function MoreHub({
   const [query, setQuery] = React.useState("");
 
   const groups = React.useMemo(
-    () => getMoreHubGroups(currentUser.role, currentUser.grants, activePlan),
-    [currentUser.role, currentUser.grants, activePlan],
+    () =>
+      getMoreHubGroups(currentUser.role, currentUser.grants, activePlan, {
+        isAlumni: currentUser.isAlumni,
+      }),
+    [currentUser.role, currentUser.grants, activePlan, currentUser.isAlumni],
   );
 
   const filtered = React.useMemo(() => {

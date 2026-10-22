@@ -211,6 +211,8 @@ export function useCurrentAccount() {
     activeSchool,
     setActiveSchoolId,
     linkedEntities,
+    /** Tem processo Alumni nesta escola (vê o «Meu Portal Alumni»). */
+    isAlumni: Boolean(profile.data?.is_alumni),
     activeStudentId,
     activeStudent,
     setActiveStudentId,
