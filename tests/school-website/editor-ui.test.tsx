@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,6 +17,8 @@ vi.mock("@/features/school-website/content-server", () => ({
   getSchoolWebsiteEditor: mocks.load,
   changeSchoolWebsite: mocks.change,
 }));
+import { WebsiteThemePanel } from "@/features/school-website/WebsiteThemePanel";
+import type { WebsiteDraft } from "@/features/school-website/content-model";
 import { WebsiteSettingsPanel } from "@/features/school-website/WebsiteSettingsPanel";
 import {
   changeWebsiteState,
@@ -32,6 +35,24 @@ const mount = () => {
       </QueryClientProvider>,
     ),
   };
+};
+const mountAppearance = (initial: WebsiteDraft = readWebsiteState(null).draft) => {
+  let current = initial;
+  function Harness() {
+    const [draft, setDraft] = useState(initial);
+    return (
+      <WebsiteThemePanel
+        draft={draft}
+        schoolName="ISPAB"
+        busy={false}
+        onChange={(next) => {
+          current = next;
+          setDraft(next);
+        }}
+      />
+    );
+  }
+  return { ...render(<Harness />), getDraft: () => current };
 };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -282,8 +303,8 @@ it("instala um pacote compatível, rejeita código e mantém o tema activo até 
   expect(mocks.change).not.toHaveBeenCalled();
 });
 
-it("organiza opções avançadas e repõe apenas a secção escolhida antes de guardar", async () => {
-  mount();
+it("organiza opções avançadas e repõe apenas a secção escolhida no rascunho", async () => {
+  const view = mountAppearance();
   await screen.findByText("Temas e personalização");
   fireEvent.click(screen.getByText("Cabeçalho e identidade", { exact: true }));
   fireEvent.change(screen.getByLabelText("Superfície do cabeçalho"), {
@@ -295,10 +316,47 @@ it("organiza opções avançadas e repõe apenas a secção escolhida antes de g
   fireEvent.click(screen.getByRole("button", { name: "Repor cabeçalho e identidade" }));
   expect((screen.getByLabelText("Formato da marca") as HTMLSelectElement).value).toBe("");
   expect((screen.getByLabelText("Forma dos botões") as HTMLSelectElement).value).toBe("pill");
-  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
-  await waitFor(() => expect(mocks.change).toHaveBeenCalled());
-  expect(mocks.change.mock.calls[0][0].data).toMatchObject({
-    action: "save",
-    draft: { design: { overrides: { buttonShape: "pill" } } },
+  expect(view.getDraft().design?.overrides).toEqual({ buttonShape: "pill" });
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+
+it("pesquisa opções sem acentos e filtra apenas as personalizações sem publicar", async () => {
+  mountAppearance();
+  const search = await screen.findByLabelText("Pesquisar opções de aparência");
+  fireEvent.change(search, { target: { value: "rodape" } });
+  expect(screen.getByLabelText("Composição do rodapé")).toBeTruthy();
+  expect(screen.queryByLabelText("Tipo de letra do corpo")).toBeNull();
+  fireEvent.change(search, { target: { value: "botões cápsula" } });
+  fireEvent.change(screen.getByLabelText("Forma dos botões"), { target: { value: "pill" } });
+  fireEvent.change(search, { target: { value: "" } });
+  fireEvent.click(screen.getByLabelText("Mostrar apenas opções personalizadas"));
+  expect(screen.getByLabelText("Forma dos botões")).toBeTruthy();
+  expect(screen.queryByLabelText("Cor principal")).toBeNull();
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Repor botões e ligações" }));
+  expect(screen.getByText(/Nenhuma opção corresponde/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+  expect(screen.getByLabelText("Cor principal")).toBeTruthy();
+});
+it("mostra a herança real da página e permite remover uma cor personalizada individualmente", async () => {
+  const state = readWebsiteState(null);
+  const { parseWebsiteDesign } = await import("../../painel/escolas/src/design.mjs");
+  state.draft.design = parseWebsiteDesign({
+    activeTheme: "campus",
+    overrides: { buttonShape: "pill", primary: "#183d70" },
+    pages: { "/cursos/": { buttonShape: "square", primary: "#1558ee" } },
   });
+  mountAppearance(state.draft);
+  fireEvent.change(await screen.findByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  const shape = screen.getByLabelText("Forma dos botões") as HTMLSelectElement;
+  expect(shape.value).toBe("square");
+  expect(shape.options[0].text).toBe("Herdar (Cápsula)");
+  fireEvent.click(screen.getByRole("button", { name: "Herdar cor principal" }));
+  expect((screen.getByLabelText("Cor principal") as HTMLInputElement).value).toBe("#183d70");
+  expect((screen.getByLabelText("Página para pré-visualizar") as HTMLSelectElement).value).toBe(
+    "/cursos/",
+  );
+  expect(mocks.change).not.toHaveBeenCalled();
 });

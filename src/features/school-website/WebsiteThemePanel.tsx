@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,12 +32,13 @@ const defaultDesign = (): WebsiteDesign => ({
   overrides: {},
   pages: {},
 });
+const emptyPrograms: { id: string; name: string }[] = [];
 export function WebsiteThemePanel({
   draft,
   schoolName,
   busy,
   logoUrl,
-  programs = [],
+  programs = emptyPrograms,
   onChange,
 }: {
   draft: WebsiteDraft;
@@ -51,12 +52,56 @@ export function WebsiteThemePanel({
     themes = [...builtInThemes, ...design.installedThemes];
   const [scope, setScope] = useState(""),
     [error, setError] = useState(""),
-    [preview, setPreview] = useState(""),
+    [preview, setPreview] = useState<{ html: string; stamp: string; page: string } | null>(null),
+    [search, setSearch] = useState(""),
+    [customOnly, setCustomOnly] = useState(false),
     [previewPage, setPreviewPage] = useState("/"),
     [width, setWidth] = useState("desktop"),
     [loading, setLoading] = useState(false);
   const selected = themes.find((theme) => theme.id === design.activeTheme) ?? builtInThemes[0];
   const options = scope ? (design.pages[scope] ?? {}) : design.overrides;
+  const inherited = { ...selected.appearance, ...(scope ? design.overrides : {}) };
+  const stamp = useMemo(
+    () => JSON.stringify({ draft, schoolName, logoUrl, programs }),
+    [draft, schoolName, logoUrl, programs],
+  );
+  const normalize = (value: string) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replaceAll("transparencia", "transluc");
+  const query = normalize(search.trim());
+  const terms = query.split(/\s+/).filter(Boolean);
+  const matches = (value: string) =>
+    !terms.length || terms.every((term) => normalize(value).includes(term));
+  const customized = (key: keyof Appearance) => Object.hasOwn(options, key);
+  const filteredColors = colors.filter(
+    ([key, label]) =>
+      (!customOnly || customized(key)) && (matches(label) || matches("Cores e fundos")),
+  );
+  const filteredGroups = designOptionGroups
+    .map((group) => ({
+      ...group,
+      controls: group.controls.filter(
+        (control) =>
+          (!customOnly || customized(control.key)) &&
+          matches(
+            [
+              group.title,
+              group.description,
+              control.key,
+              control.label,
+              ...Object.values(control.values),
+            ].join(" "),
+          ),
+      ),
+    }))
+    .filter((group) => group.controls.length);
+  const customCount = Object.keys(options).length;
+  const visibleCount =
+    filteredColors.length +
+    filteredGroups.reduce((count, group) => count + group.controls.length, 0);
   const appearance = {
     ...selected.appearance,
     ...design.overrides,
@@ -64,7 +109,6 @@ export function WebsiteThemePanel({
   };
   const change = (next: WebsiteDesign) => {
     setError("");
-    setPreview("");
     onChange({ ...draft, design: next });
   };
   const adjust = (key: string, value: string) => {
@@ -126,21 +170,28 @@ export function WebsiteThemePanel({
     setError("");
     setLoading(true);
     try {
-      const { websiteDraftPreview } = await import("./website-preview");
+      const { websiteDraftPreview, loadWebsitePreviewWordmark } = await import("./website-preview");
+      const wordmark =
+        /^ISPAB/i.test(schoolName) && !logoUrl
+          ? await loadWebsitePreviewWordmark(window.location.origin)
+          : null;
       const values = { ...draft.values };
       for (const [key, id] of Object.entries(draft.programBindings)) {
         const program = programs.find((item) => item.id === id);
         if (program) values[key] = program.name;
       }
-      setPreview(
-        websiteDraftPreview(
+      setPreview({
+        html: websiteDraftPreview(
           { ...draft, values },
           previewPage,
           schoolName,
           window.location.origin,
           logoUrl,
+          wordmark,
         ),
-      );
+        stamp,
+        page: previewPage,
+      });
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Não foi possível preparar a pré-visualização.",
@@ -238,7 +289,10 @@ export function WebsiteThemePanel({
             id="website-design-scope"
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={scope}
-            onChange={(event) => setScope(event.target.value)}
+            onChange={(event) => {
+              setScope(event.target.value);
+              setPreviewPage(event.target.value || "/");
+            }}
           >
             <option value="">Todo o website</option>
             {routes
@@ -253,29 +307,104 @@ export function WebsiteThemePanel({
             As páginas herdam o tema geral. Ajustes específicos mantêm-se quando muda de tema.
           </p>
         </div>
-        <details className="rounded-lg border border-border p-3" open>
-          <summary className="cursor-pointer text-sm font-medium">Cores e fundos</summary>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {colors.map(([key, label]) => (
-              <div key={key} className="space-y-1">
-                <Label htmlFor={"theme-" + key}>{label}</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id={"theme-" + key}
-                    type="color"
-                    value={appearance[key]}
-                    onChange={(event) => adjust(key, event.target.value)}
-                    className="h-10 w-16 p-1"
-                  />
-                  <span className="text-xs text-muted-foreground">{appearance[key]}</span>
-                </div>
-              </div>
-            ))}
+        <div className="space-y-3 rounded-lg bg-muted/40 p-3">
+          <div className="space-y-1">
+            <Label htmlFor="website-design-search">Pesquisar opções de aparência</Label>
+            <Input
+              id="website-design-search"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Ex.: rodapé, transparência ou botões"
+            />
           </div>
-        </details>
-        {designOptionGroups.map((group) => (
-          <details key={group.title} className="rounded-lg border border-border p-3">
-            <summary className="cursor-pointer text-sm font-medium">{group.title}</summary>
+          <label htmlFor="website-design-custom-only" className="flex items-center gap-2 text-sm">
+            <input
+              id="website-design-custom-only"
+              aria-label="Mostrar apenas opções personalizadas"
+              type="checkbox"
+              checked={customOnly}
+              onChange={(event) => setCustomOnly(event.target.checked)}
+            />
+            Mostrar apenas opções personalizadas
+          </label>
+          <p className="text-xs text-muted-foreground" role="status">
+            {customCount} {customCount === 1 ? "personalização" : "personalizações"}{" "}
+            {scope ? "nesta página" : customCount === 1 ? "global" : "globais"}.{" "}
+            {scope
+              ? "As restantes opções herdam a aparência geral."
+              : "As restantes opções herdam o tema seleccionado."}
+            {(query || customOnly) &&
+              ` ${visibleCount} ${visibleCount === 1 ? "opção encontrada" : "opções encontradas"}.`}
+          </p>
+        </div>
+        {!filteredColors.length && !filteredGroups.length && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Nenhuma opção corresponde aos filtros.{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => {
+                setSearch("");
+                setCustomOnly(false);
+              }}
+            >
+              Limpar filtros
+            </button>
+          </p>
+        )}
+        {filteredColors.length > 0 && (
+          <details className="rounded-lg border border-border p-3" open>
+            <summary className="cursor-pointer text-sm font-medium">
+              Cores e fundos
+              {colors.some(([key]) => customized(key)) && (
+                <span className="ml-2 text-xs text-muted-foreground">· Personalizado</span>
+              )}
+            </summary>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {filteredColors.map(([key, label]) => (
+                <div key={key} className="space-y-1">
+                  <Label htmlFor={"theme-" + key}>{label}</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id={"theme-" + key}
+                      type="color"
+                      value={appearance[key]}
+                      onChange={(event) => adjust(key, event.target.value)}
+                      className="h-10 w-16 p-1"
+                    />
+                    <span className="text-xs text-muted-foreground">{appearance[key]}</span>
+                    {customized(key) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => adjust(key, "")}
+                        aria-label={"Herdar " + label.toLowerCase()}
+                      >
+                        Herdar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+        {filteredGroups.map((group) => (
+          <details
+            key={group.title}
+            className="rounded-lg border border-border p-3"
+            open={Boolean(query || customOnly)}
+          >
+            <summary className="cursor-pointer text-sm font-medium">
+              {group.title}
+              {designOptionGroups
+                .find((item) => item.title === group.title)
+                ?.controls.some((control) => customized(control.key)) && (
+                <span className="ml-2 text-xs text-muted-foreground">· Personalizado</span>
+              )}
+            </summary>
             <p className="mt-2 text-xs text-muted-foreground">{group.description}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {group.controls.map(({ key, label, values }) => (
@@ -287,7 +416,7 @@ export function WebsiteThemePanel({
                     value={options[key] ?? ""}
                     onChange={(event) => adjust(key, event.target.value)}
                   >
-                    <option value="">Herdar ({values[appearance[key]] ?? appearance[key]})</option>
+                    <option value="">Herdar ({values[inherited[key]] ?? inherited[key]})</option>
                     {Object.entries(values).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
@@ -303,7 +432,9 @@ export function WebsiteThemePanel({
               className="mt-3"
               onClick={() => {
                 const next = { ...options };
-                for (const { key } of group.controls) delete next[key];
+                for (const { key } of designOptionGroups.find((item) => item.title === group.title)!
+                  .controls)
+                  delete next[key];
                 change(
                   scope
                     ? { ...design, pages: { ...design.pages, [scope]: next } }
@@ -342,7 +473,6 @@ export function WebsiteThemePanel({
               value={previewPage}
               onChange={(event) => {
                 setPreviewPage(event.target.value);
-                setPreview("");
               }}
             >
               {routes
@@ -363,6 +493,7 @@ export function WebsiteThemePanel({
               onChange={(event) => setWidth(event.target.value)}
             >
               <option value="desktop">Desktop</option>
+              <option value="tablet">Tablet</option>
               <option value="mobile">Telemóvel</option>
             </select>
           </div>
@@ -379,16 +510,23 @@ export function WebsiteThemePanel({
       {preview && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Pré-visualização do rascunho. Ligações, formulários e animações estão desactivados nesta
-            janela.
+            Pré-visualização de{" "}
+            {routes.find((route) => route.url === preview.page)?.title ?? preview.page}. Ligações,
+            formulários e animações estão desactivados nesta janela.
           </p>
           <div className="overflow-auto rounded-lg border bg-muted">
+            {(preview.stamp !== stamp || preview.page !== previewPage) && (
+              <p role="status" className="p-3 text-sm">
+                A pré-visualização está desactualizada. Utilize Pré-visualizar rascunho para ver as
+                alterações actuais.
+              </p>
+            )}
             <iframe
               title="Pré-visualização do tema e conteúdos"
               sandbox=""
-              srcDoc={preview}
+              srcDoc={preview.html}
               style={{
-                width: width === "mobile" ? 390 : 1280,
+                width: width === "mobile" ? 390 : width === "tablet" ? 820 : 1280,
                 maxWidth: width === "mobile" ? "100%" : undefined,
                 height: 640,
                 border: 0,
