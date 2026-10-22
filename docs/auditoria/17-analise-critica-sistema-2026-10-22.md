@@ -96,6 +96,7 @@ leitura e que mais tarde ou mais cedo faz alguém confiar no ficheiro errado.
 - `mobile-flutter/` — 6 ficheiros Dart em `lib/`: um esqueleto
 - `estudo/yft-school-system/` — **90 ficheiros Dart de um sistema escolar inteiro**, com `android/`,
   `ios/`, `linux/`, `macos/`, `school-worker/` e os seus próprios testes Playwright, dentro do repo
+  (e a #108 volta a acrescentá-lo inteiro: 342 ficheiros, +55 573 linhas)
 - `services/import_engine/` — 3 ficheiros Python; `python/` — 6 mais
 
 Nove ficheiros de _lock_, quatro gestores de pacotes (`bun.lock`, `pnpm-lock.yaml` — este ainda
