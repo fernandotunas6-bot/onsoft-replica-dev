@@ -4,6 +4,10 @@ import pages from "@/features/school-website/site-pages.generated.json";
 // @ts-expect-error Public website intentionally uses native browser modules.
 import { setupAcademicPages } from "../../painel/escolas/src/academic-pages.mjs";
 
+// Em cache fria a avaliação dos módulos e a montagem das 18 páginas de curso
+// passam dos 5s por omissão. Mesmo limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 20_000 });
+
 afterEach(() => {
   document.body.innerHTML = "";
   vi.restoreAllMocks();
