@@ -28,11 +28,11 @@ A composição de demonstração em tablet/telemóvel verifica os componentes pa
 
 ## Validação e limites
 
-- Testes dirigidos de navegação, sidebar, apresentação e ausência de ciclo de render aprovados.
+- Ronda final: 49 testes em nove ficheiros aprovados (navegação, sidebar, apresentação, ausência de ciclo de render e repetição de dois ficheiros da suite global). O terceiro ficheiro repetido, `tests/enrollment/public-review-flow.test.tsx`, passou com dois testes: 51 testes nesta ronda final.
 - Chromium headless: seis capturas (antes/depois em 1440/834/390 px), sem erros JavaScript nem transbordo horizontal do documento. Alternância Todas as áreas/Voltar ao módulo e recolher a sidebar exercitadas. Inter local servido no ensaio.
 - ESLint dos ficheiros alterados: sem erros; avisos de Fast Refresh nos módulos que também exportam constantes.
-- Build Cloudflare concluído numa primeira passagem; repetição final após o ajuste de estabilidade em verificação.
-- TypeScript: primeira execução esgotou o heap padrão de 2 GB; repetição com 6 GB em verificação.
-- Suite completa em verificação; não confundir os testes dirigidos com aprovação global.
+- `npm run build`: build final de cliente, SSR e Nitro Cloudflare concluído com código 0.
+- TypeScript global inconclusivo: primeira execução esgotou o heap padrão de 2 GB; a tentativa limitada com heap de 5 GB não terminou em 180 segundos (código 124). Não equivale a aprovação de tipos.
+- Suite completa (`vitest run --maxWorkers=4`): 4048 aprovados, 19 ignorados e três falhas em 596 ficheiros (590 aprovados, três ignorados e três falhados). Os três ficheiros afectados passaram na repetição isolada com um worker e orçamento de 20 segundos por teste. Não se declara uma execução única da suite completamente verde.
 
 Pendente: sessão real, permissões dinâmicas entre escolas, dispositivos físicos, teclado/zoom e auditoria de todos os módulos e formulários extensos. Não houve deploy nem migrações de produção.
