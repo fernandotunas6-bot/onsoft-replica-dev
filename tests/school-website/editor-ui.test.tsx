@@ -233,3 +233,51 @@ it("guarda a taxa e o estilo por escola sem os publicar antecipadamente", async 
     draft: { admissionFeeAmount: 24000, bannerStyle: "prism" },
   });
 });
+
+it("selecciona um tema e opções por página no rascunho, preservando os campos e sem publicar automaticamente", async () => {
+  mount();
+  await screen.findByText("Temas e personalização");
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar Editorial" }));
+  fireEvent.change(screen.getByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  fireEvent.change(screen.getByLabelText("Efeitos de entrada"), { target: { value: "none" } });
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await waitFor(() => expect(mocks.change).toHaveBeenCalled());
+  expect(mocks.change.mock.calls[0][0].data).toMatchObject({
+    action: "save",
+    draft: {
+      values: {},
+      design: { activeTheme: "editorial", pages: { "/cursos/": { motion: "none" } } },
+    },
+  });
+});
+
+it("instala um pacote compatível, rejeita código e mantém o tema activo até ser escolhido", async () => {
+  const { builtInThemes } = await import("../../painel/escolas/src/design.mjs");
+  mount();
+  const upload = await screen.findByLabelText("Instalar tema compatível (.json)");
+  const packageFile = (value: unknown) => {
+    const file = new File([JSON.stringify(value)], "tema.json", { type: "application/json" });
+    Object.defineProperty(file, "text", { value: async () => JSON.stringify(value) });
+    return file;
+  };
+  fireEvent.change(upload, {
+    target: {
+      files: [packageFile({ ...builtInThemes[1], id: "custom-academia", name: "Academia" })],
+    },
+  });
+  await screen.findByRole("button", { name: "Aplicar Academia" });
+  expect(
+    screen.getByRole("button", { name: "Seleccionado no rascunho" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  fireEvent.change(upload, {
+    target: {
+      files: [packageFile({ ...builtInThemes[1], id: "custom-malicioso", script: "alert(1)" })],
+    },
+  });
+  expect((await screen.findByText(/opções desconhecidas/)).textContent).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Aplicar Academia" })).toBeTruthy();
+  expect(mocks.change).not.toHaveBeenCalled();
+});

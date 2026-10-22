@@ -11,6 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   document.body.innerHTML = "";
   document.documentElement.className = "";
+  delete document.documentElement.dataset.websiteMotion;
 });
 function mount(reduced = false) {
   document.body.innerHTML =
@@ -104,4 +105,13 @@ describe("destaques da página inicial", () => {
     vi.advanceTimersByTime(7000);
     expect(visible()).toBe("Comunidade");
   });
+});
+
+it("a escolha sem animações do tema pára a rotação automática e mantém os controlos manuais", () => {
+  document.documentElement.dataset.websiteMotion = "none";
+  mount(false);
+  vi.advanceTimersByTime(28000);
+  expect(visible()).toBe("Primeiro");
+  document.querySelector<HTMLButtonElement>('[aria-label="Destaque seguinte"]')!.click();
+  expect(visible()).toBe("Ingresso publicado");
 });

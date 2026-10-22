@@ -1,5 +1,18 @@
 import { z } from "zod";
 import manifestJson from "./template.json";
+import { parseWebsiteDesign, publishDesign } from "../../../painel/escolas/src/design.mjs";
+import routes from "../../../painel/escolas/docs/routes.json";
+const designSchema = z.unknown().transform((value, context) => {
+  try {
+    return parseWebsiteDesign(value);
+  } catch (error) {
+    context.addIssue({
+      code: "custom",
+      message: error instanceof Error ? error.message : "Tema inválido.",
+    });
+    return z.NEVER;
+  }
+});
 
 export type WebsiteField = {
   key: string;
@@ -61,6 +74,7 @@ export const websiteDraftSchema = z
       .default(""),
     admissionFeeAmount: z.number().int().min(0).max(100_000_000).nullable().optional(),
     bannerStyle: z.enum(["classic", "prism"]).optional(),
+    design: designSchema.optional(),
   })
   .strict();
 export type WebsiteDraft = z.infer<typeof websiteDraftSchema>;
@@ -92,6 +106,9 @@ export function validateWebsiteDraft(input: unknown): WebsiteDraft {
     if (field?.dataPath?.[0] !== "courses" || field.dataPath.at(-1) !== "name")
       throw new Error("A ligação académica deve indicar o nome de um curso do website.");
   }
+  for (const path of Object.keys(draft.design?.pages ?? {}))
+    if (!routes.some((route) => route.url === path))
+      throw new Error("A página visual não pertence ao website.");
   return draft;
 }
 const stateSchema = z.object({
@@ -175,6 +192,7 @@ export function publicWebsiteContent(state: WebsiteState) {
     values: content.values,
     admissionFeeAmount: content.admissionFeeAmount ?? null,
     bannerStyle: content.bannerStyle ?? "classic",
+    design: content.design ? publishDesign(content.design) : null,
   };
 }
 

@@ -10,6 +10,7 @@ import { actionIcons } from "@/lib/app-icons";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { changeSchoolWebsite, getSchoolWebsiteEditor } from "./content-server";
+import { WebsiteThemePanel } from "./WebsiteThemePanel";
 import { useDraftUnloadWarning } from "./use-draft-unload-warning";
 import {
   safePublicUrl,
@@ -167,7 +168,7 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-2">
         <h3 className="font-semibold">Website da {query.data?.school.name}</h3>
         <p className="text-sm text-muted-foreground">
-          Edite as páginas públicas existentes sem alterar o desenho do site. A autenticação e os
+          Edite os conteúdos e personalize a apresentação das páginas públicas. A autenticação e os
           dados académicos continuam no SIGA Plus.
         </p>
         <p className="text-xs text-muted-foreground">
@@ -346,6 +347,14 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
           </p>
         </div>
       </div>
+      <WebsiteThemePanel
+        draft={draft}
+        schoolName={query.data?.school.name ?? "Escola"}
+        logoUrl={query.data?.school.logo_url}
+        programs={query.data?.programs ?? []}
+        busy={busy || templateMismatch}
+        onChange={changeDraft}
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="website-group">Página ou conteúdo</Label>

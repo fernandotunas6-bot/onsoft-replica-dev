@@ -1,4 +1,5 @@
 import pagesJson from "./site-pages.generated.json";
+import { designAttributes } from "../../../painel/escolas/src/design.mjs";
 import { safePublicUrl } from "./content-model";
 import { schoolBlogArticle, schoolBlogCards, escapeWebsiteText as esc } from "./blog-view";
 import type { PublicSchoolBlogPost } from "./blog-model";
@@ -59,6 +60,18 @@ export function renderSchoolWebsite(
   const path = page.endsWith("/") ? page : page + "/";
   let html = pages[blog ? "/blog/" : path];
   if (!html) return null;
+  if (publication.design) {
+    const attributes = designAttributes(publication.design, path);
+    html = html.replace(
+      '<html lang="pt-AO">',
+      () =>
+        '<html lang="pt-AO" ' +
+        Object.entries(attributes)
+          .map(([key, value]) => key + '="' + esc(value) + '"')
+          .join(" ") +
+        ">",
+    );
+  }
   const displayName = site.name.slice(0, 40);
   html = html.replaceAll("ISPAB", () => esc(displayName));
   html = applyWebsiteValues(html, publication.values);

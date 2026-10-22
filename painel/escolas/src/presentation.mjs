@@ -1,3 +1,4 @@
+import {setupSchoolDesign} from './design.mjs';
 // Presentation additions deliberately preserve the approved image composition and CMS bindings.
 export function admissionFeeLabel(amount) {
   return Number.isSafeInteger(amount) && amount >= 0 && amount <= 100_000_000
@@ -20,6 +21,7 @@ export function admissionSummaryHTML(config, {completed = false} = {}) {
 }
 
 export function setupSchoolPresentation(config) {
+  setupSchoolDesign(config);
   const root = document.documentElement;
   root.dataset.bannerStyle = config?.bannerStyle === 'prism' ? 'prism' : 'classic';
   const loginStatus = document.querySelector('[data-siga-status]');

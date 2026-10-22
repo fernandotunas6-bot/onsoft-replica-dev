@@ -16,7 +16,7 @@ export function setupHomeHighlights({doc = document, win = window} = {}) {
   const media = win.matchMedia('(prefers-reduced-motion: reduce)'), disposers = [];
   const listen = (node, name, fn, opts) => {node.addEventListener(name, fn, opts);disposers.push(() => node.removeEventListener(name, fn, opts));};
   let index = 0, timer = 0, paused = false, hovered = false, visible = !win.IntersectionObserver, suspended = false, animation, pointer, playIntent = null, destroyed = false;
-  const reduced = () => media.matches || doc.documentElement.classList.contains('reduce-motion');
+  const reduced = () => media.matches || (doc.documentElement.classList.contains('reduce-motion') || doc.documentElement.dataset.websiteMotion === 'none');
   function schedule() {
     win.clearTimeout(timer);timer = 0;play.disabled = reduced();play.textContent = paused || reduced() ? '▷' : 'Ⅱ';
     play.setAttribute('aria-label', reduced() ? 'Rotação automática desactivada por preferência de movimento' : paused ? 'Reproduzir destaques' : 'Pausar destaques');
@@ -42,7 +42,7 @@ export function setupHomeHighlights({doc = document, win = window} = {}) {
   listen(hero, 'pointerup', event => {if (!pointer || pointer.id !== event.pointerId) return;const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;pointer = null;if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) show(index + (dx < 0 ? 1 : -1), true);});
   listen(media, 'change', () => {if (reduced()) animation?.cancel();schedule();});listen(doc, 'visibilitychange', schedule);
   listen(win, 'pagehide', () => {suspended = true;schedule();});listen(win, 'pageshow', () => {suspended = false;schedule();});
-  const preference = new win.MutationObserver(() => {if (reduced()) animation?.cancel();schedule();});preference.observe(doc.documentElement, {attributes: true, attributeFilter: ['class']});
+  const preference = new win.MutationObserver(() => {if (reduced()) animation?.cancel();schedule();});preference.observe(doc.documentElement, {attributes: true, attributeFilter: ['class','data-website-motion']});
   const observer = win.IntersectionObserver ? new win.IntersectionObserver(entries => {visible = entries.some(entry => entry.isIntersecting);schedule();}, {threshold: .15}) : null;observer?.observe(hero);
   show(0);
   return {destroy() {
@@ -60,7 +60,7 @@ export function setupHomeCardRails({doc = document, win = window} = {}) {
     const controls = doc.createElement('div');controls.className = 'home-rail-controls';
     const title = text(rail.closest('section')?.querySelector('h2')), previous = button(doc, `Anterior: ${title}`, '‹'), next = button(doc, `Seguinte: ${title}`, '›');controls.append(previous, next);rail.before(controls);rail.classList.add('home-card-rail');
     const update = () => {previous.disabled = rail.scrollLeft <= 2;next.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 2;};
-    const scroll = direction => rail.scrollBy({left: direction * (rail.firstElementChild.getBoundingClientRect().width + 16), behavior: win.matchMedia('(prefers-reduced-motion: reduce)').matches || doc.documentElement.classList.contains('reduce-motion') ? 'auto' : 'smooth'});
+    const scroll = direction => rail.scrollBy({left: direction * (rail.firstElementChild.getBoundingClientRect().width + 16), behavior: win.matchMedia('(prefers-reduced-motion: reduce)').matches || (doc.documentElement.classList.contains('reduce-motion') || doc.documentElement.dataset.websiteMotion === 'none') ? 'auto' : 'smooth'});
     const back = () => scroll(-1), forward = () => scroll(1);previous.addEventListener('click', back);next.addEventListener('click', forward);rail.addEventListener('scroll', update, {passive: true});
     const observer = win.ResizeObserver ? new win.ResizeObserver(update) : null;observer?.observe(rail);update();
     cleanups.push(() => {observer?.disconnect();previous.removeEventListener('click', back);next.removeEventListener('click', forward);rail.removeEventListener('scroll', update);controls.remove();rail.classList.remove('home-card-rail');});

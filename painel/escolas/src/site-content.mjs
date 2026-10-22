@@ -36,6 +36,7 @@ export async function connectSchoolWebsite(data){
     if(module)module.setupStudentPortal(config,{connected});else if(connected){const p=document.createElement('p');p.setAttribute('role','alert');p.textContent='Não foi possível abrir o portal. Recarregue esta página.';document.querySelector('main')?.append(p)}
   }
   if(!config.contentUrl)return config;
+  config.design=null;
   // Connected schools only display their own published fee and visual preference.
   config.admissionFeeAmount=null;config.bannerStyle='classic';
   try{
@@ -46,6 +47,7 @@ export async function connectSchoolWebsite(data){
     if(payload.apiVersion!==1||payload.templateVersion!==manifest.version||!payload.values||typeof payload.values!=='object')throw Error('version');
     config.admissionFeeAmount=Number.isSafeInteger(payload.admissionFeeAmount)&&payload.admissionFeeAmount>=0&&payload.admissionFeeAmount<=100_000_000?payload.admissionFeeAmount:null;
     config.bannerStyle=payload.bannerStyle==='prism'?'prism':'classic';
+    config.design=payload.design??null;
     if(payload.admissions){
       const destination=payload.admissions.isOpen&&typeof payload.admissions.path==='string'&&/^\/matricula\/[a-z0-9-]{2,80}$/.test(payload.admissions.path)?new URL(payload.admissions.path,url.origin).href:null;
       for(const link of document.querySelectorAll('a[href]'))if(new URL(link.href).pathname==='/candidatura/'){
