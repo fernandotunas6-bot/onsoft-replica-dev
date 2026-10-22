@@ -14,13 +14,18 @@ jobs:
   live:
     name: Ecossistema @live — comercial + matrícula
     runs-on: ubuntu-latest
+    environment: staging
+    env:
+      SIGA_E2E_ALLOW_WRITES: "1"
+      SIGA_E2E_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+      SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Verificar secrets Supabase
         id: secrets
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: |
           if [ -z "$SUPABASE_SECRET_KEY" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -57,9 +62,9 @@ jobs:
       - name: Configurar Supabase para E2E @live
         if: steps.secrets.outputs.skip != 'true'
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: node scripts/siga/prepare-ci-env.mjs
 
       - name: Arrancar ecossistema (4 apps)
@@ -75,7 +80,7 @@ jobs:
       - name: Pipeline @live (smoke + Python + Playwright TS)
         if: steps.secrets.outputs.skip != 'true'
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
           SIGA_E2E_LIVE: "1"
           CI: "true"
         run: node scripts/siga/e2e-ecosystem-live.mjs

@@ -981,6 +981,7 @@ export function ChatDock({
               {canAttach ? (
                 <PickFileButton
                   label="Anexar ficheiro da biblioteca"
+                  request={{ purpose: "message-attachment" }}
                   variant="ghost"
                   size="sm"
                   onPick={(file: SchoolFileRecord) =>

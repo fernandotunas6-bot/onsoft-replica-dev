@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Loader2 } from "lucide-react";
+import { FeedbackIcon } from "@/components/ui/feedback-icon";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,42 +30,51 @@ export function SaveBar({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-[35] border-t border-border bg-card/95 backdrop-blur-sm",
-        "px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]",
-        className,
-      )}
-    >
-      {autosaveState && autosaveState !== "idle" ? (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          {autosaveState === "saving" ? (
-            <>
-              <Loader2 className="size-3 animate-spin" aria-hidden /> A guardar…
-            </>
-          ) : (
-            <>
-              <Check className="size-3 text-success-strong" aria-hidden /> Guardado
-            </>
-          )}
-        </p>
-      ) : null}
-      <div className="flex gap-2">
-        {onCancel ? (
-          <Button type="button" variant="outline" className="h-11 flex-1" onClick={onCancel}>
-            Cancelar
-          </Button>
+    <>
+      {/* Evita que a barra fixa tape o último campo do formulário. */}
+      <div aria-hidden="true" className="pointer-events-none h-24 shrink-0 lg:h-20" />
+      <div
+        data-siga-save-bar=""
+        className={cn(
+          "fixed inset-x-0 bottom-above-nav z-40 border-t border-border bg-card/95 backdrop-blur-sm lg:bottom-0",
+          "px-4 pt-3 [padding-bottom:calc(0.75rem+env(safe-area-inset-bottom))]",
+          className,
+        )}
+      >
+        {autosaveState && autosaveState !== "idle" ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"
+          >
+            {autosaveState === "saving" ? (
+              <>
+                <FeedbackIcon state="processing" className="size-3" /> A guardar…
+              </>
+            ) : (
+              <>
+                <FeedbackIcon state="success" className="size-3 text-success-strong" /> Guardado
+              </>
+            )}
+          </p>
         ) : null}
-        <Button
-          type="button"
-          className="h-11 flex-[1.4]"
-          disabled={saving || !dirty}
-          onClick={onSave}
-        >
-          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          {saveLabel}
-        </Button>
+        <div className="flex gap-2">
+          {onCancel ? (
+            <Button type="button" variant="outline" className="h-11 flex-1" onClick={onCancel}>
+              Cancelar
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            className="h-11 flex-[1.4]"
+            disabled={!dirty}
+            loading={saving}
+            onClick={onSave}
+          >
+            {saveLabel}
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

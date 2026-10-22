@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {buildCalendar} from '../src/calendar.mjs';
+import {events} from '../src/data.mjs';
+const now=new Date('2026-10-20T12:00:00Z');
+const unfold=value=>value.replace(/\r\n[ \t]/g,'');
+const base={id:'example',title:'Evento de exemplo',date:'2026-01-01',time:'00:30 – 01:30',place:'Local de exemplo',description:'Texto ilustrativo'};
+const midnight=unfold(buildCalendar(base,{now}));
+assert(midnight.includes('DTSTART:20251231T233000Z\r\n'));
+assert(midnight.includes('DTEND:20260101T003000Z\r\n'));
+const overnight=unfold(buildCalendar({...base,date:'2026-12-31',time:'23:30 – 02:15'},{now}));
+assert(overnight.includes('DTSTART:20261231T223000Z\r\n'));
+assert(overnight.includes('DTEND:20270101T011500Z\r\n'));
+const title='Investigação; inovação, café 🎓 '.repeat(12)+'\r\nBEGIN:VALARM';
+const long=buildCalendar({...base,title,description:'A\\B,C;D\rE\nF\r\nG'},{now});
+for(const line of long.split('\r\n'))assert(Buffer.byteLength(line,'utf8')<=75,'ICS lines must fit 75 octets');
+const logical=unfold(long);
+assert(logical.includes('Investigação\\; inovação\\, café 🎓'));
+assert(logical.includes('\\nBEGIN:VALARM'));
+assert(!logical.split('\r\n').includes('BEGIN:VALARM'));
+assert(logical.includes('A\\\\B\\,C\\;D\\nE\\nF\\nG'));
+assert(long.endsWith('END:VCALENDAR\r\n'));
+for(const patch of [{date:'2026-02-30'},{time:'25:00 – 26:00'},{time:'15:00 – 15:00'},{id:'bad\r\nUID:injected'}])assert.throws(()=>buildCalendar({...base,...patch},{now}));
+const expected=[['20261105T140000Z','20261105T153000Z'],['20261112T090000Z','20261112T160000Z'],['20261119T130000Z','20261119T150000Z']];
+for(const [index,event] of events.entries()){
+  const exported=buildCalendar(event,{now}),text=unfold(exported);
+  assert(text.includes('DTSTART:'+expected[index][0]+'\r\n'));
+  assert(text.includes('DTEND:'+expected[index][1]+'\r\n'));
+  assert(text.includes('SUMMARY:[DEMONSTRAÇÃO] '));
+  assert(text.includes('UID:'+event.id+'-demo-2026@ispab.example\r\n'));
+  for(const line of exported.split('\r\n'))assert(Buffer.byteLength(line,'utf8')<=75);
+}
+console.log('Calendar checks passed: WAT, midnight/year boundaries, UTF-8 folding, escaping and sample events.');

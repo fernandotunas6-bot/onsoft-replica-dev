@@ -32,7 +32,7 @@ export const GRANT_ELEVATABLE_ROLES: readonly ApplicationRole[] = [
 const roleOnlyPrefixes = ["/financeiro/rh", "/configuracoes"] as const;
 
 export const accessModules = [
-  { key: "dashboard", label: "Dashboard", prefixes: ["/"] },
+  { key: "dashboard", label: "Dashboard", prefixes: ["/", "/portal"] },
   {
     key: "pessoas",
     label: "Pessoas / Alunos / Alumni",
@@ -65,7 +65,7 @@ export const accessModules = [
 
 const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   {
-    prefixes: ["/"],
+    prefixes: ["/", "/portal"],
     roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Encarregado", "Aluno"],
   },
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
