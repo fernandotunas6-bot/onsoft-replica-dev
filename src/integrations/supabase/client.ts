@@ -3,6 +3,7 @@ import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 import { brokeredPreviewStorage } from "./previewAuthStorage";
+import { sharedSessionStorage } from "./shared-session-storage";
 import { desktopSessionStorage, isDesktopSessionRuntime } from "@/lib/desktop-session-vault";
 import { assertPublishableSupabaseKey, isOpaqueSupabaseApiKey } from "./api-key";
 
@@ -62,7 +63,11 @@ function createSupabaseClient() {
     },
     auth: {
       // App desktop (Tauri): sessão no cofre nativo, aberto com o PIN do posto.
-      storage: isDesktopSessionRuntime() ? desktopSessionStorage() : brokeredPreviewStorage(),
+      // Nos subdomínios da plataforma, uma só sessão para todos (cookie do domínio-pai):
+      // mudar de escola deixava de ter sessão e pedia outra vez o código 2FA.
+      storage: isDesktopSessionRuntime()
+        ? desktopSessionStorage()
+        : sharedSessionStorage(brokeredPreviewStorage()),
       persistSession: true,
       autoRefreshToken: true,
     },
