@@ -24,6 +24,8 @@ import {
   cancelPaymentPlanInputSchema,
   upsertFeePlanSettingsInputSchema,
   syncStudentToPayflowInputSchema,
+  paidOnDateSchema,
+  paidAtFromPaidOn,
 } from "./schemas";
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
@@ -897,6 +899,11 @@ const paymentReferenceInputSchema = z.object({
   invoiceId: z.string().uuid(),
   /** Sem valor, a referência é do que falta pagar (com a multa de um pagamento hoje). */
   amount: z.number().positive().max(100_000_000).optional(),
+  /**
+   * Dia em que a família pagou (comprovativo). A multa é a desse dia, não a de hoje:
+   * confirmar tarde um pagamento feito dentro da tolerância não pode criar multa.
+   */
+  paidOn: paidOnDateSchema.optional(),
 });
 
 export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
@@ -937,7 +944,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     // A referência é paga electronicamente: se hoje já é depois da tolerância, a liquidação
     // (webhook ou confirmação manual) aplica a multa, e a referência tem de a incluir.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
-    const lateFee = lateFeeFor(invoice, billing, todayIso(), "electronic");
+    const lateFee = lateFeeFor(invoice, billing, data.paidOn ?? todayIso(), "electronic");
     const due = Math.round((invoiceNetTotal(invoice) + lateFee - alreadyPaid) * 100) / 100;
     if (due <= 0.009) throw new Error("Esta fatura já não tem valor por pagar.");
     const amount = data.amount ?? due;
@@ -974,6 +981,8 @@ const confirmManualPaymentInputSchema = z.object({
   amount: z.number().positive().max(100_000_000),
   reference: z.string().trim().min(3).max(40),
   method: z.string().trim().max(40).optional(),
+  /** Dia do pagamento no comprovativo; sem ele, hoje. */
+  paidOn: paidOnDateSchema.optional(),
 });
 
 export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
@@ -993,6 +1002,7 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
         invoiceId: data.invoiceId,
         amount: data.amount,
         method: data.method ?? "multicaixa_express",
+        ...(data.paidOn ? { paidAt: paidAtFromPaidOn(data.paidOn) } : {}),
         receiptNumber: `MCX-CONF-${data.reference.replace(/\s+/g, "")}`,
       },
     });
