@@ -109,3 +109,26 @@ Revisão de código dos fluxos com dados reais, confirmada contra as funções e
 `docs/agents/SIGA_confirmar_migracoes.sql` (manter as duas sondas). Resultado: `tsc` limpo,
 **4001 testes aprovados** (586 ficheiros), eslint 0 erros. O nome da migração na PR
 (`20261014121549`) coincide com o aplicado em produção. Nada foi enviado.
+
+## 7. Execução — 22/10
+
+| Item           | Estado                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-02 / PR #139 | `main` fundida no ramo da PR (conflito único resolvido), CI verde. **Falta fundir** — exige autorização (dispara o deploy).                                                                                                                                                                                                                                                       |
+| F-03 / PR #144 | Migração **aplicada na produção** como `20261022081131_timetable_guard_alignment`. Verificado: `authenticated` sem `EXECUTE` nas duas RPCs, `service_role` com; gatilho com `private.timetable_room_is_explicit`. A app só chama as RPCs com a chave de serviço (`advanced-academic-server.ts`). Ramo da PR por actualizar (renomear o ficheiro para a versão aplicada) e fundir. |
+| F-09           | Corrigido neste ramo: data do comprovativo no cartão da referência e na confirmação; testes em `tests/finance/manual-payment-date.test.tsx` (falham sem a correcção).                                                                                                                                                                                                             |
+| F-11           | Índice **aplicado na produção** (`20261022081401`); o plano passa a `Index Scan using audit_logs_issued_document_code_idx`.                                                                                                                                                                                                                                                       |
+| F-01           | Depende do dono da conta Cloudflare (token novo).                                                                                                                                                                                                                                                                                                                                 |
+| F-07           | Protecção de passwords comprometidas: Supabase → Authentication → Providers/Policies → activar. Não exposto pela API usada aqui.                                                                                                                                                                                                                                                  |
+
+### Triagem das PRs abertas (medido contra `main` @ `fdf6d95`)
+
+"Por integrar" = ficheiros da PR ainda diferentes na `main`.
+
+| Grupo                               | PRs                                                                                                                                    | Recomendação                                             |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Prontas, sem conflito               | #139 (CI verde), #144, #208 (2 fich.), #209 (só doc), #126 (5 fich.)                                                                   | Fundir, por esta ordem                                   |
+| Sem conflito, decisão de produto    | #148 numeração (45 fich., precisa de migração), #108 BBB (draft), #151/#152/#153 YFT, #212 YFT+Flutter, #213 ISPAB demo, #217 agentes  | Rever uma a uma; #148 antes de #211/#212                 |
+| Ultrapassadas pela `main`           | #129 (só sobra retrato/tipos antigos), #131 (formatação Flutter já feita), #135 (sobram relatórios Lighthouse e retrato antigos), #134 | Fechar                                                   |
+| Arquitectura alternativa do website | #200, #205, #206 (59 ficheiros que a `main` não tem; a `main` seguiu `src/features/school-website`)                                    | Fechar ou extrair o que faltar                           |
+| Em conflito e grandes               | #35, #87, #116, #118, #119, #121, #128, #130, #132, #133, #136, #154, #210, #211                                                       | Reabrir só as que ainda se querem, sobre a `main` actual |
