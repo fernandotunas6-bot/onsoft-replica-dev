@@ -208,3 +208,38 @@ A contribuição de interacção da #245 está integrada nesta branch. A reprodu
 exacta de imagens de outra conversa não foi confirmada. Sessão real, teclado
 virtual, leitores de ecrã, dispositivos físicos e `tsc` global continuam pendentes.
 Sem integração em main, deploy ou migrações.
+
+## Continuação — estados vazios, tabelas e paginação
+
+Sincronizada a PR #245 até `1d4b6d37`, incorporando os rótulos portugueses da
+paginação e os testes adicionais de menus. A combinação não teve conflitos.
+
+- `EmptyState` deixa de acrescentar uma segunda moldura e superfície dentro do
+  painel que o contém. O ícone por omissão é neutro e o espaçamento é mais contido;
+  a mascote de primeiro uso, conteúdo e acções existentes permanecem.
+- Títulos/referências longos quebram linha e a acção fornecida por `actionLabel`
+  ajusta a altura. Descrições só com espaços deixam de criar um parágrafo vazio.
+- `DataTableShell` fica sem sombra decorativa e acomoda cabeçalho/rodapé estreitos,
+  mantendo a região de deslocação horizontal focável. A tabela continua a mostrar
+  todas as colunas por deslocação; não foram removidos registos ou campos.
+- A paginação usa português, mantém os links e os rótulos personalizados e pode
+  quebrar linha quando não cabe na largura disponível.
+
+| Ensaio de componentes reais | Antes | Depois |
+| --- | --- | --- |
+| Desktop 1440 px | [Antes](lists-before-1440.png) | [Depois](lists-after-1440.png) |
+| Telemóvel 390 px | [Antes](lists-before-390.png) | [Depois](lists-after-390.png) |
+
+Dados fictícios: referência longa sem espaços, acções extensas e tabela de quatro
+registos com largura mínima de 900 px. Chromium em 320/390/834/1440 px: o transbordo
+do documento reproduzido em 320/390 px na versão anterior deixa de ocorrer.
+Após o refinamento, acções visíveis, limpeza de filtros de demonstração, deslocação
+da tabela por seta do teclado e destino do link Seguinte aprovados nas quatro
+larguras; sem erros JavaScript. [Resultados](lists-results.json).
+
+17 testes aprovados em cinco ficheiros (densidade/estado vazio, layout responsivo,
+paginação, movimento de menus e controlos de listas). ESLint dos cinco ficheiros
+de código/testes desta ronda sem erros/avisos; zero diagnósticos TypeScript dirigidos
+aos 23 ficheiros de código/testes acumulados na PR. As limitações da verificação
+global e da sessão autenticada continuam a aplicar-se. Sem main, deploy ou migrações.
+Build final de cliente, SSR e Nitro Cloudflare aprovado (código 0).

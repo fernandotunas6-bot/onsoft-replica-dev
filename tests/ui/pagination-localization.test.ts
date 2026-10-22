@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   Pagination,
-  PaginationContent,
   PaginationEllipsis,
   PaginationNext,
   PaginationPrevious,
@@ -30,20 +29,7 @@ describe("paginação institucional", () => {
     expect(html).toContain('href="/alunos?page=3"');
   });
 
-  it("mantém a listagem de páginas deslocável em ecrãs estreitos", () => {
-    const html = renderToStaticMarkup(
-      React.createElement(
-        Pagination,
-        null,
-        React.createElement(PaginationContent, null, React.createElement(PaginationEllipsis)),
-      ),
-    );
-    expect(html).toContain("max-w-full");
-    expect(html).toContain("overflow-x-auto");
-    expect(html).toContain("overscroll-x-contain");
-  });
-
-  it("anuncia a existência de mais páginas sem ler o ícone", () => {
+  it("anuncia mais páginas sem ler o ícone decorativo", () => {
     const html = renderToStaticMarkup(React.createElement(PaginationEllipsis));
     expect(html).not.toMatch(/<span[^>]*aria-hidden/);
     expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
