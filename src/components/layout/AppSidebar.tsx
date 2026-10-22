@@ -256,9 +256,16 @@ export function AppSidebar({
                     </span>
                   ) : null}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
-                  <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
-                </DropdownMenuItem>
+                {canAccessPath(
+                  "/configuracoes",
+                  currentUser.role,
+                  currentUser.grants,
+                  activePlan,
+                ) ? (
+                  <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
+                    <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
                     <PlusCircle className="size-4 text-primary" /> Criar escola (WEB)

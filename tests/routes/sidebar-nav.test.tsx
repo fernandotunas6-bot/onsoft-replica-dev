@@ -72,6 +72,7 @@ const contas: Record<string, unknown> = {
     avatarUrl: null,
     schools: [],
     schoolName: "Escola Teste",
+    schoolId: "school-a",
     roles: ["Administrador"],
     setActiveRole: () => {},
   },
@@ -84,6 +85,7 @@ const contas: Record<string, unknown> = {
     avatarUrl: null,
     schools: [],
     schoolName: "Escola Teste",
+    schoolId: "school-a",
     roles: ["Aluno"],
     setActiveRole: () => {},
   },
@@ -123,11 +125,13 @@ beforeAll(async () => {
 
 function renderSidebar(collapsed = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  return render(
+  const tree = () => (
     <QueryClientProvider client={client}>
       <AppSidebar collapsed={collapsed} />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const view = render(tree());
+  return { ...view, rerenderSidebar: () => view.rerender(tree()) };
 }
 
 /** Todos os links da barra que apontam para um dado caminho. */
@@ -147,6 +151,7 @@ function linksTo(path: string) {
 afterEach(() => {
   cleanup();
   papel = "Administrador";
+  (contas.Administrador as { schoolId: string }).schoolId = "school-a";
   currentPathname = "/pedagogica";
   currentSearch = {};
   localStorage.clear();
@@ -232,4 +237,47 @@ describe("AppSidebar — teclado na barra recolhida", () => {
     fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   });
+});
+
+describe("AppSidebar — contexto e perfil", () => {
+  it("conserva a escolha de áreas num rerender com a mesma pesquisa", () => {
+    currentPathname = "/faturas";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    currentSearch = { ...currentSearch };
+    view.rerenderSidebar();
+    expect(screen.getByRole("button", { name: "Voltar ao módulo" })).toBeTruthy();
+  });
+  it("regressa ao contexto ao mudar de escola", () => {
+    currentPathname = "/faturas";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    (contas.Administrador as { schoolId: string }).schoolId = "school-b";
+    view.rerenderSidebar();
+    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Gestão de Alunos" })).toBeNull();
+  });
+  it("retira as áreas administrativas ao mudar para o perfil de aluno", () => {
+    currentPathname = "/portal";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+    papel = "Aluno";
+    view.rerenderSidebar();
+    expect(screen.queryByRole("button", { name: "Gestão de Alunos" })).toBeNull();
+    expect(linksTo("/acessos")).toHaveLength(0);
+  });
+  it.each(["Administrador", "Aluno"])(
+    "Configurações da Escola respeita o perfil %s",
+    async (role) => {
+      papel = role;
+      const view = renderSidebar();
+      const trigger = view.container.querySelector<HTMLButtonElement>(
+        "[data-sidebar-header-account]",
+      )!;
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      await screen.findByRole("menu");
+      const settings = screen.queryByRole("menuitem", { name: "Configurações da Escola" });
+      expect(Boolean(settings)).toBe(role === "Administrador");
+    },
+  );
 });

@@ -62,11 +62,15 @@ export function PageHeader({
       <IconChip icon={icon} tone="muted" size="md" label={title} />
     ) : null);
 
+  const groupLabel = group.trim();
+  const showGroup =
+    Boolean(groupLabel) &&
+    groupLabel.localeCompare(title.trim(), "pt", { sensitivity: "accent" }) !== 0;
   const trail: PageCrumb[] =
     crumbs ??
     ([
       { label: "Início", to: "/portal" },
-      { label: group },
+      ...(showGroup ? [{ label: groupLabel }] : []),
       { label: title },
     ] satisfies PageCrumb[]);
 
@@ -84,10 +88,10 @@ export function PageHeader({
                 <Fragment key={`${crumb.label}-${index}`}>
                   {index > 0 ? <BreadcrumbSeparator className="[&>svg]:size-3" /> : null}
                   <BreadcrumbItem className="gap-1.5">
-                    {isLast || !crumb.to ? (
-                      <BreadcrumbPage className={cn(!isLast && "text-muted-foreground")}>
-                        {crumb.label}
-                      </BreadcrumbPage>
+                    {isLast ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : !crumb.to ? (
+                      <span className="text-muted-foreground">{crumb.label}</span>
                     ) : (
                       <BreadcrumbLink asChild>
                         <Link to={crumb.to} search={crumb.search}>
@@ -108,16 +112,18 @@ export function PageHeader({
           <div className="min-w-0 flex-1">
             {/* O grupo já aparece no caminho de navegação; repeti-lo em
                 maiúsculas por cima do título era ruído. */}
-            {hideBreadcrumb ? (
+            {hideBreadcrumb && showGroup ? (
               <p className="text-xs font-medium text-muted-foreground">{group}</p>
             ) : null}
             <h1 className="break-words font-display text-[20px] font-semibold leading-tight tracking-tight md:text-[24px]">
               {title}
             </h1>
-            <ShortDescription
-              text={description}
-              className="mt-1.5 max-w-2xl break-words text-sm leading-relaxed text-muted-foreground"
-            />
+            {description.trim() ? (
+              <ShortDescription
+                text={description}
+                className="mt-1.5 max-w-2xl break-words text-sm leading-relaxed text-muted-foreground"
+              />
+            ) : null}
           </div>
         </div>
         {actions ? (

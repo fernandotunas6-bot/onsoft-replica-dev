@@ -66,3 +66,25 @@ Validação deste incremento:
 - ESLint dos dois ficheiros alterados neste incremento: código 0, sem erros ou avisos.
 
 A revisão autenticada e a verificação global continuam pendentes. Sem deploy.
+
+## Continuação — cabeçalhos e contexto por perfil
+
+- O breadcrumb por omissão deixa de repetir o grupo quando coincide com o título
+  (incluindo diferenças de espaços e maiúsculas), e omite grupos vazios.
+- Só a última entrada recebe `aria-current="page"`. Grupos sem destino são texto
+  de contexto; breadcrumbs explícitos mantêm caminhos e parâmetros.
+- Descrições vazias deixam de acrescentar um parágrafo e margem ao cabeçalho.
+- «Configurações da Escola» no menu institucional usa a política existente para
+  aparecer apenas a quem pode abrir a área; o backend não foi alterado.
+- Testes de rerender confirmam que uma pesquisa equivalente conserva a escolha de
+  áreas; mudar de escola repõe o contexto; mudar para Aluno retira áreas administrativas.
+
+Validação: 55 testes aprovados em sete ficheiros; diagnóstico sintáctico e semântico
+com a API TypeScript dos oito ficheiros de código/testes da PR = zero. Os testes do
+cabeçalho renderizam o componente real, substituindo o teste antigo que reproduzia
+uma lista de breadcrumbs sem exercitar a interface. As capturas controladas em
+1440/834/390 px foram repetidas sem erros JavaScript ou transbordo do documento;
+Enter/setas/Escape e retorno do foco mantêm-se aprovados. ESLint sem erros (aviso
+preexistente de Fast Refresh em `PageHeader.tsx`). Build final do cliente, SSR e Nitro Cloudflare concluído com código 0.
+
+Continuam pendentes a revisão autenticada e o `tsc` global. Sem merge ou deploy.
