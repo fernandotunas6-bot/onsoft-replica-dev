@@ -79,3 +79,33 @@ Nenhum módulo tem prova E2E autenticada (continua a faltar staging — AUD360-0
 Sem staging nem sessão autenticada: nada aqui prova que um fluxo funciona de ponta a ponta no
 browser. As contagens são estimativas do Postgres. Não foi feito deploy, migração nem alteração
 de configuração.
+
+## 6. Segunda passagem — fluxos em uso (22/10, tarde)
+
+Revisão de código dos fluxos com dados reais, confirmada contra as funções em produção
+(`pg_get_functiondef`, só leitura) e contra o build de produção (`bun run build`).
+
+| ID   | Nível  | Constatação                                                                                                                                                                                                                                                                                                                                                                                                                     | Evidência                                                                                                                                                           |
+| ---- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-09 | **P2** | **Multa indevida na confirmação manual Multicaixa.** `confirmManualMulticaixaPayment` não recebe a data do pagamento; `recordInvoicePayment` usa `paidOnIso(undefined)` = hoje. Se a família pagou dentro da tolerância e a tesouraria confirma depois, `private.late_fee_due` aplica a multa. Além disso o cartão volta a gerar a referência ao abrir, já com a multa de hoje, e é esse valor (não o pago) que fica no recibo. | `src/features/finance/server.ts:952-1003`, `late-fee.ts:84`, `PaymentReferenceCard.tsx:59`. Correcção pequena: campo opcional `paidAt` no esquema e na confirmação. |
+| F-10 | P3     | A referência Multicaixa confirmada não fica no recibo (só na descrição do arquivo). Em pagamentos parciais, a mesma referência pode ser confirmada duas vezes sem aviso; a conciliação depende de ler texto livre.                                                                                                                                                                                                              | `register_payment` não recebe referência; `finance_receipts` sem coluna para ela.                                                                                   |
+| F-11 | P3     | **Verificação pública de documentos sem índice.** `verifyIssuedDocument` procura `audit_logs` por `action` + `metadata->>'code'`; não há índice para isso, logo cada pedido percorre ~15,8 mil linhas (e a tabela só cresce). Tem limite por IP, por isso não é urgente. Sugestão: índice parcial `((metadata->>'code')) WHERE action = 'documents.issued'`.                                                                    | `pg_indexes` de `audit_logs`; 7 documentos emitidos e verificáveis.                                                                                                 |
+| F-12 | info   | O "bypass" de limites de pedidos (`isRateLimitBypassed`) aceita valores do cliente que contenham `siga-plus.test`. **No build de produção o código é removido** (`NODE_ENV` substituído estaticamente; nem `siga-plus.test` nem `SIGA_E2E_LIVE` aparecem em `.output/server`). Só é activo em builds de desenvolvimento — não usar `build:dev` em nada público.                                                                 | grep em `.output/server`.                                                                                                                                           |
+
+**Verificado e correcto:**
+
+- `private.register_payment`: bloqueia a factura (`FOR UPDATE`), exige 2FA e
+  `finance.payments.create`, valida o saldo e numera o recibo atomicamente.
+- Regra da multa coerente entre a referência (`electronic`) e o registo (`multicaixa` → `card`).
+- `cancelInvoice`: 2FA, recusa facturas com recibos, actualização condicional ao estado lido.
+- Matrícula pública: limite partilhado de 10/h por IP, formulário aberto e escola activa
+  verificados em leitura e em submissão, curso validado contra a escola.
+- **AUD360-11 fechado:** e-mails reservados (`.test`, `.example`…) só dispensam confirmação
+  com `isIsolatedSignupTestTarget` (`canUseReservedSignupEmail`).
+- RLS do professor (F-02): a política com `user_wide_reader_school_ids` está activa em
+  `students_read`, `people_read` e `enrollments_read` na produção.
+
+**PR #139 ensaiada:** fundida localmente sobre `main` @ `fdf6d95`. Um único conflito, em
+`docs/agents/SIGA_confirmar_migracoes.sql` (manter as duas sondas). Resultado: `tsc` limpo,
+**4001 testes aprovados** (586 ficheiros), eslint 0 erros. O nome da migração na PR
+(`20261014121549`) coincide com o aplicado em produção. Nada foi enviado.
