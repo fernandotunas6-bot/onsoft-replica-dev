@@ -26,7 +26,7 @@ describe("interacção dos componentes partilhados", () => {
       </Dialog>,
     );
     const close = screen.getByRole("button", { name: "Fechar" });
-    expect(close.className).toContain("size-11");
+    expect(close.className).toContain("size-[44px]");
     expect(close.className).toContain("focus-visible:ring-2");
     expect(close.querySelector("svg")?.classList.contains("h-4")).toBe(true);
     fireEvent.click(close);
@@ -47,7 +47,7 @@ describe("interacção dos componentes partilhados", () => {
     expect(panel.className).toContain("motion-safe:data-[state=open]:duration-200");
     expect(panel.className).toContain("motion-reduce:transition-none");
     const close = screen.getByRole("button", { name: "Fechar" });
-    expect(close.className).toContain("size-11");
+    expect(close.className).toContain("size-[44px]");
     fireEvent.click(close);
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
