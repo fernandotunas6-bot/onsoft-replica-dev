@@ -16,7 +16,14 @@ Pagination.displayName = "Pagination";
 
 const PaginationContent = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(
   ({ className, ...props }, ref) => (
-    <ul ref={ref} className={cn("flex min-w-0 max-w-full flex-row items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:thin]", className)} {...props} />
+    <ul
+      ref={ref}
+      className={cn(
+        "flex min-w-0 max-w-full flex-row items-center gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:thin]",
+        className,
+      )}
+      {...props}
+    />
   ),
 );
 PaginationContent.displayName = "PaginationContent";
@@ -76,10 +83,7 @@ const PaginationNext = ({ className, ...props }: React.ComponentProps<typeof Pag
 PaginationNext.displayName = "PaginationNext";
 
 const PaginationEllipsis = ({ className, ...props }: React.ComponentProps<"span">) => (
-  <span
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
+  <span className={cn("flex h-9 w-9 items-center justify-center", className)} {...props}>
     <MoreHorizontal aria-hidden="true" className="h-4 w-4" />
     <span className="sr-only">Mais páginas</span>
   </span>
