@@ -281,3 +281,24 @@ it("instala um pacote compatível, rejeita código e mantém o tema activo até 
   expect(screen.getByRole("button", { name: "Aplicar Academia" })).toBeTruthy();
   expect(mocks.change).not.toHaveBeenCalled();
 });
+
+it("organiza opções avançadas e repõe apenas a secção escolhida antes de guardar", async () => {
+  mount();
+  await screen.findByText("Temas e personalização");
+  fireEvent.click(screen.getByText("Cabeçalho e identidade", { exact: true }));
+  fireEvent.change(screen.getByLabelText("Superfície do cabeçalho"), {
+    target: { value: "glass" },
+  });
+  fireEvent.change(screen.getByLabelText("Formato da marca"), { target: { value: "text" } });
+  fireEvent.click(screen.getByText("Botões e ligações", { exact: true }));
+  fireEvent.change(screen.getByLabelText("Forma dos botões"), { target: { value: "pill" } });
+  fireEvent.click(screen.getByRole("button", { name: "Repor cabeçalho e identidade" }));
+  expect((screen.getByLabelText("Formato da marca") as HTMLSelectElement).value).toBe("");
+  expect((screen.getByLabelText("Forma dos botões") as HTMLSelectElement).value).toBe("pill");
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await waitFor(() => expect(mocks.change).toHaveBeenCalled());
+  expect(mocks.change.mock.calls[0][0].data).toMatchObject({
+    action: "save",
+    draft: { design: { overrides: { buttonShape: "pill" } } },
+  });
+});

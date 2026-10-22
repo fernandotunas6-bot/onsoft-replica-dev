@@ -1,10 +1,14 @@
 import {sitePathname} from './site-urls.mjs';
 export const appearanceChoices = {
   layout:['campus','editorial','minimal'], radius:['original','rounded','square'],
-  motion:['original','fade','rise','none'], photos:['original','clean','framed'], header:['contextual','full']
+  motion:['original','fade','rise','zoom','none'], photos:['original','clean','framed'], header:['contextual','full']
 };
+const advancedChoices = {'headerSurface': ['original', 'solid', 'glass', 'tinted'], 'headerPosition': ['original', 'sticky', 'static'], 'headerDensity': ['original', 'compact', 'comfortable'], 'utilityBar': ['original', 'visible', 'hidden'], 'menuStyle': ['original', 'plain', 'soft', 'outlined'], 'brandMode': ['original', 'text'], 'brandStyle': ['original', 'clean', 'serif', 'boxed', 'gradient'], 'footerLayout': ['original', 'compact', 'center'], 'footerSurface': ['original', 'solid', 'gradient'], 'fontBody': ['original', 'system', 'humanist', 'editorial'], 'fontHeading': ['original', 'system', 'editorial'], 'textScale': ['original', 'comfortable', 'large'], 'lineHeight': ['original', 'compact', 'relaxed'], 'textAlign': ['original', 'left', 'center', 'justify'], 'textMeasure': ['original', 'narrow', 'wide'], 'headingStyle': ['original', 'plain', 'underline'], 'letterSpacing': ['original', 'tight', 'open'], 'sectionSpacing': ['original', 'compact', 'airy'], 'contentWidth': ['original', 'narrow', 'wide'], 'cardStyle': ['original', 'flat', 'elevated', 'bordered'], 'panelSurface': ['original', 'solid', 'glass'], 'imageShape': ['original', 'square', 'rounded', 'arch'], 'imageRatio': ['original', 'landscape', 'portrait'], 'bandStyle': ['original', 'solid', 'gradient', 'diagonal', 'layered'], 'decoration': ['original', 'subtle', 'none'], 'buttonStyle': ['original', 'solid', 'outline', 'soft'], 'buttonSize': ['original', 'compact', 'large'], 'buttonHover': ['original', 'none', 'lift', 'glow'], 'buttonIcon': ['original', 'visible', 'hidden'], 'linkStyle': ['original', 'underline', 'animated'], 'motionSpeed': ['original', 'quick', 'calm']};
+Object.assign(advancedChoices,{headingWeight:['original','regular','medium','strong'],buttonShape:['original','square','rounded','pill'],bandMotion:['original','none','drift']});
+Object.assign(appearanceChoices,advancedChoices);
+const advancedDefaults=Object.fromEntries(Object.keys(advancedChoices).map(key=>[key,'original']));
 const colors = ['primary','secondary','background','surface','text','heading','onPrimary','footer','footerText'];
-const base = {layout:'campus',primary:'#1558ee',secondary:'#6243c2',background:'#ffffff',surface:'#f6f8fc',text:'#25354c',heading:'#11223e',onPrimary:'#ffffff',footer:'#12264e',footerText:'#f5f7ff',radius:'original',motion:'original',photos:'original',header:'contextual'};
+const base = {...advancedDefaults,layout:'campus',primary:'#1558ee',secondary:'#6243c2',background:'#ffffff',surface:'#f6f8fc',text:'#25354c',heading:'#11223e',onPrimary:'#ffffff',footer:'#12264e',footerText:'#f5f7ff',radius:'original',motion:'original',photos:'original',header:'contextual'};
 export const builtInThemes = [
   {format:'siga-school-theme',version:1,id:'campus',name:'Campus',description:'A composição actual, com a identidade azul e roxa e movimento discreto.',appearance:{...base}},
   {format:'siga-school-theme',version:1,id:'editorial',name:'Editorial',description:'Títulos alinhados, cartões com linhas simples e fotografias em moldura.',appearance:{...base,layout:'editorial',primary:'#183d70',secondary:'#6347a0',surface:'#f3f5f8',radius:'square',motion:'fade',photos:'framed'}},
@@ -18,8 +22,8 @@ function contrast(a,b) {
 }
 function appearance(value, partial=false) {
   const allowed=[...colors,...Object.keys(appearanceChoices)];keys(value,allowed);
-  if (!partial && allowed.some(key=>!Object.hasOwn(value,key))) throw Error('O tema está incompleto. Exporte um modelo para começar.');
-  const result={};
+  if (!partial && allowed.filter(key=>!Object.hasOwn(advancedChoices,key)).some(key=>!Object.hasOwn(value,key))) throw Error('O tema está incompleto. Exporte um modelo para começar.');
+  const result=partial?{}:{...advancedDefaults};
   for (const [key,item] of Object.entries(value)) {
     if (colors.includes(key)) {if (typeof item!=='string'||!/^#[0-9a-f]{6}$/i.test(item)) throw Error('Use cores no formato #RRGGBB.');result[key]=item.toLowerCase();}
     else {if (!appearanceChoices[key].includes(item)) throw Error('Esta opção visual não é suportada.');result[key]=item;}
@@ -66,7 +70,8 @@ export function resolveAppearance(input,path='/') {
 export function designAttributes(input,path='/') {
   const value=resolveAppearance(input,path);
   const variables={primary:'--blue',secondary:'--theme-secondary',background:'--theme-background',surface:'--soft',text:'--text',heading:'--deep',onPrimary:'--theme-on-primary',footer:'--theme-footer',footerText:'--theme-footer-text'};
-  return {'data-website-design':'true','data-website-theme':value.layout,'data-website-motion':value.motion,'data-website-photos':value.photos,'data-website-header':value.header,'data-website-radius':value.radius,style:colors.map(key=>variables[key]+':'+value[key]).join(';')};
+  const advanced=Object.fromEntries(Object.keys(advancedChoices).map(key=>['data-website-'+key.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase()),value[key]]));
+  return {...advanced,'data-website-design':'true','data-website-theme':value.layout,'data-website-motion':value.motion,'data-website-photos':value.photos,'data-website-header':value.header,'data-website-radius':value.radius,style:colors.map(key=>variables[key]+':'+value[key]).join(';')};
 }
 export function setupSchoolDesign(config,{doc=document,path=sitePathname()}={}) {
   const root=doc.documentElement;

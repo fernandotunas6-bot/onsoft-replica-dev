@@ -163,3 +163,87 @@ describe("temas instaláveis por escola", () => {
     expect(doc.querySelector(".ispab-wordmark")).toBeNull();
   });
 });
+
+it("aceita pacotes anteriores e deixa todas as novas opções no aspecto original", () => {
+  const legacyKeys = [
+    "layout",
+    "primary",
+    "secondary",
+    "background",
+    "surface",
+    "text",
+    "heading",
+    "onPrimary",
+    "footer",
+    "footerText",
+    "radius",
+    "motion",
+    "photos",
+    "header",
+  ];
+  const legacy = {
+    ...custom(),
+    appearance: Object.fromEntries(
+      Object.entries(custom().appearance).filter(([key]) => legacyKeys.includes(key)),
+    ),
+  };
+  const parsed = parseThemePackage(legacy);
+  expect(parsed.appearance.headerSurface).toBe("original");
+  expect(parsed.appearance.fontBody).toBe("original");
+  expect(parsed.appearance.bandMotion).toBe("original");
+  expect(
+    Object.fromEntries(
+      Object.entries(parsed.appearance).filter(([key]) => legacyKeys.includes(key)),
+    ),
+  ).toEqual(legacy.appearance);
+});
+it("guarda e publica opções avançadas com substituições por página e restauro sem perder conteúdos", () => {
+  const input = draft();
+  input.design = parseWebsiteDesign({
+    activeTheme: "campus",
+    overrides: {
+      headerSurface: "glass",
+      brandMode: "text",
+      fontBody: "editorial",
+      bandStyle: "layered",
+      bandMotion: "drift",
+      buttonShape: "pill",
+      motion: "zoom",
+      motionSpeed: "calm",
+    },
+    pages: { "/cursos/": { headerPosition: "static", motion: "none", buttonStyle: "outline" } },
+  });
+  const state = changeWebsiteState(null, { expectedRevision: 0, action: "publish", draft: input });
+  const content = publicWebsiteContent(state)!;
+  expect(designAttributes(content.design!, "/")).toMatchObject({
+    "data-website-header-surface": "glass",
+    "data-website-font-body": "editorial",
+    "data-website-motion": "zoom",
+    "data-website-button-shape": "pill",
+  });
+  expect(designAttributes(content.design!, "/cursos/")).toMatchObject({
+    "data-website-header-position": "static",
+    "data-website-motion": "none",
+    "data-website-button-style": "outline",
+  });
+  const saved = changeWebsiteState(state, {
+    expectedRevision: 1,
+    action: "save",
+    draft: { ...input, design: parseWebsiteDesign({ activeTheme: "minimal" }) },
+  });
+  const restored = changeWebsiteState(saved, { expectedRevision: 2, action: "restore" });
+  expect(restored.draft.design).toEqual(input.design);
+  expect(restored.draft.values).toEqual(input.values);
+  expect(() =>
+    parseWebsiteDesign({
+      activeTheme: "campus",
+      overrides: { fontBody: "url(https://invalid.example)" },
+    }),
+  ).toThrow();
+  expect(() =>
+    parseWebsiteDesign({
+      activeTheme: "campus",
+      pages: { "/cursos/": { buttonHover: "javascript:alert(1)" } },
+    }),
+  ).toThrow();
+});

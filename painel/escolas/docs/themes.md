@@ -11,7 +11,18 @@ Em Definições → Website, o administrador pode escolher Campus, Editorial ou 
 
 ## Opções
 
-Cores de fundos, secções, textos, títulos, botões e rodapé; efeitos de entrada; imagens limpas ou com moldura; cantos; comportamento completo ou contextual do logótipo. As opções podem ser definidas globalmente ou por página pública. A identidade carregada pela escola tem prioridade sobre a marca demonstrativa.
+As opções estão agrupadas, podem ser definidas globalmente ou por página pública e incluem reposição independente por secção:
+
+- **Cores e fundos:** página, secções, títulos, texto, botões e rodapé.
+- **Cabeçalho e identidade:** sólido, translúcido ou tingido, posição fixa ao navegar ou acompanhando a página, altura, barra de atalhos, marca contextual/completa ou textual e estilos dos submenus.
+- **Tipografia e texto:** fontes do dispositivo (sistema, humanista ou editorial), títulos, peso, tamanho, alinhamento, entrelinha, largura de leitura, sublinhado e espaçamento dos títulos. Estes controlos afectam o website público, preservando a tipografia do SIGA.
+- **Estrutura:** largura, espaço entre secções, cantos, cartões planos/elevados/com contorno e painéis sólidos/translúcidos.
+- **Imagens e faixas:** fotografias limpas/com moldura, formas rectas/arredondadas/em arco, proporções horizontal/vertical, faixas sólidas/em gradiente/diagonais/sobrepostas, ornamentos e movimento de fundo.
+- **Botões e ligações:** preenchimento/contorno/fundo suave, tamanho, cantos/cápsula, elevação/halo, indicadores e sublinhados. Os destinos e textos das acções existentes permanecem no editor de conteúdos; não são criadas novas operações académicas.
+- **Rodapé:** disposição original, compacta ou centrada; fundo sólido ou em gradiente.
+- **Movimento:** aparecimento, deslocamento, aproximação suave ou ausência de animações, e ritmos de 240/440/650 ms. O fundo animado pausa quando a página fica oculta e respeita movimento reduzido.
+
+O modo textual da marca é uma escolha explícita do administrador e apresenta o nome da escola em lugar do símbolo/imagem. No modo institucional, a identidade carregada pela escola tem prioridade sobre a marca demonstrativa. Os pacotes v1 anteriores continuam aceites: as novas opções em falta recebem `original`, sem alterar a composição guardada.
 
 A pré-visualização usa os textos do rascunho, os nomes dos cursos associados e o logótipo da escola. É estática, isolada num iframe sem permissões: não executa scripts, navegação ou operações de candidatura. Os efeitos podem ser verificados no website publicado. A preferência do visitante por movimento reduzido tem prioridade.
 
@@ -27,4 +38,4 @@ A configuração continua em `school_settings.value`, no domínio existente `sch
 
 ## Verificação
 
-O contrato mantém 66 páginas e 4653 campos editáveis, versão `96cb157ddf38b2059299`. Os testes cobrem instalação, rejeição de pacotes inválidos, conteúdos preservados, rascunho/publicação/restauro, isolamento entre escolas, renderização inicial e pré-visualização. Os três temas foram verificados no navegador em 390 e 1440 px, nas páginas inicial, curso e ingresso, e no editor isolado. A publicação do site demonstrativo não substitui o deploy do SIGA que disponibiliza o novo painel administrativo.
+O contrato mantém 66 páginas e 4653 campos editáveis, versão `96cb157ddf38b2059299`. Os testes cobrem instalação, rejeição de pacotes inválidos, conteúdos preservados, rascunho/publicação/restauro, isolamento entre escolas, renderização inicial e pré-visualização. Os três temas base foram verificados em 390/1440 px no ciclo anterior. As novas opções foram combinadas em dois perfis e verificadas em Chromium em 390/820/1440 px, nas páginas inicial, curso, ingresso e candidatura (24 vistas), incluindo marca textual, movimento reduzido, prévia móvel e reposição de secções no editor isolado. A publicação do site demonstrativo não substitui o deploy do SIGA que disponibiliza o novo painel administrativo.

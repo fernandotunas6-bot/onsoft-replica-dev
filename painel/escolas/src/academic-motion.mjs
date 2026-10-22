@@ -15,8 +15,9 @@ export function setupAcademicMotion({doc = document, win = window} = {}) {
       if (!node.animate || node.contains(doc.activeElement)) continue;
       const siblings = [...(node.parentElement?.children || [])].filter(child => child.matches(targets));
       const delay = Math.min(Math.max(siblings.indexOf(node), 0), 3) * 45;
-      const keyframes = doc.documentElement.dataset.websiteMotion === 'fade' ? [{opacity:.55},{opacity:1}] : [{opacity:.55,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}];
-      const animation = node.animate(keyframes, {duration: 440, delay, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'});
+      const mode=doc.documentElement.dataset.websiteMotion, speed=doc.documentElement.dataset.websiteMotionSpeed;
+      const keyframes = mode==='zoom' ? [{opacity:.55,transform:'scale(.97)'},{opacity:1,transform:'scale(1)'}] : mode === 'fade' ? [{opacity:.55},{opacity:1}] : [{opacity:.55,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}];
+      const animation = node.animate(keyframes, {duration: speed==='quick'?240:speed==='calm'?650:440, delay, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'backwards'});
       running.set(node, animation);
       animation.onfinish = animation.oncancel = () => running.delete(node);
     }
