@@ -20,7 +20,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'Finance & Fees',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -47,7 +47,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                       'Students with Arrears',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     TextButton(
@@ -56,7 +56,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         'View All Students',
                         style: TextStyle(
                           color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -105,7 +105,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                             const Text(
                               'All fees are cleared!',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 fontSize: 16,
                               ),
                             ),
@@ -144,7 +144,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                 style: const TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 32,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -177,7 +177,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                     a.name.isNotEmpty ? a.name[0] : '?',
                                     style: const TextStyle(
                                       color: AppColors.secondary,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
@@ -190,7 +190,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                       Text(
                                         a.name,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       Text(
@@ -206,7 +206,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                 Text(
                                   '$currency ${a.amountOwed.toStringAsFixed(2)}',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                     color: Colors.red.shade700,
                                   ),
                                 ),
@@ -238,7 +238,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         'Class Fee Structures',
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 8),

@@ -24,7 +24,7 @@ class _NotificationSettingsScreenState
       appBar: AppBar(
         title: const Text(
           'Notifications',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -43,7 +43,7 @@ class _NotificationSettingsScreenState
 
             const Text(
               'Delivery Methods',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
@@ -72,7 +72,7 @@ class _NotificationSettingsScreenState
 
             const Text(
               'Notification Types',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             const SizedBox(height: 16),
 
@@ -100,7 +100,7 @@ class _NotificationSettingsScreenState
                     const SnackBar(
                       content: Text(
                         'Preferences saved!',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   );
@@ -115,7 +115,7 @@ class _NotificationSettingsScreenState
                 ),
                 child: const Text(
                   'Save Preferences',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ),
             ),
@@ -141,7 +141,7 @@ class _NotificationSettingsScreenState
       child: SwitchListTile(
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
         subtitle: Text(
           subtitle,

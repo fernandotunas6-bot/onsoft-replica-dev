@@ -31,15 +31,15 @@ class TeacherDetailsScreen extends ConsumerWidget {
         title: async.when(
           data: (t) => Text(
             t.name,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           loading: () => const Text(
-            'Staff profile',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            'Perfil do funcionário',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           error: (Object e, StackTrace? st) => const Text(
-            'Staff profile',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            'Perfil do funcionário',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -57,7 +57,7 @@ class TeacherDetailsScreen extends ConsumerWidget {
                 Icon(LucideIcons.alertTriangle,
                     size: 48, color: AppColors.error),
                 const SizedBox(height: 16),
-                Text('Could not load teacher',
+                Text('Não foi possível carregar o professor',
                     style: TextStyle(color: AppColors.error)),
                 const SizedBox(height: 8),
                 Text(
@@ -71,7 +71,7 @@ class TeacherDetailsScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(teacherProfileProvider(id)),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar de novo'),
                 ),
               ],
             ),
@@ -175,7 +175,7 @@ class _TeacherProfileBody extends StatelessWidget {
                         initials,
                         style: const TextStyle(
                           fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.secondary,
                         ),
                       )
@@ -193,24 +193,24 @@ class _TeacherProfileBody extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _section(context, 'Profile', [
-              _row(LucideIcons.users, 'Gender', gender ?? '—'),
-              _row(LucideIcons.calendar, 'Date of birth', dateOfBirth),
-              _row(LucideIcons.phone, 'Phone', phone ?? '—'),
-              _row(LucideIcons.mail, 'Email', email ?? '—'),
-              _row(LucideIcons.mapPin, 'Address', residentialAddress ?? '—'),
+            _section(context, 'Perfil', [
+              _row(LucideIcons.users, 'Sexo', gender ?? '—'),
+              _row(LucideIcons.calendar, 'Data de nascimento', dateOfBirth),
+              _row(LucideIcons.phone, 'Telefone', phone ?? '—'),
+              _row(LucideIcons.mail, 'E-mail', email ?? '—'),
+              _row(LucideIcons.mapPin, 'Morada', residentialAddress ?? '—'),
             ]),
             const SizedBox(height: 16),
-            _section(context, 'Professional', [
-              _row(LucideIcons.award, 'Qualification', qualification ?? '—'),
+            _section(context, 'Profissional', [
+              _row(LucideIcons.award, 'Habilitação', qualification ?? '—'),
               _row(
                 LucideIcons.briefcase,
-                'Years experience',
+                'Anos de experiência',
                 yearsExperience != null ? '$yearsExperience' : '—',
               ),
               _row(
                 LucideIcons.bookOpen,
-                'Subjects',
+                'Disciplinas',
                 subjectsText ?? '—',
                 multiline: true,
               ),
@@ -224,7 +224,7 @@ class _TeacherProfileBody extends StatelessWidget {
             _section(context, 'Emergency', [
               _row(LucideIcons.alertCircle, 'Name',
                   emergencyContactName ?? '—'),
-              _row(LucideIcons.phone, 'Phone',
+              _row(LucideIcons.phone, 'Telefone',
                   emergencyContactPhone ?? '—'),
             ]),
             const SizedBox(height: 16),
@@ -260,7 +260,7 @@ class _TeacherProfileBody extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: AppColors.secondary,
               ),

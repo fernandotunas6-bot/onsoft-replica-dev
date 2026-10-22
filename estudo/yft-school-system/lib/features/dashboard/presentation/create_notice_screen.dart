@@ -14,15 +14,15 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
-  String _targetAudience = 'Both (Teachers & Parents)';
+  String _targetAudience = 'Ambos (professores e encarregados)';
   bool _sendSms = false;
   bool _sendPush = true;
 
   final List<String> _audiences = [
-    'Both (Teachers & Parents)',
-    'Teachers Only',
-    'Parents Only',
-    'Specific Class',
+    'Ambos (professores e encarregados)',
+    'Só professores',
+    'Só encarregados de educação',
+    'Turma específica',
   ];
 
   @override
@@ -38,8 +38,8 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Create Notice',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Criar comunicado',
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -57,10 +57,10 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'New Announcement',
+                  'Novo comunicado',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -68,7 +68,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
-                    hintText: 'Notice Title',
+                    hintText: 'Título do comunicado',
                     prefixIcon: Icon(LucideIcons.type, size: 20),
                   ),
                   validator: (value) =>
@@ -78,7 +78,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _targetAudience,
                   decoration: const InputDecoration(
-                    hintText: 'Target Audience',
+                    hintText: 'Destinatários',
                     prefixIcon: Icon(LucideIcons.users, size: 20),
                   ),
                   items: _audiences
@@ -93,7 +93,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                   controller: _messageController,
                   maxLines: 6,
                   decoration: const InputDecoration(
-                    hintText: 'Type your message here...',
+                    hintText: 'Escreva aqui a mensagem...',
                     alignLabelWithHint: true,
                     prefixIcon: Padding(
                       padding: EdgeInsets.only(bottom: 100), // Align top
@@ -105,10 +105,10 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Delivery Channels',
+                  'Canais de envio',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -125,10 +125,10 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                     children: [
                       SwitchListTile(
                         title: const Text(
-                          'Push Notification',
+                          'Notificação',
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
-                        subtitle: const Text('Send instantly to mobile apps'),
+                        subtitle: const Text('Envio imediato para a aplicação'),
                         value: _sendPush,
                         onChanged: (val) => setState(() => _sendPush = val),
                         activeThumbColor: AppColors.primary,
@@ -139,11 +139,11 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                       ),
                       SwitchListTile(
                         title: const Text(
-                          'SMS Delivery',
+                          'Envio por SMS',
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         subtitle: const Text(
-                          'Additional carrier charges may apply',
+                          'Pode ter custos da operadora',
                         ),
                         value: _sendSms,
                         onChanged: (val) => setState(() => _sendSms = val),
@@ -157,7 +157,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     icon: const Icon(LucideIcons.send),
-                    label: const Text('Publish Notice'),
+                    label: const Text('Publicar comunicado'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -165,7 +165,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                       if (_formKey.currentState!.validate()) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Notice published successfully!'),
+                            content: Text('Comunicado publicado.'),
                             backgroundColor: AppColors.primary,
                           ),
                         );

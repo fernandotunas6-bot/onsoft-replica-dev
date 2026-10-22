@@ -57,6 +57,7 @@ describe("runPublicSchoolSignup logic", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it("permite o signup normal (chamando o provisionTenantCore sem honeypot)", async () => {
@@ -118,10 +119,26 @@ describe("runPublicSchoolSignup logic", () => {
     ).rejects.toThrow(/Confirme o e-mail/);
   });
 
-  it("domínios reservados (.test) dos testes E2E não precisam de código", async () => {
+  it("recusa endereço .test fora de staging mesmo com SIGNUP_EMAIL_VERIFICATION=off", async () => {
+    vi.stubEnv("SIGNUP_EMAIL_VERIFICATION", "off");
+    await expect(
+      runPublicSchoolSignup(
+        { ...baseData, admin_email: "e2e+x@siga-plus.test", email_verification_token: undefined },
+        "10.9.0.4",
+      ),
+    ).rejects.toThrow(/reservado para testes/);
+    expect(provisionTenantCore).not.toHaveBeenCalled();
+  });
+
+  it("domínios .test dispensam código apenas no projecto E2E isolado", async () => {
+    vi.stubEnv("SIGA_E2E_ALLOW_WRITES", "1");
+    vi.stubEnv("SIGA_E2E_PROJECT_REF", "audittest");
+    vi.stubEnv("SUPABASE_URL", "https://audittest.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_URL", "https://audittest.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://audittest.supabase.co");
     const res = await runPublicSchoolSignup(
       { ...baseData, admin_email: "e2e+x@siga-plus.test", email_verification_token: undefined },
-      "10.9.0.4",
+      "10.9.0.5",
     );
     expect(res.success).toBe(true);
   });

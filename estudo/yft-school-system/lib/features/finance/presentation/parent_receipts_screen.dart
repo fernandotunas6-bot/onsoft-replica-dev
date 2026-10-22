@@ -57,7 +57,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                 'Receipt ${r.id}',
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.secondary,
                 ),
               ),
@@ -181,7 +181,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'Receipts',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -277,7 +277,7 @@ class ParentReceiptsScreen extends ConsumerWidget {
                                 Text(
                                   title,
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 15,
                                   ),
                                 ),

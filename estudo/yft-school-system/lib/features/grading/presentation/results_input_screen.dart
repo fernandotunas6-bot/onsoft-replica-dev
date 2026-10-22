@@ -165,7 +165,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
         const SnackBar(
           content: Text(
             'Results saved',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.green,
         ),
@@ -201,7 +201,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       appBar: AppBar(
         title: const Text(
           'Input results',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -284,7 +284,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                       Text(
                         studentId.isEmpty ? '—' : studentId,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           fontSize: 18,
                         ),
                       ),
@@ -370,7 +370,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
         children: [
           Text(
             name,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           const SizedBox(height: 16),
           Row(
@@ -412,7 +412,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                     child: Text(
                       _total(classCtrl.text, examCtrl.text),
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.secondary,
                       ),
                     ),

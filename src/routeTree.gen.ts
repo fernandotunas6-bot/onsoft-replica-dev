@@ -27,6 +27,7 @@ import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PedagogicaRouteImport } from './routes/pedagogica'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
 import { Route as VerificarRouteImport } from './routes/verificar'
@@ -47,6 +48,7 @@ import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
+import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
@@ -101,6 +103,9 @@ import { Route as ApiFinancePayflowSettlementRouteImport } from './routes/api/fi
 import { Route as ApiIntegrationsResendWebhookRouteImport } from './routes/api/integrations/resend.webhook'
 import { Route as ApiIntegrationsZoomCallbackRouteImport } from './routes/api/integrations/zoom/callback'
 import { Route as ApiPublicPaymentsAppypayRouteImport } from './routes/api/public/payments/appypay'
+import { Route as ApiPublicSchoolBlogCodeRouteImport } from './routes/api/public/school-blog/$code'
+import { Route as ApiPublicSchoolContentCodeRouteImport } from './routes/api/public/school-content/$code'
+import { Route as ApiPublicSchoolWebsiteSlugRouteImport } from './routes/api/public/school-website/$slug'
 import { Route as ApiSaasDomainsCheckRouteImport } from './routes/api/saas/domains.check'
 import { Route as ApiSaasDomainsPollRouteImport } from './routes/api/saas/domains.poll'
 import { Route as ApiSaasDomainsStatusRouteImport } from './routes/api/saas/domains.status'
@@ -121,6 +126,8 @@ import { Route as ApiSaasSiteMessagesRouteImport } from './routes/api/saas/site.
 import { Route as ApiSaasSitePostsRouteImport } from './routes/api/saas/site.posts'
 import { Route as ApiSaasSiteShowcaseRouteImport } from './routes/api/saas/site.showcase'
 import { Route as ApiSaasSubscriptionsBackfillRouteImport } from './routes/api/saas/subscriptions.backfill'
+import { Route as ApiSaasTenantsAdminAccessRouteImport } from './routes/api/saas/tenants.admin-access'
+import { Route as ApiSaasTenantsBillingRouteImport } from './routes/api/saas/tenants.billing'
 import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tenants.lookup'
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
@@ -215,6 +222,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const PlanosAulaRoute = PlanosAulaRouteImport.update({
   id: '/planos-aula',
   path: '/planos-aula',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SaasAdminRoute = SaasAdminRouteImport.update({
@@ -316,6 +328,11 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
 const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
   id: '/configuracoes_/assinatura',
   path: '/configuracoes/assinatura',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesBoasVindasRoute = ConfiguracoesBoasVindasRouteImport.update({
+  id: '/configuracoes_/boas-vindas',
+  path: '/configuracoes/boas-vindas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesDiagnosticoRoute =
@@ -603,6 +620,23 @@ const ApiPublicPaymentsAppypayRoute =
     path: '/api/public/payments/appypay',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSchoolBlogCodeRoute = ApiPublicSchoolBlogCodeRouteImport.update({
+  id: '/api/public/school-blog/$code',
+  path: '/api/public/school-blog/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSchoolContentCodeRoute =
+  ApiPublicSchoolContentCodeRouteImport.update({
+    id: '/api/public/school-content/$code',
+    path: '/api/public/school-content/$code',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSchoolWebsiteSlugRoute =
+  ApiPublicSchoolWebsiteSlugRouteImport.update({
+    id: '/api/public/school-website/$slug',
+    path: '/api/public/school-website/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSaasDomainsCheckRoute = ApiSaasDomainsCheckRouteImport.update({
   id: '/check',
   path: '/check',
@@ -709,6 +743,17 @@ const ApiSaasSubscriptionsBackfillRoute =
     path: '/backfill',
     getParentRoute: () => ApiSaasSubscriptionsRoute,
   } as any)
+const ApiSaasTenantsAdminAccessRoute =
+  ApiSaasTenantsAdminAccessRouteImport.update({
+    id: '/admin-access',
+    path: '/admin-access',
+    getParentRoute: () => ApiSaasTenantsRoute,
+  } as any)
+const ApiSaasTenantsBillingRoute = ApiSaasTenantsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => ApiSaasTenantsRoute,
+} as any)
 const ApiSaasTenantsLookupRoute = ApiSaasTenantsLookupRouteImport.update({
   id: '/lookup',
   path: '/lookup',
@@ -756,6 +801,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
+  '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
@@ -775,6 +821,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -830,6 +877,9 @@ export interface FileRoutesByFullPath {
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
+  '/api/public/school-blog/$code': typeof ApiPublicSchoolBlogCodeRoute
+  '/api/public/school-content/$code': typeof ApiPublicSchoolContentCodeRoute
+  '/api/public/school-website/$slug': typeof ApiPublicSchoolWebsiteSlugRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -850,6 +900,8 @@ export interface FileRoutesByFullPath {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -875,6 +927,7 @@ export interface FileRoutesByTo {
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
+  '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
@@ -894,6 +947,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -949,6 +1003,9 @@ export interface FileRoutesByTo {
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
+  '/api/public/school-blog/$code': typeof ApiPublicSchoolBlogCodeRoute
+  '/api/public/school-content/$code': typeof ApiPublicSchoolContentCodeRoute
+  '/api/public/school-website/$slug': typeof ApiPublicSchoolWebsiteSlugRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -969,6 +1026,8 @@ export interface FileRoutesByTo {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -995,6 +1054,7 @@ export interface FileRoutesById {
   '/pedagogica': typeof PedagogicaRoute
   '/perfil': typeof PerfilRoute
   '/planos-aula': typeof PlanosAulaRoute
+  '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
@@ -1014,6 +1074,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
+  '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
@@ -1069,6 +1130,9 @@ export interface FileRoutesById {
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
   '/api/integrations/zoom/callback': typeof ApiIntegrationsZoomCallbackRoute
   '/api/public/payments/appypay': typeof ApiPublicPaymentsAppypayRoute
+  '/api/public/school-blog/$code': typeof ApiPublicSchoolBlogCodeRoute
+  '/api/public/school-content/$code': typeof ApiPublicSchoolContentCodeRoute
+  '/api/public/school-website/$slug': typeof ApiPublicSchoolWebsiteSlugRoute
   '/api/saas/domains/check': typeof ApiSaasDomainsCheckRoute
   '/api/saas/domains/poll': typeof ApiSaasDomainsPollRoute
   '/api/saas/domains/status': typeof ApiSaasDomainsStatusRoute
@@ -1089,6 +1153,8 @@ export interface FileRoutesById {
   '/api/saas/site/posts': typeof ApiSaasSitePostsRoute
   '/api/saas/site/showcase': typeof ApiSaasSiteShowcaseRoute
   '/api/saas/subscriptions/backfill': typeof ApiSaasSubscriptionsBackfillRoute
+  '/api/saas/tenants/admin-access': typeof ApiSaasTenantsAdminAccessRoute
+  '/api/saas/tenants/billing': typeof ApiSaasTenantsBillingRoute
   '/api/saas/tenants/lookup': typeof ApiSaasTenantsLookupRoute
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
@@ -1116,6 +1182,7 @@ export interface FileRouteTypes {
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
+    | '/portal'
     | '/saas-admin'
     | '/tesouraria'
     | '/verificar'
@@ -1135,6 +1202,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes/assinatura'
+    | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
@@ -1190,6 +1258,9 @@ export interface FileRouteTypes {
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/public/payments/appypay'
+    | '/api/public/school-blog/$code'
+    | '/api/public/school-content/$code'
+    | '/api/public/school-website/$slug'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1210,6 +1281,8 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1235,6 +1308,7 @@ export interface FileRouteTypes {
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
+    | '/portal'
     | '/saas-admin'
     | '/tesouraria'
     | '/verificar'
@@ -1254,6 +1328,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes/assinatura'
+    | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
@@ -1309,6 +1384,9 @@ export interface FileRouteTypes {
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/public/payments/appypay'
+    | '/api/public/school-blog/$code'
+    | '/api/public/school-content/$code'
+    | '/api/public/school-website/$slug'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1329,6 +1407,8 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1354,6 +1434,7 @@ export interface FileRouteTypes {
     | '/pedagogica'
     | '/perfil'
     | '/planos-aula'
+    | '/portal'
     | '/saas-admin'
     | '/tesouraria'
     | '/verificar'
@@ -1373,6 +1454,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/calendario/ics'
     | '/configuracoes_/assinatura'
+    | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/convite/$token'
@@ -1428,6 +1510,9 @@ export interface FileRouteTypes {
     | '/api/integrations/resend/webhook'
     | '/api/integrations/zoom/callback'
     | '/api/public/payments/appypay'
+    | '/api/public/school-blog/$code'
+    | '/api/public/school-content/$code'
+    | '/api/public/school-website/$slug'
     | '/api/saas/domains/check'
     | '/api/saas/domains/poll'
     | '/api/saas/domains/status'
@@ -1448,6 +1533,8 @@ export interface FileRouteTypes {
     | '/api/saas/site/posts'
     | '/api/saas/site/showcase'
     | '/api/saas/subscriptions/backfill'
+    | '/api/saas/tenants/admin-access'
+    | '/api/saas/tenants/billing'
     | '/api/saas/tenants/lookup'
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
@@ -1474,6 +1561,7 @@ export interface RootRouteChildren {
   PedagogicaRoute: typeof PedagogicaRoute
   PerfilRoute: typeof PerfilRoute
   PlanosAulaRoute: typeof PlanosAulaRoute
+  PortalRoute: typeof PortalRoute
   SaasAdminRoute: typeof SaasAdminRoute
   TesourariaRoute: typeof TesourariaRoute
   VerificarRoute: typeof VerificarRoute
@@ -1483,6 +1571,7 @@ export interface RootRouteChildren {
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
+  ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
@@ -1527,6 +1616,9 @@ export interface RootRouteChildren {
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
   ApiIntegrationsZoomCallbackRoute: typeof ApiIntegrationsZoomCallbackRoute
   ApiPublicPaymentsAppypayRoute: typeof ApiPublicPaymentsAppypayRoute
+  ApiPublicSchoolBlogCodeRoute: typeof ApiPublicSchoolBlogCodeRoute
+  ApiPublicSchoolContentCodeRoute: typeof ApiPublicSchoolContentCodeRoute
+  ApiPublicSchoolWebsiteSlugRoute: typeof ApiPublicSchoolWebsiteSlugRoute
   ApiSaasEmailRoutesRoute: typeof ApiSaasEmailRoutesRoute
   ApiSaasPublicBlogRoute: typeof ApiSaasPublicBlogRoute
   ApiSaasPublicContactRoute: typeof ApiSaasPublicContactRoute
@@ -1667,6 +1759,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlanosAulaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/saas-admin': {
       id: '/saas-admin'
       path: '/saas-admin'
@@ -1805,6 +1904,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/assinatura'
       fullPath: '/configuracoes/assinatura'
       preLoaderRoute: typeof ConfiguracoesAssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes_/boas-vindas': {
+      id: '/configuracoes_/boas-vindas'
+      path: '/configuracoes/boas-vindas'
+      fullPath: '/configuracoes/boas-vindas'
+      preLoaderRoute: typeof ConfiguracoesBoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes_/diagnostico': {
@@ -2185,6 +2291,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsAppypayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/school-blog/$code': {
+      id: '/api/public/school-blog/$code'
+      path: '/api/public/school-blog/$code'
+      fullPath: '/api/public/school-blog/$code'
+      preLoaderRoute: typeof ApiPublicSchoolBlogCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/school-content/$code': {
+      id: '/api/public/school-content/$code'
+      path: '/api/public/school-content/$code'
+      fullPath: '/api/public/school-content/$code'
+      preLoaderRoute: typeof ApiPublicSchoolContentCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/school-website/$slug': {
+      id: '/api/public/school-website/$slug'
+      path: '/api/public/school-website/$slug'
+      fullPath: '/api/public/school-website/$slug'
+      preLoaderRoute: typeof ApiPublicSchoolWebsiteSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/saas/domains/check': {
       id: '/api/saas/domains/check'
       path: '/check'
@@ -2324,6 +2451,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/saas/subscriptions/backfill'
       preLoaderRoute: typeof ApiSaasSubscriptionsBackfillRouteImport
       parentRoute: typeof ApiSaasSubscriptionsRoute
+    }
+    '/api/saas/tenants/admin-access': {
+      id: '/api/saas/tenants/admin-access'
+      path: '/admin-access'
+      fullPath: '/api/saas/tenants/admin-access'
+      preLoaderRoute: typeof ApiSaasTenantsAdminAccessRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
+    }
+    '/api/saas/tenants/billing': {
+      id: '/api/saas/tenants/billing'
+      path: '/billing'
+      fullPath: '/api/saas/tenants/billing'
+      preLoaderRoute: typeof ApiSaasTenantsBillingRouteImport
+      parentRoute: typeof ApiSaasTenantsRoute
     }
     '/api/saas/tenants/lookup': {
       id: '/api/saas/tenants/lookup'
@@ -2552,12 +2693,16 @@ const ApiSaasSubscriptionsRouteWithChildren =
   ApiSaasSubscriptionsRoute._addFileChildren(ApiSaasSubscriptionsRouteChildren)
 
 interface ApiSaasTenantsRouteChildren {
+  ApiSaasTenantsAdminAccessRoute: typeof ApiSaasTenantsAdminAccessRoute
+  ApiSaasTenantsBillingRoute: typeof ApiSaasTenantsBillingRoute
   ApiSaasTenantsLookupRoute: typeof ApiSaasTenantsLookupRoute
   ApiSaasTenantsStatusRoute: typeof ApiSaasTenantsStatusRoute
   ApiSaasTenantsSubscriptionRoute: typeof ApiSaasTenantsSubscriptionRoute
 }
 
 const ApiSaasTenantsRouteChildren: ApiSaasTenantsRouteChildren = {
+  ApiSaasTenantsAdminAccessRoute: ApiSaasTenantsAdminAccessRoute,
+  ApiSaasTenantsBillingRoute: ApiSaasTenantsBillingRoute,
   ApiSaasTenantsLookupRoute: ApiSaasTenantsLookupRoute,
   ApiSaasTenantsStatusRoute: ApiSaasTenantsStatusRoute,
   ApiSaasTenantsSubscriptionRoute: ApiSaasTenantsSubscriptionRoute,
@@ -2586,6 +2731,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaRoute: PedagogicaRoute,
   PerfilRoute: PerfilRoute,
   PlanosAulaRoute: PlanosAulaRoute,
+  PortalRoute: PortalRoute,
   SaasAdminRoute: SaasAdminRoute,
   TesourariaRoute: TesourariaRoute,
   VerificarRoute: VerificarRoute,
@@ -2596,6 +2742,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
+  ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
@@ -2640,6 +2787,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,
   ApiIntegrationsZoomCallbackRoute: ApiIntegrationsZoomCallbackRoute,
   ApiPublicPaymentsAppypayRoute: ApiPublicPaymentsAppypayRoute,
+  ApiPublicSchoolBlogCodeRoute: ApiPublicSchoolBlogCodeRoute,
+  ApiPublicSchoolContentCodeRoute: ApiPublicSchoolContentCodeRoute,
+  ApiPublicSchoolWebsiteSlugRoute: ApiPublicSchoolWebsiteSlugRoute,
   ApiSaasEmailRoutesRoute: ApiSaasEmailRoutesRoute,
   ApiSaasPublicBlogRoute: ApiSaasPublicBlogRoute,
   ApiSaasPublicContactRoute: ApiSaasPublicContactRoute,

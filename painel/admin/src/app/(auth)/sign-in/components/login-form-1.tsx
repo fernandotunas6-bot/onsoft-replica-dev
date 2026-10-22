@@ -43,12 +43,21 @@ const SAFE_ADMIN_PREFIXES = [
   "/domains",
   "/gateway-webhooks",
   "/settings",
+  "/signups",
+  "/site",
+  "/pricing",
+  "/education-catalog",
+  "/users",
+  "/faqs",
 ] as const;
 
 function isSafeAdminNext(path: string | null): path is string {
   if (!path || !path.startsWith("/")) return false;
   if (path.startsWith("//")) return false;
-  return SAFE_ADMIN_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  const pathname = path.split(/[?#]/)[0] ?? path;
+  return SAFE_ADMIN_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 export function LoginForm1({ className, ...props }: React.ComponentProps<"div">) {
@@ -64,7 +73,8 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
   const [mfaCode, setMfaCode] = useState("");
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("error") === "platform") {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "platform") {
       setServerError(
         "Esta conta não é administrador da plataforma. Contas escolares entram no SIGA Plus.",
       );
@@ -148,6 +158,30 @@ export function LoginForm1({ className, ...props }: React.ComponentProps<"div">)
     router.push(safeNext());
     router.refresh();
   }
+
+  // Vindo do gate com sessão já iniciada mas sem MFA: retoma o 2.º passo em vez
+  // de pedir a palavra-passe outra vez.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("step") !== "mfa") return;
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      if (!data.session || cancelled) return;
+      try {
+        const next = await prepareAdminMfa(supabase.auth.mfa);
+        if (cancelled) return;
+        if (next.step === "done") await finishLogin();
+        else setMfa(next);
+      } catch {
+        if (!cancelled) setServerError("Não foi possível preparar a verificação em dois passos.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function cancelMfa() {
     await createClient().auth.signOut();

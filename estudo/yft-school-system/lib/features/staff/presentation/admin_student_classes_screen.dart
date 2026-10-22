@@ -15,7 +15,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('All Classes', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('All Classes', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -67,7 +67,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(cls.className, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                Text(cls.className, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                                 if (cls.level != null)
                                   Text('Level ${cls.level}',
                                       style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),

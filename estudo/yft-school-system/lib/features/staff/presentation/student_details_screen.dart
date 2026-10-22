@@ -32,20 +32,20 @@ class StudentDetailsScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete student?'),
+        title: const Text('Eliminar aluno?'),
         content: Text(
-          'This removes ${student.name}, their grades, fee history, and enrollments. '
-          'The parent account is deleted only if they have no other children at this school.',
+          'Remove ${student.name}, as notas, o histórico de propinas e as matrículas. '
+          'A conta do encarregado só é eliminada se não tiver mais educandos nesta escola.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancelar'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -58,7 +58,7 @@ class StudentDetailsScreen extends ConsumerWidget {
       ref.invalidate(studentsProvider((classId: student.classId, page: 1)));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Student removed')),
+          const SnackBar(content: Text('Aluno removido')),
         );
         context.pop();
       }
@@ -91,7 +91,7 @@ class StudentDetailsScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(active ? 'Student activated' : 'Student deactivated'),
+            content: Text(active ? 'Aluno activado' : 'Aluno desactivado'),
           ),
         );
       }
@@ -117,11 +117,11 @@ class StudentDetailsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: async.when(
           data: (s) => Text(s.name,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
-          loading: () => const Text('Student Profile',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          error: (e, s) => const Text('Student Profile',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          loading: () => const Text('Perfil do aluno',
+              style: TextStyle(fontWeight: FontWeight.w600)),
+          error: (e, s) => const Text('Perfil do aluno',
+              style: TextStyle(fontWeight: FontWeight.w600)),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -138,7 +138,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                 Icon(LucideIcons.alertTriangle,
                     size: 48, color: AppColors.error),
                 const SizedBox(height: 16),
-                Text('Could not load student',
+                Text('Não foi possível carregar o aluno',
                     style: TextStyle(color: AppColors.error)),
                 const SizedBox(height: 8),
                 Text('$e',
@@ -149,7 +149,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                 ElevatedButton(
                   onPressed: () =>
                       ref.invalidate(studentByIdProvider(id)),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar de novo'),
                 ),
               ],
             ),
@@ -184,7 +184,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'This student is inactive and hidden from the parent app.',
+                                        'Este aluno está inactivo e não aparece na aplicação do encarregado.',
                                         style: TextStyle(
                                           color: Colors.orange.shade900,
                                           fontSize: 13,
@@ -223,7 +223,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                                 onPressed: () => context
                                     .push('/admission?id=${student.id}'),
                                 icon: const Icon(LucideIcons.pencil, size: 22),
-                                tooltip: 'Edit',
+                                tooltip: 'Editar',
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -256,7 +256,7 @@ class StudentDetailsScreen extends ConsumerWidget {
                                   onPressed: () =>
                                       _confirmDelete(context, ref, student),
                                   icon: const Icon(LucideIcons.trash2, size: 20),
-                                  label: const Text('Delete'),
+                                  label: const Text('Eliminar'),
                                 ),
                               ),
                             ],
@@ -314,7 +314,7 @@ class _StudentProfileBody extends StatelessWidget {
                     initials,
                     style: const TextStyle(
                       fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.secondary,
                     ),
                   )
@@ -403,7 +403,7 @@ class _StudentProfileBody extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: AppColors.secondary,
               ),

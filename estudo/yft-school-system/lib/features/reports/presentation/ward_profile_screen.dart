@@ -46,7 +46,7 @@ class WardProfileScreen extends ConsumerWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
           ],
         ),
@@ -82,7 +82,7 @@ class WardProfileScreen extends ConsumerWidget {
         appBar: AppBar(
           title: const Text(
             'Ward Profile',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -102,7 +102,7 @@ class WardProfileScreen extends ConsumerWidget {
                   w.name,
                   style: const TextStyle(
                     fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
@@ -138,7 +138,7 @@ class WardProfileScreen extends ConsumerWidget {
                             'Financial Status',
                             style: TextStyle(
                               fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -227,7 +227,7 @@ class WardProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(
           'Ward Profile',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,

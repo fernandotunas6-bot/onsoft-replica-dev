@@ -5,6 +5,21 @@ export const financeListInputSchema = z.object({
   limit: z.number().int().min(1).max(250).default(100),
 });
 
+/**
+ * Faturas de um aluno: filtradas no servidor. A ficha do aluno pedia as 250 mais
+ * recentes da escola e filtrava no navegador — as mais antigas do aluno sumiam
+ * e o saldo saía errado logo que a escola passava as 250 faturas.
+ */
+export const listInvoicesInputSchema = z
+  .object({
+    limit: z.number().int().min(1).max(1000).default(100),
+    studentId: z.string().uuid().optional(),
+  })
+  .refine((input) => Boolean(input.studentId) || input.limit <= 250, {
+    message: "Sem aluno, a lista vai até 250 faturas.",
+    path: ["limit"],
+  });
+
 export const recordInvoicePaymentInputSchema = z.object({
   invoiceId: z.string().uuid(),
   // Referência opcional do funcionário — o número oficial do recibo é gerado

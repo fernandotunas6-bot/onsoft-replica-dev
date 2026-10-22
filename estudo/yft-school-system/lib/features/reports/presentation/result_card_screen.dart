@@ -10,7 +10,7 @@ class ResultCardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Academic Reports', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Academic Reports', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,

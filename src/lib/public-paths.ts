@@ -12,6 +12,9 @@ const PUBLIC_PREFIXES = [
   "/api/catracas",
   "/api/finance",
   "/api/saas",
+  "/api/public/school-website",
+  "/api/public/school-content",
+  "/api/public/school-blog",
 ];
 
 export function isPublicAppPath(pathname: string) {

@@ -62,7 +62,7 @@ class NoticesScreen extends ConsumerWidget {
                 notice.title,
                 style: const TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.secondary,
                 ),
               ),
@@ -98,8 +98,8 @@ class NoticesScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'School Notices',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Comunicados da escola',
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -114,7 +114,7 @@ class NoticesScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Could not load notices.',
+                  'Não foi possível carregar os comunicados.',
                   style: TextStyle(color: AppColors.error),
                 ),
                 const SizedBox(height: 12),
@@ -139,7 +139,7 @@ class NoticesScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'No notices yet.',
+                    'Ainda não há comunicados.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -202,7 +202,7 @@ class NoticesScreen extends ConsumerWidget {
                                         style: TextStyle(
                                           fontWeight: n.isRead
                                               ? FontWeight.w600
-                                              : FontWeight.bold,
+                                              : FontWeight.w600,
                                           fontSize: 15,
                                         ),
                                       ),

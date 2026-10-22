@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { publicErrorMessage } from "@/lib/public-error";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, LoaderCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
@@ -16,6 +16,10 @@ import { overlayTalao } from "@/features/documents/print-overlays";
 import { printBundledTemplate } from "@/features/documents/print-issue-loader";
 import { whatsappHref } from "@/features/integrations/actions";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
+import {
+  EnrollmentFeeNotice,
+  EnrollmentSubmissionReview,
+} from "@/features/enrollment/EnrollmentSubmissionReview";
 import { angolaProvinces } from "@/lib/angola-territory";
 
 // style-check: route-exempt - formulário público com identidade própria da escola.
@@ -39,7 +43,17 @@ function hasField(fields: unknown, name: EnrollmentVisibleField) {
 
 function PublicEnrollmentPage() {
   const { slug } = Route.useParams();
+  return <PublicEnrollmentForm key={slug} slug={slug} />;
+}
+
+export function PublicEnrollmentForm({ slug }: { slug: string }) {
   const [sent, setSent] = useState(false);
+  const successHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (sent) successHeading.current?.focus();
+  }, [sent]);
+  const [review, setReview] = useState<FormData | null>(null);
+  const submissionPending = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<{
@@ -65,11 +79,18 @@ function PublicEnrollmentPage() {
     ? `mailto:${form.school_email}?subject=${encodeURIComponent(`Matrícula — ${form?.school_name ?? "SIGA"}`)}&body=${encodeURIComponent("Olá, gostaria de saber mais sobre a candidatura.")}`
     : null;
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submissionPending.current || !event.currentTarget.reportValidity()) return;
+    setError(null);
+    setReview(new FormData(event.currentTarget));
+  };
+  const confirmSubmission = async () => {
+    if (!review || submissionPending.current) return;
+    submissionPending.current = true;
     setSaving(true);
     setError(null);
-    const data = new FormData(event.currentTarget);
+    const data = review;
     try {
       const fullName = String(data.get("full_name") ?? "");
       const guardianName = String(data.get("guardian_name") || "") || undefined;
@@ -106,6 +127,7 @@ function PublicEnrollmentPage() {
     } catch (submitError) {
       setError(publicErrorMessage(submitError, "Não foi possível enviar."));
     } finally {
+      submissionPending.current = false;
       setSaving(false);
     }
   };
@@ -161,13 +183,29 @@ function PublicEnrollmentPage() {
           ) : sent ? (
             <div className="py-10 text-center">
               <CheckCircle2 className="mx-auto size-10 text-primary" />
-              <h2 className="mt-4 font-display text-xl font-semibold">Candidatura enviada</h2>
+              <p className="mt-3 text-xs text-muted-foreground">Passo 3 de 3 · Confirmação</p>
+              <h2
+                ref={successHeading}
+                tabIndex={-1}
+                className="mt-1 font-display text-xl font-semibold"
+              >
+                Candidatura enviada
+              </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                A secretaria vai contactá-lo para confirmar.
+                Os dados foram recebidos e aguardam análise da secretaria. Guarde o número de
+                processo. Esta página é a confirmação do envio; nenhum pagamento foi efectuado.
               </p>
               {receipt ? (
                 <p className="mt-3 text-sm font-semibold text-foreground">
                   Nº de processo: {receipt.processNumber}
+                </p>
+              ) : null}
+              <div className="mt-5 text-left">
+                <EnrollmentFeeNotice amount={form?.admissionFeeAmount} />
+              </div>
+              {error ? (
+                <p role="alert" className="mt-4 text-sm text-destructive">
+                  {error}
                 </p>
               ) : null}
               {receipt ? (
@@ -222,158 +260,181 @@ function PublicEnrollmentPage() {
               ) : null}
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={(event) => void onSubmit(event)}>
-              <div>
-                <h2 className="font-display text-lg font-semibold">Dados do aluno</h2>
-                {form?.subtitle ? (
-                  <p className="mt-1 text-sm text-muted-foreground">{form.subtitle}</p>
-                ) : null}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="full_name">Nome completo</Label>
-                <Input id="full_name" name="full_name" required minLength={2} />
-              </div>
-              {form?.programs?.length ? (
-                <div className="space-y-2">
-                  <Label htmlFor="desired_program">Curso pretendido</Label>
-                  <select
-                    id="desired_program"
-                    name="desired_program"
-                    required
-                    defaultValue=""
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="" disabled>
-                      Escolha o curso
-                    </option>
-                    {form.programs.map((program) => (
-                      <option key={program.id} value={program.id}>
-                        {program.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <>
+              {review ? (
+                <EnrollmentSubmissionReview
+                  data={review}
+                  programName={
+                    form?.programs?.find((program) => program.id === review.get("desired_program"))
+                      ?.name
+                  }
+                  fee={form?.admissionFeeAmount}
+                  busy={saving}
+                  error={error}
+                  onBack={() => {
+                    setReview(null);
+                    setError(null);
+                    requestAnimationFrame(() => document.getElementById("full_name")?.focus());
+                  }}
+                  onConfirm={() => void confirmSubmission()}
+                />
               ) : null}
-              <div className="grid gap-3 sm:grid-cols-2">
-                {hasField(form?.visible_fields, "birth_date") ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="birth_date">Data de nascimento</Label>
-                    <Input id="birth_date" name="birth_date" type="date" />
-                  </div>
-                ) : null}
-                {hasField(form?.visible_fields, "sex") ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="sex">Género</Label>
+              <form hidden={!!review} className="space-y-4" onSubmit={onSubmit}>
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    Passo 1 de 3 · Dados · Revisão · Confirmação
+                  </p>
+                  <h2 className="font-display text-lg font-semibold">Dados do aluno</h2>
+                  {form?.subtitle ? (
+                    <p className="mt-1 text-sm text-muted-foreground">{form.subtitle}</p>
+                  ) : null}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="full_name">Nome completo</Label>
+                  <Input id="full_name" name="full_name" required minLength={2} />
+                </div>
+                {form?.programs?.length ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="desired_program">Curso pretendido</Label>
                     <select
-                      id="sex"
-                      name="sex"
+                      id="desired_program"
+                      name="desired_program"
+                      required
+                      defaultValue=""
                       className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                     >
-                      <option value="">—</option>
-                      <option value="F">Feminino</option>
-                      <option value="M">Masculino</option>
-                      <option value="outro">Outro</option>
+                      <option value="" disabled>
+                        Escolha o curso
+                      </option>
+                      {form.programs.map((program) => (
+                        <option key={program.id} value={program.id}>
+                          {program.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 ) : null}
-                {hasField(form?.visible_fields, "phone_primary") ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone_primary">Telefone</Label>
-                    <AngolaPhoneField id="phone_primary" name="phone_primary" />
-                  </div>
-                ) : null}
-                {hasField(form?.visible_fields, "email") ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" />
-                  </div>
-                ) : null}
-                {hasField(form?.visible_fields, "nif") ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="nif">NIF / BI</Label>
-                    <AngolaIdentityField id="nif" name="nif" />
-                  </div>
-                ) : null}
-              </div>
-              {hasField(form?.visible_fields, "province") ||
-              hasField(form?.visible_fields, "municipality") ||
-              hasField(form?.visible_fields, "commune") ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {hasField(form?.visible_fields, "province") ? (
+                  {hasField(form?.visible_fields, "birth_date") ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="province">Província</Label>
+                      <Label htmlFor="birth_date">Data de nascimento</Label>
+                      <Input id="birth_date" name="birth_date" type="date" />
+                    </div>
+                  ) : null}
+                  {hasField(form?.visible_fields, "sex") ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="sex">Género</Label>
                       <select
-                        id="province"
-                        name="province"
+                        id="sex"
+                        name="sex"
                         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                       >
-                        <option value="">Seleccionar província</option>
-                        {angolaProvinces.map((province) => (
-                          <option key={province} value={province}>
-                            {province}
-                          </option>
-                        ))}
+                        <option value="">—</option>
+                        <option value="F">Feminino</option>
+                        <option value="M">Masculino</option>
+                        <option value="outro">Outro</option>
                       </select>
                     </div>
                   ) : null}
-                  {hasField(form?.visible_fields, "municipality") ? (
+                  {hasField(form?.visible_fields, "phone_primary") ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="municipality">Município</Label>
-                      <Input id="municipality" name="municipality" />
+                      <Label htmlFor="phone_primary">Telefone</Label>
+                      <AngolaPhoneField id="phone_primary" name="phone_primary" />
                     </div>
                   ) : null}
-                  {hasField(form?.visible_fields, "commune") ? (
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="commune">Comuna / localidade</Label>
-                      <Input id="commune" name="commune" />
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              {hasField(form?.visible_fields, "address") ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="address">Morada detalhada</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    placeholder="Bairro, rua, casa ou referência"
-                  />
-                </div>
-              ) : null}
-              {hasField(form?.visible_fields, "guardian_name") ||
-              hasField(form?.visible_fields, "guardian_phone") ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {hasField(form?.visible_fields, "guardian_name") ? (
+                  {hasField(form?.visible_fields, "email") ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="guardian_name">Encarregado</Label>
-                      <Input id="guardian_name" name="guardian_name" />
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" name="email" type="email" />
                     </div>
                   ) : null}
-                  {hasField(form?.visible_fields, "guardian_phone") ? (
+                  {hasField(form?.visible_fields, "nif") ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="guardian_phone">Telefone do encarregado</Label>
-                      <Input id="guardian_phone" name="guardian_phone" />
+                      <Label htmlFor="nif">NIF / BI</Label>
+                      <AngolaIdentityField id="nif" name="nif" />
                     </div>
                   ) : null}
                 </div>
-              ) : null}
-              {hasField(form?.visible_fields, "guardian_relationship") ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="guardian_relationship">Parentesco</Label>
-                  <Input id="guardian_relationship" name="guardian_relationship" />
-                </div>
-              ) : null}
-              {hasField(form?.visible_fields, "notes") ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="notes">Notas</Label>
-                  <Textarea id="notes" name="notes" />
-                </div>
-              ) : null}
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <Button type="submit" className="w-full" disabled={saving}>
-                {saving ? "A enviar…" : "Enviar candidatura"}
-              </Button>
-            </form>
+                {hasField(form?.visible_fields, "province") ||
+                hasField(form?.visible_fields, "municipality") ||
+                hasField(form?.visible_fields, "commune") ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {hasField(form?.visible_fields, "province") ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="province">Província</Label>
+                        <select
+                          id="province"
+                          name="province"
+                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        >
+                          <option value="">Seleccionar província</option>
+                          {angolaProvinces.map((province) => (
+                            <option key={province} value={province}>
+                              {province}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+                    {hasField(form?.visible_fields, "municipality") ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="municipality">Município</Label>
+                        <Input id="municipality" name="municipality" />
+                      </div>
+                    ) : null}
+                    {hasField(form?.visible_fields, "commune") ? (
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <Label htmlFor="commune">Comuna / localidade</Label>
+                        <Input id="commune" name="commune" />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {hasField(form?.visible_fields, "address") ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address">Morada detalhada</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      placeholder="Bairro, rua, casa ou referência"
+                    />
+                  </div>
+                ) : null}
+                {hasField(form?.visible_fields, "guardian_name") ||
+                hasField(form?.visible_fields, "guardian_phone") ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {hasField(form?.visible_fields, "guardian_name") ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="guardian_name">Encarregado</Label>
+                        <Input id="guardian_name" name="guardian_name" />
+                      </div>
+                    ) : null}
+                    {hasField(form?.visible_fields, "guardian_phone") ? (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="guardian_phone">Telefone do encarregado</Label>
+                        <Input id="guardian_phone" name="guardian_phone" />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {hasField(form?.visible_fields, "guardian_relationship") ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="guardian_relationship">Parentesco</Label>
+                    <Input id="guardian_relationship" name="guardian_relationship" />
+                  </div>
+                ) : null}
+                {hasField(form?.visible_fields, "notes") ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="notes">Notas</Label>
+                    <Textarea id="notes" name="notes" />
+                  </div>
+                ) : null}
+                {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                <Button type="submit" className="w-full" disabled={saving}>
+                  Rever candidatura
+                </Button>
+              </form>
+            </>
           )}
         </section>
       </div>

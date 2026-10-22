@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calculator,
@@ -167,10 +167,6 @@ export function AssessmentCenter({
 
   useEffect(() => {
     if (!open) return;
-    if (initialTerm && initialTerm !== "todos") setFilter("trimestre", initialTerm);
-    else if (globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3) {
-      setFilter("trimestre", String(globalTerm.sequence));
-    }
     if (initialClassGroupId) setFilter("turma", initialClassGroupId);
     if (initialSubjectId) {
       setFilter("disciplina", initialSubjectId);
@@ -180,7 +176,7 @@ export function AssessmentCenter({
       setScope("alunos");
       setMode("lancamento");
     }
-  }, [globalTerm?.sequence, initialClassGroupId, initialSubjectId, initialTerm, open, setFilter]);
+  }, [initialClassGroupId, initialSubjectId, open, setFilter]);
 
   const term = (Number(filters.trimestre) || 1) as 1 | 2 | 3;
   const termClosed = closedTerms.includes(term);
@@ -191,29 +187,66 @@ export function AssessmentCenter({
       ? (classGroups.find((group) => group.id === filters.turma) ?? null)
       : (classGroups[0] ?? null);
   const selectedCycle = inferTeachingCycle(selectedGroup?.grade_name, selectedGroup?.course_name);
-  const periodOptions = getPeriodsForCycle(selectedCycle, evaluationPeriods);
+  const periodOptions = useMemo(
+    () => getPeriodsForCycle(selectedCycle, evaluationPeriods),
+    [selectedCycle, evaluationPeriods],
+  );
   const periodNoun = getPeriodNoun(selectedCycle);
 
-  // Topbar → Centro: quando o período global muda com o centro aberto.
+  // Uma só sincronização: a abertura/deep-link escolhe o período; mudanças
+  // posteriores da barra superior acompanham-se sem reenviar o filtro anterior.
+  // Dois efeitos em sentidos opostos liam o mesmo render e alternavam períodos
+  // quando o filtro guardado diferia do global (React #185).
+  const periodSync = useRef<{
+    initialTerm: string | undefined;
+    globalId: string | undefined;
+    sequence: number | undefined;
+  } | null>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      periodSync.current = null;
+      return;
+    }
+    const previous = periodSync.current;
     const sequence = globalTerm?.sequence;
-    if (!sequence || !periodOptions.includes(sequence as 1 | 2 | 3)) return;
-    if (String(sequence) === filters.trimestre) return;
-    setFilter("trimestre", String(sequence));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- só reage ao período global
-  }, [globalTerm?.id, globalTerm?.sequence, open, periodOptions]);
+    const initialChanged = !previous || previous.initialTerm !== initialTerm;
+    const globalChanged = previous?.globalId !== globalTerm?.id || previous?.sequence !== sequence;
+    periodSync.current = { initialTerm, globalId: globalTerm?.id, sequence };
+    if (!initialChanged && !globalChanged) return;
 
-  // Centro → Topbar: o filtro de trimestre actualiza o período global.
-  useEffect(() => {
-    if (!open) return;
-    const next = Number(filters.trimestre);
-    if (!Number.isFinite(next) || next < 1 || next > 3) return;
-    if (globalTerm?.sequence === next) return;
-    const match = academicTerms.find((item) => item.sequence === next);
-    if (match) setSelectedTermId(match.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- evita loop com selectedTerm
-  }, [filters.trimestre, open, academicTerms, setSelectedTermId]);
+    const requested = Number(initialTerm);
+    const hasRequestedTerm = initialChanged && periodOptions.includes(requested as 1 | 2 | 3);
+    const next = hasRequestedTerm ? requested : sequence;
+    if (!next || !periodOptions.includes(next as 1 | 2 | 3)) return;
+    if (filters.trimestre !== String(next)) setFilter("trimestre", String(next));
+    if (hasRequestedTerm && next !== sequence) {
+      const match = academicTerms.find((item) => item.sequence === next);
+      if (match) setSelectedTermId(match.id);
+    }
+  }, [
+    open,
+    initialTerm,
+    globalTerm?.id,
+    globalTerm?.sequence,
+    periodOptions,
+    filters.trimestre,
+    academicTerms,
+    setFilter,
+    setSelectedTermId,
+  ]);
+
+  // Centro → Topbar apenas numa acção do utilizador, nunca num efeito de render.
+  const changeFilter = (key: keyof typeof filterDefaults, value: string) => {
+    setFilter(key, value);
+    if (key !== "trimestre") return;
+    const match = academicTerms.find((item) => item.sequence === Number(value));
+    if (match && match.id !== globalTerm?.id) setSelectedTermId(match.id);
+  };
+  const resetAssessmentFilters = () => {
+    resetFilters();
+    const match = academicTerms.find((item) => item.sequence === Number(filterDefaults.trimestre));
+    if (match && match.id !== globalTerm?.id) setSelectedTermId(match.id);
+  };
 
   const selectedSubject =
     filters.disciplina !== "todas"
@@ -822,8 +855,8 @@ export function AssessmentCenter({
         {filtersOpen ? (
           <AssessmentFiltersPanel
             filters={filters}
-            setFilter={setFilter}
-            resetFilters={resetFilters}
+            setFilter={changeFilter}
+            resetFilters={resetAssessmentFilters}
             activeCount={activeCount}
             classes={classes}
             courses={courses}

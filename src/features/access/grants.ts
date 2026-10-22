@@ -6,6 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { requireSgaWriter, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { recordAccessAudit } from "@/features/audit/record-audit";
+import { requireAal2 } from "@/features/hr/require-aal2";
 
 /**
  * Este módulo lê e escreve com o cliente do utilizador (`context.supabase`),
@@ -64,6 +65,7 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   .validator((input: unknown) => setStaffModuleGrantInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    requireAal2(context.claims, "Alterar permissões");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     // A permissão só se dá a pessoal desta escola. No servidor ela pode abrir
     // funções a quem não tem o cargo; a um aluno ou encarregado, nunca.
@@ -109,6 +111,7 @@ export const clearStaffModuleGrant = createServerFn({ method: "POST" })
   .validator((input: unknown) => clearStaffModuleGrantInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
+    requireAal2(context.claims, "Repor permissões");
     const membership = await requireSgaWriter(context.supabase, context.userId, ["Administrador"]);
     const { error } = await context.supabase
       .from("staff_module_grants")

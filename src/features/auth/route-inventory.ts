@@ -4,6 +4,7 @@
  */
 export const SIGA_AUTHENTICATED_ROUTE_PREFIXES = [
   "/",
+  "/portal",
   "/alunos",
   "/alumni",
   "/pessoas",

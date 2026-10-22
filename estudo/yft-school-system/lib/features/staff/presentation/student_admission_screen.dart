@@ -237,7 +237,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
     if (classId == null || classId.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('No class available. Create a class first.'),
+          content: Text('Não há turmas. Crie primeiro uma turma.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -246,7 +246,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
     if (_dob == null) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Please select date of birth'),
+          content: Text('Escolha a data de nascimento'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -256,7 +256,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
     if (_isNewAdmission && _useLinkedParent && _selectedExistingParent == null) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Select an existing parent from the list'),
+          content: Text('Escolha um encarregado da lista'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -359,8 +359,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       messenger.showSnackBar(
         SnackBar(
           content: Text(editId != null
-              ? 'Student updated'
-              : 'Admission completed successfully'),
+              ? 'Aluno actualizado'
+              : 'Admissão concluída'),
           backgroundColor: Colors.green,
         ),
       );
@@ -461,8 +461,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           backgroundColor: AppColors.background,
           appBar: AppBar(
             title: const Text(
-              'Edit student',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              'Editar aluno',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -476,8 +476,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           backgroundColor: AppColors.background,
           appBar: AppBar(
             title: const Text(
-              'Edit student',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              'Editar aluno',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -503,7 +503,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                       });
                       _loadExistingStudent();
                     },
-                    child: const Text('Retry'),
+                    child: const Text('Tentar de novo'),
                   ),
                 ],
               ),
@@ -520,8 +520,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          widget.studentId != null ? 'Edit student' : 'New admission',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          widget.studentId != null ? 'Editar aluno' : 'Nova admissão',
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -539,10 +539,10 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Student information',
+                  'Dados do aluno',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -551,7 +551,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Tap to add photo',
+                    'Toque para adicionar fotografia',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary.withValues(alpha: 0.9),
@@ -563,11 +563,11 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   controller: _studentNameController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Student full name',
+                    'Nome completo do aluno',
                     LucideIcons.user,
                   ),
                   validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Required' : null,
+                      v == null || v.trim().isEmpty ? 'Obrigatório' : null,
                 ),
                 const SizedBox(height: 18),
                 if (narrow) ...[
@@ -592,7 +592,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                     ),
                   ),
                   error: (e, _) => Text(
-                    'Could not load classes: $e',
+                    'Não foi possível carregar as turmas: $e',
                     style: const TextStyle(color: AppColors.error),
                   ),
                   data: (classes) => _buildClassDropdown(_sortClasses(classes)),
@@ -602,16 +602,16 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   controller: _previousSchoolController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Previous school (optional)',
+                    'Escola anterior (opcional)',
                     LucideIcons.school,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Parent / guardian',
+                  'Encarregado de educação',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -626,12 +626,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                     controller: _parentNameController,
                     style: _fieldStyle,
                     decoration: _decoration(
-                      'Parent full name',
+                      'Nome completo do encarregado',
                       LucideIcons.contact,
                     ),
                     validator: (v) {
                       if (_useLinkedParent) return null;
-                      return v == null || v.trim().isEmpty ? 'Required' : null;
+                      return v == null || v.trim().isEmpty ? 'Obrigatório' : null;
                     },
                   ),
                   const SizedBox(height: 18),
@@ -640,12 +640,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                     style: _fieldStyle,
                     keyboardType: TextInputType.phone,
                     decoration: _decoration(
-                      'Mobile number (primary)',
+                      'Telemóvel (principal)',
                       LucideIcons.phone,
                     ),
                     validator: (v) {
                       if (_useLinkedParent) return null;
-                      return v == null || v.trim().isEmpty ? 'Required' : null;
+                      return v == null || v.trim().isEmpty ? 'Obrigatório' : null;
                     },
                   ),
                   const SizedBox(height: 18),
@@ -654,7 +654,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                     style: _fieldStyle,
                     keyboardType: TextInputType.emailAddress,
                     decoration: _decoration(
-                      'Email (optional)',
+                      'E-mail (opcional)',
                       LucideIcons.mail,
                     ),
                   ),
@@ -665,16 +665,16 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   style: _fieldStyle,
                   maxLines: 3,
                   decoration: _decoration(
-                    'Home / residential address',
+                    'Morada',
                     LucideIcons.mapPin,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Emergency contact',
+                  'Contacto de emergência',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -683,7 +683,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   controller: _emergencyContactNameController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Emergency contact name',
+                    'Nome do contacto de emergência',
                     LucideIcons.alertCircle,
                   ),
                 ),
@@ -693,16 +693,16 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   style: _fieldStyle,
                   keyboardType: TextInputType.phone,
                   decoration: _decoration(
-                    'Emergency contact phone',
+                    'Telefone do contacto de emergência',
                     LucideIcons.phone,
                   ),
                 ),
                 const SizedBox(height: 36),
                 const Text(
-                  'Health',
+                  'Saúde',
                   style: TextStyle(
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -711,7 +711,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   controller: _bloodGroupController,
                   style: _fieldStyle,
                   decoration: _decoration(
-                    'Blood group (optional)',
+                    'Grupo sanguíneo (opcional)',
                     LucideIcons.droplet,
                   ),
                 ),
@@ -721,7 +721,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   style: _fieldStyle,
                   maxLines: 3,
                   decoration: _decoration(
-                    'Medical notes / allergies (optional)',
+                    'Notas médicas e alergias (opcional)',
                     LucideIcons.heartHandshake,
                   ),
                 ),
@@ -741,8 +741,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                           )
                         : Text(
                             widget.studentId != null
-                                ? 'Save changes'
-                                : 'Complete admission',
+                                ? 'Guardar alterações'
+                                : 'Concluir admissão',
                             style: const TextStyle(fontSize: 16),
                           ),
                   ),
@@ -750,8 +750,8 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                 const SizedBox(height: 16),
                 Text(
                   _isNewAdmission && _parentMode == _ParentAdmissionMode.linkExisting
-                      ? 'The student is linked to the selected parent account — no duplicate parent is created.'
-                      : 'A parent account is created or matched by phone when needed.',
+                      ? 'O aluno fica ligado ao encarregado escolhido — não se cria um encarregado repetido.'
+                      : 'A conta do encarregado é criada ou associada pelo telemóvel, quando é preciso.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 13,
@@ -771,7 +771,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Attach parent',
+          'Associar encarregado',
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -783,12 +783,12 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           segments: [
             ButtonSegment(
               value: _ParentAdmissionMode.linkExisting,
-              label: const Text('Existing'),
+              label: const Text('Existente'),
               icon: const Icon(LucideIcons.userCheck, size: 18),
             ),
             ButtonSegment(
               value: _ParentAdmissionMode.registerNew,
-              label: const Text('New parent'),
+              label: const Text('Novo encarregado'),
               icon: const Icon(LucideIcons.userPlus, size: 18),
             ),
           ],
@@ -810,7 +810,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
           controller: _parentSearchController,
           style: _fieldStyle,
           decoration: _decoration(
-            'Search parent by name or phone',
+            'Procurar encarregado por nome ou telemóvel',
             LucideIcons.search,
           ).copyWith(
             suffixIcon: _searchingParents
@@ -845,7 +845,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
               ),
               title: Text(
                 _selectedExistingParent!.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
                 _formatSelectedParentSubtitle(_selectedExistingParent!),
@@ -858,7 +858,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
                   });
                   _loadParentSuggestions(_parentSearchController.text.trim());
                 },
-                child: const Text('Change'),
+                child: const Text('Alterar'),
               ),
             ),
           )
@@ -900,7 +900,7 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               _parentSearchController.text.trim().isNotEmpty
-                  ? 'No matching parents. Try another search or use “New parent”.'
+                  ? 'Nenhum encarregado encontrado. Tente outra pesquisa ou use «Novo encarregado».'
                   : 'No parents found yet. Use “New parent” to register one first; then you can link siblings here.',
               style: TextStyle(
                 fontSize: 13,
@@ -919,13 +919,16 @@ class _StudentAdmissionScreenState extends ConsumerState<StudentAdmissionScreen>
       value: _gender,
       style: _fieldStyle,
       decoration: const InputDecoration(
-        labelText: 'Gender',
+        labelText: 'Sexo',
         prefixIcon: Icon(LucideIcons.users, size: 22),
         contentPadding: _contentPadding,
       ),
-      items: ['Male', 'Female']
-          .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-          .toList(),
+      // O valor fica em inglês: é o que vai em `gender` para a API e o que
+      // os registos existentes já têm. Só o rótulo é traduzido.
+      items: const [
+        DropdownMenuItem(value: 'Male', child: Text('Masculino')),
+        DropdownMenuItem(value: 'Female', child: Text('Feminino')),
+      ],
       onChanged: (v) => setState(() => _gender = v ?? 'Male'),
     );
   }

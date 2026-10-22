@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { colorThemes, tweakcnThemes } from "@/config/theme-data";
 import type { ImportedTheme, ThemePreset } from "@/types/theme-customizer";
 import { brandHexToCssVars, type SchoolBrandColors } from "@/lib/brand-tokens";
 
@@ -255,7 +254,42 @@ function sidebarVars(sidebar: SidebarPreset, accent: AccentPreset) {
   };
 }
 
+/**
+ * Catálogos de temas Shadcn/Tweakcn: cerca de 110 KB que o arranque não precisa.
+ * O estado por omissão não tem tema de catálogo, e quem tem um só o conhece
+ * depois de o `localStorage` ser lido — já depois de montar. Por isso carregam
+ * sob demanda e ficam em memória; as restantes variáveis são aplicadas sem
+ * esperar por eles, na mesma ordem de precedência de sempre.
+ */
+let catalogue: typeof import("@/config/theme-data") | null = null;
+let cataloguePromise: Promise<typeof import("@/config/theme-data")> | null = null;
+
+function loadThemeCatalogue() {
+  cataloguePromise ??= import("@/config/theme-data").then((mod) => {
+    catalogue = mod;
+    return mod;
+  });
+  return cataloguePromise;
+}
+
+/**
+ * Última aplicação pedida. Um catálogo que chegue depois de o estado mudar não
+ * deve escrever as variáveis do estado antigo.
+ */
+let appearanceGeneration = 0;
+
 export function applyAppearance(state: AppearanceState) {
+  if (typeof document === "undefined") return;
+  const generation = ++appearanceGeneration;
+  applyResolvedAppearance(state);
+  if (!catalogue && (state.shadcnTheme || state.tweakcnTheme)) {
+    void loadThemeCatalogue().then(() => {
+      if (generation === appearanceGeneration) applyResolvedAppearance(state);
+    });
+  }
+}
+
+function applyResolvedAppearance(state: AppearanceState) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const prefersDark =
@@ -276,7 +310,7 @@ export function applyAppearance(state: AppearanceState) {
 
   // 2. Se houver tema Shadcn ativo, aplica as variáveis
   if (state.shadcnTheme) {
-    const theme = colorThemes.find((t) => t.value === state.shadcnTheme);
+    const theme = catalogue?.colorThemes.find((t) => t.value === state.shadcnTheme);
     if (theme) {
       const styles = dark ? theme.preset.styles.dark : theme.preset.styles.light;
       Object.entries(styles).forEach(([k, v]) => {
@@ -287,7 +321,7 @@ export function applyAppearance(state: AppearanceState) {
 
   // 3. Se houver tema Tweakcn ativo, aplica as variáveis
   if (state.tweakcnTheme) {
-    const theme = tweakcnThemes.find((t) => t.value === state.tweakcnTheme);
+    const theme = catalogue?.tweakcnThemes.find((t) => t.value === state.tweakcnTheme);
     if (theme) {
       const styles = dark ? theme.preset.styles.dark : theme.preset.styles.light;
       Object.entries(styles).forEach(([k, v]) => {

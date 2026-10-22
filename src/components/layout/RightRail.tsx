@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import "./right-rail-layout.css";
 import { ChevronLeft, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -24,8 +25,8 @@ type RailTab = "relacionado" | "mensagens";
    mesmo espaço de 320px, em separadores. Duas colunas lado a lado custariam
    ~700px de largura e apertavam o conteúdo em ecrãs de 1440px.
 
-   Em `lg:` é uma aside fixa; abaixo disso é um Sheet de fundo — o mesmo padrão
-   que o painel contextual já usava. */
+   A coluna fixa só cabe com conforto em 2xl (1536px). Abaixo disso é um
+   Sheet acessível pelo botão flutuante, sem apertar o conteúdo principal. */
 export function RightRail() {
   const { focusedEntity, panelCollapsed, setPanelCollapsed } = useEntityFocus();
   const relations = useRelations();
@@ -37,11 +38,30 @@ export function RightRail() {
   // ChatDock montado para o dar.
   const { unread: unreadRows } = useInboxUnread();
   const unread = unreadRows.reduce((total, row) => total + row.unread, 0);
-  // Um só chat montado: a coluna no computador (lg), a folha abaixo disso.
+  // Um só chat montado: a coluna em ecrãs largos (2xl), a folha abaixo disso.
   // Antes os dois ficavam montados (um escondido), com dois canais de tempo
   // real, e abrir pelo sino no computador abria também a folha do telemóvel.
   const { breakpoint, ready } = useBreakpoint();
-  const isDesktop = breakpoint === "desktop";
+  const [wideLayout, setWideLayout] = useState(false);
+  useEffect(() => {
+    // Mesmo fallback de resize do useBreakpoint: não depende de matchMedia em testes.
+    const update = () => {
+      const next = window.innerWidth >= 1536;
+      setWideLayout((current) => (current === next ? current : next));
+    };
+    update();
+    window.addEventListener("resize", update, { passive: true });
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+  const isDesktop = ready && breakpoint === "desktop" && wideLayout;
+
+  useEffect(() => {
+    if (isDesktop) setMobileOpen(false);
+  }, [isDesktop]);
   const [openRequest, setOpenRequest] = useState<{
     conversationId: string;
     nonce: number;
@@ -130,7 +150,7 @@ export function RightRail() {
     <>
       <aside
         aria-label="Painel lateral"
-        className="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 border-l border-border/50 bg-card/40 backdrop-blur-xs lg:flex lg:flex-col"
+        className="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 border-l border-border/50 bg-card/40 backdrop-blur-xs 2xl:flex 2xl:flex-col"
         style={{ width: panelCollapsed ? "3.25rem" : "320px" }}
       >
         {panelCollapsed ? (
@@ -152,7 +172,7 @@ export function RightRail() {
                 setTab("mensagens");
                 setPanelCollapsed(false);
               }}
-              className="relative rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
+              className="touch-target relative rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MessageCircle className="size-4" />
               {unread > 0 ? (
@@ -196,8 +216,11 @@ export function RightRail() {
         )}
       </aside>
 
-      {/* Abaixo de lg o painel não cabe: dois botões flutuantes abrem o Sheet. */}
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2 lg:hidden">
+      {/* Abaixo de 2xl o painel não cabe sem comprimir o conteúdo. */}
+      <div
+        data-siga-rail-shortcuts=""
+        className="fixed bottom-above-nav right-4 z-40 flex flex-col items-end gap-2 lg:bottom-4 2xl:hidden"
+      >
         {suggestions.length > 0 ? (
           <button
             type="button"
@@ -219,7 +242,7 @@ export function RightRail() {
             setMobileOpen(true);
           }}
           aria-label="Abrir mensagens"
-          className="relative flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
+          className="relative flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <MessageCircle className="size-5" />
           {unread > 0 ? (
@@ -233,7 +256,10 @@ export function RightRail() {
       <Sheet open={mobileOpen && !isDesktop} onOpenChange={setMobileOpen}>
         {/* Quase ecrã inteiro: uma conversa num Sheet de 75vh deixa duas
             mensagens visíveis acima do teclado num telemóvel. */}
-        <SheetContent side="bottom" className="flex h-[92vh] flex-col gap-0 p-0">
+        <SheetContent
+          side="bottom"
+          className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 overflow-hidden p-0 pt-10"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>{activeTab === "mensagens" ? "Mensagens" : "Relacionado"}</SheetTitle>
           </SheetHeader>

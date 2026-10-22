@@ -318,21 +318,31 @@ async function main() {
   console.log('\nUpdating SuperAdmins record in remote D1...');
   try {
     const { execSync } = await import('node:child_process');
-    const dbName = 'school_management_db';
-    const sql = `INSERT INTO SuperAdmins (uid, name, email) VALUES ('${refreshedUser.uid}', '${displayName}', '${refreshedUser.email}') ON CONFLICT(uid) DO UPDATE SET name = excluded.name, email = excluded.email;`;
-    
-    // We try to run this against --remote by default since the user wants it in Cloudflare
-    console.log(`Running: wrangler d1 execute ${dbName} --remote --command="..."`);
-    
-    execSync(`npx wrangler d1 execute ${dbName} --remote --command "${sql}"`, {
+    // Na publicação do SIGA a base chama-se siga-yft-db (wrangler.siga.jsonc).
+    // O nome do autor, school_management_db, não existe nesta conta: o
+    // wrangler falhava, o catch abaixo engolia o erro num aviso, e a linha
+    // nunca era escrita.
+    const dbName = process.env.D1_DATABASE_NAME ?? 'siga-yft-db';
+    // `d1 execute --command` não aceita parâmetros, por isso os valores vão
+    // no texto. Duplicar as plicas é o que impede um nome com apóstrofo
+    // (ou pior) de sair do literal.
+    const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
+    const sql = `INSERT INTO SuperAdmins (uid, name, email) VALUES (${q(refreshedUser.uid)}, ${q(displayName)}, ${q(refreshedUser.email)}) ON CONFLICT(uid) DO UPDATE SET name = excluded.name, email = excluded.email;`;
+
+    console.log(`Running: wrangler d1 execute ${dbName} --remote --command "..."`);
+
+    execSync('npx wrangler d1 execute ' + dbName + ' --remote --command ' + JSON.stringify(sql), {
       cwd: path.resolve(repoRoot, 'school-worker'),
       stdio: 'inherit',
     });
-    
+
     console.log('Successfully updated SuperAdmins table in remote D1.');
   } catch (error) {
     console.warn('\nWarning: Failed to update D1 record via wrangler.');
-    console.warn('Make sure you have run migrations first: npx wrangler d1 migrations apply school_management_db --remote');
+    console.warn(`Database: ${process.env.D1_DATABASE_NAME ?? 'siga-yft-db'} (mudar com D1_DATABASE_NAME).`);
+    console.warn('Precisa de CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID no ambiente;');
+    console.warn('na publicação pelo Actions, o token fica só no CI e este passo falha aqui.');
+    console.warn('A conta Firebase foi criada na mesma — falta só a linha em SuperAdmins.');
     console.warn(`Error: ${error.message}`);
   }
 

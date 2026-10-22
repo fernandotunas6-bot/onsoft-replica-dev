@@ -119,7 +119,7 @@ class DashboardScreen extends ConsumerWidget {
                       schoolName,
                       style: const TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.secondary,
                         letterSpacing: -0.5,
                       ),
@@ -221,7 +221,7 @@ class DashboardScreen extends ConsumerWidget {
                     'SYSTEM',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textSecondary,
                       letterSpacing: 1.2,
                     ),
@@ -238,7 +238,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 16),
                         const Text(
-                          'Help & Support',
+                          'Ajuda e apoio',
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: AppColors.textSecondary,
@@ -268,9 +268,9 @@ class DashboardScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'My Account',
+                              'A minha conta',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 fontSize: 14,
                                 color: AppColors.textPrimary,
                               ),
@@ -394,7 +394,7 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hi! ${session?.userName ?? "User"}',
+                        'Olá, ${session?.userName ?? "utilizador"}',
                         style: Theme.of(context).textTheme.displayMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -418,7 +418,7 @@ class DashboardScreen extends ConsumerWidget {
                 constraints: const BoxConstraints(maxWidth: 400),
                 child: TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search everything...',
+                    hintText: 'Procurar...',
                     prefixIcon: const Icon(LucideIcons.search, size: 18),
                     filled: true,
                     fillColor: AppColors.surface,
@@ -476,11 +476,11 @@ class DashboardScreen extends ConsumerWidget {
   String _getSubtitle(UserRole? role) {
     switch (role) {
       case UserRole.admin:
-        return 'School Administrator';
+        return 'Administração da escola';
       case UserRole.teacher:
-        return 'Class Instructor';
+        return 'Professor';
       case UserRole.parent:
-        return 'Parent Account';
+        return 'Encarregado de educação';
       default:
         return 'User';
     }
@@ -580,12 +580,12 @@ class AdminDashboard extends ConsumerWidget {
     return Column(
       children: [
         _SummaryCard(
-          title: 'Ecosystem Summary',
+          title: 'Resumo',
           rows: [
-            _SummaryRow(label: 'Total Students', value: '$studentCount'),
+            _SummaryRow(label: 'Total de alunos', value: '$studentCount'),
             _SummaryRow(label: 'Classes', value: '$classCount'),
             _SummaryRow(
-              label: 'Total Arrears',
+              label: 'Dívidas em atraso',
               value: arrearsDisplay,
             ),
           ],
@@ -596,51 +596,51 @@ class AdminDashboard extends ConsumerWidget {
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Teacher\nRegistration',
+              title: 'Registo de\nprofessores',
               icon: LucideIcons.userPlus,
               color: AppColors.primary,
               onTap: () => context.push('/register-teacher'),
             ),
             _ActionCard(
-              title: 'Student\nAdmissions',
+              title: 'Admissão de\nalunos',
               icon: LucideIcons.graduationCap,
               color: AppColors.surface,
               onTap: () => context.push('/admission'),
             ),
             _ActionCard(
-              title: 'Finance\n& Fees',
+              title: 'Propinas e\nfinanças',
               icon: LucideIcons.wallet,
               color: AppColors.secondary,
               isDark: true,
               onTap: () => context.push('/finance'),
             ),
             _ActionCard(
-              title: 'Academic\nSetup',
+              title: 'Configuração\nacadémica',
               icon: LucideIcons.settings2,
               color: AppColors.surface,
               onTap: () => context.push('/classes'),
             ),
             _ActionCard(
-              title: 'Students\nDirectory',
+              title: 'Lista de\nalunos',
               icon: LucideIcons.users,
               color: AppColors.primary,
               onTap: () => context.push('/admin-student-classes'),
             ),
             _ActionCard(
-              title: 'Subjects\nSetup',
+              title: 'Disciplinas',
               icon: LucideIcons.book,
               color: AppColors.surface,
               onTap: () => context.push('/subjects'),
             ),
             _ActionCard(
-              title: 'Send\nNotice',
+              title: 'Enviar\ncomunicado',
               icon: LucideIcons.send,
               color: AppColors.secondary,
               isDark: true,
               onTap: () => context.push('/create-notice'),
             ),
             _ActionCard(
-              title: 'School\nNotices',
+              title: 'Comunicados\nda escola',
               icon: LucideIcons.megaphone,
               color: AppColors.primary,
               onTap: () => context.push('/notices'),
@@ -673,25 +673,25 @@ class TeacherDashboard extends ConsumerWidget {
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Take\nAttendance',
+              title: 'Marcar\npresenças',
               icon: LucideIcons.userCheck,
               color: AppColors.surface,
               onTap: () => context.push('/attendance'),
             ),
             _ActionCard(
-              title: 'Students\nDirectory',
+              title: 'Lista de\nalunos',
               icon: LucideIcons.users,
               color: AppColors.primary,
               onTap: () => context.push('/student-search'),
             ),
             _ActionCard(
-              title: 'Total\nAttendance',
+              title: 'Total de\npresenças',
               icon: LucideIcons.barChart3,
               color: AppColors.surface,
               onTap: () => context.push('/total-attendance'),
             ),
             _ActionCard(
-              title: 'School\nNotices',
+              title: 'Comunicados\nda escola',
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               onTap: () => context.push('/notices'),
@@ -715,7 +715,7 @@ class ParentDashboard extends ConsumerWidget {
     return Column(
       children: [
         _SummaryCard(
-          title: 'Ward Overview',
+          title: 'Resumo do educando',
           rows: [
             const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
           ],
@@ -726,19 +726,19 @@ class ParentDashboard extends ConsumerWidget {
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Report\nCards',
+              title: 'Boletins',
               icon: LucideIcons.scrollText,
               color: AppColors.surface,
               onTap: () => context.push('/result-card'),
             ),
             _ActionCard(
-              title: 'Fee\nPayment',
+              title: 'Pagamento de\npropinas',
               icon: LucideIcons.creditCard,
               color: AppColors.primary,
               onTap: () => context.push('/payment-history'),
             ),
             _ActionCard(
-              title: 'School\nNotices',
+              title: 'Comunicados\nda escola',
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               badgeCount: noticeBadge,
@@ -785,7 +785,7 @@ class _SummaryCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 18,
                   ),
                   maxLines: 1,
@@ -832,7 +832,7 @@ class _SummaryRow extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
@@ -909,7 +909,7 @@ class _ActionCard extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white : AppColors.secondary,
                     height: 1.2,
                   ),
@@ -941,7 +941,7 @@ class _ActionCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

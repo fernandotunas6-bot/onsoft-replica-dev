@@ -15,7 +15,7 @@ class MyClassesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('My Assigned Classes', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('My Assigned Classes', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -55,7 +55,7 @@ class MyClassesScreen extends ConsumerWidget {
                   },
                   leading: Icon(LucideIcons.bookOpen, color: isSelected ? AppColors.secondary : AppColors.primary),
                   title: Text(cls.className,
-                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary)),
+                      style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.secondary)),
                   subtitle: cls.level != null
                       ? Text('Level ${cls.level}',
                           style: TextStyle(

@@ -34,7 +34,7 @@ class _SecuritySettingsScreenState
       appBar: AppBar(
         title: const Text(
           'Security & Password',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -101,7 +101,7 @@ class _SecuritySettingsScreenState
                     contentPadding: EdgeInsets.zero,
                     title: const Text(
                       'Two-Factor Authentication',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: const Text(
                       'Add an extra layer of security.',
@@ -144,7 +144,7 @@ class _SecuritySettingsScreenState
                             'Access Control',
                             style: TextStyle(
                               fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
@@ -183,7 +183,7 @@ class _SecuritySettingsScreenState
                           contentPadding: EdgeInsets.zero,
                           title: const Text(
                             'Allow Teachers to Enter Results',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
                             teacherCanEditResults
@@ -235,7 +235,7 @@ class _SecuritySettingsScreenState
                                               ? 'Teachers can now enter results.'
                                               : 'Teacher result editing has been disabled.',
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
@@ -273,7 +273,7 @@ class _SecuritySettingsScreenState
                         const SnackBar(
                           content: Text(
                             'Security settings updated successfully!',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
                       );
@@ -289,7 +289,7 @@ class _SecuritySettingsScreenState
                     child: const Text(
                       'Update Password',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
                     ),

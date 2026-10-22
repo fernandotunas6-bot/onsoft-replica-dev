@@ -143,7 +143,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
       appBar: AppBar(
         title: const Text(
           'Record fee payment',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -320,7 +320,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             Text(
                                               s.name,
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
+                                                fontWeight: FontWeight.w600,
                                                 fontSize: 16,
                                               ),
                                             ),
@@ -367,7 +367,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                           Text(
                                             '$currency ${s.balance.toStringAsFixed(2)}',
                                             style: TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                              fontWeight: FontWeight.w600,
                                               fontSize: 14,
                                               color: s.balance < 0
                                                   ? AppColors.error
@@ -405,7 +405,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                             Text(
                               'Payment details',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                   ),
                             ),
                             const SizedBox(height: 12),

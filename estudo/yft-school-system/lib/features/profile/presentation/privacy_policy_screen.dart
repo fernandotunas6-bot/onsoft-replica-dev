@@ -12,7 +12,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Privacy Policy',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -41,7 +41,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             const Text(
               'Your Privacy is Important to Us',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 fontSize: 24,
                 height: 1.2,
               ),
@@ -79,7 +79,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   'I Understand',
                   style: TextStyle(
                     color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                 ),
@@ -100,7 +100,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               fontSize: 18,
               color: AppColors.secondary,
             ),

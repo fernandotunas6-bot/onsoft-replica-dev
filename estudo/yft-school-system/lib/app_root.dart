@@ -82,7 +82,7 @@ class _AppRootState extends ConsumerState<AppRoot> {
                                     .textTheme
                                     .titleLarge
                                     ?.copyWith(
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                     ),
                               ),
                               const SizedBox(height: 12),

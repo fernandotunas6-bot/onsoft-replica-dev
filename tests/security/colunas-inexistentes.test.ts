@@ -334,6 +334,7 @@ const funcoesPublicas = new Set(
  * Vazia de 2026-10-02 a 2026-10-10. A lista vive agora em `espera-migracao.ts`,
  * partilhada com `production-columns.test.ts`.
  */
+// Dependências preparadas partilhadas em ./espera-migracao.ts.
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta
@@ -473,7 +474,7 @@ describe("colunas pedidas vs colunas que existem", () => {
   });
 
   it("a lista de funções à espera de migração não tem entradas obsoletas", () => {
-    const jaExistem = [...FUNCOES_ESPERA_MIGRACAO].filter((f) => funcoesPublicas.has(f));
+    const jaExistem = [...FUNCOES_ESPERA_MIGRACAO.keys()].filter((f) => funcoesPublicas.has(f));
     expect(jaExistem, `já estão na produção, tirar da lista: ${jaExistem.join(", ")}`).toEqual([]);
   });
 

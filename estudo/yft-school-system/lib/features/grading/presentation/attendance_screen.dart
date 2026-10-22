@@ -21,7 +21,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Daily Attendance', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Daily Attendance', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -48,11 +48,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         const Icon(LucideIcons.calendar, size: 20, color: AppColors.textSecondary),
                         const SizedBox(width: 12),
                         Text('Today • ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
                     ),
                     Text('$presentCount/${students.length}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
                   ],
                 ),
               ),
@@ -74,7 +74,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                               secondary: CircleAvatar(
                                 backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                                 child: Text(s.name.isNotEmpty ? s.name[0] : '?',
-                                    style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+                                    style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
                               ),
                               activeColor: AppColors.primary,
                               checkColor: AppColors.secondary,
