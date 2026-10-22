@@ -7,6 +7,11 @@ const { applyPublishedContent, connectSchoolWebsite } = siteRuntime;
 // @ts-expect-error Static website modules are intentionally plain JavaScript.
 import { setupSiteSearch } from "../../painel/escolas/src/search.mjs";
 
+// Em cache fria a avaliação dos módulos e a primeira renderização consomem o
+// orçamento de 5s por omissão, e o custo cai em quem correr primeiro. Mesmo
+// limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 20_000 });
+
 beforeEach(() => {
   document.body.innerHTML =
     '<main><!--site:heading-->Inicial<!--/site--><img data-site-fields="src:photo" src="/assets/hero.webp"><a href="/login/">Portal</a><a data-siga-login aria-disabled="true">Entrar</a><p data-siga-status></p></main>';
