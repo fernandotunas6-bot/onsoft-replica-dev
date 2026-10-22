@@ -36,3 +36,33 @@ A composição de demonstração em tablet/telemóvel verifica os componentes pa
 - Suite completa (`vitest run --maxWorkers=4`): 4048 aprovados, 19 ignorados e três falhas em 596 ficheiros (590 aprovados, três ignorados e três falhados). Os três ficheiros afectados passaram na repetição isolada com um worker e orçamento de 20 segundos por teste. Não se declara uma execução única da suite completamente verde.
 
 Pendente: sessão real, permissões dinâmicas entre escolas, dispositivos físicos, teclado/zoom e auditoria de todos os módulos e formulários extensos. Não houve deploy nem migrações de produção.
+
+## Continuação — teclado na sidebar recolhida
+
+Os antigos painéis por hover ficavam dentro de um ancestral com `overflow-hidden`.
+Foram substituídos pelo `DropdownMenu` já existente, com portal: os submenus deixam
+de ser cortados, abrem por Enter/setas, fecham por Escape e devolvem o foco ao
+botão. Os destinos e parâmetros continuam a vir do catálogo autorizado.
+
+![Menu recolhido aberto pelo teclado](after-keyboard-menu.png)
+
+Validação deste incremento:
+
+- 44 testes aprovados em seis ficheiros, incluindo abertura num portal, preservação
+  de `?action=matricular` e fecho por Escape. O mock do Link passa agora os eventos,
+  atributos e a referência de foco ao elemento real, como o componente de produção.
+- Chromium no cenário controlado: Enter abre o menu, seta move o foco para
+  «Matricular Aluno», Escape fecha e devolve o foco ao botão. A caixa do menu fica
+  dentro da viewport e fora da área de corte da sidebar. As seis capturas
+  responsivas repetidas mantêm zero erros JavaScript e zero transbordo do documento.
+- API do compilador TypeScript, com a configuração real do projecto: diagnósticos
+  sintácticos e semânticos dos sete ficheiros de código/testes desta PR = **0**.
+  Esta verificação é dirigida; não equivale a aprovação global.
+- O `tsc --noEmit --extendedDiagnostics` global voltou a atingir 240 segundos sem
+  conclusão. Um trace de 90 segundos mostrou a verificação a prosseguir por módulos
+  como `advanced-academic-server.ts`. Não foi alterada a configuração do compilador,
+  nem foram ocultados erros ou excluídos ficheiros do projecto.
+- `npm run build`: cliente, SSR e Nitro Cloudflare concluídos com código 0.
+- ESLint dos dois ficheiros alterados neste incremento: código 0, sem erros ou avisos.
+
+A revisão autenticada e a verificação global continuam pendentes. Sem deploy.

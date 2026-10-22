@@ -36,7 +36,17 @@ import { getPortalNavigation, isNavChildActive } from "@/features/auth/portal-en
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
-import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
+import {
+  NAV_SUB_LIST,
+  NAV_ROW_BASE,
+  NAV_ROW_ACTIVE,
+  NAV_ROW_IDLE,
+  NavIcon,
+  NavButtonRow,
+  NavLinkRow,
+  NavSubheader,
+} from "./NavItem";
+import type { NavItem, NavGroup } from "@/features/auth/portal-engine";
 
 import {
   getNavigationContext,
@@ -310,41 +320,19 @@ export function AppSidebar({
                     item.children?.some((c) => isNavChildActive(c, pathname, locationSearch)) ??
                     false;
 
-                  // Flyout: com a barra recolhida, o rato revela um painel lateral
-                  // com o rótulo e os sub-itens do menu.
-                  const flyout = collapsed ? (
-                    <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
-                      <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
-                        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold text-sidebar-muted">
-                          {item.label}
-                        </p>
-                        {item.children ? (
-                          <ul className="space-y-0.5">
-                            {item.children.map((child) => (
-                              <li key={child.label}>
-                                {child.to ? (
-                                  <NavLinkRow
-                                    to={child.to}
-                                    {...(child.search ? { search: child.search } : {})}
-                                    label={child.label}
-                                    depth="sub"
-                                    active={isContextDestinationActive(
-                                      child,
-                                      displayedGroups,
-                                      pathname,
-                                      locationSearch,
-                                    )}
-                                  />
-                                ) : (
-                                  <NavButtonRow label={child.label} depth="sub" />
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null;
+                  if (collapsed && item.children) {
+                    return (
+                      <li key={item.label}>
+                        <CollapsedNavMenu
+                          item={item}
+                          groups={displayedGroups}
+                          pathname={pathname}
+                          search={locationSearch}
+                          active={childActive}
+                        />
+                      </li>
+                    );
+                  }
 
                   if (item.children) {
                     return (
@@ -391,7 +379,6 @@ export function AppSidebar({
                             ))}
                           </ul>
                         ) : null}
-                        {flyout}
                       </li>
                     );
                   }
@@ -414,7 +401,6 @@ export function AppSidebar({
                           locationSearch,
                         )}
                       />
-                      {flyout}
                     </li>
                   );
                 })}
@@ -545,5 +531,71 @@ export function AppSidebar({
         </Suspense>
       ) : null}
     </>
+  );
+}
+
+/** A portal keeps collapsed menus outside the sidebar's clipping/scroll container. */
+function CollapsedNavMenu({
+  item,
+  groups,
+  pathname,
+  search,
+  active,
+}: {
+  item: NavItem;
+  groups: NavGroup[];
+  pathname: string;
+  search: Record<string, unknown>;
+  active: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={item.label}
+          className={cn(
+            NAV_ROW_BASE,
+            "min-h-9 justify-center px-1 py-2",
+            active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
+          )}
+        >
+          <NavIcon icon={item.icon} active={active} />
+          <span className="sr-only">{item.label}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        className="max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-64 overflow-y-auto border-sidebar-border bg-sidebar text-sidebar-foreground"
+      >
+        <DropdownMenuLabel className="text-xs font-medium text-sidebar-muted">
+          {item.label}
+        </DropdownMenuLabel>
+        {item.children?.map((child) => {
+          const selected = isContextDestinationActive(child, groups, pathname, search);
+          return (
+            <DropdownMenuItem
+              key={child.label}
+              asChild
+              className={cn(
+                "focus:bg-sidebar-accent focus:text-sidebar-accent-foreground",
+                selected && "bg-primary/10 text-sidebar-active",
+              )}
+            >
+              <Link
+                to={child.to}
+                {...(child.search ? { search: child.search } : {})}
+                aria-current={selected ? "page" : undefined}
+                preload={canPrefetchResources() ? "intent" : false}
+              >
+                <span className="min-w-0 break-words">{child.label}</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
 import "./_harness";
 
 /**
@@ -31,12 +31,23 @@ vi.mock("@tanstack/react-router", () => ({
     children,
     to,
     search,
-  }: {
+    activeOptions: _activeOptions,
+    activeProps: _activeProps,
+    inactiveProps: _inactiveProps,
+    preload: _preload,
+    preloadDelay: _preloadDelay,
+    ...props
+  }: ComponentPropsWithRef<"a"> & {
     children?: ReactNode;
     to?: string;
     search?: Record<string, unknown>;
+    activeOptions?: unknown;
+    activeProps?: unknown;
+    inactiveProps?: unknown;
+    preload?: unknown;
+    preloadDelay?: unknown;
   }) => (
-    <a href="#" data-to={to} data-search={JSON.stringify(search ?? null)}>
+    <a href="#" data-to={to} data-search={JSON.stringify(search ?? null)} {...props}>
       {children}
     </a>
   ),
@@ -103,18 +114,18 @@ vi.mock("@/features/auth/use-sign-out", () => ({
   useSignOut: () => ({ signOut: () => {}, signingOut: false }),
 }));
 
-let AppSidebar: ComponentType<Record<string, never>>;
+let AppSidebar: ComponentType<{ collapsed?: boolean }>;
 
 beforeAll(async () => {
   AppSidebar = (await import("@/components/layout/AppSidebar"))
-    .AppSidebar as unknown as ComponentType<Record<string, never>>;
+    .AppSidebar as unknown as ComponentType<{ collapsed?: boolean }>;
 }, 60_000);
 
-function renderSidebar() {
+function renderSidebar(collapsed = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <QueryClientProvider client={client}>
-      <AppSidebar />
+      <AppSidebar collapsed={collapsed} />
     </QueryClientProvider>,
   );
 }
@@ -202,5 +213,23 @@ describe("AppSidebar — contexto", () => {
     fireEvent.click(screen.getByRole("button", { name: "Caixa e Pagamentos" }));
     expect(linksTo("/alunos")).toHaveLength(0);
     expect(linksTo("/faturas")).toHaveLength(1);
+  });
+});
+
+describe("AppSidebar — teclado na barra recolhida", () => {
+  it("abre os destinos num portal e fecha com Escape", async () => {
+    currentPathname = "/portal";
+    const { container } = renderSidebar(true);
+    const trigger = screen.getByRole("button", { name: "Gestão de Alunos" });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    const menu = await screen.findByRole("menu");
+    expect(container.querySelector("aside")?.contains(menu)).toBe(false);
+    const enroll = screen.getByRole("menuitem", { name: "Matricular Aluno" });
+    expect(enroll.getAttribute("data-to")).toBe("/alunos");
+    expect(JSON.parse(enroll.getAttribute("data-search") ?? "null")).toEqual({
+      action: "matricular",
+    });
+    fireEvent.keyDown(menu, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   });
 });
