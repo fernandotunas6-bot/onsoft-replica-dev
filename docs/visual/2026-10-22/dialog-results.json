@@ -1,0 +1,182 @@
+[
+  {
+    "mode": "before",
+    "width": 1440,
+    "height": 900,
+    "dialog": {
+      "overflow": true,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": true,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "before",
+    "width": 834,
+    "height": 900,
+    "dialog": {
+      "overflow": true,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": true,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "before",
+    "width": 390,
+    "height": 900,
+    "dialog": {
+      "overflow": true,
+      "within": true
+    },
+    "action": {
+      "within": false,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": true,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "before",
+    "width": 320,
+    "height": 568,
+    "dialog": {
+      "overflow": true,
+      "within": true
+    },
+    "action": {
+      "within": false,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": true,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "before",
+    "width": 390,
+    "height": 420,
+    "dialog": {
+      "overflow": true,
+      "within": true
+    },
+    "action": {
+      "within": false,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": true,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "after",
+    "width": 1440,
+    "height": 900,
+    "dialog": {
+      "overflow": false,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": false,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "after",
+    "width": 834,
+    "height": 900,
+    "dialog": {
+      "overflow": false,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": false,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "after",
+    "width": 390,
+    "height": 900,
+    "dialog": {
+      "overflow": false,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": false,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "after",
+    "width": 320,
+    "height": 568,
+    "dialog": {
+      "overflow": false,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": false,
+      "within": true
+    },
+    "focusRestored": true
+  },
+  {
+    "mode": "after",
+    "width": 390,
+    "height": 420,
+    "dialog": {
+      "overflow": false,
+      "within": true
+    },
+    "action": {
+      "within": true,
+      "overflow": false
+    },
+    "alert": {
+      "overflow": false,
+      "within": true
+    },
+    "focusRestored": true
+  }
+]
