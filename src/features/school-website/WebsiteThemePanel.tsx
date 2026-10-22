@@ -318,8 +318,10 @@ export function WebsiteThemePanel({
               placeholder="Ex.: rodapé, transparência ou botões"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
+          <label htmlFor="website-design-custom-only" className="flex items-center gap-2 text-sm">
             <input
+              id="website-design-custom-only"
+              aria-label="Mostrar apenas opções personalizadas"
               type="checkbox"
               checked={customOnly}
               onChange={(event) => setCustomOnly(event.target.checked)}
