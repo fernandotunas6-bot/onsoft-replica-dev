@@ -127,7 +127,7 @@ function DashboardGreeting({ greeting }: { greeting: string }) {
   );
 }
 
-function Dashboard() {
+export function Dashboard() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();

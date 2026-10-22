@@ -43,9 +43,12 @@ export function assertSafeE2ETarget(env = readE2EEnvironment()) {
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     const reference = local ? "local" : /^([a-z0-9]+)\.supabase\.co$/.exec(url.hostname)?.[1];
     if (
-      !["http:", "https:"].includes(url.protocol) ||
+      !(local ? ["http:", "https:"].includes(url.protocol) : url.protocol === "https:") ||
       url.username ||
       url.password ||
+      url.search ||
+      url.hash ||
+      (!local && (url.port !== "" || url.pathname !== "/")) ||
       !reference ||
       reference === PRODUCTION_REF ||
       reference !== expected
@@ -104,7 +107,15 @@ export function assertSafeCleanupTarget(env = readE2EEnvironment()) {
     }
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     const reference = local ? "local" : /^([a-z0-9]+)\.supabase\.co$/.exec(url.hostname)?.[1];
-    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || !reference) {
+    if (
+      !(local ? ["http:", "https:"].includes(url.protocol) : url.protocol === "https:") ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      (!local && (url.port !== "" || url.pathname !== "/")) ||
+      !reference
+    ) {
       throw new Error("Limpeza bloqueada: URL Supabase inesperado.");
     }
     refs.add(reference);

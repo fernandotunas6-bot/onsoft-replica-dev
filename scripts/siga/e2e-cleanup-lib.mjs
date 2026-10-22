@@ -3,6 +3,11 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { assertSafeCleanupTarget } from "./e2e-safety.mjs";
+import {
+  assertProductionE2ECleanupIdentity,
+  assertProductionArtifactCount,
+  assertCleanupAccountOwnedBySchool,
+} from "./e2e-cleanup-prod-identity.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -40,23 +45,33 @@ export function isE2ETenantSlug(slug) {
   return E2E_SLUG_PATTERN.test(String(slug ?? "").trim());
 }
 
-/** Remove tenant E2E — só slugs e2e/web/mat e e-mail @siga-plus.test quando indicado. */
-export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
+/** Remove um único tenant E2E. Em produção exige UUID idêntico ao autorizado. */
+export async function cleanupE2ETenantBySlug(admin, slug, adminEmail, approvedTenantId = null) {
   if (!isE2ETenantSlug(slug)) {
     throw new Error(`Refusing cleanup: slug «${slug}» não parece tenant E2E.`);
   }
   if (adminEmail && !String(adminEmail).trim().toLowerCase().endsWith("@siga-plus.test")) {
     throw new Error("Refusing cleanup: e-mail admin fora do domínio de teste.");
   }
-  assertSafeCleanupTarget();
+  const target = assertSafeCleanupTarget();
+  if (target.production && (!adminEmail || !approvedTenantId)) {
+    throw new Error("Limpeza em produção bloqueada: indique o contacto E2E e UUID autorizado.");
+  }
 
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
-    .select("id")
+    .select("id, contact_email")
     .eq("slug", slug)
     .maybeSingle();
   if (tenantError) throw new Error(tenantError.message);
   if (!tenant?.id) return { removed: false };
+  if (target.production) {
+    if (tenant.id !== approvedTenantId) {
+      throw new Error("Limpeza em produção bloqueada: UUID autorizado não corresponde ao tenant.");
+    }
+    // O slug por si só não demonstra que esta escola pode ser apagada.
+    assertProductionE2ECleanupIdentity(adminEmail, tenant.contact_email);
+  }
 
   const tenantId = tenant.id;
   const { data: school } = await admin
@@ -64,6 +79,32 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
     .select("id")
     .eq("tenant_id", tenantId)
     .maybeSingle();
+
+  if (target.production) {
+    // Na produção, qualquer registo académico, financeiro ou de auditoria
+    // impede purga automática. Deve ser avaliado e autorizado manualmente.
+    await assertNoProductionSchoolArtifacts(admin, tenantId, school?.id ?? null);
+  }
+
+  let authUserIdToDelete = null;
+  if (adminEmail) {
+    const email = String(adminEmail).trim().toLowerCase();
+    const user = await findAuthUserForCleanup(admin, email);
+    if (user?.id) {
+      const { data: memberships, error: membershipError } = await admin
+        .from("school_memberships")
+        .select("school_id")
+        .eq("user_id", user.id);
+      if (membershipError) {
+        throw new Error("Limpeza bloqueada: falhou a verificação de vínculos da conta.");
+      }
+      assertCleanupAccountOwnedBySchool(
+        (memberships ?? []).map((row) => row.school_id),
+        school?.id,
+      );
+      authUserIdToDelete = user.id;
+    }
+  }
 
   if (school?.id) {
     // Mais de 100 tabelas referenciam `schools.id`, quase todas com ON DELETE
@@ -84,16 +125,61 @@ export async function cleanupE2ETenantBySlug(admin, slug, adminEmail) {
   const { error: tenantDeleteError } = await admin.from("tenants").delete().eq("id", tenantId);
   if (tenantDeleteError) throw new Error(tenantDeleteError.message);
 
-  if (adminEmail) {
-    const target = String(adminEmail).trim().toLowerCase();
-    const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const user = users.users.find((row) => row.email?.toLowerCase() === target);
-    if (user?.id) {
-      await admin.auth.admin.deleteUser(user.id).catch(() => undefined);
+  if (authUserIdToDelete) {
+    // Entre o pré-check e a limpeza alguém pode ter reutilizado a conta.
+    // Nesse caso, preservar Auth é obrigatório mesmo depois do tenant removido.
+    const { count, error: activeMembershipError } = await admin
+      .from("school_memberships")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", authUserIdToDelete);
+    if (activeMembershipError || count === null || count === undefined || count > 0) {
+      throw new Error("Limpeza incompleta: conta Auth preservada por vínculos não verificados.");
+    }
+    const { error: deleteUserError } = await admin.auth.admin.deleteUser(authUserIdToDelete);
+    if (deleteUserError) {
+      throw new Error("Não foi possível remover a conta de teste após a limpeza do tenant.");
     }
   }
 
   return { removed: true, tenantId };
+}
+
+/**
+ * Bloqueio fail-closed de eliminação automática com dados institucionais.
+ * Todas as contagens são feitas com HEAD, sem ler alunos ou facturas.
+ */
+async function assertNoProductionSchoolArtifacts(admin, tenantId, schoolId) {
+  const checks = [{ table: "saas_audit_logs", column: "tenant_id", id: tenantId }];
+  if (schoolId) {
+    for (const table of ["students", "enrollments", "finance_invoices"]) {
+      checks.push({ table, column: "school_id", id: schoolId });
+    }
+  }
+  for (const check of checks) {
+    const { count, error } = await admin
+      .from(check.table)
+      .select("*", { count: "exact", head: true })
+      .eq(check.column, check.id);
+    if (error) {
+      throw new Error(`Limpeza em produção bloqueada: não foi possível auditar ${check.table}.`);
+    }
+    assertProductionArtifactCount(check.table, count);
+  }
+}
+
+/** Procura em todas as páginas autorizadas, sem assumir que a conta está na primeira. */
+async function findAuthUserForCleanup(admin, normalizedEmail) {
+  const perPage = 200;
+  for (let page = 1; page <= 50; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
+    if (error || !Array.isArray(data?.users)) {
+      throw new Error("Limpeza bloqueada: falhou a verificação da conta de teste.");
+    }
+    const user = data.users.find((row) => row.email?.toLowerCase() === normalizedEmail);
+    if (user) return user;
+    if (data.users.length < perPage) return null;
+  }
+  throw new Error("Limpeza bloqueada: pesquisa de contas incompleta.");
 }
 
 /** SQL directo via Management API — o cliente PostgREST não chega ao catálogo. */
@@ -122,7 +208,9 @@ async function runManagementSql(query) {
  * de `pg_constraint`. Repete enquanto houver linhas por apagar para cobrir
  * cadeias (turma → aluno → factura), com um limite de segurança.
  */
-export async function purgeSchoolDependencies(schoolId) {
+// Não exportar: a purga só pode ser invocada pelo fluxo acima depois de
+// confirmar slug, destino de base, opt-in e contacto do tenant.
+async function purgeSchoolDependencies(schoolId) {
   if (!/^[0-9a-f-]{36}$/i.test(String(schoolId))) {
     throw new Error("purgeSchoolDependencies: schoolId inválido.");
   }
@@ -140,8 +228,8 @@ export async function purgeSchoolDependencies(schoolId) {
   // `session_replication_role = replica` desliga triggers e verificações de FK
   // durante a transacção. É preciso porque `audit_logs` é append-only por
   // trigger e nenhuma escola com auditoria poderia ser removida de outra forma.
-  // Só corre para tenants de teste — cleanupE2ETenantBySlug já recusa slugs e
-  // e-mails fora do domínio E2E antes de chegar aqui.
+  // Só corre pelo fluxo privado de cleanupE2ETenantBySlug, que em
+  // produção já confirmou também o e-mail guardado no próprio tenant.
   await runManagementSql(
     `begin;\nset local session_replication_role = replica;\n${statements}\ncommit;`,
   );

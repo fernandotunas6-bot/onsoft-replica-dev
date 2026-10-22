@@ -34,6 +34,7 @@ const SQL = `
     select
       s.id           as school_id,
       s.name         as nome,
+      s.status       as estado_escola,
       nullif(trim(coalesce(s.nif, '')), '') as nif,
       t.id           as tenant_id,
       t.slug         as slug,
@@ -45,16 +46,33 @@ const SQL = `
     e.slug,
     e.nome,
     e.estado,
+    e.estado_escola,
     (e.nif is null)                                                                 as sem_nif,
     (select count(*) from public.subscriptions x where x.tenant_id = e.tenant_id)   as subscricoes,
     (select count(*) from public.tenant_domains x where x.tenant_id = e.tenant_id)  as dominios,
+    -- Verificar o administrador da escola, não qualquer membro/papel existente.
+    (select count(distinct m.id) from public.school_memberships m
+       join public.member_roles mr on mr.school_id = m.school_id and mr.membership_id = m.id
+       join public.roles r on r.id = mr.role_id
+       join public.profiles p on p.id = m.user_id and p.school_id = e.school_id
+      where m.school_id = e.school_id and m.status = 'active'
+        and r.code in ('owner', 'admin', 'administrador'))                          as perfis,
+    (select count(distinct m.id) from public.school_memberships m
+       join public.member_roles mr on mr.school_id = m.school_id and mr.membership_id = m.id
+       join public.roles r on r.id = mr.role_id
+      where m.school_id = e.school_id and m.status = 'active'
+        and r.code in ('owner', 'admin', 'administrador'))                          as memberships,
+    (select count(distinct mr.role_id) from public.school_memberships m
+       join public.member_roles mr on mr.school_id = m.school_id and mr.membership_id = m.id
+       join public.roles r on r.id = mr.role_id
+      where m.school_id = e.school_id and m.status = 'active'
+        and r.code in ('owner', 'admin', 'administrador'))                          as papeis_atribuidos,
     (select count(*) from public.school_memberships m
-       join public.profiles p on p.id = m.user_id
-      where m.school_id = e.school_id and m.status = 'active')                      as perfis,
-    (select count(*) from public.school_memberships x
-       where x.school_id = e.school_id and x.status = 'active')                     as memberships,
-    (select count(*) from public.member_roles x where x.school_id = e.school_id)    as papeis_atribuidos,
-    (select count(*) from public.role_permissions x where x.school_id = e.school_id) as permissoes,
+       join public.member_roles mr on mr.school_id = m.school_id and mr.membership_id = m.id
+       join public.roles r on r.id = mr.role_id
+       join public.role_permissions rp on rp.school_id = e.school_id and rp.role_id = r.id
+      where m.school_id = e.school_id and m.status = 'active'
+        and r.code in ('owner', 'admin', 'administrador'))                          as permissoes,
     (select count(*) from public.roles x where x.school_id = e.school_id)           as papeis,
     (select count(*) from public.school_settings x where x.school_id = e.school_id) as definicoes,
     (select count(*) from public.academic_years x where x.school_id = e.school_id)  as anos_lectivos
@@ -80,25 +98,25 @@ const INVARIANTES = [
     campo: "perfis",
     minimo: 1,
     peca: "perfil do administrador",
-    porque: "nenhum membro activo tem perfil — entra sem cargo nem escola",
+    porque: "nenhum administrador activo tem perfil ligado a esta escola",
   },
   {
     campo: "memberships",
     minimo: 1,
     peca: "membership activa",
-    porque: "ninguém resolve a escola ao entrar",
+    porque: "nenhum administrador tem vínculo activo nesta escola",
   },
   {
     campo: "papeis_atribuidos",
     minimo: 1,
     peca: "papel atribuído",
-    porque: "nenhuma conta tem permissões",
+    porque: "nenhum vínculo de administrador tem papel atribuído",
   },
   {
     campo: "permissoes",
     minimo: 1,
     peca: "permissões dos papéis",
-    porque: "o administrador entra e não consegue gravar nada",
+    porque: "nenhum papel atribuído ao administrador tem permissões",
   },
   { campo: "papeis", minimo: 2, peca: "papéis da escola", porque: "não há a quem delegar" },
   {
@@ -133,8 +151,13 @@ const incompletas = [];
 const semOnboarding = [];
 let semNif = 0;
 let deTeste = 0;
+let arquivadas = 0;
 
 for (const escola of escolas) {
+  if (escola.estado_escola === "archived") {
+    arquivadas += 1;
+    continue;
+  }
   if (escola.sem_nif) semNif += 1;
   if (E2E_SLUG_PATTERN.test(escola.slug ?? "")) deTeste += 1;
 
@@ -143,7 +166,9 @@ for (const escola of escolas) {
   if (Number(escola.anos_lectivos ?? 0) === 0) semOnboarding.push(escola);
 }
 
-console.log(`Escolas auditadas: ${escolas.length}`);
+console.log(`Escolas encontradas: ${escolas.length}`);
+console.log(`Arquivadas (excluídas da verificação operacional): ${arquivadas}`);
+console.log(`Escolas operacionais auditadas: ${escolas.length - arquivadas}`);
 console.log(`Incompletas (defeito): ${incompletas.length}`);
 console.log(`Onboarding por concluir: ${semOnboarding.length}`);
 console.log(`Slugs de teste (e2e-/web-/mat-/gw-): ${deTeste}`);

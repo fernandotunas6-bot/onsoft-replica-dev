@@ -1,6 +1,11 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { numberMatches } from "@/features/education-catalog/identifiers";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
+import type { ExistingSchoolFileLocation } from "./find-existing";
+import { fileMatchesRequest } from "./file-request";
+import { assertClassMaterialScope } from "./class-material-scope";
+import { assertUploadedSchoolFileMatches } from "./upload-verification";
+import { isMatchingRegisteredUpload } from "./upload-recovery";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -24,6 +29,7 @@ import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "
 import {
   createSchoolFolderInputSchema,
   archiveFinanceDocumentInputSchema,
+  findExistingSchoolFilesInputSchema,
   linkSchoolFileToClassInputSchema,
   listArquivosInputSchema,
   listArquivosPeopleInputSchema,
@@ -34,6 +40,7 @@ import {
   moveSchoolFilesInputSchema,
   registerSchoolFileInputSchema,
   renameSchoolFileInputSchema,
+  resolveRequestedSchoolFileSchema,
   schoolFileIdInputSchema,
   schoolFileIdsInputSchema,
   setSchoolFileVisibilityInputSchema,
@@ -49,9 +56,9 @@ const FILES_BUCKET = "siga-files";
 const FILE_SELECT =
   "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, parent_id, is_folder, is_system, title, description, category, document_date, reference_code, related_user_id, related_person_id, created_at, updated_at, updated_by, last_action, last_action_at, last_action_by";
 const FILE_SELECT_CLASS =
-  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, created_at";
+  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, class_group_id, is_folder, is_system, related_user_id, created_at";
 const FILE_SELECT_BASIC =
-  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, created_at";
+  "id, school_id, owner_user_id, name, mime, size_bytes, area, visibility, storage_backend, storage_path, is_folder, is_system, related_user_id, created_at";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -185,6 +192,8 @@ export async function assertFileRefsInSchool(
   schoolId: string,
   refs: {
     parentId?: string | null;
+    parentArea?: SchoolFileRecord["area"];
+    parentOwnerUserId?: string;
     classGroupId?: string | null;
     relatedPersonId?: string | null;
     relatedUserId?: string | null;
@@ -195,14 +204,18 @@ export async function assertFileRefsInSchool(
     checks.push({
       message: "A pasta escolhida não existe nesta escola.",
       ok: async () => {
-        const { data } = await db
+        let parentQuery = db
           .from("siga_files")
           .select("id, is_folder")
           .eq("id", refs.parentId!)
           .eq("school_id", schoolId)
-          .is("deleted_at", null)
-          .maybeSingle();
-        return Boolean(data?.is_folder);
+          .is("deleted_at", null);
+        if (refs.parentArea) parentQuery = parentQuery.eq("area", refs.parentArea);
+        if (refs.parentArea === "pessoal" && refs.parentOwnerUserId) {
+          parentQuery = parentQuery.eq("owner_user_id", refs.parentOwnerUserId);
+        }
+        const { data, error } = await parentQuery.maybeSingle();
+        return !error && Boolean(data?.is_folder);
       },
     });
   }
@@ -376,11 +389,22 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
       throw new Error("Sem permissão para esta área de arquivos.");
     }
     const db = await loadSgaAdminClient();
+    if (data.classGroupId) {
+      await assertClassMaterialScope(db, {
+        schoolId: membership.schoolId,
+        userId,
+        classGroupId: data.classGroupId,
+        roles: membership.allAppRoles ?? [membership.appRole],
+      });
+    }
     const run = async (select: string, withClass: boolean) => {
       let query = db
         .from("siga_files")
         .select(select)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        // Registos offline legados não são partilháveis nem têm blob no servidor.
+        .neq("storage_backend", "local")
         .order("created_at", { ascending: false })
         .limit(data.limit);
       if (data.area) query = query.eq("area", data.area);
@@ -487,6 +511,120 @@ export const listSchoolFiles = createServerFn({ method: "GET" })
   });
 
 /**
+ * Reconhecimento pré-upload. Só revela ficheiros visíveis e acessíveis na
+ * escola activa; nunca devolve o storage_path, URLs assinadas nem conteúdo.
+ * O limite obriga a avisar se o resultado pode estar incompleto.
+ */
+export const findExistingSchoolFiles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => findExistingSchoolFilesInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const db = await loadSgaAdminClient();
+    // Paginar a consulta ANTES de limitar resultados visíveis: a primeira
+    // página pode conter apenas ficheiros privados de outras pessoas.
+    // Parar após 1 000 candidatos evita pesquisas indefinidas no serviço.
+    const pageSize = 100;
+    const visible: Array<{
+      id: string;
+      name: string;
+      size_bytes: number | null;
+      area: string;
+      parent_id: string | null;
+      owner_user_id: string;
+      related_user_id: string | null;
+      visibility: string;
+      is_system: boolean | null;
+    }> = [];
+    let incomplete = false;
+    for (let page = 0; page < 10; page += 1) {
+      const { data: rows, error } = await db
+        .from("siga_files")
+        .select(
+          "id, name, size_bytes, area, parent_id, owner_user_id, related_user_id, visibility, is_system",
+        )
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        .eq("is_folder", false)
+        .eq("storage_backend", "sga")
+        .in("name", [...new Set(data.names)])
+        .order("id", { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      if (error) {
+        throw publicDatabaseError(error, "Não foi possível verificar os arquivos existentes.");
+      }
+      for (const row of rows ?? []) {
+        const viewer = {
+          area: row.area as SchoolFileRecord["area"],
+          ownerUserId: String(row.owner_user_id),
+          relatedUserId: row.related_user_id ? String(row.related_user_id) : null,
+          visibility: row.visibility as SchoolFileRecord["visibility"],
+        };
+        if (
+          canSeeRow(viewer, userId, membership.appRole) &&
+          canAccessFileContent(
+            { ...viewer, isSystem: Boolean(row.is_system), isFolder: false },
+            userId,
+            membership.appRole,
+          )
+        ) {
+          visible.push(row);
+        }
+      }
+      if ((rows ?? []).length < pageSize) break;
+      // Ao atingir o limite técnico, não afirmar que a busca foi completa.
+      if (page === 9) incomplete = true;
+    }
+    const parentIds = [...new Set(visible.map((row) => row.parent_id).filter(Boolean))] as string[];
+    const folderNames = new Map<string, string>();
+    if (parentIds.length) {
+      const { data: folders, error: folderError } = await db
+        .from("siga_files")
+        .select("id, name, area, owner_user_id, visibility")
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        .eq("is_folder", true)
+        .in("id", parentIds);
+      if (folderError) {
+        throw publicDatabaseError(
+          folderError,
+          "Não foi possível localizar as pastas dos arquivos.",
+        );
+      }
+      for (const folder of folders ?? []) {
+        if (
+          canSeeRow(
+            {
+              area: folder.area as SchoolFileRecord["area"],
+              ownerUserId: String(folder.owner_user_id),
+              visibility: folder.visibility as SchoolFileRecord["visibility"],
+            },
+            userId,
+            membership.appRole,
+          )
+        ) {
+          folderNames.set(String(folder.id), String(folder.name));
+        }
+      }
+    }
+    // Não divulgar nem navegar até o ID de uma pasta sem autorização.
+    const navigable = visible.filter(
+      (row) => !row.parent_id || folderNames.has(String(row.parent_id)),
+    );
+    const matches: ExistingSchoolFileLocation[] = navigable.map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      sizeBytes: Number(row.size_bytes),
+      area: row.area as SchoolFileRecord["area"],
+      parentId: row.parent_id ? String(row.parent_id) : null,
+      folderName: row.parent_id ? (folderNames.get(String(row.parent_id)) ?? null) : null,
+    }));
+    return { matches, incomplete };
+  });
+
+/**
  * O caminho tem de ser o que o próprio envio cria (localStoragePath):
  * `<escola>/<ano>/<mês>/<área>/<utilizador>/<id>-<nome>`. O servidor assina
  * depois este caminho com a chave de serviço, que não passa pelas regras do
@@ -530,7 +668,14 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
     const membership = await requireSgaWriterForWrite("arquivos", supabase, userId, STAFF_ROLES);
-    if (!canWriteFileArea(membership.appRole, data.area)) {
+    // Professor pode carregar material partilhável apenas para turma
+    // activamente atribuída. Não concede edição genérica da área Escola.
+    const assignedClassUpload =
+      membership.appRole === "Professor" &&
+      Boolean(data.classGroupId) &&
+      data.area === "escola" &&
+      data.visibility === "school";
+    if (!canWriteFileArea(membership.appRole, data.area) && !assignedClassUpload) {
       throw new Error("Sem permissão para gravar nesta área.");
     }
     if (!kindFromFile(data.name, data.mime)) {
@@ -544,28 +689,79 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
     if (!isOwnUploadPath(data.storagePath, membership.schoolId, userId, data.id, data.area)) {
       throw new Error("Caminho do ficheiro inválido.");
     }
+    // IndexedDB é propriedade do browser: não criar entradas de escola para
+    // ficheiros sem objecto remoto. Clientes antigos recebem resposta compatível.
+    if (data.storageBackend === "local") {
+      return { storage: "local" as const, record: null };
+    }
     const db = await loadSgaAdminClient();
-    // Quota de arquivo do plano. O ficheiro já foi enviado pelo browser: se não
-    // cabe, sai do armazenamento para não ocupar espaço sem registo.
-    if (data.storageBackend === "sga") {
-      try {
-        await assertFileRefsInSchool(db, membership.schoolId, {
-          parentId: data.parentId,
-          classGroupId: data.classGroupId,
-          relatedPersonId: data.relatedPersonId,
-          relatedUserId: data.relatedUserId?.trim() || null,
-        });
-        await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
-      } catch (error) {
-        await db.storage
-          .from(FILES_BUCKET)
-          .remove([data.storagePath])
-          .catch(() => undefined);
-        throw error;
+    if (data.classGroupId) {
+      // Uploads dirigidos a turmas não podem contornar a associação posterior.
+      // Só materiais partilháveis e professores atribuídos à turma são aceites.
+      if ((data.area !== "escola" && data.area !== "publico") || data.visibility === "private") {
+        throw new Error("Materiais de turma devem estar numa área escolar partilhável.");
       }
+      await assertClassMaterialScope(db, {
+        schoolId: membership.schoolId,
+        userId,
+        classGroupId: data.classGroupId,
+        roles: membership.allAppRoles ?? [membership.appRole],
+      });
+    }
+    // Verificar metadados e quota antes de publicar o registo. Nunca apagar
+    // automaticamente o blob quando uma verificação falha: o mesmo caminho
+    // pode já estar referenciado por um ficheiro legítimo, e a limpeza automática
+    // correria o risco de destruir conteúdo escolar.
+    if (data.storageBackend === "sga") {
+      await assertFileRefsInSchool(db, membership.schoolId, {
+        parentId: data.parentId,
+        parentArea: data.area,
+        parentOwnerUserId: userId,
+        classGroupId: data.classGroupId,
+        relatedPersonId: data.relatedPersonId,
+        relatedUserId: data.relatedUserId?.trim() || null,
+      });
+      const { data: object, error: infoError } = await db.storage
+        .from(FILES_BUCKET)
+        .info(data.storagePath);
+      if (infoError) {
+        throw new Error("O ficheiro não foi confirmado no Storage da escola.");
+      }
+      assertUploadedSchoolFileMatches(object, data.sizeBytes);
+      // Respostas perdidas podem levar à repetição de um registo JÁ concluído.
+      // A quota não deve bloquear essa confirmação, pois não são novos bytes.
+      // Manter a validação de conteúdo e de todas as referências, sem upsert.
+      const registered = await db
+        .from("siga_files")
+        .select(FILE_SELECT)
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (registered.error && !missingOptionalColumn(registered.error)) {
+        throw publicDatabaseError(registered.error, "Não foi possível verificar o envio anterior.");
+      }
+      if (registered.data) {
+        if (
+          !isMatchingRegisteredUpload(registered.data as Record<string, unknown>, {
+            ...data,
+            schoolId: membership.schoolId,
+            ownerUserId: userId,
+          })
+        ) {
+          throw new Error("O identificador do upload já está associado a outro registo.");
+        }
+        return {
+          storage: "sga" as const,
+          record: mapRow(registered.data as Record<string, unknown>),
+        };
+      }
+      await assertCanStoreBytesForSchool(membership.schoolId, data.sizeBytes);
     } else {
       await assertFileRefsInSchool(db, membership.schoolId, {
         parentId: data.parentId,
+        parentArea: data.area,
+        parentOwnerUserId: userId,
         classGroupId: data.classGroupId,
         relatedPersonId: data.relatedPersonId,
         relatedUserId: data.relatedUserId?.trim() || null,
@@ -640,6 +836,31 @@ export const registerSchoolFile = createServerFn({ method: "POST" })
         row = mid.data as Record<string, unknown>;
       }
     } else if (first.error) {
+      if (first.error.code === "23505" && data.storageBackend === "sga") {
+        // O INSERT pode ter sido concluído no servidor antes de a resposta
+        // anterior se perder. Nunca substituir um ID com dados divergentes.
+        const previous = await db
+          .from("siga_files")
+          .select(FILE_SELECT)
+          .eq("id", data.id)
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        if (
+          previous.error ||
+          !isMatchingRegisteredUpload(previous.data as Record<string, unknown> | null, {
+            ...data,
+            schoolId: membership.schoolId,
+            ownerUserId: userId,
+          })
+        ) {
+          throw new Error("O identificador do upload já está associado a outro registo.");
+        }
+        return {
+          storage: "sga" as const,
+          record: mapRow(previous.data as Record<string, unknown>),
+        };
+      }
       if (missingFilesTable(first.error)) return { storage: "local" as const, record: null };
       throw publicDatabaseError(first.error, "Não foi possível registar o ficheiro.");
     } else {
@@ -670,7 +891,11 @@ export const createSchoolFolder = createServerFn({ method: "POST" })
       throw new Error("Sem permissão para criar pastas nesta área.");
     }
     const db = await loadSgaAdminClient();
-    await assertFileRefsInSchool(db, membership.schoolId, { parentId: data.parentId });
+    await assertFileRefsInSchool(db, membership.schoolId, {
+      parentId: data.parentId,
+      parentArea: data.area,
+      parentOwnerUserId: userId,
+    });
     const now = new Date().toISOString();
     const payload = {
       id: data.id,
@@ -747,6 +972,7 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       .from("siga_files")
       .select("id, owner_user_id, area, is_folder, is_system")
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .in("id", data.ids);
     if (loadError) {
       if (missingFilesTable(loadError) || missingOptionalColumn(loadError)) {
@@ -755,7 +981,13 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       throw publicDatabaseError(loadError, "Não foi possível mover.");
     }
     const items = rows ?? [];
-    if (!items.length) throw new Error("Nenhum item seleccionado.");
+    if (
+      !items.length ||
+      data.ids.length !== new Set(data.ids).size ||
+      items.length !== data.ids.length
+    ) {
+      throw new Error("A selecção contém itens inexistentes ou apagados nesta escola.");
+    }
     for (const item of items) {
       const area = item.area as SchoolFileRecord["area"];
       const owner = String(item.owner_user_id);
@@ -776,12 +1008,19 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
         throw new Error("Sem permissão para mover um dos itens seleccionados.");
       }
     }
+    if (data.area && items.some((item) => item.area !== data.area)) {
+      throw new Error("Mover para outra área exige uma operação de reclassificação separada.");
+    }
+    if (data.parentId && items.some((item) => item.area !== (data.area ?? items[0].area))) {
+      throw new Error("Não é possível misturar áreas numa mesma pasta.");
+    }
     if (data.parentId) {
       const { data: parent, error: parentError } = await db
         .from("siga_files")
-        .select("id, is_folder, area")
+        .select("id, is_folder, area, owner_user_id")
         .eq("id", data.parentId)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .maybeSingle();
       if (parentError && !missingOptionalColumn(parentError)) {
         throw publicDatabaseError(parentError, "Não foi possível validar a pasta de destino.");
@@ -789,9 +1028,44 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
       if (!parent || !parent.is_folder) {
         throw new Error("O destino tem de ser uma pasta.");
       }
-      if (data.area && String(parent.area) !== data.area) {
+      const targetArea = data.area ?? String(items[0].area);
+      if (String(parent.area) !== targetArea) {
         throw new Error("A pasta de destino pertence a outra área.");
       }
+      if (targetArea === "pessoal" && String(parent.owner_user_id) !== userId) {
+        throw new Error("Não pode mover documentos para a pasta pessoal de outro utilizador.");
+      }
+      const movingIds = new Set(data.ids);
+      const visited = new Set<string>();
+      let current: string | null = data.parentId;
+      let reachedRoot = false;
+      for (let level = 0; level < 50; level += 1) {
+        if (!current) {
+          reachedRoot = true;
+          break;
+        }
+        if (movingIds.has(current) || visited.has(current)) {
+          throw new Error("Mover criaria um ciclo entre pastas.");
+        }
+        visited.add(current);
+        const ancestorLookup: {
+          data: { parent_id: string | null; is_folder: boolean; area: string } | null;
+          error: unknown;
+        } = await db
+          .from("siga_files")
+          .select("id, parent_id, is_folder, area")
+          .eq("id", current)
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        const ancestor: { parent_id: string | null; is_folder: boolean; area: string } | null =
+          ancestorLookup.data;
+        if (ancestorLookup.error || !ancestor?.is_folder || ancestor.area !== targetArea) {
+          throw new Error("Hierarquia de pastas inconsistente. Movimento bloqueado.");
+        }
+        current = ancestor.parent_id ? String(ancestor.parent_id) : null;
+      }
+      if (!reachedRoot) throw new Error("Hierarquia de pastas demasiado profunda.");
     }
     const now = new Date().toISOString();
     const payload: TablesUpdate<"siga_files"> = {
@@ -1000,7 +1274,7 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: existing, error: loadError } = await db
       .from("siga_files")
-      .select("id, owner_user_id, area, is_system")
+      .select("id, owner_user_id, area, is_system, parent_id")
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1052,6 +1326,9 @@ export const updateSchoolFileMeta = createServerFn({ method: "POST" })
     if (data.area !== undefined) {
       if (!canWriteFileArea(membership.appRole, data.area)) {
         throw new Error("Sem permissão para mover para essa área.");
+      }
+      if (existing.parent_id && data.area !== area) {
+        throw new Error("Remova o ficheiro da pasta actual antes de alterar a sua área.");
       }
       payload["area"] = data.area;
     }
@@ -1314,9 +1591,28 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     await assertFileRefsInSchool(db, membership.schoolId, { classGroupId: data.classGroupId });
+    const file = await loadSchoolFileRow(db, membership.schoolId, data.id);
+    const allowed = file
+      ? fileMatchesRequest(file, {
+          purpose: "class-material",
+          classGroupId: data.classGroupId ?? file.classGroupId,
+        }) &&
+        canSeeRow(file, userId, membership.appRole) &&
+        canAccessFileContent(file, userId, membership.appRole)
+      : false;
+    if (!allowed || !file) {
+      throw new Error("Este ficheiro não pode ser ligado à turma.");
+    }
+    await assertClassMaterialScope(db, {
+      schoolId: membership.schoolId,
+      userId,
+      classGroupId: data.classGroupId ?? file.classGroupId!,
+      roles: membership.allAppRoles ?? [membership.appRole],
+    });
     const action = data.classGroupId ? "linked_class" : "unlinked_class";
     const now = new Date().toISOString();
-    const { error } = await db
+    // Bloquear corridas: uma ligação entretanto modificada não deve ser sobrescrita.
+    const update = db
       .from("siga_files")
       .update({
         class_group_id: data.classGroupId,
@@ -1327,23 +1623,45 @@ export const linkSchoolFileToClass = createServerFn({ method: "POST" })
         last_action_by: userId,
       })
       .eq("id", data.id)
-      .eq("school_id", membership.schoolId);
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null);
+    const { data: changed, error } = await (
+      file.classGroupId
+        ? update.eq("class_group_id", file.classGroupId)
+        : update.is("class_group_id", null)
+    )
+      .select("id")
+      .maybeSingle();
     if (error) {
       if (missingFilesTable(error) || missingOptionalColumn(error)) {
-        const plain = await db
+        const plain = db
           .from("siga_files")
           .update({ class_group_id: data.classGroupId })
           .eq("id", data.id)
-          .eq("school_id", membership.schoolId);
-        if (plain.error && (missingFilesTable(plain.error) || missingOptionalColumn(plain.error))) {
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null);
+        const fallback = await (
+          file.classGroupId
+            ? plain.eq("class_group_id", file.classGroupId)
+            : plain.is("class_group_id", null)
+        )
+          .select("id")
+          .maybeSingle();
+        if (
+          fallback.error &&
+          (missingFilesTable(fallback.error) || missingOptionalColumn(fallback.error))
+        ) {
           return { ok: true, localOnly: true };
         }
-        if (plain.error) {
-          throw publicDatabaseError(plain.error, "Não foi possível ligar o ficheiro à turma.");
+        if (fallback.error) {
+          throw publicDatabaseError(fallback.error, "Não foi possível ligar o ficheiro à turma.");
         }
+        if (!fallback.data) throw new Error("A ligação mudou. Actualize a turma e tente de novo.");
       } else {
         throw publicDatabaseError(error, "Não foi possível ligar o ficheiro à turma.");
       }
+    } else if (!changed) {
+      throw new Error("A ligação mudou. Actualize a turma e tente de novo.");
     }
     try {
       await recordFileEvent(db, {
@@ -1529,7 +1847,9 @@ export async function loadShareableSchoolFile(
   role: string,
 ): Promise<SchoolFileRecord> {
   const row = await loadSchoolFileRow(db, schoolId, fileId);
-  if (!row || row.isFolder) throw new Error("O ficheiro anexado já não existe nos Arquivos.");
+  if (!row || row.isFolder || row.storageBackend !== "sga") {
+    throw new Error("O ficheiro não está disponível no armazenamento da escola.");
+  }
   if (!canSeeRow(row, userId, role) || !canAccessFileContent(row, userId, role)) {
     throw new Error("Só pode anexar ficheiros que consegue abrir nos Arquivos.");
   }
@@ -1564,6 +1884,7 @@ async function loadSchoolFileRow(
     .select(FILE_SELECT)
     .eq("id", fileId)
     .eq("school_id", schoolId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error && missingOptionalColumn(error)) {
     ({ data: row, error } = await db
@@ -1571,11 +1892,51 @@ async function loadSchoolFileRow(
       .select(FILE_SELECT_BASIC)
       .eq("id", fileId)
       .eq("school_id", schoolId)
+      .is("deleted_at", null)
       .maybeSingle());
   }
   if (error) throw publicDatabaseError(error, "Não foi possível ler o ficheiro.");
   return row ? mapRow(row as Record<string, unknown>) : null;
 }
+
+/**
+ * Interface central para módulos que pedem ficheiros do Arquivo, à maneira
+ * de um File Picker contextual. Não devolve URLs ou storage_path.
+ * A associação final continua a ser validada pelo módulo de destino.
+ */
+export const resolveRequestedSchoolFile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => resolveRequestedSchoolFileSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const db = await loadSgaAdminClient();
+    const file = await loadSchoolFileRow(db, membership.schoolId, data.id);
+    if (
+      !file ||
+      file.storageBackend !== "sga" ||
+      !canSeeRow(file, userId, membership.appRole) ||
+      !canAccessFileContent(file, userId, membership.appRole) ||
+      !fileMatchesRequest(file, data)
+    ) {
+      throw new Error("Ficheiro não disponível para esta finalidade nesta escola.");
+    }
+    if (data.purpose === "class-material" && data.classGroupId) {
+      await assertClassMaterialScope(db, {
+        schoolId: membership.schoolId,
+        userId,
+        classGroupId: data.classGroupId,
+        roles: membership.allAppRoles ?? [membership.appRole],
+      });
+    }
+    return {
+      id: file.id,
+      name: file.name,
+      kind: file.kind,
+      purpose: data.purpose,
+    };
+  });
 
 export const signSchoolFile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -1590,6 +1951,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
       .select(FILE_SELECT)
       .eq("id", data.id)
       .eq("school_id", membership.schoolId)
+      .is("deleted_at", null)
       .maybeSingle();
     if (error && missingOptionalColumn(error)) {
       ({ data: row, error } = await db
@@ -1597,6 +1959,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
         .select(FILE_SELECT_BASIC)
         .eq("id", data.id)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .maybeSingle());
     }
     if (error) {
@@ -1605,7 +1968,7 @@ export const signSchoolFile = createServerFn({ method: "GET" })
     }
     if (!row) throw new Error("Ficheiro não encontrado.");
     const mapped = mapRow(row as Record<string, unknown>);
-    if (!canSeeRow(mapped, userId, membership.appRole)) {
+    if (!canSeeRow(mapped, userId, membership.appRole) || mapped.isFolder) {
       throw new Error("Sem permissão para abrir este ficheiro.");
     }
     if (!canAccessFileContent(mapped, userId, membership.appRole)) {
@@ -1622,7 +1985,12 @@ export const signSchoolFile = createServerFn({ method: "GET" })
       }
       throw new Error("Ficheiro do sistema — conteúdo oculto. Sem permissão de abertura.");
     }
-    if (mapped.storageBackend !== "sga") return { local: true as const, url: null };
+    if (mapped.storageBackend !== "sga") {
+      if (mapped.ownerUserId !== userId) {
+        throw new Error("Este ficheiro existe apenas no dispositivo do proprietário.");
+      }
+      return { local: true as const, url: null };
+    }
     const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(mapped.storagePath, 600);
     if (signed.error || !signed.data?.signedUrl) {
       return { local: false as const, url: null };
@@ -1649,13 +2017,15 @@ export const signSchoolFiles = createServerFn({ method: "GET" })
       .from("siga_files")
       .select(FILE_SELECT)
       .in("id", data.ids)
-      .eq("school_id", membership.schoolId));
+      .eq("school_id", membership.schoolId)
+      .is("deleted_at", null));
     if (error && missingOptionalColumn(error)) {
       ({ data: rows, error } = await db
         .from("siga_files")
         .select(FILE_SELECT_BASIC)
         .in("id", data.ids)
-        .eq("school_id", membership.schoolId));
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null));
     }
     if (error) {
       if (missingFilesTable(error)) return { urls: {} as Record<string, string> };
@@ -1668,6 +2038,7 @@ export const signSchoolFiles = createServerFn({ method: "GET" })
         (file) =>
           canSeeRow(file, userId, membership.appRole) &&
           canAccessFileContent(file, userId, membership.appRole) &&
+          !file.isFolder &&
           file.storageBackend === "sga",
       );
     if (!visible.length) return { urls: {} as Record<string, string> };

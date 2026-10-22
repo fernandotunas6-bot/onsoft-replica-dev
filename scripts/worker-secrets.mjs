@@ -52,6 +52,8 @@ export const OPTIONAL_WORKER_SECRETS = [
  */
 export const OPTIONAL_WORKER_VARS = [
   "PLATFORM_DOMAIN",
+  // Origens públicas autorizadas por campanha; configuração não sensível, sem wildcards.
+  "SIGA_SCHOOL_WEBSITE_ORIGINS",
   "APPYPAY_ENV",
   "APPYPAY_CLIENT_ID",
   "APPYPAY_RESOURCE",

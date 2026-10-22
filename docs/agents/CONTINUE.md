@@ -1,8 +1,80 @@
 # Handoff — continuar o SIGA
 
+## Refinamento da navegação académica — 2026-10-21
+
+Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis
+por hover. O foco de teclado não pode ser escondido por outro grupo. Ligações no
+menu móvel desbloqueiam o fundo antes da navegação normal. A pesquisa respeita
+campos editáveis/IME. As secções de ingresso/instituição/novos estudantes têm
+IDs estáveis no HTML inicial: não voltar a depender da API para deep links.
+Swipe só termina com o mesmo ponteiro. Manifesto e 4653 campos inalterados.
+[Reprodução e validação](../../painel/escolas/docs/navigation-polish.md).
+
+## Cabeçalho e home académica — 2026-10-21
+
+O pedido autoriza os comportamentos de navegação e slides da home, conservando
+composição, cores, dados e marca. `academic-navigation.mjs` inicializa antes da API:
+não adiar o menu por sincronização. Cabeçalho compacto, hover/teclado, menu móvel
+com fundo isolado e pesquisa no diálogo existente. `home-highlights.mjs` só na home:
+rotação suspensa por foco, movimento reduzido, invisibilidade e escolha manual;
+cartões deslizáveis apenas no telemóvel. Oito campos novos, todos os 4645 anteriores
+intactos. Compatibilidade explícita também com `b7bb3fc0893638fd4fd6`.
+[Observação UNASP e contrato](../../painel/escolas/docs/navigation-and-home.md).
+
+## Apresentação das páginas académicas — 2026-10-21
+
+Os cursos têm fotografia em faixa larga e resumo com acções; os cabeçalhos
+internos e cartões de serviços têm imagens editáveis. Não substituir textos,
+valores, marca, homepage nem o contrato dos portais. `academic-pages.mjs` move
+nós já publicados e deriva a navegação dos títulos existentes. Os 4601 campos
+anteriores permanecem exactamente iguais; imagens isoladas em `data-site-scope`.
+Compatibilidade explícita também com `5fd4cbb7d43915bde5c6`, conservando revisão
+e publicação. [Detalhes e referências](../../painel/escolas/docs/academic-pages.md).
+
+## Portal do website escolar — 2026-10-21
+
+`/login/` volta a seleccionar estudante ou docentes/administração; não reescrever
+links públicos para o SIGA nem redireccionar todas as páginas `/portal/` do website.
+O portal original permanece demonstrativo sem sessão. A vista autenticada
+`/portal?escola=<slug>&vista=estudante` conserva o visual original em mesma origem
+e consulta `getStudentWebsitePage`: MFA/auth existentes, Aluno e escola activa
+verificados no servidor; IDs de outros estudantes nunca são aceites. Notas,
+agenda, horário e frequência reutilizam as APIs existentes. Outros serviços
+encaminham para os módulos autenticados. [Contrato e verificação](../../painel/escolas/docs/portal-access.md).
+
+Os campos novos usam `data-site-scope`; os 4579 anteriores conservam chave, tipo e
+valor. A actualização automática de publicação aceita os modelos compatíveis
+`2ab6e331ce0e67b8044e` e `5fd4cbb7d43915bde5c6`; não generalizar para versões incompatíveis.
+
 Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
+
+## Website escolar — navegação antes da API (2026-10-21)
+
+Os eventos de navegação e a adaptação dos links arrancam antes dos pedidos de
+configuração, conteúdos e blog. `mountWebsiteLinks` devolve uma função para reaplicar
+os links existentes após conteúdos, conservando um único observador. Não voltar a
+adiar o menu nem perder o prefixo da escola durante estes pedidos. Regressão em
+`tests/school-website/navigation-startup.test.ts`; [ensaio e comparação visual](../../painel/escolas/docs/navigation-startup.md).
+
+## Refinamento dos editores escolares (2026-10-21)
+
+Website e blog mantêm o visual. Os atalhos do website para domínio/blog e os
+botões Novo artigo/Voltar à lista protegem rascunhos por guardar. Fecho/reload
+tem aviso nativo apenas enquanto há alterações, com limpeza ao desmontar ou
+mudar de escola. Falhas de actualização não escondem os formulários já abertos.
+Retirar publicação/arquivar/restaurar um artigo conserva as edições locais e
+usa a revisão devolvida pelo servidor na próxima gravação. Sem alteração de
+API, autorização ou base de dados. Regressões em `tests/school-website/*ui.test.tsx`;
+contrato e limites em [SCHOOL_WEBSITE_CONTENT.md](../architecture/SCHOOL_WEBSITE_CONTENT.md).
+
+## Performance — cache dos recursos públicos (2026-10-20)
+
+Política do vídeo, fontes, ícones e marcas em `nitro.routeRules` (`vite.config.ts`):
+sete dias e revalidação posterior. `public/_headers` não repete os caminhos, porque
+o preset Cloudflare acrescenta as regras geradas ao ficheiro existente. Nunca
+alargar esta cache a HTML, APIs ou ficheiros de actualização. [Evidências](../performance/2026-10-20/cache-publica.md).
 
 ## Performance — navegação, cache e arranque (2026-10-19)
 

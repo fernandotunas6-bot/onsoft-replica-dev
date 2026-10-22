@@ -407,26 +407,37 @@ export async function seedE2EGatewayFixture(
     .single();
   if (personError) throw new Error(personError.message);
 
-  // Formato da base (CHECK ^1[0-9]{6}$): «1» + ano + 4 dígitos. Os números altos
+  // A chave de serviço não passa pelos RPC (exigem sessão com MFA), por isso o
+  // número vai escrito à mão. Até a migração 20261012140000 ser aplicada a base
+  // só aceita EST-/MAT-; depois, só «1» + ano + 4 dígitos. Tenta-se o formato
+  // novo e, se a regra da base o recusar (23514), o antigo. Os números altos
   // (9000–9999) ficam para os testes, longe da contagem das escolas.
   const yy = new Date().toISOString().slice(2, 4);
-  const studentNumber = `1${yy}${9000 + Math.floor(Math.random() * 1000)}`;
-  const { data: student, error: studentErr } = await admin
-    .from("students")
-    .insert({
-      school_id: schoolId,
-      person_id: person.id,
-      student_number: studentNumber,
-      admission_date: today,
-      status: "active",
-      ...(userId ? { created_by: userId, updated_by: userId } : {}),
-    })
-    .select("id")
-    .single();
+  const testNumber = (legacyPrefix: "EST" | "MAT", legacy: boolean) =>
+    legacy
+      ? `${legacyPrefix}-${String(Math.floor(900000 + Math.random() * 100000))}`
+      : `1${yy}${9000 + Math.floor(Math.random() * 1000)}`;
+  const insertStudent = (legacy: boolean) =>
+    admin
+      .from("students")
+      .insert({
+        school_id: schoolId,
+        person_id: person.id,
+        student_number: testNumber("EST", legacy),
+        admission_date: today,
+        status: "active",
+        ...(userId ? { created_by: userId, updated_by: userId } : {}),
+      })
+      .select("id")
+      .single();
+  let studentResult = await insertStudent(false);
+  const legacyNumbers = studentResult.error?.code === "23514";
+  if (legacyNumbers) studentResult = await insertStudent(true);
+  const { data: student, error: studentErr } = studentResult;
   if (studentErr) throw new Error(`Falha ao criar estudante: ${studentErr.message}`);
   const studentId = student.id;
 
-  const enrollmentNumber = `1${yy}${9000 + Math.floor(Math.random() * 1000)}`;
+  const enrollmentNumber = testNumber("MAT", legacyNumbers);
   const { data: enrollment, error: enrollmentErr } = await admin
     .from("enrollments")
     .insert({

@@ -60,7 +60,7 @@ type Row = {
 
 // Lista vertical no estilo Minimals: ícone em chip suave + rótulo + contador.
 const rows: Row[] = [
-  { label: "Início", to: "/", icon: Home, tone: "primary" },
+  { label: "Início", to: "/portal", icon: Home, tone: "primary" },
   {
     label: "Minha Conta / Perfil",
     to: "__profile__",

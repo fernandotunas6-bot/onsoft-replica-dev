@@ -65,6 +65,7 @@ import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { formatAngolaBi, isAngolaBiNif } from "@/lib/angola-identity";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
@@ -124,6 +125,7 @@ const pessoasFilterDefaults = {
 };
 
 function PeoplePage() {
+  const account = useCurrentAccount();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
   const installed = useInstalledIntegrations();
@@ -1232,7 +1234,10 @@ function PeoplePage() {
                                             storageBackend: "local",
                                             kind: "pdf",
                                           } as SchoolFileRecord;
-                                          const url = await resolveFileUrl(stub);
+                                          const url = await resolveFileUrl(stub, {
+                                            schoolId: account.schoolId,
+                                            ownerUserId: account.id,
+                                          });
                                           window.open(url, "_blank", "noopener,noreferrer");
                                         } catch (error) {
                                           toast.error("Não foi possível abrir o anexo", {

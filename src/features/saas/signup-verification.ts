@@ -30,19 +30,66 @@ function signingKey(): Buffer {
 
 const b64url = (value: Buffer | string) => Buffer.from(value).toString("base64url");
 
-/** Desligável só por configuração explícita (testes E2E, ambiente local). */
-export function isSignupEmailVerificationRequired(): boolean {
-  const flag = process.env["SIGNUP_EMAIL_VERIFICATION"]?.trim().toLowerCase();
-  return flag !== "off" && flag !== "false" && flag !== "0";
+/**
+ * A excepção de verificação de e-mail existe SOMENTE para E2E em staging.
+ *
+ * Uma variável "SIGNUP_EMAIL_VERIFICATION=off", por si só, NUNCA pode
+ * desligar a confirmação na SGA de produção. A mesma salvaguarda governa
+ * e-mails em domínios RFC 2606, que não podem receber mensagens reais.
+ *
+ * Faz-se a confirmação do projecto que o próprio servidor usa, não apenas
+ * de NODE_ENV: staging e produção podem ter NODE_ENV=production.
+ */
+export function isIsolatedSignupTestTarget(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  if (env["SIGA_E2E_ALLOW_WRITES"] !== "1") return false;
+  const projectRef = env["SIGA_E2E_PROJECT_REF"]?.trim();
+  if (!projectRef || projectRef === "xodgfmxiaunpamctfeea") return false;
+  if (env["SUPABASE_PROJECT_ID"] && env["SUPABASE_PROJECT_ID"] !== projectRef) return false;
+  if (projectRef !== "local" && !/^[a-z0-9]+$/.test(projectRef)) return false;
+
+  const urls = ["SUPABASE_URL", "VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]
+    .map((key) => env[key]?.trim())
+    .filter((value): value is string => Boolean(value));
+  if (urls.length === 0) return false;
+
+  return urls.every((raw) => {
+    try {
+      const url = new URL(raw);
+      if (url.username || url.password || url.search || url.hash) return false;
+      if (projectRef === "local") {
+        return (
+          ["http:", "https:"].includes(url.protocol) &&
+          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+        );
+      }
+      return url.protocol === "https:" && url.hostname === `${projectRef}.supabase.co`;
+    } catch {
+      return false;
+    }
+  });
 }
 
-/**
- * Domínios reservados (RFC 2606 / RFC 6761): nunca têm caixas de correio reais,
- * logo não há dono a proteger nem código que se possa receber. São os que os
- * testes E2E usam (`e2e+…@siga-plus.test`).
- */
+/** Configuração de teste nunca desliga verificação numa base não autorizada. */
+export function isSignupEmailVerificationRequired(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const flag = env["SIGNUP_EMAIL_VERIFICATION"]?.trim().toLowerCase();
+  const requestedOff = flag === "off" || flag === "false" || flag === "0";
+  return !requestedOff || !isIsolatedSignupTestTarget(env);
+}
+
+/** E-mails RFC 2606 não recebem códigos; a produção tem de os rejeitar. */
 export function isReservedTestEmail(email: string): boolean {
   return /\.(test|example|invalid|localhost)$/i.test(email.trim());
+}
+
+export function canUseReservedSignupEmail(
+  email: string,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return isReservedTestEmail(email) && isIsolatedSignupTestTarget(env);
 }
 
 export function issueSignupVerificationToken(email: string, now = Date.now()): string {
