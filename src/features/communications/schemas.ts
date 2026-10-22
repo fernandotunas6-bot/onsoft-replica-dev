@@ -38,6 +38,13 @@ export const listAnnouncementsInputSchema = z.object({
 });
 export type ListAnnouncementsInput = z.infer<typeof listAnnouncementsInputSchema>;
 
+/**
+ * Um agendado só é publicado no portal: não há tarefa que o envie por SMS, e-mail ou
+ * WhatsApp à hora marcada, e ficava «Enviado» sem ter saído (auditoria 13, F-36).
+ */
+export const SCHEDULED_CHANNEL_MESSAGE =
+  "O agendamento só publica no portal. Para SMS, e-mail ou WhatsApp, envie no momento.";
+
 export const createAnnouncementInputSchema = z
   .object({
     title: z.string().trim().min(2).max(160),
@@ -53,6 +60,13 @@ export const createAnnouncementInputSchema = z
         code: z.ZodIssueCode.custom,
         path: ["scheduledFor"],
         message: "Indique a data de agendamento.",
+      });
+    }
+    if (value.status === "scheduled" && value.channel !== "portal") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["channel"],
+        message: SCHEDULED_CHANNEL_MESSAGE,
       });
     }
   });
