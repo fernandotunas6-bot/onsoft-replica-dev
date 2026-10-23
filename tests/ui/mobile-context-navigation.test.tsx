@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentPropsWithRef } from "react";
 import { MoreHub } from "@/components/mobile/MoreHub";
 const state = vi.hoisted(() => ({
@@ -48,6 +48,22 @@ afterEach(() => {
   state.search = {};
 });
 describe("menu mobile contextual", () => {
+  it.each(["escola", "rota"])("descarta a pesquisa pendente quando muda a %s", async (change) => {
+    vi.useFakeTimers();
+    try {
+      const view = render(<MoreHub open onOpenChange={vi.fn()} />);
+      fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Matricular" } });
+      if (change === "escola") state.schoolId = "school-b";
+      else state.pathname = "/tesouraria";
+      view.rerender(<MoreHub open onOpenChange={vi.fn()} />);
+      await act(async () => vi.advanceTimersByTime(100));
+      expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+      expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
+      expect(screen.getByRole("link", { name: "Faturas e Recibos" })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it.each([
     ["/alunos/aluno-teste", {}, "Secretaria", "Financeiro"],
     ["/alunos", { action: "matricular" }, "Secretaria", "Financeiro"],

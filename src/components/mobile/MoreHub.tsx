@@ -94,6 +94,7 @@ export function MoreHub({
       />
       <div className="shrink-0 px-5 pb-4">
         <MobileSearch
+          key={navigationKey}
           value={query}
           onChange={setQuery}
           placeholder="Procurar página ou área…"
