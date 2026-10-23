@@ -324,6 +324,11 @@ export function getPortalNavigation(
               search: { tab: "chamada" },
             },
             {
+              label: "Presença dos Professores",
+              icon: moduleIcons.qrPresence,
+              to: "/pedagogica/presenca-docente",
+            },
+            {
               label: "Planos de Aula",
               icon: moduleIcons.lessonPlans,
               to: "/planos-aula",
