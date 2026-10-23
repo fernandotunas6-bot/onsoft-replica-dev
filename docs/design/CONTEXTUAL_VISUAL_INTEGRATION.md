@@ -70,3 +70,8 @@ permanece pendente.
 A sincronização até `1d4b6d37` incorpora a paginação portuguesa e os testes de menus
 da PR #245. Estados vazios e tabelas foram refinados sobre essa base; a paginação
 admite quebra de linha em larguras estreitas. Capturas e verificações no relatório.
+
+Continuação de 23/10: sincronizada a contribuição até `48da1656`, conciliando
+quebra de linha e deslocação na paginação. Os separadores passam a revelar o
+destino focado e o breadcrumb mantém a página actual como texto.
+[Comparação e verificação](../visual/2026-10-23/README.md).
