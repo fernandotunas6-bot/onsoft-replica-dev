@@ -1,4 +1,13 @@
-import { isNavChildActive, type NavGroup } from "./portal-engine";
+import { isNavChildActive, type NavChild, type NavGroup } from "./portal-engine";
+
+type NavigationArea = { title: string; items: NavChild[] };
+
+function portalModule(path = ""): "Académico" | "Financeiro" | null {
+  const matches = (base: string) => path === base || path.startsWith(`${base}/`);
+  if (["/pedagogica", "/planos-aula", "/professor/presenca"].some(matches)) return "Académico";
+  if (["/financeiro", "/faturas", "/tesouraria"].some(matches)) return "Financeiro";
+  return null;
+}
 
 /** Resolve only from the navigation already filtered by role, grants and plan. */
 export function getNavigationContext(
@@ -26,12 +35,74 @@ export function getNavigationContext(
   candidates.sort((a, b) => b.score - a.score);
   const match = candidates[0];
   if (!match || match.group.title === "Principal" || match.item.to === "/portal") return null;
+  if (match.group.title.startsWith("Portal do")) {
+    const links = flattenNavigationGroup(match.group).items;
+    const module = portalModule(pathname);
+    if (module) {
+      return {
+        title: module,
+        items: links.filter((link) => portalModule(link.to) === module),
+      };
+    }
+    return { title: match.item.label, items: match.item.children ?? [match.item] };
+  }
+  const area = getNavigationAreas(groups).find((group) =>
+    group.items.some((item) => item.to === pathname || pathname.startsWith(`${item.to}/`)),
+  );
+  if (area && area.title !== "Sistema") return area;
   if (match.item.children) {
     return { title: match.item.label, items: match.item.children };
   }
-  return match.group.title.startsWith("Portal do")
-    ? { title: match.item.label, items: [match.item] }
-    : match.group;
+  return { title: match.item.label, items: [match.item] };
+}
+
+/** Uma área geral abre apenas os seus destinos, mantendo a ordem do catálogo. */
+export function flattenNavigationGroup(group: NavGroup): NavigationArea {
+  return {
+    ...group,
+    items: group.items.flatMap<NavChild>(
+      (item) => item.children ?? (item.to ? [{ ...item, to: item.to }] : []),
+    ),
+  };
+}
+
+/** A mesma organização no desktop, gaveta e pesquisa; só usa destinos autorizados. */
+export function getNavigationAreas(groups: NavGroup[]): NavigationArea[] {
+  const areas = groups.flatMap<NavigationArea>((group) => {
+    const flattened = flattenNavigationGroup(group);
+    if (!group.title.startsWith("Portal do")) return [flattened];
+    // Nos portais, frequência e ensino pertencem ao mesmo módulo; os atalhos
+    // gerais continuam directos e todos os destinos mantêm a ordem original.
+    return [
+      { title: "Principal", items: flattened.items.filter((item) => !portalModule(item.to)) },
+      ...(["Académico", "Financeiro"] as const).map((title) => ({
+        title,
+        items: flattened.items.filter((item) => portalModule(item.to) === title),
+      })),
+    ].filter((area) => area.items.length > 0);
+  });
+  const reports = areas.find((group) => group.title === "Relatórios");
+  if (!reports) return areas;
+  const moved = new Set<string>();
+  const result = areas.map((group) => {
+    const reportPath =
+      group.title === "Financeiro"
+        ? "/relatorios/financeiros"
+        : group.title === "Académico"
+          ? "/relatorios/academicos"
+          : null;
+    if (!reportPath) return group;
+    const links = reports.items.filter((item) => item.to === reportPath);
+    links.forEach((item) => moved.add(item.to!));
+    return { ...group, items: [...group.items, ...links] };
+  });
+  return result
+    .map((group) =>
+      group.title === "Relatórios"
+        ? { ...group, items: group.items.filter((item) => !moved.has(item.to!)) }
+        : group,
+    )
+    .filter((group) => group.items.length > 0);
 }
 
 /** Prefer the most specific destination, so list/actions do not light up together. */
