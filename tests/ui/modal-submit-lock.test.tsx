@@ -48,6 +48,7 @@ describe("operações únicas nos formulários partilhados", () => {
         fireEvent.submit(form);
       });
       expect(submit).toHaveBeenCalledOnce();
+      expect(form.getAttribute("aria-busy")).toBe("true");
       expect(screen.getByRole("button", { name: "Fechar" }).hasAttribute("disabled")).toBe(true);
       expect(
         screen
@@ -60,10 +61,21 @@ describe("operações únicas nos formulários partilhados", () => {
         pending.resolve();
         await pending.promise;
       });
+      expect(form.getAttribute("aria-busy")).toBe("false");
       fireEvent.submit(form);
       expect(submit).toHaveBeenCalledTimes(2);
     },
   );
+
+  it("encaminha classes de layout do FormModal sem alterar o seu conteúdo", () => {
+    render(
+      <FormModal open title="Formulário simples" onOpenChange={vi.fn()} className="max-h-[70dvh]">
+        <p>Dados preservados</p>
+      </FormModal>,
+    );
+    expect(screen.getByRole("dialog").classList.contains("max-h-[70dvh]")).toBe(true);
+    expect(screen.getByText("Dados preservados")).toBeTruthy();
+  });
 
   it("não contorna disabled com Enter ou envio programático", () => {
     const submit = vi.fn();
