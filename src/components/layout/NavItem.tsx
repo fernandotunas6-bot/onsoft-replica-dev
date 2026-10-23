@@ -7,7 +7,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 
 /**
  * Componente de navegação unificado (regras de layout do Minimals):
- *  - altura fixa por profundidade (44px raiz / 32px sub-item);
+ *  - alvos de 44px em mobile, mantendo densidade compacta no desktop;
  *  - ícone sempre 24px (raiz) ou ponto indicador (sub-item), alinhado ao centro;
  *  - estado activo: fundo suave da cor primária + texto/ícone primário, peso 600;
  *  - modo colapsado: coluna centrada com ícone + micro-legenda.
@@ -27,8 +27,8 @@ export const NAV_ROW_ACTIVE =
   "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/15 hover:text-sidebar-active";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
-  root: "min-h-9 px-2.5 py-1.5 text-sm font-medium",
-  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-sm leading-5 font-medium",
+  root: "min-h-11 px-2.5 py-1.5 text-sm font-medium lg:min-h-9",
+  sub: "min-h-11 gap-2 px-2 py-0.5 text-sm leading-5 font-medium lg:h-8 lg:min-h-8",
 };
 
 /** Lista aninhada: rail esquerdo (spec SidebarMenuSub) sem alterar os itens-pai. */
