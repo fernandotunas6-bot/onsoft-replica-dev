@@ -75,7 +75,7 @@ export function PageHeader({
     ] satisfies PageCrumb[]);
 
   return (
-    <div className="relative isolate space-y-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
+    <div className="relative isolate space-y-2.5 has-[details[open]]:z-20 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200">
       {!hideBreadcrumb ? (
         <Breadcrumb className="relative max-w-full overflow-x-auto [scrollbar-width:thin]">
           <BreadcrumbList className="w-max min-w-full flex-nowrap whitespace-nowrap text-[11px] sm:w-auto sm:flex-wrap sm:whitespace-normal sm:text-xs">

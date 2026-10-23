@@ -26,12 +26,36 @@ export function getNavigationContext(
   candidates.sort((a, b) => b.score - a.score);
   const match = candidates[0];
   if (!match || match.group.title === "Principal" || match.item.to === "/portal") return null;
+  // O módulo reúne os destinos autorizados, incluindo relatórios antes separados
+  // no catálogo global. Nunca acrescenta um link que não veio desse catálogo.
+  const moduleTitle =
+    match.group.title === "Financeiro" || pathname.startsWith("/relatorios/financeiros")
+      ? "Financeiro"
+      : match.group.title === "Académico" || pathname.startsWith("/relatorios/academicos")
+        ? "Académico"
+        : null;
+  if (moduleTitle) {
+    const reportPath =
+      moduleTitle === "Financeiro" ? "/relatorios/financeiros" : "/relatorios/academicos";
+    const items = groups.flatMap((group) =>
+      group.items.flatMap((item) => {
+        if (group.title === moduleTitle) return item.children ?? [item];
+        return (item.children ?? [item]).filter((link) => link.to === reportPath);
+      }),
+    );
+    return { title: moduleTitle, items };
+  }
   if (match.item.children) {
     return { title: match.item.label, items: match.item.children };
   }
   return match.group.title.startsWith("Portal do")
     ? { title: match.item.label, items: [match.item] }
     : match.group;
+}
+
+/** Uma área geral abre apenas os seus destinos, mantendo a ordem do catálogo. */
+export function flattenNavigationGroup(group: NavGroup): NavGroup {
+  return { ...group, items: group.items.flatMap((item) => item.children ?? [item]) };
 }
 
 /** Prefer the most specific destination, so list/actions do not light up together. */

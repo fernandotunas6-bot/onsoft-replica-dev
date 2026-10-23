@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
  */
 export function MobileHeader({
   title,
+  moduleLabel,
   onOpenContext,
   onOpenSearch,
   onOpenNotifications,
@@ -28,9 +29,10 @@ export function MobileHeader({
   noticeCount = 0,
   action,
   /** Caminho de recurso quando não há histórico dentro da aplicação. */
-  fallbackTo = "/",
+  fallbackTo = "/portal",
 }: {
   title?: string;
+  moduleLabel?: string;
   onOpenContext: () => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
@@ -44,7 +46,8 @@ export function MobileHeader({
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const currentUser = useCurrentAccount();
   const { school, selectedYearLabel } = useSchoolSettings();
-  const isRoot = pathname === "/";
+  const contextLabelId = React.useId();
+  const isRoot = pathname === "/" || pathname === "/portal";
 
   const goBack = () => {
     if (canGoBack) {
@@ -63,6 +66,7 @@ export function MobileHeader({
               type="button"
               onClick={onOpenContext}
               aria-label="Alterar escola, ano lectivo ou período"
+              aria-describedby={contextLabelId}
               aria-haspopup="dialog"
               className="flex min-h-[44px] min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-left active:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -70,7 +74,10 @@ export function MobileHeader({
                 <span className="block truncate text-[14px] font-semibold text-foreground">
                   {greeting()}, {currentUser.name.trim().split(/\s+/)[0] || "utilizador"}
                 </span>
-                <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                <span
+                  id={contextLabelId}
+                  className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground"
+                >
                   <span className="truncate">{school?.name ?? "SIGA"}</span>
                   <span aria-hidden>·</span>
                   <span className="shrink-0">{selectedYearLabel}</span>
@@ -94,10 +101,20 @@ export function MobileHeader({
                 type="button"
                 onClick={onOpenContext}
                 aria-label="Alterar escola, ano lectivo ou período"
+                aria-describedby={contextLabelId}
                 aria-haspopup="dialog"
                 className="flex min-h-[44px] w-full min-w-0 items-center gap-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="truncate">{title ?? "SIGA"}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{title ?? "SIGA"}</span>
+                  <span
+                    id={contextLabelId}
+                    className="block truncate text-[11px] font-normal text-muted-foreground"
+                  >
+                    {school?.name ?? currentUser.schoolName ?? "SIGA"}
+                    {moduleLabel ? ` · ${moduleLabel}` : ""}
+                  </span>
+                </span>
                 <ChevronDown className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               </button>
             </h1>

@@ -12,8 +12,10 @@ describe("contextual navigation", () => {
   });
   it("flattens only the existing financial module", () => {
     const context = getNavigationContext(groups, "/faturas");
-    expect(context?.title).toBe("Caixa e Pagamentos");
+    expect(context?.title).toBe("Financeiro");
     expect(context?.items.some((item) => item.to === "/tesouraria")).toBe(true);
+    expect(context?.items.some((item) => item.to === "/relatorios/financeiros")).toBe(true);
+    expect(getNavigationContext(groups, "/relatorios/financeiros")?.items).toEqual(context?.items);
     expect(context?.items.some((item) => item.to === "/alunos")).toBe(false);
     expect(context?.items.every((item) => !item.children)).toBe(true);
   });
@@ -32,6 +34,14 @@ describe("contextual navigation", () => {
     const allowed = groups.filter((group) => group.title !== "Financeiro");
     expect(getNavigationContext(allowed, "/faturas")).toBeNull();
     expect(getNavigationContext([], "/faturas")).toBeNull();
+  });
+  it("não reintroduz relatórios retirados do catálogo autorizado", () => {
+    const allowed = groups.filter((group) => group.title !== "Relatórios");
+    expect(
+      getNavigationContext(allowed, "/financeiro")?.items.some(
+        (item) => item.to === "/relatorios/financeiros",
+      ),
+    ).toBe(false);
   });
   it("highlights the specific action instead of its generic list", () => {
     expect(
