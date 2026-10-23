@@ -352,6 +352,7 @@ export function AppSidebar({
                     return (
                       <li key={item.label}>
                         <CollapsedNavMenu
+                          navigationKey={navigationKey}
                           item={item}
                           groups={displayedGroups}
                           pathname={pathname}
@@ -564,12 +565,14 @@ export function AppSidebar({
 
 /** A portal keeps collapsed menus outside the sidebar's clipping/scroll container. */
 function CollapsedNavMenu({
+  navigationKey,
   item,
   groups,
   pathname,
   search,
   active,
 }: {
+  navigationKey: string;
   item: NavItem;
   groups: NavGroup[];
   pathname: string;
@@ -577,6 +580,9 @@ function CollapsedNavMenu({
   active: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [navigationKey]);
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
