@@ -515,6 +515,10 @@ desktop (**0 releases, 0 tags `v*`, 0 segredos no repositório**); DMARC.
 
 ## Publicar — estado de 2026-10-06
 
+> **PR #87 (bolsas, lista de espera, turnos):** traz `20261006160000_waitlist_scholarship_shift_indexes.sql`
+> (só índices, idempotente), **por aplicar**: aplicar na produção depois do merge, e registar
+> a versão. O resto das tabelas e colunas do PR já está na produção.
+
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
 - **Migrações:** as 2 da auditoria 13 foram aplicadas a 10/10 (secção acima); nada por aplicar dela. As três que faltavam de facto foram aplicadas a 06/10
@@ -764,7 +768,9 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   dono): tabela `student_special_statuses` (`20261004140000`, aplicada), ver «Pedidos do
   dono de 2026-10-04». A tabela `higher_ed_student_statuses` do PR #70 não foi criada.
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (bacharelato, bolsas, turnos/lista de espera).
+  (SISIES: Pós-graduados e Recursos Humanos). Turnos por cadeira
+  (`course_unit_enrollments.class_group_id`, 20261006090000, aplicada). Bacharelato (grau no perfil do curso, sem migração), bolsas (`student_scholarships`, 20261005160000) e lista de
+  espera por turma (`class_group_waitlist`, 20261005170000) feitas e aplicadas (PR #87).
 
 ## Auditoria de produção 11 (2026-10-02)
 

@@ -58,6 +58,7 @@ import {
   uploadPersonPhotoToLibrary,
 } from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
+import { StudentScholarshipPanel } from "@/features/finance/StudentScholarshipPanel";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -276,7 +277,7 @@ function StudentDetail() {
     // Só para escolher o encarregado, que é da Administração e da Secretaria.
     enabled: canRequestDocument,
   });
-  // Bolsa ou desconto do contrato (vale para as faturas emitidas a seguir).
+  // Desconto do contrato (vale para as faturas emitidas a seguir).
   const scholarshipQuery = useQuery({
     queryKey: ["finance", "scholarship", studentId],
     queryFn: () => getStudentScholarship({ data: { studentId } }),
@@ -1282,11 +1283,11 @@ function StudentDetail() {
                 {canReceivePayment ? (
                   <QuickFormModal
                     eyebrow={student.registration_number}
-                    title="Bolsa ou desconto"
-                    description="Percentagem descontada nas faturas emitidas a partir de agora (bolsa, irmãos, funcionário…). As já emitidas não mudam. Pede a verificação em duas etapas."
+                    title="Desconto do contrato"
+                    description="Percentagem descontada nas faturas emitidas a partir de agora (irmãos, funcionário, acordo…). As já emitidas não mudam. As bolsas de estudo ficam no painel «Bolsa de estudo»: vale o maior dos dois. Pede a verificação em duas etapas."
                     icon={<Wallet className="size-5" />}
                     submitLabel="Gravar"
-                    successDescription="Bolsa ou desconto gravado."
+                    successDescription="Desconto do contrato gravado."
                     onSubmit={async (values) => {
                       const percent = Number(String(values["percentagem"] ?? "").replace(",", "."));
                       if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
@@ -1311,12 +1312,12 @@ function StudentDetail() {
                         label: "Motivo",
                         type: "textarea",
                         full: true,
-                        placeholder: "Ex.: bolsa de mérito 2026, aprovada pela Direcção",
+                        placeholder: "Ex.: desconto de irmãos acordado pela Direcção",
                       },
                     ]}
                     trigger={(open) => (
                       <Button variant="outline" className="gap-2" onClick={open}>
-                        <Wallet className="size-4" /> Bolsa
+                        <Wallet className="size-4" /> Desconto
                       </Button>
                     )}
                   />
@@ -1477,6 +1478,8 @@ function StudentDetail() {
           schoolId={String(student.school_id)}
           studentId={student.id}
         />
+
+        {canIssueInvoice ? <StudentScholarshipPanel studentId={student.id} /> : null}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
@@ -1786,7 +1789,7 @@ function StudentDetail() {
               />
               {scholarshipQuery.data?.percent ? (
                 <Field
-                  label="Bolsa ou desconto"
+                  label="Desconto do contrato"
                   value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
                 />
               ) : null}
