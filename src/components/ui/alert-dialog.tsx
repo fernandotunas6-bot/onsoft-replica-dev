@@ -34,7 +34,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-lg min-w-0 overflow-y-auto overscroll-contain translate-x-[-50%] translate-y-[-50%] gap-4 border rounded-2xl bg-card p-5 shadow-lg sm:p-6 duration-200 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "fixed left-[50%] top-[50%] z-50 grid max-h-[calc(100dvh-32px)] w-[calc(100%-32px)] max-w-lg min-w-0 overflow-y-auto overscroll-contain translate-x-[-50%] translate-y-[-50%] gap-3 border rounded-2xl bg-card p-5 shadow-sm sm:p-6 duration-150 motion-safe:data-[state=open]:animate-in motion-safe:data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className,
       )}
       {...props}
@@ -54,7 +54,7 @@ AlertDialogHeader.displayName = "AlertDialogHeader";
 const AlertDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex min-w-0 flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end [&>button]:h-auto [&>button]:min-h-9 [&>button]:min-w-0 [&>button]:whitespace-normal [&>button]:break-words [&>button]:py-2",
+      "flex min-w-0 flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end [&>button]:h-auto [&>button]:min-h-11 sm:[&>button]:min-h-9 [&>button]:min-w-0 [&>button]:whitespace-normal [&>button]:break-words [&>button]:py-2",
       className,
     )}
     {...props}
