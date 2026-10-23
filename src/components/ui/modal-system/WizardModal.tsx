@@ -95,6 +95,7 @@ export function WizardModal({
     >
       <form
         onSubmit={handleSubmit}
+        aria-busy={isSubmitting || submission.pending}
         className={
           visualPanel
             ? "grid min-h-0 min-w-0 max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden lg:min-h-[78dvh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
