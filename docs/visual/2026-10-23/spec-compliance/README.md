@@ -75,3 +75,9 @@ Verificação representativa no navegador a 1024 e 1440 px, aberta e recolhida: 
 ![Sidebar com curva inversa](sidebar-inverse-1440.png)
 
 ![Sidebar recolhida com curva inversa](sidebar-inverse-1440-collapsed.png)
+
+## Verificação de prontidão para publicação
+
+O CI remoto do commit `fe1c5365` detectou TS2322 em `flattenNavigationGroup`: a inferência de `flatMap` não aceitava simultaneamente destinos e grupos. Corrigido com o tipo explícito do item do catálogo; sem mudança de comportamento. A verificação TypeScript dirigida registada acima não detectou este erro e não substitui o CI global.
+
+Na consulta ao GitHub, o PR #252 permanecia aberto e a publicação de produção aprovada correspondia a `ecc31fe7`, anterior a este refinamento. Não há neste ambiente credenciais/sessão autenticada nem staging configurado para validar fluxos completos por escola. O ensaio automatizado com escrita existente recusa produção e exige staging isolado. A validação física de Android/iOS e restantes dispositivos continua pendente.

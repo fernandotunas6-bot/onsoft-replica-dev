@@ -55,7 +55,10 @@ export function getNavigationContext(
 
 /** Uma área geral abre apenas os seus destinos, mantendo a ordem do catálogo. */
 export function flattenNavigationGroup(group: NavGroup): NavGroup {
-  return { ...group, items: group.items.flatMap((item) => item.children ?? [item]) };
+  return {
+    ...group,
+    items: group.items.flatMap<NavGroup["items"][number]>((item) => item.children ?? [item]),
+  };
 }
 
 /** Prefer the most specific destination, so list/actions do not light up together. */
