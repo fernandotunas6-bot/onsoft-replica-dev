@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { UserPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,10 @@ export function AssignTeacherForm({
         preventOutsideClose={saving}
       >
         <div className="flex min-h-0 flex-col">
+          <DialogPrimitive.Title className="sr-only">Atribuir professor</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">
+            Seleccione turma, disciplina e professor.
+          </DialogPrimitive.Description>
           <ModalHeader
             icon={UserPlus}
             title="Atribuir professor"
