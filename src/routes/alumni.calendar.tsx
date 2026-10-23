@@ -47,7 +47,7 @@ function AlumniCalendarPage() {
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
         <PageHeader
-          group="Comunidade & Eventos"
+          group="Alumni"
           title="Agenda Alumni"
           description="Eventos publicados da rede Alumni com data, hora e local preservados na exportação ICS do motor central do SIGA."
           actions={

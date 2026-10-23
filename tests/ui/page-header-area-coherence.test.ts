@@ -10,17 +10,32 @@ import { AREA_LABEL, areaToneForPath, type AreaTone } from "@/lib/area-tone";
  * de `/financeiro/rh` anunciavam três áreas diferentes entre irmãs.
  */
 
-/** Áreas já normalizadas. Cresce à medida que cada área for limpa. */
-const AREAS_LIMPAS = new Set<AreaTone>(["financeiro", "rh"]);
+/**
+ * Sub-áreas com nome próprio, além do rótulo da área.
+ *
+ * `comunicacao` junta Arquivos, Comunicações e as treze páginas de Alumni —
+ * que são um produto com nome próprio. Obrigá-las a dizer «Gestão e
+ * Comunicação» seria pior do que o problema; o que se corrigiu foi falarem
+ * de si por cinco nomes diferentes. Em `sistema`, as páginas da conta de quem
+ * usa não são as definições da escola.
+ */
+const SUBAREAS: Partial<Record<AreaTone, readonly string[]>> = {
+  comunicacao: ["Alumni"],
+  sistema: ["Conta"],
+};
 
 /**
- * Excepções dentro de uma área limpa, com razão.
+ * Excepções por página, com razão.
  *
  * `/professor/presenca` toma o tom de RH por partilhar o modelo de assiduidade,
  * mas é um ecrã do professor: mudar-lhe o breadcrumb para «Finanças · RH» era
  * dizer ao docente que está no financeiro da escola.
  */
 const EXCEPCOES = new Set(["/professor/presenca"]);
+
+function rotulosPermitidos(area: AreaTone): string[] {
+  return [AREA_LABEL[area], ...(SUBAREAS[area] ?? [])];
+}
 
 function routeFiles(dir: string, prefix = ""): Array<[file: string, source: string]> {
   const out: Array<[string, string]> = [];
@@ -36,13 +51,20 @@ function routeFiles(dir: string, prefix = ""): Array<[file: string, source: stri
   return out;
 }
 
-/** Nome do ficheiro de rota → caminho, como no encaminhamento por ficheiros. */
+/**
+ * Nome do ficheiro de rota → caminho, como no encaminhamento por ficheiros.
+ *
+ * Um segmento com `_` final (`pedagogica_.risco`) sai do layout do pai mas
+ * mantém o URL do pai — `/pedagogica/risco`. Deixar lá o underscore fazia a
+ * página não corresponder a nenhum prefixo de área e escapar à verificação.
+ */
 function pathForRouteFile(file: string): string {
   const name = file.replace(/\.tsx$/, "").replace(/\.index$/, "");
   if (name === "index") return "/";
   return `/${name
     .split(".")
     .filter((s) => s && !s.startsWith("_"))
+    .map((s) => s.replace(/_$/, ""))
     .join("/")}`;
 }
 
@@ -54,17 +76,21 @@ const pages = routeFiles("src/routes")
   .filter((p): p is { path: string; group: string } => Boolean(p.group))
   .map((p) => ({ ...p, area: areaToneForPath(p.path) }));
 
-const porVerificar = pages.filter((p) => AREAS_LIMPAS.has(p.area) && !EXCEPCOES.has(p.path));
+const porVerificar = pages.filter((p) => !EXCEPCOES.has(p.path));
 
 describe("o grupo do cabeçalho concorda com a área da página", () => {
-  it("encontra as páginas financeiras", () => {
-    expect(porVerificar.length).toBeGreaterThan(8);
+  it("encontra as páginas com grupo declarado", () => {
+    expect(porVerificar.length).toBeGreaterThan(40);
   });
 
-  it.each(porVerificar.map((p) => [p.path, p.group, AREA_LABEL[p.area]]))(
+  it("não deixa nenhuma página fora de uma área", () => {
+    expect(porVerificar.filter((p) => p.area === "marca").map((p) => p.path)).toEqual([]);
+  });
+
+  it.each(porVerificar.map((p) => [p.path, p.group, p.area] as const))(
     "%s diz «%s»",
-    (_path, group, esperado) => {
-      expect(group).toBe(esperado);
+    (_path, group, area) => {
+      expect(rotulosPermitidos(area)).toContain(group);
     },
   );
 });

@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getHrDashboard, listHrPayrollRuns } from "@/features/hr/server";
 import { kwanza } from "@/lib/currency";
 
@@ -166,12 +167,12 @@ function HrPayrollPage() {
                   Não foi possível carregar as folhas salariais.
                 </p>
               ) : (payrolls.data ?? []).length === 0 ? (
-                <div className="rounded-lg border border-dashed p-8 text-center">
-                  <p className="font-medium">Ainda não existem folhas salariais.</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Crie e processe a competência no espaço operacional da folha salarial.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={Banknote}
+                  title="Ainda não existem folhas salariais."
+                  description="Crie e processe a competência no espaço operacional da folha salarial."
+                  compact
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

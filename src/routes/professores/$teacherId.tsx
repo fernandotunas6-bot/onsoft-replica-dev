@@ -93,7 +93,7 @@ function TeacherProfilePage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Corpo docente"
+          group="Académico"
           title={teacher?.full_name ?? "Professor"}
           description="Perfil, turmas atribuídas, matrículas e sincronização do horário com o calendário móvel."
           avatar={

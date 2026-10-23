@@ -92,7 +92,7 @@ function AlumniPortfolioEducationPage() {
     <AppShell>
       <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
         <PageHeader
-          group="Portfólio"
+          group="Alumni"
           title="Onde estudou"
           description="Registe cada instituição frequentada para organizar o seu percurso por escola e nível de ensino."
           icon={School}

@@ -23,7 +23,7 @@ function CatracasPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Acessos"
+          group="Secretaria"
           title="Catracas & Cartão Virtual de Acesso"
           description="Gestão de hardware de catracas, leitores de portaria, cartões digitais e auditoria de recinto."
           actions={
