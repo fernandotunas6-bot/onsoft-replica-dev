@@ -767,32 +767,36 @@ export function AuthGate({
             {mfaFactors ? (
               <div className="mt-6">
                 <Suspense
-                  fallback={<p role="status" className="text-sm text-muted-foreground">A preparar verificação de segurança…</p>}
+                  fallback={
+                    <p role="status" className="text-sm text-muted-foreground">
+                      A preparar verificação de segurança…
+                    </p>
+                  }
                 >
                   <MfaChallenge
-                  factors={mfaFactors}
-                  intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
-                  cancelLabel="Usar outra conta"
-                  onCancel={() => {
-                    setMfaFactors(null);
-                    void supabase.auth.signOut({ scope: "local" });
-                  }}
-                  onVerified={async (method) => {
-                    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                    if (assurance.data?.currentLevel !== "aal2") {
-                      throw new Error("A verificação não elevou a sessão. Tente novamente.");
-                    }
-                    const { data: sessionData } = await supabase.auth.getSession();
-                    if (!sessionData.session) {
-                      throw new Error("A sessão não ficou disponível após a verificação.");
-                    }
-                    const userId = sessionData.session.user.id;
-                    localStorage.setItem(activityKey(userId), String(Date.now()));
-                    trustDevice(userId);
-                    setSession(sessionData.session);
-                    setMfaFactors(null);
-                    if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
-                  }}
+                    factors={mfaFactors}
+                    intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
+                    cancelLabel="Usar outra conta"
+                    onCancel={() => {
+                      setMfaFactors(null);
+                      void supabase.auth.signOut({ scope: "local" });
+                    }}
+                    onVerified={async (method) => {
+                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                      if (assurance.data?.currentLevel !== "aal2") {
+                        throw new Error("A verificação não elevou a sessão. Tente novamente.");
+                      }
+                      const { data: sessionData } = await supabase.auth.getSession();
+                      if (!sessionData.session) {
+                        throw new Error("A sessão não ficou disponível após a verificação.");
+                      }
+                      const userId = sessionData.session.user.id;
+                      localStorage.setItem(activityKey(userId), String(Date.now()));
+                      trustDevice(userId);
+                      setSession(sessionData.session);
+                      setMfaFactors(null);
+                      if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
+                    }}
                   />
                 </Suspense>
               </div>
