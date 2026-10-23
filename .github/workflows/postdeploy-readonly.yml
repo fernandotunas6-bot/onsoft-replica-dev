@@ -1,0 +1,36 @@
+name: Auditoria pós-publicação (somente leitura)
+
+on:
+  workflow_run:
+    workflows: ["Deploy produção"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/postdeploy-readonly.yml"
+      - "scripts/siga/postdeploy-readonly.mjs"
+      - "tests/siga/postdeploy-readonly.test.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postdeploy-readonly-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  public-smoke:
+    name: Verificar endpoints públicos e protecção anónima
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Testar que a auditoria não envia dados nem segue redirects
+        run: node --test tests/siga/postdeploy-readonly.test.mjs
+      - name: Verificar produção sem autenticar nem escrever
+        run: node scripts/siga/postdeploy-readonly.mjs
