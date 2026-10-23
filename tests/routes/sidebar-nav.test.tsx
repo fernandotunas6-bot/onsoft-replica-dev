@@ -197,6 +197,21 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
 });
 
 describe("AppSidebar — contexto", () => {
+  it.each([false, true])(
+    "identifica a área actual numa página de detalhe (recolhida: %s)",
+    (collapsed) => {
+      currentPathname = "/alunos/aluno-teste";
+      renderSidebar(collapsed);
+      fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+      expect(
+        screen.getByRole("button", { name: "Secretaria" }).classList.contains("bg-primary/10"),
+      ).toBe(true);
+      expect(
+        screen.getByRole("button", { name: "Financeiro" }).classList.contains("bg-primary/10"),
+      ).toBe(false);
+    },
+  );
+
   it("mostra apenas o módulo activo e permite consultar todas as áreas", () => {
     currentPathname = "/faturas";
     renderSidebar();
