@@ -9,17 +9,53 @@
 import { pathToFileURL } from "node:url";
 
 export const CHECKS = Object.freeze([
-  { name: "SIGA — entrada pública", url: "https://portal-siga.com/", expected: [200, 302, 307, 308] },
-  { name: "WEB — entrada pública", url: "https://siga-web.pages.dev/", expected: [200, 302, 307, 308] },
+  {
+    name: "SIGA — entrada pública",
+    url: "https://portal-siga.com/",
+    expected: [200, 302, 307, 308],
+  },
+  {
+    name: "WEB — entrada pública",
+    url: "https://siga-web.pages.dev/",
+    expected: [200, 302, 307, 308],
+  },
   { name: "WEB — criar escola (página)", url: "https://siga-web.pages.dev/start", expected: [200] },
   { name: "DOC — documentação", url: "https://siga-docs.pages.dev/", expected: [200] },
-  { name: "ADMIN — entrada pública", url: "https://siga-admin.pages.dev/", expected: [200, 302, 307, 308] },
-  { name: "PAYFLOW — saúde", url: "https://payflow.portal-siga.com/api/v1/health", expected: [200] },
-  { name: "SIGA — catálogo público de planos", url: "https://portal-siga.com/api/saas/plans", expected: [200] },
-  { name: "SIGA — sessão anónima recusada", url: "https://portal-siga.com/api/saas/me", expected: [401] },
-  { name: "SIGA — métricas anónimas recusadas", url: "https://portal-siga.com/api/saas/stats", expected: [401] },
-  { name: "SIGA — domínios anónimos recusados", url: "https://portal-siga.com/api/saas/domains", expected: [401] },
-  { name: "SIGA — subscrições anónimas recusadas", url: "https://portal-siga.com/api/saas/subscriptions", expected: [401] },
+  {
+    name: "ADMIN — entrada pública",
+    url: "https://siga-admin.pages.dev/",
+    expected: [200, 302, 307, 308],
+  },
+  {
+    name: "PAYFLOW — saúde",
+    url: "https://payflow.portal-siga.com/api/v1/health",
+    expected: [200],
+  },
+  {
+    name: "SIGA — catálogo público de planos",
+    url: "https://portal-siga.com/api/saas/plans",
+    expected: [200],
+  },
+  {
+    name: "SIGA — sessão anónima recusada",
+    url: "https://portal-siga.com/api/saas/me",
+    expected: [401],
+  },
+  {
+    name: "SIGA — métricas anónimas recusadas",
+    url: "https://portal-siga.com/api/saas/stats",
+    expected: [401],
+  },
+  {
+    name: "SIGA — domínios anónimos recusados",
+    url: "https://portal-siga.com/api/saas/domains",
+    expected: [401],
+  },
+  {
+    name: "SIGA — subscrições anónimas recusadas",
+    url: "https://portal-siga.com/api/saas/subscriptions",
+    expected: [401],
+  },
 ]);
 
 const ALLOWED_HOSTS = new Set([
@@ -75,7 +111,9 @@ export async function auditPublicProduction({
       results.push({ name: check.name, status: response.status, ok });
       if (ok) passed++;
       else failed++;
-      log(`${ok ? "OK" : "FALHA"} ${check.name}: HTTP ${response.status} (esperado: ${check.expected.join("/")})`);
+      log(
+        `${ok ? "OK" : "FALHA"} ${check.name}: HTTP ${response.status} (esperado: ${check.expected.join("/")})`,
+      );
       // Não consultar nem imprimir o corpo: pode conter informação institucional.
       if (response.body?.cancel) await response.body.cancel();
     } catch (error) {
