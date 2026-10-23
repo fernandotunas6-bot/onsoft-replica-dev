@@ -43,7 +43,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
   alunos: [
     {
       full_name: "João Manuel António",
-      student_number: "PROC-2026-042",
+      student_number: "1260042",
       id_number: "005432190LA048",
       gender: "M",
       birth_date: "2012-05-14",
@@ -54,7 +54,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     },
     {
       full_name: "Benedita Luísa Panzo",
-      student_number: "PROC-2026-043",
+      student_number: "1260043",
       id_number: "009123847LA045",
       gender: "F",
       birth_date: "2010-08-19",
@@ -65,7 +65,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     },
     {
       full_name: "Daniel Kiala Francisco",
-      student_number: "PROC-2026-044",
+      student_number: "1260044",
       id_number: "007234190LA012",
       gender: "M",
       birth_date: "2011-03-10",
@@ -76,7 +76,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
     },
     {
       full_name: "Esperança Madalena Dinis",
-      student_number: "PROC-2026-045",
+      student_number: "1260045",
       id_number: "008129384HA067",
       gender: "F",
       birth_date: "2009-12-02",
@@ -89,7 +89,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   encarregados: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       guardian_name: "Manuel António Sebastião",
       id_number: "001928374LA033",
       phone: "924556677",
@@ -98,7 +98,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       is_financial_responsible: "Sim",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       guardian_name: "Luísa Domingos Panzo",
       id_number: "002819384LA021",
       phone: "921887766",
@@ -107,7 +107,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       is_financial_responsible: "Sim",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       guardian_name: "Francisco Kiala",
       id_number: "003928172LA055",
       phone: "934556677",
@@ -116,7 +116,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       is_financial_responsible: "Sim",
     },
     {
-      student_identifier: "PROC-2026-045",
+      student_identifier: "1260045",
       guardian_name: "Madalena Dinis",
       id_number: "004819203HA011",
       phone: "945667788",
@@ -377,28 +377,28 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   matriculas: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       class_group: "10ª Classe A - Manhã",
       academic_year: "2026/2027",
       enrollment_date: "2026-02-01",
       status: "active",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       class_group: "10ª Classe A - Manhã",
       academic_year: "2026/2027",
       enrollment_date: "2026-02-01",
       status: "active",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       class_group: "10ª Classe B - Tarde",
       academic_year: "2026/2027",
       enrollment_date: "2026-02-02",
       status: "active",
     },
     {
-      student_identifier: "PROC-2026-045",
+      student_identifier: "1260045",
       class_group: "11ª Classe A - Manhã",
       academic_year: "2026/2027",
       enrollment_date: "2026-02-03",
@@ -568,7 +568,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   pautas: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       class_group: "10A-M",
       subject: "Matemática",
       academic_year: "2026/2027",
@@ -578,7 +578,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       decision: "Aprovado",
     },
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       class_group: "10A-M",
       subject: "Física",
       academic_year: "2026/2027",
@@ -588,7 +588,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       decision: "Aprovado",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       class_group: "10A-M",
       subject: "Matemática",
       academic_year: "2026/2027",
@@ -598,7 +598,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       decision: "Aprovado",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       class_group: "10A-M",
       subject: "Matemática",
       academic_year: "2026/2027",
@@ -611,7 +611,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   presencas: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       class_group: "10A-M",
       subject: "Língua Portuguesa",
       attendance_date: "2026-03-02",
@@ -619,7 +619,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       reason: "",
     },
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       class_group: "10A-M",
       subject: "Matemática",
       attendance_date: "2026-03-02",
@@ -627,7 +627,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       reason: "",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       class_group: "10A-M",
       subject: "Língua Portuguesa",
       attendance_date: "2026-03-02",
@@ -635,7 +635,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       reason: "Consulta Médica",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       class_group: "10A-M",
       subject: "Língua Portuguesa",
       attendance_date: "2026-03-02",
@@ -681,7 +681,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   pagamentos: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       month_ref: "Fevereiro 2026",
       amount: 35000,
       payment_date: "2026-02-05",
@@ -689,7 +689,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       receipt_number: "MCX-98218921",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       month_ref: "Fevereiro 2026",
       amount: 35000,
       payment_date: "2026-02-06",
@@ -697,7 +697,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       receipt_number: "TPA-00481239",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       month_ref: "Fevereiro 2026",
       amount: 35000,
       payment_date: "2026-02-08",
@@ -705,7 +705,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       receipt_number: "BFA-TRF-918231",
     },
     {
-      student_identifier: "PROC-2026-045",
+      student_identifier: "1260045",
       month_ref: "Fevereiro 2026",
       amount: 38000,
       payment_date: "2026-02-09",
@@ -716,7 +716,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   dividas: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       invoice_number: "FT-2026/0129",
       month_ref: "Janeiro 2026",
       amount_due: 35000,
@@ -724,7 +724,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       status: "Vencido",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       invoice_number: "FT-2026/0130",
       month_ref: "Janeiro 2026",
       amount_due: 35000,
@@ -732,7 +732,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       status: "Em Negociação",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       invoice_number: "FT-2026/0131",
       month_ref: "Dezembro 2025",
       amount_due: 35000,
@@ -740,7 +740,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       status: "Encaminhado para Cobrança",
     },
     {
-      student_identifier: "PROC-2026-045",
+      student_identifier: "1260045",
       invoice_number: "FT-2026/0132",
       month_ref: "Janeiro 2026",
       amount_due: 38000,
@@ -751,7 +751,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   historico_academico: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       academic_year: "2025/2026",
       grade_level: "9ª Classe",
       previous_school: "Complexo Escolar nº 1240 - Huambo",
@@ -759,7 +759,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       outcome: "Concluído com Êxito",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       academic_year: "2025/2026",
       grade_level: "9ª Classe",
       previous_school: "Colégio Esperança - Luanda",
@@ -767,7 +767,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       outcome: "Concluído com Êxito",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       academic_year: "2025/2026",
       grade_level: "9ª Classe",
       previous_school: "Escola Primária e I Ciclo nº 402 - Benguela",
@@ -775,7 +775,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       outcome: "Aprovado",
     },
     {
-      student_identifier: "PROC-2026-045",
+      student_identifier: "1260045",
       academic_year: "2025/2026",
       grade_level: "10ª Classe",
       previous_school: "Instituto Médio Politécnico - Huambo",
@@ -786,7 +786,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
 
   historico_financeiro: [
     {
-      student_identifier: "PROC-2026-042",
+      student_identifier: "1260042",
       academic_year: "2025/2026",
       total_billed: 350000,
       total_paid: 350000,
@@ -794,7 +794,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       financial_status: "Regularizada",
     },
     {
-      student_identifier: "PROC-2026-043",
+      student_identifier: "1260043",
       academic_year: "2025/2026",
       total_billed: 350000,
       total_paid: 350000,
@@ -802,7 +802,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       financial_status: "Regularizada",
     },
     {
-      student_identifier: "PROC-2026-044",
+      student_identifier: "1260044",
       academic_year: "2025/2026",
       total_billed: 350000,
       total_paid: 315000,
@@ -810,7 +810,7 @@ export const MODULE_DEMO_ROWS: Record<ImportModule, Array<Record<string, string 
       financial_status: "Pendente",
     },
     {
-      student_identifier: "PROC-2026-045",
+      student_identifier: "1260045",
       academic_year: "2025/2026",
       total_billed: 380000,
       total_paid: 304000,

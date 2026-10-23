@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
+import { applyAppearance, type AppearanceState } from "@/lib/appearance";
 import "./_harness";
 
 /**
@@ -31,12 +32,23 @@ vi.mock("@tanstack/react-router", () => ({
     children,
     to,
     search,
-  }: {
+    activeOptions: _activeOptions,
+    activeProps: _activeProps,
+    inactiveProps: _inactiveProps,
+    preload: _preload,
+    preloadDelay: _preloadDelay,
+    ...props
+  }: ComponentPropsWithRef<"a"> & {
     children?: ReactNode;
     to?: string;
     search?: Record<string, unknown>;
+    activeOptions?: unknown;
+    activeProps?: unknown;
+    inactiveProps?: unknown;
+    preload?: unknown;
+    preloadDelay?: unknown;
   }) => (
-    <a href="#" data-to={to} data-search={JSON.stringify(search ?? null)}>
+    <a href="#" data-to={to} data-search={JSON.stringify(search ?? null)} {...props}>
       {children}
     </a>
   ),
@@ -61,6 +73,7 @@ const contas: Record<string, unknown> = {
     avatarUrl: null,
     schools: [],
     schoolName: "Escola Teste",
+    schoolId: "school-a",
     roles: ["Administrador"],
     setActiveRole: () => {},
   },
@@ -73,6 +86,7 @@ const contas: Record<string, unknown> = {
     avatarUrl: null,
     schools: [],
     schoolName: "Escola Teste",
+    schoolId: "school-a",
     roles: ["Aluno"],
     setActiveRole: () => {},
   },
@@ -103,20 +117,22 @@ vi.mock("@/features/auth/use-sign-out", () => ({
   useSignOut: () => ({ signOut: () => {}, signingOut: false }),
 }));
 
-let AppSidebar: ComponentType<Record<string, never>>;
+let AppSidebar: ComponentType<{ collapsed?: boolean }>;
 
 beforeAll(async () => {
   AppSidebar = (await import("@/components/layout/AppSidebar"))
-    .AppSidebar as unknown as ComponentType<Record<string, never>>;
+    .AppSidebar as unknown as ComponentType<{ collapsed?: boolean }>;
 }, 60_000);
 
-function renderSidebar() {
+function renderSidebar(collapsed = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  return render(
+  const tree = () => (
     <QueryClientProvider client={client}>
-      <AppSidebar />
-    </QueryClientProvider>,
+      <AppSidebar collapsed={collapsed} />
+    </QueryClientProvider>
   );
+  const view = render(tree());
+  return { ...view, rerenderSidebar: () => view.rerender(tree()) };
 }
 
 /** Todos os links da barra que apontam para um dado caminho. */
@@ -136,9 +152,15 @@ function linksTo(path: string) {
 afterEach(() => {
   cleanup();
   papel = "Administrador";
+  (contas.Administrador as { schoolId: string }).schoolId = "school-a";
   currentPathname = "/pedagogica";
   currentSearch = {};
   localStorage.clear();
+  document.documentElement.style.cssText = "";
+  document.documentElement.classList.remove("dark");
+  for (const key of ["accent", "sidebarTheme", "density"]) {
+    delete document.documentElement.dataset[key];
+  }
 });
 
 describe("AppSidebar — parâmetros de pesquisa nos links", () => {
@@ -154,6 +176,7 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
 
   it("leva o ?tab=presencas no item de topo Frequência do portal do Aluno", () => {
     papel = "Aluno";
+    currentSearch = { tab: "presencas" };
 
     renderSidebar();
 
@@ -171,4 +194,156 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
     const semTab = linksTo("/pedagogica").filter((link) => !link.search?.["tab"]);
     expect(semTab).toEqual([]);
   });
+});
+
+describe("AppSidebar — contexto", () => {
+  it("mostra apenas o módulo activo e permite consultar todas as áreas", () => {
+    currentPathname = "/faturas";
+    renderSidebar();
+    expect(linksTo("/faturas")).toHaveLength(1);
+    expect(linksTo("/alunos")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: "Secretaria" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    expect(linksTo("/alunos").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Voltar ao módulo" }));
+    expect(linksTo("/alunos")).toHaveLength(0);
+  });
+
+  it("não restaura menus acumulados de outra sessão", () => {
+    currentPathname = "/portal";
+    localStorage.setItem(
+      "siga:sidebar-open-menus",
+      JSON.stringify(["Gestão de Alunos", "Caixa e Pagamentos"]),
+    );
+    renderSidebar();
+    expect(linksTo("/alunos")).toHaveLength(0);
+    expect(linksTo("/faturas")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    expect(linksTo("/alunos").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Financeiro" }));
+    expect(linksTo("/alunos")).toHaveLength(0);
+    expect(linksTo("/faturas")).toHaveLength(1);
+  });
+});
+
+describe("AppSidebar — teclado na barra recolhida", () => {
+  it.each([false, true])(
+    "identifica e abre o menu da escola por teclado (recolhida: %s)",
+    async (collapsed) => {
+      renderSidebar(collapsed);
+      const trigger = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      const menu = await screen.findByRole("menu");
+      expect(trigger.getAttribute("aria-expanded")).toBe("true");
+      fireEvent.keyDown(menu, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+    },
+  );
+  it("abre os destinos num portal e fecha com Escape", async () => {
+    currentPathname = "/portal";
+    const { container } = renderSidebar(true);
+    const trigger = screen.getByRole("button", { name: "Secretaria" });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    const menu = await screen.findByRole("menu");
+    expect(container.querySelector("aside")?.contains(menu)).toBe(false);
+    const enroll = screen.getByRole("menuitem", { name: "Matricular Aluno" });
+    expect(enroll.getAttribute("data-to")).toBe("/alunos");
+    expect(JSON.parse(enroll.getAttribute("data-search") ?? "null")).toEqual({
+      action: "matricular",
+    });
+    fireEvent.keyDown(menu, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
+  it("fecha o menu recolhido ao escolher um destino com navegação interceptada", async () => {
+    currentPathname = "/portal";
+    renderSidebar(true);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Secretaria" }), { key: "Enter" });
+    const enroll = await screen.findByRole("menuitem", { name: "Matricular Aluno" });
+    enroll.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(enroll);
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
+});
+
+describe("AppSidebar — contexto e perfil", () => {
+  it.each(["claro", "tinta"])(
+    "conserva o contexto ao alternar aparência com sidebar %s",
+    (sidebar) => {
+      currentPathname = "/faturas";
+      const view = renderSidebar();
+      fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+      fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+      const destinations = linksTo("/alunos");
+      expect(destinations.length).toBeGreaterThan(0);
+
+      const appearance: AppearanceState = {
+        mode: "light",
+        accent: "violeta",
+        sidebar,
+        radius: 0.875,
+        density: "comfortable",
+        shadcnTheme: "",
+        tweakcnTheme: "",
+        importedTheme: null,
+        customVars: {},
+        schoolBrand: null,
+        preferPersonalAccent: false,
+      };
+      applyAppearance(appearance);
+      const lightActive = document.documentElement.style.getPropertyValue("--sidebar-active");
+      expect(lightActive).not.toBe("");
+      applyAppearance({ ...appearance, mode: "dark", density: "compact" });
+      view.rerenderSidebar();
+      expect(document.documentElement.classList.contains("dark")).toBe(true);
+      expect(document.documentElement.dataset.density).toBe("compact");
+      expect(linksTo("/alunos")).toEqual(destinations);
+      expect(screen.getByRole("button", { name: "Voltar ao módulo" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Voltar ao módulo" }));
+      expect(linksTo("/faturas")).toHaveLength(1);
+      expect(linksTo("/alunos")).toHaveLength(0);
+    },
+  );
+  it("conserva a escolha de áreas num rerender com a mesma pesquisa", () => {
+    currentPathname = "/faturas";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    currentSearch = { ...currentSearch };
+    view.rerenderSidebar();
+    expect(screen.getByRole("button", { name: "Voltar ao módulo" })).toBeTruthy();
+  });
+  it("regressa ao contexto ao mudar de escola", () => {
+    currentPathname = "/faturas";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    (contas.Administrador as { schoolId: string }).schoolId = "school-b";
+    view.rerenderSidebar();
+    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
+  });
+  it("retira as áreas administrativas ao mudar para o perfil de aluno", () => {
+    currentPathname = "/portal";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    papel = "Aluno";
+    view.rerenderSidebar();
+    expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
+    expect(linksTo("/acessos")).toHaveLength(0);
+  });
+  it.each(["Administrador", "Aluno"])(
+    "Configurações da Escola respeita o perfil %s",
+    async (role) => {
+      papel = role;
+      const view = renderSidebar();
+      const trigger = view.container.querySelector<HTMLButtonElement>(
+        "[data-sidebar-header-account]",
+      )!;
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      await screen.findByRole("menu");
+      const settings = screen.queryByRole("menuitem", { name: "Configurações da Escola" });
+      expect(Boolean(settings)).toBe(role === "Administrador");
+    },
+  );
 });

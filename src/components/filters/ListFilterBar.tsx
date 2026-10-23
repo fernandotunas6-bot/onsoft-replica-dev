@@ -40,7 +40,7 @@ export function ListFilterBar({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-border bg-card p-3 sm:p-4", className)}>
+    <div className={cn("rounded-xl border border-border bg-card p-3 sm:p-4", className)}>
       <div className="flex flex-wrap items-end gap-2">
         {fields.map((field) => {
           const value = values[field.name] ?? "";
@@ -110,6 +110,7 @@ export function ListFilterBar({
               key={chip.name}
               type="button"
               onClick={() => onChange(chip.name, chip.emptyValue ?? "")}
+              aria-label={`Remover filtro ${chip.label}: ${chip.value}`}
               className="inline-flex min-h-[44px] max-w-full items-center gap-2 rounded-xl border border-border bg-secondary px-3 py-2 text-left text-[12px] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="min-w-0 break-words">

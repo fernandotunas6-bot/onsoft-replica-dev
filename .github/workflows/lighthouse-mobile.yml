@@ -1,0 +1,53 @@
+name: Lighthouse mobile — entrada pública
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/lighthouse-mobile.yml"
+      - "lighthouserc.mobile.json"
+      - "lighthouserc.json"
+      - "src/components/auth/AuthGate.tsx"
+      - "src/routes/index.tsx"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/lighthouse-mobile.yml"
+      - "lighthouserc.mobile.json"
+      - "lighthouserc.json"
+      - "src/components/auth/AuthGate.tsx"
+      - "src/routes/index.tsx"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse-mobile-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-public-login:
+    name: Mobile — Lighthouse público sem sessão
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+      - name: Compilar app de produção
+        run: bun run build
+      - name: Medir Lighthouse mobile, sem autenticação
+        run: npx --yes @lhci/cli@0.14.x autorun --config=lighthouserc.mobile.json
+      - name: Resumo mobile do Lighthouse
+        if: always()
+        run: node scripts/lighthouse-summary.mjs reports/lighthouse-mobile
+      - name: Guardar relatórios mobile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-mobile-public
+          path: reports/lighthouse-mobile
+          retention-days: 14

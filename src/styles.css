@@ -1477,13 +1477,3 @@ h6,
     animation: none;
   }
 }
-
-/* Blue and purple enrich the existing dark navigation without changing its layout. */
-[data-sidebar="siga"] {
-  background-image: linear-gradient(
-    155deg,
-    oklch(0.27 0.075 260 / 46%),
-    transparent 48%,
-    oklch(0.25 0.08 300 / 48%)
-  );
-}
