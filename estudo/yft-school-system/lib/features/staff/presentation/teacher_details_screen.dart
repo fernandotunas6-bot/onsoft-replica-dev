@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -29,10 +29,8 @@ class TeacherDetailsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: async.when(
-          data: (t) => Text(
-            t.name,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          data: (t) =>
+              Text(t.name, style: const TextStyle(fontWeight: FontWeight.w600)),
           loading: () => const Text(
             'Perfil do funcionário',
             style: TextStyle(fontWeight: FontWeight.w600),
@@ -54,11 +52,16 @@ class TeacherDetailsScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(LucideIcons.alertTriangle,
-                    size: 48, color: AppColors.error),
+                Icon(
+                  LucideIcons.alertTriangle,
+                  size: 48,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 16),
-                Text('Não foi possível carregar o professor',
-                    style: TextStyle(color: AppColors.error)),
+                Text(
+                  'Não foi possível carregar o professor',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   '$e',
@@ -151,12 +154,13 @@ class _TeacherProfileBody extends StatelessWidget {
     final initials = name.length >= 2
         ? name.substring(0, 2).toUpperCase()
         : name.isEmpty
-            ? '?'
-            : name[0].toUpperCase();
+        ? '?'
+        : name[0].toUpperCase();
 
     return SingleChildScrollView(
-      padding: getResponsiveHorizontalPadding(context)
-          .copyWith(top: 8, bottom: 32),
+      padding: getResponsiveHorizontalPadding(
+        context,
+      ).copyWith(top: 8, bottom: 32),
       child: ResponsiveConstrainedContent(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -165,8 +169,9 @@ class _TeacherProfileBody extends StatelessWidget {
               child: CircleAvatar(
                 radius: 52,
                 backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                backgroundImage:
-                    photoUrl != null ? NetworkImage(photoUrl!) : null,
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl!)
+                    : null,
                 onBackgroundImageError: photoUrl != null
                     ? (Object error, StackTrace? stackTrace) {}
                     : null,
@@ -218,14 +223,16 @@ class _TeacherProfileBody extends StatelessWidget {
             const SizedBox(height: 16),
             _section(context, 'Other', [
               _row(LucideIcons.creditCard, 'SSNIT', ssnitNumber ?? '—'),
-              _row(LucideIcons.heart, 'Marital status', maritalStatus ?? '—'),
+              _row(LucideIcons.heart, 'Estado civil', maritalStatus ?? '—'),
             ]),
             const SizedBox(height: 16),
             _section(context, 'Emergency', [
-              _row(LucideIcons.alertCircle, 'Name',
-                  emergencyContactName ?? '—'),
-              _row(LucideIcons.phone, 'Telefone',
-                  emergencyContactPhone ?? '—'),
+              _row(
+                LucideIcons.alertCircle,
+                'Name',
+                emergencyContactName ?? '—',
+              ),
+              _row(LucideIcons.phone, 'Telefone', emergencyContactPhone ?? '—'),
             ]),
             const SizedBox(height: 16),
             _section(context, 'Bank', [
@@ -282,8 +289,9 @@ class _TeacherProfileBody extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
-        crossAxisAlignment:
-            multiline ? CrossAxisAlignment.start : CrossAxisAlignment.start,
+        crossAxisAlignment: multiline
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 20, color: AppColors.textSecondary),
           const SizedBox(width: 14),

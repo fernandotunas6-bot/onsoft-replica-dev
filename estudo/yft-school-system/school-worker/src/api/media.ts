@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../app-env';
 import { requireAdmin } from '../lib/auth-guards';
 import { createPrefixedId } from '../lib/id';
+import { detectImageKind } from '../lib/media-type';
 import { jsonError, jsonOk } from '../lib/response';
 
-const ALLOWED_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_BYTES = 2 * 1024 * 1024;
 
 const media = new Hono<AppEnv>();
@@ -15,29 +15,31 @@ media.post('/profile-photo', requireAdmin, async (c) => {
   try {
     form = await c.req.formData();
   } catch {
-    return jsonError(c, 'Expected multipart form data', 400);
+    return jsonError(c, 'O pedido devia vir em multipart/form-data', 400);
   }
 
   const file = form.get('file');
   if (!file || typeof file === 'string') {
-    return jsonError(c, 'Missing file field', 400);
-  }
-
-  const mime = (file as File).type || 'application/octet-stream';
-  if (!ALLOWED_UPLOAD_TYPES.has(mime)) {
-    return jsonError(c, 'Only JPEG, PNG, or WebP images are allowed', 400);
+    return jsonError(c, 'Falta o campo do ficheiro', 400);
   }
 
   const buf = new Uint8Array(await (file as File).arrayBuffer());
   if (buf.byteLength === 0 || buf.byteLength > MAX_BYTES) {
-    return jsonError(c, 'Image must be between 1 byte and 2 MB', 400);
+    return jsonError(c, 'A imagem tem de ter entre 1 byte e 2 MB', 400);
   }
 
-  const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
-  const key = `profile-photos/${user.schoolId}/${createPrefixedId('img')}.${ext}`;
+  // O tipo vem do conteúdo, não do que o cliente declarou: é este tipo que
+  // volta no Content-Type quando a imagem é servida. SVG não entra numa
+  // fotografia de perfil — é um documento que pode trazer script.
+  const kind = detectImageKind(buf);
+  if (!kind) {
+    return jsonError(c, 'Só são aceites imagens JPEG, PNG ou WebP', 400);
+  }
+
+  const key = `profile-photos/${user.schoolId}/${createPrefixedId('img')}.${kind.extension}`;
 
   await c.env.MEDIA_BUCKET.put(key, buf, {
-    httpMetadata: { contentType: mime },
+    httpMetadata: { contentType: kind.contentType },
   });
 
   return jsonOk(c, { key });

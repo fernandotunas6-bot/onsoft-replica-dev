@@ -63,7 +63,7 @@ notices.post('/:id/read', requireRoles('parent'), async (c) => {
     .first<{ id: string }>();
 
   if (!notice) {
-    return jsonError(c, 'Notice not found', 404);
+    return jsonError(c, 'Comunicado não encontrado', 404);
   }
 
   await c.env.DB.prepare(

@@ -10,8 +10,10 @@ class MediaRepository {
   /// Uploads a profile image; returns the R2 object key (store on student/user row).
   Future<String> uploadProfilePhoto(String filePath) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath,
-          filename: filePath.split(RegExp(r'[/\\]')).last),
+      'file': await MultipartFile.fromFile(
+        filePath,
+        filename: filePath.split(RegExp(r'[/\\]')).last,
+      ),
     });
     final response = await _dio.post(
       ApiEndpoints.mediaProfilePhoto,
@@ -19,7 +21,7 @@ class MediaRepository {
     );
     final key = (response.data as Map<String, dynamic>)['key'] as String?;
     if (key == null || key.isEmpty) {
-      throw StateError('Upload response missing key');
+      throw StateError('A resposta do envio não traz a chave do ficheiro');
     }
     return key;
   }
@@ -37,7 +39,7 @@ class MediaRepository {
     );
     final key = (response.data as Map<String, dynamic>)['key'] as String?;
     if (key == null || key.isEmpty) {
-      throw StateError('Upload response missing key');
+      throw StateError('A resposta do envio não traz a chave do ficheiro');
     }
     return key;
   }

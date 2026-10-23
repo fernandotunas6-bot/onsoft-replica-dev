@@ -75,8 +75,9 @@ class ProfilePhotoCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = imageUrl;
-    final label =
-        fallbackLabel.isNotEmpty ? fallbackLabel[0].toUpperCase() : '?';
+    final label = fallbackLabel.isNotEmpty
+        ? fallbackLabel[0].toUpperCase()
+        : '?';
     final fontSize = (radius * 0.45).clamp(14.0, 40.0);
 
     if (url == null || url.isEmpty) {
@@ -125,11 +126,7 @@ class WardPhotoAvatar extends ConsumerWidget {
   final Student ward;
   final double radius;
 
-  const WardPhotoAvatar({
-    super.key,
-    required this.ward,
-    this.radius = 24,
-  });
+  const WardPhotoAvatar({super.key, required this.ward, this.radius = 24});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

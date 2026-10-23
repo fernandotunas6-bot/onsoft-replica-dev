@@ -46,9 +46,7 @@ Dio _createDio() {
             markSchoolSuspended();
           }
           if (data.containsKey('error')) {
-            error = error.copyWith(
-              message: data['error'] as String?,
-            );
+            error = error.copyWith(message: data['error'] as String?);
           }
         }
 

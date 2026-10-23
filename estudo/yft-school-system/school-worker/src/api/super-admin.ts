@@ -3,6 +3,7 @@ import type { AppEnv } from '../app-env';
 import { requireSuperAdminKey } from '../lib/auth-guards';
 import { createFirebaseEmailUser } from '../lib/firebase-auth';
 import { createPrefixedId } from '../lib/id';
+import { detectImageKind } from '../lib/media-type';
 import { createTempPassword } from '../lib/password';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
@@ -135,7 +136,7 @@ superAdmin.get('/schools/:schoolId', async (c) => {
   ]);
 
   if (!school) {
-    return jsonError(c, 'School not found', 404);
+    return jsonError(c, 'Escola não encontrada', 404);
   }
 
   return jsonOk(c, {
@@ -155,7 +156,7 @@ superAdmin.delete('/schools/:schoolId', async (c) => {
   ).bind(schoolId).first<{ id: string }>();
 
   if (!school) {
-    return jsonError(c, 'School not found', 404);
+    return jsonError(c, 'Escola não encontrada', 404);
   }
 
   await c.env.DB.batch([
@@ -177,7 +178,7 @@ superAdmin.patch('/schools/:schoolId/status', async (c) => {
   const schoolId = c.req.param('schoolId');
   const parsed = statusSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid status payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do estado inválidos', 400, parsed.error.flatten());
   }
 
   const result = await c.env.DB.prepare(
@@ -185,7 +186,7 @@ superAdmin.patch('/schools/:schoolId/status', async (c) => {
   ).bind(parsed.data.is_active ? 1 : 0, schoolId).run();
 
   if (result.meta.changes === 0) {
-    return jsonError(c, 'School not found', 404);
+    return jsonError(c, 'Escola não encontrada', 404);
   }
 
   return jsonOk(c, {
@@ -212,7 +213,7 @@ superAdmin.patch('/schools/:schoolId', async (c) => {
   const schoolId = c.req.param('schoolId');
   const parsed = updateSchoolSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid update payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da alteração inválidos', 400, parsed.error.flatten());
   }
 
   const fields = parsed.data;
@@ -234,7 +235,7 @@ superAdmin.patch('/schools/:schoolId', async (c) => {
   }
 
   if (setClauses.length === 0) {
-    return jsonError(c, 'No fields to update', 400);
+    return jsonError(c, 'Não há campos para alterar', 400);
   }
 
   values.push(schoolId);
@@ -243,7 +244,7 @@ superAdmin.patch('/schools/:schoolId', async (c) => {
   ).bind(...values).run();
 
   if (result.meta.changes === 0) {
-    return jsonError(c, 'School not found', 404);
+    return jsonError(c, 'Escola não encontrada', 404);
   }
 
   const updated = await c.env.DB.prepare(
@@ -266,7 +267,7 @@ superAdmin.patch('/schools/:schoolId/admin', async (c) => {
   const schoolId = c.req.param('schoolId');
   const parsed = updateAdminSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid admin payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do administrador inválidos', 400, parsed.error.flatten());
   }
 
   const admin = await c.env.DB.prepare(
@@ -274,7 +275,7 @@ superAdmin.patch('/schools/:schoolId/admin', async (c) => {
   ).bind(schoolId).first<{ uid: string }>();
 
   if (!admin) {
-    return jsonError(c, 'No admin found for this school', 404);
+    return jsonError(c, 'Esta escola não tem administrador', 404);
   }
 
   const fields = parsed.data;
@@ -286,7 +287,7 @@ superAdmin.patch('/schools/:schoolId/admin', async (c) => {
   if (fields.email !== undefined) { setClauses.push('email = ?'); values.push(fields.email); }
 
   if (setClauses.length === 0) {
-    return jsonError(c, 'No fields to update', 400);
+    return jsonError(c, 'Não há campos para alterar', 400);
   }
 
   values.push(admin.uid);
@@ -304,41 +305,45 @@ superAdmin.patch('/schools/:schoolId/admin', async (c) => {
 superAdmin.post('/upload-logo', async (c) => {
   const formData = await c.req.formData().catch(() => null);
   if (!formData) {
-    return jsonError(c, 'Expected multipart form data', 400);
+    return jsonError(c, 'O pedido devia vir em multipart/form-data', 400);
   }
 
   const file = formData.get('logo');
   if (!file || !(file instanceof File)) {
-    return jsonError(c, 'Missing "logo" file field', 400);
-  }
-
-  const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
-  if (!allowedTypes.includes(file.type)) {
-    return jsonError(c, `Invalid file type "${file.type}". Allowed: png, jpeg, webp, svg`, 400);
+    return jsonError(c, 'Falta o ficheiro no campo "logo"', 400);
   }
 
   const maxSize = 2 * 1024 * 1024;
   if (file.size > maxSize) {
-    return jsonError(c, 'File too large. Maximum size is 2 MB', 400);
+    return jsonError(c, 'Ficheiro demasiado grande. O máximo é 2 MB', 400);
   }
 
-  const mimeToExt: Record<string, string> = {
-    'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg',
-  };
-  const ext = mimeToExt[file.type] ?? 'png';
-  const key = `logos/${createPrefixedId('logo')}.${ext}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.byteLength === 0 || bytes.byteLength > maxSize) {
+    return jsonError(c, 'Ficheiro demasiado grande. O máximo é 2 MB', 400);
+  }
 
-  await c.env.MEDIA_BUCKET.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type },
+  // O tipo é decidido pelo conteúdo. Antes bastava anunciar `image/png` para o
+  // ficheiro ser guardado e devolvido com esse Content-Type. O SVG é aceite no
+  // logótipo, mas é servido com Content-Security-Policy em index.ts.
+  const kind = detectImageKind(bytes, true);
+  if (!kind) {
+    // Sem repetir o que o cliente enviou: o que ele declara não interessa.
+    return jsonError(c, 'Só são aceites imagens PNG, JPEG, WebP ou SVG', 400);
+  }
+  const key = `logos/${createPrefixedId('logo')}.${kind.extension}`;
+
+  await c.env.MEDIA_BUCKET.put(key, bytes, {
+    httpMetadata: { contentType: kind.contentType },
   });
 
-  return jsonOk(c, { key, content_type: file.type }, 201);
+  return jsonOk(c, { key, content_type: kind.contentType }, 201);
 });
 
 superAdmin.post('/onboard-school', async (c) => {
   const parsed = onboardSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid onboarding payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da adesão inválidos', 400, parsed.error.flatten());
   }
 
   const schoolId = createPrefixedId('sch');

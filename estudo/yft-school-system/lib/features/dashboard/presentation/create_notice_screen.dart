@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
@@ -142,9 +142,7 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
                           'Envio por SMS',
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
-                        subtitle: const Text(
-                          'Pode ter custos da operadora',
-                        ),
+                        subtitle: const Text('Pode ter custos da operadora'),
                         value: _sendSms,
                         onChanged: (val) => setState(() => _sendSms = val),
                         activeThumbColor: AppColors.primary,

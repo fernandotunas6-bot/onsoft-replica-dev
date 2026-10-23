@@ -23,9 +23,7 @@ class SchoolNotice {
 
   factory SchoolNotice.fromJson(Map<String, dynamic> json) {
     final readFlag = json['read_flag'];
-    final read = readFlag is num
-        ? readFlag != 0
-        : readFlag == true;
+    final read = readFlag is num ? readFlag != 0 : readFlag == true;
     return SchoolNotice(
       id: json['id'] as String,
       schoolId: json['school_id'] as String,

@@ -5,10 +5,7 @@ class SubjectGradeScores {
   final double classScore;
   final double examScore;
 
-  const SubjectGradeScores({
-    required this.classScore,
-    required this.examScore,
-  });
+  const SubjectGradeScores({required this.classScore, required this.examScore});
 }
 
 class GradeUpsertRow {
@@ -34,10 +31,7 @@ class GradesRepository {
   }) async {
     final response = await _dio.get(
       ApiEndpoints.grades,
-      queryParameters: {
-        'student_id': studentId,
-        'term': term,
-      },
+      queryParameters: {'student_id': studentId, 'term': term},
     );
     final list = response.data['data'] as List<dynamic>;
     final out = <String, SubjectGradeScores>{};

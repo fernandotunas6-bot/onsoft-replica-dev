@@ -13,6 +13,7 @@ class FeeReceipt {
   final String? studentName;
   final String? description;
   final String createdAt;
+
   /// From school calendar when the payment was recorded.
   final String? academicYear;
   final String? feeTerm;
@@ -50,7 +51,7 @@ class FeeReceipt {
       creditAdded: (json['credit_added'] as num?)?.toDouble() ?? 0,
       currency: (json['currency'] as String?)?.trim().isNotEmpty == true
           ? json['currency'] as String
-          : 'GHS',
+          : 'AOA',
       studentName: json['student_name'] as String?,
       description: json['description'] as String?,
       createdAt: json['created_at'] as String? ?? '',

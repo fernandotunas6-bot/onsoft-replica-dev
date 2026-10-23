@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/models/student.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
@@ -25,7 +25,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
   final _descriptionController = TextEditingController();
 
   String _searchQuery = '';
-  String _classFilter = 'All Classes';
+  String _classFilter = 'Todas as turmas';
   Student? _selected;
   bool _confirmChecked = false;
   bool _submitting = false;
@@ -80,14 +80,16 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid amount greater than zero.')),
+        const SnackBar(
+          content: Text('Escreva um valor válido, maior do que zero.'),
+        ),
       );
       return;
     }
     if (!_confirmChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Confirm that this payment is for the selected student.'),
+          content: Text('Confirme que este pagamento é do aluno seleccionado.'),
         ),
       );
       return;
@@ -95,7 +97,9 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
 
     setState(() => _submitting = true);
     try {
-      final result = await ref.read(financeRepositoryProvider).logPayment(
+      final result = await ref
+          .read(financeRepositoryProvider)
+          .logPayment(
             studentId: s.id,
             amount: amount,
             description: _descriptionController.text.trim().isEmpty
@@ -109,20 +113,20 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
       if (!mounted) return;
       final payCur = result.currency ?? currency;
       final credit = result.creditAddedOrZero;
-      final msg = StringBuffer('Payment recorded.');
+      final msg = StringBuffer('Pagamento registado.');
       if (credit > 0) {
         msg.write(' Credit added: $payCur ${credit.toStringAsFixed(2)}.');
       }
       msg.write(' New balance: $payCur ${result.balance.toStringAsFixed(2)}.');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(msg.toString())));
       context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment failed: $e'),
+            content: Text('O pagamento falhou: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -142,7 +146,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Record fee payment',
+          'Registar pagamento de propina',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -157,11 +161,15 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Could not load students', style: TextStyle(color: AppColors.error)),
+                Text(
+                  'Não foi possível carregar os alunos',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 const SizedBox(height: 12),
                 TextButton(
-                  onPressed: () => ref.invalidate(studentsProvider(_studentsKey)),
-                  child: const Text('Retry'),
+                  onPressed: () =>
+                      ref.invalidate(studentsProvider(_studentsKey)),
+                  child: const Text('Tentar de novo'),
                 ),
               ],
             ),
@@ -169,7 +177,8 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
         ),
         data: (paginated) {
           final allStudents = paginated.data;
-          final classNames = classesAsync.whenOrNull(
+          final classNames =
+              classesAsync.whenOrNull(
                 data: (classes) => Map.fromEntries(
                   classes.map((c) => MapEntry(c.id, c.className)),
                 ),
@@ -178,36 +187,38 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
 
           _applyInitialSelection(allStudents);
 
-          final classSet = <String>{'All Classes'};
+          final classSet = <String>{'Todas as turmas'};
           for (final s in allStudents) {
             final cn = _displayClass(s, classNames);
             if (cn.isNotEmpty) classSet.add(cn);
           }
           final classes = classSet.toList()..sort();
 
-          final filtered = allStudents.where((s) {
-            final displayClass = _displayClass(s, classNames);
-            final matchesClass =
-                _classFilter == 'All Classes' || displayClass == _classFilter;
-            return matchesClass && _matchesSearch(s);
-          }).toList()
-            ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          final filtered =
+              allStudents.where((s) {
+                final displayClass = _displayClass(s, classNames);
+                final matchesClass =
+                    _classFilter == 'Todas as turmas' ||
+                    displayClass == _classFilter;
+                return matchesClass && _matchesSearch(s);
+              }).toList()..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
 
           return ResponsiveConstrainedContent(
             child: Column(
               children: [
                 Padding(
-                  padding: getResponsiveHorizontalPadding(context).copyWith(
-                    top: 8,
-                    bottom: 8,
-                  ),
+                  padding: getResponsiveHorizontalPadding(
+                    context,
+                  ).copyWith(top: 8, bottom: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search by name or student ID…',
+                          hintText: 'Procurar por nome ou número de aluno…',
                           prefixIcon: const Icon(LucideIcons.search, size: 20),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -219,7 +230,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                       const SizedBox(height: 10),
                       InputDecorator(
                         decoration: const InputDecoration(
-                          labelText: 'Class',
+                          labelText: 'Turma',
                           border: OutlineInputBorder(),
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(horizontal: 12),
@@ -229,10 +240,13 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                             isExpanded: true,
                             value: classes.contains(_classFilter)
                                 ? _classFilter
-                                : 'All Classes',
+                                : 'Todas as turmas',
                             items: classes
                                 .map(
-                                  (c) => DropdownMenuItem(value: c, child: Text(c)),
+                                  (c) => DropdownMenuItem(
+                                    value: c,
+                                    child: Text(c),
+                                  ),
                                 )
                                 .toList(),
                             onChanged: (v) {
@@ -243,10 +257,12 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Select the exact student. IDs are unique even when names match.',
+                        'Escolha o aluno exacto. O número é único mesmo quando os nomes coincidem.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary.withValues(alpha: 0.95),
+                          color: AppColors.textSecondary.withValues(
+                            alpha: 0.95,
+                          ),
                         ),
                       ),
                     ],
@@ -257,14 +273,14 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                   child: filtered.isEmpty
                       ? Center(
                           child: Text(
-                            'No students match your filters.',
+                            'Nenhum aluno corresponde aos filtros.',
                             style: TextStyle(color: AppColors.textSecondary),
                           ),
                         )
                       : ListView.separated(
-                          padding: getResponsiveHorizontalPadding(context).copyWith(
-                            bottom: 12,
-                          ),
+                          padding: getResponsiveHorizontalPadding(
+                            context,
+                          ).copyWith(bottom: 12),
                           itemCount: filtered.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 8),
                           itemBuilder: (context, i) {
@@ -281,8 +297,9 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     _selected = s;
                                     _confirmChecked = false;
                                     if (s.balance < 0) {
-                                      _amountController.text =
-                                          s.balance.abs().toStringAsFixed(2);
+                                      _amountController.text = s.balance
+                                          .abs()
+                                          .toStringAsFixed(2);
                                     } else {
                                       _amountController.clear();
                                     }
@@ -300,7 +317,8 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                   ),
                                   padding: const EdgeInsets.all(14),
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Icon(
                                         selected
@@ -326,7 +344,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             SelectableText(
-                                              'Student ID: ${s.id}',
+                                              'N.º de aluno: ${s.id}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontFamily: 'monospace',
@@ -348,17 +366,19 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                                 'Parent: ${s.parentName!.trim()}',
                                                 style: const TextStyle(
                                                   fontSize: 11,
-                                                  color: AppColors.textSecondary,
+                                                  color:
+                                                      AppColors.textSecondary,
                                                 ),
                                               ),
                                           ],
                                         ),
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           Text(
-                                            'Balance',
+                                            'Saldo',
                                             style: TextStyle(
                                               fontSize: 10,
                                               color: AppColors.textSecondary,
@@ -372,8 +392,9 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                               color: s.balance < 0
                                                   ? AppColors.error
                                                   : (s.balance > 0
-                                                      ? Colors.blue.shade800
-                                                      : AppColors.textSecondary),
+                                                        ? Colors.blue.shade800
+                                                        : AppColors
+                                                              .textSecondary),
                                             ),
                                           ),
                                         ],
@@ -403,10 +424,9 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Payment details',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              'Dados do pagamento',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 12),
                             Container(
@@ -421,7 +441,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                 children: [
                                   _summaryRow('Student', _selected!.name),
                                   _summaryRow(
-                                    'Student ID',
+                                    'N.º de aluno',
                                     _selected!.id,
                                     mono: true,
                                   ),
@@ -430,7 +450,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                     _displayClass(_selected!, classNames),
                                   ),
                                   _summaryRow(
-                                    'Balance before',
+                                    'Saldo anterior',
                                     '$currency ${_selected!.balance.toStringAsFixed(2)}',
                                   ),
                                 ],
@@ -440,17 +460,19 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                             TextField(
                               controller: _amountController,
                               decoration: InputDecoration(
-                                labelText: 'Amount ($currency)',
+                                labelText: 'Valor ($currency)',
                                 border: const OutlineInputBorder(),
                               ),
                               keyboardType:
-                                  const TextInputType.numberWithOptions(decimal: true),
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               controller: _descriptionController,
                               decoration: const InputDecoration(
-                                labelText: 'Description (optional)',
+                                labelText: 'Descrição (opcional)',
                                 border: OutlineInputBorder(),
                               ),
                               maxLines: 2,
@@ -465,7 +487,10 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                               title: Text(
                                 'I confirm this payment is for ${_selected!.name} '
                                 '(ID: ${_selected!.id}).',
-                                style: const TextStyle(fontSize: 13, height: 1.35),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  height: 1.35,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -485,7 +510,7 @@ class _LogPaymentScreenState extends ConsumerState<LogPaymentScreen> {
                                         ),
                                       )
                                     : const Text(
-                                        'Record payment',
+                                        'Registar pagamento',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 16,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/models/school_notice.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -120,7 +120,7 @@ class NoticesScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => ref.invalidate(parentNoticesProvider),
-                  child: const Text('Retry'),
+                  child: const Text('Tentar de novo'),
                 ),
               ],
             ),
@@ -234,8 +234,9 @@ class NoticesScreen extends ConsumerWidget {
                                 Text(
                                   _formatWhen(n.createdAt),
                                   style: TextStyle(
-                                    color: AppColors.textSecondary
-                                        .withValues(alpha: 0.85),
+                                    color: AppColors.textSecondary.withValues(
+                                      alpha: 0.85,
+                                    ),
                                     fontSize: 12,
                                   ),
                                 ),

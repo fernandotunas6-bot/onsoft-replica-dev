@@ -7,6 +7,13 @@ import 'gateway.dart';
 import 'identity.dart';
 import 'design.dart';
 import 'academic_page.dart';
+import 'auth_errors.dart';
+import 'captcha.dart';
+import 'captcha_factory.dart';
+import 'identity_login.dart';
+import 'records_page.dart';
+import 'chat_page.dart';
+import 'config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -138,7 +145,15 @@ class _SigaAppState extends State<SigaApp> {
                   GoRoute(
                     path: path,
                     builder: (_, _) => page(path),
-                    routes: path == '/more'
+                    routes: path == '/messages'
+                        ? [
+                            GoRoute(
+                              path: 'thread/:id',
+                              builder: (_, state) =>
+                                  threadPage(state.pathParameters['id'] ?? ''),
+                            ),
+                          ]
+                        : path == '/more'
                         ? [
                             GoRoute(
                               path: 'classes',
@@ -149,6 +164,16 @@ class _SigaAppState extends State<SigaApp> {
                               path: 'tasks',
                               builder: (_, _) =>
                                   servicePage('Tarefas', '/tasks'),
+                            ),
+                            GoRoute(
+                              path: 'notices',
+                              builder: (_, _) =>
+                                  recordsPage('Avisos', 'notices'),
+                            ),
+                            GoRoute(
+                              path: 'results',
+                              builder: (_, _) =>
+                                  recordsPage('Notas', 'results'),
                             ),
                             GoRoute(
                               path: 'classes/:id',
@@ -395,6 +420,20 @@ class _SigaAppState extends State<SigaApp> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => router.go('/more/tasks'),
           ),
+          if (institutionalRecordsEnabled) ...[
+            ListTile(
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text('Avisos'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => router.go('/more/notices'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.grade_outlined),
+              title: const Text('Notas'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => router.go('/more/results'),
+            ),
+          ],
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Aparência'),
@@ -469,6 +508,38 @@ class _SigaAppState extends State<SigaApp> {
     );
   }
 
+  Widget threadPage(String threadId) => Scaffold(
+    appBar: AppBar(
+      title: const Text('Conversa'),
+      leading: IconButton(
+        tooltip: 'Voltar',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => router.go('/messages'),
+      ),
+    ),
+    body: ChatHistoryPage(
+      key: ValueKey('$school:$role:$threadId'),
+      gateway: gateway,
+      threadId: threadId,
+    ),
+  );
+
+  Widget recordsPage(String title, String collection) => Scaffold(
+    appBar: AppBar(
+      title: Text(title),
+      leading: IconButton(
+        tooltip: 'Voltar',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => router.go('/more'),
+      ),
+    ),
+    body: RecordsPage(
+      key: ValueKey('$school:$role:$collection'),
+      gateway: gateway,
+      collection: collection,
+    ),
+  );
+
   Widget servicePage(String title, String path, {String? groupId}) => Scaffold(
     appBar: AppBar(
       title: Text(title),
@@ -514,32 +585,93 @@ class _SigaAppState extends State<SigaApp> {
   ThemeData theme(Brightness brightness) => sigaTheme(brightness);
 }
 
+/// Entrada por senha. Injectável para que o teste não precise do Auth remoto.
+typedef PasswordSignIn =
+    Future<void> Function({
+      required String email,
+      required String password,
+      String? captchaToken,
+    });
+
+/// Entrada por B.I., telefone ou e-mail, resolvida pelo servidor.
+typedef IdentifierSignIn =
+    Future<void> Function({
+      required String identifier,
+      required String password,
+      String? captchaToken,
+    });
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
     required this.auth,
     required this.onSync,
     this.factor,
+    this.siteKey = captchaSiteKey,
+    this.signIn,
+    this.signInWithIdentifier,
+    this.allowIdentifier = identifierLoginEnabled,
+    this.buildGate = buildCaptchaGate,
   });
   final GoTrueClient auth;
   final Future<void> Function() onSync;
   final String? factor;
+  final String siteKey;
+  final PasswordSignIn? signIn;
+  final IdentifierSignIn? signInWithIdentifier;
+  final bool allowIdentifier;
+  final CaptchaGate Function(String, VoidCallback) buildGate;
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
   final email = TextEditingController();
+  final identifier = TextEditingController();
   final password = TextEditingController();
   final code = TextEditingController();
   bool busy = false;
+  bool byIdentifier = false;
   String? error;
+  late final CaptchaGate captcha;
+  late final IdentityLogin identityLogin = IdentityLogin(Uri.base);
+
+  @override
+  void initState() {
+    super.initState();
+    captcha = widget.buildGate(widget.siteKey, () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  /// O desafio só se pode exigir onde é apresentável; onde não é, a recusa do
+  /// servidor é explicada em vez de se enviar um pedido sem sinal.
+  bool get demandsCaptcha =>
+      widget.factor == null && captcha.configured && captcha.supported;
+
   Future<void> submit() async {
     if (busy) return;
-    if (widget.factor == null &&
-        (email.text.trim().isEmpty || password.text.isEmpty)) {
+    if (widget.factor == null && password.text.isEmpty) {
+      setState(() {
+        error = byIdentifier
+            ? 'Preencha o identificador e a senha.'
+            : 'Preencha o e-mail e a senha.';
+      });
+      return;
+    }
+    if (widget.factor == null && !byIdentifier && email.text.trim().isEmpty) {
       setState(() {
         error = 'Preencha o e-mail e a senha.';
+      });
+      return;
+    }
+    // O servidor exige pelo menos três caracteres; recusar aqui evita gastar
+    // o limite por endereço com um pedido que nunca poderia entrar.
+    if (widget.factor == null &&
+        byIdentifier &&
+        identifier.text.trim().length < 3) {
+      setState(() {
+        error = 'Introduza o seu número de B.I., telefone ou e-mail.';
       });
       return;
     }
@@ -547,6 +679,12 @@ class _LoginPageState extends State<LoginPage> {
         !RegExp(r'^\d{6}$').hasMatch(code.text.trim())) {
       setState(() {
         error = 'Introduza os seis dígitos do código.';
+      });
+      return;
+    }
+    if (demandsCaptcha && captcha.token == null) {
+      setState(() {
+        error = 'Confirme que não é um robô e tente novamente.';
       });
       return;
     }
@@ -562,22 +700,37 @@ class _LoginPageState extends State<LoginPage> {
           factorId: widget.factor!,
           code: code.text.trim(),
         );
+      } else if (byIdentifier) {
+        final signIn = widget.signInWithIdentifier ?? _identifierSignIn;
+        await signIn(
+          identifier: identifier.text.trim(),
+          password: credential,
+          captchaToken: captcha.token,
+        );
       } else {
-        await widget.auth.signInWithPassword(
+        final signIn = widget.signIn ?? _authSignIn;
+        await signIn(
           email: email.text.trim(),
           password: credential,
+          captchaToken: captcha.token,
         );
       }
       password.clear();
       code.clear();
       await widget.onSync();
-    } catch (_) {
+    } catch (failure) {
       if (mounted) {
         setState(() {
-          error = 'Verifique os seus dados e tente novamente.';
+          error = authErrorMessage(
+            failure,
+            captchaConfigured: captcha.configured,
+          );
         });
       }
     } finally {
+      // Sinal de uso único: sem reset, a tentativa seguinte reenvia um sinal
+      // gasto e o Auth devolve captcha_failed.
+      if (widget.factor == null) captcha.reset();
       if (mounted) {
         setState(() {
           busy = false;
@@ -586,8 +739,36 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// O servidor cria a sessão; o SDK instala-a a partir do refresh token e
+  /// passa a ser dono da renovação, como no login por e-mail.
+  Future<void> _identifierSignIn({
+    required String identifier,
+    required String password,
+    String? captchaToken,
+  }) async {
+    final token = await identityLogin.refreshToken(
+      identifier: identifier,
+      password: password,
+      captchaToken: captchaToken,
+    );
+    await widget.auth.setSession(token);
+  }
+
+  Future<void> _authSignIn({
+    required String email,
+    required String password,
+    String? captchaToken,
+  }) => widget.auth.signInWithPassword(
+    email: email,
+    password: password,
+    captchaToken: captchaToken,
+  );
+
   @override
   void dispose() {
+    captcha.dispose();
+    identityLogin.dispose();
+    identifier.dispose();
     email.dispose();
     password.dispose();
     code.dispose();
@@ -645,15 +826,50 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     )
                   else ...[
-                    TextField(
-                      controller: email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.username],
-                      decoration: const InputDecoration(
-                        labelText: 'E-mail institucional',
-                        prefixIcon: Icon(Icons.mail_outline),
+                    if (widget.allowIdentifier) ...[
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(
+                            value: false,
+                            icon: Icon(Icons.mail_outline),
+                            label: Text('E-mail'),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            icon: Icon(Icons.badge_outlined),
+                            label: Text('B.I. ou telefone'),
+                          ),
+                        ],
+                        selected: {byIdentifier},
+                        onSelectionChanged: busy
+                            ? null
+                            : (selection) => setState(() {
+                                byIdentifier = selection.first;
+                                error = null;
+                              }),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (byIdentifier)
+                      TextField(
+                        controller: identifier,
+                        keyboardType: TextInputType.text,
+                        autofillHints: const [AutofillHints.username],
+                        decoration: const InputDecoration(
+                          labelText: 'N.º de B.I., telefone ou e-mail',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                      )
+                    else
+                      TextField(
+                        controller: email,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.username],
+                        decoration: const InputDecoration(
+                          labelText: 'E-mail institucional',
+                          prefixIcon: Icon(Icons.mail_outline),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: password,
@@ -664,6 +880,28 @@ class _LoginPageState extends State<LoginPage> {
                         prefixIcon: Icon(Icons.lock_outline),
                       ),
                     ),
+                    if (demandsCaptcha) ...[
+                      const SizedBox(height: 16),
+                      Builder(
+                        builder: (context) =>
+                            captcha.build(context) ?? const SizedBox.shrink(),
+                      ),
+                    ] else if (!captcha.configured) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'A verificação anti-robô pode estar activa no servidor '
+                        'e não está configurada nesta aplicação: o pedido '
+                        'seguirá sem sinal e pode ser recusado. Avise a '
+                        'administração: falta HCAPTCHA_SITE_KEY.',
+                      ),
+                    ] else if (!captcha.supported) ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Este alvo ainda não apresenta a verificação '
+                        'anti-robô. Enquanto a protecção estiver activa no '
+                        'servidor, use o portal original para entrar.',
+                      ),
+                    ],
                   ],
                   const SizedBox(height: 24),
                   FilledButton(

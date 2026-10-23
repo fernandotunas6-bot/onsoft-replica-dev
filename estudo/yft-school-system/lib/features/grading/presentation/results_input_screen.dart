@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/models/subject.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
@@ -57,7 +57,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     if (studentId.isEmpty || classId.isEmpty || term.isEmpty) {
       setState(() {
         _loading = false;
-        _loadError = 'Missing student, class, or term.';
+        _loadError = 'Falta o aluno, a turma ou o trimestre.';
       });
       return;
     }
@@ -69,13 +69,12 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     });
 
     try {
-      final subjects = await ref.read(subjectRepositoryProvider).getSubjects(
-            classId: classId,
-          );
-      final gradeMap = await ref.read(gradesRepositoryProvider).getGradesForStudent(
-            studentId: studentId,
-            term: term,
-          );
+      final subjects = await ref
+          .read(subjectRepositoryProvider)
+          .getSubjects(classId: classId);
+      final gradeMap = await ref
+          .read(gradesRepositoryProvider)
+          .getGradesForStudent(studentId: studentId, term: term);
 
       if (!mounted) return;
 
@@ -135,18 +134,14 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       cVal = cVal.clamp(0, 100);
       eVal = eVal.clamp(0, 100);
       rows.add(
-        GradeUpsertRow(
-          subjectId: s.id,
-          classScore: cVal,
-          examScore: eVal,
-        ),
+        GradeUpsertRow(subjectId: s.id, classScore: cVal, examScore: eVal),
       );
     }
 
     if (rows.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No subjects to save.'),
+          content: Text('Não há disciplinas para guardar.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -155,16 +150,14 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
 
     setState(() => _saveBusy = true);
     try {
-      await ref.read(gradesRepositoryProvider).saveGrades(
-            studentId: studentId,
-            term: term,
-            grades: rows,
-          );
+      await ref
+          .read(gradesRepositoryProvider)
+          .saveGrades(studentId: studentId, term: term, grades: rows);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Results saved',
+            'Notas guardadas',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.green,
@@ -181,10 +174,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$e'),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
       );
     } finally {
       if (mounted) setState(() => _saveBusy = false);
@@ -200,7 +190,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Input results',
+          'Lançar notas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -230,17 +220,19 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               decoration: BoxDecoration(
                 color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(LucideIcons.lock, size: 18, color: Colors.orange.shade700),
+                  Icon(
+                    LucideIcons.lock,
+                    size: 18,
+                    color: Colors.orange.shade700,
+                  ),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
-                      'View-only: enable “Allow teachers to enter results” in Security for teacher editing.',
+                      'Só leitura: active «Permitir que os professores lancem notas» em Segurança para o professor poder editar.',
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.secondary,
@@ -307,44 +299,44 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _loadError != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            _loadError!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      )
-                    : _subjects.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No subjects for this class.',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 8,
-                            ),
-                            itemCount: _subjects.length,
-                            itemBuilder: (context, index) {
-                              final sub = _subjects[index];
-                              final cc = _classControllers[sub.id];
-                              final ec = _examControllers[sub.id];
-                              if (cc == null || ec == null) {
-                                return const SizedBox.shrink();
-                              }
-                              return _buildSubjectGradeCard(
-                                sub.name,
-                                isReadOnly,
-                                cc,
-                                ec,
-                              );
-                            },
-                          ),
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _loadError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  )
+                : _subjects.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Esta turma não tem disciplinas.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
+                    itemCount: _subjects.length,
+                    itemBuilder: (context, index) {
+                      final sub = _subjects[index];
+                      final cc = _classControllers[sub.id];
+                      final ec = _examControllers[sub.id];
+                      if (cc == null || ec == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return _buildSubjectGradeCard(
+                        sub.name,
+                        isReadOnly,
+                        cc,
+                        ec,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -441,10 +433,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 8),
         Container(

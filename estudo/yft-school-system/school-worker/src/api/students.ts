@@ -165,7 +165,7 @@ students.get('/:studentId', requireAdminOrTeacher, async (c) => {
   ).bind(studentId, user.schoolId).first();
 
   if (!row) {
-    return jsonError(c, 'Student not found', 404);
+    return jsonError(c, 'Aluno não encontrado', 404);
   }
 
   return jsonOk(c, row);
@@ -176,7 +176,7 @@ students.patch('/:studentId', requireAdmin, async (c) => {
   const studentId = c.req.param('studentId');
   const parsed = studentPatchSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid student update payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da alteração do aluno inválidos', 400, parsed.error.flatten());
   }
 
   const existing = await c.env.DB.prepare(
@@ -186,7 +186,7 @@ students.patch('/:studentId', requireAdmin, async (c) => {
     .first<{ id: string; parent_uid: string | null; class_id: string }>();
 
   if (!existing) {
-    return jsonError(c, 'Student not found', 404);
+    return jsonError(c, 'Aluno não encontrado', 404);
   }
 
   const d = parsed.data;
@@ -211,7 +211,7 @@ students.patch('/:studentId', requireAdmin, async (c) => {
       .bind(d.class_id, user.schoolId)
       .first<{ id: string }>();
     if (!cls) {
-      return jsonError(c, 'Selected class does not exist in this school', 400);
+      return jsonError(c, 'A turma escolhida não existe nesta escola', 400);
     }
   }
 
@@ -283,7 +283,7 @@ students.patch('/:studentId', requireAdmin, async (c) => {
   if (hasParentPatch && existing.parent_uid) {
     const parentPatch = d.parent;
     if (!parentPatch) {
-      return jsonError(c, 'Invalid parent payload', 400);
+      return jsonError(c, 'Dados do encarregado inválidos', 400);
     }
 
     const cur = await c.env.DB.prepare(
@@ -293,7 +293,7 @@ students.patch('/:studentId', requireAdmin, async (c) => {
       .first<{ name: string; phone: string; email: string | null }>();
 
     if (!cur) {
-      return jsonError(c, 'Linked parent user not found', 400);
+      return jsonError(c, 'A conta do encarregado associado não foi encontrada', 400);
     }
 
     const nextPhone = parentPatch.phone ?? cur.phone;
@@ -307,7 +307,7 @@ students.patch('/:studentId', requireAdmin, async (c) => {
         .bind(user.schoolId, parentPatch.phone, 'parent', existing.parent_uid)
         .first<{ uid: string }>();
       if (clash) {
-        return jsonError(c, 'Another parent already uses this phone number', 409);
+        return jsonError(c, 'Este telefone já está associado a outro encarregado', 409);
       }
     }
 
@@ -317,11 +317,11 @@ students.patch('/:studentId', requireAdmin, async (c) => {
       .bind(nextName, nextPhone, nextEmail ?? null, existing.parent_uid, user.schoolId, 'parent')
       .run();
   } else if (hasParentPatch && !existing.parent_uid) {
-    return jsonError(c, 'This student has no linked parent to update', 400);
+    return jsonError(c, 'Este aluno não tem encarregado associado para alterar', 400);
   }
 
   if (!hasStudentField && !hasParentPatch) {
-    return jsonError(c, 'No fields to update', 400);
+    return jsonError(c, 'Não há campos para alterar', 400);
   }
 
   const row = await c.env.DB.prepare(
@@ -372,7 +372,7 @@ students.delete('/:studentId', requireAdmin, async (c) => {
     .first<{ id: string; parent_uid: string | null }>();
 
   if (!row) {
-    return jsonError(c, 'Student not found', 404);
+    return jsonError(c, 'Aluno não encontrado', 404);
   }
 
   await c.env.DB.batch([
@@ -422,12 +422,12 @@ students.post('/', requireAdminOrTeacher, async (c) => {
   const user = c.get('user');
   const parsed = studentSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid student payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do aluno inválidos', 400, parsed.error.flatten());
   }
 
   const calendarConfigured = await hasAcademicCalendar(c, user.schoolId);
   if (!calendarConfigured) {
-    return jsonError(c, 'Configure the academic calendar before creating student records', 400);
+    return jsonError(c, 'Configure o calendário académico antes de criar alunos', 400);
   }
 
   const [classRow, schoolConfig] = await Promise.all([
@@ -440,7 +440,7 @@ students.post('/', requireAdminOrTeacher, async (c) => {
   ]);
 
   if (!classRow) {
-    return jsonError(c, 'Selected class does not exist in this school', 400);
+    return jsonError(c, 'A turma escolhida não existe nesta escola', 400);
   }
 
   let parentUid = parsed.data.parent_uid ?? null;
@@ -453,7 +453,7 @@ students.post('/', requireAdminOrTeacher, async (c) => {
     ).bind(parentUid, user.schoolId, 'parent').first<{ uid: string }>();
 
     if (!existingByUid) {
-      return jsonError(c, 'Selected parent not found in this school', 400);
+      return jsonError(c, 'O encarregado escolhido não existe nesta escola', 400);
     }
   } else if (parsed.data.parent) {
     const parentEmail = parsed.data.parent.email?.trim() || buildSyntheticEmailFromPhone(parsed.data.parent.phone, user.schoolId);
@@ -486,7 +486,7 @@ students.post('/', requireAdminOrTeacher, async (c) => {
   const classFeeAmount = Number(classRow?.fee_amount ?? 0);
   const openingBalance = (parsed.data.balance ?? 0) - classFeeAmount;
   const feeDescription = classFeeAmount > 0
-    ? `Class fee (${classRow?.fee_collection_cycle ?? 'term'})`
+    ? `Propina da turma (${classRow?.fee_collection_cycle === 'year' ? 'ano lectivo' : 'trimestre'})`
     : null;
 
   await c.env.DB.prepare(

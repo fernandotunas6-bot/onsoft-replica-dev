@@ -33,8 +33,5 @@ class Subject {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'class_ids': classIds,
-      };
+  Map<String, dynamic> toJson() => {'name': name, 'class_ids': classIds};
 }

@@ -42,13 +42,13 @@ classes.post('/', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = createClassSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid class payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da turma inválidos', 400, parsed.error.flatten());
   }
 
   if ((parsed.data.fee_amount ?? 0) > 0 || parsed.data.fee_collection_cycle) {
     const hasCalendar = await requireAcademicCalendar(c, user.schoolId);
     if (!hasCalendar) {
-      return jsonError(c, 'Configure the academic calendar before saving class fees', 400);
+      return jsonError(c, 'Configure o calendário académico antes de guardar propinas', 400);
     }
   }
 
@@ -72,13 +72,13 @@ classes.patch('/:classId', requireAdmin, async (c) => {
   const classId = c.req.param('classId');
   const parsed = updateClassSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid class payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da turma inválidos', 400, parsed.error.flatten());
   }
 
   if ((parsed.data.fee_amount ?? null) !== null || parsed.data.fee_collection_cycle) {
     const hasCalendar = await requireAcademicCalendar(c, user.schoolId);
     if (!hasCalendar) {
-      return jsonError(c, 'Configure the academic calendar before saving class fees', 400);
+      return jsonError(c, 'Configure o calendário académico antes de guardar propinas', 400);
     }
   }
 
@@ -103,14 +103,14 @@ classes.patch('/:classId', requireAdmin, async (c) => {
   }
 
   if (setClauses.length === 0) {
-    return jsonError(c, 'No fields to update', 400);
+    return jsonError(c, 'Não há campos para alterar', 400);
   }
 
   const result = await c.env.DB.prepare(
     `UPDATE Classes SET ${setClauses.join(', ')} WHERE id = ? AND school_id = ?`
   ).bind(...values, classId, user.schoolId).run();
 
-  if (result.meta.changes === 0) return jsonError(c, 'Class not found', 404);
+  if (result.meta.changes === 0) return jsonError(c, 'Turma não encontrada', 404);
 
   return jsonOk(c, { id: classId, ...parsed.data });
 });

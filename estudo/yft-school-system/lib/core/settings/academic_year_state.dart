@@ -27,8 +27,8 @@ class AcademicYearSettings {
   static AcademicYearSettings get defaults {
     return AcademicYearSettings(
       academicYear: getCurrentAcademicYear(),
-      activeTerm: 'Term 1',
-      currency: 'GH₵',
+      activeTerm: 'I Trimestre',
+      currency: 'Kz',
     );
   }
 }

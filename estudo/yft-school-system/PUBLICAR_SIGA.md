@@ -15,6 +15,40 @@ empresa: o `LICENSE` do repositório continua a ser BSL 1.1.
   e passa a ver o login do YFT. As contas SIGA não entram até serem criadas
   no Firebase e no D1.
 
+## Estado em 18/10/2026 — o que falta
+
+O passo 1 está feito **para a web**: `lib/firebase_options.dart` já tem o bloco
+`web` do projecto `siga-plus-integracoes`, com a apiKey real (pública por
+desenho). Os blocos Android, iOS, macOS e Windows continuam com marcadores
+`YOUR_…`; não são empacotados na publicação web, mas um build Android exige
+correr o `flutterfire configure`.
+
+O que falta, e **só o utilizador pode fazer**, porque depende de contas e
+segredos:
+
+1. Na consola Firebase: activar E-mail/Senha e acrescentar `m.portal-siga.com`
+   (e o endereço `workers.dev` do teste) aos *Authorized domains*.
+2. Os segredos da Cloudflare e a variável `CLOUDFLARE_ACCOUNT_ID`, como está
+   em baixo.
+3. O primeiro super-admin (passo 3), que precisa da conta de serviço Firebase.
+
+### ⚠️ A reversão documentada não funciona como está
+
+O passo de reversão manda correr `wrangler deploy` em
+`mobile-flutter/deployment/wrangler.jsonc`. **Essa pasta não existe neste
+repositório** — nem `mobile-flutter/deployment/`, nem `mobile-v4/`. O Worker do
+domínio do Mobile V4 vive noutro sítio (outro repositório ou só na conta
+Cloudflare). Antes de trocar o domínio, é preciso:
+
+- localizar a configuração do Worker `siga-plus-mobile-v4-domain` e confirmar o
+  `PAGES_ORIGIN` que está em produção, **registando-o por escrito**;
+- confirmar que se consegue republicar esse Worker a partir de onde ele vive;
+- só então fazer o passo 4.
+
+Trocar o domínio sem isto deixa `m.portal-siga.com` sem caminho de volta ao
+Mobile V4, e entre os dois passos do passo 4 o domínio fica sem aplicação
+nenhuma.
+
 ## 1. Firebase (na tua máquina)
 
 ```sh
@@ -44,8 +78,9 @@ Na consola Firebase (`siga-plus-integracoes`):
 
 ## 2. Teste em workers.dev (não toca no domínio)
 
-Precisa do Flutter 3.41.x (o autor usou 3.41.5; com 3.47 não compila) e de
-Node 22.
+Precisa do Flutter 3.41 ou mais recente e de Node 22. (A restrição ao 3.41.x
+caiu em 18/10/2026: o build web foi verificado com 3.41.5 e com 3.47.7, e os
+workflows passaram a usar o 3.47.7.)
 
 ```sh
 export CLOUDFLARE_API_TOKEN=...   # Workers Scripts/Routes, D1, R2, Custom Domains: Edit

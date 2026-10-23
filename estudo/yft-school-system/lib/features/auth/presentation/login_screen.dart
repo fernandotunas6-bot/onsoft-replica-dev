@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -171,7 +171,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Bem-vindo de volta', style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          'Bem-vindo de volta',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
 
         const SizedBox(height: 60),
 
@@ -250,7 +253,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const Expanded(
                 child: Text(
                   'A sua conta é criada pela administração da escola.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -261,5 +267,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ],
     );
   }
-
 }

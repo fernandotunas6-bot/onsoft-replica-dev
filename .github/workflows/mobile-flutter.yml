@@ -1,7 +1,7 @@
 name: SIGA Flutter — validate migration
 on:
   push:
-    branches: [feat/siga-flutter-motion-2026]
+    branches: [feat/siga-flutter-motion-2026, 'ccr-**']
     paths: ['mobile-flutter/**', '.github/workflows/mobile-flutter.yml']
   pull_request:
     paths: ['mobile-flutter/**', '.github/workflows/mobile-flutter.yml']
@@ -22,9 +22,17 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart format lib test
+        # Formatar aqui escondia o desvio: o passo passava sempre e o diff
+        # chegava à revisão desformatado.
+      - run: dart format --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
+        # As guardas do backend isolado são código executável com testes; sem
+        # este passo nenhum deles corria em CI.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test backend/*.test.mjs
       - run: flutter build web --release --no-web-resources-cdn --pwa-strategy=none
       - uses: actions/upload-artifact@v4
         with:

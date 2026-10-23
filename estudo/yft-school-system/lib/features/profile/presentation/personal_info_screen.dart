@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 
@@ -12,7 +12,7 @@ class PersonalInfoScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Personal Information',
+          'Dados pessoais',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -24,7 +24,7 @@ class PersonalInfoScreen extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Information saved successfully!',
+                    'Dados guardados.',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -32,7 +32,7 @@ class PersonalInfoScreen extends StatelessWidget {
               Navigator.pop(context);
             },
             child: const Text(
-              'Save',
+              'Guardar',
               style: TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w600,
@@ -84,22 +84,26 @@ class PersonalInfoScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 32),
-                _buildInputField('Full Name', 'John Doe', LucideIcons.user),
+                _buildInputField(
+                  'Nome completo',
+                  'Nome completo',
+                  LucideIcons.user,
+                ),
                 const SizedBox(height: 20),
                 _buildInputField(
-                  'Email Address',
+                  'Endereço de e-mail',
                   'johndoe@email.com',
                   LucideIcons.mail,
                 ),
                 const SizedBox(height: 20),
                 _buildInputField(
-                  'Phone Number',
+                  'Telefone',
                   '+233 55 123 4567',
                   LucideIcons.phone,
                 ),
                 const SizedBox(height: 20),
                 _buildInputField(
-                  'Residential Address',
+                  'Morada',
                   'Tema, Community 2',
                   LucideIcons.mapPin,
                 ),

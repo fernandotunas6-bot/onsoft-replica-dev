@@ -32,14 +32,14 @@ grades.get('/', requireAdminOrTeacher, async (c) => {
   const studentId = c.req.query('student_id')?.trim();
   const term = c.req.query('term')?.trim();
   if (!studentId || !term) {
-    return jsonError(c, 'student_id and term are required', 400);
+    return jsonError(c, 'student_id e term são obrigatórios', 400);
   }
 
   const student = await c.env.DB.prepare(
     'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
   ).bind(studentId, user.schoolId).first<{ id: string }>();
   if (!student) {
-    return jsonError(c, 'Student not found', 404);
+    return jsonError(c, 'Aluno não encontrado', 404);
   }
 
   const { results } = await c.env.DB.prepare(
@@ -64,7 +64,7 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
   const user = c.get('user');
   const parsed = putBodySchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid grades payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados das notas inválidos', 400, parsed.error.flatten());
   }
 
   if (user.role === 'teacher') {
@@ -84,7 +84,7 @@ grades.put('/', requireAdminOrTeacher, async (c) => {
     'SELECT id FROM Students WHERE id = ? AND school_id = ? LIMIT 1',
   ).bind(studentId, user.schoolId).first<{ id: string }>();
   if (!student) {
-    return jsonError(c, 'Student not found', 404);
+    return jsonError(c, 'Aluno não encontrado', 404);
   }
 
   for (const row of rows) {

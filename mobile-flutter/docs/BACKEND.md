@@ -132,3 +132,80 @@ institutional-extension.server.ts e a alteração de staging/worker.ts ficam
 na branch completa feat/siga-flutter-motion-2026. Os endpoints aqui descritos
 não estão montados na main. Integrar a dependência e validar o Worker antes
 de activá-los. Nenhum domínio ou banco foi alterado nesta integração.
+
+
+## Incremento 5 — login institucional por B.I. (17/10/2026)
+
+`backend/identity.ts`: `POST /api/mobile-v4/auth/identifier`, com
+`{ identifier, password, captchaToken? }` e resposta `{ version: 1,
+accessToken, refreshToken }`. Espelha as garantias do `signInWithIdentifierFn`
+em `src/features/access/server.ts`, que é código real desta checkout:
+
+- O e-mail resolvido nunca volta ao dispositivo; a resposta é só a sessão.
+- Identificador desconhecido e senha errada dão exactamente a mesma resposta
+  (401 `INVALID_CREDENTIALS`): não há enumeração de contas.
+- `CAPTCHA_REQUIRED` é distinto de credenciais erradas — o projecto tem
+  `security_captcha_enabled`, e o cliente tem de voltar a pedir o sinal em vez
+  de acusar a senha.
+- Limite consumido por endereço **e** por identificador, antes do resolvedor:
+  muitos IPs não compram tentativas sem fim contra uma conta.
+- 405 método, 403 origem externa, 415 media type, 422 entrada inválida ou campo
+  desconhecido, 429 limite, 503 falha de serviço. Nenhuma recusa inclui SQL,
+  tokens, stack, identificador ou senha.
+- Uma concessão incompleta (200 sem refresh token utilizável) é 503, nunca uma
+  sessão.
+
+As dependências (`resolveEmail`, `passwordGrant`, `consumeRateLimit`,
+`clientIp`) são injectadas: no SGA ligam a `resolveBiOrEmailToUserEmail`,
+`passwordGrant` e `consumeRateLimit` existentes. **Não montado** em nenhum
+Worker publicado — por isso o cliente só oferece a opção com
+`--dart-define=IDENTIFIER_LOGIN=true`, em vez de a apresentar e falhar com 404.
+
+11 testes Node novos (39 no total em `backend/`), executados e aprovados neste
+ambiente. Não houve pedido real ao Supabase nem a nenhum Worker.
+
+
+## Incremento 5 — avisos e resultados (17/10/2026)
+
+`backend/records.ts`: `GET /api/mobile-v4/schools/:schoolId/notices?role=` e
+`.../results?role=`, envelope `version: 1` com `schoolId`, `role`, `userId` e
+`items`. Os serviços canónicos destas duas áreas não fazem parte desta
+checkout, pelo que **este ficheiro é o contrato que o cliente lê, não um porte
+provado do de produção**. Duas regras de domínio decidem a forma:
+
+- A escala vem da escola. Nada presume 0–20; uma nota publicada sem `scaleMax`
+  utilizável, sem valor, acima do máximo ou sem data é 503 `RESULTS_INVALID` —
+  não se mostra um número que não se sabe ler.
+- Uma nota só existe para quem lê depois de publicada. Um registo `pending`
+  viaja sempre sem valor, sem escala e sem data, mesmo que o serviço os tenha.
+
+Além disso: allowlist explícita (nenhum autor, destinatário, nota interna ou
+userId de colegas), resposta fora do âmbito escola/papel é 503, falha de
+leitura nunca vira lista vazia, `nextCursor` é declarado para o cliente poder
+dizer que há mais em vez de apresentar um fim falso, e as guardas de sessão,
+método, origem e query são as mesmas de `api.ts`.
+
+9 testes Node novos (48 no total em `backend/`), executados e aprovados.
+Não montado em nenhum Worker; o cliente só oferece as páginas com
+`--dart-define=INSTITUTIONAL_RECORDS=true`.
+
+
+## Incremento 5 — histórico de conversa (17/10/2026)
+
+`backend/chat.ts`: `GET /api/mobile-v4/schools/:schoolId/chat/threads/:threadId?role=`.
+Só leitura, por decisão: o envio, os anexos e o Realtime exigem endpoints de
+escrita, políticas de Storage e capacidades instaladas por escola que não são
+verificáveis a partir deste repositório — e o cliente não deve ganhar um botão
+de envio sem servidor onde publicar.
+
+Anexos viajam como nome e tamanho, **nunca como ligação**: um endereço para o
+armazenamento da escola tem de ser assinado a cada pedido pelo servidor que é
+dono da política. A allowlist não devolve userId, e-mail, telefone nem caminho
+de Storage do autor. Conversa inexistente e conversa fora do âmbito dão a mesma
+resposta (404). Resposta sobre outra conversa, escola ou papel é 503, falha de
+leitura é 503 `HISTORY_UNAVAILABLE` e nunca uma conversa vazia, e
+`previousCursor` é declarado em vez de perder mensagens em silêncio.
+
+7 testes Node novos (55 no total em `backend/`), executados e aprovados.
+Não montado; o cliente só abre o histórico com
+`--dart-define=INSTITUTIONAL_CHAT=true`.

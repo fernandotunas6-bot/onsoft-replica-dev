@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
@@ -44,15 +44,14 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       final safeId = widget.receipt.id.replaceAll(RegExp(r'[^\w\-]+'), '_');
       final file = File('${dir.path}/fee_receipt_$safeId.pdf');
       await file.writeAsBytes(bytes, flush: true);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Fee receipt ${widget.receipt.id}',
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], subject: 'Fee receipt ${widget.receipt.id}');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not prepare PDF: $e'),
+          content: Text('Não foi possível preparar o PDF: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -78,7 +77,7 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
       backgroundColor: const Color(0xFFE2E8F0),
       appBar: AppBar(
         title: const Text(
-          'Fee receipt',
+          'Recibo de propina',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: AppColors.background,
@@ -98,20 +97,17 @@ class _FeeReceiptViewScreenState extends ConsumerState<FeeReceiptViewScreen> {
             )
           else
             IconButton(
-              tooltip: 'Download / share PDF',
+              tooltip: 'Descarregar ou partilhar o PDF',
               onPressed: () => _sharePdf(data),
               icon: const Icon(LucideIcons.download),
             ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: getResponsiveHorizontalPadding(context).copyWith(
-          top: 24,
-          bottom: 40,
-        ),
-        child: Center(
-          child: FeeReceiptTemplate(data: data),
-        ),
+        padding: getResponsiveHorizontalPadding(
+          context,
+        ).copyWith(top: 24, bottom: 40),
+        child: Center(child: FeeReceiptTemplate(data: data)),
       ),
     );
   }

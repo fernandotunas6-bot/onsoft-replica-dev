@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
@@ -18,7 +18,7 @@ class ParentWardsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'My Wards',
+          'Os meus educandos',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -27,7 +27,7 @@ class ParentWardsScreen extends ConsumerWidget {
       ),
       body: wardsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (error, stack) => Center(child: Text('Erro: $error')),
         data: (wards) {
           if (wards.isEmpty) {
             return Center(
@@ -41,7 +41,7 @@ class ParentWardsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'No wards linked to your account.',
+                    'A sua conta não tem educandos associados.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -68,7 +68,7 @@ class ParentWardsScreen extends ConsumerWidget {
                     ward.name,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(ward.className ?? 'Unknown Class'),
+                  subtitle: Text(ward.className ?? 'Turma não indicada'),
                   trailing: const Icon(LucideIcons.chevronRight, size: 20),
                   onTap: () {
                     context.push('/ward-profile', extra: ward);

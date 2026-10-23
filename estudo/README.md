@@ -47,7 +47,7 @@ O super-admin fala com o Worker com uma chave partilhada
 | --- | --- |
 | `flutter analyze` (Flutter 3.41.5) | sem avisos |
 | `flutter test` | 1 teste, passa |
-| `flutter build web` | compila com 3.41.5; **falha com 3.47** (`lucide_icons` estende `IconData`, que passou a `final`) |
+| `flutter build web` | compila com 3.41.5 e, desde 18/10/2026, também com 3.47.7 |
 | Worker `vitest` | 6 testes, passam |
 | Worker `wrangler deploy --dry-run` | empacota |
 | Worker `tsc --noEmit` | sem erros (o erro de `classes.ts:23` foi corrigido) |
@@ -102,5 +102,124 @@ alteração não está na cópia.
 - O `tsc` dava um erro (`classes.ts:23`, `c: any`). **Corrigido**, com tipos.
 - Testes novos em `school-worker/test/security.spec.ts`: o Worker passa de 2
   para 6 testes, todos aprovados.
-- Ainda por resolver: os textos estão escritos à mão em inglês, sem i18n, e a
-  moeda é a do Gana.
+- Os textos estão escritos à mão, sem i18n. Em 18/10/2026 passaram a português
+  e a moeda passou a kwanza (ver abaixo); a falta de i18n mantém-se — trocar de
+  idioma obriga a mexer no código.
+
+## SDK destravado (18/10/2026)
+
+O projecto já não está preso ao Flutter 3.41.x. O pacote `lucide_icons` declara
+os ícones através de `LucideIconData extends IconData`, e o Flutter 3.47 tornou
+`IconData` uma classe `final`: a subclasse deixou de compilar. Os 80 ícones que
+a app usa passaram a estar em `lib/core/theme/lucide_icons.dart` como `IconData`
+simples, com os mesmos pontos de código e a mesma família de fonte. O pacote
+continua na `pubspec.yaml` — a fonte vem dele —, mas nenhuma biblioteca Dart
+dele é importada, e por isso a classe `final` já não afecta o build.
+
+Verificado aqui, não presumido: `flutter analyze` sem avisos, 1 teste a passar
+e `flutter build web` concluído **nas duas versões**, 3.41.5 e 3.47.7
+(Dart 3.13.5). O `pubspec.lock` commitado continua a ser o resolvido pelo
+3.41.5; o 3.47 resolve-o de novo quando corre `pub get`, e o 3.47 também
+acrescenta exclusões ao `analysis_options.yaml` — nenhuma dessas alterações
+automáticas foi commitada.
+
+
+## Português e kwanza (18/10/2026)
+
+A app e o Worker falavam inglês e cobravam em cedis do Gana. Agora:
+
+- **Interface**: 337 literais traduzidos para português europeu em 41 ficheiros,
+  incluindo as mensagens de erro do Firebase Auth, os ecrãs de propinas, notas,
+  presenças, perfil, segurança e notificações, e as etiquetas do recibo em PDF.
+- **Moeda**: por omissão `Kz`, com dólar e euro à escolha no calendário
+  académico. O código ISO de reserva para o PDF passou de `GHS` a `AOA`. `Kz` é
+  ASCII, por isso não quebra as fontes do PDF — era por isso que existia a
+  conversão para código ISO.
+- **Períodos**: `Term 1/2/3` passou a `I/II/III Trimestre`. **Atenção:** isto é
+  um valor guardado, não só uma etiqueta — vai para `Grades.term` e
+  `Receipts.fee_term` no D1. Numa base nova (o caso do SIGA) não há problema;
+  numa escola com dados antigos, as notas e os recibos anteriores ficam presos
+  ao nome antigo e precisam de migração.
+- **Worker**: as 52 mensagens de erro da API, o título e o corpo do aviso de
+  pagamento que o encarregado lê, e a descrição «Propina da turma» passaram a
+  português. A moeda de reserva do Worker passou de `GHS` a `Kz`.
+- **Datas**: os meses abreviados passaram a português. Corrigido de passagem um
+  erro real: `getCurrentAcademicYear()` devolvia sempre `ano/ano+1` sem olhar ao
+  mês, pelo que em Março de 2026 dizia «2026/2027» — um ano lectivo que ainda não
+  tinha começado. A viragem passou a ser em Setembro.
+
+Verificado aqui: `flutter analyze` sem avisos, 1 teste a passar (o do splash foi
+actualizado para o texto novo), `flutter build web` concluído, e no Worker
+`tsc --noEmit` sem erros com os 6 testes `vitest` a passar.
+
+**Decisões que ficam para o utilizador**, e que não foram inventadas:
+
+1. **Ano lectivo angolano.** Em Angola o ano lectivo começa em Fevereiro e cabe
+   num só ano civil; o código mantém a convenção `2025/2026` com viragem em
+   Setembro, que é a dos dados do autor. Se as escolas usarem a convenção
+   angolana, é uma mudança de formato a decidir antes de haver dados.
+2. **Aviso de privacidade.** O texto foi traduzido, mas é o texto genérico do
+   autor, com o nome «Edu Manager» e sem responsável pelo tratamento nem base
+   legal. Antes de produção tem de ser substituído pelo aviso da própria escola
+   e revisto por quem responde por ele juridicamente. Ficou um comentário no
+   código a dizê-lo.
+3. **Marca.** `Edu Manager` continua como nome de reserva em três ecrãs (splash,
+   login e painel, quando a API não devolve o nome da escola), e o recibo não
+   usado mostra «YFT School System». Mudar a marca é decisão do utilizador.
+4. **Ecrã morto.** `receipt_preview_screen.dart` não é instanciado em nenhum
+   sítio e mostra dados inventados num recibo («Accra, Ghana», turma «Basic
+   4A»). Os valores do Gana foram retirados, mas o ecrã devia ser apagado: um
+   recibo com dados inventados é uma armadilha. O caminho vivo é
+   `fee_receipt_view_screen` com `FeeReceiptTemplate` e `buildFeeReceiptPdf`.
+
+
+## Revisão de segurança (18/10/2026)
+
+Relatório em `yft-school-system/docs/REVISAO_SEGURANCA.md`. Resumo:
+
+Corrigido: (1) uma conta apagada da base continuava a entrar com o `school_id`
+e o `role` das claims do token — a identidade passa a vir sempre da tabela
+`Users`; (2) o tipo das imagens enviadas era o que o cliente declarava, e era
+esse o `Content-Type` com que `GET /media/*` as devolvia — passa a ser decidido
+pela assinatura dos bytes; (3) as mensagens de erro do middleware e do `/media`
+estavam em inglês. Dez testes `vitest` a passar (eram seis), `tsc` sem erros e
+`wrangler deploy --dry-run` a empacotar.
+
+Por decidir, com a mais grave em primeiro: `Schools.default_password` nasce
+`'Welcome@123'`, é igual para toda a escola, fica em texto limpo na base e é a
+senha real com que as contas de professores e encarregados são criadas, sem
+obrigar a trocá-la. Conhecer o e-mail de um encarregado basta para entrar na
+conta dele. A correcção muda o percurso de quem usa a app — senha temporária por
+conta, mostrada uma vez, mais troca obrigatória na primeira entrada — e por isso
+não foi feita sem a sua decisão. A seguir: `/media/*` é público e serve
+fotografias de alunos com validade de um ano.
+
+
+## Testes de ecrã e três defeitos que eles apanharam (18/10/2026)
+
+O português é mais comprido do que o inglês, e `flutter analyze` não vê
+transbordos de layout — só o desenho os mostra. `test/screens_layout_test.dart`
+rende dez ecrãs a 390×844 (o tamanho das capturas em `yft-estudo-capturas`),
+com sessão fixa e com a API a responder 503, que é o estado em que os ecrãs mais
+esticam texto. Um transbordo levanta `FlutterError` e faz o teste falhar: é essa
+a verificação. A suite passou de **1 para 16 testes**.
+
+Defeitos reais encontrados assim, e corrigidos:
+
+1. **Segurança, cabeçalho «Controlo de acessos»**: uma `Row` com uma `Column`
+   sem `Expanded` pedia a largura natural do texto e transbordava **88 px**. Em
+   inglês passava à justa; «Gerir as permissões da aplicação» não.
+2. **Painel, cartões de acção**: os rótulos tinham o corte de linha escrito à
+   mão (`'Registo de\nprofessores'`), medido para as palavras inglesas, e a
+   grelha dava aos cartões 0,85 da largura em altura. Com os rótulos
+   portugueses, transbordavam **12 px**. Os cortes à mão saíram — o texto flui —
+   e a grelha de acções passou a ter proporção explícita.
+3. **Calendário académico**: quando a API falha, o ecrã mostrava a excepção do
+   Dio inteira, incluindo o texto interno sobre `validateStatus`. Passa a mostrar
+   uma frase em português, com o detalhe a ir para os logs. De passagem, o último
+   `'Select...'` em inglês foi traduzido.
+
+`getCurrentAcademicYear()` passou a aceitar `now`, para a viragem de Setembro
+poder ser testada nas duas pontas em vez de depender do dia em que a suite corre.
+Novos testes também para a moeda por omissão (`Kz`), para o código ISO no PDF
+(`AOA` só quando o símbolo não é ASCII) e para os meses em português.

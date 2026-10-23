@@ -1,7 +1,7 @@
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/theme/lucide_icons.dart';
 import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
@@ -72,236 +72,238 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildSideNav(BuildContext context, UserRole role) {
     final items = _getNavItems(role);
-    return Consumer(builder: (context, ref, _) {
-    final session = ref.watch(authProvider);
-    final schoolName = session?.schoolName ?? 'Edu Manager';
-    final logoUrl = session?.schoolLogoUrl;
-    final workerBase = ref.read(dioProvider).options.baseUrl;
+    return Consumer(
+      builder: (context, ref, _) {
+        final session = ref.watch(authProvider);
+        final schoolName = session?.schoolName ?? 'Edu Manager';
+        final logoUrl = session?.schoolLogoUrl;
+        final workerBase = ref.read(dioProvider).options.baseUrl;
 
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          right: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                children: [
-                  if (logoUrl != null && logoUrl.isNotEmpty)
-                    GestureDetector(
-                      onTap: () => showFullscreenNetworkImage(
-                        context,
-                        '$workerBase/media/$logoUrl',
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          '$workerBase/media/$logoUrl',
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, e, s) => _defaultLogoIcon(),
-                        ),
-                      ),
-                    )
-                  else
-                    _defaultLogoIcon(),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      schoolName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.secondary,
-                        letterSpacing: -0.5,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+        return Container(
+          width: 280,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border(
+              right: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
             ),
-            const SizedBox(height: 16),
-            // Navigation Items
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final isSelected =
-                      index ==
-                      0; // Home is default selected for now in dashboard
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: InkWell(
-                      onTap: () {
-                        if (index == 0) return; // Home
-                        final label = item.label;
-                        if (label == 'Staff') {
-                          context.push('/teachers');
-                        } else if (label == 'Classes') {
-                          context.push('/my-classes');
-                        } else if (label == 'Wards') {
-                          context.push('/wards');
-                        } else if (label == 'Receipts') {
-                          context.push('/parent-receipts');
-                        } else if (label == 'Results') {
-                          context.push('/results-setup');
-                        } else if (label == 'Profile') {
-                          context.push('/profile');
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+          ),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Row(
+                    children: [
+                      if (logoUrl != null && logoUrl.isNotEmpty)
+                        GestureDetector(
+                          onTap: () => showFullscreenNetworkImage(
+                            context,
+                            '$workerBase/media/$logoUrl',
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              '$workerBase/media/$logoUrl',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, e, s) => _defaultLogoIcon(),
+                            ),
+                          ),
+                        )
+                      else
+                        _defaultLogoIcon(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          schoolName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.secondary,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.transparent,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Navigation Items
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final isSelected =
+                          index ==
+                          0; // Home is default selected for now in dashboard
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: InkWell(
+                          onTap: () {
+                            if (index == 0) return; // Home
+                            final label = item.label;
+                            if (label == 'Staff') {
+                              context.push('/teachers');
+                            } else if (label == 'Classes') {
+                              context.push('/my-classes');
+                            } else if (label == 'Wards') {
+                              context.push('/wards');
+                            } else if (label == 'Receipts') {
+                              context.push('/parent-receipts');
+                            } else if (label == 'Results') {
+                              context.push('/results-setup');
+                            } else if (label == 'Profile') {
+                              context.push('/profile');
+                            }
+                          },
                           borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                IconTheme(
+                                  data: IconThemeData(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.textSecondary,
+                                    size: 20,
+                                  ),
+                                  child: item.icon,
+                                ),
+                                const SizedBox(width: 16),
+                                Text(
+                                  item.label ?? '',
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.textSecondary,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                      );
+                    },
+                  ),
+                ),
+                // Sidebar Footer / Profile summary
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    24,
+                    24,
+                    MediaQuery.of(context).padding.bottom + 24,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'SISTEMA',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () => context.push('/help-support'),
                         child: Row(
                           children: [
-                            IconTheme(
-                              data: IconThemeData(
-                                color: isSelected
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                                size: 20,
-                              ),
-                              child: item.icon,
+                            const Icon(
+                              LucideIcons.lifeBuoy,
+                              size: 20,
+                              color: AppColors.textSecondary,
                             ),
                             const SizedBox(width: 16),
-                            Text(
-                              item.label ?? '',
+                            const Text(
+                              'Ajuda e apoio',
                               style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
                                 fontSize: 15,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Sidebar Footer / Profile summary
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                24,
-                24,
-                MediaQuery.of(context).padding.bottom + 24,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'SYSTEM',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: () => context.push('/help-support'),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          LucideIcons.lifeBuoy,
-                          size: 20,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 16),
-                        const Text(
-                          'Ajuda e apoio',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                            fontSize: 15,
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            child: const Icon(
+                              LucideIcons.user,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.primary.withValues(
-                          alpha: 0.1,
-                        ),
-                        child: const Icon(
-                          LucideIcons.user,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'A minha conta',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: AppColors.textPrimary,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'A minha conta',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  _getSubtitle(role),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            Text(
-                              _getSubtitle(role),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        LucideIcons.logOut,
-                        size: 20,
-                        color: Colors.red,
+                          ),
+                          const Icon(
+                            LucideIcons.logOut,
+                            size: 20,
+                            color: Colors.red,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
-    });
   }
 
   static Widget _defaultLogoIcon() {
@@ -342,51 +344,59 @@ class DashboardScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-              Expanded(
+          Expanded(
             child: Row(
               children: [
                 if (!isDesktop) ...[
-                  Consumer(builder: (context, ref, _) {
-                    final session = ref.watch(authProvider);
-                    final logoUrl = session?.schoolLogoUrl;
-                    final workerBase = ref.read(dioProvider).options.baseUrl;
-                    if (logoUrl != null && logoUrl.isNotEmpty) {
-                      final logoUri = '$workerBase/media/$logoUrl';
-                      return GestureDetector(
-                        onTap: () =>
-                            showFullscreenNetworkImage(context, logoUri),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            logoUri,
-                            width: 36,
-                            height: 36,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, e, s) => Container(
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final session = ref.watch(authProvider);
+                      final logoUrl = session?.schoolLogoUrl;
+                      final workerBase = ref.read(dioProvider).options.baseUrl;
+                      if (logoUrl != null && logoUrl.isNotEmpty) {
+                        final logoUri = '$workerBase/media/$logoUrl';
+                        return GestureDetector(
+                          onTap: () =>
+                              showFullscreenNetworkImage(context, logoUri),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              logoUri,
                               width: 36,
                               height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(8),
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, e, s) => Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.graduationCap,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
-                              child: const Icon(LucideIcons.graduationCap,
-                                  color: Colors.white, size: 20),
                             ),
                           ),
+                        );
+                      }
+                      return Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          LucideIcons.graduationCap,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       );
-                    }
-                    return Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(LucideIcons.graduationCap,
-                          color: Colors.white, size: 20),
-                    );
-                  }),
+                    },
+                  ),
                   const SizedBox(width: 8),
                 ],
                 Expanded(
@@ -520,36 +530,36 @@ class DashboardScreen extends ConsumerWidget {
     return [
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.home),
-        label: 'Home',
+        label: 'Início',
       ),
       if (role == UserRole.admin)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.users),
-          label: 'Staff',
+          label: 'Funcionários',
         ),
       if (role == UserRole.teacher)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.bookOpen),
-          label: 'Classes',
+          label: 'Turmas',
         ),
       if (role == UserRole.parent)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.baby),
-          label: 'Wards',
+          label: 'Educandos',
         ),
       if (role == UserRole.parent)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.receipt),
-          label: 'Receipts',
+          label: 'Recibos',
         ),
       if (role == UserRole.admin || role == UserRole.teacher)
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clipboardList),
-          label: 'Results',
+          label: 'Notas',
         ),
       const BottomNavigationBarItem(
         icon: Icon(LucideIcons.userCircle),
-        label: 'Profile',
+        label: 'Perfil',
       ),
     ];
   }
@@ -561,15 +571,12 @@ class AdminDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final classesAsync = ref.watch(classesProvider);
-    final studentsAsync = ref.watch(
-      studentsProvider((classId: null, page: 1)),
-    );
+    final studentsAsync = ref.watch(studentsProvider((classId: null, page: 1)));
     final arrearsAsync = ref.watch(arrearsProvider);
     final currency = ref.watch(academicYearProvider).currency;
 
     final classCount = classesAsync.whenOrNull(data: (d) => d.length) ?? 0;
-    final studentCount =
-        studentsAsync.whenOrNull(data: (d) => d.total) ?? 0;
+    final studentCount = studentsAsync.whenOrNull(data: (d) => d.total) ?? 0;
     final arrearsDisplay = arrearsAsync.when(
       data: (d) =>
           '$currency ${d.fold<double>(0, (sum, s) => sum + s.amountOwed).toStringAsFixed(0)}',
@@ -583,45 +590,45 @@ class AdminDashboard extends ConsumerWidget {
           title: 'Resumo',
           rows: [
             _SummaryRow(label: 'Total de alunos', value: '$studentCount'),
-            _SummaryRow(label: 'Classes', value: '$classCount'),
-            _SummaryRow(
-              label: 'Dívidas em atraso',
-              value: arrearsDisplay,
-            ),
+            _SummaryRow(label: 'Turmas', value: '$classCount'),
+            _SummaryRow(label: 'Dívidas em atraso', value: arrearsDisplay),
           ],
         ),
         const SizedBox(height: 32),
         ResponsiveGrid(
+          // Proporção explícita: a predefinida (0,85 da largura) não chega
+          // para duas linhas de rótulo em português num ecrã de 390 px.
+          childAspectRatio: 0.95,
           mainAxisSpacing: 20,
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Registo de\nprofessores',
+              title: 'Registo de professores',
               icon: LucideIcons.userPlus,
               color: AppColors.primary,
               onTap: () => context.push('/register-teacher'),
             ),
             _ActionCard(
-              title: 'Admissão de\nalunos',
+              title: 'Admissão de alunos',
               icon: LucideIcons.graduationCap,
               color: AppColors.surface,
               onTap: () => context.push('/admission'),
             ),
             _ActionCard(
-              title: 'Propinas e\nfinanças',
+              title: 'Propinas e finanças',
               icon: LucideIcons.wallet,
               color: AppColors.secondary,
               isDark: true,
               onTap: () => context.push('/finance'),
             ),
             _ActionCard(
-              title: 'Configuração\nacadémica',
+              title: 'Configuração académica',
               icon: LucideIcons.settings2,
               color: AppColors.surface,
               onTap: () => context.push('/classes'),
             ),
             _ActionCard(
-              title: 'Lista de\nalunos',
+              title: 'Lista de alunos',
               icon: LucideIcons.users,
               color: AppColors.primary,
               onTap: () => context.push('/admin-student-classes'),
@@ -633,14 +640,14 @@ class AdminDashboard extends ConsumerWidget {
               onTap: () => context.push('/subjects'),
             ),
             _ActionCard(
-              title: 'Enviar\ncomunicado',
+              title: 'Enviar comunicado',
               icon: LucideIcons.send,
               color: AppColors.secondary,
               isDark: true,
               onTap: () => context.push('/create-notice'),
             ),
             _ActionCard(
-              title: 'Comunicados\nda escola',
+              title: 'Comunicados da escola',
               icon: LucideIcons.megaphone,
               color: AppColors.primary,
               onTap: () => context.push('/notices'),
@@ -663,35 +670,36 @@ class TeacherDashboard extends ConsumerWidget {
       children: [
         _SummaryCard(
           title: '${selectedClass?.className ?? "Class"} Summary',
-          rows: [
-            const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
-          ],
+          rows: [const _SummaryRow(label: 'Bem-vindo', value: 'Dashboard')],
         ),
         const SizedBox(height: 32),
         ResponsiveGrid(
+          // Proporção explícita: a predefinida (0,85 da largura) não chega
+          // para duas linhas de rótulo em português num ecrã de 390 px.
+          childAspectRatio: 0.95,
           mainAxisSpacing: 20,
           crossAxisSpacing: 20,
           children: [
             _ActionCard(
-              title: 'Marcar\npresenças',
+              title: 'Marcar presenças',
               icon: LucideIcons.userCheck,
               color: AppColors.surface,
               onTap: () => context.push('/attendance'),
             ),
             _ActionCard(
-              title: 'Lista de\nalunos',
+              title: 'Lista de alunos',
               icon: LucideIcons.users,
               color: AppColors.primary,
               onTap: () => context.push('/student-search'),
             ),
             _ActionCard(
-              title: 'Total de\npresenças',
+              title: 'Total de presenças',
               icon: LucideIcons.barChart3,
               color: AppColors.surface,
               onTap: () => context.push('/total-attendance'),
             ),
             _ActionCard(
-              title: 'Comunicados\nda escola',
+              title: 'Comunicados da escola',
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               onTap: () => context.push('/notices'),
@@ -709,19 +717,19 @@ class ParentDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadAsync = ref.watch(unreadNoticesCountProvider);
-    final noticeBadge =
-        unreadAsync.whenOrNull(data: (n) => n > 0 ? n : null);
+    final noticeBadge = unreadAsync.whenOrNull(data: (n) => n > 0 ? n : null);
 
     return Column(
       children: [
         _SummaryCard(
           title: 'Resumo do educando',
-          rows: [
-            const _SummaryRow(label: 'Welcome', value: 'Dashboard'),
-          ],
+          rows: [const _SummaryRow(label: 'Bem-vindo', value: 'Dashboard')],
         ),
         const SizedBox(height: 32),
         ResponsiveGrid(
+          // Proporção explícita: a predefinida (0,85 da largura) não chega
+          // para duas linhas de rótulo em português num ecrã de 390 px.
+          childAspectRatio: 0.95,
           mainAxisSpacing: 20,
           crossAxisSpacing: 20,
           children: [
@@ -732,20 +740,20 @@ class ParentDashboard extends ConsumerWidget {
               onTap: () => context.push('/result-card'),
             ),
             _ActionCard(
-              title: 'Pagamento de\npropinas',
+              title: 'Pagamento de propinas',
               icon: LucideIcons.creditCard,
               color: AppColors.primary,
               onTap: () => context.push('/payment-history'),
             ),
             _ActionCard(
-              title: 'Comunicados\nda escola',
+              title: 'Comunicados da escola',
               icon: LucideIcons.megaphone,
               color: AppColors.surface,
               badgeCount: noticeBadge,
               onTap: () => context.push('/notices'),
             ),
             _ActionCard(
-              title: 'Messages',
+              title: 'Mensagens',
               icon: LucideIcons.messageSquare,
               color: AppColors.surface,
               onTap: () {},
@@ -848,6 +856,7 @@ class _ActionCard extends StatelessWidget {
   final Color color;
   final bool isDark;
   final VoidCallback? onTap;
+
   /// Unread count badge (parents: school notices). Omit or use 0 to hide.
   final int? badgeCount;
 

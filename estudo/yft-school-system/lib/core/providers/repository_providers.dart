@@ -61,24 +61,27 @@ final classesProvider = FutureProvider<List<SchoolClass>>((ref) {
   return ref.read(classRepositoryProvider).getClasses();
 });
 
-final subjectsProvider = FutureProvider.family<List<Subject>, String?>(
-  (ref, classId) {
-    return ref.read(subjectRepositoryProvider).getSubjects(classId: classId);
-  },
-);
+final subjectsProvider = FutureProvider.family<List<Subject>, String?>((
+  ref,
+  classId,
+) {
+  return ref.read(subjectRepositoryProvider).getSubjects(classId: classId);
+});
 
 final studentsProvider =
-    FutureProvider.family<PaginatedResponse<Student>, ({String? classId, int page})>(
-  (ref, params) {
-    return ref.read(studentRepositoryProvider).getStudents(
-          classId: params.classId,
-          page: params.page,
-        );
-  },
-);
+    FutureProvider.family<
+      PaginatedResponse<Student>,
+      ({String? classId, int page})
+    >((ref, params) {
+      return ref
+          .read(studentRepositoryProvider)
+          .getStudents(classId: params.classId, page: params.page);
+    });
 
-final studentByIdProvider =
-    FutureProvider.family<Student, String>((ref, studentId) {
+final studentByIdProvider = FutureProvider.family<Student, String>((
+  ref,
+  studentId,
+) {
   return ref.read(studentRepositoryProvider).getStudentById(studentId);
 });
 
@@ -90,7 +93,9 @@ final userProfileProvider = FutureProvider<UserProfile>((ref) {
   return ref.read(userRepositoryProvider).getProfile();
 });
 
-final teacherProfileProvider =
-    FutureProvider.family<TeacherProfile, String>((ref, uid) {
+final teacherProfileProvider = FutureProvider.family<TeacherProfile, String>((
+  ref,
+  uid,
+) {
   return ref.read(userRepositoryProvider).getTeacherProfile(uid);
 });

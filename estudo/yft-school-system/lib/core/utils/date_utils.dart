@@ -1,4 +1,4 @@
-/// Generates academic year strings like '2024/2025' dynamically.
+/// Gera anos lectivos no formato '2025/2026'.
 List<String> getAcademicYears({
   int startOffset = -2, // Include 2 past years
   int count = 11, // Total years
@@ -11,33 +11,39 @@ List<String> getAcademicYears({
   });
 }
 
-/// Gets the current academic year.
-String getCurrentAcademicYear() {
-  final now = DateTime.now();
-  final currentYear = now.year;
-  return '$currentYear/${currentYear + 1}';
+/// Ano lectivo em curso.
+///
+/// Antes devolvia sempre `ano/ano+1`, sem olhar ao mês: em Março de 2026 dizia
+/// «2026/2027», um ano lectivo que ainda não tinha começado. A viragem passa a
+/// ser em Setembro, a convenção que os próprios dados usam. Se a escola seguir
+/// o ano lectivo angolano, que começa em Fevereiro e cabe num só ano civil,
+/// esta convenção tem de ser decidida antes de a app ser usada.
+String getCurrentAcademicYear({int startMonth = 9, DateTime? now}) {
+  final today = now ?? DateTime.now();
+  final firstYear = today.month >= startMonth ? today.year : today.year - 1;
+  return '$firstYear/${firstYear + 1}';
 }
 
-/// Gets a max date for date pickers (10 years from now).
+/// Data máxima dos selectores de data (10 anos a partir de hoje).
 DateTime getMaxDatePickerDate() {
   return DateTime.now().add(const Duration(days: 365 * 10));
 }
 
-/// Formats date to 'dd MMM yyyy' e.g., '12 Oct 2026'.
+/// Formata a data como '12 Out 2026'.
 String formatDemoDate(DateTime date) {
   final months = [
     'Jan',
-    'Feb',
+    'Fev',
     'Mar',
-    'Apr',
-    'May',
+    'Abr',
+    'Mai',
     'Jun',
     'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
+    'Ago',
+    'Set',
+    'Out',
     'Nov',
-    'Dec',
+    'Dez',
   ];
   return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
 }

@@ -11,14 +11,14 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
   const authHeader = c.req.header('Authorization');
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ error: 'Unauthorized: Missing or invalid token' }, 401);
+    return c.json({ error: 'Sem sessão: falta a credencial ou é inválida' }, 401);
   }
 
   const token = authHeader.slice(7);
 
   const projectId = c.env.FIREBASE_PROJECT_ID?.trim();
   if (!projectId) {
-    return c.json({ error: 'Server config error' }, 500);
+    return c.json({ error: 'Erro de configuração do servidor' }, 500);
   }
 
   try {
@@ -30,7 +30,7 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
 
     const resolvedUser = await resolveTenantUser(c, payload as Record<string, unknown>);
     if (!resolvedUser) {
-      return c.json({ error: 'Account not provisioned' }, 403);
+      return c.json({ error: 'Conta sem acesso configurado' }, 403);
     }
 
     if (resolvedUser.role !== 'super_admin') {
@@ -42,7 +42,7 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
         return c.json(
           {
             error:
-              'Your school account is temporarily suspended. Please contact your school administrator or support for assistance.',
+              'A conta da sua escola está suspensa temporariamente. Contacte a administração da escola ou o apoio.',
             code: 'school_suspended',
           },
           403
@@ -70,7 +70,7 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
       tokenAud,
       tokenIss,
     });
-    return c.json({ error: 'Unauthorized' }, 401);
+    return c.json({ error: 'Sem autorização' }, 401);
   }
 };
 

@@ -12,13 +12,13 @@ async function schoolCurrency(db: Env['DB'], schoolId: string): Promise<string> 
   )
     .bind(schoolId)
     .first<{ academic_calendar_json: string | null }>();
-  if (!row?.academic_calendar_json) return 'GHS';
+  if (!row?.academic_calendar_json) return 'Kz';
   try {
     const j = JSON.parse(row.academic_calendar_json) as { currency?: string };
     const cur = j.currency?.trim();
-    return cur && cur.length > 0 ? cur : 'GHS';
+    return cur && cur.length > 0 ? cur : 'Kz';
   } catch {
-    return 'GHS';
+    return 'Kz';
   }
 }
 
@@ -133,7 +133,7 @@ finance.post('/payment', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = paymentSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid payment payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do pagamento inválidos', 400, parsed.error.flatten());
   }
 
   const student = await c.env.DB.prepare(
@@ -149,7 +149,7 @@ finance.post('/payment', requireAdmin, async (c) => {
     }>();
 
   if (!student) {
-    return jsonError(c, 'Student not found in this school', 404);
+    return jsonError(c, 'Aluno não encontrado nesta escola', 404);
   }
 
   if (parsed.data.verify_student_name) {
@@ -225,28 +225,28 @@ finance.post('/payment', requireAdmin, async (c) => {
 
   if (student.parent_uid) {
     const noticeId = createPrefixedId('ntc');
-    const summary = `Payment: ${currency} ${amountPaid.toFixed(2)} for ${student.name}`;
+    const summary = `Pagamento: ${currency} ${amountPaid.toFixed(2)} de ${student.name}`;
     const balanceLabel =
       nextBalance < 0
-        ? `Outstanding (owing): ${currency} ${Math.abs(nextBalance).toFixed(2)}`
+        ? `Em dívida: ${currency} ${Math.abs(nextBalance).toFixed(2)}`
         : nextBalance > 0
-          ? `Credit balance: ${currency} ${nextBalance.toFixed(2)}`
-          : `Balance: ${currency} 0.00 (fees cleared for now)`;
+          ? `Saldo a favor: ${currency} ${nextBalance.toFixed(2)}`
+          : `Saldo: ${currency} 0.00 (propinas em dia)`;
 
     const bodyLines = [
-      `A fee payment was recorded for ${student.name}.`,
+      `Foi registado um pagamento de propina de ${student.name}.`,
       '',
-      `Amount received: ${currency} ${amountPaid.toFixed(2)}`,
-      `Applied to fees owed: ${currency} ${amountToDebt.toFixed(2)}`,
+      `Valor recebido: ${currency} ${amountPaid.toFixed(2)}`,
+      `Aplicado a propinas em dívida: ${currency} ${amountToDebt.toFixed(2)}`,
       ...(creditAdded > 0
-        ? [`Overpayment / credit added: ${currency} ${creditAdded.toFixed(2)}`]
+        ? [`Crédito acrescentado: ${currency} ${creditAdded.toFixed(2)}`]
         : []),
       '',
       balanceLabel,
       '',
-      `Receipt: ${receiptId}`,
-      `Transaction: ${transactionId}`,
-      parsed.data.description ? `Note: ${parsed.data.description}` : '',
+      `Recibo: ${receiptId}`,
+      `Transacção: ${transactionId}`,
+      parsed.data.description ? `Observação: ${parsed.data.description}` : '',
     ].filter((line) => line.length > 0);
 
     const body = bodyLines.join('\n');
@@ -259,7 +259,7 @@ finance.post('/payment', requireAdmin, async (c) => {
         noticeId,
         user.schoolId,
         student.parent_uid,
-        'Fee payment received',
+        'Pagamento de propina recebido',
         summary,
         body,
         'payment'
@@ -312,12 +312,12 @@ finance.post('/charge-class', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = chargeClassSchema.safeParse(await c.req.json().catch(() => null)); 
   if (!parsed.success) {
-    return jsonError(c, 'Invalid charge payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados da cobrança inválidos', 400, parsed.error.flatten());
   }
 
   const calendarConfigured = await hasAcademicCalendar(c, user.schoolId);
   if (!calendarConfigured) {
-    return jsonError(c, 'Configure the academic calendar before applying class fees', 400);
+    return jsonError(c, 'Configure o calendário académico antes de aplicar propinas', 400);
   }
 
   const { class_id, amount, description, period_key } = parsed.data;
@@ -327,11 +327,11 @@ finance.post('/charge-class', requireAdmin, async (c) => {
   ).bind(class_id, user.schoolId).first<{ id: string; fee_last_applied_period: string | null }>();
 
   if (!classRow) {
-    return jsonError(c, 'Class not found', 404);
+    return jsonError(c, 'Turma não encontrada', 404);
   }
 
   if (period_key && classRow.fee_last_applied_period === period_key) {
-    return jsonError(c, 'Fees already applied for this period', 400);
+    return jsonError(c, 'As propinas deste período já foram aplicadas', 400);
   }
 
   const { results: students } = await c.env.DB.prepare(
@@ -339,7 +339,7 @@ finance.post('/charge-class', requireAdmin, async (c) => {
   ).bind(class_id, user.schoolId).all<{ id: string; balance: number }>();
 
   if (students.length === 0) {
-    return jsonError(c, 'No students found in this class', 404);
+    return jsonError(c, 'Esta turma não tem alunos', 404);
   }
 
   const batch = [];
@@ -386,12 +386,12 @@ finance.post('/adjust-class-fee', requireAdmin, async (c) => {
   const user = c.get('user');
   const parsed = adjustClassFeeSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) {
-    return jsonError(c, 'Invalid fee adjustment payload', 400, parsed.error.flatten());
+    return jsonError(c, 'Dados do ajuste de propina inválidos', 400, parsed.error.flatten());
   }
 
   const calendarConfigured = await hasAcademicCalendar(c, user.schoolId);
   if (!calendarConfigured) {
-    return jsonError(c, 'Configure the academic calendar before applying class fees', 400);
+    return jsonError(c, 'Configure o calendário académico antes de aplicar propinas', 400);
   }
 
   const { class_id, amount_delta, description } = parsed.data;
@@ -404,7 +404,7 @@ finance.post('/adjust-class-fee', requireAdmin, async (c) => {
   ).bind(class_id, user.schoolId).all<{ id: string; balance: number }>();
 
   if (students.length === 0) {
-    return jsonError(c, 'No students found in this class', 404);
+    return jsonError(c, 'Esta turma não tem alunos', 404);
   }
 
   const batch = [];

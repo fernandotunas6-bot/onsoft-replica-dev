@@ -54,22 +54,23 @@ export async function resolveTenantUser(c: Context<AppEnv>, tokenClaims: Record<
     };
   }
 
-  // 3. Fallback to claims (for onboarding or if DB is out of sync)
-  if (!claimSchoolId || !claimRole) {
-    return null;
-  }
-
-  return {
-    uid,
-    schoolId: claimSchoolId,
-    role: claimRole as User['role'],
-  };
+  // Não há reserva pelas claims do token.
+  //
+  // Havia aqui um ramo que, sem linha em `Users`, aceitava o `school_id` e o
+  // `role` que vinham no token «para a adesão ou se a base estiver
+  // dessincronizada». Mas todos os caminhos que criam contas — adesão da
+  // escola, registo de professor e admissão de aluno — inserem em `Users`,
+  // pelo que nenhuma conta legítima precisava do ramo. O que ele permitia era
+  // o contrário: uma conta removida da base continuar a entrar, com a escola e
+  // o papel do token, até as claims serem limpas no Firebase. Remover a conta
+  // tem de retirar o acesso.
+  return null;
 }
 
 export function requireSchoolUser(c: Context<AppEnv>) {
   const user = c.get('user');
   if (!user.schoolId || !user.role) {
-    return jsonError(c, 'Forbidden: Missing tenant context', 403);
+    return jsonError(c, 'Sem autorização: falta o contexto da escola', 403);
   }
 
   return user;

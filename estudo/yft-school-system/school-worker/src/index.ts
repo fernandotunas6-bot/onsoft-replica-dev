@@ -31,17 +31,17 @@ app.route('/api', apiRoutes);
 app.get('/media/*', async (c) => {
   const key = decodeURIComponent(c.req.path.replace('/media/', ''));
   if (!key || key.includes('..') || key.startsWith('/')) {
-    return c.json({ error: 'Invalid key' }, 400);
+    return c.json({ error: 'Chave inválida' }, 400);
   }
 
   const allowedPrefixes = ['logos/', 'profile-photos/'];
   if (!allowedPrefixes.some((p) => key.startsWith(p))) {
-    return c.json({ error: 'Forbidden' }, 403);
+    return c.json({ error: 'Sem autorização' }, 403);
   }
 
   const object = await c.env.MEDIA_BUCKET.get(key);
   if (!object) {
-    return c.json({ error: 'Not found' }, 404);
+    return c.json({ error: 'Não encontrado' }, 404);
   }
 
   const headers = new Headers();
