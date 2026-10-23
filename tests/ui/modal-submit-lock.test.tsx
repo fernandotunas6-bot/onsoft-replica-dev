@@ -48,9 +48,7 @@ describe("operações únicas nos formulários partilhados", () => {
         fireEvent.submit(form);
       });
       expect(submit).toHaveBeenCalledOnce();
-      expect(screen.getByRole("button", { name: "Fechar" }).hasAttribute("disabled")).toBe(
-        true,
-      );
+      expect(screen.getByRole("button", { name: "Fechar" }).hasAttribute("disabled")).toBe(true);
       expect(
         screen
           .getByRole("button", {
