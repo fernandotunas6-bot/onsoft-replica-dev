@@ -111,6 +111,7 @@ export function WizardModal({
           title={title}
           subtitle={subtitle}
           onClose={guardedClose}
+          closeDisabled={isSubmitting || submission.pending}
         />
 
         {/* Stepper Progress Bar */}

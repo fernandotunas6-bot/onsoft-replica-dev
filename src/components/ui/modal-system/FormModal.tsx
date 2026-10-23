@@ -77,6 +77,7 @@ export function FormModal({
           subtitle={subtitle}
           badge={badge}
           onClose={guardedClose}
+          closeDisabled={isSubmitting || submission.pending}
         />
         <ModalContent>{children}</ModalContent>
         <ModalFooter

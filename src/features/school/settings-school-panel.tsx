@@ -769,7 +769,7 @@ export function SchoolSettingsPanel() {
       <Separator />
 
       <div className="space-y-1">
-        <h5 className="text-xs font-bold text-muted-foreground">Notificações</h5>
+        <h5 className="text-xs font-bold text-muted-foreground">Preferências</h5>
         <ul className="space-y-1">
           {preferences.map((p) => (
             <li

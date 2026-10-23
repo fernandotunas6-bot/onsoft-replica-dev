@@ -64,6 +64,7 @@ export function QuickModal({
           title={title}
           subtitle={subtitle}
           onClose={guardedClose}
+          closeDisabled={isSubmitting || submission.pending}
         />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
