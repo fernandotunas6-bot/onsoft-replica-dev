@@ -70,6 +70,19 @@ Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
 
+## Preparação da consolidação de produção (2026-10-21)
+
+O utilizador pediu organizar os trabalhos de todos os agentes, incluindo Claude,
+para a publicação conjunta. [Plano, alvos e bloqueios](../releases/2026-10-21/README.md),
+[inventário](../releases/2026-10-21/inventory.md) e manifesto JSON na mesma pasta.
+O clone era raso e buscava só main; foi completado antes da comparação. A ferramenta
+`scripts/siga/release-inventory.mjs` captura heads, commits, conflitos, patches
+equivalentes, sobreposições e dependências sem integrar código dos agentes.
+O ramo de preparação não é ainda o candidato com todas as funcionalidades.
+Antes de fechar a versão, recapturar fontes e validar o candidato acumulado.
+Cloudflare continua a recusar o token; a ligação GitHub desta sessão não gere
+segredos do ambiente production (403). O utilizador foi informado deste pré-requisito.
+
 ## Website escolar — navegação antes da API (2026-10-21)
 
 Os eventos de navegação e a adaptação dos links arrancam antes dos pedidos de
