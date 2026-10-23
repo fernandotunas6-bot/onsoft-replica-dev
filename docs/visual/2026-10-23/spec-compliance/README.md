@@ -81,3 +81,15 @@ Verificação representativa no navegador a 1024 e 1440 px, aberta e recolhida: 
 O CI remoto do commit `fe1c5365` detectou TS2322 em `flattenNavigationGroup`: a inferência de `flatMap` não aceitava simultaneamente destinos e grupos. Corrigido com o tipo explícito do item do catálogo; sem mudança de comportamento. A verificação TypeScript dirigida registada acima não detectou este erro e não substitui o CI global.
 
 Na consulta ao GitHub, o PR #252 permanecia aberto e a publicação de produção aprovada correspondia a `ecc31fe7`, anterior a este refinamento. Não há neste ambiente credenciais/sessão autenticada nem staging configurado para validar fluxos completos por escola. O ensaio automatizado com escrita existente recusa produção e exige staging isolado. A validação física de Android/iOS e restantes dispositivos continua pendente.
+
+## Refinamento da pesquisa e das acções
+
+A pesquisa da gaveta encontra nomes de áreas e páginas sem exigir acentos ou distinção de maiúsculas. Por exemplo, `relatorios` encontra “Relatórios Académicos” e `FINANCEIRO` encontra as secções financeiras autorizadas. Limpar a pesquisa repõe o contexto actual; pesquisar uma área não concede destinos fora do perfil. O rótulo passou a “Procurar página ou área”.
+
+O painel “Mais opções” usa linhas discretas, sem bordas e sombras em cada botão, mantendo a área de toque, o foco, os formulários e os estados desactivados.
+
+Validação desta iteração: 37 testes em sete ficheiros e ESLint dos ficheiros alterados sem erros. Repetidos 16 cenários representativos antes/depois no navegador, com painel dentro do viewport a 320/390/834/1440 px, acesso à última opção e retorno de foco do modal. Permanecem as limitações de sessão real e dispositivos físicos descritas acima.
+
+No CI de `6884d3f`, o TypeScript global passou e a suite teve 4108 testes aprovados, 19 ignorados e dois falhados. Os dois testes ainda exigiam `text-xs` e `0.6875rem`, o padrão pequeno substituído nesta revisão. Foram actualizados para proteger a escala legível; o novo resultado global será determinado pelo CI seguinte.
+
+![Opções com linhas simples](refined-options-390.png)

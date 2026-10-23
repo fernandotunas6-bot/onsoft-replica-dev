@@ -81,4 +81,27 @@ describe("menu mobile contextual", () => {
       "page",
     );
   });
+  it("encontra páginas sem acentos e repõe o contexto ao limpar", async () => {
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "  relatorios  " } });
+    expect(await screen.findByRole("link", { name: "Relatórios Académicos" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Limpar pesquisa" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: "Relatórios Académicos" })).toBeNull(),
+    );
+    expect(screen.getByRole("link", { name: "Faturas e Recibos" })).toBeTruthy();
+  });
+  it("encontra uma área pelo nome sem expandir outras áreas", async () => {
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "FINANCEIRO" } });
+    expect(await screen.findByRole("link", { name: "Tesouraria" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
+  });
+  it("a pesquisa por área mantém os limites do perfil", async () => {
+    state.role = "Aluno";
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "secretaria" } });
+    expect(await screen.findByText(/Nenhum resultado/)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
+  });
 });

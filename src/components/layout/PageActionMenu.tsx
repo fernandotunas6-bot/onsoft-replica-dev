@@ -36,7 +36,7 @@ export function PageActionMenu({ children }: { children: ReactNode }) {
       <div
         role="group"
         aria-label="Outras acções da página"
-        className="absolute left-0 top-full lg:left-auto lg:right-0 z-40 mt-2 flex max-h-[min(60dvh,28rem)] w-72 max-w-[calc(100vw-2rem)] flex-col gap-1.5 overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-2 shadow-sm [&>button]:h-auto [&>button]:min-h-[44px] [&>button]:w-full [&>button]:justify-start [&>button]:whitespace-normal [&>a]:h-auto [&>a]:min-h-[44px] [&>a]:w-full [&>a]:justify-start [&>a]:whitespace-normal"
+        className="absolute left-0 top-full lg:left-auto lg:right-0 z-40 mt-2 flex max-h-[min(60dvh,28rem)] w-72 max-w-[calc(100vw-2rem)] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-2 shadow-sm [&>button]:border-transparent [&>button]:bg-transparent [&>button]:shadow-none [&>button:hover]:bg-secondary [&>button]:h-auto [&>button]:min-h-[44px] [&>button]:w-full [&>button]:justify-start [&>button]:whitespace-normal [&>a]:border-transparent [&>a]:bg-transparent [&>a]:shadow-none [&>a:hover]:bg-secondary [&>a]:h-auto [&>a]:min-h-[44px] [&>a]:w-full [&>a]:justify-start [&>a]:whitespace-normal"
       >
         {children}
       </div>

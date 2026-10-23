@@ -16,6 +16,10 @@ import {
   isContextDestinationActive,
 } from "@/features/auth/contextual-navigation";
 
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase("pt").normalize("NFD").replace(/\p{M}/gu, "");
+}
+
 /**
  * Hub "Mais" (§9). Não é uma lista interminável: é o catálogo do papel agrupado
  * pelas secções que o utilizador já conhece da barra lateral, com um campo de
@@ -56,13 +60,17 @@ export function MoreHub({
         ? flattenNavigationGroup(selected)
         : null;
   const current = selectedContext ?? (!allAreas ? context : null);
-  const needle = query.trim().toLocaleLowerCase("pt");
+  const needle = normalizeSearch(query);
   const filtered = needle
     ? groups
         .map(flattenNavigationGroup)
         .map((group) => ({
           ...group,
-          items: group.items.filter((item) => item.label.toLocaleLowerCase("pt").includes(needle)),
+          items: group.items.filter(
+            (item) =>
+              normalizeSearch(group.title).includes(needle) ||
+              normalizeSearch(item.label).includes(needle),
+          ),
         }))
         .filter((group) => group.items.length > 0)
     : current
@@ -90,7 +98,12 @@ export function MoreHub({
         onClose={() => onOpenChange(false)}
       />
       <div className="shrink-0 px-5 pb-4">
-        <MobileSearch value={query} onChange={setQuery} placeholder="Procurar módulo…" delay={80} />
+        <MobileSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Procurar página ou área…"
+          delay={80}
+        />
       </div>
       <BottomSheetBody className="pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {!needle ? (
@@ -186,7 +199,7 @@ export function MoreHub({
           </div>
         ) : (
           <p className="break-words rounded-xl border border-border bg-card px-4 py-6 text-center text-[13px] leading-[20px] text-muted-foreground">
-            Nenhum módulo com «{query}». Tente outro termo.
+            Nenhum resultado para «{query}». Tente outro termo.
           </p>
         )}
 
