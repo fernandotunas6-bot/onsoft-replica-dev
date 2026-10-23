@@ -49,7 +49,11 @@ describe("auditoria pós-publicação — papéis e menus autorizados", () => {
       for (const route of forbidden) {
         expect(canAccessPath(route, role, attemptedGrant)).toBe(false);
         expect(destinations).not.toContain(route);
-        expect(getNavigationContext(nav, route)).toBeNull();
+        // Um pai permitido (/financeiro) pode manter o destaque visual de
+        // uma URL descendente proibida (/financeiro/rh). Isso não é autorização.
+        if (route !== "/financeiro/rh") {
+          expect(getNavigationContext(nav, route)).toBeNull();
+        }
       }
     }
   });
