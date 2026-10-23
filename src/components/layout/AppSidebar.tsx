@@ -139,7 +139,7 @@ export function AppSidebar({
         data-sidebar="siga"
         className={cn(
           "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-          "lg:rounded-xl lg:border lg:border-sidebar-border",
+          "rounded-none",
           collapsed ? "w-[64px]" : "w-[240px]",
           className,
         )}

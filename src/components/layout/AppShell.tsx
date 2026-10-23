@@ -255,7 +255,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background lg:bg-sidebar">
       <OfflineBanner />
       <DesktopNotifications />
       <div className="flex flex-1 min-h-0">
@@ -264,7 +264,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </a>
 
         <div
-          className="sticky top-0 z-40 hidden h-screen lg:block lg:py-2 lg:pl-2"
+          className="sticky top-0 z-40 hidden h-screen lg:block"
           onMouseEnter={() => {
             window.clearTimeout(hoverLeaveTimer.current);
             setHoverOpen(true);
@@ -280,7 +280,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+        {/* A superfície principal desenha as curvas côncavas da sidebar na junção. */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background lg:overflow-clip lg:rounded-l-2xl">
           {/*
               Header mobile (§10): substitui o header de computador abaixo de
               1024px. O de computador continua igual — os dez controlos do topo

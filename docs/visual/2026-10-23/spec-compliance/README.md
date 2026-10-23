@@ -65,3 +65,13 @@ Nenhuma dependência de produção foi acrescentada. Não houve alteração de s
 ## Verificação ainda pendente
 
 É necessário confirmar numa sessão autenticada os perfis e permissões reais, o isolamento entre escolas e os fluxos completos de pagamentos, notas e comunicações. Não foram efectuadas submissões reais, testes em dispositivos físicos, avaliação com leitor de ecrã, teclado virtual ou auditoria formal de contraste/zoom. Volumes grandes de registos e formulários extensos exigem validação com dados representativos de cada escola. Não se declara a suite global nem o TypeScript global aprovados.
+
+## Ajuste adicional: contorno da sidebar
+
+O lado esquerdo ficou recto e encostado à margem do ecrã. Na junção com o conteúdo, o fundo da sidebar envolve os cantos esquerdos arredondados da superfície principal, formando curvas côncavas superior e inferior. Não há intervalo entre as duas superfícies. O efeito usa as superfícies existentes e aplica-se apenas à composição desktop; o menu móvel conserva a sua gaveta.
+
+Verificação representativa no navegador a 1024 e 1440 px, aberta e recolhida: sidebar na coordenada x=0, junção contínua, quatro cantos próprios a 0 px, curvas da superfície principal presentes e nenhum overflow horizontal. Componentes de navegação reais; conta e rede controladas, como no ensaio anterior. Dados em [sidebar-shape-browser.json](sidebar-shape-browser.json).
+
+![Sidebar com curva inversa](sidebar-inverse-1440.png)
+
+![Sidebar recolhida com curva inversa](sidebar-inverse-1440-collapsed.png)
