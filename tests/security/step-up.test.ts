@@ -114,9 +114,7 @@ describe("reconfirmação antes de acções críticas", () => {
       expect(consumePendingStepUpAction()).toBe("Alterar o IBAN da escola");
       expect(consumePendingStepUpAction()).toBeNull();
 
-      expect(reportPossibleStepUp(new Error(`${STEP_UP_PREFIX}: Autorizar pagamento.`))).toBe(
-        true,
-      );
+      expect(reportPossibleStepUp(new Error(`${STEP_UP_PREFIX}: Autorizar pagamento.`))).toBe(true);
       expect(consumePendingStepUpAction(Date.now() + 31_000)).toBeNull();
       expect(consumePendingStepUpAction()).toBeNull();
     } finally {
@@ -126,7 +124,10 @@ describe("reconfirmação antes de acções críticas", () => {
   });
 
   it("o diálogo de reconfirmação recupera eventos recebidos antes da montagem", () => {
-    const source = readFileSync(join(process.cwd(), "src/components/auth/StepUpDialog.tsx"), "utf8");
+    const source = readFileSync(
+      join(process.cwd(), "src/components/auth/StepUpDialog.tsx"),
+      "utf8",
+    );
     expect(source).toContain("consumePendingStepUpAction()");
     expect(source).toContain("window.addEventListener(STEP_UP_REQUIRED_EVENT, onRequired)");
     expect(source).toContain("const pendingAction = consumePendingStepUpAction()");
