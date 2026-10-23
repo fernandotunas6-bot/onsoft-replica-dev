@@ -7,9 +7,12 @@ import {
 import { getNavigationContext } from "@/features/auth/contextual-navigation";
 import { getPortalNavigation, type NavGroup } from "@/features/auth/portal-engine";
 
-function links(groups: NavGroup[]) {
+function links(groups: NavGroup[]): Array<{ to: string }> {
   return groups.flatMap((group) =>
-    group.items.flatMap((item) => item.children ?? (item.to ? [item] : [])),
+    group.items.flatMap((item) => {
+      if (item.children) return item.children.map((child) => ({ to: child.to }));
+      return item.to ? [{ to: item.to }] : [];
+    }),
   );
 }
 
