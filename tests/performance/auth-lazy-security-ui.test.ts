@@ -47,5 +47,4 @@ describe("componentes de segurança carregados apenas quando necessários", () =
     expect(syncSource).toContain("void flush()");
     expect(syncSource).toContain('window.addEventListener("online", flush)');
   });
-
 });
