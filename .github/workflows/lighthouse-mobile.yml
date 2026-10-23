@@ -8,6 +8,7 @@ on:
       - "lighthouserc.mobile.json"
       - "lighthouserc.json"
       - "src/components/auth/AuthGate.tsx"
+      - "src/routes/index.tsx"
   push:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - "lighthouserc.mobile.json"
       - "lighthouserc.json"
       - "src/components/auth/AuthGate.tsx"
+      - "src/routes/index.tsx"
 
 permissions:
   contents: read
