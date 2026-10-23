@@ -110,3 +110,32 @@ do build; não fornece comparação antes/depois de tempo de carregamento.
 A suite com mocks/DOM não prova persistência real, RBAC remoto, RLS, MFA, concorrência
 financeira ou dispositivos físicos. Nenhum destes pontos pode ser marcado como
 validado sem executar o respectivo percurso. Todas as fases continuam obrigatórias.
+
+## Validação final deste incremento
+
+PR: [#262](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/262), em rascunho.
+Código integrado com as actualizações `b06b252` (auth lazy) e `50770ec`
+(navegação contextual) do main, preservando ambos os trabalhos.
+
+| Verificação                                | Resultado                                                                                    | Limite                                                                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Suite completa `vitest run --maxWorkers=2` | 608 ficheiros aprovados; 3 ignorados. **4.174 testes aprovados; 19 ignorados**, zero falhas. | Executada sobre o incremento e auth lazy; após integrar a última correcção de sidebar, verificação dirigida abaixo.          |
+| Navegação após integração de main          | 4 ficheiros, **50 testes aprovados**.                                                        | Sidebar, configurações, contexto e dados não guardados.                                                                      |
+| Último ajuste de botões pendentes          | 5 ficheiros, **36 testes aprovados**.                                                        | Header de fecho visivelmente desactivado; não exige repetir a suite inteira para a prop opcional e o rótulo de preferências. |
+| TypeScript após integração                 | **Zero erros**, heap 3072 MB.                                                                | Compilação local; não valida permissões no servidor.                                                                         |
+| Build de produção após integração          | **Aprovado**, preset Node.                                                                   | Sem publicação; warnings existentes de directives e `inputValidator` obsoleto noutras áreas.                                 |
+| ESLint dirigido                            | **Zero erros**, dois avisos Fast Refresh preexistentes.                                      | Hooks/contexto partilham o ficheiro StackedModal.                                                                            |
+| Acessibilidade estática incremental        | **Aprovada**; 954 ficheiros analisados, 14 alterados.                                        | Scanner ignora primitivos Radix; não comprova WCAG AA, contraste real ou leitor de ecrã.                                     |
+| Estilo incremental                         | **Aprovado**, 49/49 rotas cobertas; 14 ficheiros alterados.                                  | Checklist estática.                                                                                                          |
+| Chromium isolado                           | **12 cenários aprovados**; seis larguras × antes/depois.                                     | Sem contas reais nem aparelhos físicos.                                                                                      |
+| CI GitHub do código `1be6a91`              | **Pendente** na última consulta.                                                             | Não declarar CI aprovada com base nos testes locais.                                                                         |
+
+A suite completa emite um aviso conhecido do jsdom sobre navegação completa,
+mas termina com zero falhas. Os 19 testes ignorados não contam como validação.
+O artefacto `preload-inventory.json` foi actualizado pelo build final; representa
+apenas o estado actual. Não há medição p75 nem ganho de carregamento atribuído a
+este incremento.
+
+Commits publicados de implementação: `faa4784` (contrato), `2b0f4be` (padrões),
+`fc11dc2` (integração de main), `1be6a91` (feedback de pendência). O commit de
+relatório/evidências que contém esta secção não muda lógica da aplicação.
