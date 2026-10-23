@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, FolderOpen, LoaderCircle, Shield, Sliders, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,7 +149,10 @@ function ProfileAvatarField() {
             onPick={(file) => {
               void (async () => {
                 try {
-                  const blob = await resolveFileBlob(file);
+                  const blob = await resolveFileBlob(file, {
+                    schoolId: currentUser.schoolId,
+                    ownerUserId: currentUser.id,
+                  });
                   const asFile = new File([blob], file.name, { type: file.mime || blob.type });
                   await uploadAvatar(asFile);
                 } catch (error) {

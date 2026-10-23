@@ -1,8 +1,9 @@
-import type { ElementType, ReactNode } from "react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useRef, type ElementType, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { prefetchRouteData } from "@/lib/route-data-prefetch";
+import { canPrefetchResources } from "@/lib/preload";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 
 /**
  * Componente de navegação unificado (regras de layout do Minimals):
@@ -17,17 +18,17 @@ import { prefetchRouteData } from "@/lib/route-data-prefetch";
 export type NavDepth = "root" | "sub";
 
 export const NAV_ROW_BASE =
-  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform,box-shadow] duration-75 ease-out active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
+  "group relative flex w-full items-center gap-3 rounded-lg font-medium outline-none transition-[color,background-color,transform,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) active:duration-75 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:active:scale-100 motion-reduce:transition-none";
 
 export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/16 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/20 hover:text-sidebar-active";
+  "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/15 hover:text-sidebar-active";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
-  root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
-  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-[0.6875rem] leading-4 font-medium",
+  root: "min-h-9 px-2.5 py-1.5 text-sm font-medium",
+  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-sm leading-5 font-medium",
 };
 
 /** Lista aninhada: rail esquerdo (spec SidebarMenuSub) sem alterar os itens-pai. */
@@ -54,10 +55,10 @@ export function NavIcon({
       >
         <span
           className={cn(
-            "block rounded-full transition-all duration-150",
+            "block size-1 rounded-full transition-[transform,background-color] duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
             active
-              ? "size-1.5 bg-sidebar-active"
-              : "size-1 bg-sidebar-foreground/40 group-hover:size-1.5 group-hover:bg-sidebar-active",
+              ? "scale-150 bg-sidebar-active"
+              : "bg-sidebar-foreground/40 group-hover:scale-150 group-hover:bg-sidebar-active",
           )}
         />
       </span>
@@ -120,25 +121,64 @@ export function NavLinkRow(
   props: BaseProps & { to: string; search?: Record<string, string | undefined> },
 ) {
   const { to, search, ...rest } = props;
-  const router = useRouter();
   const queryClient = useQueryClient();
+  const { school, selectedYearId } = useSchoolSettings();
+  const targetKey = JSON.stringify([to, search]);
+  const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const generation = useRef(0);
+  const cancelWarmup = () => {
+    clearTimeout(pending.current);
+    generation.current += 1;
+  };
+  useEffect(
+    () => () => {
+      clearTimeout(pending.current);
+      generation.current += 1;
+    },
+    [school?.id, selectedYearId, targetKey],
+  );
   const warmRoute = () => {
-    void router.preloadRoute({ to, ...(search ? { search } : {}) }).catch(() => {});
-    prefetchRouteData(queryClient, to);
+    cancelWarmup();
+    if (!canPrefetchResources()) return;
+    const current = generation.current;
+    pending.current = setTimeout(() => {
+      void import("@/lib/route-data-prefetch")
+        .then(({ prefetchRouteData }) => {
+          if (current !== generation.current) return;
+          prefetchRouteData(queryClient, to, {
+            schoolId: school?.id ?? null,
+            academicYearId: selectedYearId ?? null,
+            search,
+          });
+        })
+        .catch(() => {
+          /* A navegação normal conserva a recuperação de erros. */
+        });
+    }, 80);
   };
   return (
     <Link
       to={to}
+      preload={canPrefetchResources() ? "intent" : false}
+      preloadDelay={80}
       {...(search ? { search } : {})}
       activeOptions={{ exact: !search }}
-      {...(props.collapsed ? { title: props.label } : {})}
+      title={props.label}
       className={rowClass(rest)}
-      activeProps={{ className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }}
-      inactiveProps={{ "data-active": "false" }}
+      activeProps={
+        props.active === undefined
+          ? { className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }
+          : {}
+      }
+      inactiveProps={props.active === undefined ? { "data-active": "false" } : {}}
+      aria-current={props.active ? "page" : undefined}
+      data-active={props.active ? "true" : "false"}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}
       onMouseEnter={warmRoute}
       onFocus={warmRoute}
+      onMouseLeave={cancelWarmup}
+      onBlur={cancelWarmup}
     >
       {content(rest)}
     </Link>
@@ -152,7 +192,7 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
-      title={props.collapsed ? props.label : undefined}
+      title={props.label}
       className={rowClass(rest)}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}
@@ -166,6 +206,6 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
 export function NavSubheader({ title, collapsed = false }: { title: string; collapsed?: boolean }) {
   if (collapsed) return <div className="mx-3 my-3 h-px bg-sidebar-border" />;
   return (
-    <p className="px-3 pb-1 pt-4 text-[11px] font-bold leading-5 text-sidebar-muted">{title}</p>
+    <p className="px-3 pb-1 pt-4 text-[11px] font-medium leading-5 text-sidebar-muted">{title}</p>
   );
 }

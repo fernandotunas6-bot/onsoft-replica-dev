@@ -1,6 +1,14 @@
 # Segredos de publicação — o que falta criar no GitHub
 
-Levantado a 2026-10-04 pela API do GitHub. **Estado: não há nada configurado.**
+**Nota de 21/10/2026:** o levantamento abaixo é histórico, de 04/10. As execuções
+recentes passaram a verificação de existência dos segredos e falharam com token
+Cloudflare inválido (`10000` / `9109`). Não interpretar as contagens antigas como
+estado actual nem substituir segredos que não foram diagnosticados. A ligação
+GitHub desta sessão não permite listar/gerir os segredos do ambiente (HTTP 403).
+O ambiente usado pelo workflow é **production**. Ver a
+[preparação da consolidação](../releases/2026-10-21/README.md).
+
+Levantado a 2026-10-04 pela API do GitHub. **Estado observado nessa data: nada configurado.**
 
 ```
 repositório → secrets: 0   variables: 0

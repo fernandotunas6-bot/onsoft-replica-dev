@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
-import { COLUNAS_ESPERA_MIGRACAO } from "./espera-migracao";
+import { COLUNAS_ESPERA_MIGRACAO, FUNCOES_ESPERA_MIGRACAO } from "./espera-migracao";
 
 /**
  * Nomes de coluna que o código pede e a base não tem.
@@ -331,9 +331,10 @@ const funcoesPublicas = new Set(
  * esteve seis dias sem ser registada, porque `hr/teacher-lessons.ts` chamava-a desde
  * eaceb8f2 e a produção devolvia PGRST202.
  *
- * Vazia desde então.
+ * Vazia de 2026-10-02 a 2026-10-10. A lista vive agora em `espera-migracao.ts`,
+ * partilhada com `production-columns.test.ts`.
  */
-const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
+// Dependências preparadas partilhadas em ./espera-migracao.ts.
 /**
  * Colunas que o código grava e a produção ainda não tem porque há uma migração escrita e
  * por aplicar. Aplicar SQL à base é decisão do dono do projecto, não do agente — esta
@@ -473,7 +474,7 @@ describe("colunas pedidas vs colunas que existem", () => {
   });
 
   it("a lista de funções à espera de migração não tem entradas obsoletas", () => {
-    const jaExistem = [...FUNCOES_ESPERA_MIGRACAO].filter((f) => funcoesPublicas.has(f));
+    const jaExistem = [...FUNCOES_ESPERA_MIGRACAO.keys()].filter((f) => funcoesPublicas.has(f));
     expect(jaExistem, `já estão na produção, tirar da lista: ${jaExistem.join(", ")}`).toEqual([]);
   });
 

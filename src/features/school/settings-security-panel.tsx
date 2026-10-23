@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MediaFrame } from "@/components/ui/media-frame";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { supabase } from "@/integrations/supabase/client";
 import { listRecentAuditLogs, type RecentAuditLog } from "@/features/school/server";
 import type { AuditScope } from "@/features/audit/audit-view";
 import { cn } from "@/lib/utils";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+import {
+  getStudentAccessSettings,
+  setStudentNumberLogin,
+} from "@/features/access/student-access-server";
 
 const accessPolicies = [
   { label: "Protecção de rotas por cargo (RouteAccessGate)", state: "Activo" },
@@ -212,6 +217,64 @@ function TwoFactorEnroll() {
   );
 }
 
+const STUDENT_ACCESS_KEY = ["student-access-settings"] as const;
+
+/** «Os alunos podem entrar com o número de aluno» — só o Administrador, com 2FA. */
+function StudentNumberLoginSetting() {
+  const currentUser = useCurrentAccount();
+  const isAdministrator = currentUser.role === "Administrador";
+  const queryClient = useQueryClient();
+  const settings = useQuery({
+    queryKey: [...STUDENT_ACCESS_KEY, currentUser.id],
+    enabled: isAdministrator,
+    staleTime: 60_000,
+    queryFn: () => getStudentAccessSettings(),
+  });
+  const save = useMutation({
+    mutationFn: (enabled: boolean) => setStudentNumberLogin({ data: { enabled } }),
+    onSuccess: (next) => {
+      queryClient.setQueryData([...STUDENT_ACCESS_KEY, currentUser.id], next);
+      toast.success(
+        next.student_number_login
+          ? "Os alunos já podem entrar com o número de aluno."
+          : "O número de aluno deixou de servir para entrar.",
+      );
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Não foi possível guardar."),
+  });
+  if (!isAdministrator) return null;
+  const enabled = settings.data?.student_number_login ?? false;
+  return (
+    <>
+      <div className="space-y-3">
+        <h5 className="text-xs font-bold text-muted-foreground">Acesso dos alunos</h5>
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-border px-3 py-3">
+          <div className="space-y-1">
+            <label htmlFor="student-number-login" className="text-sm font-semibold">
+              Entrar com o número de aluno
+            </label>
+            <p className="text-xs text-muted-foreground">
+              O aluno escreve o número (ex.: 1260001) em vez do e-mail, com a senha da conta. Só
+              vale no endereço da escola e para alunos com conta ligada. Mudar pede 2FA.
+            </p>
+            {settings.isError ? (
+              <p className="text-xs text-destructive">Não foi possível ler esta definição.</p>
+            ) : null}
+          </div>
+          <Switch
+            id="student-number-login"
+            checked={enabled}
+            disabled={settings.isLoading || settings.isError || save.isPending}
+            onCheckedChange={(checked) => save.mutate(checked)}
+          />
+        </div>
+      </div>
+      <Separator />
+    </>
+  );
+}
+
 export function SecurityPanel() {
   const resendOn = useInstalledIntegrations().hasCapability("resend.send");
   return (
@@ -230,6 +293,7 @@ export function SecurityPanel() {
       ) : null}
       <TwoFactorEnroll />
       <Separator />
+      <StudentNumberLoginSetting />
       <div className="space-y-3">
         <h5 className="text-xs font-bold text-muted-foreground">Políticas de acesso</h5>
         <ul className="space-y-1">

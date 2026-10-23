@@ -1,4 +1,5 @@
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
@@ -827,20 +828,56 @@ export const updateClassGroup = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     // `roomId`: string = mudar de sala, null = tirar a sala, ausente = não mexer.
     // O campus não muda com a sala: `normalize_class_group` torna-o imutável.
+    // A sala nova tem de caber a turma com a lotação que ela vai ter: a pedida ou,
+    // sem ela, a actual (antes assumia 30).
+    let capacityForRoom = data.capacity;
+    if (data.roomId && capacityForRoom === undefined) {
+      const { data: current } = await db
+        .from("class_groups")
+        .select("capacity")
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      capacityForRoom = typeof current?.capacity === "number" ? current.capacity : 30;
+    }
     const sala = data.roomId
-      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, data.capacity ?? 30)
+      ? await loadSalaForClassGroup(db, membership.schoolId, data.roomId, capacityForRoom ?? 30)
       : null;
+    // Baixar a lotação abaixo dos alunos já na turma deixava-a «sobrelotada» sem
+    // aviso: a base só confere a lotação quando entra alguém (auditoria 13).
+    if (data.capacity !== undefined) {
+      const { count: occupied, error: occupiedError } = await db
+        .from("enrollments")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", membership.schoolId)
+        .eq("class_group_id", data.id)
+        .in("status", ["pending", "active"]);
+      if (occupiedError) {
+        throw publicDatabaseError(occupiedError, "Não foi possível contar os alunos da turma.");
+      }
+      if ((occupied ?? 0) > data.capacity) {
+        throw new Error(
+          `A turma tem ${occupied} alunos matriculados: a lotação não pode ficar em ${data.capacity}.`,
+        );
+      }
+    }
+    // Só o que veio no pedido: um campo ausente não muda (antes a lotação voltava
+    // a 30 e o grupo de WhatsApp era apagado sempre que não vinham).
     const payload = {
       code: data.code,
       name: data.name,
-      shift: data.shift,
-      capacity: data.capacity ?? 30,
+      ...(data.shift !== undefined ? { shift: data.shift } : {}),
+      ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
       ...(data.roomId !== undefined ? { room_id: sala?.id ?? null } : {}),
       // O formulário oferece activa/inactiva; `class_groups.status` só aceita
       // draft/active/closed/archived, e "inactive" era recusado.
       ...(data.status ? { status: data.status === "inactive" ? "archived" : "active" } : {}),
-      whatsapp_invite_url: data.whatsappInviteUrl ?? null,
-      whatsapp_group_name: data.whatsappGroupName ?? null,
+      ...(data.whatsappInviteUrl !== undefined
+        ? { whatsapp_invite_url: data.whatsappInviteUrl }
+        : {}),
+      ...(data.whatsappGroupName !== undefined
+        ? { whatsapp_group_name: data.whatsappGroupName }
+        : {}),
       updated_by: context.userId,
     };
     let { data: group, error } = await db
@@ -949,6 +986,10 @@ export const createSubject = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw publicDatabaseError(error, "Não foi possível criar a disciplina.");
+    // «Matemática», «Inglês»: fica ligada ao catálogo (se a migração já foi aplicada).
+    await linkNewSubjectsToCatalog(db, membership.schoolId, [
+      { id: subject.id, name: subject.name },
+    ]);
     return subject;
   });
 
@@ -1682,7 +1723,7 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
     const db = await loadSgaAdminClient();
     const { data: item, error: itemError } = await db
       .from("siga_assessment_items")
-      .select("id, term, class_group_id")
+      .select("id, term, class_group_id, max_score")
       .eq("id", data.itemId)
       .eq("school_id", membership.schoolId)
       .maybeSingle();
@@ -1695,6 +1736,12 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       throw publicDatabaseError(itemError, "Não foi possível validar a avaliação.");
     }
     if (!item?.id) throw new Error("Avaliação não encontrada.");
+    // O esquema aceita até 20 para qualquer avaliação; uma prova cotada para 10
+    // aceitava 18, e o domínio por competência passava dos 100%.
+    const maxScore = item.max_score == null ? null : Number(item.max_score);
+    if (maxScore != null && data.rows.some((row) => row.score != null && row.score > maxScore)) {
+      throw new Error(`Esta avaliação vale ${maxScore} valores: nenhuma nota pode passar disso.`);
+    }
     await assertTermOpen(db, membership.schoolId, Number(item.term));
     // Pauta homologada/publicada: as notas das avaliações também ficam fechadas
     // (a alteração passa a pedido), como as de MAC/NPP/NPT.
@@ -1838,6 +1885,24 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
       String(current.class_group_id),
       Number(current.term),
     );
+    // Baixar a cotação deixava notas já lançadas acima do máximo da avaliação.
+    const { data: topScore, error: topScoreError } = await db
+      .from("siga_assessment_scores")
+      .select("score")
+      .eq("school_id", membership.schoolId)
+      .eq("item_id", data.id)
+      .not("score", "is", null)
+      .order("score", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (topScoreError) {
+      throw publicDatabaseError(topScoreError, "Não foi possível verificar as notas lançadas.");
+    }
+    if (topScore?.score != null && Number(topScore.score) > data.maxScore) {
+      throw new Error(
+        `Já há notas de ${Number(topScore.score)} valores nesta avaliação: a cotação não pode ficar abaixo disso.`,
+      );
+    }
     const { data: updated, error } = await db
       .from("siga_assessment_items")
       .update({
@@ -1937,6 +2002,8 @@ export type StudentAcademicHistoryYear = {
   status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
   /** Resultado registado pela secretaria (Exames → Resultado final); null se ainda não houver. */
   official: { outcome: string; finalAverage: number | null } | null;
+  /** Nota mínima de aprovação do modelo de avaliação em vigor (não um 10 fixo). */
+  passingValue: number;
 };
 
 /**
@@ -2162,6 +2229,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         overallMfd: summary?.overallMfd ?? null,
         status: summary?.status ?? "PENDENTE",
         official: officialByYear.get(String(year?.["name"] ?? "")) ?? null,
+        passingValue: activeRule.passing,
       };
     });
 

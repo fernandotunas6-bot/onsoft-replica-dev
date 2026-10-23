@@ -29,8 +29,13 @@ export function PlatformAdminGate({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
 
+      // Volta à página onde estava depois de entrar (não sempre a /tenants).
+      const next = encodeURIComponent(
+        `${window.location.pathname}${window.location.search}` || "/tenants",
+      );
+
       if (!token) {
-        router.replace("/sign-in?next=/tenants");
+        router.replace(`/sign-in?next=${next}`);
         return;
       }
 
@@ -43,6 +48,13 @@ export function PlatformAdminGate({ children }: { children: React.ReactNode }) {
       if (!saasSession.ok || !saasSession.profile.platformAdmin) {
         await supabase.auth.signOut();
         if (!cancelled) setState("denied");
+        return;
+      }
+
+      // Sessão de administrador sem o 2.º passo: as rotas /api/saas/* recusariam
+      // cada pedido e as páginas ficariam vazias. O login retoma o MFA.
+      if (!saasSession.profile.mfa) {
+        router.replace(`/sign-in?step=mfa&next=${next}`);
         return;
       }
 

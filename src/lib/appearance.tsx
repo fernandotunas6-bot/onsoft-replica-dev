@@ -1,5 +1,6 @@
 import {
   createContext,
+  useRef,
   useCallback,
   useContext,
   useEffect,
@@ -7,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { colorThemes, tweakcnThemes } from "@/config/theme-data";
 import type { ImportedTheme, ThemePreset } from "@/types/theme-customizer";
 import { brandHexToCssVars, type SchoolBrandColors } from "@/lib/brand-tokens";
 
@@ -255,7 +255,42 @@ function sidebarVars(sidebar: SidebarPreset, accent: AccentPreset) {
   };
 }
 
+/**
+ * Catálogos de temas Shadcn/Tweakcn: cerca de 110 KB que o arranque não precisa.
+ * O estado por omissão não tem tema de catálogo, e quem tem um só o conhece
+ * depois de o `localStorage` ser lido — já depois de montar. Por isso carregam
+ * sob demanda e ficam em memória; as restantes variáveis são aplicadas sem
+ * esperar por eles, na mesma ordem de precedência de sempre.
+ */
+let catalogue: typeof import("@/config/theme-data") | null = null;
+let cataloguePromise: Promise<typeof import("@/config/theme-data")> | null = null;
+
+function loadThemeCatalogue() {
+  cataloguePromise ??= import("@/config/theme-data").then((mod) => {
+    catalogue = mod;
+    return mod;
+  });
+  return cataloguePromise;
+}
+
+/**
+ * Última aplicação pedida. Um catálogo que chegue depois de o estado mudar não
+ * deve escrever as variáveis do estado antigo.
+ */
+let appearanceGeneration = 0;
+
 export function applyAppearance(state: AppearanceState) {
+  if (typeof document === "undefined") return;
+  const generation = ++appearanceGeneration;
+  applyResolvedAppearance(state);
+  if (!catalogue && (state.shadcnTheme || state.tweakcnTheme)) {
+    void loadThemeCatalogue().then(() => {
+      if (generation === appearanceGeneration) applyResolvedAppearance(state);
+    });
+  }
+}
+
+function applyResolvedAppearance(state: AppearanceState) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const prefersDark =
@@ -276,7 +311,7 @@ export function applyAppearance(state: AppearanceState) {
 
   // 2. Se houver tema Shadcn ativo, aplica as variáveis
   if (state.shadcnTheme) {
-    const theme = colorThemes.find((t) => t.value === state.shadcnTheme);
+    const theme = catalogue?.colorThemes.find((t) => t.value === state.shadcnTheme);
     if (theme) {
       const styles = dark ? theme.preset.styles.dark : theme.preset.styles.light;
       Object.entries(styles).forEach(([k, v]) => {
@@ -287,7 +322,7 @@ export function applyAppearance(state: AppearanceState) {
 
   // 3. Se houver tema Tweakcn ativo, aplica as variáveis
   if (state.tweakcnTheme) {
-    const theme = tweakcnThemes.find((t) => t.value === state.tweakcnTheme);
+    const theme = catalogue?.tweakcnThemes.find((t) => t.value === state.tweakcnTheme);
     if (theme) {
       const styles = dark ? theme.preset.styles.dark : theme.preset.styles.light;
       Object.entries(styles).forEach(([k, v]) => {
@@ -351,6 +386,22 @@ type AppearanceContextValue = {
 
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
 
+/**
+ * Igualdade suficiente para os valores da aparência: primitivos por `Object.is`
+ * e objectos simples (ex.: `schoolBrand`) campo a campo. Serve para não criar
+ * estado novo quando nada mudou.
+ */
+function sameAppearanceValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) return false;
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) return false;
+  return keys.every((key) => Object.is(left[key], right[key]));
+}
+
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppearanceState>(defaults);
 
@@ -385,19 +436,43 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
    */
   const [prefereEscuro, setPrefereEscuro] = useState(false);
 
+  /*
+   * Subscrever uma só vez. Com `[state]`, qualquer alteração da aparência
+   * voltava a correr este efeito — e o efeito escreve estado
+   * (`setPrefereEscuro`). Era a forma exacta do «Maximum update depth
+   * exceeded» (React #185): efeito que depende de um objecto e escreve estado.
+   * O `onChange` precisa do estado actual, mas não precisa de o ter como
+   * dependência: lê-o por referência.
+   */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     setPrefereEscuro(mq.matches);
     const onChange = () => {
       setPrefereEscuro(mq.matches);
-      if (state.mode === "system") applyAppearance(state);
+      const current = stateRef.current;
+      if (current.mode === "system") applyAppearance(current);
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, [state]);
+  }, []);
 
   const set = useCallback((patch: Partial<AppearanceState>) => {
-    setState((s) => ({ ...s, ...patch }));
+    setState((s) => {
+      // Uma alteração que não altera nada tem de devolver o MESMO objecto.
+      // `{ ...s, ...patch }` criava sempre um objecto novo, e o `state` é
+      // dependência de efeitos: quem chamasse `set` em efeito com os mesmos
+      // valores (o `SchoolBrandAppearanceSync` chama em cada montagem) punha a
+      // árvore inteira a redesenhar sem nada ter mudado.
+      const changed = (Object.keys(patch) as (keyof AppearanceState)[]).some(
+        (key) => !sameAppearanceValue(s[key], patch[key]),
+      );
+      return changed ? { ...s, ...patch } : s;
+    });
   }, []);
 
   const reset = useCallback(() => {

@@ -27,20 +27,20 @@ const toneStyles: Record<StatCardTone, { iconWrap: string; iconColor: string }> 
     iconColor: "text-primary",
   },
   success: {
-    iconWrap: "bg-emerald-500/10 border-emerald-500/20",
-    iconColor: "text-emerald-600 dark:text-emerald-400",
+    iconWrap: "bg-success/10 border-success/20",
+    iconColor: "text-success-strong",
   },
   warning: {
-    iconWrap: "bg-amber-500/10 border-amber-500/20",
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconWrap: "bg-warning/10 border-warning/20",
+    iconColor: "text-warning-strong",
   },
   info: {
-    iconWrap: "bg-sky-500/10 border-sky-500/20",
-    iconColor: "text-sky-600 dark:text-sky-400",
+    iconWrap: "bg-info/10 border-info/20",
+    iconColor: "text-info-strong",
   },
   destructive: {
     iconWrap: "bg-destructive/10 border-destructive/20",
-    iconColor: "text-destructive",
+    iconColor: "text-destructive-strong",
   },
   neutral: {
     iconWrap: "bg-muted/60 border-border",
@@ -55,7 +55,7 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
       value,
       subtitle,
       icon: Icon,
-      tone = "primary",
+      tone = "neutral",
       trend,
       to,
       search,
@@ -70,14 +70,16 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
     const content = (
       <div
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-card transition-all duration-150",
-          to && "hover:border-primary/40 hover:shadow-subtle cursor-pointer",
+          "relative overflow-hidden rounded-xl border border-border/80 bg-card p-4 sm:p-5 transition-colors duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
+          to && "hover:border-primary/40 cursor-pointer",
           className,
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{title}</span>
-          <div className="flex items-center gap-1.5">
+          <span className="min-w-0 break-words text-xs font-medium text-muted-foreground">
+            {title}
+          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
             {action ? <div>{action}</div> : null}
             {Icon ? (
               <div
@@ -86,14 +88,18 @@ export const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
                   toneConfig.iconWrap,
                 )}
               >
-                <Icon className={cn("size-4", toneConfig.iconColor)} aria-hidden="true" />
+                <Icon
+                  className={cn("size-4", toneConfig.iconColor)}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
               </div>
             ) : null}
           </div>
         </div>
 
-        <div className="mt-3 flex items-baseline justify-between gap-2">
-          <div className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+          <div className="min-w-0 break-words font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {value}
           </div>
           {trend ? (

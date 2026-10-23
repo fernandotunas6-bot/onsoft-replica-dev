@@ -10,7 +10,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -237,10 +237,7 @@ export function TurmaProfileModal({
                         id: turma.id,
                         code: turma.code,
                         name: turma.name,
-                        shift: (["morning", "afternoon", "evening"].includes(turma.shift)
-                          ? turma.shift
-                          : "morning") as "morning" | "afternoon" | "evening",
-                        capacity: turma.capacity ?? undefined,
+                        // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
                         status: "active",
                       },
                     });
@@ -583,8 +580,9 @@ function TurmaEditSubModal({
           capacity: Number(capacity) || undefined,
           // Só envia a sala quando muda: "" tira a sala fixa.
           ...(roomId !== (turma.room_id ?? "") ? { roomId: roomId || null } : {}),
-          whatsappInviteUrl: whatsappInviteUrl.trim() || undefined,
-          whatsappGroupName: whatsappGroupName.trim() || undefined,
+          // Vazio apaga o link/nome (null); antes ausente também apagava.
+          whatsappInviteUrl: whatsappInviteUrl.trim() || null,
+          whatsappGroupName: whatsappGroupName.trim(),
         },
       });
       await onSaved();

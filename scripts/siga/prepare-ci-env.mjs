@@ -7,6 +7,7 @@ import { writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { assertSafeE2ETarget } from "./e2e-safety.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -27,7 +28,12 @@ if (!url || !publishable) {
   process.exit(1);
 }
 
+assertSafeE2ETarget(process.env);
+
 const lines = [
+  `SIGA_E2E_ALLOW_WRITES=${process.env.SIGA_E2E_ALLOW_WRITES}`,
+  `SIGA_E2E_PROJECT_REF=${process.env.SIGA_E2E_PROJECT_REF}`,
+  `SUPABASE_PROJECT_ID=${process.env.SIGA_E2E_PROJECT_REF}`,
   "# Gerado por scripts/siga/prepare-ci-env.mjs — não commitar",
   `SUPABASE_URL=${url}`,
   `VITE_SUPABASE_URL=${url}`,

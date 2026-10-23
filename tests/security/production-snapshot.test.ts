@@ -34,6 +34,7 @@ type Snapshot = {
     cmd: string;
     papeis: string;
     usando: string;
+    modo: "PERMISSIVE" | "RESTRICTIVE";
   }>;
   funcoes: Array<{ schema: string; funcao: string }>;
   triggers: Array<{ tabela: string; trigger: string; funcao: string }>;
@@ -152,6 +153,7 @@ const ANON_POLICIES_ESPERADAS = [
 // AppyPay) se confirmaram em produção. Voltou a esvaziar a 2026-10-02: as três
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
+// O retrato de 2026-10-21 confirma também tenant_billing_profiles.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
@@ -208,7 +210,9 @@ describe("produção vs repositório", () => {
     // O dia em que alguém acrescentar uma política que cubra `anon` a uma
     // destas tabelas, os dados saem. É isso que este teste impede.
     const comAnon = snap.politicas
-      .filter((p) => p.papeis.includes("anon"))
+      // RESTRICTIVE combines with permissive grants using AND and never grants
+      // access on its own. school_web_content_server_only explicitly denies it.
+      .filter((p) => p.papeis.includes("anon") && p.modo !== "RESTRICTIVE")
       .map((p) => `${p.tabela}.${p.politica}`)
       .sort();
 

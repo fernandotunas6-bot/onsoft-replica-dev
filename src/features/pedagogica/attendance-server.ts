@@ -15,6 +15,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
 import { schoolTodayIso } from "@/lib/school-date";
+import { LOCKED_SHEET_STATUSES } from "@/features/academic/sga-grades";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -514,6 +515,56 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * As faltas entram na pauta (o detalhe da pauta lê-as da chamada, ao vivo). Uma
+ * chamada, uma correcção ou uma justificação num período cuja pauta (do período
+ * ou anual) já é oficial mudava a percentagem de faltas de uma pauta homologada
+ * ou publicada (auditoria 13). A regra é a das notas (`LOCKED_SHEET_STATUSES`).
+ */
+async function assertAttendanceNotLocked(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  session: { class_group_id: unknown; lesson_date?: unknown },
+): Promise<void> {
+  const classGroupId = session.class_group_id ? String(session.class_group_id) : "";
+  const lessonDate = session.lesson_date ? String(session.lesson_date).slice(0, 10) : "";
+  if (!classGroupId || !lessonDate) return;
+  const { data: group } = await db
+    .from("class_groups")
+    .select("academic_year_id")
+    .eq("school_id", schoolId)
+    .eq("id", classGroupId)
+    .maybeSingle();
+  if (!group?.academic_year_id) return;
+  const { data: term } = await db
+    .from("terms")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("academic_year_id", String(group.academic_year_id))
+    .lte("starts_on", lessonDate)
+    .gte("ends_on", lessonDate)
+    .limit(1)
+    .maybeSingle();
+  const { data: sheets, error } = await db
+    .from("grade_sheets")
+    .select("kind, term_id")
+    .eq("school_id", schoolId)
+    .eq("class_group_id", classGroupId)
+    .in("status", LOCKED_SHEET_STATUSES);
+  if (error) {
+    throw publicDatabaseError(error, "Não foi possível confirmar se a pauta já é oficial.");
+  }
+  const locked = (sheets ?? []).some(
+    (sheet: { kind: string; term_id: string | null }) =>
+      sheet.kind === "annual" || (term?.id && String(sheet.term_id) === String(term.id)),
+  );
+  if (locked) {
+    throw new Error(
+      "A pauta deste período já é oficial: as presenças desta aula já não se alteram. Peça a alteração na pauta (Pedagógica → Pautas), com o motivo.",
+    );
+  }
+}
+
 export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => submitAttendanceCallBatchInputSchema.parse(input))
@@ -529,12 +580,13 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
 
     const { data: session, error: sErr } = await db
       .from("siga_attendance_sessions")
-      .select("id, school_id, class_group_id, subject_id, teacher_id, status")
+      .select("id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date")
       .eq("id", data.sessionId)
       .eq("school_id", membership.schoolId)
       .single();
 
     if (sErr || !session) throw new Error("Sessão de chamada não encontrada.");
+    await assertAttendanceNotLocked(db, membership.schoolId, session);
     // Chamada já fechada: mudar presenças é uma correcção, com motivo e
     // auditoria (editFinalizedAttendanceCall). Antes, reenviar a chamada
     // reescrevia-a sem rasto.
@@ -624,6 +676,7 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
       .single();
 
     if (!session) throw new Error("Sessão de chamada não encontrada.");
+    await assertAttendanceNotLocked(db, membership.schoolId, session);
 
     // As mesmas regras da chamada normal: o professor só corrige as suas
     // chamadas, e só entram alunos matriculados nesta turma.
@@ -664,6 +717,30 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
       .filter(({ item, oldStatus }) => oldStatus !== item.status);
 
     if (changes.length) {
+      // Primeiro o registo da correcção, depois a correcção: antes, se a auditoria
+      // falhasse, as presenças ficavam mudadas sem rasto (só um aviso no servidor).
+      const { data: auditRows, error: auditError } = await db
+        .from("siga_attendance_audits")
+        .insert(
+          changes.map(({ item, prev, oldStatus }) => ({
+            school_id: membership.schoolId,
+            session_id: session.id,
+            attendance_record_id: prev?.id ?? null,
+            student_id: item.studentId,
+            old_status: oldStatus,
+            new_status: item.status,
+            reason: data.reason.trim(),
+            changed_by: context.userId,
+          })),
+        )
+        .select("id");
+      if (auditError) {
+        throw publicDatabaseError(
+          auditError,
+          "Não foi possível registar a correcção. A chamada não foi alterada.",
+        );
+      }
+
       const now = new Date().toISOString();
       const { error: upsertError } = await db.from("siga_attendance_records").upsert(
         changes.map(({ item }) => ({
@@ -678,23 +755,13 @@ export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
         { onConflict: "session_id,student_id" },
       );
       if (upsertError) {
+        // O registo descreve uma correcção que não aconteceu: sai, se a tabela deixar.
+        const ids = (auditRows ?? []).map((row: { id: string }) => row.id);
+        if (ids.length) {
+          await db.from("siga_attendance_audits").delete().in("id", ids);
+        }
         throw publicDatabaseError(upsertError, "Não foi possível corrigir a chamada.");
       }
-
-      const { error: auditError } = await db.from("siga_attendance_audits").insert(
-        changes.map(({ item, prev, oldStatus }) => ({
-          school_id: membership.schoolId,
-          session_id: session.id,
-          attendance_record_id: prev?.id ?? null,
-          student_id: item.studentId,
-          old_status: oldStatus,
-          new_status: item.status,
-          reason: data.reason.trim(),
-          changed_by: context.userId,
-        })),
-      );
-      if (auditError)
-        console.warn("[attendance] auditoria da correcção falhou:", auditError.message);
 
       await recomputeAttendanceRates(
         db,
@@ -804,6 +871,29 @@ export const reviewAttendanceJustification = createServerFn({ method: "POST" })
         throw new Error(
           "Só pode decidir justificativas das suas aulas. As restantes são da Direcção ou da Secretaria.",
         );
+      }
+    }
+
+    // Aprovar torna a falta justificada: a pauta oficial já não muda por aqui.
+    if (data.status === "approved") {
+      let lockSessionId = just.session_id ? String(just.session_id) : null;
+      if (!lockSessionId && just.attendance_record_id) {
+        const { data: record } = await db
+          .from("siga_attendance_records")
+          .select("session_id")
+          .eq("school_id", membership.schoolId)
+          .eq("id", just.attendance_record_id)
+          .maybeSingle();
+        lockSessionId = record?.session_id ? String(record.session_id) : null;
+      }
+      if (lockSessionId) {
+        const { data: lockSession } = await db
+          .from("siga_attendance_sessions")
+          .select("class_group_id, lesson_date")
+          .eq("school_id", membership.schoolId)
+          .eq("id", lockSessionId)
+          .maybeSingle();
+        if (lockSession) await assertAttendanceNotLocked(db, membership.schoolId, lockSession);
       }
     }
 

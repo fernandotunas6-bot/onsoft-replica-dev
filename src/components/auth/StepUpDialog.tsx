@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Fingerprint, LoaderCircle, ShieldCheck } from "lucide-react";
 import {
   Dialog,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MfaChallenge } from "./MfaChallenge";
-import { STEP_UP_REQUIRED_EVENT } from "@/lib/step-up";
+import { consumePendingStepUpAction, STEP_UP_REQUIRED_EVENT } from "@/lib/step-up";
 import {
   listVerificationFactors,
   passkeyErrorMessage,
@@ -35,13 +35,18 @@ export function StepUpDialog({ email }: { email: string | null }) {
   useEffect(() => {
     const onRequired = (event: Event) => {
       const detail = (event as CustomEvent<{ action?: string }>).detail;
-      setAction(detail?.action || "esta acção");
+      setAction(consumePendingStepUpAction() || detail?.action || "esta acção");
       setLoading(true);
       void listVerificationFactors()
         .then(setFactors, () => setFactors({ passkeyId: null, totpId: null }))
         .finally(() => setLoading(false));
     };
     window.addEventListener(STEP_UP_REQUIRED_EVENT, onRequired);
+    // Recupera um pedido recebido antes da montagem assíncrona do diálogo.
+    const pendingAction = consumePendingStepUpAction();
+    if (pendingAction !== null) {
+      onRequired(new CustomEvent(STEP_UP_REQUIRED_EVENT, { detail: { action: pendingAction } }));
+    }
     return () => window.removeEventListener(STEP_UP_REQUIRED_EVENT, onRequired);
   }, []);
 

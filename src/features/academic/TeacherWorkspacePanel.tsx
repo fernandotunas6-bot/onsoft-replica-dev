@@ -15,7 +15,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayDiario } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export function TeacherWorkspacePanel({
   teacherId,
@@ -293,14 +293,5 @@ export function TeacherWorkspacePanel({
         </Panel>
       ) : null}
     </div>
-  );
-}
-
-export function TeacherWorkspaceHint() {
-  return (
-    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-      <GraduationCap className="size-4 text-primary" />
-      Espaço do docente: só módulos permitidos, turmas atribuídas e horário.
-    </p>
   );
 }

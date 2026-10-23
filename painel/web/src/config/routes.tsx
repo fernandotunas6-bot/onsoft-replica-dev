@@ -8,6 +8,8 @@ import StartSchool from '@/app/start/page'
 import Terms from '@/app/termos/page'
 import Privacy from '@/app/privacidade/page'
 import Download from '@/app/download/page'
+import Blog from '@/app/blog/page'
+import BlogPost from '@/app/blog/post-page'
 
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
 const Dashboard2 = lazy(() => import('@/app/dashboard-2/page'))
@@ -61,6 +63,8 @@ export const routes: RouteConfig[] = [
   { path: "/termos", element: <Terms /> },
   { path: "/privacidade", element: <Privacy /> },
   { path: "/download", element: <Download /> },
+  { path: "/blog", element: <Blog /> },
+  { path: "/blog/:slug", element: <BlogPost /> },
 
   // Produto vivo (funções reais do funil comercial)
   { path: "/dashboard", element: <Dashboard /> },

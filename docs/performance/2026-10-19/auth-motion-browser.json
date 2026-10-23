@@ -1,0 +1,19 @@
+{
+  "kind": "production-build-behavior-check",
+  "desktop": {
+    "x": 867.25,
+    "y": 211.578125,
+    "width": 420,
+    "height": 476.84375
+  },
+  "mobile": {
+    "x": 15,
+    "y": 214.265625,
+    "width": 360,
+    "height": 481.46875
+  },
+  "reducedPaused": true,
+  "mobilePaused": true,
+  "mobileVideoCount": 0,
+  "errors": []
+}

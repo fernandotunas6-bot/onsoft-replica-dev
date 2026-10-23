@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   ArrowLeft,
   CalendarDays,
@@ -286,7 +286,7 @@ function StudentDetail() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
     retry: false,
   });
   const documentsQuery = useQuery({
@@ -631,7 +631,7 @@ function StudentDetail() {
         status:
           subject.mfd == null
             ? "Pendente"
-            : subject.mfd >= angolaGradeScale.passing
+            : subject.mfd >= (year.passingValue ?? angolaGradeScale.passing)
               ? "Aprovado"
               : "Reprovado",
       })),
@@ -1393,7 +1393,7 @@ function StudentDetail() {
             <QuickFormModal
               eyebrow={student.registration_number}
               title="Alterar estado"
-              description="Actualize o estado académico do aluno e registe o motivo."
+              description="Actualize o estado académico do aluno e registe o motivo. Inactivo, Transferido e Concluído fecham a matrícula do ano e libertam o lugar na turma."
               icon={<UserCheck className="size-5" />}
               submitLabel="Confirmar estado"
               onSubmit={handleChangeStatus}
@@ -1424,7 +1424,7 @@ function StudentDetail() {
             {student.enrollment_id ? (
               <ConfirmActionModal
                 title="Anular matrícula"
-                description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se.`}
+                description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se; sem outra matrícula, o aluno passa a inactivo até ser matriculado de novo.`}
                 confirmLabel="Anular matrícula"
                 onConfirm={async () => {
                   await cancelEnrollment({

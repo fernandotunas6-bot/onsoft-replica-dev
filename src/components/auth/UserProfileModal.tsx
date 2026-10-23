@@ -16,7 +16,7 @@ import {
   Upload,
   User,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   Dialog,
   DialogContent,
@@ -407,7 +407,10 @@ export function UserProfileModal({
                     onPick={(file) => {
                       void (async () => {
                         try {
-                          const blob = await resolveFileBlob(file);
+                          const blob = await resolveFileBlob(file, {
+                            schoolId: currentUser.schoolId,
+                            ownerUserId: currentUser.id,
+                          });
                           const chosen = new File([blob], file.name, { type: blob.type });
                           await uploadAvatar(chosen);
                         } catch {

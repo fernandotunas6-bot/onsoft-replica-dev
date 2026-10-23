@@ -10,13 +10,12 @@ import {
   History,
   Mail,
   MapPin,
-  Network,
   Phone,
   ShieldCheck,
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -142,11 +141,8 @@ function AlumniProfilePage() {
           }
         />
 
-        <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-sm">
-          <div className="relative bg-gradient-to-br from-primary/15 via-background to-success/10 p-6 md:p-8">
-            <div className="absolute right-8 top-6 opacity-10">
-              <Network className="size-28" />
-            </div>
+        <section className="overflow-hidden rounded-xl border border-border/70 bg-card">
+          <div className="relative bg-muted/20 p-5 md:p-6">
             <div className="relative flex flex-col gap-5 md:flex-row md:items-center">
               <MediaAvatar
                 src={person?.photo_url ?? null}

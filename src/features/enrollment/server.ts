@@ -31,6 +31,9 @@ import {
 import { schoolTodayIso } from "@/lib/school-date";
 import { addStudentToWaitlist } from "./waitlist";
 import { isClassFullError } from "./waitlist-rules";
+import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
+import { getTenantAccessBlock } from "@/features/saas/tenant-access";
+import { publishedAdmissionFee, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 
 function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
   return Boolean(
@@ -147,6 +150,33 @@ export const updateEnrollmentForm = createServerFn({ method: "POST" })
     return form;
   });
 
+/**
+ * O formulário público só recebe candidaturas de uma escola que pode trabalhar.
+ * O bloqueio de uma escola suspensa, arquivada ou com o trial terminado vivia só
+ * no ecrã do SIGA: o link público continuava aberto e as famílias candidatavam-se
+ * a uma escola que não as podia receber (auditoria 13).
+ */
+async function schoolAcceptsPublicEnrollment(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+): Promise<boolean> {
+  const { data: school, error } = await db
+    .from("schools")
+    .select("status, tenant_id")
+    .eq("id", schoolId)
+    .maybeSingle();
+  if (error) throw publicDatabaseError(error, "Não foi possível validar a escola.");
+  if (!school || school.status === "archived") return false;
+  if (!school.tenant_id) return true;
+  const { data: tenant, error: tenantError } = await db
+    .from("tenants")
+    .select("status, subscription_status, trial_ends_at, billing_exempt")
+    .eq("id", school.tenant_id)
+    .maybeSingle();
+  if (tenantError) throw publicDatabaseError(tenantError, "Não foi possível validar a escola.");
+  return !getTenantAccessBlock(tenant as Parameters<typeof getTenantAccessBlock>[0] | null).blocked;
+}
+
 export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
   .validator((input: unknown) => getPublicEnrollmentFormInputSchema.parse(input))
   .handler(async ({ data }) => {
@@ -162,6 +192,9 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível abrir o formulário.");
     if (!form) throw new Error("Este link de matrícula não está disponível.");
+    if (!(await schoolAcceptsPublicEnrollment(db, String(form.school_id)))) {
+      throw new Error("Este link de matrícula não está disponível.");
+    }
     let schoolName = "Escola";
     let schoolPhone: string | null = null;
     let schoolEmail: string | null = null;
@@ -202,8 +235,24 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
       .in("kind", ["undergraduate", "postgraduate"])
       .eq("is_active", true)
       .order("name");
+    // The fee is informational and comes only from this school's published campaign.
+    // An absent/unavailable website must not make an existing enrollment link unusable.
+    let admissionFeeAmount: number | null = null;
+    try {
+      const settings = await db
+        .from("school_settings")
+        .select("value")
+        .eq("school_id", form.school_id)
+        .eq("domain", WEBSITE_DOMAIN)
+        .maybeSingle();
+      if (!settings.error)
+        admissionFeeAmount = publishedAdmissionFee(settings.data?.value, data.slug);
+    } catch {
+      admissionFeeAmount = null;
+    }
     return {
       ...form,
+      admissionFeeAmount,
       programs: (programRows ?? []).map((row) => ({ id: String(row.id), name: String(row.name) })),
       school_name: schoolName,
       school_phone: publicSchoolPhone(schoolPhone, installedProviders),
@@ -235,6 +284,9 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
       .maybeSingle();
     if (formError) throw publicDatabaseError(formError, "Não foi possível validar o formulário.");
     if (!form) throw new Error("Este link de matrícula está fechado.");
+    if (!(await schoolAcceptsPublicEnrollment(db, String(form.school_id)))) {
+      throw new Error("Este link de matrícula está fechado.");
+    }
 
     let desiredProgram: { id: string; name: string } | null = null;
     if (data.desiredProgramId) {
@@ -327,6 +379,8 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
     // de escrever: sem isto, cada tentativa sem 2FA deixava pessoas órfãs.
     if (data.decision === "accepted") {
       requireAal2(context.claims, "Aceitar uma candidatura e criar o aluno");
+      // Aceitar cria um aluno: conta para o limite do plano, como «Novo aluno».
+      await assertCanAddStudentForSchool(membership.schoolId);
     }
     const db = await loadSgaAdminClient();
 

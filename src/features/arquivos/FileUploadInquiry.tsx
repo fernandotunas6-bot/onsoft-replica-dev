@@ -14,6 +14,11 @@ import {
 import { MediaFrame } from "@/components/ui/media-frame";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { DialogExpandButton, useExpandableDialog } from "./dialog-expand";
+import {
+  classifyExistingFile,
+  describeFileLocation,
+  type ExistingSchoolFileLocation,
+} from "./find-existing";
 import { documentCodeSearchHint, generateDocumentCode, prefixForCategory } from "./document-code";
 import {
   defaultVisibilityForArea,
@@ -72,6 +77,13 @@ export function FileUploadInquiryModal({
   currentUserId,
   mode = "upload",
   initial,
+  lockRelatedPerson = false,
+  currentFolderId = null,
+  existingMatches = [],
+  checkingExisting = false,
+  existingCheckError = false,
+  existingCheckIncomplete = false,
+  onShowExisting,
   onCancel,
   onConfirm,
 }: {
@@ -84,6 +96,13 @@ export function FileUploadInquiryModal({
   currentUserId: string;
   mode?: "upload" | "organize";
   initial?: Partial<UploadInquiryResult> & { name?: string };
+  lockRelatedPerson?: boolean;
+  currentFolderId?: string | null;
+  existingMatches?: readonly ExistingSchoolFileLocation[];
+  checkingExisting?: boolean;
+  existingCheckError?: boolean;
+  existingCheckIncomplete?: boolean;
+  onShowExisting?: (match: ExistingSchoolFileLocation) => void;
   onCancel: () => void;
   onConfirm: (meta: UploadInquiryResult) => void;
 }) {
@@ -145,7 +164,11 @@ export function FileUploadInquiryModal({
       (photoLike ? "foto" : suggestFileCategory({ name: firstName, kind: firstKind }));
     const nextArea = initial?.area ?? suggestFileArea(nextCategory, writableAreas, defaultArea);
     const nextTitle = initial?.title?.trim() || defaultTitleFromName(firstName);
-    const nextDescription = initial?.description?.trim() || "";
+    // Nota neutra preenchida automaticamente; não exigir repetição do nome
+    // do ficheiro quando o utilizador não precisa de escrever uma descrição.
+    const nextDescription =
+      initial?.description?.trim() ||
+      (mode === "upload" ? `Ficheiro identificado como ${firstName}.`.slice(0, 800) : "");
     const nextDocumentDate = initial?.documentDate || "";
     const nextReferenceCode =
       initial?.referenceCode?.trim() || generateDocumentCode(prefixForCategory(nextCategory));
@@ -201,6 +224,7 @@ export function FileUploadInquiryModal({
     initial,
     open,
     photoLike,
+    mode,
     writableAreas,
     files,
   ]);
@@ -254,6 +278,27 @@ export function FileUploadInquiryModal({
   });
 
   const totalBytes = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
+  const locationLabels = {
+    escola: fileAreaMeta.escola.label,
+    secretaria: fileAreaMeta.secretaria.label,
+    pessoal: fileAreaMeta.pessoal.label,
+    publico: fileAreaMeta.publico.label,
+  };
+  const existingLocations = useMemo(
+    () =>
+      existingMatches.flatMap((match) =>
+        files.flatMap((file) => {
+          const placement = classifyExistingFile(
+            match,
+            file,
+            area,
+            area === defaultArea ? currentFolderId : null,
+          );
+          return placement ? [{ match, placement }] : [];
+        }),
+      ),
+    [area, currentFolderId, defaultArea, existingMatches, files],
+  );
 
   return (
     <Dialog
@@ -276,13 +321,13 @@ export function FileUploadInquiryModal({
                 ? "Organizar ficheiro"
                 : isPhotoCategory
                   ? "Fotografia do aluno"
-                  : "Inquérito do documento"}
+                  : "Guardar ficheiro"}
             </DialogTitle>
             <DialogDescription className="mt-1 text-sm">
               {mode === "organize"
-                ? "Complete a descrição e o destino da área. Nenhum media fica fora do padrão SIGA."
+                ? "Actualize os dados do ficheiro."
                 : isPhotoCategory
-                  ? "Associe a imagem a um aluno e indique a área de destino."
+                  ? "Seleccione o aluno."
                   : `Descreva o ficheiro e escolha a área${
                       files.length > 1
                         ? ` (${files.length} ficheiros · ${formatFileSize(totalBytes)})`
@@ -313,6 +358,58 @@ export function FileUploadInquiryModal({
               <p className="truncate">{firstName}</p>
             )}
           </div>
+          {mode === "upload" ? (
+            <section className="rounded-xl border border-border bg-card p-3" aria-live="polite">
+              <p className="text-xs font-semibold">Ficheiros semelhantes</p>
+              {checkingExisting ? (
+                <p className="mt-1 text-xs text-muted-foreground">A verificar…</p>
+              ) : existingCheckError ? (
+                <p className="mt-1 text-xs text-destructive">
+                  Não foi possível verificar possíveis cópias.
+                </p>
+              ) : existingLocations.length ? (
+                <div className="mt-2 space-y-2">
+                  {existingLocations.slice(0, 12).map(({ match, placement }) => (
+                    <div key={match.id} className="rounded-lg border border-border p-2 text-xs">
+                      <p className="break-all font-medium">{match.name}</p>
+                      <p className="mt-1 text-muted-foreground">
+                        {placement === "same-folder"
+                          ? "Já existe nesta pasta"
+                          : placement === "another-folder"
+                            ? "Existe noutra pasta"
+                            : "Mesmo nome, tamanho diferente"}{" "}
+                        · {describeFileLocation(match, locationLabels)}
+                      </p>
+                      {onShowExisting ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="link"
+                          className="mt-1 h-auto px-0 text-xs"
+                          onClick={() => onShowExisting(match)}
+                        >
+                          Ver ficheiro
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))}
+                  {existingLocations.length > 12 ? (
+                    <p className="text-xs text-muted-foreground">
+                      +{existingLocations.length - 12} correspondências adicionais.
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Sem correspondências.</p>
+              )}
+              {existingCheckIncomplete ? (
+                <p className="mt-2 text-xs text-destructive">Pesquisa incompleta.</p>
+              ) : null}
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Correspondência por nome e tamanho; conteúdo não confirmado.
+              </p>
+            </section>
+          ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="file-meta-title">Título</Label>
             <Input
@@ -321,26 +418,6 @@ export function FileUploadInquiryModal({
               onChange={(event) => setTitle(event.target.value)}
               maxLength={180}
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-desc">
-              Descrição <span className="text-destructive">*</span>
-            </Label>
-            <textarea
-              id="file-meta-desc"
-              value={description}
-              onChange={(event) => {
-                setDescription(event.target.value);
-                setFormError(null);
-              }}
-              rows={3}
-              maxLength={800}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder={`Obrigatória · mínimo ${FILE_DESCRIPTION_MIN} caracteres (contexto, uso, destinatário)`}
-            />
-            <p className="text-[11px] text-muted-foreground">
-              {description.trim().length}/{FILE_DESCRIPTION_MIN} mínimos
-            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -375,6 +452,7 @@ export function FileUploadInquiryModal({
                 id="file-meta-area"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
                 value={area}
+                disabled={lockRelatedPerson}
                 onChange={(event) => {
                   const next = event.target.value as FileArea;
                   setArea(next);
@@ -390,114 +468,140 @@ export function FileUploadInquiryModal({
               <p className="text-[11px] text-muted-foreground">{fileAreaMeta[area].description}</p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="file-meta-date">
-                {isPhotoCategory ? "Data da foto" : "Data do documento"}
-              </Label>
-              <Input
-                id="file-meta-date"
-                type="date"
-                value={documentDate}
-                onChange={(event) => setDocumentDate(event.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="file-meta-ref">ID do documento</Label>
-              <Input
-                id="file-meta-ref"
-                value={referenceCode}
-                onChange={(event) => setReferenceCode(event.target.value.toUpperCase())}
-                placeholder={documentCodeSearchHint()}
-                maxLength={40}
-                className="font-mono text-sm"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Padrão PREFIX-AAMMDD-XXXX para pesquisa rápida na biblioteca.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-visibility">Nível de acesso</Label>
-            <select
-              id="file-meta-visibility"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={visibility}
-              onChange={(event) =>
-                setVisibility(event.target.value as SchoolFileRecord["visibility"])
-              }
-            >
-              {fileVisibilityOptions.map((value) => (
-                <option key={value} value={value}>
-                  {fileVisibilityMeta[value].label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-user">
-              Utilizador relacionado <span className="text-destructive">*</span>
-            </Label>
-            <select
-              id="file-meta-user"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={relatedUserId}
-              onChange={(event) => {
-                setRelatedUserId(event.target.value);
-                setFormError(null);
-              }}
-            >
-              <option value="">Seleccione a conta SIGA…</option>
-              {(usersQuery.data?.users ?? []).map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                  {user.id === currentUserId ? " (eu)" : ""}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-muted-foreground">
-              Todo o documento fica ligado a uma conta (metadados). Por omissão: a sua.
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="file-meta-person-q">
-              {isPhotoCategory ? "Aluno (obrigatório)" : "Relacionar a pessoa (registo)"}
-            </Label>
-            <Input
-              id="file-meta-person-q"
-              value={personQuery}
-              onChange={(event) => setPersonQuery(event.target.value)}
-              placeholder={
-                isPhotoCategory
-                  ? "Procurar por nome ou nº de processo…"
-                  : "Procurar aluno, encarregado, docente…"
-              }
-            />
-            <select
-              className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              value={relatedPersonId}
-              onChange={(event) => {
-                setRelatedPersonId(event.target.value);
-                setFormError(null);
-              }}
-              aria-label={isPhotoCategory ? "Aluno relacionado" : "Pessoa relacionada"}
-            >
-              <option value="">{isPhotoCategory ? "Seleccione o aluno…" : "Nenhuma"}</option>
-              {isPhotoCategory
-                ? (studentsQuery.data?.students ?? []).map((student) => (
-                    <option key={student.personId} value={student.personId}>
-                      {student.name}
-                      {student.registrationNumber ? ` · ${student.registrationNumber}` : ""}
-                    </option>
-                  ))
-                : (peopleQuery.data?.people ?? []).map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.name}
-                      {person.email ? ` · ${person.email}` : ""}
+          <details
+            className="rounded-lg border border-border px-3 py-2"
+            open={isPhotoCategory || mode === "organize" || lockRelatedPerson ? true : undefined}
+          >
+            <summary className="cursor-pointer text-sm font-medium">Mais opções</summary>
+            <div className="mt-3 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-desc">
+                  Descrição <span className="text-destructive">*</span>
+                </Label>
+                <textarea
+                  id="file-meta-desc"
+                  value={description}
+                  onChange={(event) => {
+                    setDescription(event.target.value);
+                    setFormError(null);
+                  }}
+                  rows={3}
+                  maxLength={800}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="Finalidade deste ficheiro"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {description.trim().length}/{FILE_DESCRIPTION_MIN} mínimos
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="file-meta-date">
+                    {isPhotoCategory ? "Data da foto" : "Data do documento"}
+                  </Label>
+                  <Input
+                    id="file-meta-date"
+                    type="date"
+                    value={documentDate}
+                    onChange={(event) => setDocumentDate(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="file-meta-ref">ID do documento</Label>
+                  <Input
+                    id="file-meta-ref"
+                    value={referenceCode}
+                    onChange={(event) => setReferenceCode(event.target.value.toUpperCase())}
+                    placeholder={documentCodeSearchHint()}
+                    maxLength={40}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground">ID gerado automaticamente.</p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-visibility">Nível de acesso</Label>
+                <select
+                  id="file-meta-visibility"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={visibility}
+                  disabled={lockRelatedPerson}
+                  onChange={(event) =>
+                    setVisibility(event.target.value as SchoolFileRecord["visibility"])
+                  }
+                >
+                  {fileVisibilityOptions.map((value) => (
+                    <option key={value} value={value}>
+                      {fileVisibilityMeta[value].label}
                     </option>
                   ))}
-            </select>
-          </div>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-user">
+                  Utilizador relacionado <span className="text-destructive">*</span>
+                </Label>
+                <select
+                  id="file-meta-user"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={relatedUserId}
+                  onChange={(event) => {
+                    setRelatedUserId(event.target.value);
+                    setFormError(null);
+                  }}
+                >
+                  <option value="">Seleccione a conta SIGA…</option>
+                  {(usersQuery.data?.users ?? []).map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                      {user.id === currentUserId ? " (eu)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted-foreground">Conta predefinida: a sua.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="file-meta-person-q">
+                  {isPhotoCategory ? "Aluno (obrigatório)" : "Relacionar a pessoa (registo)"}
+                </Label>
+                <Input
+                  id="file-meta-person-q"
+                  value={personQuery}
+                  onChange={(event) => setPersonQuery(event.target.value)}
+                  placeholder={
+                    isPhotoCategory
+                      ? "Procurar por nome ou nº de processo…"
+                      : "Procurar aluno, encarregado, docente…"
+                  }
+                />
+                <select
+                  className="mt-1.5 flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={relatedPersonId}
+                  disabled={lockRelatedPerson}
+                  onChange={(event) => {
+                    setRelatedPersonId(event.target.value);
+                    setFormError(null);
+                  }}
+                  aria-label={isPhotoCategory ? "Aluno relacionado" : "Pessoa relacionada"}
+                >
+                  <option value="">{isPhotoCategory ? "Seleccione o aluno…" : "Nenhuma"}</option>
+                  {isPhotoCategory
+                    ? (studentsQuery.data?.students ?? []).map((student) => (
+                        <option key={student.personId} value={student.personId}>
+                          {student.name}
+                          {student.registrationNumber ? ` · ${student.registrationNumber}` : ""}
+                        </option>
+                      ))
+                    : (peopleQuery.data?.people ?? []).map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                          {person.email ? ` · ${person.email}` : ""}
+                        </option>
+                      ))}
+                </select>
+              </div>
+            </div>
+          </details>
           {isPhotoCategory ? (
             <label className="flex items-start gap-2 rounded-xl border border-border bg-primary/5 px-3 py-2.5 text-sm">
               <input
@@ -510,7 +614,7 @@ export function FileUploadInquiryModal({
               <span>
                 <span className="font-medium text-foreground">Usar como foto de perfil</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Só PNG/JPEG são aplicados na ficha; WebP/GIF ficam na biblioteca ligados ao aluno.
+                  Apenas PNG/JPEG podem ser usados no perfil.
                 </span>
               </span>
             </label>
@@ -523,12 +627,28 @@ export function FileUploadInquiryModal({
           </Button>
           <Button
             type="button"
+            disabled={mode === "upload" && checkingExisting}
             onClick={() => {
               const trimmedDescription = description.trim();
               if (trimmedDescription.length < FILE_DESCRIPTION_MIN) {
                 setFormError(
                   `Indique uma descrição com pelo menos ${FILE_DESCRIPTION_MIN} caracteres.`,
                 );
+                return;
+              }
+              if (
+                lockRelatedPerson &&
+                (!initial?.relatedPersonId || relatedPersonId !== initial.relatedPersonId)
+              ) {
+                setFormError("O documento deve permanecer associado à pessoa deste perfil.");
+                return;
+              }
+              if (lockRelatedPerson && area !== "secretaria") {
+                setFormError("Os documentos pessoais devem ficar na área reservada da Secretaria.");
+                return;
+              }
+              if (lockRelatedPerson && visibility !== "private") {
+                setFormError("Os documentos pessoais devem manter acesso privado.");
                 return;
               }
               if (isPhotoCategory && !relatedPersonId) {

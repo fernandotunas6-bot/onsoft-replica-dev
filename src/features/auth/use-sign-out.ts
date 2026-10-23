@@ -1,8 +1,9 @@
 import { clearSigaCaches } from "@/lib/pwa";
+import { clearOfflineQueries } from "@/lib/offline/offline-queries";
 import { forgetAllTrustedDevices } from "@/features/auth/trusted-device";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useSignOut() {
@@ -22,6 +23,8 @@ export function useSignOut() {
       forgetAllTrustedDevices();
       queryClient.clear();
       await clearSigaCaches().catch(() => undefined);
+      // A fila de envio sem rede fica: está no cofre do posto e só sai com esta pessoa.
+      clearOfflineQueries();
       return true;
     } catch {
       toast.error("Não foi possível contactar o serviço de autenticação.");

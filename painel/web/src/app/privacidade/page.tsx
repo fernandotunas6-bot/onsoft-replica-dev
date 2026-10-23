@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       title="Política de Privacidade"
       description="Como o SIGA Plus recolhe, usa e protege os seus dados."
       eyebrow="Legal"
-      lastUpdated="Setembro de 2026"
+      lastUpdated="Outubro de 2026"
     >
       <LegalSection title="1. Quem trata os seus dados">
         <p>
@@ -38,6 +38,16 @@ export default function PrivacyPage() {
           encarregados de educação, professores e funcionários (por exemplo, nome, número de BI,
           data de nascimento, pautas, dados de contacto e de tesouraria) necessários para o
           funcionamento dos módulos que a Escola escolhe usar.
+        </p>
+        <p>
+          Quando nos escreve pelo formulário de contacto do site, guardamos o nome, o e-mail, a
+          escola (se a indicar) e a mensagem, só para lhe responder e acompanhar o pedido.
+        </p>
+        <p>
+          Se a Escola o autorizar nas Definições do SIGA, o site mostra o nome, o logótipo e a
+          cidade da Escola na lista «Escolas que usam o SIGA Plus». A Escola pode retirar a
+          autorização a qualquer momento. Os números do site (escolas activas e alunos) são
+          totais, sem dados de nenhuma pessoa.
         </p>
       </LegalSection>
 

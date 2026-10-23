@@ -186,4 +186,30 @@ describe("aplicar o modelo", () => {
     expect(writes["subjects"]!.map((s) => s["code"])).not.toContain("LP");
     expect(writes["curriculum_subjects"]!.map((l) => l["subject_id"])).toContain("old-0");
   });
+
+  it("reaproveita a mesma disciplina escrita de outra forma (catálogo)", async () => {
+    const { db, writes } = fakeDb({
+      withYear: true,
+      existingSubjects: [
+        { code: "INGL", name: "Inglês" },
+        { code: "EDF", name: "Ed. Física" },
+      ],
+    });
+    await applyCurriculumPlan(db, { schoolId: "s1", userId: "u1" }, plan);
+    const created = writes["subjects"]!.map((s) => s["code"]);
+    expect(created).not.toContain("LE");
+    expect(created).not.toContain("EF");
+    const linked = writes["curriculum_subjects"]!.map((l) => l["subject_id"]);
+    expect(linked).toEqual(expect.arrayContaining(["old-0", "old-1"]));
+  });
+
+  it("não junta pelo código: «EM» de outra escola não passa a ser Estudo do Meio", async () => {
+    const primario = planCurriculum({ ...base, courses: { primario: ["EP"] } });
+    const { db, writes } = fakeDb({
+      withYear: true,
+      existingSubjects: [{ code: "EMOR", name: "Educação Moral" }],
+    });
+    await applyCurriculumPlan(db, { schoolId: "s1", userId: "u1" }, primario);
+    expect(writes["subjects"]!.map((s) => s["name"])).toContain("Estudo do Meio");
+  });
 });

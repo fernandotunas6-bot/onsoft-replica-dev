@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
@@ -84,6 +84,7 @@ export function StudentEnrollmentSheet({
   onCreated: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(autoOpen);
+  const requestId = useRef("");
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.send");
   const [values, setValues] = useState(emptyValues);
@@ -96,6 +97,7 @@ export function StudentEnrollmentSheet({
   const wasOpen = useRef(open);
   useEffect(() => {
     if (wasOpen.current && !open) {
+      requestId.current = "";
       setValues(emptyValues);
       setGuardianQuery("");
       setGuardianResults([]);
@@ -248,16 +250,15 @@ export function StudentEnrollmentSheet({
             turma.capacity > 0 &&
             (turma.enrolled_count ?? 0) >= turma.capacity
           ) {
-            const proceedCapacity = window.confirm(
-              `Aviso de lotação: a turma "${turma.name}" já atingiu a sua lotação máxima (${turma.enrolled_count ?? 0}/${turma.capacity} alunos).\n\nDeseja continuar com a matrícula extraordinária nesta turma?`,
+            throw new Error(
+              `A turma «${turma.name}» atingiu a lotação máxima. Seleccione outra turma com vagas disponíveis.`,
             );
-            if (!proceedCapacity) {
-              throw new Error("Matrícula cancelada — selecione outra turma com vagas disponíveis.");
-            }
           }
           const relationship = values.parentesco || "encarregado";
+          requestId.current ||= crypto.randomUUID();
           await enrollNewStudent({
             data: {
+              requestId: requestId.current,
               person: {
                 full_name: values.nome,
                 birth_date: values.nascimento || undefined,
@@ -418,6 +419,7 @@ export function StudentEnrollmentSheet({
                 <SheetCell label="Observações" full>
                   <Textarea
                     aria-label="Observações"
+                    placeholder="Indicações para a secretaria, guardadas no histórico da matrícula."
                     value={values.obs}
                     onChange={(e) => setField("obs", e.target.value)}
                   />

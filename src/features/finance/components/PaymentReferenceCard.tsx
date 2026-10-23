@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
 import { getFinanceGatewayConfirmUrl } from "@/lib/ecosystem-urls";
 import { confirmManualMulticaixaPayment, generateInvoicePaymentReference } from "../server";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { schoolTodayIso } from "@/lib/school-date";
 
 const kwanzaLabel = (value: number) =>
   new Intl.NumberFormat("pt-AO", { style: "currency", currency: "AOA" }).format(value);
@@ -27,11 +28,20 @@ export function PaymentReferenceCard({
 }: PaymentReferenceCardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  // Dia do pagamento no comprovativo: a multa é a desse dia, não a do dia da confirmação.
+  const today = schoolTodayIso();
+  const [paidOn, setPaidOn] = useState(today);
+  const paidOnForQuery = paidOn && paidOn <= today ? paidOn : today;
 
   const refQuery = useQuery({
-    queryKey: ["finance", "payment-reference", invoiceId],
-    queryFn: () => generateInvoicePaymentReference({ data: { invoiceId } }),
+    queryKey: ["finance", "payment-reference", invoiceId, paidOnForQuery],
+    queryFn: () =>
+      generateInvoicePaymentReference({
+        data: paidOnForQuery === today ? { invoiceId } : { invoiceId, paidOn: paidOnForQuery },
+      }),
     retry: false,
+    // Ao mudar a data, o cartão fica com a referência anterior até chegar a nova.
+    placeholderData: (previous) => previous,
   });
 
   const referenceData = refQuery.data?.multicaixa;
@@ -49,7 +59,7 @@ export function PaymentReferenceCard({
     if (!referenceData) return;
     if (
       !window.confirm(
-        `Confirma que viu o comprovativo deste pagamento (${referenceData.amountFormatted}, referência ${referenceData.reference})? Esta acção marca a fatura como paga.`,
+        `Confirma que viu o comprovativo deste pagamento (${referenceData.amountFormatted}, referência ${referenceData.reference}, pago a ${paidOnForQuery})? Esta acção marca a fatura como paga.`,
       )
     ) {
       return;
@@ -62,6 +72,7 @@ export function PaymentReferenceCard({
           amount: referenceData.amountNumber,
           reference: referenceData.reference,
           method: "multicaixa_express",
+          ...(paidOnForQuery === today ? {} : { paidOn: paidOnForQuery }),
         },
       });
       toast.success("Pagamento confirmado", {
@@ -219,10 +230,23 @@ export function PaymentReferenceCard({
           em Integrações.
         </div>
 
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          Pago a
+          <input
+            type="date"
+            value={paidOn}
+            max={today}
+            onChange={(event) => setPaidOn(event.target.value)}
+            disabled={isConfirming}
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+            aria-label="Data do pagamento no comprovativo"
+          />
+        </label>
+
         <Button
           type="button"
           size="sm"
-          disabled={isConfirming}
+          disabled={isConfirming || refQuery.isFetching}
           onClick={() => void handleConfirmManualPayment()}
           className="gap-2 shadow-sm"
         >

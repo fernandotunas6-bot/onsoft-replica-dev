@@ -19,6 +19,7 @@ export type PasswordGrantResult =
         | "invalid_credentials"
         | "email_not_confirmed"
         | "rate_limited"
+        | "school_required"
         | "captcha_failed"
         | "unavailable";
     };

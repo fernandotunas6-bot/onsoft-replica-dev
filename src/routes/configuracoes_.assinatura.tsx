@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, ExternalLink, Globe } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { moduleIcons } from "@/lib/app-icons";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -94,7 +94,7 @@ function SubscriptionPage() {
   );
 }
 
-export function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
+function SubscriptionDetail({ data }: { data: SubscriptionOverview }) {
   const state = describeSubscription(data, new Date());
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">

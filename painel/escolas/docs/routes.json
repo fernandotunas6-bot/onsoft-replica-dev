@@ -1,0 +1,266 @@
+[
+  {
+    "url": "/",
+    "title": "Conhecimento que aproxima futuros"
+  },
+  {
+    "url": "/cursos/",
+    "title": "Encontre o seu curso"
+  },
+  {
+    "url": "/cursos/engenharia-informatica/",
+    "title": "Engenharia Informática"
+  },
+  {
+    "url": "/cursos/gestao-de-empresas/",
+    "title": "Gestão de Empresas"
+  },
+  {
+    "url": "/cursos/enfermagem/",
+    "title": "Enfermagem"
+  },
+  {
+    "url": "/cursos/contabilidade-e-financas/",
+    "title": "Contabilidade e Finanças"
+  },
+  {
+    "url": "/cursos/engenharia-civil/",
+    "title": "Engenharia Civil"
+  },
+  {
+    "url": "/cursos/psicologia/",
+    "title": "Psicologia"
+  },
+  {
+    "url": "/cursos/direito/",
+    "title": "Direito"
+  },
+  {
+    "url": "/cursos/pedagogia/",
+    "title": "Ciências da Educação"
+  },
+  {
+    "url": "/cursos/comunicacao-social/",
+    "title": "Comunicação Social"
+  },
+  {
+    "url": "/cursos/engenharia-electrotecnica/",
+    "title": "Engenharia Electrotécnica"
+  },
+  {
+    "url": "/cursos/economia/",
+    "title": "Economia"
+  },
+  {
+    "url": "/cursos/design-digital/",
+    "title": "Design Digital"
+  },
+  {
+    "url": "/cursos/gestao-de-projectos/",
+    "title": "Gestão de Projectos"
+  },
+  {
+    "url": "/cursos/ciencia-de-dados/",
+    "title": "Ciência de Dados"
+  },
+  {
+    "url": "/cursos/marketing-digital/",
+    "title": "Marketing Digital"
+  },
+  {
+    "url": "/cursos/gestao-educacional/",
+    "title": "Gestão Educacional"
+  },
+  {
+    "url": "/cursos/ingles-profissional/",
+    "title": "Inglês Profissional"
+  },
+  {
+    "url": "/cursos/seguranca-informatica/",
+    "title": "Segurança Informática"
+  },
+  {
+    "url": "/favoritos/",
+    "title": "Os meus cursos favoritos"
+  },
+  {
+    "url": "/comparar/",
+    "title": "Comparar cursos"
+  },
+  {
+    "url": "/ingresso/",
+    "title": "Como candidatar-se"
+  },
+  {
+    "url": "/candidatura/",
+    "title": "Candidatura online"
+  },
+  {
+    "url": "/candidaturas/",
+    "title": "Acompanhar candidaturas"
+  },
+  {
+    "url": "/login/",
+    "title": "Entrar no portal"
+  },
+  {
+    "url": "/sobre/",
+    "title": "Conheça o ISPAB"
+  },
+  {
+    "url": "/vida-academica/",
+    "title": "Vida académica"
+  },
+  {
+    "url": "/campus/",
+    "title": "Espaços e campus"
+  },
+  {
+    "url": "/servicos/",
+    "title": "Serviços académicos"
+  },
+  {
+    "url": "/servicos/secretaria/",
+    "title": "Secretaria académica"
+  },
+  {
+    "url": "/apoio-ao-estudante/",
+    "title": "Apoio ao estudante"
+  },
+  {
+    "url": "/carreiras/",
+    "title": "Carreiras e estágios"
+  },
+  {
+    "url": "/investigacao/",
+    "title": "Investigação e extensão"
+  },
+  {
+    "url": "/bolsas/",
+    "title": "Bolsas e apoios"
+  },
+  {
+    "url": "/biblioteca/",
+    "title": "Biblioteca e recursos"
+  },
+  {
+    "url": "/eventos/",
+    "title": "Eventos"
+  },
+  {
+    "url": "/calendario/",
+    "title": "Calendário académico"
+  },
+  {
+    "url": "/noticias/",
+    "title": "Notícias e histórias"
+  },
+  {
+    "url": "/noticias/como-escolher-o-curso/",
+    "title": "O futuro começa com uma boa pergunta: que curso escolher?"
+  },
+  {
+    "url": "/noticias/preparar-candidatura/",
+    "title": "Da escolha à candidatura: prepare o seu próximo passo."
+  },
+  {
+    "url": "/noticias/aprender-em-comunidade/",
+    "title": "Aprender em comunidade vai muito além da sala de aula."
+  },
+  {
+    "url": "/noticias/organizar-rotina/",
+    "title": "Uma rotina de estudos que cabe na sua vida."
+  },
+  {
+    "url": "/ajuda/",
+    "title": "Central de ajuda"
+  },
+  {
+    "url": "/contactos/",
+    "title": "Contactos"
+  },
+  {
+    "url": "/pesquisa/",
+    "title": "Pesquisar no site"
+  },
+  {
+    "url": "/portal/",
+    "title": "Visão geral"
+  },
+  {
+    "url": "/portal/disciplinas/",
+    "title": "As minhas disciplinas"
+  },
+  {
+    "url": "/portal/notas/",
+    "title": "Notas e frequência"
+  },
+  {
+    "url": "/portal/horarios/",
+    "title": "O meu horário"
+  },
+  {
+    "url": "/portal/candidaturas/",
+    "title": "As minhas candidaturas"
+  },
+  {
+    "url": "/portal/financeiro/",
+    "title": "Informação financeira"
+  },
+  {
+    "url": "/portal/documentos/",
+    "title": "Documentos e comprovativos"
+  },
+  {
+    "url": "/portal/pedidos/",
+    "title": "Requerimentos e pedidos"
+  },
+  {
+    "url": "/portal/perfil/",
+    "title": "O meu perfil"
+  },
+  {
+    "url": "/privacidade/",
+    "title": "Privacidade"
+  },
+  {
+    "url": "/acessibilidade/",
+    "title": "Acessibilidade"
+  },
+  {
+    "url": "/sobre-o-projecto/",
+    "title": "Sobre o projecto"
+  },
+  {
+    "url": "/preparar-candidatura/",
+    "title": "Preparar a candidatura"
+  },
+  {
+    "url": "/percursos-de-ingresso/",
+    "title": "Transferências e estudos no estrangeiro"
+  },
+  {
+    "url": "/novos-estudantes/",
+    "title": "Guia de novos estudantes"
+  },
+  {
+    "url": "/escolher-curso/",
+    "title": "Como escolher um curso"
+  },
+  {
+    "url": "/planear-custos/",
+    "title": "Planear custos de estudo"
+  },
+  {
+    "url": "/blog/",
+    "title": "Blog da escola"
+  },
+  {
+    "url": "/mapa-do-site/",
+    "title": "Mapa do site"
+  },
+  {
+    "url": "/404/",
+    "title": "Página não encontrada"
+  }
+]

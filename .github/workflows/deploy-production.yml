@@ -41,12 +41,16 @@ jobs:
   verify:
     name: Verificar antes de publicar
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - name: Confirmar contratos dependentes de SQL antes de publicar
+        run: node scripts/siga/check-release-contracts.mjs
       - run: bun run typecheck
       - run: bun run lint
       - run: bun run test

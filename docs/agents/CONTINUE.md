@@ -1,8 +1,453 @@
 # Handoff — continuar o SIGA
 
+## Navegação contextual e superfícies discretas — 2026-10-22
+
+A sidebar deriva o módulo activo do catálogo já filtrado por papel/grants/plano.
+«Todas as áreas» abre a navegação global; «Voltar ao módulo» regressa ao contexto.
+A lista global abre um submenu de cada vez e já não restaura menus acumulados de
+outras sessões. A árvore académica só monta no contexto pedagógico. O estado de
+navegação é reiniciado por uma chave serializada estável (rota/pesquisa/escola/papel),
+sem depender da identidade de objectos de pesquisa. `NavLinkRow` mantém o destaque
+automático do router quando `active` não é explícito; não retirar esse fallback da
+árvore académica. Painéis e cartões partilhados têm superfícies sem elevação ao hover;
+cores de estado explícitas mantêm-se. Comparação controlada e limites:
+[relatório visual](../visual/2026-10-22/README.md). Sem deploy nem SQL.
+
+Para ligar o visual de outro agente, consultar os
+[pontos de integração e contrato de aparência](../design/CONTEXTUAL_VISUAL_INTEGRATION.md).
+A PR #245 (`e4db10fa`) foi identificada e combinada nesta branch: toque de 44 px,
+movimento reduzido e pesquisa IME. Preservar os dois históricos, os ajustes recentes
+dos modais, os testes de navegação e o catálogo lazy de temas. Isto não confirma a
+reprodução das imagens de outra conversa, que continuam por identificar.
+
+## Refinamento da navegação académica — 2026-10-21
+
+Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis
+por hover. O foco de teclado não pode ser escondido por outro grupo. Ligações no
+menu móvel desbloqueiam o fundo antes da navegação normal. A pesquisa respeita
+campos editáveis/IME. As secções de ingresso/instituição/novos estudantes têm
+IDs estáveis no HTML inicial: não voltar a depender da API para deep links.
+Swipe só termina com o mesmo ponteiro. Manifesto e 4653 campos inalterados.
+[Reprodução e validação](../../painel/escolas/docs/navigation-polish.md).
+
+## Cabeçalho e home académica — 2026-10-21
+
+O pedido autoriza os comportamentos de navegação e slides da home, conservando
+composição, cores, dados e marca. `academic-navigation.mjs` inicializa antes da API:
+não adiar o menu por sincronização. Cabeçalho compacto, hover/teclado, menu móvel
+com fundo isolado e pesquisa no diálogo existente. `home-highlights.mjs` só na home:
+rotação suspensa por foco, movimento reduzido, invisibilidade e escolha manual;
+cartões deslizáveis apenas no telemóvel. Oito campos novos, todos os 4645 anteriores
+intactos. Compatibilidade explícita também com `b7bb3fc0893638fd4fd6`.
+[Observação UNASP e contrato](../../painel/escolas/docs/navigation-and-home.md).
+
+## Apresentação das páginas académicas — 2026-10-21
+
+Os cursos têm fotografia em faixa larga e resumo com acções; os cabeçalhos
+internos e cartões de serviços têm imagens editáveis. Não substituir textos,
+valores, marca, homepage nem o contrato dos portais. `academic-pages.mjs` move
+nós já publicados e deriva a navegação dos títulos existentes. Os 4601 campos
+anteriores permanecem exactamente iguais; imagens isoladas em `data-site-scope`.
+Compatibilidade explícita também com `5fd4cbb7d43915bde5c6`, conservando revisão
+e publicação. [Detalhes e referências](../../painel/escolas/docs/academic-pages.md).
+
+## Portal do website escolar — 2026-10-21
+
+`/login/` volta a seleccionar estudante ou docentes/administração; não reescrever
+links públicos para o SIGA nem redireccionar todas as páginas `/portal/` do website.
+O portal original permanece demonstrativo sem sessão. A vista autenticada
+`/portal?escola=<slug>&vista=estudante` conserva o visual original em mesma origem
+e consulta `getStudentWebsitePage`: MFA/auth existentes, Aluno e escola activa
+verificados no servidor; IDs de outros estudantes nunca são aceites. Notas,
+agenda, horário e frequência reutilizam as APIs existentes. Outros serviços
+encaminham para os módulos autenticados. [Contrato e verificação](../../painel/escolas/docs/portal-access.md).
+
+Os campos novos usam `data-site-scope`; os 4579 anteriores conservam chave, tipo e
+valor. A actualização automática de publicação aceita os modelos compatíveis
+`2ab6e331ce0e67b8044e` e `5fd4cbb7d43915bde5c6`; não generalizar para versões incompatíveis.
+
 Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
+
+## Preparação da consolidação de produção (2026-10-21)
+
+O utilizador pediu organizar os trabalhos de todos os agentes, incluindo Claude,
+para a publicação conjunta. [Plano, alvos e bloqueios](../releases/2026-10-21/README.md),
+[inventário](../releases/2026-10-21/inventory.md) e manifesto JSON na mesma pasta.
+O clone era raso e buscava só main; foi completado antes da comparação. A ferramenta
+`scripts/siga/release-inventory.mjs` captura heads, commits, conflitos, patches
+equivalentes, sobreposições e dependências sem integrar código dos agentes.
+O ramo de preparação não é ainda o candidato com todas as funcionalidades.
+Antes de fechar a versão, recapturar fontes e validar o candidato acumulado.
+Cloudflare continua a recusar o token; a ligação GitHub desta sessão não gere
+segredos do ambiente production (403). O utilizador foi informado deste pré-requisito.
+
+## Website escolar — navegação antes da API (2026-10-21)
+
+Os eventos de navegação e a adaptação dos links arrancam antes dos pedidos de
+configuração, conteúdos e blog. `mountWebsiteLinks` devolve uma função para reaplicar
+os links existentes após conteúdos, conservando um único observador. Não voltar a
+adiar o menu nem perder o prefixo da escola durante estes pedidos. Regressão em
+`tests/school-website/navigation-startup.test.ts`; [ensaio e comparação visual](../../painel/escolas/docs/navigation-startup.md).
+
+## Refinamento dos editores escolares (2026-10-21)
+
+Website e blog mantêm o visual. Os atalhos do website para domínio/blog e os
+botões Novo artigo/Voltar à lista protegem rascunhos por guardar. Fecho/reload
+tem aviso nativo apenas enquanto há alterações, com limpeza ao desmontar ou
+mudar de escola. Falhas de actualização não escondem os formulários já abertos.
+Retirar publicação/arquivar/restaurar um artigo conserva as edições locais e
+usa a revisão devolvida pelo servidor na próxima gravação. Sem alteração de
+API, autorização ou base de dados. Regressões em `tests/school-website/*ui.test.tsx`;
+contrato e limites em [SCHOOL_WEBSITE_CONTENT.md](../architecture/SCHOOL_WEBSITE_CONTENT.md).
+
+## Performance — cache dos recursos públicos (2026-10-20)
+
+Política do vídeo, fontes, ícones e marcas em `nitro.routeRules` (`vite.config.ts`):
+sete dias e revalidação posterior. `public/_headers` não repete os caminhos, porque
+o preset Cloudflare acrescenta as regras geradas ao ficheiro existente. Nunca
+alargar esta cache a HTML, APIs ou ficheiros de actualização. [Evidências](../performance/2026-10-20/cache-publica.md).
+
+## Performance — navegação, cache e arranque (2026-10-19)
+
+Data do início: `features/dashboard/date-clock.ts` agenda a próxima hora local,
+suspende escondido e actualiza ao regressar. O portal só mostra data/saudação;
+não repor ticks de 1 s que redesenham o portal inteiro. Relógio e pré-carga dos
+gráficos administrativos ficam só no modo admin. [Ensaios](../performance/2026-10-19/data-do-dashboard.md).
+
+Mensagens não lidas: `useInboxUnread` partilha um canal por QueryClient/conta.
+O último consumidor remove o canal e cancela a fila; os restantes conservam a
+ligação. Rajadas usam `realtimeInvalidator`, com actualização final durante
+leituras lentas; cada canal novo tem UUID. [Evidência deste ciclo](../performance/2026-10-19/mensagens-nao-lidas.md).
+
+Adaptação ao ecrã: `useBreakpoint` só publica quando muda entre mobile/tablet/
+desktop; mantém SSR/ready e limites de 768/1024 px. Gráficos: `warm-charts.ts`
+junta intenções por grupo, respeita visibilidade e ligação limitada antes de
+agendar e antes do import, e permite retentar depois de falha especulativa.
+Carregamento lazy normal preservado; regressões em `breakpoint-lifecycle` e
+`chart-warmup`. Não confundir menos callbacks com menos downloads já deduplicados.
+
+Diagnóstico: `performance-supervisor.ts` guarda os inícios apenas na cache
+observada; limpa-os ao remover queries, mudar visibilidade, pausar a rede ou
+desligar a subscrição. Reutiliza `query.queryHash` e aceita início em `0`.
+Regressões em `tests/ui/performance-supervisor-lifecycle.test.ts`.
+
+Continuação — recursos do acesso: `use-auth-motion-active.ts` acompanha largura
+≥1024 px, movimento reduzido, visibilidade do documento e poupança de dados. Os
+textos mantêm a rotação de 6 s apenas com o painel visível; o vídeo mantém o atraso
+de 600 ms e pausa/retoma a mesma instância. Uma falha conserva o poster e não
+reinicia carregamentos a cada mudança de visibilidade. Nenhuma dimensão ou classe
+visual alterada. Regressões em `tests/ui/auth-motion-lifecycle.test.tsx`.
+
+Contrato persistido na skill `.cursor/skills/siga-performance/SKILL.md`, também
+disponível no catálogo Codex. Mesmo visual, dimensões e funcionalidades; priorizar
+resposta ao toque e optimizações medidas. [Relatório e evidências](../performance/2026-10-19/relatorio.md).
+
+- Pré-busca com a cache React Query, chaves/filtros reais, escola/ano seleccionados,
+  cancelamento e limite de concorrência; sem pedidos especulativos em rede limitada.
+- Realtime junta eventos durante leituras lentas e conserva uma actualização final;
+  limpeza ao desmontar. Documentos e Comunicações reutilizam o mesmo mecanismo.
+- `ImportarDadosPage` e `SubscriptionDetail` não têm consumidores externos: manter
+  as funções privadas nas rotas para não impedir a separação automática do código.
+- Manifesto de produção: base de 42 para 36 ficheiros, 1 435 872 para cerca de
+  1 077 268 bytes (-25%). Não é uma redução medida de latência. Não somar os hashes
+  antigos que possam ficar na pasta de saída para calcular tráfego inicial.
+- Laboratório do login: 12 cliques com título actualizado no frame seguinte em
+  14,5–79,5 ms; zero erros/overflow/CLS. São amostras locais, sem sessão e sem p75 real.
+- Catálogo de temas Shadcn/Tweakcn fora do arranque: `src/lib/appearance.tsx` carrega-o
+  por `import()`. A raiz passou de 1 077 268 para 977 513 bytes nos mesmos 36 ficheiros
+  (-31,9% desde o início do ciclo). Guarda em `tests/ui/first-paint-budget.test.ts`:
+  não voltar a importar `@/config/theme-data` estaticamente nesse ficheiro.
+- Zod na raiz (56 638 bytes, o pedaço `types`) fica identificado e **não** alterado:
+  chega por esquemas de validação de funções de servidor e tirá-lo daí sem perder a
+  validação é trabalho de build. Não trocar validação do servidor por bytes.
+- Suite completa sem credenciais: 3 611 aprovados, 3 ignorados, 0 falhas. O `npm test`
+  não carrega o `.env` (sem `dotenv`/`loadEnv` no `vitest.config.ts`); o risco é só
+  `set -a && . ./.env` na mesma shell.
+- **Medir o build de produção passou a ser possível**: `SIGA_NITRO_PRESET=node-server
+npm run build` e servir `.output/server/index.mjs` por Node (o `wrangler` exige macOS
+  13.5+; o `vite preview` procura `dist/server/`). O pacote do cliente é igual nos dois
+  presets. A variável **nunca** entra num workflow de publicação. Primeira medição em
+  `browser-prod.json`: CLS 0, zero erros, LCP 1 272–2 664 ms no computador e 604–916 ms
+  no telemóvel, feedback ao toque 6,8–81,6 ms. Sem limitação de rede/CPU e sem sessão:
+  **não é INP p75 e as metas de aceitação do dono continuam sem verificação**.
+- **Os 36 recursos são do `__root__`, não da página.** A rota `/` soma 73 ficheiros
+  (1 567 114 bytes) e é o que o ecrã de entrada carrega, porque `/` é o painel e desenha
+  o login sem sessão. Explica por que reduções anteriores não mexeram a nota: foram
+  feitas na lista errada. Ler `routes["/"].preloads`, não só a da raiz.
+- **370 KB de `recharts` entravam no login apesar do `lazy()`**: `index.tsx` importava
+  `DashboardChartsSkeleton` do módulo que importa `recharts`, e o manifesto pré-carrega o
+  grafo estático da rota. O esqueleto passou para
+  `src/features/dashboard/DashboardChartsSkeleton.tsx` (marcação pura, zero imports);
+  guarda em `tests/ui/first-paint-budget.test.ts`, confirmada a falhar com o import antigo.
+  Medido: a rota `/` passou a 72 ficheiros/1 549 942 bytes no manifesto, sem pedaços de
+  gráficos, e o carregamento frio desceu 413 880 bytes (−10,1% no computador, −17,4% no
+  telemóvel), com o tipo `script` de 507 643 para 111 235 bytes. **Esses bytes são por
+  comprimir**: o servidor Node local não comprime e a Cloudflare comprime, por isso a
+  poupança real são os 110 362 em gzip (91 808 em brotli) dos três recursos que saíram
+  (`BarChart`, `DashboardCharts`, `PieChart`) — ~110 KB, não 414 KB. O LCP veio mais baixo mas
+  **não se atribui à correcção** — seis corridas locais sem limitação. CLS somado 0,003.
+- Pesos restantes do ecrã de entrada, medidos e **não** alterados: `auth-classroom.mp4`
+  (1 716 956 bytes, 42% do carregamento frio no computador, e toda a diferença para o
+  telemóvel, que não o pede) e `styles-*.css` (234 925 bytes). O vídeo é identidade;
+  não se troca por bytes.
+- `inventory-after.json` é anterior à passagem do catálogo de temas: contém 1 077 268
+  bytes, não os 977 513 da última linha da tabela. O relatório agora avisa.
+- Sem SQL ou deploy neste ciclo de frontend. A análise Motor D tem relatório próprio.
+
+## Sincronização GitHub — 2026-10-19
+
+Integrado `origin/main` (`dcf0825c`) na branch `docs/auditoria-critica-2026-10-06`,
+preservando o trabalho local no commit `19f011da`, sem reescrever histórico.
+Os tipos locais gerados em conjunto com o retrato de 12/10 passam para `types.sga.ts`;
+`types.ts` continua reservado ao Lovable. Os RPCs atómicos já constam desse retrato.
+As entradas de espera de catálogo já presentes no retrato foram retiradas.
+O login mantém os novos factores MFA/passkeys e dispositivos de confiança, com os
+links locais para alternar entre login e registo no mesmo painel.
+Os estados de feedback locais coexistem com os ajustes recentes para telemóvel.
+Não foi aplicado SQL nem executado deploy nesta sincronização. As notas de 08/10
+abaixo são históricas; o estado dos contratos depende do retrato actual e do gate.
+
+Validação: `bun install --frozen-lockfile`, `npm run typecheck`, `npm run lint`
+(0 erros, 47 avisos), `npm run build`, contratos SQL e inventário de 18 módulos aprovados.
+A suite completa terminou com 3 580 testes aprovados, 3 ignorados e 2 falhas: o fixture
+MFA não incluía a reconfirmação recente exigida pelo main e a lista de tabelas ausentes
+ainda incluía as quatro WEB já presentes no retrato. Ambos corrigidos; a repetição dos
+dois ficheiros passou os 13 testes. Os ficheiros de teste ajustados passaram também no lint.
+
+## Lovable e o main (2026-10-17/18) — ler antes de mexer em tipos ou fazer merge
+
+- **Tipos**: o código usa `src/integrations/supabase/types.sga.ts` (produção, gerado por
+  `npm run siga:gen-types`). O `types.ts` é do Lovable e pode descrever outra base — não o
+  usar nem «corrigir». `tsconfig.json` mapeia `@/integrations/supabase/types` para o `.sga`.
+- **Merge destrutivo**: a 17/10 o Lovable uniu uma cópia de 15/10 (`cbc5f322`) e ficou só com
+  esse lado (733 ficheiros, 45 commits). Reposto no #174 com um merge `ours` aprovado pelo
+  dono. Antes de cada PR, `git log origin/main` e confirmar que o diff do main não apaga
+  trabalho.
+- **#148** (número de aluno + numeração 1+ano+4 dígitos): actualizado com o main, CI verde,
+  sem merge — espera decisão do dono. A migração `20261012140000_numbering_one_year_digits.sql`
+  renumera alunos reais: só depois do ensaio em cópia (ver `NUMBERING_148_VALIDATION.md`).
+
+## Painel ADMIN SaaS — auditoria e correcções (2026-10-17)
+
+Ponto de partida: auditoria às páginas de escolas, subscrições, fila, painel e login do ADMIN.
+
+- **Métricas** (`fetchSaasStats`): activas, trial, trial expirado, em atraso, suspensas e sem
+  cobrança contadas à parte. O MRR usa `monthlyRevenueOf` (só escolas activas e cobradas; preço
+  do perfil de cobrança quando existe, senão o do plano).
+- **Estado**: `resolveStatusChange` recusa «activar» uma escola em atraso e não isenta (é preciso
+  registar o pagamento ou pausar cobranças); suspensa em trial volta a `trial`.
+- **Pagamento recebido** sem comprovativo: `confirm_payment_months` (1/3/6/12) + referência. Mudar
+  o plano já não reescreve o fim do período pago nem acrescenta 14 dias de trial.
+- **ADMIN**: lista de escolas com pesquisa, filtros e menu de acções; página da escola com
+  «Registar pagamento» (meses do perfil); confirmações antes de suspender, aprovar plano,
+  confirmar pagamento e revogar operador; erros já não desaparecem ao recarregar; fila
+  operacional por escola (trial expirado, atraso, criação falhada; ignora isentas); gate envia
+  sessões sem MFA de volta ao 2.º passo e guarda a página de origem em `next`.
+- Testes: `tests/saas/admin-stats-rules.test.ts`.
+- #175: páginas de erro do ADMIN num só ecrã (pt-PT); auditoria com filtro; demos do
+  template redireccionam no navegador (`AliveBridgeGate`), porque o ADMIN publicado é
+  estático e o proxy não corre.
+
+Pendente (dono): `CLOUDFLARE_API_TOKEN` novo; desbloquear ekovongo, twapandula e epatuloko
+(trial expirado → «Prolongar trial» ou «Pausar cobranças»).
+
+## Desempenho do primeiro desenho — Lighthouse do main verde (2026-10-16)
+
+- O job Lighthouse (só corre no push do `main`) falhava desde 07/10 (0,80–0,87 para
+  mínimo 0,90). Passou a 0,94–0,97 em todas as páginas com o PR #163.
+- **Causa principal:** `/browser-check.js` era síncrono no `<head>`; em HTTP/1.1 ficava
+  na fila atrás de ~100 pré-carregamentos de JS e o primeiro desenho esperava por ele.
+  Agora `defer: true` em `__root.tsx` (a app desktop mantém-no síncrono).
+- **Também:** `SigaMascotIcon` usa `/brands/siga-plus-icon-256.webp` (13 KB) em vez do PNG
+  de 670 KB que era pré-carregado em todas as páginas; `vite.config.ts` agrupa os ícones
+  do lucide e o núcleo (React, TanStack Router/Query) em `icons` e `framework`; na
+  Pedagógica, os separadores que não são iniciais são `lazy`.
+- **Não fazer:** agrupar Radix ou módulos da app num só ficheiro (gerava 1–1,6 MB);
+  tornar `PickFileButton`/`InstallConsentModal` lazy (o peso é partilhado, não poupa nada).
+- Guarda: `tests/ui/first-paint-budget.test.ts`. Medir localmente: build, `npm run
+preview:prod`, e `npx lighthouse@12 <url> --preset=desktop` com
+  `CHROME_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome`. As notas variam
+  ±0,04 entre corridas; comparar várias.
+
+## Cobrança SaaS por escola e escolas públicas (2026-10-15)
+
+- **ADMIN → Escolas → clicar na escola** (`/tenants/escola?id=…`, exportação estática):
+  Visão geral, Plano e assinatura, Cobrança, Escola pública, Acesso, Domínios e registo.
+  Dados: `GET/POST /api/saas/tenants/billing` (platform admin + aal2, auditado).
+- **Cobrança** (`tenant-billing-rules.ts` puro, `tenant-billing.ts` servidor): tabela do
+  plano, por aluno activo (com mínimo facturável) ou valor fixo; mensal/trimestral/
+  semestral/anual com o desconto de `saas_billing_settings.periods`; desconto da escola;
+  dia de vencimento (1–28), prazo de emissão, tolerância e só-consulta automática; modos
+  de pagamento (IBAN, Multicaixa Express, referência, PayFlow, numerário); contacto e NIF
+  de facturação. O SIGA (Assinatura) cobra o valor nas condições da escola.
+- **Pausar cobranças** (qualquer escola, com motivo e data opcional; a tarefa diária
+  retoma as que acabaram). **Escola pública**: ao marcar como Pública (ou ao registar-se
+  como pública no WEB) abre a revisão e pausa as cobranças; aprovar exige os requisitos
+  obrigatórios (acto de criação, código oficial, tutela, nomeação do director, acordo de
+  dados — Lei 22/11) e deixa-a isenta; recusar exige motivo.
+- **Efeito no acesso** só por `tenants.billing_exempt` (já na produção): o servidor mantém-no
+  igual a «não cobrar». Isenta/pausada não é bloqueada por trial nem atraso; suspender,
+  cancelar e arquivar continuam a bloquear. Lembretes de fim de trial não vão para elas.
+- **Atraso (2026-10-16):** com «só consulta» ligado, a tarefa diária
+  (`suspendOverdueTenants` em `commercial-lifecycle.ts`, regra pura `overdueSuspensionDue`)
+  passa a `past_due` a escola activa e cobrada cujo período pago acabou há mais que a
+  tolerância; auditado `TENANT_BILLING_OVERDUE`. O ADMIN mostra «Pago até», «Só consulta
+  após» e o aviso de atraso; «Activar» reactiva `past_due`. A lista mostra «Isenta» /
+  «Cobrança pausada». O separador Acesso traz o diagnóstico embutido
+  (`TenantAdminAccessPanel`).
+- **Por aplicar (dono):** `docs/agents/SIGA_aplicar_cobranca_escolas.sql`
+  (`20261015120000_tenant_billing_profiles.sql`). Sem ela o ADMIN mostra os valores de
+  omissão e não grava; nada mais parte. Depois recapturar o retrato e tirar a tabela de
+  `TABELAS_AUSENTES_DA_PRODUCAO`.
+
+## Smart School Onboarding: criação → acesso → ambiente (2026-10-15)
+
+Três ambientes, uma conta: **Administração Global** (ADMIN, só `platform_admins`),
+**Administração Institucional** (SIGA, papel Administrador) e **Portal Escolar** (SIGA,
+gestão académica). Ser administrador da escola nunca dá a Administração Global.
+
+- **Causa encontrada na produção:** as três escolas do registo público tinham o trial de
+  14 dias expirado e o ecrã de bloqueio cobria o SIGA inteiro, também para o administrador
+  e para `/auth/*` (nem o link de entrada abria). Agora `TenantAccessBarrier`
+  (`src/features/saas/TenantAccessBarrier.tsx`): o Administrador entra em modo de consulta
+  com aviso e «Regularizar a assinatura»; os outros e a matrícula online continuam
+  bloqueados; `/auth`, `/verificar`, `/convite` já não. O servidor continua a recusar
+  gravações (`assertTenantAllowsWrites`).
+- **Diagnóstico e reparação** (`school-admin-access-rules.ts` puro + `school-admin-access.ts`):
+  escola/tenant bloqueado, sem administrador, conta apagada/bloqueada, e-mail por confirmar,
+  papel sem permissões, perfil em falta/sem escola, nunca entrou, sem 2FA. Repara só o
+  automático (perfil, e-mail, `role_permissions`) e gera links de definição de senha para
+  quem nunca entrou. Nunca mexe em senhas, `platform_admins`, vínculos ou assinatura.
+- **ADMIN** → Escolas → «Acesso»: `GET/POST /api/saas/tenants/admin-access`
+  (platform admin + aal2; auditado em `saas_audit_logs` sem os links).
+  **Por fazer pelo dono:** abrir «Acesso» em `ekovongo` e `twapandula` (proprietários
+  nunca entraram) e em `epatuloko`; estender o trial em «Gerir» se for caso disso.
+- **SIGA** `/configuracoes/boas-vindas` («Onde deseja começar?»): 1. Escola criada, 2. Autenticação segura (conta, 2FA, escola activa, permissões; «Corrigir
+  automaticamente» só para a própria conta), 3. Painel Administrativo (`/`), Portal
+  Escolar (`/pedagogica`), Assistente (`/configuracoes/inicio`, com % concluído).
+- **Seletor de ambientes** (`EnvironmentSwitcher`) no topo e na gaveta da conta em
+  telemóvel: só o Administrador (ambientes da escola) e `platform_admins` (mais a
+  Administração Global). Ambientes em `src/features/auth/environments.ts`.
+- **WEB** `/start`, fim do registo: os mesmos três passos, sem redireccionar sozinho; o
+  link de entrada directa leva `?next=` (`/auth/magic-link` aceita só caminho relativo,
+  `src/lib/safe-next-path.ts`; se o link falhar, «Entrar com e-mail e senha» no destino).
+- O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
+  `siga:audit-provisioning`).
+
+## Revisão #148 — reforço antes de aplicar (2026-10-16)
+
+Preflight antes do lote (datas/ano/zero/capacidade), locks, mapa privado antigo → novo
+`private.siga_numbering_changes` e testes de documentos existentes/rollback. Login geral
+recusa escolher conta ao atingir 50 fichas. Produção continua **por aplicar**.
+Matriz e critérios: [NUMBERING_148_VALIDATION.md](./NUMBERING_148_VALIDATION.md).
+
+## Numeração só com dígitos (2026-10-12) — POR APLICAR
+
+Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,
+«1» + ano + 4 dígitos (2026 → 1260001), a recomeçar em cada ano por escola e tipo; os
+existentes (EST-…, MAT-…) renumerados por ordem de criação. Migração
+`20261012140000_numbering_one_year_digits.sql`, ensaio `tests/sql/numbering-one-year-digits.mjs`.
+Facturas, recibos, notas de crédito e despesas mantêm a série fiscal (AGT). O código
+PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`): um aluno
+já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
+
+Feito à volta (não depende da migração):
+
+- **Entrar com o número de aluno** — escolha da escola em Definições → Segurança
+  (`school_settings` domínio `student_access`, `student_number_login`, desligado por
+  omissão; só Administrador, com 2FA, auditado). Login: `student-number-login.ts` (escola
+  do endereço; no endereço geral só se o número existir numa única escola com a opção
+  ligada, senão `school_required`); `student-access-server.ts` (get/set e a pergunta sem
+  sessão que muda o rótulo do ecrã de entrada). Só fichas activas/candidatas com conta.
+  Antes da migração os números são `EST-…` e o login por número não encontra ninguém.
+- Pesquisa por número tolerante a espaços/traços (`numberMatches`): alunos, matrículas,
+  presenças, avaliações, documentos, arquivo, superior. Exemplos da importação em `1260042`.
+
+## Catálogo educacional global (2026-10-10)
+
+Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
+
+- `src/features/education-catalog/`: ISCED 2011 / ISCED-F 2013, países, 115 disciplinas e
+  54 cursos de referência, etapas de AO (com planos, derivados de `curriculum-templates.ts`),
+  PT (com planos, DL 55/2018) e MZ (só etapas). Tudo «Em revisão» excepto UNESCO/ISO.
+- Contexto de nível obrigatório (`catalog.ts`), pesquisa local sem acentos/siglas/erros
+  (`search.ts`), normalização de classes, períodos e disciplinas (`normalize.ts`), IDs
+  curtos (`identifiers.ts`). Página `/pedagogica/catalogo` (só consulta).
+- Fase 8: «Usar modelo de estrutura» com Sistema de ensino (AO como antes; PT e MZ pelo
+  catálogo, `plan-from-catalog.ts` + `applyCatalogStructure`). Ao aplicar, disciplinas já
+  existentes com outra grafia são reaproveitadas pelo catálogo (só nome/sinónimo exacto).
+- «Rever disciplinas» (Estrutura): duplicados (só mostra) e correcção de grafia dos nomes
+  (RLS, 2FA, auditado). Juntar duplicados: `public.merge_school_subjects` (20261010150000),
+  transaccional, recusa o que misturaria pautas/exames/competências e o superior.
+- «Nova disciplina» sugere nomes do catálogo e avisa antes de criar um duplicado
+  (`subject-hint.ts`; `QuickFormModal` com `suggestions` e `renderHint`).
+- Documentos: o registo de cada emissão (`documents.issued`) guarda os nomes das disciplinas
+  impressas e `/verificar` mostra-os — o nome à data da emissão sobrevive a renomear/juntar.
+- Importação (PR #125): disciplinas e cursos duplicados reconhecidos pelo código, nome ou
+  catálogo (`subjectCatalogKey`, `courseCatalogKey` — nunca por siglas); disciplina das
+  notas/presenças/avaliações/horários e classe das turmas/propinas pela equivalência do
+  catálogo (`resolveSubject`, `resolveGradeLevel`, com aviso); períodos «I/III Trimestre»,
+  «T2» (`parseTerm`); histórico académico sem duplicar por grafia da classe.
+- Ligação ao catálogo: `subjects.catalog_subject_code` (`20261012120000`), em «Rever
+  disciplinas» (automática pelo nome exacto, ou à mão para as próprias) e ao criar
+  (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
+  também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
+  `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
+- **Contexto de nível por área** (`SUBJECT_AREA_LEVELS`): Saúde, Informática, Gestão… só
+  existem do ISCED 3 em diante; `areasForContext`, filtro `area` na pesquisa, na API
+  (`type=areas`, `&area=`) e chips na página. Teste `area-level-context.test.ts`.
+- **Duas sessões fizeram este catálogo em paralelo.** A da branch `ccr-680ee371-6vebkz`
+  começou o mesmo trabalho sem saber deste; ficou num `git stash` local (não publicado) e só
+  entrou a regra por área acima. Antes de começar, `git fetch` e ler este ficheiro na `main`.
+- **Aplicado na produção:** `20261010120000_global_education_catalog.sql`,
+  `20261010150000_merge_school_subjects.sql` e a carga `supabase/seeds/education/catalog.sql`
+  (a 2026-10-10, md5 das 8 tabelas igual ao do ficheiro; ver o README do catálogo), e
+  `20261012120000_subjects_catalog_link.sql` (as colunas `subjects.catalog_subject_code` e
+  `programs.catalog_course_code` existem a 2026-10-12). **Falta:** recapturar o retrato e os
+  tipos (`npm run siga:db-snapshot`, `npm run siga:gen-types`), tirar `merge_school_subjects`
+  de `FUNCOES_ESPERA_MIGRACAO` e as duas colunas de `COLUNAS_ESPERA_MIGRACAO`.
+
+## Auditoria 13 — fluxos da escola (2026-10-06)
+
+Relatório: [13-auditoria-fluxos-2026-10-06.md](../auditoria/13-auditoria-fluxos-2026-10-06.md).
+As duas migrações da auditoria foram **aplicadas na produção a 10/10** (`20261010103557 school_logos_no_svg`,
+`20261010104325 academic_year_dates_cover_terms`; a segunda cria o gatilho só se não existir,
+sem `DROP TRIGGER`). Uma escola tem um período de 11/08 fora do ano: só volta a mudar as datas
+do ano depois de o acertar.
+
+- **Corrigido:** importação em páginas (`import/engine/paged.ts`; antes cortava a 1000/2000 e
+  passava listas de ids gigantes); um lote que lança já não perde o registo de reversão;
+  limite de alunos do plano também ao aceitar candidaturas e ao importar; formulário público
+  fechado a escolas arquivadas/suspensas/trial expirado; `enrollStudentInClass` só com a
+  matrícula corrente; nota acima da cotação e cotação abaixo das notas recusadas.
+- **Segunda passagem:** quota de arquivo do plano aplicada (A3); horário publicado arquiva
+  as versões anteriores (A5); `listEnrollments` com âmbito do professor (A6); subdomínio
+  reservado recusado no passo 6 do WEB (A7); limite real de 2 MB no logótipo.
+- **Por aplicar (dono, SQL Editor):** `docs/agents/SIGA_aplicar_auditoria13_2026-10-06.sql`
+  — `20261006180000` (datas do ano lectivo cobrem os períodos, A2) e `20261006181000`
+  (bucket `school-logos` sem SVG, A8). Ensaios em `tests/sql/`. Depois: recapturar o retrato.
+- **Decididos pelo dono e feitos:** A1 — escola bloqueada (suspensa, cancelada, arquivada,
+  trial terminado) não grava no servidor (`assertTenantAllowsWrites` em
+  `requireSgaWriterForWrite`); leituras e pagamento da assinatura continuam. A4 — estado do
+  aluno fecha a matrícula corrente e anular a última matrícula deixa o aluno inactivo
+  (`students/enrollment-sync.ts`). A RLS continua sem olhar para o tenant (escritas
+  directas pela API já exigem 2FA e papel).
+
+## Orientação de erros em todo o sistema (2026-10-07, PR #102)
+
+- Cada erro sai com **o que correu mal, a forma certa e um botão para o sítio onde se
+  corrige**. Catálogo único: `src/lib/error-guidance.ts` (testes com as mensagens reais
+  do servidor). Mapa completo de casos e destinos: [ERROR_GUIDANCE.md](./ERROR_GUIDANCE.md).
+- `import { toast } from "sonner"` proibido pelo lint: tudo usa `@/lib/toast`, que
+  orienta cada `toast.error`. Mutações sem `onError` deixam de falhar caladas
+  (`MutationCache`); leituras que falham por configuração avisam (`QueryCache`); o
+  `RouteErrorScreen` mostra a correcção e o botão.
+- O botão só aparece a quem pode abrir o destino; os outros recebem «peça a …».
+- A parte de mensagens do PR #102 duplicava a da auditoria 13 (já na `main`): ficou a
+  da `main`, mais o chat montado uma só vez (coluna em `lg`, folha abaixo, contador do
+  servidor) e o atalho «Ficha do aluno» no lugar de `?tab=presenca`, que não existe.
 
 ## Verificação por níveis: um toque, código só por recurso (2026-10-06)
 
@@ -30,6 +475,44 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 - Instalação: um só convite discreto («Instalar a aplicação · Agora não», 30 dias);
   nada de Google nem instalação durante a confirmação.
 
+## Correcções e SPECs — 2026-10-08
+
+Seguir o banco actual. [Progresso e evidências](../implementation/2026-10-07/PROGRESSO.md),
+[30 SPECs e contratos](../specs/README.md) e
+[revisão/promoção/reversão SQL](../implementation/2026-10-07/REVISAO_SQL.md).
+Matrícula e ano activo usam RPCs atómicos preparados; importação recusa excesso/CSV inválido;
+grants exigem MFA e E2E com escrita recusa produção. Não houve aplicação SQL nem deploy.
+Os dois RPCs ainda ausentes estão explicitamente em `tests/security/espera-migracao.ts`;
+`check-release-contracts.mjs` bloqueia publicação até catálogo confirmado e ensaio de staging.
+Não retirar o bloqueio para publicar antes do SQL nem restaurar escritas parciais como fallback.
+Gates locais: tipos, lint (0 erros/47 avisos), build, 3 119 testes (3 ignorados) e dois fixtures SQL aprovados.
+A auditoria anterior conserva os seus resultados/hashes; fixtures locais não certificam
+concorrência real, jornada anual ou fornecedores. Alterações locais anteriores preservadas.
+
+## Análise crítica — 2026-10-06
+
+Relatório: [13-auditoria-critica-2026-10-06.md](../auditoria/13-auditoria-critica-2026-10-06.md).
+
+Duas correcções de leitura que mudam o enquadramento de tudo o que vem antes:
+
+- **«49 escolas, 45 alunos, 38 facturas» não é adopção.** 43 das 48 escolas são restos de
+  testes E2E (08–09/09), todas `active`, com 42 subdomínios `tenant_domains` verificados.
+  Das 5 restantes, quatro estão vazias. O uso real é **uma escola, dois alunos, uma nota,
+  quatro facturas**. `siga_assessment_scores` tem 1 linha; `attendance_records` tem 0.
+- **A suite não estava verde.** 1 falha em 3 077 (`tests/finance/appypay-stale-settling`),
+  que o CI não via por ser mais rápido do que a tolerância de 50 ms que o teste media.
+  Corrigida.
+
+Corrigido no commit `305e7972`: a **pauta exportada** (CSV/PDF) decidia a transição por sua
+conta — MFD com os períodos que houvesse, «Transita» por média simples ≥ 10, limiar fixo e
+3 trimestres no selector. Passa a usar `decidePromotionStatus`, o regime da turma e a nota
+mínima do modelo em vigor, como a pauta oficial. Ver §5 e §6 do relatório.
+
+Por decidir (só o dono): rodar a `service_role` e o PAT; limpar os 43 restos de E2E
+(`npm run siga:e2e-cleanup-stale -- --dry-run` identifica 42); projecto de staging; o que
+o PayFlow é (`provider: unconfigured`, `sigaUrl: null`); chaves de assinatura da app
+desktop (**0 releases, 0 tags `v*`, 0 segredos no repositório**); DMARC.
+
 ## Publicar — estado de 2026-10-06
 
 > **PR #87 (bolsas, lista de espera, turnos):** traz `20261006160000_waitlist_scholarship_shift_indexes.sql`
@@ -38,7 +521,7 @@ Depois abrir o skill do módulo em `.cursor/skills/`.
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
-- **Migrações: nada por aplicar.** As três que faltavam de facto foram aplicadas a 06/10
+- **Migrações:** as 2 da auditoria 13 foram aplicadas a 10/10 (secção acima); nada por aplicar dela. As três que faltavam de facto foram aplicadas a 06/10
   (`20261005030000_school_row_role_policies`, `20261005150000_fee_items_grade_level`,
   `20261006100000_enrollment_class_change`) e registadas no histórico. As
   `20261005010000` e `20261005020000`, que os relatórios davam por pendentes, **já
@@ -91,6 +574,7 @@ ignorado.
 - **Aplicada a 2026-10-06** (registo `20261005150000`), retrato recapturado e
   `fee_items.grade_level_id` retirada de `tests/security/espera-migracao.ts`, que ficou
   vazia.
+
 ## Mudar de turma — APLICADA (2026-10-06)
 
 O gatilho `private.protect_enrollment_identity` tratava a turma como identidade da

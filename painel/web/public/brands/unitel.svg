@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Unitel Money">
+  <rect width="64" height="64" rx="14" fill="#E30613"/>
+  <circle cx="32" cy="26" r="11" fill="none" stroke="#fff" stroke-width="2.4"/>
+  <path fill="#fff" d="M22.2 44.2c1.1-5.2 5.4-8.4 9.8-8.4s8.7 3.2 9.8 8.4H22.2Z"/>
+  <path fill="#fff" d="M29.4 20.6h2.4v7.2c0 1.7.7 2.5 2 2.5s2-.8 2-2.5v-7.2h2.4v7.4c0 3.1-1.8 4.8-4.5 4.8s-4.3-1.7-4.3-4.8v-7.4Z"/>
+  <text x="32" y="56" text-anchor="middle" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="7.2" font-weight="700" letter-spacing="0.4">unitel</text>
+</svg>

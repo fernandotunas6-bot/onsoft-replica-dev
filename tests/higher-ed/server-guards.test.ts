@@ -270,6 +270,20 @@ describe("Ensino Superior no servidor", () => {
     );
   });
 
+  it("exportação SISIES: graduados sem uma consulta por curso", () => {
+    const body = fn("exportSisiesWorkbook");
+    // Antes eram 4 consultas por curso: `loadPlan` (3) mais as inscrições em
+    // cadeiras. Com 30 cursos, 120 idas à base para montar uma folha de Excel.
+    expect(body).not.toContain("loadPlan(");
+    expect(body).toContain("loadPlanUnitsByProgram(db, schoolId, programIds)");
+    // E o tecto de 50 000 por curso cortava em silêncio uma escola grande:
+    // agora pagina até a página vir curta, com ordem fixa.
+    // `\.limit`: só a chamada conta, que o comentário acima dela fala do tecto antigo.
+    expect(body).not.toMatch(/\.limit\(50000\)/);
+    expect(body).toMatch(/\.from\("course_unit_enrollments"\)[\s\S]*?\.range\(/);
+    expect(body).toMatch(/\.from\("course_unit_enrollments"\)[\s\S]*?\.order\("id"\)/);
+  });
+
   it("decisão do júri: só doutoramento, 2FA, inscrição em curso, auditoria", () => {
     const body = fn("recordDoctoralDecision");
     expect(body).toContain('requireAal2(context.claims, "Registar a decisão do júri")');

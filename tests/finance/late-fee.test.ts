@@ -86,7 +86,12 @@ function sourceFiles(dir: string): string[] {
 describe("multa por atraso: todos os caminhos com a mesma regra", () => {
   it("referência EMIS, plano de pagamento, AppyPay e webhook pedem a multa de um pagamento hoje", () => {
     const server = readFileSync("src/features/finance/server.ts", "utf8");
-    expect(server.match(/lateFeeFor\(\w+, billing, todayIso\(\), "electronic"\)/g)).toHaveLength(2);
+    // O plano de pagamento usa hoje; a referência EMIS usa o dia do comprovativo quando a
+    // tesouraria confirma um pagamento antigo, e hoje no resto (manual-payment-date.test).
+    expect(server.match(/lateFeeFor\(\w+, billing, todayIso\(\), "electronic"\)/g)).toHaveLength(1);
+    expect(server).toMatch(
+      /lateFeeFor\(invoice, billing, data\.paidOn \?\? todayIso\(\), "electronic"\)/,
+    );
     for (const file of [
       "src/features/finance/appypay.functions.ts",
       "src/features/finance/gateway-webhook-handler.ts",

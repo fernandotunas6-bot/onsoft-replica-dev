@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import {
   Building2,
   CreditCard,
@@ -32,6 +32,18 @@ import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaig
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { actionIcons } from "@/lib/app-icons";
+
+const WebsiteSettingsPanel = lazy(() =>
+  import("@/features/school-website/WebsiteSettingsPanel").then((module) => ({
+    default: module.WebsiteSettingsPanel,
+  })),
+);
+const BlogSettingsPanel = lazy(() =>
+  import("@/features/school-website/BlogSettingsPanel").then((module) => ({
+    default: module.BlogSettingsPanel,
+  })),
+);
 
 /**
  * Centro único de configurações do SIGA: tudo o que antes vivia espalhado
@@ -75,6 +87,20 @@ function useSettingsPanels(): StackPanel[] {
             icon: Link2,
             tone: "info",
             to: "matricula",
+          },
+          {
+            label: "Website escolar",
+            description: "Conteúdos, publicação e ligação ao site",
+            icon: Globe,
+            tone: "info",
+            to: "website",
+          },
+          {
+            label: "Blog da escola",
+            description: "Artigos, rascunhos e publicação no website",
+            icon: actionIcons.edit,
+            tone: "info",
+            to: "website.blog",
           },
           {
             label: "Destaques",
@@ -172,6 +198,30 @@ function useSettingsPanels(): StackPanel[] {
         icon: Globe,
         tone: "primary",
         render: () => <DigitalIdentityPanel />,
+      },
+      {
+        id: "website",
+        title: "Website escolar",
+        description: "Edite e publique os conteúdos públicos a partir do SIGA Plus.",
+        icon: Globe,
+        tone: "info",
+        render: () => (
+          <Suspense fallback={<p role="status">A carregar o editor…</p>}>
+            <WebsiteSettingsPanel />
+          </Suspense>
+        ),
+      },
+      {
+        id: "website.blog",
+        title: "Blog da escola",
+        description: "Notícias e artigos públicos da sua instituição.",
+        icon: actionIcons.edit,
+        tone: "info",
+        render: () => (
+          <Suspense fallback={<p role="status">A carregar o blog…</p>}>
+            <BlogSettingsPanel />
+          </Suspense>
+        ),
       },
       {
         id: "pedagogico",

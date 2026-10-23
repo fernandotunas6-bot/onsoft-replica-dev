@@ -106,7 +106,8 @@ describe("communications schemas", () => {
       title: "Aviso de propinas",
       body: "Regularize até sexta-feira.",
       audience: "guardians_with_debt",
-      channel: "email",
+      // Portal: um agendado por e-mail ficava «Enviado» sem sair (auditoria 13, F-36).
+      channel: "portal",
       status: "scheduled",
       scheduledFor: "2025-07-15",
     });

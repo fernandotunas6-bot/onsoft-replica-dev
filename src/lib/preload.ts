@@ -5,6 +5,17 @@
 
 const warmed = new Set<string>();
 
+/** Poupa a ligação limitada; os recursos continuam a carregar quando forem usados. */
+export function canPrefetchResources() {
+  if (typeof navigator === "undefined") return true;
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  return !connection?.saveData && !["slow-2g", "2g"].includes(connection?.effectiveType ?? "");
+}
+
 export function onIdle(fn: () => void) {
   if (typeof window === "undefined") return;
   const ric = (

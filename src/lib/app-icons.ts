@@ -22,6 +22,7 @@ import {
   ChartColumn,
   CircleAlert,
   CircleCheck,
+  CircleX,
   ClipboardCheck,
   Clock,
   Clock3,
@@ -70,6 +71,7 @@ import {
   Users,
   Wallet,
   type LucideIcon,
+  Library,
 } from "lucide-react";
 
 /** Módulos e áreas do sistema (menu lateral, cabeçalhos de página, atalhos). */
@@ -120,6 +122,8 @@ export const moduleIcons = {
   diagnostics: Stethoscope,
   /** Assinatura da escola: plano, uso e pagamento. */
   subscription: CreditCard,
+  /** Catálogo global de cursos, disciplinas e etapas de ensino. */
+  educationCatalog: Library,
 } satisfies Record<string, LucideIcon>;
 
 export type ModuleIconKey = keyof typeof moduleIcons;
@@ -144,6 +148,7 @@ export const actionIcons = {
 /** Estados — combinam com os tons `success | warning | destructive | info | muted`. */
 export const statusIcons = {
   success: CircleCheck,
+  rejected: CircleX,
   warning: TriangleAlert,
   error: CircleAlert,
   info: Info,

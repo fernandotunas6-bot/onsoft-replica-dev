@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { Search } from "lucide-react"
 
 interface FAQ {
-  id: number
+  id: number | string
   question: string
   answer: string
   category: string

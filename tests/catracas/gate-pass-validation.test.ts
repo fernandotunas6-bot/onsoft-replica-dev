@@ -231,3 +231,27 @@ describe("findGatePassCard", () => {
     expect(db.from).toHaveBeenCalledTimes(3);
   });
 });
+
+describe("evaluateGatePassAccess — estado do aluno (auditoria 13)", () => {
+  it("transferido, concluído, cancelado, suspenso ou bloqueado não passam", async () => {
+    for (const studentStatus of ["transferred", "graduated", "cancelled", "suspended", "locked"]) {
+      const db = makeDb({ studentStatus });
+      const result = await evaluateGatePassAccess(db, SCHOOL_ID, TOKENS, "entry", onlineDevice);
+      expect(result.granted, studentStatus).toBe(false);
+      expect(result.reason).toMatch(/Acesso negado: aluno/);
+    }
+  });
+
+  it("um cartão de aluno cuja ficha já não existe não passa", async () => {
+    const db = makeDb({ studentStatus: null });
+    const result = await evaluateGatePassAccess(db, SCHOOL_ID, TOKENS, "entry", onlineDevice);
+    expect(result.granted).toBe(false);
+    expect(result.reason).toContain("sem ficha activa");
+  });
+
+  it("candidato continua a passar, como activo", async () => {
+    const db = makeDb({ studentStatus: "applicant" });
+    const result = await evaluateGatePassAccess(db, SCHOOL_ID, TOKENS, "entry", onlineDevice);
+    expect(result.granted).toBe(true);
+  });
+});

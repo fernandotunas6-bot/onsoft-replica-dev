@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fileMotion } from "@/components/files/file-motion";
 import { FilePickerModal } from "./FilePickerModal";
+import type { SchoolFileRequest } from "./file-request";
 import type { FileArea, FileKind } from "./kinds";
 import type { SchoolFileRecord } from "./schemas";
 
@@ -9,6 +11,8 @@ export function PickFileButton({
   label = "Arquivo",
   area,
   acceptKinds,
+  initialRelatedPersonId,
+  request,
   onPick,
   variant = "outline",
   size = "default",
@@ -17,6 +21,8 @@ export function PickFileButton({
   label?: string;
   area?: FileArea;
   acceptKinds?: readonly FileKind[];
+  initialRelatedPersonId?: string;
+  request?: SchoolFileRequest;
   onPick?: (file: SchoolFileRecord) => void;
   variant?: "outline" | "ghost" | "secondary";
   size?: "default" | "sm";
@@ -27,9 +33,10 @@ export function PickFileButton({
     <>
       <Button
         type="button"
+        aria-label={label}
         variant={variant}
         size={size}
-        className="gap-2"
+        className={`gap-2 ${fileMotion.interactive}`}
         onClick={() => setOpen(true)}
       >
         {children ?? (
@@ -44,6 +51,8 @@ export function PickFileButton({
         onOpenChange={setOpen}
         area={area}
         acceptKinds={acceptKinds}
+        initialRelatedPersonId={initialRelatedPersonId}
+        request={request}
         onPick={onPick}
       />
     </>

@@ -34,6 +34,8 @@ export function PersonalNotificationsList({ open }: { open: boolean }) {
   const unreadIds = items.filter((item) => !item.read).map((item) => item.id);
   const markRead = useMutation({
     mutationFn: (ids: string[]) => markMyNotificationsRead({ data: { ids } }),
+    // Marcar como lidas é automático: falhar não pede nada à pessoa.
+    meta: { errorToast: false },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: PERSONAL_NOTIFICATIONS_KEY }),
   });
   const unreadKey = unreadIds.join(",");

@@ -108,6 +108,18 @@ from (values
   ('20261006100000_enrollment_class_change',
      coalesce(position('A turma atingiu a capacidade' in pg_get_functiondef(
        to_regprocedure('private.protect_enrollment_identity()'))) > 0, false)),
+  -- Estas duas estão no pacote docs/agents/SIGA_aplicar_auditoria13_2026-10-06.sql (auditoria 13, A2 e A8).
+  ('20261006180000_academic_year_dates_cover_terms',
+     exists (select 1 from pg_trigger
+             where tgname = 'trg_guard_academic_year_covers_terms' and not tgisinternal)),
+  -- Lida por SQL dinâmico: onde não há storage.buckets (ensaios locais) diz "EM FALTA"
+  -- em vez de partir a consulta inteira.
+  ('20261006181000_school_logos_no_svg',
+     case when to_regclass('storage.buckets') is null then false
+     else coalesce((xpath('//ok/text()', query_to_xml(
+       'select not (''image/svg+xml'' = any (coalesce(allowed_mime_types, array[''image/svg+xml'']))) as ok
+          from storage.buckets where id = ''school-logos''', false, true, '')))[1]::text = 'true', false)
+     end),
   -- QR do professor: só a versão endurecida é chamável (aplicada a 2026-10-05).
   ('20261005143409_teacher_qr_inner_functions_not_callable',
      not coalesce(has_function_privilege('authenticated',
@@ -137,6 +149,20 @@ from (values
                and qual like '%sga_app_role%')
      and not exists (select 1 from pg_policies
                      where tablename = 'schools'
-                       and policyname = 'Administrators can update their own school'))
+                       and policyname = 'Administrators can update their own school')),
+  -- Auditoria 13, F-01/F-08: âmbito do professor e leituras da tesouraria.
+  ('20261014121549_teacher_scope_and_treasury_reads',
+     to_regprocedure('private.user_wide_reader_school_ids()') is not null
+     and (select count(*) from pg_policies
+          where schemaname = 'public'
+            and policyname in ('students_read', 'people_read', 'enrollments_read', 'student_guardians_read')
+            and qual like '%user_wide_reader_school_ids%') = 4
+     and exists (select 1 from pg_policies
+                 where tablename = 'siga_attendance_records'
+                   and policyname = 'Members read siga_attendance_records'
+                   and qual like '%teacher_students%')),
+  ('20261015120000_tenant_billing_profiles',
+     to_regclass('public.tenant_billing_profiles') is not null
+     and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
 ) as m(migracao, ok)
 order by migracao;

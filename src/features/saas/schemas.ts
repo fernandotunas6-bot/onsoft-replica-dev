@@ -2,7 +2,7 @@ import { z } from "zod";
 import { normalizeAngolaProvince } from "@/lib/angola-territory";
 import { isSchoolTypeId } from "@/lib/school-config";
 import { isCourseId, isTeachingLevelId } from "@/lib/angola-academic";
-import { isReservedSubdomain } from "@/lib/saas/platform-domain";
+import { hasReservedDnsHyphens, isReservedSubdomain } from "@/lib/saas/platform-domain";
 import { validateSchoolNif } from "@/lib/angola-identity";
 import { validateAngolaPhone } from "@/lib/angola-phone";
 
@@ -164,6 +164,9 @@ export const createSchoolWizardInputSchema = z.object({
     )
     .refine((slug) => !isReservedSubdomain(slug), {
       message: "Este subdomínio está reservado pela plataforma.",
+    })
+    .refine((slug) => !hasReservedDnsHyphens(slug), {
+      message: "O subdomínio não pode ter «--» na 3.ª e 4.ª posição (ex.: «xn--»).",
     }),
 
   admin_email: normalizedEmail("E-mail do administrador inválido"),
@@ -201,12 +204,20 @@ export const updateTenantSubscriptionInputSchema = z
     extend_trial_days: z.number().int().min(1).max(90).optional(),
     // Pagamento confirmado pela equipa: activa a assinatura por um mês ou um ano.
     confirm_payment_billing: z.enum(["monthly", "yearly"]).optional(),
+    // Ou pelo número de meses pagos (trimestral e semestral incluídos). Ganha a
+    // `confirm_payment_billing` quando vêm os dois.
+    confirm_payment_months: z
+      .union([z.literal(1), z.literal(3), z.literal(6), z.literal(12)])
+      .optional(),
+    // Referência do pagamento recebido sem comprovativo (numerário, transferência).
+    payment_reference: z.string().trim().max(120).optional(),
   })
   .refine(
     (data) =>
       data.plan_code != null ||
       data.extend_trial_days != null ||
-      data.confirm_payment_billing != null,
+      data.confirm_payment_billing != null ||
+      data.confirm_payment_months != null,
     { message: "Indique plano, extensão de trial ou pagamento confirmado." },
   );
 

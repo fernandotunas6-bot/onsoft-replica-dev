@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { z } from "zod";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/importar")({
   component: ImportarDadosPage,
 });
 
-export function ImportarDadosPage() {
+function ImportarDadosPage() {
   const { school, activeYearLabel, selectedYearId } = useSchoolSettings();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.id });

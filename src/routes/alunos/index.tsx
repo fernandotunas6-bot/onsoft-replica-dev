@@ -1,9 +1,10 @@
 import { useEffect, useId, useMemo, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { z } from "zod";
 import {
   ArrowDown,
@@ -371,7 +372,7 @@ function StudentsPage() {
       const matchQuery =
         !q ||
         s.full_name.toLowerCase().includes(q) ||
-        s.registration_number.toLowerCase().includes(q) ||
+        numberMatches(s.registration_number, q) ||
         (s.email ?? "").toLowerCase().includes(q) ||
         (s.phone ?? "").toLowerCase().includes(q) ||
         (s.national_id ?? "").toLowerCase().includes(q) ||
