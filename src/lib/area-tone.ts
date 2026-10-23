@@ -46,3 +46,24 @@ export function areaToneForPath(pathname: string): AreaTone {
   }
   return "marca";
 }
+
+/**
+ * Nome da área no breadcrumb (`PageHeader group`).
+ *
+ * Mesma fonte que o tom, para o rótulo não poder contradizer a cor: Facturas
+ * pintava-se de financeiro e escrevia «Relatórios», e as cinco páginas de
+ * `/financeiro/rh` anunciavam três áreas diferentes entre irmãs.
+ */
+export const AREA_LABEL: Record<AreaTone, string> = {
+  marca: "SIGA",
+  pedagogica: "Pedagógica",
+  financeiro: "Financeiro",
+  secretaria: "Secretaria",
+  rh: "Finanças · RH",
+  comunicacao: "Gestão e Comunicação",
+  sistema: "Sistema",
+};
+
+export function areaLabelForPath(pathname: string): string {
+  return AREA_LABEL[areaToneForPath(pathname)];
+}

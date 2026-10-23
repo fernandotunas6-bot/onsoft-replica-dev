@@ -116,7 +116,7 @@ function HrPayrollPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Finanças"
+          group="Finanças · RH"
           title="RH e Folha Salarial"
           description="Vínculos funcionais, contratos, salários mensais, pagamento por hora/aula e processamento da folha salarial — integrado à identidade única de Pessoas."
           actions={

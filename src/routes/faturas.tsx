@@ -779,7 +779,7 @@ function FaturasPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Relatórios"
+          group="Financeiro"
           title="Faturas"
           description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
           actions={

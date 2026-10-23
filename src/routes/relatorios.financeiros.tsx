@@ -377,7 +377,7 @@ function RelatoriosFinanceiros() {
           </Alert>
         ) : null}
         <PageHeader
-          group="Relatórios"
+          group="Financeiro"
           title="Relatórios Financeiros"
           description="Resultado do ano lectivo, composição das receitas e estrutura de custos da instituição."
           actions={
