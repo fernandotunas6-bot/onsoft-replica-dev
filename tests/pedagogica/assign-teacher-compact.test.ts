@@ -24,7 +24,7 @@ describe("atribuição de professor — modal simples do visual master", () => {
     expect(source).toContain("await assignClassSubjectTeacher({");
     expect(source).toContain("data: { classGroupId, subjectId, teacherId }");
     expect(source).toContain("await onAssigned()");
-    expect(source).toContain("setSubjectId(\"\")");
+    expect(source).toContain('setSubjectId("")');
   });
 
   it("impede envio duplicado e impede o fecho durante a operação pendente", () => {
@@ -33,6 +33,8 @@ describe("atribuição de professor — modal simples do visual master", () => {
     expect(source).toContain("savingRef.current = false;");
     expect(source).toContain("preventOutsideClose={saving}");
     expect(source).toContain("isSubmitting={saving}");
-    expect(source).toContain("hasUnsavedChanges={classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId)}");
+    expect(source).toContain(
+      "hasUnsavedChanges={classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId)}",
+    );
   });
 });
