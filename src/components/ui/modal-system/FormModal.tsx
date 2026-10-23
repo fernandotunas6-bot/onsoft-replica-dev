@@ -42,6 +42,7 @@ export function FormModal({
   hasUnsavedChanges = false,
   size = "lg",
   extraActions,
+  className,
 }: FormModalProps) {
   const submission = useSubmitLock();
 
@@ -64,6 +65,7 @@ export function FormModal({
         else if (!isSubmitting && !submission.pending) onOpenChange(false);
       }}
       size={size}
+      className={className}
       hasUnsavedChanges={hasUnsavedChanges}
     >
       <form
