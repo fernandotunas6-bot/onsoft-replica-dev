@@ -363,22 +363,22 @@ export function Dashboard() {
     <Suspense fallback={<PortalDashboardSkeleton />}>
       <AppShell>
         <Suspense fallback={<PortalDashboardSkeleton />}>
-        {portalMode === "student" ? (
-          <StudentPortalDashboard />
-        ) : portalMode === "guardian" ? (
-          <GuardianPortalDashboard />
-        ) : portalMode === "teacher" ? (
-          <TeacherPortalDashboard />
-        ) : (
-          <AdminPortalDashboard
-            data={data}
-            isLoading={overviewQuery.isLoading}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            now={now}
-            greeting={greeting}
-          />
-        )}
+          {portalMode === "student" ? (
+            <StudentPortalDashboard />
+          ) : portalMode === "guardian" ? (
+            <GuardianPortalDashboard />
+          ) : portalMode === "teacher" ? (
+            <TeacherPortalDashboard />
+          ) : (
+            <AdminPortalDashboard
+              data={data}
+              isLoading={overviewQuery.isLoading}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              now={now}
+              greeting={greeting}
+            />
+          )}
         </Suspense>
       </AppShell>
     </Suspense>
