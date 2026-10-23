@@ -143,3 +143,13 @@ Validação: 45 testes em três ficheiros passaram, incluindo carregamento difer
 O CI anterior `1cb195342` passou, incluindo TypeScript global, testes e build. O resultado global deste novo commit ainda depende do seu CI. Não houve publicação em produção nem nova validação autenticada.
 
 ![Contexto da turma de um link directo](deep-link-academic-1440.png)
+
+## Disciplina activa e mudança de contexto académico
+
+O destaque da disciplina aberta usa o separador Notas, a turma e a disciplina, sem depender do parâmetro de apresentação `pauta=1`. O mesmo destaque aparece na árvore expandida e no painel recolhido; noutros separadores não é apresentado como se a página de notas estivesse aberta. A pauta do primário também é identificada sem exigir esse parâmetro. Navegar para outra disciplina da mesma turma volta a revelar a selecção; uma simples actualização dos dados continua a respeitar a recolha manual. O painel académico fecha ao mudar de ano lectivo, como já acontecia ao mudar de escola/perfil.
+
+Validação: 58 testes em quatro ficheiros passaram, com casos para disciplina activa, exclusão de outros separadores, navegação entre disciplinas, pauta do primário e fecho na troca de ano; ESLint dirigido sem erros. Quatro cenários representativos de navegador a 1024/1440 px verificaram Notas/Horários sem `pauta`, com exactamente uma disciplina destacada em Notas e nenhuma em Horários, incluindo o painel recolhido. Dados em [academic-active-browser-results.json](academic-active-browser-results.json). Conta, router e rede controlados pelo ensaio; não houve submissão real ou validação autenticada.
+
+O CI de `fc0d22d2` passou completo antes desta alteração. O novo commit tem a sua própria validação global pendente.
+
+![Disciplina seleccionada](academic-active-1440.png)

@@ -43,14 +43,13 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
   const [branchId, setBranchId] = useState<string | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [openClass, setOpenClass] = useState<string | null>(null);
-  const routeClass = useRouterState({
-    select: ({ location }) => {
-      const search = location.search as Record<string, unknown>;
-      return location.pathname === "/pedagogica" && typeof search.turma === "string"
-        ? search.turma
-        : null;
-    },
+  const routeSearch = useRouterState({
+    select: ({ location }) =>
+      location.pathname === "/pedagogica" ? (location.search as Record<string, unknown>) : null,
   });
+  const routeClass = typeof routeSearch?.turma === "string" ? routeSearch.turma : null;
+  const routeSubject = typeof routeSearch?.disciplina === "string" ? routeSearch.disciplina : null;
+  const notesActive = routeSearch?.tab === "notas";
   const appliedRoute = useRef<string | null>(null);
   useEffect(() => {
     setBranchId(null);
@@ -128,7 +127,13 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
     return buildAcademicNavTree(assignments);
   }, [isTeacher, teacherQuery.data, workspaceQuery.data]);
 
-  const selectionKey = JSON.stringify([account.schoolId, account.role, selectedYearId, routeClass]);
+  const selectionKey = JSON.stringify([
+    account.schoolId,
+    account.role,
+    selectedYearId,
+    routeClass,
+    routeSubject,
+  ]);
   useEffect(() => {
     if (!canRead || appliedRoute.current === selectionKey) return;
     if (!routeClass) {
@@ -172,7 +177,13 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
           ))}
         </SelectContent>
       </Select>
-      <AcademicClassList branch={branch} openClass={openClass} onToggleClass={setOpenClass} />
+      <AcademicClassList
+        branch={branch}
+        openClass={openClass}
+        onToggleClass={setOpenClass}
+        activeClass={notesActive ? routeClass : null}
+        activeSubject={notesActive ? routeSubject : null}
+      />
     </div>
   );
 
@@ -213,10 +224,14 @@ function AcademicClassList({
   branch,
   openClass,
   onToggleClass,
+  activeClass,
+  activeSubject,
 }: {
   branch: AcademicNavBranch;
   openClass: string | null;
   onToggleClass: (id: string | null) => void;
+  activeClass: string | null;
+  activeSubject: string | null;
 }) {
   return (
     <ul className="space-y-0.5">
@@ -227,6 +242,7 @@ function AcademicClassList({
               to="/pedagogica"
               search={{ tab: "notas", turma: turma.id, pauta: "1" }}
               label={turma.name}
+              active={activeClass === turma.id && !activeSubject}
             />
           ) : (
             <>
@@ -263,6 +279,7 @@ function AcademicClassList({
                         }}
                         label={subject.name}
                         depth="sub"
+                        active={activeClass === turma.id && activeSubject === subject.id}
                       />
                     </li>
                   ))}

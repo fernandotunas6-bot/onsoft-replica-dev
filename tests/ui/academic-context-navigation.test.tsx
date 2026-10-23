@@ -10,12 +10,15 @@ const state = vi.hoisted(() => ({
   empty: false,
   ready: true,
   routeClass: null as string | null,
+  routeSubject: null as string | null,
+  routeTab: "notas",
+  yearId: "year-a",
 }));
 vi.mock("@/features/auth/use-current-account", () => ({
   useCurrentAccount: () => ({ role: state.role, grants: {}, schoolId: state.schoolId }),
 }));
 vi.mock("@/features/auth/use-school-settings", () => ({
-  useSchoolSettings: () => ({ selectedYearId: "year-a", school: { id: state.schoolId } }),
+  useSchoolSettings: () => ({ selectedYearId: state.yearId, school: { id: state.schoolId } }),
 }));
 vi.mock("@/features/academic/server", () => ({
   getTeacherWorkspace: vi.fn(),
@@ -48,6 +51,7 @@ vi.mock("@tanstack/react-query", () => ({
         : [
             { class_group_id: "class-a", subject_id: "subject-a", subject_name: "Matemática" },
             { class_group_id: "class-b", subject_id: "subject-b", subject_name: "Português" },
+            { class_group_id: "class-b", subject_id: "subject-c", subject_name: "História" },
           ],
       classes: [
         {
@@ -70,7 +74,10 @@ vi.mock("@tanstack/react-router", () => ({
     select: (state: { location: { pathname: string; search: Record<string, unknown> } }) => unknown;
   }) =>
     select({
-      location: { pathname: "/pedagogica", search: { tab: "notas", turma: state.routeClass } },
+      location: {
+        pathname: "/pedagogica",
+        search: { tab: state.routeTab, turma: state.routeClass, disciplina: state.routeSubject },
+      },
     }),
   Link: ({
     to,
@@ -98,6 +105,9 @@ afterEach(() => {
   state.empty = false;
   state.ready = true;
   state.routeClass = null;
+  state.routeSubject = null;
+  state.routeTab = "notas";
+  state.yearId = "year-a";
   state.schoolId = "school-a";
 });
 describe("navegação académica real", () => {
@@ -148,6 +158,48 @@ describe("navegação académica real", () => {
     render(<AcademicNavTree />);
     expect(screen.queryByRole("link", { name: "Português" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Matemática" })).toBeNull();
+  });
+  it("destaca só a disciplina aberta sem exigir o parâmetro pauta", () => {
+    state.routeClass = "class-b";
+    state.routeSubject = "subject-b";
+    render(<AcademicNavTree />);
+    expect(screen.getByRole("link", { name: "Português" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "História" }).getAttribute("aria-current")).toBeNull();
+  });
+  it("não marca a disciplina como notas ao abrir outro separador", () => {
+    state.routeClass = "class-b";
+    state.routeSubject = "subject-b";
+    state.routeTab = "horarios";
+    render(<AcademicNavTree />);
+    expect(screen.getByRole("link", { name: "Português" }).getAttribute("aria-current")).toBeNull();
+  });
+  it("revela e destaca a nova disciplina após navegar dentro da mesma turma", () => {
+    state.routeClass = "class-b";
+    state.routeSubject = "subject-b";
+    const view = render(<AcademicNavTree />);
+    fireEvent.click(screen.getByRole("button", { name: "11.ª B" }));
+    state.routeSubject = "subject-c";
+    view.rerender(<AcademicNavTree />);
+    expect(screen.getByRole("link", { name: "História" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Português" }).getAttribute("aria-current")).toBeNull();
+  });
+  it("marca a pauta do primário sem depender de parâmetros de apresentação", () => {
+    state.primary = true;
+    state.routeClass = "class-a";
+    render(<AcademicNavTree />);
+    expect(screen.getByRole("link", { name: "10.ª A" }).getAttribute("aria-current")).toBe("page");
+  });
+  it("fecha o painel académico ao trocar de ano lectivo", async () => {
+    const view = render(<AcademicNavTree collapsed />);
+    fireEvent.click(screen.getByRole("button", { name: "Turmas e disciplinas" }));
+    await screen.findByRole("dialog", { name: "Navegação académica" });
+    state.yearId = "year-b";
+    view.rerender(<AcademicNavTree collapsed />);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
   it("mantém a turma secundária sem disciplinas como estado vazio", () => {
     state.empty = true;
