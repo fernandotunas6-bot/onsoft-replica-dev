@@ -113,23 +113,33 @@ export function StackedModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só recalcular quando o modal (re)abre
   }, [open, initialPanelId]);
 
-  const push = (id: string) => byId.has(id) && setActiveId(resolveTopId(id));
-  const close = () => {
-    if (confirmDiscardChanges(dirty)) onOpenChange(false);
-  };
+  // A troca de categoria desmonta os formulários do painel anterior.
+  // Não perder rascunhos silenciosamente: reutilizar a confirmação simples já
+  // usada ao fechar o diálogo, sem criar outro modal ou duplicar a navegação.
+  const nav: StackNav = useMemo(() => {
+    const changePanel = (targetId: string) => {
+      if (!byId.has(targetId)) return;
+      const nextId = resolveTopId(targetId);
+      if (nextId === activeId || !confirmDiscardChanges(dirty)) return;
+      setDirty(false);
+      setActiveId(nextId);
+    };
 
-  const nav: StackNav = useMemo(
-    () => ({
-      push,
+    return {
+      push: changePanel,
       back: () => {},
-      reset: () => setActiveId(resolveTopId()),
-      close,
+      reset: () => changePanel(resolveTopId()),
+      close: () => {
+        if (!confirmDiscardChanges(dirty)) return;
+        setDirty(false);
+        onOpenChange(false);
+      },
       depth: 1,
       reportDirty: setDirty,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- push/close recriam-se por render, mas são estáveis o suficiente aqui
-    [byId, topRows],
-  );
+    };
+    // resolveTopId lê apenas as dependências listadas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, byId, dirty, onOpenChange, rootId, topRows]);
 
   const active = byId.get(activeId) ?? root;
   if (!active) return null;
@@ -152,6 +162,7 @@ export function StackedModal({
       open={open}
       onOpenChange={(next) => {
         if (!next && !confirmDiscardChanges(dirty)) return;
+        if (!next) setDirty(false);
         onOpenChange(next);
       }}
     >
@@ -182,7 +193,7 @@ export function StackedModal({
                     type="button"
                     title={row.label}
                     aria-current={isActive}
-                    onClick={() => row.to && setActiveId(row.to)}
+                    onClick={() => row.to && nav.push(row.to)}
                     className={cn(
                       "flex w-full items-center justify-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 sm:justify-start",
                       isActive
