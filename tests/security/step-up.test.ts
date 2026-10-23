@@ -106,7 +106,9 @@ describe("reconfirmação antes de acções críticas", () => {
       },
     );
     try {
-      expect(reportPossibleStepUp(new Error(`${STEP_UP_PREFIX}: Alterar o IBAN da escola.`))).toBe(true);
+      expect(reportPossibleStepUp(new Error(`${STEP_UP_PREFIX}: Alterar o IBAN da escola.`))).toBe(
+        true,
+      );
       expect(dispatched).toHaveLength(1);
       expect(dispatched[0]?.detail.action).toBe("Alterar o IBAN da escola");
       expect(consumePendingStepUpAction()).toBe("Alterar o IBAN da escola");
