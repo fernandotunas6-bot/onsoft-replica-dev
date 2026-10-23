@@ -68,12 +68,7 @@ export function DeleteConfirmModal({
   };
 
   return (
-    <ModalShell
-      open={open}
-      onOpenChange={requestOpenChange}
-      preventOutsideClose
-      size="xs"
-    >
+    <ModalShell open={open} onOpenChange={requestOpenChange} preventOutsideClose size="xs">
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
         <DialogPrimitive.Description className="sr-only">
