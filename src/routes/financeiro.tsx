@@ -8,7 +8,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Banknote,
-  BriefcaseBusiness,
   CreditCard,
   Download,
   FileBadge,
@@ -167,7 +166,6 @@ function FinanceiroPage() {
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
   const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
   const schemaBlocked = missingPenalty;
-  const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const cashExpensesAvailable = schemaQuery.data ? !schemaQuery.data.missingCashExpenses : false;
   const movimentos = useMemo(
     () =>
@@ -466,22 +464,6 @@ function FinanceiroPage() {
                     <Banknote className="size-4" /> Resumo do caixa
                   </Link>
                 </Button>
-                <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/financeiro/rh">
-                    <BriefcaseBusiness className="size-4" /> RH e Folha
-                  </Link>
-                </Button>
-                {financeInvoiceBlocked ? (
-                  <Button variant="outline" className="gap-2" disabled>
-                    <Banknote className="size-4" /> Emitir fatura
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="gap-2" asChild>
-                    <Link to="/faturas">
-                      <Banknote className="size-4" /> Emitir fatura
-                    </Link>
-                  </Button>
-                )}
                 <DocHelpButton title="Navegação e permissões — tesouraria" />
                 <DocPathHelpButton
                   path={DOC_PATHS.financePayflow}
