@@ -182,8 +182,8 @@ export function AssignTeacherForm({
                 classSubjectLinks.length > 0 &&
                 !classSubjectLinks.some((row) => row.class_group_id === classGroupId) ? (
                   <p className="text-xs text-muted-foreground">
-                    Esta turma ainda não tem currículo ligado. A primeira atribuição também
-                    associa a disciplina à turma, preservando o fluxo anterior.
+                    Esta turma ainda não tem currículo ligado. A primeira atribuição também associa
+                    a disciplina à turma, preservando o fluxo anterior.
                   </p>
                 ) : null}
               </div>
