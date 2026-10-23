@@ -1,5 +1,25 @@
 # Handoff — continuar o SIGA
 
+## Navegação contextual e superfícies discretas — 2026-10-22
+
+A sidebar deriva o módulo activo do catálogo já filtrado por papel/grants/plano.
+«Todas as áreas» abre a navegação global; «Voltar ao módulo» regressa ao contexto.
+A lista global abre um submenu de cada vez e já não restaura menus acumulados de
+outras sessões. A árvore académica só monta no contexto pedagógico. O estado de
+navegação é reiniciado por uma chave serializada estável (rota/pesquisa/escola/papel),
+sem depender da identidade de objectos de pesquisa. `NavLinkRow` mantém o destaque
+automático do router quando `active` não é explícito; não retirar esse fallback da
+árvore académica. Painéis e cartões partilhados têm superfícies sem elevação ao hover;
+cores de estado explícitas mantêm-se. Comparação controlada e limites:
+[relatório visual](../visual/2026-10-22/README.md). Sem deploy nem SQL.
+
+Para ligar o visual de outro agente, consultar os
+[pontos de integração e contrato de aparência](../design/CONTEXTUAL_VISUAL_INTEGRATION.md).
+A PR #245 (`e4db10fa`) foi identificada e combinada nesta branch: toque de 44 px,
+movimento reduzido e pesquisa IME. Preservar os dois históricos, os ajustes recentes
+dos modais, os testes de navegação e o catálogo lazy de temas. Isto não confirma a
+reprodução das imagens de outra conversa, que continuam por identificar.
+
 ## Refinamento da navegação académica — 2026-10-21
 
 Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis
