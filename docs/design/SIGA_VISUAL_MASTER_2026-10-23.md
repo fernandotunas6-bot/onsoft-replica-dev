@@ -2,7 +2,7 @@
 
 ## Fonte e precedência
 
-Consolidação fiel das instruções do proprietário, do contrato `.cursor/skills/siga-performance/references/prompt-master.md`, do trabalho já publicado na [PR #252](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/252) e da contribuição paralela em revisão na [PR #259](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/259). O texto integral da conversa/prompt privado do outro agente **não está acessível** nesta sessão; este documento coordena apenas orientações e artefactos efectivamente recuperados. Não alegar sincronização em tempo real nem substituir os commits do agente paralelo.
+Consolidação fiel das instruções do proprietário, do contrato `.cursor/skills/siga-performance/references/prompt-master.md`, do trabalho já publicado na [PR #252](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/252) e da contribuição paralela já integrada no `main` pela [PR #259](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/259). O texto integral da conversa/prompt privado do outro agente **não está acessível** nesta sessão; este documento coordena apenas orientações e artefactos efectivamente recuperados. Não alegar sincronização em tempo real nem substituir os commits do agente paralelo.
 
 ### Regra mestra
 
@@ -17,7 +17,7 @@ Consolidação fiel das instruções do proprietário, do contrato `.cursor/skil
 5. No telemóvel, manter uma gaveta de navegação simples que fecha após seleccionar um destino; não deixar contexto antigo, não criar segunda árvore de autorização; nunca permitir overflow horizontal.
 6. Respeitar tema claro/escuro, movimento reduzido, tamanhos 390/768/1024/1440px e nomes longos. Não introduzir gradientes, sombras intensas, duplicação de cabeçalhos nem rótulos burocráticos.
 
-**Trabalho paralelo:** a PR #259 corrige o destaque da área activa nos detalhes e no menu mobile. Evitar reescrever `AppSidebar.tsx`, `MoreHub.tsx` ou o motor de navegação enquanto essa PR estiver aberta; integrar pelo fluxo normal de revisão e testes.
+**Trabalho paralelo integrado:** a PR #259 corrigiu o destaque da área activa nos detalhes e no menu mobile e já foi integrada no `main` no commit `86920d3`. Preservar esses componentes e os contratos de navegação; qualquer novo refinamento deve partir do código actual e passar pelos testes de permissões e navegação.
 
 ## Modais — apenas os simples e necessários
 
