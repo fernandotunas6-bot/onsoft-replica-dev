@@ -35,7 +35,9 @@ test("não aceita destinos externos, credenciais, parâmetros ou métodos de esc
 });
 
 test("protecção da API nunca aceita HTTP 200 de uma sessão anónima", () => {
-  const protectedChecks = CHECKS.filter((check) => check.url.includes("/api/saas/") && check.expected[0] === 401);
+  const protectedChecks = CHECKS.filter(
+    (check) => check.url.includes("/api/saas/") && check.expected[0] === 401,
+  );
   assert.equal(protectedChecks.length, 4);
   for (const check of protectedChecks) {
     assert.ok(isExpectedStatus(check, 401));
