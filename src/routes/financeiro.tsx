@@ -1,3 +1,4 @@
+import { PageActionMenu } from "@/components/layout/PageActionMenu";
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
@@ -433,153 +434,292 @@ function FinanceiroPage() {
           description="Registo diário de entradas e saídas, métodos de pagamento e evolução da cobrança."
           actions={
             <>
-              <Button variant="outline" className="gap-2" onClick={exportarCaixaCsv}>
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCaixaPdf}>
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCaixaOficial}>
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                  <FileUp className="size-4 text-primary" /> Importar Pagamentos
-                </Link>
-              </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <a
-                  href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <PayflowBrandIcon size={16} /> Portal PayFlow
-                </a>
-              </Button>
-              <PayflowAdminLaunchButton variant="outline" className="gap-2">
-                Conciliação PayFlow
-              </PayflowAdminLaunchButton>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/relatorios/financeiros">
-                  <Banknote className="size-4" /> Resumo do caixa
-                </Link>
-              </Button>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/financeiro/rh">
-                  <BriefcaseBusiness className="size-4" /> RH e Folha
-                </Link>
-              </Button>
-              {financeInvoiceBlocked ? (
-                <Button variant="outline" className="gap-2" disabled>
-                  <Banknote className="size-4" /> Emitir fatura
+              <PageActionMenu>
+                <Button variant="outline" className="gap-2" onClick={exportarCaixaCsv}>
+                  <Download className="size-4" /> CSV
                 </Button>
-              ) : (
+                <Button variant="outline" className="gap-2" onClick={exportarCaixaPdf}>
+                  <FileDown className="size-4" /> PDF
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={exportarCaixaOficial}>
+                  <FileBadge className="size-4" /> Oficial
+                </Button>
                 <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/faturas">
-                    <Banknote className="size-4" /> Emitir fatura
+                  <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                    <FileUp className="size-4 text-primary" /> Importar Pagamentos
                   </Link>
                 </Button>
-              )}
-              <DocHelpButton title="Navegação e permissões — tesouraria" />
-              <DocPathHelpButton
-                path={DOC_PATHS.financePayflow}
-                label="PayFlow"
-                title="PayFlow — cobrança e conciliação"
-              />
-              <DocPathHelpButton
-                path={DOC_PATHS.integracoesEmis}
-                label="Pagamentos"
-                title="Multicaixa, Unitel e gateway"
-              />
-              <QuickFormModal
-                eyebrow="Tesouraria"
-                title="Pagamento avançado"
-                description="Plano com prestações e canal Multicaixa Express ou Unitel Money. Fica pendente até confirmação do gateway."
-                icon={<Wallet className="size-5" />}
-                submitLabel="Criar plano"
-                onSubmit={async (values) => {
-                  const invoice = payableInvoices.find((item) =>
-                    `${item.number} · ${item.student_name} · ${Number(item.total_amount).toLocaleString("pt-PT")} Kz`.includes(
-                      values["fatura"] ?? "",
-                    ),
-                  );
-                  const channelMap = {
-                    "Multicaixa Express": "multicaixa_express",
-                    "Unitel Money": "unitel_money",
-                    Transferência: "transfer",
-                    Numerário: "cash",
-                  } as const;
-                  await createPaymentPlan({
-                    data: {
-                      invoiceId: invoice?.id,
+                <Button variant="outline" className="gap-2" asChild>
+                  <a
+                    href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <PayflowBrandIcon size={16} /> Portal PayFlow
+                  </a>
+                </Button>
+                <PayflowAdminLaunchButton variant="outline" className="gap-2">
+                  Conciliação PayFlow
+                </PayflowAdminLaunchButton>
+                <Button variant="outline" className="gap-2" asChild>
+                  <Link to="/relatorios/financeiros">
+                    <Banknote className="size-4" /> Resumo do caixa
+                  </Link>
+                </Button>
+                <Button variant="outline" className="gap-2" asChild>
+                  <Link to="/financeiro/rh">
+                    <BriefcaseBusiness className="size-4" /> RH e Folha
+                  </Link>
+                </Button>
+                {financeInvoiceBlocked ? (
+                  <Button variant="outline" className="gap-2" disabled>
+                    <Banknote className="size-4" /> Emitir fatura
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="gap-2" asChild>
+                    <Link to="/faturas">
+                      <Banknote className="size-4" /> Emitir fatura
+                    </Link>
+                  </Button>
+                )}
+                <DocHelpButton title="Navegação e permissões — tesouraria" />
+                <DocPathHelpButton
+                  path={DOC_PATHS.financePayflow}
+                  label="PayFlow"
+                  title="PayFlow — cobrança e conciliação"
+                />
+                <DocPathHelpButton
+                  path={DOC_PATHS.integracoesEmis}
+                  label="Pagamentos"
+                  title="Multicaixa, Unitel e gateway"
+                />
+                <QuickFormModal
+                  eyebrow="Tesouraria"
+                  title="Pagamento avançado"
+                  description="Plano com prestações e canal Multicaixa Express ou Unitel Money. Fica pendente até confirmação do gateway."
+                  icon={<Wallet className="size-5" />}
+                  submitLabel="Criar plano"
+                  onSubmit={async (values) => {
+                    const invoice = payableInvoices.find((item) =>
+                      `${item.number} · ${item.student_name} · ${Number(item.total_amount).toLocaleString("pt-PT")} Kz`.includes(
+                        values["fatura"] ?? "",
+                      ),
+                    );
+                    const channelMap = {
+                      "Multicaixa Express": "multicaixa_express",
+                      "Unitel Money": "unitel_money",
+                      Transferência: "transfer",
+                      Numerário: "cash",
+                    } as const;
+                    await createPaymentPlan({
+                      data: {
+                        invoiceId: invoice?.id,
+                        channel:
+                          channelMap[(values["canal"] as keyof typeof channelMap) ?? "Numerário"] ??
+                          "cash",
+                        installments: Number(values["prestacoes"] || 1),
+                        reference: values["referencia"] || undefined,
+                        notes: values["notas"] || undefined,
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["finance"] });
+                    await queryClient.invalidateQueries({ queryKey: ["finance", "payment-plans"] });
+                    await printPaymentPlan({
+                      id: values["referencia"] || "plano",
                       channel:
                         channelMap[(values["canal"] as keyof typeof channelMap) ?? "Numerário"] ??
                         "cash",
                       installments: Number(values["prestacoes"] || 1),
-                      reference: values["referencia"] || undefined,
-                      notes: values["notas"] || undefined,
+                      reference: values["referencia"] || null,
+                      status: "pending_gateway",
+                      notes: values["notas"] || null,
+                    });
+                  }}
+                  fields={[
+                    {
+                      name: "fatura",
+                      label: "Fatura",
+                      type: "select",
+                      options: invoiceOptions,
+                      full: true,
+                      required: false,
                     },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["finance"] });
-                  await queryClient.invalidateQueries({ queryKey: ["finance", "payment-plans"] });
-                  await printPaymentPlan({
-                    id: values["referencia"] || "plano",
-                    channel:
-                      channelMap[(values["canal"] as keyof typeof channelMap) ?? "Numerário"] ??
-                      "cash",
-                    installments: Number(values["prestacoes"] || 1),
-                    reference: values["referencia"] || null,
-                    status: "pending_gateway",
-                    notes: values["notas"] || null,
-                  });
-                }}
-                fields={[
-                  {
-                    name: "fatura",
-                    label: "Fatura",
-                    type: "select",
-                    options: invoiceOptions,
-                    full: true,
-                    required: false,
-                  },
-                  {
-                    name: "canal",
-                    label: "Canal",
-                    type: "select",
-                    options: [
-                      ...(installed.isInstalled("multicaixa_express")
-                        ? ["Multicaixa Express"]
-                        : []),
-                      ...(installed.isInstalled("unitel_money") ? ["Unitel Money"] : []),
-                      "Transferência",
-                      "Numerário",
-                    ],
-                  },
-                  {
-                    name: "prestacoes",
-                    label: "Prestações",
-                    type: "number",
-                    defaultValue: 1,
-                  },
-                  {
-                    name: "referencia",
-                    label: "Referência",
-                    required: false,
-                  },
-                  {
-                    name: "notas",
-                    label: "Notas",
-                    type: "textarea",
-                    required: false,
-                    full: true,
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <Wallet className="size-4" /> Pagamento avançado
-                  </Button>
-                )}
-              />
+                    {
+                      name: "canal",
+                      label: "Canal",
+                      type: "select",
+                      options: [
+                        ...(installed.isInstalled("multicaixa_express")
+                          ? ["Multicaixa Express"]
+                          : []),
+                        ...(installed.isInstalled("unitel_money") ? ["Unitel Money"] : []),
+                        "Transferência",
+                        "Numerário",
+                      ],
+                    },
+                    {
+                      name: "prestacoes",
+                      label: "Prestações",
+                      type: "number",
+                      defaultValue: 1,
+                    },
+                    {
+                      name: "referencia",
+                      label: "Referência",
+                      required: false,
+                    },
+                    {
+                      name: "notas",
+                      label: "Notas",
+                      type: "textarea",
+                      required: false,
+                      full: true,
+                    },
+                  ]}
+                  trigger={(open) => (
+                    <Button variant="outline" className="gap-2" onClick={open}>
+                      <Wallet className="size-4" /> Pagamento avançado
+                    </Button>
+                  )}
+                />
+                <QuickFormModal
+                  eyebrow="Financeiro"
+                  title="Anular lançamento"
+                  description="Mantenha o histórico e reverta o efeito no caixa e na fatura."
+                  icon={<Undo2 className="size-5" />}
+                  submitLabel="Confirmar anulação"
+                  fields={[
+                    {
+                      name: "lancamento",
+                      label: "Lançamento",
+                      type: "select",
+                      options: cashEntryOptions,
+                      full: true,
+                    },
+                    {
+                      name: "motivo",
+                      label: "Motivo da anulação",
+                      type: "textarea",
+                      full: true,
+                    },
+                  ]}
+                  onSubmit={async (values) => {
+                    const entry =
+                      reversibleEntries[cashEntryOptions.indexOf(values["lancamento"] ?? "")];
+                    if (!entry) throw new Error("Selecione um lançamento válido.");
+                    await reverseCashEntry({
+                      data: { cashEntryId: entry.id, reason: values["motivo"] ?? "" },
+                    });
+                    await Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
+                      queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
+                      queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
+                    ]);
+                  }}
+                  trigger={(open) => (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={open}
+                      disabled={!reversibleEntries.length}
+                    >
+                      <Undo2 className="size-4" /> Anular lançamento
+                    </Button>
+                  )}
+                />
+                <QuickFormModal
+                  eyebrow="Tesouraria"
+                  title="Registar despesa"
+                  description="Registe uma saída de caixa com documento, categoria e comprovativo. O lançamento pode ser anulado, mantendo o histórico."
+                  icon={<ArrowDownRight className="size-5" />}
+                  submitLabel="Registar despesa"
+                  fields={[
+                    {
+                      name: "documento",
+                      label: "Documento",
+                      placeholder: "DC 2026/0001",
+                    },
+                    {
+                      name: "categoria",
+                      label: "Categoria",
+                      placeholder: "Ex.: Material didáctico",
+                    },
+                    {
+                      name: "valor",
+                      label: "Valor (Kz)",
+                      type: "number",
+                      placeholder: "45000",
+                    },
+                    {
+                      name: "metodo",
+                      label: "Método",
+                      type: "select",
+                      options: [
+                        "Numerário",
+                        "Transferência",
+                        "Multicaixa",
+                        "Multicaixa Express",
+                        "Unitel Money",
+                      ],
+                    },
+                    { name: "data", label: "Data da despesa", type: "date" },
+                    {
+                      name: "referencia",
+                      label: "Referência / comprovativo",
+                      required: false,
+                    },
+                    {
+                      name: "descricao",
+                      label: "Descrição",
+                      type: "textarea",
+                      full: true,
+                    },
+                  ]}
+                  onSubmit={async (values) => {
+                    const methodMap = {
+                      Numerário: "cash",
+                      Transferência: "transfer",
+                      Multicaixa: "multicaixa",
+                      "Multicaixa Express": "multicaixa_express",
+                      "Unitel Money": "unitel_money",
+                    } as const;
+                    const method = methodMap[values["metodo"] as keyof typeof methodMap];
+                    if (!method) throw new Error("Seleccione um método de pagamento válido.");
+                    await recordCashExpense({
+                      data: {
+                        documentNumber: values["documento"] ?? "",
+                        category: values["categoria"] ?? "",
+                        description: values["descricao"] ?? "",
+                        amount: Number(values["valor"]),
+                        method,
+                        reference: values["referencia"] || undefined,
+                        occurredAt: values["data"]
+                          ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
+                          : undefined,
+                      },
+                    });
+                    await Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
+                      queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
+                    ]);
+                  }}
+                  trigger={(open) => (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={open}
+                      disabled={!cashExpensesAvailable}
+                      title={
+                        cashExpensesAvailable
+                          ? "Registar uma saída de caixa"
+                          : "A actualizar a estrutura financeira do SGA"
+                      }
+                    >
+                      <ArrowDownRight className="size-4" /> Despesa
+                    </Button>
+                  )}
+                />
+              </PageActionMenu>
               <QuickFormModal
                 eyebrow="Financeiro"
                 title="Registar pagamento"
@@ -678,143 +818,6 @@ function FinanceiroPage() {
                 trigger={(open) => (
                   <Button className="gap-2" onClick={open} disabled={!payableInvoices.length}>
                     <Plus className="size-4" /> Registar pagamento
-                  </Button>
-                )}
-              />
-              <QuickFormModal
-                eyebrow="Financeiro"
-                title="Anular lançamento"
-                description="Mantenha o histórico e reverta o efeito no caixa e na fatura."
-                icon={<Undo2 className="size-5" />}
-                submitLabel="Confirmar anulação"
-                fields={[
-                  {
-                    name: "lancamento",
-                    label: "Lançamento",
-                    type: "select",
-                    options: cashEntryOptions,
-                    full: true,
-                  },
-                  {
-                    name: "motivo",
-                    label: "Motivo da anulação",
-                    type: "textarea",
-                    full: true,
-                  },
-                ]}
-                onSubmit={async (values) => {
-                  const entry =
-                    reversibleEntries[cashEntryOptions.indexOf(values["lancamento"] ?? "")];
-                  if (!entry) throw new Error("Selecione um lançamento válido.");
-                  await reverseCashEntry({
-                    data: { cashEntryId: entry.id, reason: values["motivo"] ?? "" },
-                  });
-                  await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
-                    queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
-                    queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
-                  ]);
-                }}
-                trigger={(open) => (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={open}
-                    disabled={!reversibleEntries.length}
-                  >
-                    <Undo2 className="size-4" /> Anular lançamento
-                  </Button>
-                )}
-              />
-              <QuickFormModal
-                eyebrow="Tesouraria"
-                title="Registar despesa"
-                description="Registe uma saída de caixa com documento, categoria e comprovativo. O lançamento pode ser anulado, mantendo o histórico."
-                icon={<ArrowDownRight className="size-5" />}
-                submitLabel="Registar despesa"
-                fields={[
-                  {
-                    name: "documento",
-                    label: "Documento",
-                    placeholder: "DC 2026/0001",
-                  },
-                  {
-                    name: "categoria",
-                    label: "Categoria",
-                    placeholder: "Ex.: Material didáctico",
-                  },
-                  {
-                    name: "valor",
-                    label: "Valor (Kz)",
-                    type: "number",
-                    placeholder: "45000",
-                  },
-                  {
-                    name: "metodo",
-                    label: "Método",
-                    type: "select",
-                    options: [
-                      "Numerário",
-                      "Transferência",
-                      "Multicaixa",
-                      "Multicaixa Express",
-                      "Unitel Money",
-                    ],
-                  },
-                  { name: "data", label: "Data da despesa", type: "date" },
-                  {
-                    name: "referencia",
-                    label: "Referência / comprovativo",
-                    required: false,
-                  },
-                  {
-                    name: "descricao",
-                    label: "Descrição",
-                    type: "textarea",
-                    full: true,
-                  },
-                ]}
-                onSubmit={async (values) => {
-                  const methodMap = {
-                    Numerário: "cash",
-                    Transferência: "transfer",
-                    Multicaixa: "multicaixa",
-                    "Multicaixa Express": "multicaixa_express",
-                    "Unitel Money": "unitel_money",
-                  } as const;
-                  const method = methodMap[values["metodo"] as keyof typeof methodMap];
-                  if (!method) throw new Error("Seleccione um método de pagamento válido.");
-                  await recordCashExpense({
-                    data: {
-                      documentNumber: values["documento"] ?? "",
-                      category: values["categoria"] ?? "",
-                      description: values["descricao"] ?? "",
-                      amount: Number(values["valor"]),
-                      method,
-                      reference: values["referencia"] || undefined,
-                      occurredAt: values["data"]
-                        ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
-                        : undefined,
-                    },
-                  });
-                  await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
-                    queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
-                  ]);
-                }}
-                trigger={(open) => (
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={open}
-                    disabled={!cashExpensesAvailable}
-                    title={
-                      cashExpensesAvailable
-                        ? "Registar uma saída de caixa"
-                        : "A actualizar a estrutura financeira do SGA"
-                    }
-                  >
-                    <ArrowDownRight className="size-4" /> Despesa
                   </Button>
                 )}
               />

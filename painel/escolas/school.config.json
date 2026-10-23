@@ -2,5 +2,8 @@
   "id": "ispab",
   "shortName": "ISPAB",
   "country": "Angola",
-  "portalUrl": ""
+  "portalUrl": "https://portal-siga.com/portal?escola=ispab",
+  "contentUrl": "",
+  "admissionFeeAmount": 24000,
+  "bannerStyle": "prism"
 }

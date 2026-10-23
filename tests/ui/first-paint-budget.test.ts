@@ -124,6 +124,52 @@ describe("orçamento do primeiro desenho", () => {
     return { ficheiros: [...vistos].map((f) => relative(raiz, f)), pacotes };
   }
 
+  it("os recursos sem hash têm cache, e o service worker não", () => {
+    // O `_headers` gerado só cobria `/assets/*`, que tem hash no nome. Tudo o que
+    // vive na raiz de `public/` ficava sem política: o Lighthouse do CI mediu
+    // `cacheLifetimeMs=0` no vídeo e marcou os seus 1 716 789 bytes como
+    // desperdício — rebuscados a cada visita.
+    const vite = readFileSync("vite.config.ts", "utf8");
+    // Delimitado por chavetas, não por outro identificador: `tanstackStart`
+    // aparece antes, no import, e uma fatia até lá sairia vazia — a guarda
+    // passaria a não verificar nada.
+    const inicio = vite.indexOf("routeRules");
+    expect(inicio, "o bloco routeRules desapareceu do vite.config.ts").toBeGreaterThan(0);
+    const i = vite.indexOf("{", inicio);
+    let profundidade = 0;
+    let fim = i;
+    for (; fim < vite.length; fim += 1) {
+      if (vite[fim] === "{") profundidade += 1;
+      else if (vite[fim] === "}") {
+        profundidade -= 1;
+        if (profundidade === 0) break;
+      }
+    }
+    const bloco = vite.slice(i, fim + 1);
+    expect(bloco.length, "o bloco routeRules saiu vazio").toBeGreaterThan(80);
+    for (const alvo of ["/auth-classroom.mp4", "/fonts/**", "/icons/**", "/brands/**"]) {
+      expect(bloco, `${alvo} perdeu a política de cache`).toContain(`"${alvo}"`);
+    }
+    // Sete dias com revalidação, não um ano imutável: estes nomes não têm hash,
+    // por isso uma substituição tem de chegar aos visitantes em prazo humano.
+    expect(bloco).toContain("max-age=604800");
+    expect(bloco).toContain("stale-while-revalidate");
+    expect(bloco).not.toContain("immutable");
+    // O que **não** pode ser apanhado. Um service worker preso numa versão antiga
+    // é muito pior do que um pedido a mais, e o `browser-check.js` corre em todas
+    // as páginas. Nenhuma regra pode cobrir a raiz nem estes ficheiros.
+    for (const proibido of [
+      "/sw.js",
+      "/firebase-messaging-sw.js",
+      "/browser-check.js",
+      "/manifest",
+      "/**",
+      "/*",
+    ]) {
+      expect(bloco, `${proibido} não pode ganhar cache`).not.toContain(`"${proibido}"`);
+    }
+  });
+
   it("o grafo estático do ecrã de entrada não alcança os pesos pesados", () => {
     const { ficheiros, pacotes } = moduloEstaticoDoLogin();
     // Cada um destes já esteve lá e já foi tirado; o teste existe para não voltarem.

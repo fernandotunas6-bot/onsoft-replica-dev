@@ -498,15 +498,30 @@ async function runProvisioning(
   // Natureza da instituição escolhida no registo: vai para o mesmo sítio que
   // Definições → Escola lê e grava. Falhar aqui não desfaz a escola.
   if (data.school_type && adminUserId) {
-    const { error: institutionErr } = await db.from("school_settings").insert({
-      school_id: schoolId,
-      domain: "institution",
-      version: 1,
-      value: { school_type: data.school_type },
-      changed_by: adminUserId,
-    });
-    if (institutionErr) {
-      console.warn("[provisioning] natureza da instituição:", institutionErr.message);
+    // Verificar antes de inserir, como fazem os outros quatro caminhos de
+    // escrita em school_settings. Sem isto, um `insert` cego de `version: 1`
+    // numa escola cujas definições já foram editadas (e cuja linha está, por
+    // isso, na versão 2 ou mais) **passa** — porque a unicidade é sobre
+    // (school_id, domain, version) e a versão 1 voltou a estar livre. Ficavam
+    // duas linhas no mesmo domínio, e todas as leituras seguintes, que usam
+    // `.maybeSingle()`, passavam a estourar longe da causa.
+    const { data: existingInstitution } = await db
+      .from("school_settings")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("domain", "institution")
+      .maybeSingle();
+    if (!existingInstitution?.id) {
+      const { error: institutionErr } = await db.from("school_settings").insert({
+        school_id: schoolId,
+        domain: "institution",
+        version: 1,
+        value: { school_type: data.school_type },
+        changed_by: adminUserId,
+      });
+      if (institutionErr) {
+        console.warn("[provisioning] natureza da instituição:", institutionErr.message);
+      }
     }
   }
 

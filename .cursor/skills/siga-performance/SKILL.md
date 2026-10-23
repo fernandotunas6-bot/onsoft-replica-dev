@@ -83,6 +83,11 @@ uma operação concluída.
 - `src/features/auth/use-current-account.ts`, `use-sign-out.ts`: sessão/escola.
 - `scripts/siga/modules.json`: inventário canónico; skills `siga-*` por módulo.
 - `tests/ui/first-paint-budget.test.ts`: limites do primeiro desenho.
+- Cache dos recursos públicos sem hash: regras Nitro finitas, sem `immutable`.
+  Confirmar `_headers` do build Cloudflare e não duplicar regras em `public/_headers`.
+  Não aplicar cache pública a HTML, APIs, sessão, service workers ou manifesto.
+  O adaptador Lovable expõe tipos Nitro parciais: validar as opções adicionais
+  com `satisfies NitroConfig` antes do spread; não esconder erros com casts.
 - `scripts/siga/performance-inventory.mjs`: bytes/preloads do build e inventário por módulo.
 - Armadilha da raiz: `__root.tsx` monta `AppearanceProvider`, `RouteAccessGate`,
   `use-school-settings` e `tenant-context`, por isso **tudo** o que estes importam de

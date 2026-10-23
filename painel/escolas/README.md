@@ -1,6 +1,6 @@
 # Website institucional por escola — ISPAB
 
-Website independente preparado para a Onsoft oferecer a escolas clientes. O visual aprovado é conservado: 60 páginas, 18 exemplos de formação e portal demonstrativo. Não substitui os cinco produtos do ecossistema nem a operação escolar no SIGA.
+Website independente preparado para a Onsoft oferecer a escolas clientes. O visual aprovado é conservado: 66 páginas, 18 exemplos de formação e portal demonstrativo. Não substitui os cinco produtos do ecossistema nem a operação escolar no SIGA.
 
 ## Executar
 
@@ -46,16 +46,29 @@ const receipt=await api.submitApplication({
 
 Os domínios `.example` são exemplos e não devem ser usados em produção.
 
-## Estado honesto desta entrega
+## Editor no SIGA e activação
 
-A API e o cliente estão implementados e testados com duplos locais. O site publicado permanece visualmente intacto e em demonstração. O SDK **ainda não está ligado aos formulários ou ao catálogo visível**: sem o endereço e a campanha confirmados, não seria correcto converter exemplos em submissões oficiais. Os cliques actuais continuam a guardar somente exemplos locais. Nenhuma candidatura real é enviada automaticamente.
+O administrador gere textos, imagens, links e metadados das páginas públicas existentes em **Definições → Website escolar**. O editor guarda rascunhos, publica pela API e pode associar cursos aos programas activos da escola. O nome e a desactivação desses programas acompanham o SIGA automaticamente; descrições e requisitos continuam editoriais.
 
-Para activar: confirmar ambiente/URL e campanha do ISPAB; publicar a API; autorizar a origem do website; carregar os programas reais e substituir IDs de demonstração; ligar o submit ao SDK com consentimento e recibo reais; validar em staging. Depois confirmar os conteúdos, privacidade, domínio e contactos institucionais. O catálogo real não dispõe ainda das descrições/durações dos exemplos; não se deve completar esses campos por suposição.
+`GET /api/public/school-content/{publicCode}` fornece só a publicação. A configuração inicial do website usa `portalUrl` e `contentUrl`, definidos em `school.config.json` antes do build ou em `school-runtime.json` na hospedagem. O painel do administrador copia estes endereços com os valores da instalação e da escola activa, sem chaves.
 
-Não criar outra base por escola, não expor chaves Supabase e não usar o login ChatGPT do ambiente de autoria como identidade do cliente. Notas, documentos e finanças privados devem continuar a ser servidos pelo SIGA autenticado.
+Ao seleccionar uma campanha da escola e publicar, os botões de candidatura abrem o formulário oficial existente no SIGA; uma campanha encerrada desactiva esses botões. A sessão, os documentos e a submissão oficial permanecem no sistema. O SDK descrito acima também está disponível para futuras interfaces próprias, mas não se sobrepõe ao formulário oficial.
+
+A prévia publicada continua em demonstração até serem configurados os endereços reais e implantada a API na instalação SIGA. Não há ligação activa a uma escola de produção nesta entrega. Os registos locais não são convertidos em candidaturas reais. Novos cursos/páginas e mudanças de estrutura exigem actualizar o template; os conteúdos dos registos existentes são editáveis no painel.
+
+Ver o [guia de edição, publicação e activação](../../docs/architecture/SCHOOL_WEBSITE_CONTENT.md). Não criar outra base por escola, não expor chaves Supabase e não usar o login ChatGPT da hospedagem como identidade académica. Notas, documentos e finanças privados continuam no SIGA autenticado.
 
 ## Falhas e dados
 
 Sem campanha, com escola suspensa ou serviço indisponível, a API falha fechada. O cliente não faz fallback para dados de outra escola e não repete POST automaticamente. Após `submission_unknown`, reconciliar no SIGA antes de reenviar. A API não fornece consulta anónima de candidaturas: não expor candidatos por referência, e-mail ou nome.
 
 Ver [documentação da ligação](../../docs/architecture/SCHOOL_WEBSITE_API.md).
+
+
+## Website para todas as escolas e blog
+
+O SIGA reutiliza este template no subdomínio de cada escola e nos seus domínios próprios verificados. Um endereço alternativo em `/escolas/{slug}/` funciona na origem central sem wildcard. As páginas públicas usam `/site/` no hostname da escola; o sistema autenticado usa `/portal`. O build Vite prepara os recursos automaticamente.
+
+O administrador gere artigos em **Definições → Blog da escola**. Há rascunhos, publicação independente, arquivo e restauração, com isolamento por escola. O blog comercial da Onsoft permanece separado. O website gerido renderiza os artigos no servidor; uma cópia estática usa `blogUrl` ou deriva a API a partir de `contentUrl`.
+
+Antes da implantação SIGA, aplicar a migração de protecção dos conteúdos referida no [guia](../../docs/architecture/SCHOOL_WEBSITE_CONTENT.md). Sem ela, a edição/publicação fica bloqueada. Não houve alteração à base de produção nesta entrega.

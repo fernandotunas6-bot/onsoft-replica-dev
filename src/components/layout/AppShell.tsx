@@ -2,7 +2,7 @@ import {
   PersonalNotificationsList,
   usePersonalNotifications,
 } from "@/features/notifications/PersonalNotificationsList";
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 
@@ -53,6 +53,8 @@ import { useNavigationMemory } from "@/features/auth/use-navigation-memory";
 import { useAppearance } from "@/lib/appearance";
 import { cn } from "@/lib/utils";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getNavigationContext } from "@/features/auth/contextual-navigation";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { useTenant } from "@/features/saas/tenant-context";
 import { planIncludesPath, trialDaysRemaining } from "@/features/saas/plan-features";
@@ -91,9 +93,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const locationSearch = useRouterState({
+    select: (r) => r.location.search as Record<string, unknown>,
+  });
   const router = useRouter();
   const currentUser = useCurrentAccount();
   const { activePlan, activeTenant } = useTenant();
+  const navigationGroups = useMemo(
+    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
+    [currentUser.role, currentUser.grants, activePlan],
+  );
+  const navigationContext = getNavigationContext(navigationGroups, pathname, locationSearch);
   const trialDaysLeft = trialDaysRemaining(activeTenant?.trial_ends_at);
   const studentCapacity = buildStudentCapacity(
     activeTenant?.active_students_count ?? 0,
@@ -187,7 +197,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     if (!activePlan || pathname === "/" || pathname.startsWith("/api/")) return;
     if (!planIncludesPath(pathname, activePlan)) {
       toast.error("Este módulo não está incluído no plano da sua escola.");
-      void router.navigate({ to: "/" });
+      void router.navigate({ to: "/portal" });
     }
   }, [pathname, activePlan, router]);
 
@@ -245,7 +255,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background lg:bg-sidebar">
       <OfflineBanner />
       <DesktopNotifications />
       <div className="flex flex-1 min-h-0">
@@ -254,7 +264,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
         </a>
 
         <div
-          className="sticky top-0 z-40 hidden h-screen lg:block lg:py-2 lg:pl-2"
+          className="sticky top-0 z-40 hidden h-screen lg:block"
           onMouseEnter={() => {
             window.clearTimeout(hoverLeaveTimer.current);
             setHoverOpen(true);
@@ -270,7 +280,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+        {/* A superfície principal desenha as curvas côncavas da sidebar na junção. */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background lg:overflow-clip lg:rounded-l-2xl">
           {/*
               Header mobile (§10): substitui o header de computador abaixo de
               1024px. O de computador continua igual — os dez controlos do topo
@@ -278,6 +289,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           */}
           <MobileHeader
             title={navCurrent.label}
+            moduleLabel={navigationContext?.title}
             noticeCount={noticeCount}
             onOpenContext={() => setContextOpen(true)}
             onOpenSearch={() => requestOpenCommandPalette()}
@@ -606,7 +618,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5 [content-visibility:auto]"
+            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div

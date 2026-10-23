@@ -28,6 +28,16 @@ Juntar disciplinas (2026-10-10): `node tests/sql/merge-school-subjects.mjs` corr
 
 Ligar disciplinas ao catálogo (2026-10-12): `node tests/sql/subjects-catalog-link.mjs` corre duas vezes `20261012120000_subjects_catalog_link.sql` sobre `subjects` já com linhas, e confirma que as existentes ficam por ligar, que a restrição de formato existe uma só vez e recusa minúsculas, espaços, começo por algarismo, texto vazio e mais de 24 caracteres, e que o índice existe; o mesmo para `programs.catalog_course_code`.
 
+Numeração só com dígitos (2026-10-12): `node tests/sql/numbering-one-year-digits.mjs` parte das tabelas com as restrições `EST-`/`MAT-` e os gatilhos de identidade da produção, corre duas vezes `20261012140000_numbering_one_year_digits.sql` e confirma: renumeração por escola, ano e ordem de criação (`1250001`, `1260001`…), que a segunda passagem não muda nada nem faz recuar os contadores, que os gatilhos voltam a recusar mudar o número, que só `^1[0-9]{6}$` é aceite, que alunos, matrículas e documentos novos continuam a seguir aos existentes (cada escola e tipo com a sua contagem), que facturas e recibos mantêm a série fiscal, e que o 10 000.º número do ano é recusado.
+
+Revisão #148 (2026-10-16): o mesmo ensaio verifica agora datas nulas/fora do intervalo,
+ano divergente em número digital, sequência zero, excesso no lote com máximo já 9999,
+continuação depois de números digitais existentes, mapa privado antigo/novo idempotente,
+recusa anon, documentos existentes com mudança de ano em Luanda e rollback induzido depois
+dos UPDATE. Critérios remotos: `docs/agents/NUMBERING_148_VALIDATION.md`.
+
 Cobrança por escola (2026-10-15): `node tests/sql/tenant-billing-profiles.mjs` corre duas vezes o pacote `docs/agents/SIGA_aplicar_cobranca_escolas.sql` (que leva `20261015120000_tenant_billing_profiles.sql` tal e qual), e confirma que a consulta do pacote e a sonda de `SIGA_confirmar_migracoes.sql` passam de «por aplicar»/«EM FALTA» a «aplicada», que anon e authenticated ficam sem acesso nenhum com RLS forçado, os valores por omissão (privada, tabela do plano, mensal, transferência), e que são recusados: por aluno sem preço, fixo sem valor, desconto acima de 100, dia 31, tolerância acima de 60, nenhum ou um modo de pagamento desconhecido, periodicidade desconhecida, pausa sem motivo, privada aprovada como pública, requisitos que não são objecto e outra moeda; `updated_at` muda e apagar o tenant leva o perfil.
 
 Matrícula e ano activo (2026-10-08): `node tests/sql/atomic-school-workflows.mjs` executa duas vezes o SQL preparado, verifica quota, reenvio, observações no histórico, rollback de cadastro/matrícula/auditoria, escolas distintas, MFA e preservação do ano activo. `node tests/sql/staff-grants-mfa.mjs` verifica as políticas restritivas de escrita AAL2, mantendo a leitura existente. Usam a mesma dependência isolada PGlite; não simulam concorrência PostgreSQL real nem todas as FKs/triggers de produção. Nenhum SQL foi aplicado ao banco real.
+
+Website e blog escolares: `node tests/sql/school-website-content.mjs` aplica a política real duas vezes, bloqueia leituras/escritas directas dos domínios de conteúdo por anon/authenticated, preserva outros domínios e comprova o acesso do serviço e a sonda de activação.

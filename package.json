@@ -15,7 +15,7 @@
     "test": "vitest run",
     "test:routes": "vitest run tests/routes/ --fileParallelism=false",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit",
     "check:style": "node scripts/style-checklist.mjs",
     "check:a11y": "node scripts/a11y-check.mjs",
     "check:a11y:report": "node scripts/a11y-check.mjs --html reports/a11y.html",
@@ -181,12 +181,14 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.2.0",
+    "vite": "8.2.4",
     "vitest": "^4.1.11"
   },
   "overrides": {
     "@grpc/grpc-js": "1.14.5",
     "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/server": "2.3.0",
+    "launch-editor": "2.14.2",
     "shell-quote": "1.12.0"
   }
 }

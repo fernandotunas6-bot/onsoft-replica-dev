@@ -33,3 +33,6 @@ Resultado dirigido: 58 testes aprovados em onze ficheiros. O mesmo minuto sem
 mudança visível passou de 60 para 0 commits adicionais do portal. A pré-carga
 administrativa deixou de ser chamada para os três papéis que não a usam. Lint
 dos quatro ficheiros de código/teste sem achados.
+
+Revalidação em 20/10/2026: tipos globais e build Cloudflare concluídos com código 0. O grupo de testes passou com 59 casos em onze ficheiros, incluindo a guarda de
+cache pública acrescentada entretanto. Não é uma medição adicional de latência.

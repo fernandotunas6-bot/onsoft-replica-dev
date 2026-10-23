@@ -31,6 +31,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiErrorFrom, PayflowApiError, payflowGuidance } from "@/lib/error-guidance";
 
 import { Money } from "@/components/payflow/money";
 import { PayflowBrandLockup } from "@/components/payflow/brand-mark";
@@ -245,8 +246,9 @@ function SandboxBadge() {
   );
 }
 
-function InlineError({ message }: { message: string }) {
+function InlineError({ message, code }: { message: string; code?: string }) {
   if (!message) return null;
+  const guidance = payflowGuidance({ code, message }, "student");
   return (
     <Alert
       variant="destructive"
@@ -254,7 +256,10 @@ function InlineError({ message }: { message: string }) {
       role="alert"
     >
       <AlertTitle>Não foi possível continuar</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
+      <AlertDescription>
+        <p>{message}</p>
+        {guidance ? <p className="mt-1 font-medium">{guidance.fix}</p> : null}
+      </AlertDescription>
     </Alert>
   );
 }
@@ -608,6 +613,24 @@ export function StudentPaymentPortal() {
   const [historyError, setHistoryError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState("");
+
+  /** Mostra o erro com a forma certa de o resolver (`lib/error-guidance`). */
+  function fail(reason: unknown, fallback: string) {
+    setError(reason instanceof Error && reason.message ? reason.message : fallback);
+    // `fetch` sem rede lança TypeError: a correcção é verificar a ligação.
+    setErrorCode(
+      reason instanceof PayflowApiError
+        ? reason.code
+        : reason instanceof TypeError
+          ? "network_error"
+          : "",
+    );
+  }
+  function clearError() {
+    setError("");
+    setErrorCode("");
+  }
 
   const selectedInvoice = useMemo(
     () => session?.invoices.find((invoice) => invoice.id === invoiceId) ?? null,
@@ -642,10 +665,10 @@ export function StudentPaymentPortal() {
       });
       const body = (await response.json()) as {
         data?: { items?: PaymentHistory[] };
-        error?: { message?: string };
+        error?: { code?: string; message?: string };
       };
       if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? "Não foi possível carregar o histórico.");
+        throw apiErrorFrom(body, "Não foi possível carregar o histórico.");
       }
       const items = body.data.items ?? [];
       setHistory(items);
@@ -662,7 +685,7 @@ export function StudentPaymentPortal() {
 
   async function identifyStudent(event: FormEvent) {
     event.preventDefault();
-    setError("");
+    clearError();
     setLoading(true);
     try {
       const response = await fetch("/api/v1/student/session", {
@@ -676,10 +699,10 @@ export function StudentPaymentPortal() {
       });
       const body = (await response.json()) as {
         data?: StudentSession;
-        error?: { message?: string };
+        error?: { code?: string; message?: string };
       };
       if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? "Não foi possível identificar o aluno.");
+        throw apiErrorFrom(body, "Não foi possível identificar o aluno.");
       }
       setSession(body.data);
       setInvoiceId(body.data.invoices[0]?.id ?? "");
@@ -688,9 +711,7 @@ export function StudentPaymentPortal() {
       setCheckoutStep(1);
       void loadPaymentHistory(body.data.session_token);
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Não foi possível identificar o aluno.",
-      );
+      fail(reason, "Não foi possível identificar o aluno.");
     } finally {
       setLoading(false);
     }
@@ -704,14 +725,14 @@ export function StudentPaymentPortal() {
     setReceipt(null);
     setTransferProof(null);
     setProofSubmitted(false);
-    setError("");
+    clearError();
     setCheckoutStep(1);
     setView("checkout");
   }
 
   async function initiatePayment() {
     if (!session || !selectedInvoice || !session.payments_enabled) return;
-    setError("");
+    clearError();
     setLoading(true);
     try {
       const response = await fetch("/api/v1/student/payments", {
@@ -725,17 +746,15 @@ export function StudentPaymentPortal() {
       });
       const body = (await response.json()) as {
         data?: InitiatedPayment;
-        error?: { message?: string };
+        error?: { code?: string; message?: string };
       };
       if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? "Não foi possível iniciar o pagamento.");
+        throw apiErrorFrom(body, "Não foi possível iniciar o pagamento.");
       }
       setPayment(body.data);
       setCheckoutStep(4);
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Não foi possível iniciar o pagamento.",
-      );
+      fail(reason, "Não foi possível iniciar o pagamento.");
     } finally {
       setLoading(false);
     }
@@ -743,7 +762,7 @@ export function StudentPaymentPortal() {
 
   async function confirmSandboxPayment() {
     if (!session || !payment) return;
-    setError("");
+    clearError();
     setLoading(true);
     try {
       const response = await fetch(
@@ -755,10 +774,10 @@ export function StudentPaymentPortal() {
       );
       const body = (await response.json()) as {
         data?: Receipt;
-        error?: { message?: string };
+        error?: { code?: string; message?: string };
       };
       if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? "Não foi possível confirmar o pagamento.");
+        throw apiErrorFrom(body, "Não foi possível confirmar o pagamento.");
       }
       const confirmedReceipt = body.data;
       setReceipt(confirmedReceipt);
@@ -774,9 +793,7 @@ export function StudentPaymentPortal() {
       );
       await loadPaymentHistory(session.session_token);
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Não foi possível confirmar o pagamento.",
-      );
+      fail(reason, "Não foi possível confirmar o pagamento.");
     } finally {
       setLoading(false);
     }
@@ -784,10 +801,10 @@ export function StudentPaymentPortal() {
 
   async function uploadTransferProof() {
     if (!session || !payment || !transferProof) {
-      setError("Selecione um comprovativo em PDF, JPG, PNG ou WebP.");
+      fail(new PayflowApiError("proof_format", "Selecione um comprovativo em PDF, JPG, PNG ou WebP."), "");
       return;
     }
-    setError("");
+    clearError();
     setLoading(true);
     try {
       const form = new FormData();
@@ -802,18 +819,16 @@ export function StudentPaymentPortal() {
       );
       const body = (await response.json()) as {
         data?: { status: string };
-        error?: { message?: string };
+        error?: { code?: string; message?: string };
       };
       if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? "Não foi possível enviar o comprovativo.");
+        throw apiErrorFrom(body, "Não foi possível enviar o comprovativo.");
       }
       setProofSubmitted(true);
       setTransferProof(null);
       toast.success("Comprovativo recebido para validação.");
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Não foi possível enviar o comprovativo.",
-      );
+      fail(reason, "Não foi possível enviar o comprovativo.");
     } finally {
       setLoading(false);
     }
@@ -821,7 +836,7 @@ export function StudentPaymentPortal() {
 
   async function refreshBankTransfer() {
     if (!session || !payment) return;
-    setError("");
+    clearError();
     const items = await loadPaymentHistory(session.session_token);
     const current = items.find((item) => item.payment_id === payment.payment_id);
     if (!current || current.status !== "paid" || !current.receipt_code || !current.verification_url) {
@@ -875,12 +890,12 @@ export function StudentPaymentPortal() {
   }
 
   function navigate(nextView: Exclude<PortalView, "checkout">) {
-    setError("");
+    clearError();
     setView(nextView);
   }
 
   function leaveCheckout() {
-    setError("");
+    clearError();
     setPayment(null);
     setReceipt(null);
     setTransferProof(null);
@@ -901,7 +916,7 @@ export function StudentPaymentPortal() {
     setProofSubmitted(false);
     setHistory([]);
     setHistoryError("");
-    setError("");
+    clearError();
   }
 
   if (!session) {
@@ -1044,7 +1059,7 @@ export function StudentPaymentPortal() {
                   </p>
                 </div>
 
-                <InlineError message={error} />
+                <InlineError message={error} code={errorCode} />
 
                 <Button
                   type="submit"
@@ -1254,7 +1269,7 @@ export function StudentPaymentPortal() {
                       O estado só será apresentado como pago depois da confirmação do
                       provedor.
                     </p>
-                    <InlineError message={error} />
+                    <InlineError message={error} code={errorCode} />
                   </section>
                 )}
 
@@ -1364,7 +1379,7 @@ export function StudentPaymentPortal() {
                         </p>
                       </div>
                     )}
-                    <InlineError message={error} />
+                    <InlineError message={error} code={errorCode} />
                     {session.sandbox && payment.provider === "emis_sandbox" && (
                       <div className="mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 p-4 text-left dark:border-amber-800 dark:bg-amber-950/50">
                         <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">

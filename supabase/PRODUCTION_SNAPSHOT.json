@@ -1,14 +1,14 @@
 {
-  "capturadoEm": "2026-10-12T18:43:32.374Z",
+  "capturadoEm": "2026-10-21T05:39:44.278Z",
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
-    "com_rls": 206,
-    "funcoes_private": 129,
-    "politicas": 370,
+    "com_rls": 207,
+    "funcoes_private": 130,
+    "politicas": 371,
     "politicas_storage": 14,
-    "tabelas": 206,
-    "triggers": 220
+    "tabelas": 207,
+    "triggers": 221
   },
   "tabelas": [
     {
@@ -55,7 +55,12 @@
         "created_by",
         "updated_by",
         "deleted_at",
-        "version"
+        "version",
+        "term",
+        "source",
+        "snapshot",
+        "metrics",
+        "shift_id"
       ],
       "obrigatorias": [
         "school_id",
@@ -4139,9 +4144,9 @@
         "value",
         "changed_by"
       ],
-      "politicas": 2,
+      "politicas": 3,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "school_settings"
     },
     {
@@ -5568,6 +5573,55 @@
     },
     {
       "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "tenant_id",
+        "institution_type",
+        "pricing_model",
+        "price_per_student_aoa",
+        "min_billable_students",
+        "fixed_amount_aoa",
+        "billing_period",
+        "discount_pct",
+        "currency_code",
+        "due_day",
+        "payment_terms_days",
+        "grace_days",
+        "auto_suspend",
+        "payment_methods",
+        "invoice_by_email",
+        "billing_contact_name",
+        "billing_email",
+        "billing_phone",
+        "billing_nif",
+        "billing_address",
+        "billing_paused",
+        "billing_paused_reason",
+        "billing_paused_until",
+        "billing_paused_at",
+        "billing_paused_by",
+        "public_review_status",
+        "public_requirements",
+        "public_official_code",
+        "public_supervising_body",
+        "public_reviewed_by",
+        "public_reviewed_at",
+        "public_review_notes",
+        "notes",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "tenant_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "tenant_billing_profiles"
+    },
+    {
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -6504,7 +6558,7 @@
       "papeis": "{authenticated}",
       "politica": "enrollments_read",
       "tabela": "enrollments",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('students.enrollments.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((status = ANY (ARRAY['active'::text, 'pending'::text])) AND ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id)))))))",
       "verificando": ""
     },
     {
@@ -7773,7 +7827,7 @@
       "papeis": "{authenticated}",
       "politica": "people_read",
       "tabela": "people",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('people.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT tp.school_id,\n    tp.person_id\n   FROM private.teacher_people() tp(school_id, person_id))))))",
       "verificando": ""
     },
     {
@@ -8218,6 +8272,15 @@
       "verificando": ""
     },
     {
+      "cmd": "ALL",
+      "modo": "RESTRICTIVE",
+      "papeis": "{anon,authenticated}",
+      "politica": "school_web_content_server_only",
+      "tabela": "school_settings",
+      "usando": "((domain <> 'school_website'::text) AND (NOT starts_with(domain, 'school_blog.'::text)))",
+      "verificando": "((domain <> 'school_website'::text) AND (NOT starts_with(domain, 'school_blog.'::text)))"
+    },
+    {
       "cmd": "INSERT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -8493,7 +8556,7 @@
       "papeis": "{authenticated}",
       "politica": "siga_assessment_scores_read",
       "tabela": "siga_assessment_scores",
-      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))))",
+      "usando": "(current_user_can_manage_assessment_score(school_id, item_id, enrollment_id) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))))",
       "verificando": ""
     },
     {
@@ -8502,7 +8565,7 @@
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_justifications",
       "tabela": "siga_attendance_justifications",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
       "verificando": ""
     },
     {
@@ -8520,7 +8583,7 @@
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_records",
       "tabela": "siga_attendance_records",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
       "verificando": ""
     },
     {
@@ -8538,7 +8601,7 @@
       "papeis": "{authenticated}",
       "politica": "Members read siga_attendance_sessions",
       "tabela": "siga_attendance_sessions",
-      "usando": "((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id, class_group_id) IN ( SELECT tc.school_id,\n    tc.class_group_id\n   FROM private.teacher_class_subjects(true) tc(school_id, class_subject_id, class_group_id, subject_id))))",
       "verificando": ""
     },
     {
@@ -8790,7 +8853,7 @@
       "papeis": "{authenticated}",
       "politica": "student_guardians_read",
       "tabela": "student_guardians",
-      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids))))",
+      "usando": "(((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND (school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids))) OR ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id, student_id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))",
       "verificando": ""
     },
     {
@@ -8826,7 +8889,7 @@
       "papeis": "{authenticated}",
       "politica": "students_read",
       "tabela": "students",
-      "usando": "((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
+      "usando": "(((school_id IN ( SELECT private.user_permission_school_ids('students.records.read'::text) AS user_permission_school_ids)) AND (school_id IN ( SELECT private.user_wide_reader_school_ids() AS user_wide_reader_school_ids))) OR ((school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)) AND ((school_id IN ( SELECT private.user_role_school_ids(ARRAY['owner'::text, 'admin'::text, 'administrador'::text, 'secretary'::text, 'secretaria'::text]) AS user_role_school_ids)) OR ((school_id, id) IN ( SELECT ts.school_id,\n    ts.student_id\n   FROM private.teacher_students() ts(school_id, student_id))))))",
       "verificando": ""
     },
     {
@@ -10167,6 +10230,12 @@
     },
     {
       "args": "",
+      "funcao": "user_wide_reader_school_ids",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
       "funcao": "validate_timetable_school_references",
       "schema": "private",
       "security_definer": true
@@ -10192,6 +10261,12 @@
     {
       "args": "school_id uuid, case_id uuid, item_kind text, request_id uuid, issued_document_id uuid, note_text text",
       "funcao": "add_student_case_item",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_class_group_id uuid, p_slots jsonb, p_actor uuid, p_schedule_id uuid",
+      "funcao": "apply_timetable_plan_guarded",
       "schema": "public",
       "security_definer": false
     },
@@ -10372,6 +10447,12 @@
     {
       "args": "school_id uuid, student_id uuid, class_group_id uuid, enrolled_on date",
       "funcao": "enroll_student",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "ensure_school_shift_defaults",
       "schema": "public",
       "security_definer": false
     },
@@ -10950,6 +11031,12 @@
       "funcao": "school_logo_folder_ok",
       "schema": "public",
       "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "school_web_storage_ready",
+      "schema": "public",
+      "security_definer": false
     },
     {
       "args": "",
@@ -12324,6 +12411,12 @@
     {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
+      "tabela": "tenant_billing_profiles",
+      "trigger": "tenant_billing_profiles_touch_updated_at"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
       "tabela": "tenant_mailboxes",
       "trigger": "trg_tenant_mailboxes_touch"
     },
@@ -12427,6 +12520,11 @@
       "chave": "academic_schedules_class_group_id_fkey",
       "de": "academic_schedules",
       "para": "class_groups"
+    },
+    {
+      "de": "academic_schedules",
+      "para": "school_shifts",
+      "chave": "academic_schedules_shift_id_fkey"
     },
     {
       "chave": "academic_schedules_school_id_fkey",
@@ -14469,6 +14567,11 @@
       "para": "schools"
     },
     {
+      "chave": "tenant_billing_profiles_tenant_id_fkey",
+      "de": "tenant_billing_profiles",
+      "para": "tenants"
+    },
+    {
       "chave": "tenant_domains_tenant_id_fkey",
       "de": "tenant_domains",
       "para": "tenants"
@@ -14545,6 +14648,16 @@
     }
   ],
   "valores": [
+    {
+      "tabela": "academic_schedules",
+      "coluna": "source",
+      "valores": [
+        "carried_over",
+        "imported",
+        "manual",
+        "suggested"
+      ]
+    },
     {
       "coluna": "status",
       "tabela": "academic_schedules",
@@ -16478,6 +16591,45 @@
         "archived",
         "inactive",
         "leave"
+      ]
+    },
+    {
+      "coluna": "billing_period",
+      "tabela": "tenant_billing_profiles",
+      "valores": [
+        "monthly",
+        "quarterly",
+        "semiannual",
+        "yearly"
+      ]
+    },
+    {
+      "coluna": "institution_type",
+      "tabela": "tenant_billing_profiles",
+      "valores": [
+        "community",
+        "private",
+        "public",
+        "public_private"
+      ]
+    },
+    {
+      "coluna": "pricing_model",
+      "tabela": "tenant_billing_profiles",
+      "valores": [
+        "fixed",
+        "per_student",
+        "plan"
+      ]
+    },
+    {
+      "coluna": "public_review_status",
+      "tabela": "tenant_billing_profiles",
+      "valores": [
+        "approved",
+        "not_applicable",
+        "pending",
+        "rejected"
       ]
     },
     {

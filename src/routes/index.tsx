@@ -22,7 +22,7 @@ import {
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import type { EntityFocus } from "@/features/intelligence/types";
 import type { DashboardOverviewSnapshot } from "@/features/intelligence/dashboard/dashboard-suggestion-rules";
-import { AppShell } from "@/components/layout/AppShell";
+
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -49,6 +49,15 @@ import { PortalDashboardSkeleton } from "@/features/dashboard/portals/PortalDash
  * módulos só deles, incluindo `features/higher-ed/server.ts` e
  * `pedagogica/attendance-server.ts`. Separados, cada papel carrega só o seu.
  */
+// A estrutura do painel não é necessária para apresentar o login público.
+// Carregá-la apenas quando o dashboard realmente renderiza reduz o JS inicial
+// sem tocar em navegação, permissões ou lógica do AppShell autenticado.
+const AppShell = lazy(() =>
+  import("@/components/layout/AppShell").then((module) => ({
+    default: module.AppShell,
+  })),
+);
+
 const StudentPortalDashboard = lazy(() =>
   import("@/features/dashboard/portals/StudentPortalDashboard").then((module) => ({
     default: module.StudentPortalDashboard,
@@ -127,7 +136,7 @@ function DashboardGreeting({ greeting }: { greeting: string }) {
   );
 }
 
-function Dashboard() {
+export function Dashboard() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
@@ -351,25 +360,27 @@ function Dashboard() {
   );
 
   return (
-    <AppShell>
-      <Suspense fallback={<PortalDashboardSkeleton />}>
-        {portalMode === "student" ? (
-          <StudentPortalDashboard />
-        ) : portalMode === "guardian" ? (
-          <GuardianPortalDashboard />
-        ) : portalMode === "teacher" ? (
-          <TeacherPortalDashboard />
-        ) : (
-          <AdminPortalDashboard
-            data={data}
-            isLoading={overviewQuery.isLoading}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            now={now}
-            greeting={greeting}
-          />
-        )}
-      </Suspense>
-    </AppShell>
+    <Suspense fallback={<PortalDashboardSkeleton />}>
+      <AppShell>
+        <Suspense fallback={<PortalDashboardSkeleton />}>
+          {portalMode === "student" ? (
+            <StudentPortalDashboard />
+          ) : portalMode === "guardian" ? (
+            <GuardianPortalDashboard />
+          ) : portalMode === "teacher" ? (
+            <TeacherPortalDashboard />
+          ) : (
+            <AdminPortalDashboard
+              data={data}
+              isLoading={overviewQuery.isLoading}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              now={now}
+              greeting={greeting}
+            />
+          )}
+        </Suspense>
+      </AppShell>
+    </Suspense>
   );
 }

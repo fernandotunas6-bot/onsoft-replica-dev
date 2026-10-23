@@ -33,3 +33,6 @@ Antes da activação, verificar em staging: origem permitida/rejeitada; campanha
 ## Rollback
 
 Retirar a origem da allowlist e desactivar o consumo no website. O visual e a versão demonstrativa continuam disponíveis. A raiz do SIGA, os outros painéis, auth e a campanha existente não são substituídos; não há migração a reverter.
+
+
+A edição de conteúdos, o login partilhado e a ligação de campanhas no portal do administrador estão documentados em [SCHOOL_WEBSITE_CONTENT.md](SCHOOL_WEBSITE_CONTENT.md).

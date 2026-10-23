@@ -149,8 +149,18 @@ from (values
                and qual like '%sga_app_role%')
      and not exists (select 1 from pg_policies
                      where tablename = 'schools'
-                       and policyname = 'Administrators can update their own school'))
-,
+                       and policyname = 'Administrators can update their own school')),
+  -- Auditoria 13, F-01/F-08: âmbito do professor e leituras da tesouraria.
+  ('20261014121549_teacher_scope_and_treasury_reads',
+     to_regprocedure('private.user_wide_reader_school_ids()') is not null
+     and (select count(*) from pg_policies
+          where schemaname = 'public'
+            and policyname in ('students_read', 'people_read', 'enrollments_read', 'student_guardians_read')
+            and qual like '%user_wide_reader_school_ids%') = 4
+     and exists (select 1 from pg_policies
+                 where tablename = 'siga_attendance_records'
+                   and policyname = 'Members read siga_attendance_records'
+                   and qual like '%teacher_students%')),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))

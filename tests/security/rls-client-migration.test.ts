@@ -55,6 +55,23 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Conteúdos escolares (2026-10-21): a política RESTRICTIVE retira aos JWT
+  // todo o acesso a school_website/school_blog.* para não expor rascunhos.
+  // Os editores exigem Administrador + Gestão e a sonda da base antes de ler
+  // ou gravar; versões públicas só atravessam a projecção de publicação.
+  "src/features/school-website/content-server.ts",
+  "src/features/school-website/blog-server.ts",
+  // Resolução pública de tenant/domínio não tem sessão nem pode ler estas
+  // tabelas SaaS pelo JWT. Só nomes/logótipos e publicações da escola resolvida
+  // pelo registo activo saem; nunca usa o hostname para autorizar escrita.
+  "src/features/school-website/school-sites.ts",
+  // Nomes/estado de programas ligados e campanha seleccionada da própria
+  // escola, com projecção pública; programs exige membership no acesso JWT.
+  "src/features/school-website/publication.ts",
+  // Fronteiras anónimas dos websites: escola por public_code, estado do
+  // tenant, CORS exacto, sonda da protecção e apenas snapshots publicados.
+  "src/routes/api/public/school-content/$code.tsx",
+  "src/routes/api/public/school-blog/$code.tsx",
   // Acesso do administrador da escola (Smart School Onboarding, 2026-10-15): lê o
   // estado da conta no Supabase Auth (e-mail confirmado, último acesso, 2FA), os
   // papéis e permissões da escola e o tenant — nada disso é legível pelo JWT. A
@@ -246,6 +263,13 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   "src/features/hr/salary-amendments.ts",
   "src/features/hr/salary-catalog.ts",
   "src/features/hr/salary-changes.ts",
+  // Entrar com o número de aluno: antes do login não há sessão, por isso só o
+  // servidor procura a ficha, a escola do endereço e a conta (`auth.admin`). O
+  // e-mail nunca sai do servidor, como no login por B.I.
+  "src/features/access/student-number-login.ts",
+  // A mesma definição: o ecrã de entrada pergunta sem sessão se a escola a tem
+  // ligada; ler e gravar exige Administrador (gravar, também 2FA) e fica na auditoria.
+  "src/features/access/student-access-server.ts",
 ]);
 
 /**

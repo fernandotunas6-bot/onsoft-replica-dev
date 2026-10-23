@@ -12,7 +12,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex min-h-9 max-w-full items-center justify-start overflow-x-auto rounded-lg bg-muted/70 p-1 text-muted-foreground",
+      "inline-flex min-h-9 min-w-0 max-w-full items-center justify-start overflow-x-auto overscroll-x-contain rounded-lg bg-muted/70 p-1 text-muted-foreground [scrollbar-width:thin]",
       className,
     )}
     {...props}
@@ -23,11 +23,23 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
+>(({ className, onFocus, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
+    onFocus={(event) => {
+      onFocus?.(event);
+      // O foco nativo pode deixar um separador apenas parcialmente visível.
+      // Revelar o destino por inteiro, sem animar nem recentrar a página.
+      if (!event.defaultPrevented) {
+        event.currentTarget.scrollIntoView?.({
+          block: "nearest",
+          inline: "nearest",
+          behavior: "instant",
+        });
+      }
+    }}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs md:text-sm font-medium ring-offset-background cursor-pointer transition-[color,background-color,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) hover:text-foreground motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
+      "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs md:text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow] duration-(--siga-motion-fast) ease-(--siga-ease) hover:text-foreground motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
       className,
     )}
     {...props}

@@ -40,7 +40,7 @@
         "tests/spotlight/catalog.test.ts"
       ],
       "accessKey": "dashboard",
-      "navPath": "/"
+      "navPath": "/portal"
     },
     {
       "id": "alunos",

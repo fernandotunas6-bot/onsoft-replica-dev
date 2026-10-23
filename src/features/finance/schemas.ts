@@ -1,9 +1,43 @@
 import { z } from "zod";
 import { schoolTodayIso } from "@/lib/school-date";
 
+/**
+ * Dia em que a família pagou, tirado do comprovativo: `YYYY-MM-DD` real e nunca depois
+ * de hoje na escola. A multa por atraso é a desse dia, não a do dia em que a tesouraria
+ * confirma.
+ */
+export const paidOnDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Data do pagamento inválida.")
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Data do pagamento inválida.")
+  .refine((value) => value <= schoolTodayIso(), "A data do pagamento não pode ser no futuro.");
+
+/** Meio-dia em Luanda: `paidOnIso` lê os 10 primeiros caracteres sem mudar de dia. */
+export function paidAtFromPaidOn(paidOn: string) {
+  return `${paidOn}T12:00:00+01:00`;
+}
+
 export const financeListInputSchema = z.object({
   limit: z.number().int().min(1).max(250).default(100),
 });
+
+/**
+ * Faturas de um aluno: filtradas no servidor. A ficha do aluno pedia as 250 mais
+ * recentes da escola e filtrava no navegador — as mais antigas do aluno sumiam
+ * e o saldo saía errado logo que a escola passava as 250 faturas.
+ */
+export const listInvoicesInputSchema = z
+  .object({
+    limit: z.number().int().min(1).max(1000).default(100),
+    studentId: z.string().uuid().optional(),
+  })
+  .refine((input) => Boolean(input.studentId) || input.limit <= 250, {
+    message: "Sem aluno, a lista vai até 250 faturas.",
+    path: ["limit"],
+  });
 
 export const recordInvoicePaymentInputSchema = z.object({
   invoiceId: z.string().uuid(),
