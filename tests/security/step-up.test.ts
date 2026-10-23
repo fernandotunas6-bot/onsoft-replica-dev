@@ -1,8 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   STEP_UP_MAX_AGE_SECONDS,
+  STEP_UP_PREFIX,
+  consumePendingStepUpAction,
+  reportPossibleStepUp,
   isRecentlyVerified,
   isStepUpError,
   lastVerificationAt,
@@ -80,6 +83,53 @@ describe("reconfirmação antes de acções críticas", () => {
     const access = read("src/features/access/server.ts");
     expect(access.match(/requireRecentVerification\(/g)?.length).toBe(3);
     expect(read("src/features/access/grants.ts")).toMatch(/requireRecentVerification\(/);
+  });
+
+  it("não perde a reconfirmação emitida antes do diálogo assíncrono montar", () => {
+    const dispatched: Array<{ type: string; detail: { action: string } }> = [];
+    vi.stubGlobal("window", {
+      dispatchEvent: (event: { type: string; detail: { action: string } }) => {
+        dispatched.push(event);
+        return true;
+      },
+    });
+    vi.stubGlobal(
+      "CustomEvent",
+      class {
+        constructor(
+          public type: string,
+          public options: { detail: { action: string } },
+        ) {}
+        get detail() {
+          return this.options.detail;
+        }
+      },
+    );
+    try {
+      expect(reportPossibleStepUp(new Error(`${STEP_UP_PREFIX}: Alterar o IBAN da escola.`))).toBe(
+        true,
+      );
+      expect(dispatched).toHaveLength(1);
+      expect(dispatched[0]?.detail.action).toBe("Alterar o IBAN da escola");
+      expect(consumePendingStepUpAction()).toBe("Alterar o IBAN da escola");
+      expect(consumePendingStepUpAction()).toBeNull();
+
+      expect(reportPossibleStepUp(new Error(`${STEP_UP_PREFIX}: Autorizar pagamento.`))).toBe(
+        true,
+      );
+      expect(consumePendingStepUpAction(Date.now() + 31_000)).toBeNull();
+      expect(consumePendingStepUpAction()).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+      consumePendingStepUpAction();
+    }
+  });
+
+  it("o diálogo de reconfirmação recupera eventos recebidos antes da montagem", () => {
+    const source = readFileSync(join(process.cwd(), "src/components/auth/StepUpDialog.tsx"), "utf8");
+    expect(source).toContain("consumePendingStepUpAction()");
+    expect(source).toContain("window.addEventListener(STEP_UP_REQUIRED_EVENT, onRequired)");
+    expect(source).toContain("const pendingAction = consumePendingStepUpAction()");
   });
 
   it("o ecrã abre a confirmação em vez de mostrar o erro", () => {
