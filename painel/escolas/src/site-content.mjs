@@ -22,18 +22,32 @@ export async function connectSchoolWebsite(data){
   // This navigation hands authentication to the existing SIGA, including its MFA.
   const portal=portalUrl(config.portalUrl);
   if(portal){
-    for(const link of document.querySelectorAll('a[href]'))if(link.getAttribute('href')==='/login/'||link.hasAttribute('data-siga-login'))link.href=portal;
+    for(const link of document.querySelectorAll('a[href]'))if(link.hasAttribute('data-siga-login'))link.href=portal;
     const enter=document.querySelector('[data-siga-login]');if(enter){enter.href=portal;enter.removeAttribute('aria-disabled')}
     document.querySelector('[data-siga-status]')?.replaceChildren(document.createTextNode('Utilize a mesma conta do sistema académico. A palavra-passe e a verificação de segurança são tratadas no SIGA Plus.'));
-    if(sitePathname().startsWith('/portal/')){if(!new URLSearchParams(location.search).has('demo')){location.replace(portal);return}for(const link of document.querySelectorAll('a[href^="/portal/"]')){const u=new URL(link.href);u.searchParams.set('demo','1');link.href=u.href}}
+    const student=new URL(portal);student.searchParams.set('vista','estudante');
+    for(const link of document.querySelectorAll('[data-student-login]')){link.href=student.href;link.removeAttribute('aria-disabled')}
+
+  }
+  if(document.body.classList.contains('portal-body')){
+    const connected=new URLSearchParams(location.search).get('connected')==='1';
+    if(connected){document.body.dataset.portalMode='connected';document.querySelector('main')?.replaceChildren();document.querySelector('.sidebar-profile')?.replaceChildren();}
+    const module=await import('./student-portal.mjs').catch(()=>null);
+    if(module)module.setupStudentPortal(config,{connected});else if(connected){const p=document.createElement('p');p.setAttribute('role','alert');p.textContent='Não foi possível abrir o portal. Recarregue esta página.';document.querySelector('main')?.append(p)}
   }
   if(!config.contentUrl)return config;
+  config.design=null;
+  // Connected schools only display their own published fee and visual preference.
+  config.admissionFeeAmount=null;config.bannerStyle='classic';
   try{
     const url=new URL(config.contentUrl);if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))return;
     const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),6000);
     let payload=config.content;try{if(!payload){const response=await fetch(url,{credentials:'omit',cache:'no-store',signal:abort.signal});if(!response.ok)throw Error('unavailable');payload=await response.json()}}finally{clearTimeout(timer)}
     const manifest=await fetch(siteAsset('/content-bindings.json')).then(r=>r.json());
     if(payload.apiVersion!==1||payload.templateVersion!==manifest.version||!payload.values||typeof payload.values!=='object')throw Error('version');
+    config.admissionFeeAmount=Number.isSafeInteger(payload.admissionFeeAmount)&&payload.admissionFeeAmount>=0&&payload.admissionFeeAmount<=100_000_000?payload.admissionFeeAmount:null;
+    config.bannerStyle=payload.bannerStyle==='prism'?'prism':'classic';
+    config.design=payload.design??null;
     if(payload.admissions){
       const destination=payload.admissions.isOpen&&typeof payload.admissions.path==='string'&&/^\/matricula\/[a-z0-9-]{2,80}$/.test(payload.admissions.path)?new URL(payload.admissions.path,url.origin).href:null;
       for(const link of document.querySelectorAll('a[href]'))if(new URL(link.href).pathname==='/candidatura/'){

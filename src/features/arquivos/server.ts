@@ -1,4 +1,5 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { requiresVerifiedSchoolStorage } from "./storage-policy";
 import type { ExistingSchoolFileLocation } from "./find-existing";
 import { fileMatchesRequest } from "./file-request";
@@ -1475,7 +1476,7 @@ export const listArquivosStudentOptions = createServerFn({ method: "GET" })
         if (
           needle &&
           !name.toLowerCase().includes(needle) &&
-          !registrationNumber.toLowerCase().includes(needle)
+          !numberMatches(registrationNumber, needle)
         ) {
           return null;
         }

@@ -1,0 +1,172 @@
+[
+  {
+    "mode": "before",
+    "view": "academic",
+    "width": 1440,
+    "subjectFont": "7.5625px",
+    "sidebarGradient": "linear-gradient(155deg, oklch(0.27 0.075 260 / 0.46), rgba(0, 0, 0, 0) 48%, oklch(0.25 0.08 300 / 0.48))",
+    "flyoutClipped": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "mobile",
+    "width": 320,
+    "schoolVisible": false,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "mobile",
+    "width": 390,
+    "schoolVisible": false,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "mobile",
+    "width": 834,
+    "schoolVisible": false,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "actions",
+    "width": 320,
+    "visibleActions": 16,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "actions",
+    "width": 390,
+    "visibleActions": 16,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "actions",
+    "width": 834,
+    "visibleActions": 16,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "before",
+    "view": "actions",
+    "width": 1440,
+    "visibleActions": 16,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "academic",
+    "width": 1440,
+    "subjectFont": "12px",
+    "sidebarGradient": "none",
+    "portal": true,
+    "navigation": {
+      "to": "/pedagogica",
+      "search": {
+        "tab": "notas",
+        "turma": "class-b",
+        "disciplina": "pt",
+        "pauta": "1"
+      }
+    },
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "mobile",
+    "width": 320,
+    "schoolVisible": true,
+    "navigation": {
+      "to": "/alunos",
+      "search": {
+        "action": "matricular"
+      }
+    },
+    "drawerCloses": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "mobile",
+    "width": 390,
+    "schoolVisible": true,
+    "navigation": {
+      "to": "/alunos",
+      "search": {
+        "action": "matricular"
+      }
+    },
+    "drawerCloses": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "mobile",
+    "width": 834,
+    "schoolVisible": true,
+    "navigation": {
+      "to": "/alunos",
+      "search": {
+        "action": "matricular"
+      }
+    },
+    "drawerCloses": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "actions",
+    "width": 320,
+    "visibleActions": 2,
+    "menuReachable": true,
+    "modalFocusRestored": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "actions",
+    "width": 390,
+    "visibleActions": 2,
+    "menuReachable": true,
+    "modalFocusRestored": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "actions",
+    "width": 834,
+    "visibleActions": 2,
+    "menuReachable": true,
+    "modalFocusRestored": true,
+    "pageOverflow": false,
+    "errors": []
+  },
+  {
+    "mode": "after",
+    "view": "actions",
+    "width": 1440,
+    "visibleActions": 2,
+    "menuReachable": true,
+    "modalFocusRestored": true,
+    "pageOverflow": false,
+    "errors": []
+  }
+]

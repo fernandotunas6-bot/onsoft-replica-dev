@@ -55,7 +55,12 @@
         "created_by",
         "updated_by",
         "deleted_at",
-        "version"
+        "version",
+        "term",
+        "source",
+        "snapshot",
+        "metrics",
+        "shift_id"
       ],
       "obrigatorias": [
         "school_id",
@@ -10260,6 +10265,12 @@
       "security_definer": false
     },
     {
+      "args": "p_school_id uuid, p_class_group_id uuid, p_slots jsonb, p_actor uuid, p_schedule_id uuid",
+      "funcao": "apply_timetable_plan_guarded",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "p_request_id uuid, p_reviewer_id uuid, p_person_id uuid",
       "funcao": "approve_school_access_request",
       "schema": "public",
@@ -10436,6 +10447,12 @@
     {
       "args": "school_id uuid, student_id uuid, class_group_id uuid, enrolled_on date",
       "funcao": "enroll_student",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "ensure_school_shift_defaults",
       "schema": "public",
       "security_definer": false
     },
@@ -12503,6 +12520,11 @@
       "chave": "academic_schedules_class_group_id_fkey",
       "de": "academic_schedules",
       "para": "class_groups"
+    },
+    {
+      "de": "academic_schedules",
+      "para": "school_shifts",
+      "chave": "academic_schedules_shift_id_fkey"
     },
     {
       "chave": "academic_schedules_school_id_fkey",
@@ -14626,6 +14648,16 @@
     }
   ],
   "valores": [
+    {
+      "tabela": "academic_schedules",
+      "coluna": "source",
+      "valores": [
+        "carried_over",
+        "imported",
+        "manual",
+        "suggested"
+      ]
+    },
     {
       "coluna": "status",
       "tabela": "academic_schedules",

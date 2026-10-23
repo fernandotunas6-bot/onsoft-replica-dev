@@ -19,7 +19,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Fee Payment',
+          'Pagamento de propinas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -39,14 +39,14 @@ class PaymentHistoryScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Failed to load ward balances: $error',
+                'Não foi possível carregar os saldos: $error',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(wardsProvider),
-                child: const Text('Retry'),
+                child: const Text('Tentar de novo'),
               ),
             ],
           ),
@@ -71,7 +71,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Outstanding Amount',
+                      'Valor em dívida',
                       style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     const SizedBox(height: 8),
@@ -86,8 +86,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       hasOutstanding
-                          ? 'These balances reflect the current class fee structures applied to your children.'
-                          : 'No outstanding fee balance for your wards right now.',
+                          ? 'Os saldos reflectem as propinas em vigor nas turmas dos seus educandos.'
+                          : 'Não há propinas em dívida de momento.',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],
@@ -96,17 +96,17 @@ class PaymentHistoryScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               if (wards.isEmpty)
                 const _EmptyState(
-                  message: 'No wards are linked to your account yet.',
+                  message: 'Ainda não há educandos associados à sua conta.',
                 )
               else
                 ...wards.map((ward) {
                   final due = ward.balance < 0 ? ward.balance.abs() : 0.0;
                   final credit = ward.balance > 0 ? ward.balance : 0.0;
                   final statusText = due > 0
-                      ? 'Outstanding'
+                      ? 'Em dívida'
                       : credit > 0
-                          ? 'In credit'
-                          : 'Cleared';
+                          ? 'Com crédito'
+                          : 'Regularizado';
                   final statusColor = due > 0
                       ? AppColors.error
                       : credit > 0
@@ -139,7 +139,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   Text(
-                                    ward.className ?? 'Unknown Class',
+                                    ward.className ?? 'Turma desconhecida',
                                     style: const TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
@@ -174,10 +174,10 @@ class PaymentHistoryScreen extends ConsumerWidget {
                           children: [
                             Text(
                               due > 0
-                                  ? 'Amount due'
+                                  ? 'Valor em dívida'
                                   : credit > 0
-                                      ? 'Credit balance'
-                                      : 'Amount due',
+                                      ? 'Saldo credor'
+                                      : 'Valor em dívida',
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                               ),
@@ -202,7 +202,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                               child: OutlinedButton(
                                 onPressed: () =>
                                     context.push('/ward-profile', extra: ward),
-                                child: const Text('View Ward'),
+                                child: const Text('Ver educando'),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -212,12 +212,12 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'Payment integration can be enabled for your school when needed.',
+                                        'O pagamento em linha pode ser activado para a escola quando for preciso.',
                                       ),
                                     ),
                                   );
                                 },
-                                child: const Text('Make Payment'),
+                                child: const Text('Pagar'),
                               ),
                             ),
                           ],

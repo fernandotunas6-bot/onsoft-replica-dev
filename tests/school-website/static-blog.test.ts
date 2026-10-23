@@ -2,6 +2,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error The static website intentionally uses plain JavaScript modules.
 import * as blogRuntime from "../../painel/escolas/src/school-blog.mjs";
+
+// Em cache fria a avaliação dos módulos e a primeira renderização consomem o
+// orçamento de 5s por omissão, e o custo cai em quem correr primeiro. Mesmo
+// limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 20_000 });
 const esc = (value: unknown) =>
   String(value ?? "").replace(
     /[&<>"']/g,

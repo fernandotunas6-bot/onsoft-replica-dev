@@ -78,6 +78,19 @@ describe("resolução e propriedade dos websites escolares", () => {
     tables.schools[0].status = "archived";
     expect(await loadSchoolSite(new Request(`https://escola-a.${domain}/`))).toBeNull();
   });
+  it("não publica uma escola suspensa, inactiva ou em estado desconhecido", async () => {
+    const ownHost = new Request(`https://escola-a.${domain}/`);
+    const fallback = new Request(`https://${domain}/escolas/escola-a/`);
+    for (const status of ["inactive", "suspended", "provisioning", null]) {
+      tables.schools[0].status = status;
+      expect(await loadSchoolSite(ownHost), String(status)).toBeNull();
+      expect(await loadSchoolSite(fallback), String(status)).toBeNull();
+    }
+    tables.schools[0].status = "active";
+    expect((await loadSchoolSite(ownHost))?.schoolId).toBe("school-a");
+    expect((await loadSchoolSite(fallback))?.schoolId).toBe("school-a");
+  });
+
   it("a página partilhada resolve a mesma escola sem depender do wildcard DNS", async () => {
     const result = await loadSchoolSite(new Request(`https://${domain}/escolas/escola-b/blog/`));
     expect(result).toMatchObject({

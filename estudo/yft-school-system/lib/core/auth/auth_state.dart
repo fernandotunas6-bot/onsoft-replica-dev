@@ -148,18 +148,18 @@ class AuthStateNotifier extends Notifier<AppSession?> {
       );
 
       final user = credential.user;
-      if (user == null) return 'Authentication failed.';
+      if (user == null) return 'Não foi possível autenticar.';
 
       final (session, meStatus) = await _resolveSessionFromApi(user);
       if (session == null) {
         await FirebaseAuth.instance.signOut();
         if (meStatus == 401) {
-          return 'The server could not verify your login. Usually the school API '
-              'is set to a different Firebase project than this app. Your developer '
-              'should set the worker’s FIREBASE_PROJECT_ID to match the project in '
-              'Firebase Console (same as google-services.json).';
+          return 'O servidor não conseguiu validar a sessão. Normalmente a API da '
+              'escola está ligada a um projecto Firebase diferente do da '
+              'aplicação: o FIREBASE_PROJECT_ID do Worker tem de ser o mesmo '
+              'projecto da consola Firebase.';
         }
-        return 'Account not provisioned. Contact your administrator.';
+        return 'Conta por criar. Contacte a administração da escola.';
       }
 
       state = session;
@@ -167,21 +167,21 @@ class AuthStateNotifier extends Notifier<AppSession?> {
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
-          return 'No account found with this email.';
+          return 'Não há conta com este e-mail.';
         case 'wrong-password':
         case 'invalid-credential':
-          return 'Invalid email or password.';
+          return 'E-mail ou palavra-passe incorrectos.';
         case 'user-disabled':
-          return 'This account has been disabled.';
+          return 'Esta conta foi desactivada.';
         case 'too-many-requests':
-          return 'Too many attempts. Try again later.';
+          return 'Demasiadas tentativas. Tente mais tarde.';
         case 'invalid-email':
-          return 'Invalid email address.';
+          return 'Endereço de e-mail inválido.';
         default:
-          return e.message ?? 'Authentication failed.';
+          return e.message ?? 'Não foi possível autenticar.';
       }
     } catch (e) {
-      return 'Connection error. Please try again.';
+      return 'Erro de ligação. Tente de novo.';
     }
   }
 

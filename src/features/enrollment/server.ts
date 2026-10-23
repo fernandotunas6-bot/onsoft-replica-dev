@@ -31,6 +31,7 @@ import {
 import { schoolTodayIso } from "@/lib/school-date";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
+import { publishedAdmissionFee, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 
 function isMissingPeopleGeography(error: { message?: string; code?: string } | null | undefined) {
   return Boolean(
@@ -232,8 +233,24 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
       .in("kind", ["undergraduate", "postgraduate"])
       .eq("is_active", true)
       .order("name");
+    // The fee is informational and comes only from this school's published campaign.
+    // An absent/unavailable website must not make an existing enrollment link unusable.
+    let admissionFeeAmount: number | null = null;
+    try {
+      const settings = await db
+        .from("school_settings")
+        .select("value")
+        .eq("school_id", form.school_id)
+        .eq("domain", WEBSITE_DOMAIN)
+        .maybeSingle();
+      if (!settings.error)
+        admissionFeeAmount = publishedAdmissionFee(settings.data?.value, data.slug);
+    } catch {
+      admissionFeeAmount = null;
+    }
     return {
       ...form,
+      admissionFeeAmount,
       programs: (programRows ?? []).map((row) => ({ id: String(row.id), name: String(row.name) })),
       school_name: schoolName,
       school_phone: publicSchoolPhone(schoolPhone, installedProviders),

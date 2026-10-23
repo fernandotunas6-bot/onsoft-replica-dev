@@ -26,7 +26,7 @@ class AdminStudentClassesScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Failed to load classes', style: TextStyle(color: AppColors.error)),
+              Text('Não foi possível carregar as turmas', style: TextStyle(color: AppColors.error)),
               const SizedBox(height: 8),
               TextButton(onPressed: () => ref.invalidate(classesProvider), child: const Text('Retry')),
             ],

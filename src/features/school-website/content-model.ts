@@ -1,5 +1,18 @@
 import { z } from "zod";
 import manifestJson from "./template.json";
+import { parseWebsiteDesign, publishDesign } from "../../../painel/escolas/src/design.mjs";
+import routes from "../../../painel/escolas/docs/routes.json";
+const designSchema = z.unknown().transform((value, context) => {
+  try {
+    return parseWebsiteDesign(value);
+  } catch (error) {
+    context.addIssue({
+      code: "custom",
+      message: error instanceof Error ? error.message : "Tema inválido.",
+    });
+    return z.NEVER;
+  }
+});
 
 export type WebsiteField = {
   key: string;
@@ -59,6 +72,25 @@ export const websiteDraftSchema = z
       .string()
       .regex(/^(?:[a-z0-9-]{2,80})?$/)
       .default(""),
+    admissionFeeAmount: z.number().int().min(0).max(100_000_000).nullable().optional(),
+    bannerStyle: z.enum(["classic", "prism"]).optional(),
+    design: designSchema.optional(),
+    /**
+     * Páginas do modelo que esta escola já adoptou, além das de identidade
+     * (ver `site-scope`). Ausente — e não `[]` — significa «sem âmbito
+     * declarado: tudo», que é como se comportam os conteúdos gravados antes
+     * de o âmbito existir. `[]` é a escolha explícita de publicar só a
+     * identidade, e é com isso que uma escola nova nasce.
+     */
+    adoptedPages: z
+      .array(
+        z
+          .string()
+          .regex(/^\/[a-z0-9/-]*\/$/)
+          .max(120),
+      )
+      .max(200)
+      .optional(),
   })
   .strict();
 export type WebsiteDraft = z.infer<typeof websiteDraftSchema>;
@@ -90,6 +122,9 @@ export function validateWebsiteDraft(input: unknown): WebsiteDraft {
     if (field?.dataPath?.[0] !== "courses" || field.dataPath.at(-1) !== "name")
       throw new Error("A ligação académica deve indicar o nome de um curso do website.");
   }
+  for (const path of Object.keys(draft.design?.pages ?? {}))
+    if (!routes.some((route) => route.url === path))
+      throw new Error("A página visual não pertence ao website.");
   return draft;
 }
 const stateSchema = z.object({
@@ -113,7 +148,19 @@ export function readWebsiteState(value: unknown): WebsiteState {
       },
       published: null,
     };
-  return stateSchema.parse(value);
+  const state = stateSchema.parse(value);
+  // These additive templates retain every previous field, adding portal controls and page images.
+  const upgrade = (content: WebsiteDraft) => {
+    if (
+      ["2ab6e331ce0e67b8044e", "5fd4cbb7d43915bde5c6", "b7bb3fc0893638fd4fd6"].includes(
+        content.templateVersion,
+      )
+    )
+      content.templateVersion = websiteTemplate.version;
+  };
+  upgrade(state.draft);
+  if (state.published) upgrade(state.published.content);
+  return state;
 }
 export const changeWebsiteSchema = z
   .object({
@@ -159,5 +206,15 @@ export function publicWebsiteContent(state: WebsiteState) {
     revision: state.published.revision,
     publishedAt: state.published.publishedAt,
     values: content.values,
+    admissionFeeAmount: content.admissionFeeAmount ?? null,
+    bannerStyle: content.bannerStyle ?? "classic",
+    design: content.design ? publishDesign(content.design) : null,
   };
+}
+
+/** Informational fee for this published campaign; never an invoice or payment authority. */
+export function publishedAdmissionFee(value: unknown, campaignSlug: string): number | null {
+  const state = readWebsiteState(value);
+  if (!state.published || state.published.content.campaignSlug !== campaignSlug) return null;
+  return state.published.content.admissionFeeAmount ?? null;
 }

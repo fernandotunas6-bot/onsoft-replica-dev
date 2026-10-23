@@ -10,6 +10,8 @@ O rascunho e a publicação são separados. **Guardar rascunho** não altera o s
 
 Cada alteração usa comparação de revisão sobre o mecanismo de concorrência já existente em `updateSettingsDomainValue`. Um editor antigo recebe um erro em vez de sobrepor alterações de outro administrador. A interface deve ser recarregada após um conflito; copie as alterações locais antes de recarregar, se necessário.
 
+Os botões **Administrar blog** e **Gerir domínio próprio** confirmam o abandono de alterações por guardar e ficam indisponíveis durante uma gravação. Uma falha ao actualizar os dados apresenta o erro e a opção de retentar sem esconder o rascunho já aberto. Alterar campos ou ligações retira a mensagem de gravação anterior. **Retirar publicação da API** conserva as alterações locais pendentes, que continuam a exigir **Guardar rascunho**.
+
 ## Endereços automáticos e domínio próprio
 
 Cada escola provisionada já tem `tenant_domains` e uma relação 1:1 entre tenant e escola. A mesma implantação SIGA passa a servir o website público no início de um hostname escolar activo. O nome e o logótipo vêm da escola resolvida no servidor; não existe cópia nem instalação do SIGA por cliente.
@@ -80,6 +82,8 @@ Os testes usam dados fictícios e dependências controladas; não activam a inte
 **Definições → Blog da escola** permite criar artigos, editar título/resumo/texto/categoria/capa/assinatura pública, guardar rascunhos, publicar, retirar publicação, arquivar e restaurar. Os artigos não usam `web_blog_posts`: essa tabela continua a pertencer ao blog comercial do produto. Cada artigo escolar tem um domínio `school_blog.{slug}` na tabela existente de definições. A chave única `(school_id, domain)` impede endereços duplicados entre artigos da mesma escola; escolas diferentes podem usar o mesmo slug. O endereço de um artigo fica fixo após a primeira gravação, e a revisão impede sobrepor edições concorrentes.
 
 O rascunho e a publicação são snapshots separados: editar não muda o que o público lê. Arquivar remove a publicação; restaurar conserva o rascunho sem republicar. A API filtra `school_id`, o prefixo do domínio e `value->>isPublished` antes de paginar. Devolve apenas os campos publicados; a lista não inclui o corpo. Texto é apresentado como parágrafos literais, sem HTML executável; capas exigem HTTPS.
+
+**Novo artigo** e **Voltar à lista** confirmam o abandono de alterações locais, incluindo um endereço ainda por guardar. Retirar a publicação, arquivar ou restaurar mantém essas alterações no formulário e actualiza a revisão usada na próxima gravação. Uma falha na actualização da lista não esconde o artigo em edição. Ambos os editores activam o aviso nativo de recarregamento/fecho da página enquanto houver alterações; removem o aviso após guardar ou desmontar. A mudança de escola inicia outro editor e não transfere rascunhos entre instituições. Esta protecção não substitui guardar nem intercepta todas as navegações internas do portal.
 
 `GET /api/public/school-blog/{publicCode}` devolve a lista paginada (`page`, 12 artigos), e `?slug={slug}` devolve um artigo publicado. Os mesmos domínios escolares activos/verificados e o domínio externo publicado controlam o CORS exacto, sem cookies. No website da plataforma, listagens e artigos são renderizados no servidor em `/site/blog/` e `/site/blog/{slug}/`; o nome, título, descrição e canonical acompanham a escola/artigo. Na instalação estática, `/blog/?artigo={slug}` apresenta o artigo consumindo a mesma API. A página inicial apresenta as três publicações mais recentes.
 
