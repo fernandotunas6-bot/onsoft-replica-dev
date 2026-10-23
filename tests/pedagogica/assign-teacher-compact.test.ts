@@ -9,9 +9,10 @@ const source = readFileSync(
 
 describe("atribuição de professor — modal simples do visual master", () => {
   it("apresenta três escolhas num modal compacto sem decoração de duas colunas", () => {
-    expect(source).toContain('size="md"');
+    expect(source).toContain('size="sm"');
     expect(source).not.toContain('size="2xl"');
     expect(source).not.toContain("EducationWorkflowVisual");
+    expect(source).not.toContain('subtitle="Escolha a turma, disciplina e professor."');
     expect(source).not.toContain("min-h-[70vh]");
     expect(source.match(/className="h-11 w-full rounded-md border border-input/g)).toHaveLength(3);
     for (const id of ["assign-teacher-class", "assign-teacher-subject", "assign-teacher-person"]) {
@@ -32,9 +33,10 @@ describe("atribuição de professor — modal simples do visual master", () => {
     expect(source).toContain("savingRef.current = true;");
     expect(source).toContain("savingRef.current = false;");
     expect(source).toContain("preventOutsideClose={saving}");
+    expect(source).toContain("if (!nextOpen && savingRef.current) return;");
+    expect(source).toContain("!saving && (classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId))");
     expect(source).toContain("isSubmitting={saving}");
-    expect(source).toContain(
-      "hasUnsavedChanges={classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId)}",
-    );
+    expect(source).toContain("hasUnsavedChanges={");
+    expect(source).not.toContain("onOpenChange={setOpen}");
   });
 });
