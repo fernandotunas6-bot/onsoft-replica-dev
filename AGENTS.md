@@ -46,3 +46,15 @@ Em resumo: confirmar colunas em `supabase/PRODUCTION_SNAPSHOT.json`; triggers co
 por isso nunca serve para escrita nem para dados sensíveis; tabelas sensíveis só com o
 servidor (`FORCE ROW LEVEL SECURITY` + `REVOKE ALL … FROM PUBLIC, anon, authenticated`).
 
+
+## Padrão visual obrigatório — SIGA Plus 2026
+
+Antes de qualquer alteração de UI, navegação ou performance, ler
+[docs/design/VISUAL_MASTER_2026.md](docs/design/VISUAL_MASTER_2026.md) integralmente.
+É o contrato visual aprovado pelo proprietário em 23/10/2026, incluindo os
+aditamentos: menu compacto e conteúdo em página por omissão; modais pequenos
+apenas quando necessários; preferência alternativa por escola. Este contrato
+substitui orientações visuais antigas incompatíveis sobre modais grandes e
+expansão automática. Preservar identidade, funcionalidades, RBAC/MFA/RLS e dados.
+Actualizar [a matriz de execução](docs/design/VISUAL_MASTER_STATUS.md) com
+evidência por fase e módulo; não omitir requisitos nem declarar validação sem teste.
