@@ -15,7 +15,7 @@
     "test": "vitest run",
     "test:routes": "vitest run tests/routes/ --fileParallelism=false",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit",
     "check:style": "node scripts/style-checklist.mjs",
     "check:a11y": "node scripts/a11y-check.mjs",
     "check:a11y:report": "node scripts/a11y-check.mjs --html reports/a11y.html",
