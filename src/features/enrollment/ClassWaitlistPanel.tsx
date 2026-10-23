@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ListOrdered } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { toastActionError } from "@/lib/action-error-toast";
