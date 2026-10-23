@@ -27,8 +27,8 @@ export const NAV_ROW_ACTIVE =
   "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/15 hover:text-sidebar-active";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
-  root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
-  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-[0.6875rem] leading-4 font-medium",
+  root: "min-h-9 px-2.5 py-1.5 text-sm font-medium",
+  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-sm leading-5 font-medium",
 };
 
 /** Lista aninhada: rail esquerdo (spec SidebarMenuSub) sem alterar os itens-pai. */
@@ -163,7 +163,7 @@ export function NavLinkRow(
       preloadDelay={80}
       {...(search ? { search } : {})}
       activeOptions={{ exact: !search }}
-      {...(props.collapsed ? { title: props.label } : {})}
+      title={props.label}
       className={rowClass(rest)}
       activeProps={
         props.active === undefined
@@ -192,7 +192,7 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
-      title={props.collapsed ? props.label : undefined}
+      title={props.label}
       className={rowClass(rest)}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}

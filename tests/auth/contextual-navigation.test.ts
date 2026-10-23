@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   getNavigationContext,
+  getNavigationAreas,
   isContextDestinationActive,
 } from "@/features/auth/contextual-navigation";
-import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getPortalNavigation, type NavItem } from "@/features/auth/portal-engine";
 
 describe("contextual navigation", () => {
   const groups = getPortalNavigation("Administrador");
@@ -12,26 +13,108 @@ describe("contextual navigation", () => {
   });
   it("flattens only the existing financial module", () => {
     const context = getNavigationContext(groups, "/faturas");
-    expect(context?.title).toBe("Caixa e Pagamentos");
+    expect(context?.title).toBe("Financeiro");
     expect(context?.items.some((item) => item.to === "/tesouraria")).toBe(true);
+    expect(context?.items.some((item) => item.to === "/relatorios/financeiros")).toBe(true);
+    expect(getNavigationContext(groups, "/relatorios/financeiros")?.items).toEqual(context?.items);
     expect(context?.items.some((item) => item.to === "/alunos")).toBe(false);
     expect(context?.items.every((item) => !item.children)).toBe(true);
   });
   it("resolves detail routes without prefix collisions", () => {
-    expect(getNavigationContext(groups, "/alunos/123")?.title).toBe("Gestão de Alunos");
+    expect(getNavigationContext(groups, "/alunos/123")?.title).toBe("Secretaria");
     expect(getNavigationContext(groups, "/alunos-inexistentes")).toBeNull();
   });
   it("uses search parameters to distinguish attendance from academic tabs", () => {
     const student = getPortalNavigation("Aluno");
     expect(getNavigationContext(student, "/pedagogica", { tab: "presencas" })?.title).toBe(
-      "Frequência",
+      "Académico",
     );
     expect(getNavigationContext(student, "/pedagogica", { tab: "notas" })?.title).toBe("Académico");
   });
+  it("mantém a Secretaria estável entre alunos, importações e documentos", () => {
+    const context = getNavigationContext(groups, "/alunos/123");
+    for (const path of ["/importar", "/documentos", "/pessoas"]) {
+      expect(getNavigationContext(groups, path)).toEqual(context);
+    }
+  });
+  it.each(["Aluno", "Encarregado", "Professor"])(
+    "mantém ensino e frequência no mesmo contexto para %s",
+    (role) => {
+      const catalogue = getPortalNavigation(role as "Aluno" | "Encarregado" | "Professor");
+      const academic = getNavigationContext(catalogue, "/pedagogica", { tab: "notas" });
+      expect(getNavigationContext(catalogue, "/pedagogica", { tab: "presencas" })).toEqual(
+        academic,
+      );
+      expect(academic?.items.every((item) => item.to !== "/financeiro")).toBe(true);
+    },
+  );
+  it("mostra o perfil no seu próprio contexto", () => {
+    expect(getNavigationContext(groups, "/perfil")?.items.map((item) => item.to)).toEqual([
+      "/perfil",
+    ]);
+  });
+  it("atribui uma única área a cada relatório e mantém todos os destinos", () => {
+    const areas = getNavigationAreas(groups);
+    expect(areas.some((area) => area.title === "Relatórios")).toBe(false);
+    const destination = (item: { to?: string; search?: unknown }) =>
+      JSON.stringify([item.to, item.search]);
+    const before = groups
+      .flatMap((g) => g.items.flatMap<NavItem>((i) => i.children ?? [i]))
+      .map(destination)
+      .sort();
+    const after = areas
+      .flatMap((g) => g.items)
+      .map(destination)
+      .sort();
+    expect(after).toEqual(before);
+    expect(
+      areas
+        .find((area) => area.title === "Financeiro")
+        ?.items.filter((item) => item.to === "/relatorios/financeiros"),
+    ).toHaveLength(1);
+  });
+  it("conserva relatórios quando a respectiva área não está autorizada", () => {
+    const allowed = groups.filter((group) => group.title !== "Financeiro");
+    expect(
+      getNavigationAreas(allowed)
+        .find((group) => group.title === "Relatórios")
+        ?.items.map((item) => item.to),
+    ).toEqual(["/relatorios/financeiros"]);
+  });
+  it.each(["Aluno", "Encarregado", "Professor"])(
+    "organiza as áreas do %s sem perder destinos ou parâmetros",
+    (role) => {
+      const catalogue = getPortalNavigation(role as "Aluno" | "Encarregado" | "Professor");
+      const areas = getNavigationAreas(catalogue);
+      const serialize = (item: { to?: string; search?: unknown }) =>
+        JSON.stringify([item.to, item.search]);
+      const original = catalogue.flatMap((group) =>
+        group.items.flatMap<NavItem>((item) => item.children ?? [item]),
+      );
+      expect(
+        areas
+          .flatMap((area) => area.items)
+          .map(serialize)
+          .sort(),
+      ).toEqual(original.map(serialize).sort());
+      expect(areas.some((area) => area.title.startsWith("Portal do"))).toBe(false);
+      expect(areas.find((area) => area.title === "Académico")).toEqual(
+        getNavigationContext(catalogue, "/pedagogica", { tab: "notas" }),
+      );
+    },
+  );
   it("cannot reintroduce a module absent from the allowed catalogue", () => {
     const allowed = groups.filter((group) => group.title !== "Financeiro");
     expect(getNavigationContext(allowed, "/faturas")).toBeNull();
     expect(getNavigationContext([], "/faturas")).toBeNull();
+  });
+  it("não reintroduz relatórios retirados do catálogo autorizado", () => {
+    const allowed = groups.filter((group) => group.title !== "Relatórios");
+    expect(
+      getNavigationContext(allowed, "/financeiro")?.items.some(
+        (item) => item.to === "/relatorios/financeiros",
+      ),
+    ).toBe(false);
   });
   it("highlights the specific action instead of its generic list", () => {
     expect(
