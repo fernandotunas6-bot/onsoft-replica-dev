@@ -24,8 +24,6 @@ import {
   sessionAal,
   type VerificationFactors,
 } from "@/features/auth/verification";
-import { MfaChallenge } from "./MfaChallenge";
-import { StepUpDialog } from "./StepUpDialog";
 import {
   SHARED_DEVICE_IDLE_MS,
   TRUSTED_DEVICE_DAYS,
@@ -38,6 +36,8 @@ import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
 import {
   createContext,
+  lazy,
+  Suspense,
   useContext,
   useEffect,
   useState,
@@ -61,6 +61,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLoading } from "@/components/ui/page-loading";
+
+// Neither security UI is needed until MFA starts or an authenticated session
+// requests step-up verification. Keep the same handlers; split only the bundle.
+const MfaChallenge = lazy(() =>
+  import("./MfaChallenge").then((module) => ({ default: module.MfaChallenge })),
+);
+const StepUpDialog = lazy(() =>
+  import("./StepUpDialog").then((module) => ({ default: module.StepUpDialog })),
+);
 
 const AuthSessionContext = createContext<Session | null>(null);
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
@@ -662,7 +671,9 @@ export function AuthGate({
     return (
       <AuthSessionContext.Provider value={session}>
         {children}
-        <StepUpDialog email={session.user.email ?? null} />
+        <Suspense fallback={null}>
+          <StepUpDialog email={session.user.email ?? null} />
+        </Suspense>
       </AuthSessionContext.Provider>
     );
   }
@@ -755,7 +766,10 @@ export function AuthGate({
 
             {mfaFactors ? (
               <div className="mt-6">
-                <MfaChallenge
+                <Suspense
+                  fallback={<p role="status" className="text-sm text-muted-foreground">A preparar verificação de segurança…</p>}
+                >
+                  <MfaChallenge
                   factors={mfaFactors}
                   intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
                   cancelLabel="Usar outra conta"
@@ -779,7 +793,8 @@ export function AuthGate({
                     setMfaFactors(null);
                     if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
                   }}
-                />
+                  />
+                </Suspense>
               </div>
             ) : null}
 
