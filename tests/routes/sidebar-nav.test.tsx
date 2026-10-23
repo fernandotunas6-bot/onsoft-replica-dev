@@ -243,6 +243,38 @@ describe("AppSidebar — contexto", () => {
 });
 
 describe("AppSidebar — teclado na barra recolhida", () => {
+  it.each(["escola", "pesquisa"])(
+    "fecha o menu recolhido ao mudar de %s e permite voltar a abri-lo",
+    async (change) => {
+      currentPathname = "/portal";
+      const view = renderSidebar(true);
+      fireEvent.keyDown(screen.getByRole("button", { name: "Secretaria" }), { key: "Enter" });
+      await screen.findByRole("menu");
+      if (change === "escola") {
+        (contas.Administrador as { schoolId: string }).schoolId = "school-b";
+      } else {
+        currentSearch = { tab: "novo-contexto" };
+      }
+      view.rerenderSidebar();
+      await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+      const trigger = screen.getByRole("button", { name: "Secretaria" });
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      await screen.findByRole("menu");
+      fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+    },
+  );
+
+  it("mantém o menu recolhido aberto num rerender sem mudança de contexto", async () => {
+    currentPathname = "/portal";
+    const view = renderSidebar(true);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Secretaria" }), { key: "Enter" });
+    await screen.findByRole("menu");
+    currentSearch = { ...currentSearch };
+    view.rerenderSidebar();
+    expect(screen.getByRole("menu")).toBeTruthy();
+  });
+
   it.each([false, true])(
     "identifica e abre o menu da escola por teclado (recolhida: %s)",
     async (collapsed) => {
