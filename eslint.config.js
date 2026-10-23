@@ -33,7 +33,6 @@ export default tseslint.config(
       "docs/implementation/**",
       // Ficheiros gerados: nunca editados à mão, não há nada a corrigir neles.
       "**/*.gen.ts",
-      "src/integrations/supabase/types.ts",
       "src/integrations/supabase/types.sga.ts",
       // Gerado pela integração Lovable Cloud.
       "src/integrations/supabase/previewAuthStorage.ts",
