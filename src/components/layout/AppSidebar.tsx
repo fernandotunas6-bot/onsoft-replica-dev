@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { canPrefetchResources, onIdle } from "@/lib/preload";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   Building2,
+  LayoutGrid,
   ChevronDown,
   CircleHelp,
   CreditCard,
@@ -30,17 +32,27 @@ import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { withHigherEdVocabulary } from "@/features/auth/nav-vocabulary";
 import { isHigherEdOnly } from "@/features/academic/period-model";
-import {
-  getPortalNavigation,
-  isNavChildActive,
-  mergeOpenMenus,
-} from "@/features/auth/portal-engine";
+import { getPortalNavigation } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
-import { NAV_SUB_LIST, NavButtonRow, NavLinkRow, NavSubheader } from "./NavItem";
+import {
+  NAV_SUB_LIST,
+  NAV_ROW_BASE,
+  NAV_ROW_ACTIVE,
+  NAV_ROW_IDLE,
+  NavIcon,
+  NavButtonRow,
+  NavLinkRow,
+  NavSubheader,
+} from "./NavItem";
+import type { NavItem, NavGroup } from "@/features/auth/portal-engine";
 
-const MENU_KEY = "siga:sidebar-open-menus";
+import {
+  getNavigationContext,
+  getNavigationAreas,
+  isContextDestinationActive,
+} from "@/features/auth/contextual-navigation";
 
 /**
  * Fora do grafo estático da barra: o `AppShell` entra no manifesto da rota `/`, que
@@ -105,41 +117,36 @@ export function AppSidebar({
     const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
     return higherEdOnly ? withHigherEdVocabulary(groups) : groups;
   }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
-  // Memoizado para o efeito abaixo poder depender dele directamente. Antes
-  // dependia só de `pathname`, o que deixava de fora a mudança de
-  // `visibleGroups` (papel/grants/plano): os menus recém-visíveis não abriam.
-  const parentsOfActive = useMemo(
-    () =>
-      visibleGroups
-        .flatMap((g) => g.items)
-        .filter((i) => i.children?.some((c) => c.to === pathname))
-        .map((i) => i.label),
-    [visibleGroups, pathname],
-  );
-  const [openMenus, setOpenMenus] = useState<string[]>(parentsOfActive);
-
+  const context = getNavigationContext(visibleGroups, pathname, locationSearch);
+  const [areaPicker, setAreaPicker] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const navigationKey = JSON.stringify([
+    pathname,
+    locationSearch,
+    currentUser.schoolId,
+    currentUser.role,
+  ]);
   useEffect(() => {
-    const stored = localStorage.getItem(MENU_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as string[];
-        setOpenMenus((prev) => Array.from(new Set([...parsed, ...prev])));
-      } catch {
-        /* ignore malformed value */
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    setOpenMenus((prev) => mergeOpenMenus(prev, parentsOfActive));
-  }, [parentsOfActive]);
-
-  const toggle = (label: string) =>
-    setOpenMenus((prev) => {
-      const next = prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label];
-      localStorage.setItem(MENU_KEY, JSON.stringify(next));
-      return next;
-    });
+    setAreaPicker(false);
+    setOpenMenus((prev) => (prev.length ? [] : prev));
+  }, [navigationKey]);
+  const contextual = Boolean(context && !areaPicker);
+  const areas = getNavigationAreas(visibleGroups);
+  const generalGroups: NavGroup[] = [
+    ...areas.filter((group) => group.title === "Principal"),
+    {
+      title: "Áreas de trabalho",
+      items: areas
+        .filter((group) => group.title !== "Principal")
+        .map((group) => ({
+          label: group.title,
+          icon: group.items[0]?.icon ?? LayoutGrid,
+          children: group.items,
+        })),
+    },
+  ];
+  const displayedGroups = contextual && context ? [context] : generalGroups;
+  const toggle = (label: string) => setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
 
   return (
     <>
@@ -147,7 +154,7 @@ export function AppSidebar({
         data-sidebar="siga"
         className={cn(
           "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
-          "lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm",
+          "rounded-none",
           collapsed ? "w-[64px]" : "w-[240px]",
           className,
         )}
@@ -164,6 +171,7 @@ export function AppSidebar({
                 <button
                   type="button"
                   data-sidebar-header-account=""
+                  aria-label={`Abrir menu da escola: ${school?.name ?? currentUser.schoolName ?? "Escola"}`}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
                     collapsed ? "justify-center px-1" : "px-2",
@@ -201,12 +209,16 @@ export function AppSidebar({
                   ) : null}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="bottom" className="w-64 z-50">
+              <DropdownMenuContent
+                align="start"
+                side="bottom"
+                className="w-64 max-w-[calc(100vw-2rem)] z-50"
+              >
                 <DropdownMenuLabel className="font-normal">
-                  <span className="block truncate text-xs font-bold text-foreground">
+                  <span className="block break-words text-sm font-semibold text-foreground">
                     {school?.name}
                   </span>
-                  <span className="block truncate text-[11px] text-muted-foreground">
+                  <span className="block break-words text-sm text-muted-foreground">
                     {currentUser.name} ({currentUser.role})
                   </span>
                 </DropdownMenuLabel>
@@ -228,11 +240,11 @@ export function AppSidebar({
                             }
                           }}
                           className={cn(
-                            "flex items-center justify-between text-xs cursor-pointer",
+                            "flex min-h-[44px] items-center justify-between gap-2 text-sm cursor-pointer",
                             isCurrent && "font-bold text-primary bg-primary/10",
                           )}
                         >
-                          <span className="truncate">{item.schoolName}</span>
+                          <span className="min-w-0 flex-1 break-words">{item.schoolName}</span>
                           <span className="text-[11px] text-muted-foreground ml-2 shrink-0">
                             {item.roleName || item.appRole}
                           </span>
@@ -249,7 +261,7 @@ export function AppSidebar({
                     setProfileModalOpen(true);
                   }}
                 >
-                  <User className="size-4 text-primary" /> Minha Conta / Perfil
+                  <User className="size-4 text-primary" /> Meu perfil
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -264,12 +276,19 @@ export function AppSidebar({
                     </span>
                   ) : null}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
-                  <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
-                </DropdownMenuItem>
+                {canAccessPath(
+                  "/configuracoes",
+                  currentUser.role,
+                  currentUser.grants,
+                  activePlan,
+                ) ? (
+                  <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
+                    <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-primary" /> Criar escola (WEB)
+                    <PlusCircle className="size-4 text-primary" /> Criar escola
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -283,11 +302,11 @@ export function AppSidebar({
                 "flex items-center gap-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors border border-primary/25 shadow-xs",
                 collapsed ? "size-9 justify-center p-0" : "w-full justify-between px-3 py-2",
               )}
-              title="Criar escola no portal WEB"
+              title="Criar escola"
             >
               <div className="flex items-center gap-2 truncate">
                 <PlusCircle className="size-4 shrink-0 text-primary" />
-                {!collapsed ? <span className="truncate">Criar escola (WEB)</span> : null}
+                {!collapsed ? <span className="truncate">Criar escola</span> : null}
               </div>
               {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-70" /> : null}
             </a>
@@ -301,47 +320,48 @@ export function AppSidebar({
             collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
           )}
         >
-          {canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
+          <div className="pt-3 pb-1">
+            <NavButtonRow
+              label={
+                contextual ? "Todas as áreas" : context ? "Voltar ao módulo" : "Áreas de trabalho"
+              }
+              icon={contextual ? LayoutGrid : ArrowLeft}
+              collapsed={collapsed}
+              onClick={() => setAreaPicker((open) => !open)}
+              expanded={!contextual}
+              className={!context ? "hidden" : undefined}
+            />
+          </div>
+          {contextual &&
+          pathname.startsWith("/pedagogica") &&
+          canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
             <AcademicNavTree collapsed={collapsed} />
           ) : null}
-          {visibleGroups.map((group) => (
+          {displayedGroups.map((group) => (
             <div key={group.title}>
               <NavSubheader title={group.title} collapsed={collapsed} />
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const isOpen = openMenus.includes(item.label);
-                  const childActive = item.children?.some((c) => c.to === pathname) ?? false;
+                  const childActive =
+                    item.children?.some((child) =>
+                      isContextDestinationActive(child, displayedGroups, pathname, locationSearch),
+                    ) ?? false;
 
-                  // Flyout: com a barra recolhida, o rato revela um painel lateral
-                  // com o rótulo e os sub-itens do menu.
-                  const flyout = collapsed ? (
-                    <div className="pointer-events-none absolute left-full top-0 z-50 hidden pl-2 group-hover/fly:block group-focus-within/fly:block">
-                      <div className="pointer-events-auto min-w-52 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-float">
-                        <p className="px-2 pb-1 pt-0.5 text-[11px] font-bold text-sidebar-muted">
-                          {item.label}
-                        </p>
-                        {item.children ? (
-                          <ul className="space-y-0.5">
-                            {item.children.map((child) => (
-                              <li key={child.label}>
-                                {child.to ? (
-                                  <NavLinkRow
-                                    to={child.to}
-                                    {...(child.search ? { search: child.search } : {})}
-                                    label={child.label}
-                                    depth="sub"
-                                    active={isNavChildActive(child, pathname, locationSearch)}
-                                  />
-                                ) : (
-                                  <NavButtonRow label={child.label} depth="sub" />
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : null;
+                  if (collapsed && item.children) {
+                    return (
+                      <li key={item.label}>
+                        <CollapsedNavMenu
+                          navigationKey={navigationKey}
+                          item={item}
+                          groups={displayedGroups}
+                          pathname={pathname}
+                          search={locationSearch}
+                          active={childActive}
+                        />
+                      </li>
+                    );
+                  }
 
                   if (item.children) {
                     return (
@@ -374,7 +394,12 @@ export function AppSidebar({
                                     {...(child.search ? { search: child.search } : {})}
                                     label={child.label}
                                     depth="sub"
-                                    active={isNavChildActive(child, pathname, locationSearch)}
+                                    active={isContextDestinationActive(
+                                      child,
+                                      displayedGroups,
+                                      pathname,
+                                      locationSearch,
+                                    )}
                                   />
                                 ) : (
                                   <NavButtonRow label={child.label} depth="sub" />
@@ -383,7 +408,6 @@ export function AppSidebar({
                             ))}
                           </ul>
                         ) : null}
-                        {flyout}
                       </li>
                     );
                   }
@@ -396,16 +420,16 @@ export function AppSidebar({
                         label={item.label}
                         icon={item.icon}
                         collapsed={collapsed}
-                        active={isNavChildActive(
+                        active={isContextDestinationActive(
                           {
                             to: item.to as string,
                             ...(item.search ? { search: item.search } : {}),
                           },
+                          displayedGroups,
                           pathname,
                           locationSearch,
                         )}
                       />
-                      {flyout}
                     </li>
                   );
                 })}
@@ -451,12 +475,12 @@ export function AppSidebar({
                 ) : null}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-64">
+            <DropdownMenuContent align="end" side="top" className="w-64 max-w-[calc(100vw-2rem)]">
               <DropdownMenuLabel className="font-normal">
-                <span className="block truncate text-sm font-semibold text-foreground">
+                <span className="block break-words text-sm font-semibold text-foreground">
                   {currentUser.name}
                 </span>
-                <span className="block truncate text-xs font-normal text-muted-foreground">
+                <span className="block break-all text-sm font-normal text-muted-foreground">
                   {currentUser.email}
                 </span>
               </DropdownMenuLabel>
@@ -536,5 +560,78 @@ export function AppSidebar({
         </Suspense>
       ) : null}
     </>
+  );
+}
+
+/** A portal keeps collapsed menus outside the sidebar's clipping/scroll container. */
+function CollapsedNavMenu({
+  navigationKey,
+  item,
+  groups,
+  pathname,
+  search,
+  active,
+}: {
+  navigationKey: string;
+  item: NavItem;
+  groups: NavGroup[];
+  pathname: string;
+  search: Record<string, unknown>;
+  active: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [navigationKey]);
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={item.label}
+          className={cn(
+            NAV_ROW_BASE,
+            "min-h-9 justify-center px-1 py-2",
+            active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
+          )}
+        >
+          <NavIcon icon={item.icon} active={active} />
+          <span className="sr-only">{item.label}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        className="max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-64 overflow-y-auto border-sidebar-border bg-sidebar text-sidebar-foreground"
+      >
+        <DropdownMenuLabel className="text-xs font-medium text-sidebar-muted">
+          {item.label}
+        </DropdownMenuLabel>
+        {item.children?.map((child) => {
+          const selected = isContextDestinationActive(child, groups, pathname, search);
+          return (
+            <DropdownMenuItem
+              key={child.label}
+              asChild
+              className={cn(
+                "focus:bg-sidebar-accent focus:text-sidebar-accent-foreground",
+                selected && "bg-primary/10 text-sidebar-active",
+              )}
+            >
+              <Link
+                to={child.to}
+                onClick={() => setOpen(false)}
+                {...(child.search ? { search: child.search } : {})}
+                aria-current={selected ? "page" : undefined}
+                preload={canPrefetchResources() ? "intent" : false}
+              >
+                <span className="min-w-0 break-words">{child.label}</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

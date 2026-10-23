@@ -75,10 +75,23 @@ describe("website no endereço de cada escola", () => {
   });
   it("os links públicos não tomam os caminhos dos módulos privados", () => {
     expect(schoolWebsiteHref("/calendario/", site())).toBe("/site/calendario/");
-    expect(schoolWebsiteHref("/login/", site())).toContain("/portal?escola=escola-a");
+    expect(schoolWebsiteHref("/login/", site())).toBe("/site/login/");
+    expect(schoolWebsiteHref("/portal/?demo=1", site())).toBe("/site/portal/?demo=1");
     expect(schoolWebsiteHref("/matricula/campaign", site())).toBe("/matricula/campaign");
     expect(schoolWebsiteHref("/api/private", site())).toBe("/api/private");
     expect(schoolWebsiteHref("https://other.example/", site())).toBe("https://other.example/");
+  });
+  it("conserva a escolha por perfil e disponibiliza o portal original no website da escola", () => {
+    const login = renderSchoolWebsite(site(), "/login/", publication)!;
+    expect(login).toContain('href="/site/portal/"');
+    expect(login).toContain('href="/site/portal/?demo=1"');
+    expect(login).toContain("data-student-login");
+    expect(login).toContain("data-siga-login");
+    const portal = renderSchoolWebsite(site(), "/portal/", publication)!;
+    expect(portal).toContain("portal-sidebar");
+    expect(portal).toContain("Modo de demonstração");
+    expect(portal).toContain('"schoolSlug":"escola-a"');
+    expect(portal).toContain('href="/site/portal/notas/"');
   });
   it("metadados e texto editado são escapados sem interpretar substituições $&", () => {
     const html = applyWebsiteValues(
@@ -97,4 +110,26 @@ describe("website no endereço de cada escola", () => {
     expect(html).toContain("\\u003c/script>");
     expect(html.match(/<script\b/g)).toHaveLength(2);
   });
+});
+
+it("aplica o tema publicado na resposta inicial de cada escola, sem contaminar o template nem outra escola", async () => {
+  const { parseWebsiteDesign, publishDesign } = await import("../../painel/escolas/src/design.mjs");
+  const design = publishDesign(
+    parseWebsiteDesign({
+      activeTheme: "editorial",
+      overrides: { headerSurface: "glass", fontBody: "editorial" },
+      pages: { "/cursos/": { motion: "none", buttonShape: "pill" } },
+    }),
+  );
+  const a = renderSchoolWebsite(site("Escola A"), "/cursos/", { ...publication, design })!;
+  const b = renderSchoolWebsite(site("Escola B"), "/cursos/", publication)!;
+  expect(a).toContain('data-website-theme="editorial"');
+  expect(a).toContain('data-website-header-surface="glass"');
+  expect(a).toContain('data-website-font-body="editorial"');
+  expect(a).toContain('data-website-button-shape="pill"');
+  expect(a).toContain('data-website-motion="none"');
+  expect(a).toContain("--blue:#183d70");
+  expect(a).toContain('"themeId":"editorial"');
+  expect(b).not.toContain("data-website-theme=");
+  expect(b).not.toContain("themeId");
 });

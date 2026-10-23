@@ -1,5 +1,5 @@
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { getTenantAccessBlock } from "@/features/saas/tenant-access";
+import { getPublicSiteBlock } from "@/features/saas/tenant-access";
 import {
   getPlatformDomain,
   LEGACY_PLATFORM_DOMAIN,
@@ -135,7 +135,9 @@ export async function loadSchoolSite(
     .eq("id", tenantId)
     .single();
   if (tenant.error) throw new Error("Tenant state lookup failed");
-  if (getTenantAccessBlock(tenant.data as Parameters<typeof getTenantAccessBlock>[0]).blocked)
+  // O website é público: fecha com a instituição, não com a factura. Ver
+  // `getPublicSiteBlock`.
+  if (getPublicSiteBlock(tenant.data as Parameters<typeof getPublicSiteBlock>[0]).blocked)
     return null;
   const school = await db
     .from("schools")
@@ -143,7 +145,9 @@ export async function loadSchoolSite(
     .eq("tenant_id", tenantId)
     .maybeSingle();
   if (school.error) throw new Error("School lookup failed");
-  if (!school.data || school.data.status === "archived") return null;
+  // Uma escola em qualquer estado diferente de active (incluindo estados futuros)
+  // não pode disponibilizar páginas institucionais, mesmo com domínio activo.
+  if (!school.data || school.data.status !== "active") return null;
   const storageReady = await schoolWebStorageReady(db);
   const [settings, domains] = await Promise.all([
     storageReady

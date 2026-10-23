@@ -22,7 +22,7 @@ it("permite usar o menu enquanto os conteúdos e o blog estão pendentes, sem du
         <div class="mega-menu"><a href="/cursos/">Cursos</a></div>
       </details></nav>
     </header>
-    <main></main><div id="toast"></div>
+    <main><form id="contact-form"><label>Nome<input name="name"></label><label>E-mail<input name="email" type="email"></label><label>Assunto<select name="subject"><option>Dúvida</option></select></label><label>Mensagem<textarea name="message" maxlength="200"></textarea></label></form></main><div id="toast"></div>
     <dialog id="site-dialog"><button class="dialog-close">Fechar</button><div id="dialog-content"></div></dialog>`;
   const mobile = Object.assign(new EventTarget(), { matches: true });
   vi.stubGlobal(
@@ -63,6 +63,9 @@ it("permite usar o menu enquanto os conteúdos e o blog estão pendentes, sem du
       expect(document.activeElement).toBe(toggle);
     };
     checkMenu();
+    const pendingSubmission = new Event("submit", { bubbles: true, cancelable: true });
+    document.querySelector("#contact-form")!.dispatchEvent(pendingSubmission);
+    expect(pendingSubmission.defaultPrevented).toBe(true);
     expect(courseLink.getAttribute("href")).toBe("/escolas/demo/cursos/");
     // Published content can replace an existing link while the connection resolves.
     courseLink.setAttribute("href", "/cursos/");
@@ -76,6 +79,20 @@ it("permite usar o menu enquanto os conteúdos e o blog estão pendentes, sem du
     mobile.matches = false;
     mobile.dispatchEvent(new Event("change"));
     expect(nav.inert).toBe(false);
+    // Closing a disclosure at a breakpoint must leave the keyboard on its visible summary.
+    mobile.matches = true;
+    mobile.dispatchEvent(new Event("change"));
+    toggle.click();
+    nav.querySelector("details")!.open = true;
+    courseLink.focus();
+    mobile.matches = false;
+    mobile.dispatchEvent(new Event("change"));
+    expect(document.activeElement).toBe(nav.querySelector("summary"));
+    const outside = document.querySelector<HTMLInputElement>("#contact-form input")!;
+    outside.focus();
+    mobile.matches = true;
+    mobile.dispatchEvent(new Event("change"));
+    expect(document.activeElement).toBe(outside);
   } finally {
     releaseContent({});
     releaseBlog();

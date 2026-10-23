@@ -3,6 +3,7 @@ import {
   changeWebsiteState,
   changeWebsiteSchema,
   publicWebsiteContent,
+  publishedAdmissionFee,
   readWebsiteState,
   validateWebsiteDraft,
   websiteTemplate,
@@ -190,4 +191,45 @@ describe("API de conteúdo publicado", () => {
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("secret");
   });
+});
+
+describe("taxa publicada e apresentação da escola", () => {
+  it("mantém rascunhos antigos e só expõe a taxa publicada da campanha correspondente", () => {
+    expect(validateWebsiteDraft(draft()).admissionFeeAmount).toBeUndefined();
+    const state = changeWebsiteState(null, {
+      action: "publish",
+      expectedRevision: 0,
+      draft: {
+        ...draft(),
+        campaignSlug: "ispab-2026",
+        admissionFeeAmount: 24000,
+        bannerStyle: "prism",
+      },
+    });
+    const edited = changeWebsiteState(state, {
+      action: "save",
+      expectedRevision: 1,
+      draft: {
+        ...draft(),
+        campaignSlug: "ispab-2026",
+        admissionFeeAmount: 30000,
+        bannerStyle: "classic",
+      },
+    });
+    expect(publicWebsiteContent(edited)).toMatchObject({
+      admissionFeeAmount: 24000,
+      bannerStyle: "prism",
+    });
+    expect(publishedAdmissionFee(edited, "ispab-2026")).toBe(24000);
+    expect(publishedAdmissionFee(edited, "another-school")).toBeNull();
+    expect(publishedAdmissionFee(readWebsiteState(null), "ispab-2026")).toBeNull();
+    const unpublished = changeWebsiteState(edited, { action: "unpublish", expectedRevision: 2 });
+    expect(publishedAdmissionFee(unpublished, "ispab-2026")).toBeNull();
+  });
+  it.each([-1, 24.5, 100000001, Infinity, "24000"])(
+    "recusa uma taxa inválida: %s",
+    (admissionFeeAmount) => {
+      expect(() => validateWebsiteDraft({ ...draft(), admissionFeeAmount })).toThrow();
+    },
+  );
 });

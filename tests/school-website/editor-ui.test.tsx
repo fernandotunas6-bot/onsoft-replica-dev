@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -16,12 +17,19 @@ vi.mock("@/features/school-website/content-server", () => ({
   getSchoolWebsiteEditor: mocks.load,
   changeSchoolWebsite: mocks.change,
 }));
+import { WebsiteThemePanel } from "@/features/school-website/WebsiteThemePanel";
+import type { WebsiteDraft } from "@/features/school-website/content-model";
 import { WebsiteSettingsPanel } from "@/features/school-website/WebsiteSettingsPanel";
 import {
   changeWebsiteState,
   readWebsiteState,
   websiteTemplate,
 } from "@/features/school-website/content-model";
+
+// Em cache fria a avaliação dos módulos e a primeira renderização consomem o
+// orçamento de 5s por omissão, e o custo cai em quem correr primeiro. Mesmo
+// limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 35_000 });
 const mount = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
@@ -32,6 +40,24 @@ const mount = () => {
       </QueryClientProvider>,
     ),
   };
+};
+const mountAppearance = (initial: WebsiteDraft = readWebsiteState(null).draft) => {
+  let current = initial;
+  function Harness() {
+    const [draft, setDraft] = useState(initial);
+    return (
+      <WebsiteThemePanel
+        draft={draft}
+        schoolName="ISPAB"
+        busy={false}
+        onChange={(next) => {
+          current = next;
+          setDraft(next);
+        }}
+      />
+    );
+  }
+  return { ...render(<Harness />), getDraft: () => current };
 };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -218,4 +244,216 @@ describe("editor no portal do administrador", () => {
     window.dispatchEvent(nextEvent);
     expect(nextEvent.defaultPrevented).toBe(false);
   });
+});
+
+it("guarda a taxa e o estilo por escola sem os publicar antecipadamente", async () => {
+  mount();
+  fireEvent.change(await screen.findByLabelText("Taxa de candidatura (Kz)"), {
+    target: { value: "24000" },
+  });
+  fireEvent.change(screen.getByLabelText("Estilo dos destaques"), { target: { value: "prism" } });
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await waitFor(() => expect(mocks.change).toHaveBeenCalled());
+  expect(mocks.change.mock.calls[0][0].data).toMatchObject({
+    action: "save",
+    draft: { admissionFeeAmount: 24000, bannerStyle: "prism" },
+  });
+});
+
+it("selecciona um tema e opções por página no rascunho, preservando os campos e sem publicar automaticamente", async () => {
+  mount();
+  await screen.findByText("Temas e personalização");
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar Editorial" }));
+  fireEvent.change(screen.getByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  fireEvent.change(screen.getByLabelText("Efeitos de entrada"), { target: { value: "none" } });
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await waitFor(() => expect(mocks.change).toHaveBeenCalled());
+  expect(mocks.change.mock.calls[0][0].data).toMatchObject({
+    action: "save",
+    draft: {
+      values: {},
+      design: { activeTheme: "editorial", pages: { "/cursos/": { motion: "none" } } },
+    },
+  });
+});
+
+it("instala um pacote compatível, rejeita código e mantém o tema activo até ser escolhido", async () => {
+  const { builtInThemes } = await import("../../painel/escolas/src/design.mjs");
+  mount();
+  const upload = await screen.findByLabelText("Instalar tema compatível (.json)");
+  const packageFile = (value: unknown) => {
+    const file = new File([JSON.stringify(value)], "tema.json", { type: "application/json" });
+    Object.defineProperty(file, "text", { value: async () => JSON.stringify(value) });
+    return file;
+  };
+  fireEvent.change(upload, {
+    target: {
+      files: [packageFile({ ...builtInThemes[1], id: "custom-academia", name: "Academia" })],
+    },
+  });
+  await screen.findByRole("button", { name: "Aplicar Academia" });
+  expect(
+    screen.getByRole("button", { name: "Seleccionado no rascunho" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  fireEvent.change(upload, {
+    target: {
+      files: [packageFile({ ...builtInThemes[1], id: "custom-malicioso", script: "alert(1)" })],
+    },
+  });
+  expect((await screen.findByText(/opções desconhecidas/)).textContent).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Aplicar Academia" })).toBeTruthy();
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+
+it("organiza opções avançadas e repõe apenas a secção escolhida no rascunho", async () => {
+  const view = mountAppearance();
+  await screen.findByText("Temas e personalização");
+  fireEvent.click(screen.getByText("Cabeçalho e identidade", { exact: true }));
+  fireEvent.change(screen.getByLabelText("Superfície do cabeçalho"), {
+    target: { value: "glass" },
+  });
+  fireEvent.change(screen.getByLabelText("Formato da marca"), { target: { value: "text" } });
+  fireEvent.click(screen.getByText("Botões e ligações", { exact: true }));
+  fireEvent.change(screen.getByLabelText("Forma dos botões"), { target: { value: "pill" } });
+  fireEvent.click(screen.getByRole("button", { name: "Repor cabeçalho e identidade" }));
+  expect((screen.getByLabelText("Formato da marca") as HTMLSelectElement).value).toBe("");
+  expect((screen.getByLabelText("Forma dos botões") as HTMLSelectElement).value).toBe("pill");
+  expect(view.getDraft().design?.overrides).toEqual({ buttonShape: "pill" });
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+
+it("pesquisa opções sem acentos e filtra apenas as personalizações sem publicar", async () => {
+  mountAppearance();
+  const search = await screen.findByLabelText("Pesquisar opções de aparência");
+  fireEvent.change(search, { target: { value: "rodape" } });
+  expect(screen.getByLabelText("Composição do rodapé")).toBeTruthy();
+  expect(screen.queryByLabelText("Tipo de letra do corpo")).toBeNull();
+  fireEvent.change(search, { target: { value: "botões cápsula" } });
+  fireEvent.change(screen.getByLabelText("Forma dos botões"), { target: { value: "pill" } });
+  fireEvent.change(search, { target: { value: "" } });
+  fireEvent.click(screen.getByLabelText("Mostrar apenas opções personalizadas"));
+  expect(screen.getByLabelText("Forma dos botões")).toBeTruthy();
+  expect(screen.queryByLabelText("Cor principal")).toBeNull();
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Repor botões e ligações" }));
+  expect(screen.getByText(/Nenhuma opção corresponde/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+  expect(screen.getByLabelText("Cor principal")).toBeTruthy();
+});
+it("mostra a herança real da página e permite remover uma cor personalizada individualmente", async () => {
+  const state = readWebsiteState(null);
+  const { parseWebsiteDesign } = await import("../../painel/escolas/src/design.mjs");
+  state.draft.design = parseWebsiteDesign({
+    activeTheme: "campus",
+    overrides: { buttonShape: "pill", primary: "#183d70" },
+    pages: { "/cursos/": { buttonShape: "square", primary: "#1558ee" } },
+  });
+  mountAppearance(state.draft);
+  fireEvent.change(await screen.findByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  const shape = screen.getByLabelText("Forma dos botões") as HTMLSelectElement;
+  expect(shape.value).toBe("square");
+  expect(shape.options[0].text).toBe("Herdar (Cápsula)");
+  fireEvent.click(screen.getByRole("button", { name: "Herdar cor principal" }));
+  expect((screen.getByLabelText("Cor principal") as HTMLInputElement).value).toBe("#183d70");
+  expect((screen.getByLabelText("Página para pré-visualizar") as HTMLSelectElement).value).toBe(
+    "/cursos/",
+  );
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+
+it("copia estilos para o rascunho e desfaz a cópia sem perder conteúdos ou outras páginas", async () => {
+  const { parseWebsiteDesign } = await import("../../painel/escolas/src/design.mjs");
+  const input = {
+    ...readWebsiteState(null).draft,
+    values: { "data.courses.0.name": "Nome preservado" },
+    design: parseWebsiteDesign({
+      activeTheme: "campus",
+      pages: {
+        "/ingresso/": { buttonShape: "pill", motion: "fade" },
+        "/cursos/": { fontBody: "editorial" },
+      },
+    }),
+  };
+  const view = mountAppearance(input);
+  fireEvent.change(screen.getByLabelText("Personalizar aparência de"), {
+    target: { value: "/cursos/" },
+  });
+  fireEvent.change(screen.getByLabelText("Copiar personalizações de"), {
+    target: { value: "/ingresso/" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Copiar personalizações" }));
+  expect(view.getDraft().design?.pages["/cursos/"]).toEqual({
+    fontBody: "editorial",
+    buttonShape: "pill",
+    motion: "fade",
+  });
+  expect(view.getDraft().values).toEqual(input.values);
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer cópia" }));
+  expect(view.getDraft().design).toEqual(input.design);
+  fireEvent.change(screen.getByLabelText("Como aplicar os estilos"), {
+    target: { value: "replace" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Copiar personalizações" }));
+  expect(view.getDraft().design?.pages["/cursos/"]).toEqual({
+    buttonShape: "pill",
+    motion: "fade",
+  });
+  fireEvent.change(screen.getByLabelText("Tipo de letra do corpo"), {
+    target: { value: "humanist" },
+  });
+  expect(screen.queryByRole("button", { name: "Desfazer cópia" })).toBeNull();
+  expect(view.getDraft().design?.pages["/cursos/"]?.fontBody).toBe("humanist");
+});
+it("um atalho abre o grupo de conteúdos da página e dá foco ao selector", async () => {
+  mount();
+  fireEvent.change(await screen.findByLabelText("Personalizar aparência de"), {
+    target: { value: "/ingresso/" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Editar textos e imagens desta página" }));
+  const selector = screen.getByLabelText("Página ou conteúdo") as HTMLSelectElement;
+  expect(selector.value).toBe("Como candidatar-se · /ingresso/");
+  expect(document.activeElement).toBe(selector);
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+
+it("desfaz e refaz a apresentação no rascunho mantendo os textos e sem publicar", () => {
+  const view = mountAppearance({
+    ...readWebsiteState(null).draft,
+    values: { "data.courses.0.name": "Curso preservado" },
+  });
+  expect(
+    (screen.getByRole("button", { name: "Desfazer ajuste visual" }) as HTMLButtonElement).disabled,
+  ).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar Editorial" }));
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar Essencial" }));
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer ajuste visual" }));
+  expect(view.getDraft().design?.activeTheme).toBe("editorial");
+  fireEvent.click(screen.getByRole("button", { name: "Refazer ajuste visual" }));
+  expect(view.getDraft().design?.activeTheme).toBe("minimal");
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer ajuste visual" }));
+  fireEvent.click(screen.getByRole("button", { name: "Desfazer ajuste visual" }));
+  expect(view.getDraft().design).toBeUndefined();
+  expect(view.getDraft().values["data.courses.0.name"]).toBe("Curso preservado");
+  expect(mocks.change).not.toHaveBeenCalled();
+});
+it("oferece comparação apenas quando existe uma publicação e não altera o rascunho ao escolher a versão", async () => {
+  const published = changeWebsiteState(null, {
+    expectedRevision: 0,
+    action: "publish",
+    draft: { ...readWebsiteState(null).draft, websiteUrl: "https://school.example" },
+  });
+  mocks.load.mockResolvedValue({ ...(await mocks.load()), state: published });
+  mount();
+  const picker = await screen.findByLabelText("Versão para comparar");
+  fireEvent.change(picker, { target: { value: "published" } });
+  expect(screen.getByRole("button", { name: "Pré-visualizar publicação" })).toBeTruthy();
+  expect(mocks.change).not.toHaveBeenCalled();
+  fireEvent.change(picker, { target: { value: "draft" } });
+  expect(screen.getByRole("button", { name: "Pré-visualizar rascunho" })).toBeTruthy();
 });

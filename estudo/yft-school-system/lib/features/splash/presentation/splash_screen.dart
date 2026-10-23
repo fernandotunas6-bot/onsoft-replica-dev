@@ -51,7 +51,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 16),
 
             Text(
-              'Modern School Ecosystem',
+              'Sistema de gestão escolar',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: AppColors.secondary.withValues(alpha: 0.6),
                 fontWeight: FontWeight.w600,

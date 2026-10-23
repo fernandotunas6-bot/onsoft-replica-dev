@@ -332,18 +332,18 @@ class _StudentProfileBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        _section(context, 'Student', [
+        _section(context, 'Aluno', [
           _row(LucideIcons.bookOpen, 'Class',
               student.className ?? student.classId),
           _row(LucideIcons.users, 'Gender', student.gender ?? '—'),
-          _row(LucideIcons.calendar, 'Date of birth', formatDob(student.dob)),
+          _row(LucideIcons.calendar, 'Data de nascimento', formatDob(student.dob)),
           _row(LucideIcons.school, 'Previous school',
               student.previousSchool ?? '—'),
           _row(LucideIcons.mapPin, 'Address', student.address ?? '—'),
         ]),
         const SizedBox(height: 16),
         _section(context, 'Emergency', [
-          _row(LucideIcons.alertCircle, 'Contact name',
+          _row(LucideIcons.alertCircle, 'Nome do contacto',
               student.emergencyContactName ?? '—'),
           _row(LucideIcons.phone, 'Contact phone',
               student.emergencyContactPhone ?? '—'),
@@ -365,7 +365,7 @@ class _StudentProfileBody extends StatelessWidget {
         _section(context, 'Fees', [
           _row(
             LucideIcons.wallet,
-            'Balance',
+            'Saldo',
             student.hasDebt
                 ? '$currency ${student.balance.abs().toStringAsFixed(2)} (owing)'
                 : student.isOverpaid

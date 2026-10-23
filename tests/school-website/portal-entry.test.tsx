@@ -24,6 +24,11 @@ vi.mock("@/features/auth/use-current-account", () => ({
   }),
 }));
 import { Route } from "@/routes/portal";
+
+// Em cache fria a avaliação dos módulos e a primeira renderização consomem o
+// orçamento de 5s por omissão, e o custo cai em quem correr primeiro. Mesmo
+// limite já usado nos ficheiros de tests/routes.
+vi.setConfig({ testTimeout: 20_000 });
 const Portal = (Route as unknown as { component: ComponentType }).component;
 beforeEach(() => {
   vi.clearAllMocks();

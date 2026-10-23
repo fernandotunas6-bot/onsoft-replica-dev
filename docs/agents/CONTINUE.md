@@ -1,5 +1,71 @@
 # Handoff — continuar o SIGA
 
+## Navegação contextual e superfícies discretas — 2026-10-22
+
+A sidebar deriva o módulo activo do catálogo já filtrado por papel/grants/plano.
+«Todas as áreas» abre a navegação global; «Voltar ao módulo» regressa ao contexto.
+A lista global abre um submenu de cada vez e já não restaura menus acumulados de
+outras sessões. A árvore académica só monta no contexto pedagógico. O estado de
+navegação é reiniciado por uma chave serializada estável (rota/pesquisa/escola/papel),
+sem depender da identidade de objectos de pesquisa. `NavLinkRow` mantém o destaque
+automático do router quando `active` não é explícito; não retirar esse fallback da
+árvore académica. Painéis e cartões partilhados têm superfícies sem elevação ao hover;
+cores de estado explícitas mantêm-se. Comparação controlada e limites:
+[relatório visual](../visual/2026-10-22/README.md). Sem deploy nem SQL.
+
+Para ligar o visual de outro agente, consultar os
+[pontos de integração e contrato de aparência](../design/CONTEXTUAL_VISUAL_INTEGRATION.md).
+A PR #245 (`e4db10fa`) foi identificada e combinada nesta branch: toque de 44 px,
+movimento reduzido e pesquisa IME. Preservar os dois históricos, os ajustes recentes
+dos modais, os testes de navegação e o catálogo lazy de temas. Isto não confirma a
+reprodução das imagens de outra conversa, que continuam por identificar.
+
+## Refinamento da navegação académica — 2026-10-21
+
+Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis
+por hover. O foco de teclado não pode ser escondido por outro grupo. Ligações no
+menu móvel desbloqueiam o fundo antes da navegação normal. A pesquisa respeita
+campos editáveis/IME. As secções de ingresso/instituição/novos estudantes têm
+IDs estáveis no HTML inicial: não voltar a depender da API para deep links.
+Swipe só termina com o mesmo ponteiro. Manifesto e 4653 campos inalterados.
+[Reprodução e validação](../../painel/escolas/docs/navigation-polish.md).
+
+## Cabeçalho e home académica — 2026-10-21
+
+O pedido autoriza os comportamentos de navegação e slides da home, conservando
+composição, cores, dados e marca. `academic-navigation.mjs` inicializa antes da API:
+não adiar o menu por sincronização. Cabeçalho compacto, hover/teclado, menu móvel
+com fundo isolado e pesquisa no diálogo existente. `home-highlights.mjs` só na home:
+rotação suspensa por foco, movimento reduzido, invisibilidade e escolha manual;
+cartões deslizáveis apenas no telemóvel. Oito campos novos, todos os 4645 anteriores
+intactos. Compatibilidade explícita também com `b7bb3fc0893638fd4fd6`.
+[Observação UNASP e contrato](../../painel/escolas/docs/navigation-and-home.md).
+
+## Apresentação das páginas académicas — 2026-10-21
+
+Os cursos têm fotografia em faixa larga e resumo com acções; os cabeçalhos
+internos e cartões de serviços têm imagens editáveis. Não substituir textos,
+valores, marca, homepage nem o contrato dos portais. `academic-pages.mjs` move
+nós já publicados e deriva a navegação dos títulos existentes. Os 4601 campos
+anteriores permanecem exactamente iguais; imagens isoladas em `data-site-scope`.
+Compatibilidade explícita também com `5fd4cbb7d43915bde5c6`, conservando revisão
+e publicação. [Detalhes e referências](../../painel/escolas/docs/academic-pages.md).
+
+## Portal do website escolar — 2026-10-21
+
+`/login/` volta a seleccionar estudante ou docentes/administração; não reescrever
+links públicos para o SIGA nem redireccionar todas as páginas `/portal/` do website.
+O portal original permanece demonstrativo sem sessão. A vista autenticada
+`/portal?escola=<slug>&vista=estudante` conserva o visual original em mesma origem
+e consulta `getStudentWebsitePage`: MFA/auth existentes, Aluno e escola activa
+verificados no servidor; IDs de outros estudantes nunca são aceites. Notas,
+agenda, horário e frequência reutilizam as APIs existentes. Outros serviços
+encaminham para os módulos autenticados. [Contrato e verificação](../../painel/escolas/docs/portal-access.md).
+
+Os campos novos usam `data-site-scope`; os 4579 anteriores conservam chave, tipo e
+valor. A actualização automática de publicação aceita os modelos compatíveis
+`2ab6e331ce0e67b8044e` e `5fd4cbb7d43915bde5c6`; não generalizar para versões incompatíveis.
+
 Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
@@ -270,6 +336,35 @@ gestão académica). Ser administrador da escola nunca dá a Administração Glo
 - O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
   `siga:audit-provisioning`).
 
+## Revisão #148 — reforço antes de aplicar (2026-10-16)
+
+Preflight antes do lote (datas/ano/zero/capacidade), locks, mapa privado antigo → novo
+`private.siga_numbering_changes` e testes de documentos existentes/rollback. Login geral
+recusa escolher conta ao atingir 50 fichas. Produção continua **por aplicar**.
+Matriz e critérios: [NUMBERING_148_VALIDATION.md](./NUMBERING_148_VALIDATION.md).
+
+## Numeração só com dígitos (2026-10-12) — POR APLICAR
+
+Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,
+«1» + ano + 4 dígitos (2026 → 1260001), a recomeçar em cada ano por escola e tipo; os
+existentes (EST-…, MAT-…) renumerados por ordem de criação. Migração
+`20261012140000_numbering_one_year_digits.sql`, ensaio `tests/sql/numbering-one-year-digits.mjs`.
+Facturas, recibos, notas de crédito e despesas mantêm a série fiscal (AGT). O código
+PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`): um aluno
+já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
+
+Feito à volta (não depende da migração):
+
+- **Entrar com o número de aluno** — escolha da escola em Definições → Segurança
+  (`school_settings` domínio `student_access`, `student_number_login`, desligado por
+  omissão; só Administrador, com 2FA, auditado). Login: `student-number-login.ts` (escola
+  do endereço; no endereço geral só se o número existir numa única escola com a opção
+  ligada, senão `school_required`); `student-access-server.ts` (get/set e a pergunta sem
+  sessão que muda o rótulo do ecrã de entrada). Só fichas activas/candidatas com conta.
+  Antes da migração os números são `EST-…` e o login por número não encontra ninguém.
+- Pesquisa por número tolerante a espaços/traços (`numberMatches`): alunos, matrículas,
+  presenças, avaliações, documentos, arquivo, superior. Exemplos da importação em `1260042`.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
@@ -300,9 +395,19 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
   também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
   `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
-  depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.
+- **Contexto de nível por área** (`SUBJECT_AREA_LEVELS`): Saúde, Informática, Gestão… só
+  existem do ISCED 3 em diante; `areasForContext`, filtro `area` na pesquisa, na API
+  (`type=areas`, `&area=`) e chips na página. Teste `area-level-context.test.ts`.
+- **Duas sessões fizeram este catálogo em paralelo.** A da branch `ccr-680ee371-6vebkz`
+  começou o mesmo trabalho sem saber deste; ficou num `git stash` local (não publicado) e só
+  entrou a regra por área acima. Antes de começar, `git fetch` e ler este ficheiro na `main`.
+- **Aplicado na produção:** `20261010120000_global_education_catalog.sql`,
+  `20261010150000_merge_school_subjects.sql` e a carga `supabase/seeds/education/catalog.sql`
+  (a 2026-10-10, md5 das 8 tabelas igual ao do ficheiro; ver o README do catálogo), e
+  `20261012120000_subjects_catalog_link.sql` (as colunas `subjects.catalog_subject_code` e
+  `programs.catalog_course_code` existem a 2026-10-12). **Falta:** recapturar o retrato e os
+  tipos (`npm run siga:db-snapshot`, `npm run siga:gen-types`), tirar `merge_school_subjects`
+  de `FUNCOES_ESPERA_MIGRACAO` e as duas colunas de `COLUNAS_ESPERA_MIGRACAO`.
 
 ## Auditoria 13 — fluxos da escola (2026-10-06)
 
