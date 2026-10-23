@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, LayoutGrid, LogOut, Settings, UserRound } from "lucide-react";
 
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useSignOut } from "@/features/auth/use-sign-out";
 import { useTenant } from "@/features/saas/tenant-context";
 import { canAccessPath } from "@/features/auth/access-policy";
@@ -10,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { BottomSheet, BottomSheetBody, BottomSheetHeader } from "./BottomSheet";
 import { MobileSearch } from "./MobileSearch";
 import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { withHigherEdVocabulary } from "@/features/auth/nav-vocabulary";
+import { isHigherEdOnly } from "@/features/academic/period-model";
 import {
   flattenNavigationGroup,
   getNavigationAreas,
@@ -37,6 +40,7 @@ export function MoreHub({
   onOpenSettings?: () => void;
 }) {
   const currentUser = useCurrentAccount();
+  const { school } = useSchoolSettings();
   const { activePlan } = useTenant();
   const { signOut, signingOut } = useSignOut();
   const [query, setQuery] = React.useState("");
@@ -47,10 +51,11 @@ export function MoreHub({
   });
   const [allAreas, setAllAreas] = React.useState(false);
   const [area, setArea] = React.useState<string | null>(null);
-  const groups = React.useMemo(
-    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
-    [currentUser.role, currentUser.grants, activePlan],
-  );
+  const higherEdOnly = isHigherEdOnly(school?.pedagogy?.teachingLevels ?? []);
+  const groups = React.useMemo(() => {
+    const navigation = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
+    return higherEdOnly ? withHigherEdVocabulary(navigation) : navigation;
+  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
   const context = getNavigationContext(groups, pathname, search);
   const areas = getNavigationAreas(groups);
   const selectedContext = areas.find((group) => group.title === area);

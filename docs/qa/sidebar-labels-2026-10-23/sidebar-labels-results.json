@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "before",
+    "width": 390,
+    "label": "Matricular Aluno",
+    "overflow": false,
+    "parametersPreserved": false,
+    "drawerCloses": false
+  },
+  {
+    "mode": "after",
+    "width": 390,
+    "label": "Matricular Estudante",
+    "overflow": false,
+    "parametersPreserved": true,
+    "drawerCloses": true
+  },
+  {
+    "mode": "after",
+    "width": 834,
+    "label": "Matricular Estudante",
+    "overflow": false,
+    "parametersPreserved": true,
+    "drawerCloses": true
+  },
+  {
+    "mode": "after",
+    "width": 1440,
+    "label": "Matricular Estudante",
+    "overflow": false,
+    "parametersPreserved": true,
+    "drawerCloses": false
+  }
+]
