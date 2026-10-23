@@ -203,8 +203,8 @@ describe("AppSidebar — contexto", () => {
     expect(linksTo("/faturas")).toHaveLength(1);
     expect(linksTo("/alunos")).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
-    expect(screen.getByRole("button", { name: "Gestão de Alunos" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+    expect(screen.getByRole("button", { name: "Secretaria" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
     expect(linksTo("/alunos").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Voltar ao módulo" }));
     expect(linksTo("/alunos")).toHaveLength(0);
@@ -219,9 +219,9 @@ describe("AppSidebar — contexto", () => {
     renderSidebar();
     expect(linksTo("/alunos")).toHaveLength(0);
     expect(linksTo("/faturas")).toHaveLength(0);
-    fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
     expect(linksTo("/alunos").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Caixa e Pagamentos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Financeiro" }));
     expect(linksTo("/alunos")).toHaveLength(0);
     expect(linksTo("/faturas")).toHaveLength(1);
   });
@@ -245,7 +245,7 @@ describe("AppSidebar — teclado na barra recolhida", () => {
   it("abre os destinos num portal e fecha com Escape", async () => {
     currentPathname = "/portal";
     const { container } = renderSidebar(true);
-    const trigger = screen.getByRole("button", { name: "Gestão de Alunos" });
+    const trigger = screen.getByRole("button", { name: "Secretaria" });
     fireEvent.keyDown(trigger, { key: "Enter" });
     const menu = await screen.findByRole("menu");
     expect(container.querySelector("aside")?.contains(menu)).toBe(false);
@@ -257,6 +257,15 @@ describe("AppSidebar — teclado na barra recolhida", () => {
     fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   });
+  it("fecha o menu recolhido ao escolher um destino com navegação interceptada", async () => {
+    currentPathname = "/portal";
+    renderSidebar(true);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Secretaria" }), { key: "Enter" });
+    const enroll = await screen.findByRole("menuitem", { name: "Matricular Aluno" });
+    enroll.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(enroll);
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
 });
 
 describe("AppSidebar — contexto e perfil", () => {
@@ -266,7 +275,7 @@ describe("AppSidebar — contexto e perfil", () => {
       currentPathname = "/faturas";
       const view = renderSidebar();
       fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
-      fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+      fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
       const destinations = linksTo("/alunos");
       expect(destinations.length).toBeGreaterThan(0);
 
@@ -312,15 +321,15 @@ describe("AppSidebar — contexto e perfil", () => {
     (contas.Administrador as { schoolId: string }).schoolId = "school-b";
     view.rerenderSidebar();
     expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Gestão de Alunos" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
   });
   it("retira as áreas administrativas ao mudar para o perfil de aluno", () => {
     currentPathname = "/portal";
     const view = renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: "Gestão de Alunos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
     papel = "Aluno";
     view.rerenderSidebar();
-    expect(screen.queryByRole("button", { name: "Gestão de Alunos" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
     expect(linksTo("/acessos")).toHaveLength(0);
   });
   it.each(["Administrador", "Aluno"])(

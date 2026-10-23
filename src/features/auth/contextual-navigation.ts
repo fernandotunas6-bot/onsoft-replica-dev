@@ -26,31 +26,33 @@ export function getNavigationContext(
   candidates.sort((a, b) => b.score - a.score);
   const match = candidates[0];
   if (!match || match.group.title === "Principal" || match.item.to === "/portal") return null;
-  // O módulo reúne os destinos autorizados, incluindo relatórios antes separados
-  // no catálogo global. Nunca acrescenta um link que não veio desse catálogo.
-  const moduleTitle =
-    match.group.title === "Financeiro" || pathname.startsWith("/relatorios/financeiros")
-      ? "Financeiro"
-      : match.group.title === "Académico" || pathname.startsWith("/relatorios/academicos")
-        ? "Académico"
-        : null;
-  if (moduleTitle) {
-    const reportPath =
-      moduleTitle === "Financeiro" ? "/relatorios/financeiros" : "/relatorios/academicos";
-    const items = groups.flatMap((group) =>
-      group.items.flatMap((item) => {
-        if (group.title === moduleTitle) return item.children ?? [item];
-        return (item.children ?? [item]).filter((link) => link.to === reportPath);
-      }),
-    );
-    return { title: moduleTitle, items };
+  if (match.group.title.startsWith("Portal do")) {
+    const links = flattenNavigationGroup(match.group).items;
+    const isAcademic = (to = "") =>
+      ["/pedagogica", "/planos-aula", "/professor/presenca"].some(
+        (base) => to === base || to.startsWith(`${base}/`),
+      );
+    const isFinancial = (to = "") =>
+      ["/financeiro", "/faturas", "/tesouraria"].some(
+        (base) => to === base || to.startsWith(`${base}/`),
+      );
+    if (isAcademic(pathname) || isFinancial(pathname)) {
+      const accepts = isAcademic(pathname) ? isAcademic : isFinancial;
+      return {
+        title: isAcademic(pathname) ? "Académico" : "Financeiro",
+        items: links.filter((link) => accepts(link.to)),
+      };
+    }
+    return { title: match.item.label, items: match.item.children ?? [match.item] };
   }
+  const area = getNavigationAreas(groups).find((group) =>
+    group.items.some((item) => item.to === pathname || pathname.startsWith(`${item.to}/`)),
+  );
+  if (area && area.title !== "Sistema") return area;
   if (match.item.children) {
     return { title: match.item.label, items: match.item.children };
   }
-  return match.group.title.startsWith("Portal do")
-    ? { title: match.item.label, items: [match.item] }
-    : match.group;
+  return { title: match.item.label, items: [match.item] };
 }
 
 /** Uma área geral abre apenas os seus destinos, mantendo a ordem do catálogo. */
@@ -59,6 +61,33 @@ export function flattenNavigationGroup(group: NavGroup): NavGroup {
     ...group,
     items: group.items.flatMap<NavGroup["items"][number]>((item) => item.children ?? [item]),
   };
+}
+
+/** A mesma organização no desktop, gaveta e pesquisa; só usa destinos autorizados. */
+export function getNavigationAreas(groups: NavGroup[]): NavGroup[] {
+  const areas = groups.map(flattenNavigationGroup);
+  const reports = areas.find((group) => group.title === "Relatórios");
+  if (!reports) return areas;
+  const moved = new Set<string>();
+  const result = areas.map((group) => {
+    const reportPath =
+      group.title === "Financeiro"
+        ? "/relatorios/financeiros"
+        : group.title === "Académico"
+          ? "/relatorios/academicos"
+          : null;
+    if (!reportPath) return group;
+    const links = reports.items.filter((item) => item.to === reportPath);
+    links.forEach((item) => moved.add(item.to!));
+    return { ...group, items: [...group.items, ...links] };
+  });
+  return result
+    .map((group) =>
+      group.title === "Relatórios"
+        ? { ...group, items: group.items.filter((item) => !moved.has(item.to!)) }
+        : group,
+    )
+    .filter((group) => group.items.length > 0);
 }
 
 /** Prefer the most specific destination, so list/actions do not light up together. */

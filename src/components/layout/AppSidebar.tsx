@@ -50,6 +50,7 @@ import type { NavItem, NavGroup } from "@/features/auth/portal-engine";
 
 import {
   getNavigationContext,
+  getNavigationAreas,
   isContextDestinationActive,
 } from "@/features/auth/contextual-navigation";
 
@@ -130,7 +131,23 @@ export function AppSidebar({
     setOpenMenus((prev) => (prev.length ? [] : prev));
   }, [navigationKey]);
   const contextual = Boolean(context && !areaPicker);
-  const displayedGroups = contextual && context ? [context] : visibleGroups;
+  const areas = getNavigationAreas(visibleGroups);
+  const generalGroups = visibleGroups.some((group) => group.title.startsWith("Portal do"))
+    ? visibleGroups
+    : [
+        ...areas.filter((group) => group.title === "Principal"),
+        {
+          title: "Áreas de trabalho",
+          items: areas
+            .filter((group) => group.title !== "Principal")
+            .map((group) => ({
+              label: group.title,
+              icon: group.items[0]?.icon ?? LayoutGrid,
+              children: group.items,
+            })),
+        },
+      ];
+  const displayedGroups = contextual && context ? [context] : generalGroups;
   const toggle = (label: string) => setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
 
   return (
@@ -560,8 +577,9 @@ function CollapsedNavMenu({
   search: Record<string, unknown>;
   active: boolean;
 }) {
+  const [open, setOpen] = useState(false);
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -598,6 +616,7 @@ function CollapsedNavMenu({
             >
               <Link
                 to={child.to}
+                onClick={() => setOpen(false)}
                 {...(child.search ? { search: child.search } : {})}
                 aria-current={selected ? "page" : undefined}
                 preload={canPrefetchResources() ? "intent" : false}

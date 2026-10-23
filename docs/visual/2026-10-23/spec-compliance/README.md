@@ -105,3 +105,17 @@ O CI do commit anterior `7e52070c` passou: TypeScript global, lint, build e 4113
 ![Identidade da escola legível](refined-school-1440.png)
 
 ![Identidade da conta legível](refined-account-1440.png)
+
+## Organização das áreas e lógica de contexto
+
+A visão geral do desktop apresenta as áreas autorizadas, com apenas uma expandida de cada vez. A navegação contextual da Secretaria mantém alunos, pessoas, importações, documentos e arquivos na mesma ordem, sem mudar de menu a cada secção. Nos portais de Aluno, Encarregado e Professor, os destinos académicos e de frequência ficam reunidos em “Académico”; Financeiro mantém o seu próprio contexto. O perfil pessoal abre apenas o seu contexto, sem misturar definições da escola.
+
+`getNavigationAreas` fornece a mesma organização para a sidebar, a gaveta e a pesquisa. Os relatórios financeiros e académicos ficam numa única área correspondente; se a área não estiver autorizada mas o relatório estiver no catálogo, este continua acessível em Relatórios. Não há introdução de destinos, alteração dos parâmetros ou substituição da autorização das rotas/backend. Um teste compara todos os destinos e parâmetros antes/depois da organização.
+
+Corrigido também o fecho do menu recolhido após seleccionar um link cuja navegação é interceptada pelo router. O teste reproduz `preventDefault`, sem depender do comportamento de navegação normal do browser.
+
+Validação: 77 testes em seis ficheiros passaram; ESLint dirigido sem erros. Os 16 cenários representativos de navegação/visual anteriores foram repetidos com sucesso, e dois ensaios adicionais a 1024/1440 px confirmaram apenas uma área expandida, relatórios no módulo, navegação por teclado com a barra recolhida, fecho após selecção, parâmetro de matrícula preservado e ausência de overflow. Registo em [organized-navigation-results.json](organized-navigation-results.json). O TypeScript local global abortou com saída 134 neste ambiente; não é declarado aprovado para esta iteração. O CI anterior `cca74abee` estava aprovado, e o novo commit requer a sua própria execução.
+
+![Visão geral por áreas](organized-areas-1440.png)
+
+![Secções da Secretaria](organized-secretariat-1440.png)

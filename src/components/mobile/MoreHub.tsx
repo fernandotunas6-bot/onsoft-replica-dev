@@ -12,6 +12,7 @@ import { MobileSearch } from "./MobileSearch";
 import { getPortalNavigation } from "@/features/auth/portal-engine";
 import {
   flattenNavigationGroup,
+  getNavigationAreas,
   getNavigationContext,
   isContextDestinationActive,
 } from "@/features/auth/contextual-navigation";
@@ -51,18 +52,12 @@ export function MoreHub({
     [currentUser.role, currentUser.grants, activePlan],
   );
   const context = getNavigationContext(groups, pathname, search);
-  const selected = groups.find((group) => group.title === area);
-  const first = selected ? flattenNavigationGroup(selected).items[0] : null;
-  const selectedContext =
-    selected && first?.to && ["Financeiro", "Académico"].includes(selected.title)
-      ? getNavigationContext(groups, first.to, first.search)
-      : selected
-        ? flattenNavigationGroup(selected)
-        : null;
+  const areas = getNavigationAreas(groups);
+  const selectedContext = areas.find((group) => group.title === area);
   const current = selectedContext ?? (!allAreas ? context : null);
   const needle = normalizeSearch(query);
   const filtered = needle
-    ? groups
+    ? areas
         .map(flattenNavigationGroup)
         .map((group) => ({
           ...group,
@@ -135,7 +130,7 @@ export function MoreHub({
         ) : null}
         {!needle && !current ? (
           <ul className="space-y-1" aria-label="Áreas de trabalho">
-            {groups.map((group) => (
+            {areas.map((group) => (
               <li key={group.title}>
                 <button
                   type="button"
