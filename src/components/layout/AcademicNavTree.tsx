@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Layers } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -42,6 +43,15 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
   const [branchId, setBranchId] = useState<string | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [openClass, setOpenClass] = useState<string | null>(null);
+  const routeClass = useRouterState({
+    select: ({ location }) => {
+      const search = location.search as Record<string, unknown>;
+      return location.pathname === "/pedagogica" && typeof search.turma === "string"
+        ? search.turma
+        : null;
+    },
+  });
+  const appliedRoute = useRef<string | null>(null);
   useEffect(() => {
     setBranchId(null);
     setOpenClass(null);
@@ -117,6 +127,23 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
     }
     return buildAcademicNavTree(assignments);
   }, [isTeacher, teacherQuery.data, workspaceQuery.data]);
+
+  const selectionKey = JSON.stringify([account.schoolId, account.role, selectedYearId, routeClass]);
+  useEffect(() => {
+    if (!canRead || appliedRoute.current === selectionKey) return;
+    if (!routeClass) {
+      appliedRoute.current = selectionKey;
+      return;
+    }
+    const selectedBranch = tree.find((item) =>
+      item.classes.some((turma) => turma.id === routeClass),
+    );
+    // Espera pelos dados autorizados. Um ID na URL não cria um destino no menu.
+    if (!selectedBranch) return;
+    appliedRoute.current = selectionKey;
+    setBranchId(selectedBranch.id);
+    setOpenClass(routeClass);
+  }, [canRead, tree, routeClass, selectionKey]);
 
   if (!canRead || tree.length === 0) return null;
 

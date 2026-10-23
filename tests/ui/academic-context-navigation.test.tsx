@@ -8,6 +8,8 @@ const state = vi.hoisted(() => ({
   schoolId: "school-a",
   primary: false,
   empty: false,
+  ready: true,
+  routeClass: null as string | null,
 }));
 vi.mock("@/features/auth/use-current-account", () => ({
   useCurrentAccount: () => ({ role: state.role, grants: {}, schoolId: state.schoolId }),
@@ -24,18 +26,29 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({}),
   useQuery: () => ({
     data: {
-      classGroups: [
-        {
-          id: "class-a",
-          name: "10.ª A",
-          grade_name: state.primary ? "2.ª Classe" : "10.ª Classe",
-          course_name: "Ciências",
-        },
-      ],
+      classGroups: !state.ready
+        ? []
+        : [
+            {
+              id: "class-a",
+              name: "10.ª A",
+              grade_name: state.primary ? "2.ª Classe" : "10.ª Classe",
+              course_name: "Ciências",
+            },
+            {
+              id: "class-b",
+              name: "11.ª B",
+              grade_name: "11.ª Classe",
+              course_name: "Humanidades",
+            },
+          ],
       subjects: [],
       classSubjects: state.empty
         ? []
-        : [{ class_group_id: "class-a", subject_id: "subject-a", subject_name: "Matemática" }],
+        : [
+            { class_group_id: "class-a", subject_id: "subject-a", subject_name: "Matemática" },
+            { class_group_id: "class-b", subject_id: "subject-b", subject_name: "Português" },
+          ],
       classes: [
         {
           id: "class-a",
@@ -51,6 +64,14 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 vi.mock("@tanstack/react-router", () => ({
   useRouter: () => ({ preloadRoute: vi.fn() }),
+  useRouterState: ({
+    select,
+  }: {
+    select: (state: { location: { pathname: string; search: Record<string, unknown> } }) => unknown;
+  }) =>
+    select({
+      location: { pathname: "/pedagogica", search: { tab: "notas", turma: state.routeClass } },
+    }),
   Link: ({
     to,
     search,
@@ -75,6 +96,8 @@ afterEach(() => {
   state.role = "Administrador";
   state.primary = false;
   state.empty = false;
+  state.ready = true;
+  state.routeClass = null;
   state.schoolId = "school-a";
 });
 describe("navegação académica real", () => {
@@ -90,6 +113,41 @@ describe("navegação académica real", () => {
       pauta: "1",
     });
     expect(view.container.querySelector("ul ul ul")).toBeNull();
+  });
+  it("abre o curso e a turma de um link directo, mesmo com dados carregados depois", () => {
+    state.routeClass = "class-b";
+    state.ready = false;
+    const view = render(<AcademicNavTree />);
+    expect(screen.queryByRole("combobox")).toBeNull();
+    state.ready = true;
+    view.rerender(<AcademicNavTree />);
+    expect(screen.getByRole("combobox", { name: "Curso ou nível" }).textContent).toContain(
+      "Humanidades",
+    );
+    expect(screen.getByRole("link", { name: "Português" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Matemática" })).toBeNull();
+  });
+  it("não reabre a turma recolhida num rerender dos dados", () => {
+    state.routeClass = "class-b";
+    const view = render(<AcademicNavTree />);
+    fireEvent.click(screen.getByRole("button", { name: "11.ª B" }));
+    view.rerender(<AcademicNavTree />);
+    expect(screen.queryByRole("link", { name: "Português" })).toBeNull();
+  });
+  it("acompanha a navegação para outra turma", () => {
+    state.routeClass = "class-a";
+    const view = render(<AcademicNavTree />);
+    expect(screen.getByRole("link", { name: "Matemática" })).toBeTruthy();
+    state.routeClass = "class-b";
+    view.rerender(<AcademicNavTree />);
+    expect(screen.getByRole("link", { name: "Português" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Matemática" })).toBeNull();
+  });
+  it("não cria destinos a partir de um ID desconhecido na URL", () => {
+    state.routeClass = "class-unknown";
+    render(<AcademicNavTree />);
+    expect(screen.queryByRole("link", { name: "Português" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Matemática" })).toBeNull();
   });
   it("mantém a turma secundária sem disciplinas como estado vazio", () => {
     state.empty = true;

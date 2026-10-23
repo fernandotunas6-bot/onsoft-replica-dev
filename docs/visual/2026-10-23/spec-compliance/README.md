@@ -133,3 +133,13 @@ O ambiente local foi interrompido durante a verificação TypeScript global e re
 ![Área académica do aluno](portal-aluno-390.png)
 
 ![Áreas do professor no desktop](portal-professor-1440.png)
+
+## Contexto académico em links directos
+
+Ao abrir `/pedagogica` com uma turma existente no workspace autorizado, a árvore selecciona o curso correspondente e revela essa turma, incluindo quando os dados chegam depois da página. Navegar para outra turma actualiza o contexto. Uma actualização dos dados não volta a abrir a turma que foi recolhida manualmente; o utilizador também pode consultar outro curso sem ser continuamente redireccionado pelo menu. A identidade da selecção inclui escola, perfil e ano lectivo. Um ID desconhecido na URL não cria atalhos nem altera as autorizações.
+
+Validação: 45 testes em três ficheiros passaram, incluindo carregamento diferido, mudança de turma, recolha manual e ID desconhecido; ESLint dirigido sem erros. Dois ensaios representativos a 1024/1440 px confirmaram o curso Humanidades e a turma 11.ª B no link directo, preservação da recolha manual ao alternar a sidebar e navegação para Português com turma/disciplina/pauta conservadas. Dados em [deep-link-browser-results.json](deep-link-browser-results.json). Conta, router e rede continuam controlados pelo ensaio.
+
+O CI anterior `1cb195342` passou, incluindo TypeScript global, testes e build. O resultado global deste novo commit ainda depende do seu CI. Não houve publicação em produção nem nova validação autenticada.
+
+![Contexto da turma de um link directo](deep-link-academic-1440.png)
