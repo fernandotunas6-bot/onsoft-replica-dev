@@ -76,7 +76,7 @@ export function SequentialSheetModal({
       visualPanel={
         current && visualPanel ? visualPanel({ stepId: current.id, stepIndex }) : undefined
       }
-      size={visualPanel ? "2xl" : "xl"}
+      size={visualPanel ? "2xl" : "lg"}
     >
       <div className="min-w-0 space-y-4">
         {current?.description && (
@@ -84,7 +84,7 @@ export function SequentialSheetModal({
             {current.description}
           </p>
         )}
-        <div className="min-w-0 rounded-2xl border border-border bg-card p-1">
+        <div className="min-w-0">
           {current ? children({ stepId: current.id, stepIndex }) : null}
         </div>
       </div>

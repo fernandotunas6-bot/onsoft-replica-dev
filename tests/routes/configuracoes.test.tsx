@@ -1,26 +1,33 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, waitFor } from "@testing-library/react";
+import { cleanup, waitFor, screen } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { renderRoute, routeComponentOf, setRouteSearch, resetRouteLocation } from "./_harness";
 
-/**
- * Testes de montagem e render de `/configuracoes`.
- *
- * A rota é um redireccionador puro: nunca mostra conteúdo próprio, só um
- * spinner enquanto o `useEffect` decide para onde ir. Como o mock partilhado
- * de `useNavigate` é um no-op fixo (`_harness.tsx`), este ficheiro sobrepõe
- * localmente o mock do router para poder espiar a chamada de navegação —
- * é o único sítio, até agora, onde o destino do redireccionamento é o
- * próprio contrato a validar.
- *
- * Valida:
- * 1. `?painel=documentos` e `?painel=modelos` (case-insensitive, com
- *    espaços) redireccionam para `/documentos#modelos`, não para `/`.
- * 2. Qualquer outro valor de `painel` guarda o pedido em sessionStorage
- *    (`requestSettingsOpen`) e volta para `/`.
- * 3. Sem `painel`, guarda uma string vazia e volta para `/` na mesma.
- */
+/** Page is the default; the school can explicitly retain the modal presentation. */
+const schoolState = vi.hoisted(() => ({
+  preferences: {} as Record<string, boolean>,
+  loading: false,
+}));
+vi.mock("@/features/auth/use-school-settings", () => ({
+  useSchoolSettings: () => ({
+    school: { id: "school-a", preferences: schoolState.preferences },
+    isLoading: schoolState.loading,
+  }),
+}));
+vi.mock("@/components/modals/SettingsCenter", () => ({
+  SettingsCenter: ({
+    presentation,
+    initialPanelId,
+  }: {
+    presentation: string;
+    initialPanelId?: string;
+  }) => (
+    <h1>
+      Definições {presentation} {initialPanelId}
+    </h1>
+  ),
+}));
 
 const navigateMock = vi.fn();
 
@@ -40,6 +47,8 @@ async function loadPage(): Promise<ComponentType> {
 
 afterEach(() => {
   cleanup();
+  schoolState.preferences = {};
+  schoolState.loading = false;
   vi.clearAllMocks();
   resetRouteLocation();
   sessionStorage.clear();
@@ -77,19 +86,19 @@ describe("/configuracoes", () => {
     });
   });
 
-  it("guarda o painel pedido e volta para / para qualquer outro valor", async () => {
+  it("mantém as definições na página e conserva o painel pedido por omissão", async () => {
     setRouteSearch({ painel: "financeiro" });
 
     const Page = await loadPage();
     renderRoute(Page);
 
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith({ to: "/", replace: true });
-    });
-    expect(sessionStorage.getItem("siga:open-settings")).toBe("financeiro");
+    expect(await screen.findByRole("heading", { name: "Definições page financeiro" })).toBeTruthy();
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("siga:open-settings")).toBeNull();
   });
 
-  it("sem painel, guarda pedido vazio e volta para /", async () => {
+  it("por opção da escola, guarda pedido vazio e abre o modal a partir de /", async () => {
+    schoolState.preferences = { settingsModal: true };
     setRouteSearch({});
 
     const Page = await loadPage();
@@ -99,5 +108,13 @@ describe("/configuracoes", () => {
       expect(navigateMock).toHaveBeenCalledWith({ to: "/", replace: true });
     });
     expect(sessionStorage.getItem("siga:open-settings")).toBe("");
+  });
+  it("não redirecciona enquanto as preferências da escola carregam", async () => {
+    schoolState.preferences = { settingsModal: true };
+    schoolState.loading = true;
+    const Page = await loadPage();
+    renderRoute(Page);
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("siga:open-settings")).toBeNull();
   });
 });

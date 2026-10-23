@@ -2,7 +2,7 @@ import {
   PersonalNotificationsList,
   usePersonalNotifications,
 } from "@/features/notifications/PersonalNotificationsList";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 
@@ -75,7 +75,7 @@ import {
 } from "@/components/mobile";
 import type { SchoolAlert } from "@/features/dashboard/alerts";
 
-const COLLAPSE_KEY = "siga:sidebar-collapsed";
+import { workspacePresentation } from "@/lib/workspace-presentation";
 const SettingsCenter = lazy(() =>
   import("@/components/modals/SettingsCenter").then(({ SettingsCenter }) => ({
     default: SettingsCenter,
@@ -130,18 +130,28 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
-  const [pinnedCollapsed, setPinnedCollapsed] = useState(false);
-  const [hoverOpen, setHoverOpen] = useState(false);
-  const hoverLeaveTimer = useRef<number>(0);
+  const presentation = workspacePresentation(school?.preferences);
+  const [sidebarOverride, setSidebarOverride] = useState<{
+    schoolId: string;
+    collapsed: boolean;
+  } | null>(null);
   const { isDark, toggleDark } = useAppearance();
   const { favorited, toggleFavorite, current: navCurrent } = useNavigationMemory();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPanelId, setSettingsPanelId] = useState<string | undefined>(undefined);
-  const openSettings = (panelId?: string) => {
-    setSettingsPanelId(panelId);
-    setSettingsOpen(true);
-  };
+  const openSettings = useCallback(
+    (panelId?: string) => {
+      if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
+      if (!presentation.settingsModal) {
+        void router.navigate({ to: "/configuracoes", search: { painel: panelId } });
+        return;
+      }
+      setSettingsPanelId(panelId);
+      setSettingsOpen(true);
+    },
+    [currentUser.role, currentUser.grants, presentation.settingsModal, router],
+  );
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<"politicas" | "termos" | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -154,37 +164,25 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const [contextOpen, setContextOpen] = useState(false);
 
   useEffect(() => {
-    // O sidebar deve sempre iniciar expandido
-    const stored = localStorage.getItem(COLLAPSE_KEY);
-    if (stored === "1") {
-      setPinnedCollapsed(true);
-    } else {
-      setPinnedCollapsed(false);
-    }
-    return () => window.clearTimeout(hoverLeaveTimer.current);
-  }, []);
-
-  useEffect(() => {
     const panelId = consumeSettingsOpen();
     if (
       panelId !== undefined &&
       canAccessPath("/configuracoes", currentUser.role, currentUser.grants)
     ) {
-      setSettingsPanelId(panelId);
-      setSettingsOpen(true);
+      openSettings(panelId);
     }
-  }, [currentUser.role, currentUser.grants]);
+  }, [currentUser.role, currentUser.grants, openSettings, school?.id]);
 
   useEffect(() => {
     const onOpenSettings = (event: Event) => {
       if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
       const panelId = (event as CustomEvent<{ panelId?: string }>).detail?.panelId;
-      setSettingsPanelId(panelId);
-      setSettingsOpen(true);
+      openSettings(panelId);
+      event.preventDefault();
     };
     window.addEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
     return () => window.removeEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
-  }, [currentUser.role, currentUser.grants]);
+  }, [currentUser.role, currentUser.grants, openSettings, school?.id]);
 
   useEffect(() => {
     // As folhas mobile têm de fechar na navegação: um toque no hub "Mais"
@@ -223,13 +221,14 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     });
   }, [router, currentUser.role, currentUser.grants]);
 
-  const collapsed = pinnedCollapsed && !hoverOpen;
+  const collapsed =
+    sidebarOverride && sidebarOverride.schoolId === school?.id
+      ? sidebarOverride.collapsed
+      : !presentation.expandedSidebar;
 
-  const toggleCollapsed = () =>
-    setPinnedCollapsed((c) => {
-      localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
-      return !c;
-    });
+  const toggleCollapsed = () => {
+    if (school?.id) setSidebarOverride({ schoolId: school.id, collapsed: !collapsed });
+  };
 
   const selectYear = (yearId: string) => {
     if (yearId === "fallback") return;
@@ -263,16 +262,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           Saltar para o conteúdo principal
         </a>
 
-        <div
-          className="sticky top-0 z-40 hidden h-screen lg:block"
-          onMouseEnter={() => {
-            window.clearTimeout(hoverLeaveTimer.current);
-            setHoverOpen(true);
-          }}
-          onMouseLeave={() => {
-            hoverLeaveTimer.current = window.setTimeout(() => setHoverOpen(false), 220);
-          }}
-        >
+        <div className="sticky top-0 z-40 hidden h-screen lg:block">
           <AppSidebar
             collapsed={collapsed}
             className="h-full"
@@ -604,7 +594,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </DialogContent>
             </Dialog>
 
-            {settingsOpen && canAccessPath("/configuracoes", currentUser.role) ? (
+            {presentation.settingsModal &&
+            settingsOpen &&
+            canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
               <Suspense fallback={null}>
                 <SettingsCenter
                   open={settingsOpen}

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { cn } from "@/lib/utils";
 
 /**
- * Modal premium reutilizável: cabeçalho com gradiente, ícone em destaque,
+ * Modal institucional reutilizável: cabeçalho discreto, ícone contextual,
  * corpo com scroll e barra de acções fixa.
  */
 export function PremiumModal({
@@ -42,21 +42,20 @@ export function PremiumModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col overflow-hidden border-border/70 p-0 shadow-2xl sm:rounded-2xl",
+          "flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col overflow-hidden border-border/70 p-0 shadow-xl sm:rounded-2xl",
           width,
         )}
       >
-        <div className="relative shrink-0 overflow-hidden border-b border-border/70 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent bg-background/75 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
-          <span className="pointer-events-none absolute -right-10 -top-16 size-40 rounded-full bg-primary/15 blur-3xl" />
+        <div className="relative shrink-0 overflow-hidden border-b border-border/70 bg-card px-4 py-4 sm:px-6 sm:py-5">
           <div className="relative flex min-w-0 items-start gap-3 sm:gap-4">
             {icon ? (
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground">
                 {icon}
               </span>
             ) : null}
             <div className="min-w-0">
               {eyebrow ? <p className="text-[11px] font-semibold text-primary">{eyebrow}</p> : null}
-              <DialogTitle className="break-words font-display text-lg font-extrabold leading-snug tracking-tight sm:text-xl">
+              <DialogTitle className="break-words font-display text-lg font-semibold leading-snug tracking-tight sm:text-xl">
                 {title}
               </DialogTitle>
               {description ? (
