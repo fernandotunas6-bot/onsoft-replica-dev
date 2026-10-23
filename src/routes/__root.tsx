@@ -29,6 +29,15 @@ import { readSessionHint } from "@/features/auth/session-hint";
 
 // A autorização continua a proteger o Outlet autenticado; não descarregar
 // o código do perfil e do onboarding no ecrã público de entrada.
+// A fila de envio só precisa de sincronização com a sessão autenticada.
+// Quando o chunk monta, a rotina já verifica as operações pendentes.
+// Não alterar ou descartar dados da fila durante o carregamento.
+const OfflineOutboxSync = lazy(() =>
+  import("@/components/layout/OfflineOutboxSync").then((module) => ({
+    default: module.OfflineOutboxSync,
+  })),
+);
+
 const RouteAccessGate = lazy(() =>
   import("@/components/auth/RouteAccessGate").then((module) => ({
     default: module.RouteAccessGate,
@@ -137,7 +146,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 import { DesktopIntegration } from "@/components/layout/DesktopIntegration";
 import { DesktopVaultGate } from "@/components/layout/DesktopVaultGate";
-import { OfflineOutboxSync } from "@/components/layout/OfflineOutboxSync";
+
 import { areaToneForPath } from "@/lib/area-tone";
 
 function ClientOnlyToaster() {
@@ -220,7 +229,9 @@ function RootComponent() {
               )
             ) : (
               <AuthGate sessionHint={sessionHint}>
-                <OfflineOutboxSync />
+                <Suspense fallback={null}>
+                  <OfflineOutboxSync />
+                </Suspense>
                 <TenantAccessBarrier allowSchoolAdmin>
                   <SchoolYearProvider>
                     <SchoolBrandAppearanceSync />
