@@ -27,6 +27,8 @@ Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `
 que existe, sem acrescentar/remover funcionalidades ou elementos, sem aumentar a
 interface nem alterar a identidade. Medir antes/depois e preservar segurança e dados.
 
+**Visual mestre (sidebar/modais):** [docs/design/SIGA_VISUAL_MASTER_2026-10-23.md](docs/design/SIGA_VISUAL_MASTER_2026-10-23.md) — concavidade à direita e margem esquerda recta; catálogo autorizado, contexto por papel/escola e diálogos simples, sem eliminar campos nem fluxos. Evitar conflitos com a PR #259.
+
 **Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
 Auto-construção:
@@ -46,7 +48,6 @@ Em resumo: confirmar colunas em `supabase/PRODUCTION_SNAPSHOT.json`; triggers co
 por isso nunca serve para escrita nem para dados sensíveis; tabelas sensíveis só com o
 servidor (`FORCE ROW LEVEL SECURITY` + `REVOKE ALL … FROM PUBLIC, anon, authenticated`).
 
-
 ## Padrão visual obrigatório — SIGA Plus 2026
 
 Antes de qualquer alteração de UI, navegação ou performance, ler
@@ -56,5 +57,11 @@ aditamentos: menu compacto e conteúdo em página por omissão; modais pequenos
 apenas quando necessários; preferência alternativa por escola. Este contrato
 substitui orientações visuais antigas incompatíveis sobre modais grandes e
 expansão automática. Preservar identidade, funcionalidades, RBAC/MFA/RLS e dados.
+
+A síntese operacional e integração do trabalho paralelo encontra-se em
+[docs/design/SIGA_VISUAL_MASTER_2026-10-23.md](docs/design/SIGA_VISUAL_MASTER_2026-10-23.md).
+Os dois documentos são complementares: o primeiro é o contrato de execução,
+e o segundo reúne as orientações e evidências recuperadas do outro agente.
+Não sobrescrever as alterações já publicadas das PRs #252, #259 ou #270.
 Actualizar [a matriz de execução](docs/design/VISUAL_MASTER_STATUS.md) com
 evidência por fase e módulo; não omitir requisitos nem declarar validação sem teste.
