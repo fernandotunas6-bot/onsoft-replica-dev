@@ -7,7 +7,7 @@ const source = readFileSync(resolve(process.cwd(), "src/routes/index.tsx"), "utf
 describe("carregamento do painel após autenticação", () => {
   it("não importa a estrutura administrativa no bloco inicial de login", () => {
     expect(source).not.toContain('import { AppShell } from "@/components/layout/AppShell"');
-    expect(source).toContain('const AppShell = lazy(() =>');
+    expect(source).toContain("const AppShell = lazy(() =>");
     expect(source).toContain('import("@/components/layout/AppShell")');
   });
 
