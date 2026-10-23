@@ -22,7 +22,7 @@ class MyClassesScreen extends ConsumerWidget {
       ),
       body: classesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load classes', style: TextStyle(color: AppColors.error))),
+        error: (e, _) => Center(child: Text('Não foi possível carregar as turmas', style: TextStyle(color: AppColors.error))),
         data: (classes) {
           if (classes.isEmpty) {
             return const Center(child: Text('No classes assigned.', style: TextStyle(color: AppColors.textSecondary)));

@@ -16,7 +16,7 @@ class ProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'My Profile',
+          'O meu perfil',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -66,7 +66,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    session?.userName ?? 'User Name',
+                    session?.userName ?? 'Utilizador',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
@@ -100,32 +100,32 @@ class ProfileScreen extends ConsumerWidget {
             // Settings List
             _buildSettingItem(
               icon: LucideIcons.calendar,
-              title: 'Academic Calendar',
+              title: 'Calendário académico',
               onTap: () => context.push('/academic-calendar'),
             ),
             _buildSettingItem(
               icon: LucideIcons.user,
-              title: 'Personal Information',
+              title: 'Dados pessoais',
               onTap: () => context.push('/personal-info'),
             ),
             _buildSettingItem(
               icon: LucideIcons.lock,
-              title: 'Security & Password',
+              title: 'Segurança e palavra-passe',
               onTap: () => context.push('/security-password'),
             ),
             _buildSettingItem(
               icon: LucideIcons.bell,
-              title: 'Notifications',
+              title: 'Notificações',
               onTap: () => context.push('/notifications-settings'),
             ),
             _buildSettingItem(
               icon: LucideIcons.shieldCheck,
-              title: 'Privacy Policy',
+              title: 'Política de privacidade',
               onTap: () => context.push('/privacy-policy'),
             ),
             _buildSettingItem(
               icon: LucideIcons.helpCircle,
-              title: 'Help & Support',
+              title: 'Ajuda e apoio',
               onTap: () => context.push('/help-support'),
             ),
 
@@ -150,7 +150,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               title: const Text(
-                'Sign Out',
+                'Terminar sessão',
                 style: TextStyle(
                   color: AppColors.error,
                   fontWeight: FontWeight.w600,

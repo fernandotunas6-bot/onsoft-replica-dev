@@ -474,7 +474,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                         content: Text(
                                           applyToCurrentStudents
                                               ? 'Propina guardada e aplicada.'
-                                              : 'Fee structure saved.',
+                                              : 'Propina guardada.',
                                         ),
                                         backgroundColor: Colors.green,
                                       ),
@@ -503,7 +503,7 @@ class _ClassSetupScreenState extends ConsumerState<ClassSetupScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Save Fee Structure'),
+                            : const Text('Guardar propina'),
                       ),
                     ),
                   ],
