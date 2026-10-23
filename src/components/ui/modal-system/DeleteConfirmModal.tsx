@@ -1,5 +1,6 @@
 import * as React from "react";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { AlertTriangle } from "lucide-react";
 import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
@@ -23,6 +24,7 @@ export interface DeleteConfirmModalProps {
   cannotDeleteReason?: string;
 }
 
+/** Confirmação breve. A eliminação só pode ser executada uma vez por submissão. */
 export function DeleteConfirmModal({
   open,
   onOpenChange,
@@ -35,58 +37,86 @@ export function DeleteConfirmModal({
   isDeleting = false,
   cannotDeleteReason,
 }: DeleteConfirmModalProps) {
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cannotDeleteReason) {
+  const submitting = React.useRef(false);
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const busy = isDeleting || pending;
+
+  const requestOpenChange = (next: boolean) => {
+    if (!next && (submitting.current || busy)) return;
+    if (next) setError(null);
+    onOpenChange(next);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!open || busy || submitting.current || cannotDeleteReason) return;
+
+    submitting.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      // Quem chamou continua responsável por actualizar/fechar depois do êxito.
       await onConfirm();
+    } catch {
+      // Não imprimir dados de erros de backend ou outras escolas neste modal.
+      setError("Não foi possível eliminar. Tente novamente.");
+    } finally {
+      submitting.current = false;
+      setPending(false);
     }
   };
 
   return (
-    <ModalShell open={open} onOpenChange={onOpenChange} size="sm">
+    <ModalShell open={open} onOpenChange={requestOpenChange} preventOutsideClose size="xs">
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <ModalHeader
-          icon={Trash2}
-          title={title}
-          subtitle={`Eliminar ${itemType}`}
-          onClose={() => onOpenChange(false)}
-        />
+        <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+        <DialogPrimitive.Description className="sr-only">
+          Confirme a eliminação de {itemName}.
+        </DialogPrimitive.Description>
+        <ModalHeader title={title} onClose={() => requestOpenChange(false)} />
         <ModalContent className="space-y-3">
-          <p className="text-xs text-foreground">
-            Tem a certeza que deseja eliminar <strong>{itemName}</strong>?
+          <p className="break-words text-sm leading-relaxed text-foreground">
+            Eliminar {itemType} <strong className="[overflow-wrap:anywhere]">{itemName}</strong>?
           </p>
 
-          {warningMessage && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-relaxed">{warningMessage}</p>
+          {warningMessage ? (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-foreground">
+              <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-600" />
+              <p className="text-sm leading-relaxed">{warningMessage}</p>
             </div>
-          )}
+          ) : null}
 
-          {impacts.length > 0 && (
-            <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
-              <p className="font-medium text-foreground">Impacto associado a esta operação:</p>
-              <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground text-[11px]">
+          {impacts.length > 0 ? (
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Registos afectados</p>
+              <ul className="list-disc space-y-1 pl-5">
                 {impacts.map((item, idx) => (
                   <li key={idx}>
-                    <strong>{item.count}</strong> {item.label}
+                    {item.count} {item.label}
                   </li>
                 ))}
               </ul>
             </div>
-          )}
+          ) : null}
 
-          {cannotDeleteReason && (
-            <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-rose-600 text-xs font-medium">
-              ⚠️ {cannotDeleteReason}
-            </div>
-          )}
+          {cannotDeleteReason ? (
+            <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              {cannotDeleteReason}
+            </p>
+          ) : null}
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
         </ModalContent>
         <ModalFooter
-          onCancel={() => onOpenChange(false)}
+          onCancel={() => requestOpenChange(false)}
+          onSubmit={handleSubmit}
           submitLabel="Eliminar definitivamente"
           submitVariant="destructive"
-          isSubmitting={isDeleting}
+          isSubmitting={busy}
           disabled={Boolean(cannotDeleteReason)}
         />
       </form>

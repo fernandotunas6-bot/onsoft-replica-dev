@@ -14,6 +14,7 @@ import { Route as AcessosRouteImport } from './routes/acessos'
 import { Route as AlterarSenhaRouteImport } from './routes/alterar-senha'
 import { Route as AlumniRouteImport } from './routes/alumni'
 import { Route as ArquivosRouteImport } from './routes/arquivos'
+import { Route as AulasVirtuaisRouteImport } from './routes/aulas-virtuais'
 import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as CatracasRouteImport } from './routes/catracas'
 import { Route as ComunicacoesRouteImport } from './routes/comunicacoes'
@@ -157,6 +158,11 @@ const AlumniRoute = AlumniRouteImport.update({
 const ArquivosRoute = ArquivosRouteImport.update({
   id: '/arquivos',
   path: '/arquivos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AulasVirtuaisRoute = AulasVirtuaisRouteImport.update({
+  id: '/aulas-virtuais',
+  path: '/aulas-virtuais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CalendarioRoute = CalendarioRouteImport.update({
@@ -788,6 +794,7 @@ export interface FileRoutesByFullPath {
   '/alterar-senha': typeof AlterarSenhaRoute
   '/alumni': typeof AlumniRouteWithChildren
   '/arquivos': typeof ArquivosRoute
+  '/aulas-virtuais': typeof AulasVirtuaisRoute
   '/calendario': typeof CalendarioRouteWithChildren
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
@@ -914,6 +921,7 @@ export interface FileRoutesByTo {
   '/alterar-senha': typeof AlterarSenhaRoute
   '/alumni': typeof AlumniRouteWithChildren
   '/arquivos': typeof ArquivosRoute
+  '/aulas-virtuais': typeof AulasVirtuaisRoute
   '/calendario': typeof CalendarioRouteWithChildren
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
@@ -1041,6 +1049,7 @@ export interface FileRoutesById {
   '/alterar-senha': typeof AlterarSenhaRoute
   '/alumni': typeof AlumniRouteWithChildren
   '/arquivos': typeof ArquivosRoute
+  '/aulas-virtuais': typeof AulasVirtuaisRoute
   '/calendario': typeof CalendarioRouteWithChildren
   '/catracas': typeof CatracasRoute
   '/comunicacoes': typeof ComunicacoesRoute
@@ -1169,6 +1178,7 @@ export interface FileRouteTypes {
     | '/alterar-senha'
     | '/alumni'
     | '/arquivos'
+    | '/aulas-virtuais'
     | '/calendario'
     | '/catracas'
     | '/comunicacoes'
@@ -1295,6 +1305,7 @@ export interface FileRouteTypes {
     | '/alterar-senha'
     | '/alumni'
     | '/arquivos'
+    | '/aulas-virtuais'
     | '/calendario'
     | '/catracas'
     | '/comunicacoes'
@@ -1421,6 +1432,7 @@ export interface FileRouteTypes {
     | '/alterar-senha'
     | '/alumni'
     | '/arquivos'
+    | '/aulas-virtuais'
     | '/calendario'
     | '/catracas'
     | '/comunicacoes'
@@ -1548,6 +1560,7 @@ export interface RootRouteChildren {
   AlterarSenhaRoute: typeof AlterarSenhaRoute
   AlumniRoute: typeof AlumniRouteWithChildren
   ArquivosRoute: typeof ArquivosRoute
+  AulasVirtuaisRoute: typeof AulasVirtuaisRoute
   CalendarioRoute: typeof CalendarioRouteWithChildren
   CatracasRoute: typeof CatracasRoute
   ComunicacoesRoute: typeof ComunicacoesRoute
@@ -1666,6 +1679,13 @@ declare module '@tanstack/react-router' {
       path: '/arquivos'
       fullPath: '/arquivos'
       preLoaderRoute: typeof ArquivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aulas-virtuais': {
+      id: '/aulas-virtuais'
+      path: '/aulas-virtuais'
+      fullPath: '/aulas-virtuais'
+      preLoaderRoute: typeof AulasVirtuaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calendario': {
@@ -2718,6 +2738,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlterarSenhaRoute: AlterarSenhaRoute,
   AlumniRoute: AlumniRouteWithChildren,
   ArquivosRoute: ArquivosRoute,
+  AulasVirtuaisRoute: AulasVirtuaisRoute,
   CalendarioRoute: CalendarioRouteWithChildren,
   CatracasRoute: CatracasRoute,
   ComunicacoesRoute: ComunicacoesRoute,

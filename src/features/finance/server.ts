@@ -31,6 +31,8 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal } from "./invoice-settlement";
+import { discountAmountFor, effectiveDiscountPercent, scholarshipPercentFor } from "./scholarships";
+import { scholarshipsOfStudent } from "./student-scholarship-server";
 import { lateFeeFor, paidOnIso, todayIso } from "./late-fee";
 import {
   feeItemMatcher,
@@ -1228,10 +1230,6 @@ export const issueInvoice = createServerFn({ method: "POST" })
         "Indique o valor: esta categoria ainda não tem preço no plano de propinas (Definições › Cobrança).",
       );
     }
-    const discountAmount =
-      contractDiscountPercent > 0
-        ? Math.round(((amount * contractDiscountPercent) / 100) * 100) / 100
-        : 0;
 
     const competenceMonth = invoiceCompetenceMonth({
       kind: feeItem.kind,
@@ -1265,6 +1263,18 @@ export const issueInvoice = createServerFn({ method: "POST" })
         );
       }
     }
+
+    // Desconto: o maior entre o do contrato (irmãos) e o da bolsa em vigor na data de
+    // emissão (scholarships.ts) — não se somam.
+    const scholarshipPercent = scholarshipPercentFor(
+      await scholarshipsOfStudent(db, membership.schoolId, data.studentId),
+      kind,
+      data.issuedOn ?? schoolTodayIso(),
+    );
+    const discountAmount = discountAmountFor(
+      amount,
+      effectiveDiscountPercent(contractDiscountPercent, scholarshipPercent),
+    );
 
     // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
     // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.

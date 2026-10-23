@@ -29,6 +29,8 @@ import {
   updateEnrollmentFormInputSchema,
 } from "./schemas";
 import { schoolTodayIso } from "@/lib/school-date";
+import { addStudentToWaitlist } from "./waitlist";
+import { isClassFullError } from "./waitlist-rules";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
 import { publishedAdmissionFee, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
@@ -657,6 +659,33 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           class_group_id: classGroup.id,
           enrolled_on: schoolTodayIso(),
         });
+        if (enrollError && isClassFullError(enrollError)) {
+          // Turma cheia: o aluno fica criado e entra na lista de espera desta turma,
+          // em vez de um erro — a secretaria coloca-o quando houver vaga.
+          const waitlist = await addStudentToWaitlist(db, {
+            schoolId: membership.schoolId,
+            classGroupId: classGroup.id,
+            studentId,
+            userId: context.userId,
+            note: "Candidatura aceite com a turma cheia",
+          });
+          if (waitlist) {
+            await recordStudentStatusHistory(db, {
+              schoolId: membership.schoolId,
+              studentId,
+              previousStatus: null,
+              newStatus: "applicant",
+              reason: `Candidatura aceite; turma cheia, na lista de espera (posição ${waitlist.position})`,
+              changedBy: context.userId,
+            });
+            return {
+              id: application.id,
+              status: "accepted",
+              studentId,
+              waitlistPosition: waitlist.position,
+            };
+          }
+        }
         if (enrollError) {
           await recordStudentStatusHistory(db, {
             schoolId: membership.schoolId,

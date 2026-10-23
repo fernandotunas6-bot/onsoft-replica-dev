@@ -40,6 +40,8 @@ const MIGRATIONS = {
     "siga_exam_registrations",
   ],
   "supabase/migrations/20261004140000_student_special_statuses.sql": ["student_special_statuses"],
+  "supabase/migrations/20261005160000_student_scholarships.sql": ["student_scholarships"],
+  "supabase/migrations/20261005170000_class_group_waitlist.sql": ["class_group_waitlist"],
   // Contacto do site (nome e e-mail de quem escreve) e restantes tabelas do site público.
   "supabase/migrations/20261007100000_web_site_content.sql": [
     "web_contact_messages",

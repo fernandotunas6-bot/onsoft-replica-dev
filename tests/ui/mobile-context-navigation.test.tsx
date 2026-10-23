@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentPropsWithRef } from "react";
 import { MoreHub } from "@/components/mobile/MoreHub";
 const state = vi.hoisted(() => ({
@@ -8,6 +8,10 @@ const state = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
   role: "Administrador",
   schoolId: "school-a",
+  teachingLevels: [] as string[],
+}));
+vi.mock("@/features/auth/use-school-settings", () => ({
+  useSchoolSettings: () => ({ school: { pedagogy: { teachingLevels: state.teachingLevels } } }),
 }));
 vi.mock("@/features/auth/use-current-account", () => ({
   useCurrentAccount: () => ({
@@ -46,8 +50,84 @@ afterEach(() => {
   state.role = "Administrador";
   state.schoolId = "school-a";
   state.search = {};
+  state.teachingLevels = [];
 });
 describe("menu mobile contextual", () => {
+  it.each([
+    { levels: [], label: "Matricular Aluno" },
+    { levels: ["superior"], label: "Matricular Estudante" },
+    { levels: ["superior", "primario"], label: "Matricular Aluno" },
+  ])("usa o vocabulário institucional com níveis $levels", ({ levels, label }) => {
+    state.teachingLevels = levels;
+    state.pathname = "/alunos";
+    const close = vi.fn();
+    render(<MoreHub open onOpenChange={close} />);
+    const destination = screen.getByRole("link", { name: label });
+    expect(destination.getAttribute("href")).toBe("/alunos");
+    expect(JSON.parse(destination.getAttribute("data-search")!)).toEqual({ action: "matricular" });
+    fireEvent.click(destination);
+    expect(close).toHaveBeenCalledWith(false);
+  });
+  it("pesquisa estudantes no Superior e repõe os rótulos ao mudar de escola", async () => {
+    state.teachingLevels = ["superior"];
+    const view = render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "estudante" } });
+    expect(await screen.findByRole("link", { name: "Matricular Estudante" })).toBeTruthy();
+    state.schoolId = "school-b";
+    state.teachingLevels = ["primario"];
+    state.pathname = "/alunos";
+    view.rerender(<MoreHub open onOpenChange={vi.fn()} />);
+    expect(screen.getByRole("link", { name: "Matricular Aluno" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Matricular Estudante" })).toBeNull();
+  });
+  it("mantém as áreas autorizadas no portal do estudante do Superior", () => {
+    state.teachingLevels = ["superior"];
+    state.role = "Aluno";
+    state.pathname = "/pedagogica";
+    state.search = { tab: "notas" };
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    expect(
+      screen.getByRole("link", { name: "Avaliações e Notas" }).getAttribute("aria-current"),
+    ).toBe("page");
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: "Académico" }).getAttribute("aria-current")).toBe(
+      "true",
+    );
+    expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Matricular Estudante" })).toBeNull();
+  });
+  it.each(["escola", "rota"])("descarta a pesquisa pendente quando muda a %s", async (change) => {
+    vi.useFakeTimers();
+    try {
+      const view = render(<MoreHub open onOpenChange={vi.fn()} />);
+      fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Matricular" } });
+      if (change === "escola") state.schoolId = "school-b";
+      else state.pathname = "/tesouraria";
+      view.rerender(<MoreHub open onOpenChange={vi.fn()} />);
+      await act(async () => vi.advanceTimersByTime(100));
+      expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+      expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
+      expect(screen.getByRole("link", { name: "Faturas e Recibos" })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it.each([
+    ["/alunos/aluno-teste", {}, "Secretaria", "Financeiro"],
+    ["/alunos", { action: "matricular" }, "Secretaria", "Financeiro"],
+    ["/faturas/fatura-teste", {}, "Financeiro", "Secretaria"],
+  ])("mantém a área actual no catálogo em %s", (pathname, search, active, inactive) => {
+    state.pathname = pathname;
+    state.search = search;
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: active }).getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("button", { name: inactive }).getAttribute("aria-current")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: inactive }));
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: active }).getAttribute("aria-current")).toBe("true");
+    expect(screen.queryByRole("link", { current: "page" })).toBeNull();
+  });
   it("mostra o módulo activo, permite mudar de área e fecha ao escolher um destino", () => {
     const close = vi.fn();
     render(<MoreHub open onOpenChange={close} />);
@@ -111,7 +191,9 @@ describe("menu mobile contextual", () => {
     const close = vi.fn();
     render(<MoreHub open onOpenChange={close} />);
     fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
-    expect(screen.getByRole("button", { name: "Académico" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Académico" }).getAttribute("aria-current")).toBe(
+      "true",
+    );
     expect(screen.queryByRole("button", { name: "Portal do Aluno" })).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Calendário Lectivo" }));
     expect(close).toHaveBeenCalledWith(false);
