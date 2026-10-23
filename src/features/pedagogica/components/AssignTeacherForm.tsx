@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { ModalContent, ModalFooter, ModalHeader, ModalShell } from "@/components/ui/modal-system";
-import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 import { assignClassSubjectTeacher } from "@/features/academic/server";
 import {
   subjectIdsForTeacherAssignment,
@@ -43,6 +42,7 @@ export function AssignTeacherForm({
   const defaultTurmaId = resolveOptionId(turmaOptions, defaultTurma, turmaIds) ?? turmaIds[0] ?? "";
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [classGroupId, setClassGroupId] = useState(defaultTurmaId);
   const [subjectId, setSubjectId] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -81,10 +81,12 @@ export function AssignTeacherForm({
   };
 
   const submit = async () => {
+    if (savingRef.current) return;
     if (!classGroupId || !subjectId || !teacherId) {
       toast.error("Seleccione turma, disciplina e professor.");
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       await assignClassSubjectTeacher({
@@ -99,6 +101,7 @@ export function AssignTeacherForm({
         error instanceof Error ? error.message : "Não foi possível atribuir o professor.",
       );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -120,105 +123,100 @@ export function AssignTeacherForm({
       <ModalShell
         open={open}
         onOpenChange={setOpen}
-        size="2xl"
-        hasUnsavedChanges={Boolean(classGroupId || subjectId || teacherId)}
+        size="md"
+        hasUnsavedChanges={classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId)}
+        preventOutsideClose={saving}
       >
-        <div className="grid min-h-[70vh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]">
-          <aside className="hidden overflow-hidden border-r border-border bg-muted/20 lg:block">
-            <EducationWorkflowVisual
-              scene="teacher"
-              eyebrow="Vínculo docente"
-              title="Turma → disciplina → professor"
-              description="A disciplina é filtrada pela turma escolhida. O vínculo final usa apenas IDs reais do SGA."
-            />
-          </aside>
-          <div className="flex min-h-0 flex-col">
-            <ModalHeader
-              icon={UserPlus}
-              title="Atribuir professor"
-              subtitle="Liga o docente à disciplina correcta dentro da turma."
-              onClose={() => setOpen(false)}
-            />
-            <ModalContent>
-              <div className="grid gap-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="assign-teacher-class" className="text-xs font-semibold">
-                    Turma
-                  </label>
-                  <select
-                    id="assign-teacher-class"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    value={classGroupId}
-                    onChange={(event) => {
-                      setClassGroupId(event.target.value);
-                      setSubjectId("");
-                    }}
-                  >
-                    <option value="">Seleccionar turma</option>
-                    {turmaRows.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="assign-teacher-subject" className="text-xs font-semibold">
-                    Disciplina
-                  </label>
-                  <select
-                    id="assign-teacher-subject"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    value={subjectId}
-                    onChange={(event) => setSubjectId(event.target.value)}
-                    disabled={!classGroupId}
-                  >
-                    <option value="">Seleccionar disciplina</option>
-                    {filteredSubjects.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.label}
-                      </option>
-                    ))}
-                  </select>
-                  {classGroupId &&
-                  classSubjectLinks.length > 0 &&
-                  !classSubjectLinks.some((row) => row.class_group_id === classGroupId) ? (
-                    <p className="text-xs text-muted-foreground">
-                      Esta turma ainda não tem currículo ligado. A primeira atribuição também
-                      associa a disciplina à turma, preservando o fluxo anterior.
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="assign-teacher-person" className="text-xs font-semibold">
-                    Professor
-                  </label>
-                  <select
-                    id="assign-teacher-person"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    value={teacherId}
-                    onChange={(event) => setTeacherId(event.target.value)}
-                  >
-                    <option value="">Seleccionar professor</option>
-                    {teacherRows.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+        <div className="flex min-h-0 flex-col">
+          <ModalHeader
+            icon={UserPlus}
+            title="Atribuir professor"
+            subtitle="Escolha a turma, disciplina e professor."
+            onClose={() => {
+              if (!savingRef.current) setOpen(false);
+            }}
+          />
+          <ModalContent>
+            <div className="grid gap-4">
+              <div className="space-y-1.5">
+                <label htmlFor="assign-teacher-class" className="text-xs font-semibold">
+                  Turma
+                </label>
+                <select
+                  id="assign-teacher-class"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={classGroupId}
+                  onChange={(event) => {
+                    setClassGroupId(event.target.value);
+                    setSubjectId("");
+                  }}
+                >
+                  <option value="">Seleccionar turma</option>
+                  {turmaRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </ModalContent>
-            <ModalFooter
-              onCancel={() => setOpen(false)}
-              onSubmit={() => void submit()}
-              submitLabel="Atribuir professor"
-              isSubmitting={saving}
-              disabled={!classGroupId || !subjectId || !teacherId}
-            />
-          </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="assign-teacher-subject" className="text-xs font-semibold">
+                  Disciplina
+                </label>
+                <select
+                  id="assign-teacher-subject"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={subjectId}
+                  onChange={(event) => setSubjectId(event.target.value)}
+                  disabled={!classGroupId}
+                >
+                  <option value="">Seleccionar disciplina</option>
+                  {filteredSubjects.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.label}
+                    </option>
+                  ))}
+                </select>
+                {classGroupId &&
+                classSubjectLinks.length > 0 &&
+                !classSubjectLinks.some((row) => row.class_group_id === classGroupId) ? (
+                  <p className="text-xs text-muted-foreground">
+                    Esta turma ainda não tem currículo ligado. A primeira atribuição também associa
+                    a disciplina à turma, preservando o fluxo anterior.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="assign-teacher-person" className="text-xs font-semibold">
+                  Professor
+                </label>
+                <select
+                  id="assign-teacher-person"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={teacherId}
+                  onChange={(event) => setTeacherId(event.target.value)}
+                >
+                  <option value="">Seleccionar professor</option>
+                  {teacherRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </ModalContent>
+          <ModalFooter
+            onCancel={() => {
+              if (!savingRef.current) setOpen(false);
+            }}
+            onSubmit={() => void submit()}
+            submitLabel="Atribuir professor"
+            isSubmitting={saving}
+            disabled={!classGroupId || !subjectId || !teacherId}
+          />
         </div>
       </ModalShell>
     </>
