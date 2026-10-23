@@ -104,4 +104,28 @@ describe("menu mobile contextual", () => {
     expect(await screen.findByText(/Nenhum resultado/)).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
   });
+  it("organiza o portal do aluno por módulo e mantém os atalhos gerais directos", () => {
+    state.role = "Aluno";
+    state.pathname = "/pedagogica";
+    state.search = { tab: "notas" };
+    const close = vi.fn();
+    render(<MoreHub open onOpenChange={close} />);
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: "Académico" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Portal do Aluno" })).toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "Calendário Lectivo" }));
+    expect(close).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "Académico" }));
+    expect(screen.getByRole("link", { name: "Frequência" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Avaliações e Notas" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
+  });
+  it("encontra secções académicas pelo nome da área no portal do aluno", async () => {
+    state.role = "Aluno";
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "academico" } });
+    expect(await screen.findByRole("link", { name: "Avaliações e Notas" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Frequência" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Financeiro" })).toBeNull();
+  });
 });

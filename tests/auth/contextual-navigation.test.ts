@@ -4,7 +4,7 @@ import {
   getNavigationAreas,
   isContextDestinationActive,
 } from "@/features/auth/contextual-navigation";
-import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getPortalNavigation, type NavItem } from "@/features/auth/portal-engine";
 
 describe("contextual navigation", () => {
   const groups = getPortalNavigation("Administrador");
@@ -59,7 +59,7 @@ describe("contextual navigation", () => {
     const destination = (item: { to?: string; search?: unknown }) =>
       JSON.stringify([item.to, item.search]);
     const before = groups
-      .flatMap((g) => g.items.flatMap((i) => i.children ?? [i]))
+      .flatMap((g) => g.items.flatMap<NavItem>((i) => i.children ?? [i]))
       .map(destination)
       .sort();
     const after = areas
@@ -81,6 +81,28 @@ describe("contextual navigation", () => {
         ?.items.map((item) => item.to),
     ).toEqual(["/relatorios/financeiros"]);
   });
+  it.each(["Aluno", "Encarregado", "Professor"])(
+    "organiza as áreas do %s sem perder destinos ou parâmetros",
+    (role) => {
+      const catalogue = getPortalNavigation(role as "Aluno" | "Encarregado" | "Professor");
+      const areas = getNavigationAreas(catalogue);
+      const serialize = (item: { to?: string; search?: unknown }) =>
+        JSON.stringify([item.to, item.search]);
+      const original = catalogue.flatMap((group) =>
+        group.items.flatMap<NavItem>((item) => item.children ?? [item]),
+      );
+      expect(
+        areas
+          .flatMap((area) => area.items)
+          .map(serialize)
+          .sort(),
+      ).toEqual(original.map(serialize).sort());
+      expect(areas.some((area) => area.title.startsWith("Portal do"))).toBe(false);
+      expect(areas.find((area) => area.title === "Académico")).toEqual(
+        getNavigationContext(catalogue, "/pedagogica", { tab: "notas" }),
+      );
+    },
+  );
   it("cannot reintroduce a module absent from the allowed catalogue", () => {
     const allowed = groups.filter((group) => group.title !== "Financeiro");
     expect(getNavigationContext(allowed, "/faturas")).toBeNull();

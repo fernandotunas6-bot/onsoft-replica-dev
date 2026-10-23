@@ -119,3 +119,17 @@ Validação: 77 testes em seis ficheiros passaram; ESLint dirigido sem erros. Os
 ![Visão geral por áreas](organized-areas-1440.png)
 
 ![Secções da Secretaria](organized-secretariat-1440.png)
+
+## Áreas consistentes nos portais e correcção dos tipos
+
+A visão geral de Aluno, Encarregado e Professor passa a usar as mesmas áreas que o contexto: Académico e Financeiro, conforme os destinos já autorizados. Os atalhos gerais, incluindo Calendário Lectivo, continuam directos e não exigem abrir uma área intermédia. A pesquisa por `academico` encontra notas e frequência nesses portais. A comparação de destinos e parâmetros cobre agora os três perfis.
+
+O CI de `069b1ba2` detectou que os filhos dos novos agrupamentos tinham o tipo genérico `NavItem[]`, que permite destinos ausentes, em vez de `NavChild[]`. A organização plana agora declara `NavigationArea` com destinos concretos e só emite folhas navegáveis, e os grupos da sidebar têm o contrato `NavGroup[]` explícito. Corrigida também a inferência de `flatMap` no teste de preservação de destinos.
+
+Nesta iteração passaram 82 testes em seis ficheiros e o ESLint dirigido. Seis cenários de navegador com os componentes reais, fronteiras de conta/rede controladas e perfis Aluno, Encarregado e Professor a 390/1440 px confirmaram área académica comum, calendário directo, ausência de atalhos administrativos, parâmetros de frequência/chamada preservados, gaveta mobile fechada após selecção e ausência de overflow. Dados em [portal-areas-browser-results.json](portal-areas-browser-results.json).
+
+O ambiente local foi interrompido durante a verificação TypeScript global e recuperou depois. Os testes e as capturas foram confirmados após a recuperação; o TypeScript global desta iteração depende do CI seguinte. Não se trata de uma sessão real autenticada nem de validação em dispositivo físico.
+
+![Área académica do aluno](portal-aluno-390.png)
+
+![Áreas do professor no desktop](portal-professor-1440.png)

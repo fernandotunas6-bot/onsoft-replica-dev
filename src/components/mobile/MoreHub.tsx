@@ -130,18 +130,39 @@ export function MoreHub({
         ) : null}
         {!needle && !current ? (
           <ul className="space-y-1" aria-label="Áreas de trabalho">
-            {areas.map((group) => (
-              <li key={group.title}>
-                <button
-                  type="button"
-                  onClick={() => setArea(group.title)}
-                  className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                >
-                  {group.title}
-                  <ChevronRight className="size-[18px] shrink-0" aria-hidden />
-                </button>
-              </li>
-            ))}
+            {areas.map((group) =>
+              group.title === "Principal" ? (
+                group.items.map((item) => (
+                  <li key={`${item.to}-${item.label}`}>
+                    <Link
+                      to={item.to}
+                      search={item.search as never}
+                      onClick={() => onOpenChange(false)}
+                      aria-current={
+                        isContextDestinationActive(item, groups, pathname, search)
+                          ? "page"
+                          : undefined
+                      }
+                      className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-[current=page]:bg-primary/10 aria-[current=page]:text-primary"
+                    >
+                      {item.label}
+                      <ChevronRight className="size-[18px] shrink-0" aria-hidden />
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <li key={group.title}>
+                  <button
+                    type="button"
+                    onClick={() => setArea(group.title)}
+                    className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    {group.title}
+                    <ChevronRight className="size-[18px] shrink-0" aria-hidden />
+                  </button>
+                </li>
+              ),
+            )}
           </ul>
         ) : filtered.length ? (
           <div className="space-y-5">

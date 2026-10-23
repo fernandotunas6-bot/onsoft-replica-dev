@@ -132,21 +132,19 @@ export function AppSidebar({
   }, [navigationKey]);
   const contextual = Boolean(context && !areaPicker);
   const areas = getNavigationAreas(visibleGroups);
-  const generalGroups = visibleGroups.some((group) => group.title.startsWith("Portal do"))
-    ? visibleGroups
-    : [
-        ...areas.filter((group) => group.title === "Principal"),
-        {
-          title: "Áreas de trabalho",
-          items: areas
-            .filter((group) => group.title !== "Principal")
-            .map((group) => ({
-              label: group.title,
-              icon: group.items[0]?.icon ?? LayoutGrid,
-              children: group.items,
-            })),
-        },
-      ];
+  const generalGroups: NavGroup[] = [
+    ...areas.filter((group) => group.title === "Principal"),
+    {
+      title: "Áreas de trabalho",
+      items: areas
+        .filter((group) => group.title !== "Principal")
+        .map((group) => ({
+          label: group.title,
+          icon: group.items[0]?.icon ?? LayoutGrid,
+          children: group.items,
+        })),
+    },
+  ];
   const displayedGroups = contextual && context ? [context] : generalGroups;
   const toggle = (label: string) => setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
 
