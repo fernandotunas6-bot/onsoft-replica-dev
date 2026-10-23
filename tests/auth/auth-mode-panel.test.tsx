@@ -51,6 +51,14 @@ describe("login e registo no mesmo painel", () => {
     expect(container.querySelector("[data-auth-panel]")).toBe(panel);
   });
 
+  it("mantém a recuperação de senha acessível ao toque e teclado", async () => {
+    render(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
+    const recover = await screen.findByRole("button", { name: "Esqueceu a senha?" });
+    expect(recover.getAttribute("type")).toBe("button");
+    expect(recover.classList.contains("min-h-[44px]")).toBe(true);
+    expect(recover.classList.contains("focus-visible:ring-2")).toBe(true);
+  });
+
   it("mantém os campos e métodos de autenticação no registo", () => {
     render(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
     fireEvent.click(screen.getByRole("link", { name: "Criar conta" }));

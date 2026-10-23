@@ -1,3 +1,4 @@
+import { PageActionMenu } from "@/components/layout/PageActionMenu";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -516,46 +517,48 @@ function ComunicacoesPage() {
           description="Comunicados institucionais para encarregados, alunos e corpo docente."
           actions={
             <>
-              <DocHelpButton title="Navegação — Comunicações" />
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setTemplatesModalOpen(true)}
-              >
-                <FileText className="size-4" /> Templates
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCsv}
-                disabled={!filtered.length}
-              >
-                <Download className="size-4" /> CSV
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarPdf}
-                disabled={!filtered.length}
-              >
-                <FileDown className="size-4" /> PDF
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarOficial}
-                disabled={!filtered.length}
-              >
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              <PickFileButton
-                area="escola"
-                onPick={(file) =>
-                  toast.success(file.name, {
-                    description: "Ficheiro da biblioteca para o comunicado.",
-                  })
-                }
-              />
+              <PageActionMenu>
+                <DocHelpButton title="Navegação — Comunicações" />
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setTemplatesModalOpen(true)}
+                >
+                  <FileText className="size-4" /> Modelos
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarCsv}
+                  disabled={!filtered.length}
+                >
+                  <Download className="size-4" /> CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarPdf}
+                  disabled={!filtered.length}
+                >
+                  <FileDown className="size-4" /> PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={exportarOficial}
+                  disabled={!filtered.length}
+                >
+                  <FileBadge className="size-4" /> Oficial
+                </Button>
+                <PickFileButton
+                  area="escola"
+                  onPick={(file) =>
+                    toast.success(file.name, {
+                      description: "Ficheiro da biblioteca para o comunicado.",
+                    })
+                  }
+                />
+              </PageActionMenu>
               {canManage && !migrationMissing ? (
                 <Button className="gap-2" onClick={abrirFormulario}>
                   <Send className="size-4" /> Novo comunicado

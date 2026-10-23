@@ -263,7 +263,7 @@ export function buildPrintSamplePayload(
 ): Record<string, unknown> {
   const year = school.academicYear || "2026/2027";
   const studentName = extras?.student?.fullName || "Ana Domingos Ferreira";
-  const process = extras?.student?.academicNumber || "EST-2026-0142";
+  const process = extras?.student?.academicNumber || "1260142";
   const className = extras?.student?.className || "7ª A";
   const programName = extras?.student?.programName || "7.ª Classe · I Ciclo";
   const hash =
@@ -418,7 +418,7 @@ export function buildPrintSamplePayload(
         index: 2,
         fullName: "Noé Mateus",
         gender: "M",
-        academicNumber: "EST-2026-0143",
+        academicNumber: "1260143",
         photoUrl: "",
         npt1: 11,
         npt2: 10,
