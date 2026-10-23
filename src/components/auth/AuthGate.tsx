@@ -820,7 +820,7 @@ export function AuthGate({
                   </Label>
                   <button
                     type="button"
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
                     onClick={() => void resetPassword()}
                     disabled={resetting || submitting || sendingMagicLink}
                   >

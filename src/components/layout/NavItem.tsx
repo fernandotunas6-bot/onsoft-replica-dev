@@ -24,11 +24,11 @@ export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/16 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/20 hover:text-sidebar-active";
+  "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/15 hover:text-sidebar-active";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
-  root: "min-h-9 px-2.5 py-1.5 text-xs font-medium",
-  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-[0.6875rem] leading-4 font-medium",
+  root: "min-h-9 px-2.5 py-1.5 text-sm font-medium",
+  sub: "h-8 min-h-8 gap-2 px-2 py-0.5 text-sm leading-5 font-medium",
 };
 
 /** Lista aninhada: rail esquerdo (spec SidebarMenuSub) sem alterar os itens-pai. */
@@ -163,10 +163,16 @@ export function NavLinkRow(
       preloadDelay={80}
       {...(search ? { search } : {})}
       activeOptions={{ exact: !search }}
-      {...(props.collapsed ? { title: props.label } : {})}
+      title={props.label}
       className={rowClass(rest)}
-      activeProps={{ className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }}
-      inactiveProps={{ "data-active": "false" }}
+      activeProps={
+        props.active === undefined
+          ? { className: NAV_ROW_ACTIVE, "aria-current": "page", "data-active": "true" }
+          : {}
+      }
+      inactiveProps={props.active === undefined ? { "data-active": "false" } : {}}
+      aria-current={props.active ? "page" : undefined}
+      data-active={props.active ? "true" : "false"}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}
       onMouseEnter={warmRoute}
@@ -186,7 +192,7 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
-      title={props.collapsed ? props.label : undefined}
+      title={props.label}
       className={rowClass(rest)}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}
@@ -200,6 +206,6 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
 export function NavSubheader({ title, collapsed = false }: { title: string; collapsed?: boolean }) {
   if (collapsed) return <div className="mx-3 my-3 h-px bg-sidebar-border" />;
   return (
-    <p className="px-3 pb-1 pt-4 text-[11px] font-bold leading-5 text-sidebar-muted">{title}</p>
+    <p className="px-3 pb-1 pt-4 text-[11px] font-medium leading-5 text-sidebar-muted">{title}</p>
   );
 }
