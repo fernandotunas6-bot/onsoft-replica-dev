@@ -34,7 +34,9 @@ describe("atribuição de professor — modal simples do visual master", () => {
     expect(source).toContain("savingRef.current = false;");
     expect(source).toContain("preventOutsideClose={saving}");
     expect(source).toContain("if (!nextOpen && savingRef.current) return;");
-    expect(source).toContain("!saving && (classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId))");
+    expect(source).toContain(
+      "!saving && (classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId))",
+    );
     expect(source).toContain("isSubmitting={saving}");
     expect(source).toContain("hasUnsavedChanges={");
     expect(source).not.toContain("onOpenChange={setOpen}");
