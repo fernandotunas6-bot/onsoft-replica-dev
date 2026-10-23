@@ -51,7 +51,7 @@ describe("QR do professor: só a versão endurecida", () => {
 
   it("o código da app não chama as funções internas com o JWT", () => {
     const calls = sourceFiles(resolve(REPO, "src"))
-      .filter((file) => !file.endsWith("integrations/supabase/types.ts"))
+      .filter((file) => !file.endsWith("integrations/supabase/types.sga.ts"))
       .flatMap((file) => {
         const source = readFileSync(file, "utf8");
         return INNER.filter((fn) => new RegExp(`rpc\\(\\s*"${fn}"`).test(source)).map(
