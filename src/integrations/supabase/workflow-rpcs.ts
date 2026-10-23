@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "./types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { z } from "zod";
 
 /**

@@ -24,8 +24,6 @@ import {
   sessionAal,
   type VerificationFactors,
 } from "@/features/auth/verification";
-import { MfaChallenge } from "./MfaChallenge";
-import { StepUpDialog } from "./StepUpDialog";
 import {
   SHARED_DEVICE_IDLE_MS,
   TRUSTED_DEVICE_DAYS,
@@ -38,6 +36,8 @@ import { AuthCaptcha } from "./AuthCaptcha";
 import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
 import {
   createContext,
+  lazy,
+  Suspense,
   useContext,
   useEffect,
   useState,
@@ -61,6 +61,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLoading } from "@/components/ui/page-loading";
+
+// Neither security UI is needed until MFA starts or an authenticated session
+// requests step-up verification. Keep the same handlers; split only the bundle.
+const MfaChallenge = lazy(() =>
+  import("./MfaChallenge").then((module) => ({ default: module.MfaChallenge })),
+);
+const StepUpDialog = lazy(() =>
+  import("./StepUpDialog").then((module) => ({ default: module.StepUpDialog })),
+);
 
 const AuthSessionContext = createContext<Session | null>(null);
 const ACTIVITY_WRITE_INTERVAL_MS = 15_000;
@@ -662,7 +671,9 @@ export function AuthGate({
     return (
       <AuthSessionContext.Provider value={session}>
         {children}
-        <StepUpDialog email={session.user.email ?? null} />
+        <Suspense fallback={null}>
+          <StepUpDialog email={session.user.email ?? null} />
+        </Suspense>
       </AuthSessionContext.Provider>
     );
   }
@@ -755,31 +766,39 @@ export function AuthGate({
 
             {mfaFactors ? (
               <div className="mt-6">
-                <MfaChallenge
-                  factors={mfaFactors}
-                  intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
-                  cancelLabel="Usar outra conta"
-                  onCancel={() => {
-                    setMfaFactors(null);
-                    void supabase.auth.signOut({ scope: "local" });
-                  }}
-                  onVerified={async (method) => {
-                    const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-                    if (assurance.data?.currentLevel !== "aal2") {
-                      throw new Error("A verificação não elevou a sessão. Tente novamente.");
-                    }
-                    const { data: sessionData } = await supabase.auth.getSession();
-                    if (!sessionData.session) {
-                      throw new Error("A sessão não ficou disponível após a verificação.");
-                    }
-                    const userId = sessionData.session.user.id;
-                    localStorage.setItem(activityKey(userId), String(Date.now()));
-                    trustDevice(userId);
-                    setSession(sessionData.session);
-                    setMfaFactors(null);
-                    if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
-                  }}
-                />
+                <Suspense
+                  fallback={
+                    <p role="status" className="text-sm text-muted-foreground">
+                      A preparar verificação de segurança…
+                    </p>
+                  }
+                >
+                  <MfaChallenge
+                    factors={mfaFactors}
+                    intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
+                    cancelLabel="Usar outra conta"
+                    onCancel={() => {
+                      setMfaFactors(null);
+                      void supabase.auth.signOut({ scope: "local" });
+                    }}
+                    onVerified={async (method) => {
+                      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+                      if (assurance.data?.currentLevel !== "aal2") {
+                        throw new Error("A verificação não elevou a sessão. Tente novamente.");
+                      }
+                      const { data: sessionData } = await supabase.auth.getSession();
+                      if (!sessionData.session) {
+                        throw new Error("A sessão não ficou disponível após a verificação.");
+                      }
+                      const userId = sessionData.session.user.id;
+                      localStorage.setItem(activityKey(userId), String(Date.now()));
+                      trustDevice(userId);
+                      setSession(sessionData.session);
+                      setMfaFactors(null);
+                      if (method === "code" && !mfaFactors.passkeyId) offerPasskey();
+                    }}
+                  />
+                </Suspense>
               </div>
             ) : null}
 
@@ -820,7 +839,7 @@ export function AuthGate({
                   </Label>
                   <button
                     type="button"
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
                     onClick={() => void resetPassword()}
                     disabled={resetting || submitting || sendingMagicLink}
                   >

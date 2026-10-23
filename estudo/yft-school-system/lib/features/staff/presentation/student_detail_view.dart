@@ -12,7 +12,7 @@ class StudentDetailView extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Student profile',
+        title: const Text('Perfil do aluno',
             style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -29,7 +29,7 @@ class StudentDetailView extends StatelessWidget {
                   color: AppColors.textSecondary.withValues(alpha: 0.35)),
               const SizedBox(height: 20),
               const Text(
-                'Open a student from the directory to see their full profile.',
+                'Abra um aluno na lista para ver o perfil completo.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: AppColors.textSecondary, fontSize: 15, height: 1.4),
@@ -38,7 +38,7 @@ class StudentDetailView extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => context.go('/student-directory'),
                 icon: const Icon(LucideIcons.list),
-                label: const Text('Go to student directory'),
+                label: const Text('Ir para a lista de alunos'),
               ),
             ],
           ),
