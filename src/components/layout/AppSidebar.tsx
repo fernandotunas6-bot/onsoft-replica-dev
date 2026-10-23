@@ -32,7 +32,7 @@ import { useSignOut } from "@/features/auth/use-sign-out";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { withHigherEdVocabulary } from "@/features/auth/nav-vocabulary";
 import { isHigherEdOnly } from "@/features/academic/period-model";
-import { getPortalNavigation, isNavChildActive } from "@/features/auth/portal-engine";
+import { getPortalNavigation } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
@@ -344,13 +344,15 @@ export function AppSidebar({
                 {group.items.map((item) => {
                   const isOpen = openMenus.includes(item.label);
                   const childActive =
-                    item.children?.some((c) => isNavChildActive(c, pathname, locationSearch)) ??
-                    false;
+                    item.children?.some((child) =>
+                      isContextDestinationActive(child, displayedGroups, pathname, locationSearch),
+                    ) ?? false;
 
                   if (collapsed && item.children) {
                     return (
                       <li key={item.label}>
                         <CollapsedNavMenu
+                          navigationKey={navigationKey}
                           item={item}
                           groups={displayedGroups}
                           pathname={pathname}
@@ -563,12 +565,14 @@ export function AppSidebar({
 
 /** A portal keeps collapsed menus outside the sidebar's clipping/scroll container. */
 function CollapsedNavMenu({
+  navigationKey,
   item,
   groups,
   pathname,
   search,
   active,
 }: {
+  navigationKey: string;
   item: NavItem;
   groups: NavGroup[];
   pathname: string;
@@ -576,6 +580,9 @@ function CollapsedNavMenu({
   active: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [navigationKey]);
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
