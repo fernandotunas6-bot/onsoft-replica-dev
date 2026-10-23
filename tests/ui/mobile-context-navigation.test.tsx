@@ -48,6 +48,22 @@ afterEach(() => {
   state.search = {};
 });
 describe("menu mobile contextual", () => {
+  it.each([
+    ["/alunos/aluno-teste", {}, "Secretaria", "Financeiro"],
+    ["/alunos", { action: "matricular" }, "Secretaria", "Financeiro"],
+    ["/faturas/fatura-teste", {}, "Financeiro", "Secretaria"],
+  ])("mantém a área actual no catálogo em %s", (pathname, search, active, inactive) => {
+    state.pathname = pathname;
+    state.search = search;
+    render(<MoreHub open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: active }).getAttribute("aria-current")).toBe("true");
+    expect(screen.getByRole("button", { name: inactive }).getAttribute("aria-current")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: inactive }));
+    fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
+    expect(screen.getByRole("button", { name: active }).getAttribute("aria-current")).toBe("true");
+    expect(screen.queryByRole("link", { current: "page" })).toBeNull();
+  });
   it("mostra o módulo activo, permite mudar de área e fecha ao escolher um destino", () => {
     const close = vi.fn();
     render(<MoreHub open onOpenChange={close} />);
@@ -111,7 +127,9 @@ describe("menu mobile contextual", () => {
     const close = vi.fn();
     render(<MoreHub open onOpenChange={close} />);
     fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
-    expect(screen.getByRole("button", { name: "Académico" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Académico" }).getAttribute("aria-current")).toBe(
+      "true",
+    );
     expect(screen.queryByRole("button", { name: "Portal do Aluno" })).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Calendário Lectivo" }));
     expect(close).toHaveBeenCalledWith(false);

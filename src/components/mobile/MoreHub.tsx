@@ -155,7 +155,14 @@ export function MoreHub({
                   <button
                     type="button"
                     onClick={() => setArea(group.title)}
-                    className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    aria-current={
+                      group.items.some((item) =>
+                        isContextDestinationActive(item, groups, pathname, search),
+                      )
+                        ? "true"
+                        : undefined
+                    }
+                    className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-[current=true]:bg-primary/10 aria-[current=true]:text-primary"
                   >
                     {group.title}
                     <ChevronRight className="size-[18px] shrink-0" aria-hidden />
