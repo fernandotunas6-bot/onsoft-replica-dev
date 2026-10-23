@@ -93,3 +93,15 @@ Validação desta iteração: 37 testes em sete ficheiros e ESLint dos ficheiros
 No CI de `6884d3f`, o TypeScript global passou e a suite teve 4108 testes aprovados, 19 ignorados e dois falhados. Os dois testes ainda exigiam `text-xs` e `0.6875rem`, o padrão pequeno substituído nesta revisão. Foram actualizados para proteger a escala legível; o novo resultado global será determinado pelo CI seguinte.
 
 ![Opções com linhas simples](refined-options-390.png)
+
+## Refinamento de identidade e nomes longos
+
+Os menus da escola e da conta permitem ler os nomes completos; o email quebra linha quando necessário. O botão da escola possui um rótulo explícito também na sidebar recolhida. Os itens de troca de escola têm alvo mínimo de 44 px. Curso e destinos truncados conservam o nome completo no atributo `title`. Os textos “Minha Conta / Perfil” e “Criar escola (WEB)” passam a “Meu perfil” e “Criar escola”, com os mesmos destinos e regras.
+
+Validação desta iteração: 26 testes em três ficheiros, incluindo abertura por teclado do selector da escola e retorno do foco após Escape com a barra aberta/recolhida; ESLint sem erros (um aviso de Fast Refresh existente em NavItem). Seis cenários representativos no navegador a 1024/1440 px: menus da escola, da conta e da escola com barra recolhida, sem cortes e com foco restaurado. Registo em [refined-school-results.json](refined-school-results.json). Fronteiras de conta e rede controladas, sem alternância real de escola.
+
+O CI do commit anterior `7e52070c` passou: TypeScript global, lint, build e 4113 testes aprovados, 19 ignorados. Este resultado refere-se à versão anterior a este último refinamento; o novo commit requer o seu próprio CI.
+
+![Identidade da escola legível](refined-school-1440.png)
+
+![Identidade da conta legível](refined-account-1440.png)

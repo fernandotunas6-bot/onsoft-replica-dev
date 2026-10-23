@@ -163,7 +163,7 @@ export function NavLinkRow(
       preloadDelay={80}
       {...(search ? { search } : {})}
       activeOptions={{ exact: !search }}
-      {...(props.collapsed ? { title: props.label } : {})}
+      title={props.label}
       className={rowClass(rest)}
       activeProps={
         props.active === undefined
@@ -192,7 +192,7 @@ export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
-      title={props.collapsed ? props.label : undefined}
+      title={props.label}
       className={rowClass(rest)}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}

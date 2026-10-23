@@ -132,6 +132,7 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
       >
         <SelectTrigger
           aria-label="Curso ou nível"
+          title={branch.label}
           className="w-full min-w-0 border-sidebar-border bg-sidebar text-sidebar-foreground"
         >
           <SelectValue />

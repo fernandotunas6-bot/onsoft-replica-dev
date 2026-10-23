@@ -228,6 +228,20 @@ describe("AppSidebar — contexto", () => {
 });
 
 describe("AppSidebar — teclado na barra recolhida", () => {
+  it.each([false, true])(
+    "identifica e abre o menu da escola por teclado (recolhida: %s)",
+    async (collapsed) => {
+      renderSidebar(collapsed);
+      const trigger = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
+      trigger.focus();
+      fireEvent.keyDown(trigger, { key: "Enter" });
+      const menu = await screen.findByRole("menu");
+      expect(trigger.getAttribute("aria-expanded")).toBe("true");
+      fireEvent.keyDown(menu, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+    },
+  );
   it("abre os destinos num portal e fecha com Escape", async () => {
     currentPathname = "/portal";
     const { container } = renderSidebar(true);

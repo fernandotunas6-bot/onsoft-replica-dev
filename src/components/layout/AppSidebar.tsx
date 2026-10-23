@@ -156,6 +156,7 @@ export function AppSidebar({
                 <button
                   type="button"
                   data-sidebar-header-account=""
+                  aria-label={`Abrir menu da escola: ${school?.name ?? currentUser.schoolName ?? "Escola"}`}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
                     collapsed ? "justify-center px-1" : "px-2",
@@ -193,12 +194,16 @@ export function AppSidebar({
                   ) : null}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="bottom" className="w-64 z-50">
+              <DropdownMenuContent
+                align="start"
+                side="bottom"
+                className="w-64 max-w-[calc(100vw-2rem)] z-50"
+              >
                 <DropdownMenuLabel className="font-normal">
-                  <span className="block truncate text-xs font-bold text-foreground">
+                  <span className="block break-words text-sm font-semibold text-foreground">
                     {school?.name}
                   </span>
-                  <span className="block truncate text-[11px] text-muted-foreground">
+                  <span className="block break-words text-sm text-muted-foreground">
                     {currentUser.name} ({currentUser.role})
                   </span>
                 </DropdownMenuLabel>
@@ -220,11 +225,11 @@ export function AppSidebar({
                             }
                           }}
                           className={cn(
-                            "flex items-center justify-between text-xs cursor-pointer",
+                            "flex min-h-[44px] items-center justify-between gap-2 text-sm cursor-pointer",
                             isCurrent && "font-bold text-primary bg-primary/10",
                           )}
                         >
-                          <span className="truncate">{item.schoolName}</span>
+                          <span className="min-w-0 flex-1 break-words">{item.schoolName}</span>
                           <span className="text-[11px] text-muted-foreground ml-2 shrink-0">
                             {item.roleName || item.appRole}
                           </span>
@@ -241,7 +246,7 @@ export function AppSidebar({
                     setProfileModalOpen(true);
                   }}
                 >
-                  <User className="size-4 text-primary" /> Minha Conta / Perfil
+                  <User className="size-4 text-primary" /> Meu perfil
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -268,7 +273,7 @@ export function AppSidebar({
                 ) : null}
                 <DropdownMenuItem asChild>
                   <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-primary" /> Criar escola (WEB)
+                    <PlusCircle className="size-4 text-primary" /> Criar escola
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -282,11 +287,11 @@ export function AppSidebar({
                 "flex items-center gap-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs transition-colors border border-primary/25 shadow-xs",
                 collapsed ? "size-9 justify-center p-0" : "w-full justify-between px-3 py-2",
               )}
-              title="Criar escola no portal WEB"
+              title="Criar escola"
             >
               <div className="flex items-center gap-2 truncate">
                 <PlusCircle className="size-4 shrink-0 text-primary" />
-                {!collapsed ? <span className="truncate">Criar escola (WEB)</span> : null}
+                {!collapsed ? <span className="truncate">Criar escola</span> : null}
               </div>
               {!collapsed ? <Building2 className="size-3.5 shrink-0 opacity-70" /> : null}
             </a>
@@ -453,12 +458,12 @@ export function AppSidebar({
                 ) : null}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-64">
+            <DropdownMenuContent align="end" side="top" className="w-64 max-w-[calc(100vw-2rem)]">
               <DropdownMenuLabel className="font-normal">
-                <span className="block truncate text-sm font-semibold text-foreground">
+                <span className="block break-words text-sm font-semibold text-foreground">
                   {currentUser.name}
                 </span>
-                <span className="block truncate text-xs font-normal text-muted-foreground">
+                <span className="block break-all text-sm font-normal text-muted-foreground">
                   {currentUser.email}
                 </span>
               </DropdownMenuLabel>
