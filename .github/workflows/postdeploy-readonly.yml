@@ -11,6 +11,7 @@ on:
       - ".github/workflows/postdeploy-readonly.yml"
       - "scripts/siga/postdeploy-readonly.mjs"
       - "tests/siga/postdeploy-readonly.test.mjs"
+      - "tests/auth/postdeploy-role-matrix.test.ts"
 
 permissions:
   contents: read
