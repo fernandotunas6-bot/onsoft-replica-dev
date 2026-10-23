@@ -122,16 +122,22 @@ export function AssignTeacherForm({
 
       <ModalShell
         open={open}
-        onOpenChange={setOpen}
-        size="md"
-        hasUnsavedChanges={classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId)}
+        onOpenChange={(nextOpen) => {
+          // Escape, overlay e confirmação de descarte não podem fechar a
+          // operação enquanto o servidor ainda está a atribuir o professor.
+          if (!nextOpen && savingRef.current) return;
+          setOpen(nextOpen);
+        }}
+        size="sm"
+        hasUnsavedChanges={
+          !saving && (classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId))
+        }
         preventOutsideClose={saving}
       >
         <div className="flex min-h-0 flex-col">
           <ModalHeader
             icon={UserPlus}
             title="Atribuir professor"
-            subtitle="Escolha a turma, disciplina e professor."
             onClose={() => {
               if (!savingRef.current) setOpen(false);
             }}
