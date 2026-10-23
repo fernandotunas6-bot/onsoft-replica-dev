@@ -1,5 +1,6 @@
 import * as React from "react";
 import { type LucideIcon } from "lucide-react";
+import { useSubmitLock } from "./use-submit-lock";
 import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
@@ -42,25 +43,34 @@ export function FormModal({
   size = "lg",
   extraActions,
 }: FormModalProps) {
+  const submission = useSubmitLock();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSubmit) {
-      await onSubmit(e);
-    }
+    if (isSubmitting || disabled) return;
+    if (onSubmit) await submission.run(() => onSubmit(e));
   };
 
   const guardedClose = () => {
+    if (isSubmitting || submission.pending) return;
     if (confirmDiscardChanges(hasUnsavedChanges)) onOpenChange(false);
   };
 
   return (
     <ModalShell
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (next) onOpenChange(true);
+        else if (!isSubmitting && !submission.pending) onOpenChange(false);
+      }}
       size={size}
       hasUnsavedChanges={hasUnsavedChanges}
     >
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <form
+        onSubmit={handleSubmit}
+        className="flex min-h-0 flex-1 flex-col"
+        aria-busy={isSubmitting || submission.pending}
+      >
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}
@@ -74,7 +84,7 @@ export function FormModal({
           onSubmit={handleSubmit}
           submitLabel={submitLabel}
           cancelLabel={cancelLabel}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || submission.pending}
           disabled={disabled}
           extraActions={extraActions}
         />

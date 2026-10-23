@@ -1,5 +1,6 @@
 import * as React from "react";
 import { type LucideIcon } from "lucide-react";
+import { useSubmitLock } from "./use-submit-lock";
 import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
@@ -36,29 +37,41 @@ export function QuickModal({
   size = "sm",
   extraActions,
 }: QuickModalProps) {
+  const submission = useSubmitLock();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSubmit) {
-      await onSubmit();
-    }
+    if (isSubmitting) return;
+    if (onSubmit) await submission.run(onSubmit);
   };
 
+  const guardedClose = () => {
+    if (!isSubmitting && !submission.pending) onOpenChange(false);
+  };
   return (
-    <ModalShell open={open} onOpenChange={onOpenChange} size={size}>
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+    <ModalShell
+      open={open}
+      onOpenChange={(next) => (next ? onOpenChange(true) : guardedClose())}
+      size={size}
+    >
+      <form
+        onSubmit={handleSubmit}
+        className="flex min-h-0 flex-1 flex-col"
+        aria-busy={isSubmitting || submission.pending}
+      >
         <ModalHeader
           {...(icon ? { icon } : {})}
           title={title}
           subtitle={subtitle}
-          onClose={() => onOpenChange(false)}
+          onClose={guardedClose}
         />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
-          onCancel={() => onOpenChange(false)}
+          onCancel={guardedClose}
           onSubmit={handleSubmit}
           submitLabel={submitLabel}
           cancelLabel={cancelLabel}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || submission.pending}
           submitVariant={submitVariant}
           extraActions={extraActions}
         />

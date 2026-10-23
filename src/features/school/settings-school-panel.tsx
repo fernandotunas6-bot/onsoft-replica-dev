@@ -111,6 +111,18 @@ const institutionFields: {
 
 const preferences = [
   {
+    id: "expandedSidebar",
+    label: "Menu lateral expandido",
+    description: "Por omissão, o menu é compacto. Pode expandi-lo no cabeçalho.",
+    on: false,
+  },
+  {
+    id: "settingsModal",
+    label: "Abrir definições em modal",
+    description: "Por omissão, as definições abrem numa página.",
+    on: false,
+  },
+  {
     id: "sms",
     label: "SMS automático de mensalidade em atraso",
     description: "Preferência guardada na escola. Envio SMS externo ainda não está ligado no SGA.",
