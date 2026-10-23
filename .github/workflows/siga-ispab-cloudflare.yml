@@ -47,6 +47,11 @@ jobs:
       - name: Publicar no Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
+          # Sem isto a acção infere o gestor pelo lockfile, encontra o bun.lock da
+          # raiz e tenta instalar o wrangler com bun — que este job não instala,
+          # porque constrói o painel com npm. Falhava em «Unable to locate
+          # executable file: bun» antes de chegar à Cloudflare.
+          packageManager: npm
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

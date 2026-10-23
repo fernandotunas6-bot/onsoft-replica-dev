@@ -7,6 +7,7 @@ import {
 } from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { authRedirectError, withoutAuthRedirectError } from "@/lib/auth-redirect-error";
+import { portalLoginReturn } from "@/features/auth/portal-login-return";
 import {
   SESSION_EXPIRED_MESSAGE,
   consumeSessionExpiredFlag,
@@ -97,6 +98,9 @@ function mapSignInError(message: string) {
   if (value.includes("invalid login credentials") || value.includes("invalid_credentials")) {
     return "Email ou senha incorrectos. Confirme os dados e tente novamente.";
   }
+  if (value.includes("school_required")) {
+    return "Este número de aluno existe em mais de uma escola. Entre pelo endereço da sua escola.";
+  }
   if (value.includes("email not confirmed")) {
     return "Confirme o email da conta antes de iniciar sessão.";
   }
@@ -119,6 +123,7 @@ const identifierSignInErrors = {
   invalid_credentials: "Invalid login credentials",
   email_not_confirmed: "Email not confirmed",
   rate_limited: "Too many requests",
+  school_required: "school_required",
   unavailable: "network",
 } as const;
 
@@ -195,6 +200,8 @@ export function AuthGate({
   const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // A escola deste endereço deixa os alunos entrar com o número (Definições → Segurança).
+  const [studentNumberLogin, setStudentNumberLogin] = useState(false);
   const [modeChanged, setModeChanged] = useState(false);
 
   useEffect(() => {
@@ -255,6 +262,20 @@ export function AuthGate({
       console.warn("PWA install error:", e);
     }
   };
+
+  useEffect(() => {
+    if (session) return;
+    let active = true;
+    void import("@/features/access/student-access-server")
+      .then(({ studentNumberLoginAvailable }) => studentNumberLoginAvailable())
+      .then((result) => {
+        if (active && result.available) setStudentNumberLogin(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [session]);
 
   useEffect(() => {
     let active = true;
@@ -545,7 +566,7 @@ export function AuthGate({
             ? undefined
             : window.location.pathname.startsWith("/.lovable/oauth/consent")
               ? window.location.href
-              : window.location.origin,
+              : (portalLoginReturn(window.location.href) ?? window.location.origin),
       },
     });
     if (oauthError) {
@@ -687,7 +708,9 @@ export function AuthGate({
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-center">
               {mode === "signup"
                 ? "Uma só identidade para todas as escolas a que pertencer."
-                : "Entre com Google, e-mail ou Nº de BI."}
+                : studentNumberLogin
+                  ? "Entre com Google, e-mail, Nº de BI ou Nº de aluno."
+                  : "Entre com Google, e-mail ou Nº de BI."}
             </p>
             {!mfaFactors ? (
               <p className="mt-4 text-center text-xs text-muted-foreground">
@@ -734,7 +757,7 @@ export function AuthGate({
               <div className="mt-6">
                 <MfaChallenge
                   factors={mfaFactors}
-                  intro="Falta confirmar que é você. Só é pedido neste dispositivo de 30 em 30 dias, ou se algo mudar."
+                  intro="Confirme que é você. Neste dispositivo fica válido em todas as escolas e painéis, e só volta a ser pedido daqui a 30 dias, se terminar a sessão ou se o navegador mudar."
                   cancelLabel="Usar outra conta"
                   onCancel={() => {
                     setMfaFactors(null);
@@ -768,7 +791,9 @@ export function AuthGate({
             >
               <div className="space-y-1.5">
                 <Label htmlFor="login-email" className="text-xs font-medium">
-                  Email ou Nº de BI / NIF
+                  {studentNumberLogin
+                    ? "Email, Nº de BI ou Nº de aluno"
+                    : "Email ou Nº de BI / NIF"}
                 </Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -780,7 +805,11 @@ export function AuthGate({
                     required
                     defaultValue={rememberedEmail}
                     className="pl-9 h-[44px] text-[16px] lg:h-[44px] lg:text-[16px]"
-                    placeholder="utilizador@escola.ao ou 004212984LA042"
+                    placeholder={
+                      studentNumberLogin
+                        ? "utilizador@escola.ao, 004212984LA042 ou 1260001"
+                        : "utilizador@escola.ao ou 004212984LA042"
+                    }
                   />
                 </div>
               </div>
@@ -791,7 +820,7 @@ export function AuthGate({
                   </Label>
                   <button
                     type="button"
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-60"
                     onClick={() => void resetPassword()}
                     disabled={resetting || submitting || sendingMagicLink}
                   >

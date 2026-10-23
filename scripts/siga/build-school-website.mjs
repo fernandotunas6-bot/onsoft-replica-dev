@@ -18,7 +18,7 @@ if (manifest.version !== expected.version)
 const routes = JSON.parse(fs.readFileSync(path.join(panel, "docs/routes.json"), "utf8"));
 const pages = {};
 for (const route of routes)
-  if (!route.url.startsWith("/portal/") && route.url != "/404/")
+  if (route.url != "/404/")
     pages[route.url] = fs.readFileSync(path.join(panel, "dist", route.url, "index.html"), "utf8");
 fs.writeFileSync(
   path.join(root, "src/features/school-website/site-pages.generated.json"),

@@ -1,0 +1,18 @@
+[
+  {
+    "width": 1024,
+    "onlyOneExpandedArea": true,
+    "reportsInModule": true,
+    "collapsedKeyboardNavigation": true,
+    "enrollmentSearchPreserved": true,
+    "overflow": false
+  },
+  {
+    "width": 1440,
+    "onlyOneExpandedArea": true,
+    "reportsInModule": true,
+    "collapsedKeyboardNavigation": true,
+    "enrollmentSearchPreserved": true,
+    "overflow": false
+  }
+]

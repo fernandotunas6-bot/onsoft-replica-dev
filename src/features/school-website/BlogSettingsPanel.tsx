@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { changeSchoolBlog, listSchoolBlog } from "./blog-server";
 import { type SchoolBlogDraft, type SchoolBlogState } from "./blog-model";
+import { useDraftUnloadWarning } from "./use-draft-unload-warning";
 
 const emptyDraft: SchoolBlogDraft = {
   title: "",
@@ -46,7 +48,13 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const dirty =
+    editing &&
+    (slug !== (selected?.slug ?? "") ||
+      JSON.stringify(draft) !== JSON.stringify(selected?.draft ?? emptyDraft));
+  useDraftUnloadWarning(dirty);
   function open(post: SchoolBlogState | null) {
+    if (!confirmDiscardChanges(dirty)) return;
     setSelected(post);
     setDraft(post?.draft ?? { ...emptyDraft });
     setSlug(post?.slug ?? "");
@@ -69,7 +77,8 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
         },
       });
       setSelected(next);
-      setDraft(next.draft);
+      // Status actions do not save content: retain any edits still waiting to be saved.
+      if (action === "save" || action === "publish") setDraft(next.draft);
       setSlug(next.slug);
       setMessage(
         {
@@ -87,17 +96,23 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
       setBusy(false);
     }
   }
-  const update = (field: keyof SchoolBlogDraft, value: string) =>
+  const clearFeedback = () => {
+    setMessage("");
+    setError("");
+  };
+  const update = (field: keyof SchoolBlogDraft, value: string) => {
+    clearFeedback();
     setDraft((current) => ({ ...current, [field]: value }));
-  if (query.isError)
-    return (
-      <div role="alert" className="space-y-3">
-        <p>{query.error.message}</p>
-        <Button variant="outline" onClick={() => query.refetch()}>
-          Tentar novamente
-        </Button>
-      </div>
-    );
+  };
+  const loadError = query.isError ? (
+    <div role="alert" className="space-y-3">
+      <p>{query.error.message}</p>
+      <Button variant="outline" onClick={() => query.refetch()}>
+        Tentar novamente
+      </Button>
+    </div>
+  ) : null;
+  if (loadError && !editing && !query.data) return loadError;
   return (
     <div className="min-w-0 space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -111,6 +126,7 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
           Novo artigo
         </Button>
       </div>
+      {loadError}
       {message && (
         <p role="status" className="rounded-lg border p-3 text-sm">
           {message}
@@ -181,7 +197,9 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
             variant="outline"
             size="sm"
             disabled={busy}
-            onClick={() => setEditing(false)}
+            onClick={() => {
+              if (confirmDiscardChanges(dirty)) setEditing(false);
+            }}
           >
             Voltar à lista
           </Button>
@@ -210,6 +228,7 @@ function BlogEditor({ schoolId }: { schoolId?: string }) {
                 value={slug}
                 disabled={Boolean(selected)}
                 onChange={(e) => {
+                  clearFeedback();
                   setCustomSlug(true);
                   setSlug(e.target.value);
                 }}

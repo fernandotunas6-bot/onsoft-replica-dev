@@ -66,6 +66,44 @@ export const SUBJECT_AREA_LABEL: Record<SubjectArea, string> = {
   ambiente: "Ambiente e Sustentabilidade",
 };
 
+/**
+ * Contexto de nível de cada área: a partir de que nível ISCED e em que vias a
+ * área existe. Nenhuma área de especialidade existe no pré-escolar, no
+ * primário nem no I ciclo (ISCED 0–2): «Anatomia» ou «Contabilidade» nunca são
+ * sugeridas a quem configura a 5.ª classe. A via geral só aparece onde o
+ * II ciclo / secundário tem disciplinas da área (Desenho e História da Arte,
+ * Ecologia). Cada disciplina com `area` tem de caber aqui — o teste
+ * `catalog.test.ts` recusa o catálogo se não couber.
+ */
+export const SUBJECT_AREA_LEVELS: Record<
+  SubjectArea,
+  { levels: readonly IscedLevel[]; tracks: readonly SubjectTrack[] }
+> = {
+  informatica: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  saude: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  gestao: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  engenharia: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  construcao: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  agricultura: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  direito: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  educacao: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  artes: { levels: [3, 4, 5, 6, 7, 8], tracks: ["general", "technical", "higher"] },
+  turismo: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  comunicacao: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  transportes: { levels: [3, 4, 5, 6, 7, 8], tracks: ["technical", "higher"] },
+  ambiente: { levels: [3, 4, 5, 6, 7, 8], tracks: ["general", "technical", "higher"] },
+};
+
+/** A área existe neste nível e via? */
+export function areaFitsLevel(area: SubjectArea, isced: IscedLevel, track: SubjectTrack) {
+  const rule = SUBJECT_AREA_LEVELS[area];
+  return rule.levels.includes(isced) && rule.tracks.includes(track);
+}
+
+export function isSubjectArea(value: string): value is SubjectArea {
+  return Object.prototype.hasOwnProperty.call(SUBJECT_AREA_LABEL, value);
+}
+
 type Row = [
   code: string,
   name: string,

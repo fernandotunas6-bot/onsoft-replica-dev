@@ -1,4 +1,5 @@
 import type { ImportRefCache, RowImporter } from "../engine/types";
+import { LOCKED_SHEET_STATUSES } from "@/features/academic/sga-grades";
 import {
   loadStudentRefs,
   loadSubjectRefs,
@@ -50,6 +51,8 @@ type NotasCache = ImportRefCache & {
   gradebookByContext: Map<string, GradebookRef>;
   itemsByGradebook: Map<string, Map<string, ItemRef>>;
   scoreByItemEnrollment: Map<string, ScoreRef>;
+  /** Pautas oficiais: `turma:período` e `turma:annual`. Importar não as altera (F-02). */
+  lockedSheets: Map<string, string>;
 };
 
 function pairKey(classGroupId: string, subjectId: string) {
@@ -183,6 +186,26 @@ export const notasImporter: RowImporter = {
     }));
     const itemIds = items.map((row) => row.id);
     const enrollmentIds = enrollments.map((row) => row.id);
+    // Pautas homologadas, publicadas, fechadas ou em reclamação: as notas dessa turma e
+    // período já não se alteram por importação, como não se alteram à mão
+    // (assertAssessmentTermNotLocked). Sem isto, importar contornava o fecho: o
+    // importador grava com a chave de serviço e `grade_scores` não tem gatilho de fecho.
+    const lockedSheetsResult = await ctx.db
+      .from("grade_sheets")
+      .select("class_group_id, term_id, kind, status")
+      .eq("school_id", ctx.schoolId)
+      .in("status", LOCKED_SHEET_STATUSES);
+    if (lockedSheetsResult.error) {
+      throw new Error(
+        `Não foi possível confirmar se as pautas já são oficiais: ${lockedSheetsResult.error.message}`,
+      );
+    }
+    const lockedSheets = new Map<string, string>();
+    for (const row of lockedSheetsResult.data ?? []) {
+      const scope = row.kind === "annual" ? "annual" : String(row.term_id);
+      lockedSheets.set(`${String(row.class_group_id)}:${scope}`, String(row.status));
+    }
+
     const scoresResult =
       itemIds.length && enrollmentIds.length
         ? await ctx.db
@@ -223,6 +246,7 @@ export const notasImporter: RowImporter = {
         gradebooks.map((row) => [gradebookKey(row.term_id, row.class_subject_id), row]),
       ),
       itemsByGradebook,
+      lockedSheets,
       scoreByItemEnrollment: new Map(
         (scoresResult.data ?? []).map((row) => {
           const ref: ScoreRef = {
@@ -262,6 +286,17 @@ export const notasImporter: RowImporter = {
       errors.push("A disciplina da turma ainda não tem professor atribuído.");
     if (context.term && !context.termRef)
       errors.push(`O ${context.term}º período ainda não está configurado neste ano lectivo.`);
+    if (context.enrollment && context.termRef) {
+      const group = context.enrollment.class_group_id;
+      const lockedStatus =
+        cache.lockedSheets?.get(`${group}:${context.termRef.id}`) ??
+        cache.lockedSheets?.get(`${group}:annual`);
+      if (lockedStatus) {
+        errors.push(
+          "A pauta desta turma e período já é oficial: as notas não se alteram por importação. Peça a alteração na pauta (Pedagógica → Pautas), com o motivo.",
+        );
+      }
+    }
     if (context.assignment && context.termRef && !context.gradebook)
       errors.push(
         "O diário de notas desta turma/disciplina/período ainda não foi preparado. Abra o diário antes da importação.",
