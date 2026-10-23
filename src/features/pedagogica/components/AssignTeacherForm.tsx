@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { UserPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -122,16 +123,26 @@ export function AssignTeacherForm({
 
       <ModalShell
         open={open}
-        onOpenChange={setOpen}
-        size="md"
-        hasUnsavedChanges={classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId)}
+        onOpenChange={(nextOpen) => {
+          // Escape, overlay e confirmação de descarte não podem fechar a
+          // operação enquanto o servidor ainda está a atribuir o professor.
+          if (!nextOpen && savingRef.current) return;
+          setOpen(nextOpen);
+        }}
+        size="sm"
+        hasUnsavedChanges={
+          !saving && (classGroupId !== defaultTurmaId || Boolean(subjectId || teacherId))
+        }
         preventOutsideClose={saving}
       >
         <div className="flex min-h-0 flex-col">
+          <DialogPrimitive.Title className="sr-only">Atribuir professor</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">
+            Seleccione turma, disciplina e professor.
+          </DialogPrimitive.Description>
           <ModalHeader
             icon={UserPlus}
             title="Atribuir professor"
-            subtitle="Escolha a turma, disciplina e professor."
             onClose={() => {
               if (!savingRef.current) setOpen(false);
             }}
