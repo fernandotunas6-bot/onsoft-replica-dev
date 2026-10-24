@@ -100,9 +100,12 @@ export function AppSidebar({
     cancelSchoolMenuClose();
     schoolMenuCloseTimer.current = setTimeout(() => setSchoolMenuOpen(false), 180);
   };
-  useEffect(() => () => {
-    if (schoolMenuCloseTimer.current !== null) clearTimeout(schoolMenuCloseTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (schoolMenuCloseTimer.current !== null) clearTimeout(schoolMenuCloseTimer.current);
+    },
+    [],
+  );
   // Monta à primeira abertura e fica: desmontar cortava a animação de fecho.
   const [profileModalMounted, setProfileModalMounted] = useState(false);
   useEffect(() => {
@@ -612,11 +615,7 @@ function ExpandedNavFlyout({
             }
           }}
           onPointerLeave={(event) => scheduleClose(event.pointerType)}
-          className={cn(
-            NAV_ROW_BASE,
-            NAV_DEPTH_CLASS.root,
-            active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
-          )}
+          className={cn(NAV_ROW_BASE, NAV_DEPTH_CLASS.root, active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE)}
           data-nav-row=""
           data-nav-depth="root"
           data-active={active ? "true" : "false"}
