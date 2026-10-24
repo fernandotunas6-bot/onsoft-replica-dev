@@ -39,6 +39,7 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { StudentGradesCard } from "@/features/dashboard/components/StudentGradesCard";
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
+import { StudentAttendanceCard } from "@/features/dashboard/components/StudentAttendanceCard";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
 import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
@@ -1390,13 +1391,21 @@ function PedagogicaPage() {
           </TabsContent>
 
           <TabsContent value="presencas" className="mt-5 space-y-6">
-            <LazyTab>
-              <AttendanceWorkspaceModule
-                initialClassGroupId={turmaFromSearch}
-                initialSubjectId={disciplinaFromSearch}
-                initialDate={diaFromSearch}
+            {isFamily ? (
+              <StudentAttendanceCard
+                studentId={
+                  account.role === "Aluno" ? account.linkedEntities.student_id : familyStudentId
+                }
               />
-            </LazyTab>
+            ) : (
+              <LazyTab>
+                <AttendanceWorkspaceModule
+                  initialClassGroupId={turmaFromSearch}
+                  initialSubjectId={disciplinaFromSearch}
+                  initialDate={diaFromSearch}
+                />
+              </LazyTab>
+            )}
           </TabsContent>
 
           <TabsContent value="chamada" className="mt-5 space-y-6">

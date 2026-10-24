@@ -41,6 +41,9 @@ vi.mock("@/components/layout/AppShell", async () => (await import("./_harness"))
 vi.mock("@/features/dashboard/components/StudentGradesCard", () => ({
   StudentGradesCard: () => <div data-testid="student-grades-card" />,
 }));
+vi.mock("@/features/dashboard/components/StudentAttendanceCard", () => ({
+  StudentAttendanceCard: () => <div data-testid="student-attendance-card" />,
+}));
 vi.mock("@/features/dashboard/components/StudentTimetableCard", () => ({
   StudentTimetableCard: () => <div data-testid="student-timetable-card" />,
 }));
