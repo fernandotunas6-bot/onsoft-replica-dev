@@ -138,6 +138,7 @@ export function AppSidebar({
   }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
   const context = getNavigationContext(visibleGroups, pathname, locationSearch);
   const [areaPicker, setAreaPicker] = useState(false);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const navigationKey = JSON.stringify([
     pathname,
     locationSearch,
@@ -147,6 +148,7 @@ export function AppSidebar({
   useEffect(() => {
     setAreaPicker(false);
     setSchoolMenuOpen(false);
+    setExpandedMenu(null);
   }, [navigationKey]);
   const contextual = Boolean(context && !areaPicker);
   const areas = getNavigationAreas(visibleGroups);
@@ -399,7 +401,8 @@ export function AppSidebar({
                     return (
                       <li key={item.label}>
                         <ExpandedNavFlyout
-                          navigationKey={navigationKey}
+                          open={expandedMenu === item.label}
+                          onOpenChange={(next) => setExpandedMenu(next ? item.label : null)}
                           item={item}
                           groups={displayedGroups}
                           pathname={pathname}
@@ -569,21 +572,22 @@ export function AppSidebar({
 
 /** Subfunções compactas: aparecem à direita, fora do scroll da sidebar. */
 function ExpandedNavFlyout({
-  navigationKey,
+  open,
+  onOpenChange,
   item,
   groups,
   pathname,
   search,
   active,
 }: {
-  navigationKey: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   item: NavItem;
   groups: NavGroup[];
   pathname: string;
   search: Record<string, unknown>;
   active: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelClose = () => {
     if (closeTimer.current !== null) clearTimeout(closeTimer.current);
@@ -592,17 +596,17 @@ function ExpandedNavFlyout({
   const scheduleClose = (pointerType: string) => {
     if (pointerType !== "mouse") return;
     cancelClose();
-    closeTimer.current = setTimeout(() => setOpen(false), 180);
+    closeTimer.current = setTimeout(() => onOpenChange(false), 180);
   };
-  useEffect(() => {
-    setOpen(false);
-    return () => {
+  useEffect(
+    () => () => {
       if (closeTimer.current !== null) clearTimeout(closeTimer.current);
-    };
-  }, [navigationKey]);
+    },
+    [],
+  );
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -611,7 +615,7 @@ function ExpandedNavFlyout({
           onPointerEnter={(event) => {
             if (event.pointerType === "mouse") {
               cancelClose();
-              setOpen(true);
+              onOpenChange(true);
             }
           }}
           onPointerLeave={(event) => scheduleClose(event.pointerType)}
@@ -635,7 +639,7 @@ function ExpandedNavFlyout({
         }}
         onPointerLeave={(event) => scheduleClose(event.pointerType)}
         onClick={(event) => {
-          if ((event.target as Element).closest("a[data-nav-row]")) setOpen(false);
+          if ((event.target as Element).closest("a[data-nav-row]")) onOpenChange(false);
         }}
         className="w-64 max-w-[calc(100vw-1.5rem)] max-h-[min(75vh,var(--radix-popover-content-available-height))] overflow-y-auto p-1 shadow-sm"
         data-nav-flyout=""
