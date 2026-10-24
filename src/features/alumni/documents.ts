@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 
-const alumniDocumentsInputSchema = z.object({ alumniId: z.string().uuid() });
+const alumniDocumentsInputSchema = z.object({ alumniId: z.string().guid() });
 
 export const getAlumniDocumentWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

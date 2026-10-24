@@ -1,3 +1,4 @@
+import { idOptions } from "@/lib/option-label";
 export type EnrollmentClassGroup = {
   id: string;
   name: string;
@@ -126,4 +127,29 @@ export function buildEnrollmentDirectory(
     rooms,
     classGroups: roomRows,
   };
+}
+
+/**
+ * Opções de turma para os formulários de colocação: o valor é o id. As listas
+ * escolhiam a turma pelo texto «nome · classe», e duas turmas com o mesmo nome e
+ * classe em cursos diferentes davam a primeira; a ficha juntava ao rótulo um
+ * pedaço do id para as distinguir. Turmas sem ano lectivo não entram.
+ */
+export function classGroupChoices(
+  groups: Array<{
+    id: string;
+    name: string;
+    grade_name?: string | null;
+    course_name?: string | null;
+    academic_year_id?: string | null;
+  }>,
+) {
+  // Dois rótulos iguais (mesmo nome, classe e curso) levam um pedaço do id (idOptions).
+  return idOptions(
+    groups.filter((group) => group.academic_year_id),
+    (group) =>
+      [group.name, group.grade_name, group.course_name]
+        .filter((part) => part && part !== "—")
+        .join(" · "),
+  );
 }

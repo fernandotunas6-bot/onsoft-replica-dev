@@ -79,3 +79,34 @@ describe("detectAttendanceAnomalies", () => {
     expect(anomalies).toEqual([]);
   });
 });
+
+describe("detectAttendanceAnomalies — hora de Luanda", () => {
+  it("08:40 em Luanda (07:40 UTC) é entrada tardia, com a hora de Luanda", () => {
+    const anomalies = detectAttendanceAnomalies(
+      [{ student_id: "student-1", person_id: "person-1", created_at: "2026-08-26T07:40:00Z" }],
+      new Map([["student-1", "present"]]),
+      names,
+    );
+    expect(anomalies[0]?.issueType).toBe("late_gate_entry");
+    expect(anomalies[0]?.gateEntryTime).toBe("08:40:00");
+  });
+
+  it("conta a primeira entrada do dia, mesmo fora de ordem", () => {
+    const anomalies = detectAttendanceAnomalies(
+      [
+        { student_id: "student-1", person_id: "person-1", created_at: "2026-08-26T09:15:00Z" },
+        { student_id: "student-1", person_id: "person-1", created_at: "2026-08-26T06:00:00Z" },
+      ],
+      new Map([["student-1", "present"]]),
+      names,
+    );
+    expect(anomalies).toEqual([]);
+  });
+
+  it("a catraca não sai da manutenção com uma leitura", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("src/features/catracas/device-webhook-handler.ts", "utf8");
+    expect(source).toContain(".update({ last_ping_at: new Date().toISOString() })");
+    expect(source).not.toMatch(/status: "online"/);
+  });
+});

@@ -154,6 +154,9 @@ function AlumniPortfolioPage() {
                 <Link to="/alumni/portal/portfolio/showcase">Ver apresentação</Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/portal/portfolio/print">Imprimir</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
                 <Link to="/alumni/portal">Voltar ao Portal</Link>
               </Button>
             </div>

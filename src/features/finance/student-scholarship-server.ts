@@ -47,7 +47,7 @@ export async function scholarshipsOfStudent(
   return (data ?? []) as ScholarshipRow[];
 }
 
-const studentInput = z.object({ studentId: z.string().uuid() });
+const studentInput = z.object({ studentId: z.string().guid() });
 
 export const getStudentScholarships = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -86,7 +86,7 @@ export const getStudentScholarships = createServerFn({ method: "GET" })
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const grantInput = z
   .object({
-    studentId: z.string().uuid(),
+    studentId: z.string().guid(),
     kind: z.enum(["merit", "social", "staff", "institutional", "other"]),
     percent: z.number().gt(0).max(100),
     scope: z.enum(["tuition", "all"]),
@@ -168,7 +168,7 @@ export const grantScholarship = createServerFn({ method: "POST" })
   });
 
 const revokeInput = z.object({
-  scholarshipId: z.string().uuid(),
+  scholarshipId: z.string().guid(),
   reason: z.string().trim().min(3).max(500),
 });
 

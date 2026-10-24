@@ -33,7 +33,8 @@ import {
   type TenantBillingProfileInput,
 } from "@/features/saas/tenant-billing-rules";
 import { planPriceKz } from "@/features/saas/subscription-view";
-import { schoolTodayIso } from "@/lib/school-date";
+import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 
 // Tabela nova: lida sem o tipo gerado, como as outras fora de types.ts.
 type LooseDb = { from: (table: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -406,8 +407,17 @@ export async function reviewPublicSchool(
 }
 
 /**
+ * Dias de pausa para uma escola que se declarou pública no registo. Sem prazo, uma
+ * escola privada que escolhesse «pública» ficava isenta (sem fim de trial nem
+ * atraso) enquanto ninguém a revisse. Acabado o prazo, volta às regras do trial;
+ * o ADMIN aprova (isenção sem fim) ou prolonga a pausa.
+ */
+export const SELF_DECLARED_PUBLIC_PAUSE_DAYS = 30;
+
+/**
  * Escola criada no registo como pública: perfil «Pública», revisão aberta e
- * cobranças pausadas enquanto se revê. Nunca falha o registo.
+ * cobranças pausadas enquanto se revê, por `SELF_DECLARED_PUBLIC_PAUSE_DAYS`.
+ * Nunca falha o registo.
  */
 export async function initBillingProfileForNewSchool(
   db: SupabaseClient,
@@ -426,6 +436,7 @@ export async function initBillingProfileForNewSchool(
         billing_paused: isPublic,
         billing_paused_reason: isPublic ? PUBLIC_REVIEW_PAUSE_REASON : null,
         billing_paused_at: isPublic ? new Date().toISOString() : null,
+        billing_paused_until: isPublic ? schoolDateInDays(SELF_DECLARED_PUBLIC_PAUSE_DAYS) : null,
       },
       { onConflict: "tenant_id", ignoreDuplicates: true },
     )
@@ -441,15 +452,20 @@ export async function endExpiredBillingPauses(
   now = new Date(),
 ): Promise<number> {
   const today = schoolTodayIso(now);
-  const { data, error } = await loose(db)
-    .from("tenant_billing_profiles")
-    .select("tenant_id")
-    .eq("billing_paused", true)
-    .lt("billing_paused_until", today)
-    .limit(500);
-  if (error) return 0;
+  const { data, error } = await readAllPages<{ tenant_id: string }>((from, to) =>
+    loose(db)
+      .from("tenant_billing_profiles")
+      .select("tenant_id")
+      .eq("billing_paused", true)
+      .lt("billing_paused_until", today)
+      .order("tenant_id")
+      .range(from, to),
+  );
+  // Um erro de leitura não pode passar por «nada a fazer»: as pausas acabadas
+  // ficavam isentas sem fim e a tarefa dizia-se concluída.
+  if (error) throw new Error(`Não foi possível ler as pausas de cobrança: ${error.message}`);
   let ended = 0;
-  for (const row of (data ?? []) as Array<{ tenant_id: string }>) {
+  for (const row of data) {
     try {
       await resumeTenantBilling(db, row.tenant_id, null, "pause_ended");
       ended += 1;
@@ -470,14 +486,19 @@ export async function endExpiredBillingPauses(
  * Confirmar o pagamento no ADMIN (Gerir) volta a pôr a escola activa.
  */
 export async function suspendOverdueTenants(db: SupabaseClient, now = new Date()): Promise<number> {
-  const { data, error } = await loose(db)
-    .from("tenant_billing_profiles")
-    .select("*")
-    .eq("auto_suspend", true)
-    .limit(1000);
-  if (error) return 0;
+  // Todas as linhas, por páginas: com `.limit(1000)` e sem ordem, acima de 1000
+  // perfis um subconjunto arbitrário nunca era avaliado.
+  const { data, error } = await readAllPages<Record<string, unknown>>((from, to) =>
+    loose(db)
+      .from("tenant_billing_profiles")
+      .select("*")
+      .eq("auto_suspend", true)
+      .order("tenant_id")
+      .range(from, to),
+  );
+  if (error) throw new Error(`Não foi possível ler os perfis de cobrança: ${error.message}`);
   let suspended = 0;
-  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+  for (const row of data) {
     const profile = profileFromRow(row);
     try {
       const state = billingStateOf(profile, now);
@@ -509,12 +530,14 @@ export async function suspendOverdueTenants(db: SupabaseClient, now = new Date()
       );
       if (!verdict.due || !subscription) continue;
       const stamp = now.toISOString();
-      const { error: tenantErr } = await db
+      const { data: changed, error: tenantErr } = await db
         .from("tenants")
         .update({ status: "past_due", subscription_status: "past_due", updated_at: stamp })
         .eq("id", profile.tenantId)
-        .eq("status", "active");
-      if (tenantErr) continue;
+        .eq("status", "active")
+        .select("id");
+      // O estado mudou entre a leitura e a escrita: nada a suspender.
+      if (tenantErr || !changed?.length) continue;
       await db
         .from("subscriptions")
         .update({ status: "past_due", updated_at: stamp })
@@ -616,17 +639,7 @@ export async function loadTenantOverview(db: SupabaseClient, tenantId: string) {
       ? { ...billing.profile, institutionType: suggestedInstitutionType }
       : billing.profile;
 
-  const periodDiscounts: Partial<Record<BillingPeriod, number>> = {};
-  const periods = (settingsRes?.data?.periods ?? []) as Array<{
-    code?: string;
-    enabled?: boolean;
-    discount_pct?: number;
-  }>;
-  for (const p of Array.isArray(periods) ? periods : []) {
-    if (p.code && typeof p.discount_pct === "number") {
-      periodDiscounts[p.code as BillingPeriod] = p.discount_pct;
-    }
-  }
+  const periodDiscounts = periodDiscountsFrom(settingsRes?.data?.periods);
 
   const activeStudents = Number(usageRes.data?.active_students_count ?? 0);
   const plan =
@@ -696,6 +709,34 @@ export async function loadTenantOverview(db: SupabaseClient, tenantId: string) {
   };
 }
 
+function periodDiscountsFrom(periods: unknown): Partial<Record<BillingPeriod, number>> {
+  const discounts: Partial<Record<BillingPeriod, number>> = {};
+  for (const p of Array.isArray(periods)
+    ? (periods as Array<{ code?: string; discount_pct?: number }>)
+    : []) {
+    if (p.code && typeof p.discount_pct === "number") {
+      discounts[p.code as BillingPeriod] = p.discount_pct;
+    }
+  }
+  return discounts;
+}
+
+/**
+ * Descontos por período definidos no ADMIN (`saas_billing_settings`). O ADMIN já os
+ * aplicava, mas o valor cobrado à escola e o que ela via usavam os do código: com o
+ * desconto anual mudado, o ADMIN mostrava um valor e a escola pagava outro.
+ */
+export async function loadPeriodDiscounts(
+  db: SupabaseClient,
+): Promise<Partial<Record<BillingPeriod, number>>> {
+  const { data } = await loose(db)
+    .from("saas_billing_settings")
+    .select("periods")
+    .eq("id", 1)
+    .maybeSingle();
+  return periodDiscountsFrom((data as { periods?: unknown } | null)?.periods);
+}
+
 /**
  * Valor que a escola paga ao escolher um plano e periodicidade no SIGA. Com
  * condições próprias (por aluno ou valor fixo) é esse valor; senão, a tabela.
@@ -717,5 +758,6 @@ export async function amountForSchool(
     profile: { ...profile, billingPeriod: billing },
     plan,
     activeStudents: Number(usage?.active_students_count ?? 0),
+    periodDiscounts: await loadPeriodDiscounts(db),
   }).total;
 }

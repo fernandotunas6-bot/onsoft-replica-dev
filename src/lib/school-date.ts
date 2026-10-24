@@ -32,3 +32,14 @@ export function schoolTodayIso(now: Date = new Date(), timeZone = "Africa/Luanda
   if (!year || !month || !day) throw new Error("Fuso institucional inválido.");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Dia da escola daqui a `days` dias (negativo: há `days` dias). Parte de
+ * `schoolTodayIso`, e não de `Date.now()` + dias em UTC, que perto da meia-noite de
+ * Luanda dava um dia a menos (um vencimento a 15 dias saía a 14).
+ */
+export function schoolDateInDays(days: number, now: Date = new Date()): string {
+  const date = new Date(`${schoolTodayIso(now)}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}

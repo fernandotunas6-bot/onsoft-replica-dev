@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { Json } from "@/integrations/supabase/types";
 import {
   loadSgaAdminClient,
@@ -45,6 +46,7 @@ import {
   tooManyRecipientsReason,
   unsupportedAudienceReason,
 } from "./audience-recipients";
+import { escapeHtml } from "@/lib/escape-html";
 
 const upsertIntegrationInputSchema = z.object({
   provider: z.string().trim().min(2).max(80),
@@ -371,18 +373,21 @@ async function withoutOptedOutPhones(
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: optedOut } = await db
+  const { data: optedOut, error: optedOutError } = await db
     .from("user_communication_preferences")
     .select("user_id")
     .eq("school_id", schoolId)
     .eq("announcements_enabled", false);
+  // Sem saber quem desligou os comunicados, não se envia (antes seguia para todos).
+  if (optedOutError) throw new Error("Não foi possível confirmar quem desligou os comunicados.");
   const userIds = (optedOut ?? []).map((row) => String(row.user_id));
   if (!userIds.length) return recipients;
-  const { data: people } = await db
+  const { data: people, error: peopleError } = await db
     .from("people")
     .select("phone")
     .eq("school_id", schoolId)
     .in("user_id", userIds);
+  if (peopleError) throw new Error("Não foi possível confirmar quem desligou os comunicados.");
   // Últimos 9 dígitos: o mesmo número em formato WhatsApp (dígitos) ou SMS (+E164).
   const blocked = new Set((people ?? []).map((row) => phoneKey(String(row.phone ?? ""))));
   return recipients.filter((phone) => !blocked.has(phoneKey(phone)));
@@ -400,12 +405,16 @@ async function onlySchoolPhones(
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: people } = await db
-    .from("people")
-    .select("phone")
-    .eq("school_id", schoolId)
-    .not("phone", "is", null)
-    .limit(20000);
+  // Todas as páginas: com o corte das 1000 linhas, quem estava depois era recusado.
+  const { data: people } = await readAllPages((from, to) =>
+    db
+      .from("people")
+      .select("id, phone")
+      .eq("school_id", schoolId)
+      .not("phone", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   const known = new Set(
     (people ?? [])
       .map((row) => phoneKey(String(row.phone ?? "")))
@@ -420,23 +429,40 @@ async function platformQuotaOk(key: string) {
   return consumeRateLimit([key], PLATFORM_EMAIL_RATE_LIMIT);
 }
 
+/**
+ * Mensagens pagas pela plataforma, por escola e por hora. O limite de cima conta
+ * pedidos, e cada pedido leva até 50 destinatários: eram 1000 SMS, WhatsApp ou
+ * e-mails por hora por escola. Conta-se cada destinatário (depois de todos os filtros).
+ */
+export const PLATFORM_MESSAGES_PER_HOUR = { windowMs: 60 * 60 * 1000, max: 200 };
+
+async function platformMessagesOk(key: string, count: number) {
+  if (isRateLimitBypassed(key)) return true;
+  for (let i = 0; i < count; i += 1) {
+    if (!(await consumeRateLimit([key], PLATFORM_MESSAGES_PER_HOUR))) return false;
+  }
+  return true;
+}
+
 async function withoutOptedOutRecipients(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
   schoolId: string,
   recipients: string[],
 ): Promise<string[]> {
-  const { data: optedOut } = await db
+  const { data: optedOut, error: optedOutError } = await db
     .from("user_communication_preferences")
     .select("user_id")
     .eq("school_id", schoolId)
     .eq("announcements_enabled", false);
+  if (optedOutError) throw new Error("Não foi possível confirmar quem desligou os comunicados.");
   const userIds = (optedOut ?? []).map((row) => String(row.user_id));
   if (!userIds.length) return recipients;
-  const { data: people } = await db
+  const { data: people, error: peopleError } = await db
     .from("people")
     .select("email")
     .eq("school_id", schoolId)
     .in("user_id", userIds);
+  if (peopleError) throw new Error("Não foi possível confirmar quem desligou os comunicados.");
   const blocked = new Set((people ?? []).map((row) => String(row.email ?? "").toLowerCase()));
   return recipients.filter((email) => !blocked.has(email.toLowerCase()));
 }
@@ -525,17 +551,33 @@ export const sendSchoolResendEmail = createServerFn({ method: "POST" })
         };
       }
       // Só para contactos desta escola, e com o remetente do sistema.
-      const { data: known } = await db
-        .from("people")
-        .select("email")
-        .eq("school_id", membership.schoolId)
-        .in("email", recipients);
-      const allowed = new Set((known ?? []).map((row) => String(row.email ?? "").toLowerCase()));
-      recipients = recipients.filter((email) => allowed.has(email));
+      // Comparação sem maiúsculas: «Maria@…» na ficha ficava de fora com `.in("email")`.
+      const { data: known, error: knownError } = await readAllPages((from, to) =>
+        db
+          .from("people")
+          .select("id, email")
+          .eq("school_id", membership.schoolId)
+          .not("email", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      if (knownError) {
+        throw publicDatabaseError(knownError, "Não foi possível confirmar os destinatários.");
+      }
+      const allowed = new Set(known.map((row) => String(row.email ?? "").toLowerCase()));
+      recipients = recipients.filter((email) => allowed.has(email.toLowerCase()));
       if (!recipients.length) {
         return {
           mode: "clipboard" as const,
           reason: "Sem destinatários desta escola com e-mail registado.",
+        };
+      }
+      if (
+        !(await platformMessagesOk(`platform_email_msgs:${membership.schoolId}`, recipients.length))
+      ) {
+        return {
+          mode: "clipboard" as const,
+          reason: "Limite de mensagens por hora atingido. Configure uma chave Resend própria.",
         };
       }
       const { data: school } = await db
@@ -672,6 +714,18 @@ export const sendSchoolWhatsAppMessage = createServerFn({ method: "POST" })
         reason: "Todos os destinatários desligaram os comunicados.",
       };
     }
+    if (
+      usingPlatformToken &&
+      !(await platformMessagesOk(
+        `platform_whatsapp_msgs:${membership.schoolId}`,
+        recipients.length,
+      ))
+    ) {
+      return {
+        mode: "deeplink" as const,
+        reason: "Limite de mensagens por hora atingido. Configure um token WhatsApp próprio.",
+      };
+    }
 
     let sent = 0;
     const errors: string[] = [];
@@ -756,7 +810,10 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
           "Sem destinatários desta escola com telemóvel registado (ou desligaram os comunicados).",
       };
     }
-    if (!(await platformQuotaOk(`platform_sms:${membership.schoolId}`))) {
+    if (
+      !(await platformQuotaOk(`platform_sms:${membership.schoolId}`)) ||
+      !(await platformMessagesOk(`platform_sms_msgs:${membership.schoolId}`, recipients.length))
+    ) {
       return {
         mode: "unavailable" as const,
         reason: "Limite de envios de SMS por hora atingido.",
@@ -792,14 +849,6 @@ export const sendSchoolSmsMessage = createServerFn({ method: "POST" })
       partialErrors: errors.length ? errors.slice(0, 3) : undefined,
     };
   });
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 type AudienceRecipients = { ok: true; recipients: string[] } | { ok: false; reason: string };
 
@@ -846,15 +895,17 @@ async function readIntegrationConfig(
   schoolId: string,
   provider: CatalogIntegrationId,
 ) {
-  try {
-    const { data } = await db
-      .from("school_integrations")
-      .select("config")
-      .eq("school_id", schoolId)
-      .eq("provider", provider)
-      .maybeSingle();
-    return readJsonObject(data?.config);
-  } catch {
-    return {};
+  const { data, error } = await db
+    .from("school_integrations")
+    .select("config")
+    .eq("school_id", schoolId)
+    .eq("provider", provider)
+    .maybeSingle();
+  // Uma falha de leitura não pode passar por «sem configuração»: quem grava a seguir
+  // escrevia por cima com uma chave nova (o gateway passava a dar 401 e os pagamentos
+  // deixavam de ser reconciliados) ou apagava as capacidades concedidas.
+  if (error && !isMissingTable(error)) {
+    throw publicDatabaseError(error, "Não foi possível ler a configuração da integração.");
   }
+  return readJsonObject(data?.config);
 }

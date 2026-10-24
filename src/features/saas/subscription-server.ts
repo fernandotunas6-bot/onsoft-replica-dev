@@ -10,6 +10,7 @@
  * comprovativo). O pedido fica em `saas_audit_logs`, onde a equipa da
  * plataforma o vê no ADMIN.
  */
+import { schoolTodayIso } from "@/lib/school-date";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -21,7 +22,7 @@ import { planCodeSchema } from "./schemas";
 import type { Plan } from "./types";
 import { PLAN_REQUEST_ACTIONS, pendingPlanRequestFrom } from "./subscription-view";
 import { getPayflowUrl } from "@/lib/ecosystem-urls";
-import { amountForSchool, loadTenantBillingProfile } from "./tenant-billing";
+import { amountForSchool, loadPeriodDiscounts, loadTenantBillingProfile } from "./tenant-billing";
 import { billingStateOf, describeTenantBilling, type BillingState } from "./tenant-billing-rules";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -182,6 +183,8 @@ export const getMySubscription = createServerFn({ method: "GET" })
         billingProfile?.profile ?? null,
         plan,
         Number(usage?.active_students_count ?? 0),
+        new Date(),
+        await loadPeriodDiscounts(db).catch(() => undefined),
       ),
     };
   });
@@ -311,7 +314,9 @@ export const startPlanPayment = createServerFn({ method: "POST" })
       .select("slug")
       .eq("id", tenantId)
       .maybeSingle();
-    const month = new Date().toISOString().slice(0, 7);
+    // O mês da escola (Luanda), não o do servidor em UTC.
+    const month = schoolTodayIso().slice(0, 7);
+    const amountCents = Math.round(amountKz * 100);
     let response: Response;
     try {
       response = await fetch(url, {
@@ -319,11 +324,13 @@ export const startPlanPayment = createServerFn({ method: "POST" })
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          // Mesmo plano e periodicidade no mesmo mês → a mesma cobrança.
-          "Idempotency-Key": `siga-sub-${tenantId}-${plan.code}-${data.billing}-${month}`,
+          // Mesmo plano, periodicidade e valor no mesmo mês → a mesma cobrança. Sem o
+          // valor, mudar o preço (alunos, desconto, modelo) devolvia a referência do
+          // PayFlow com o montante antigo, enquanto o SIGA mostrava o novo.
+          "Idempotency-Key": `siga-sub-${tenantId}-${plan.code}-${data.billing}-${month}-${amountCents}`,
         },
         body: JSON.stringify({
-          amount: Math.round(amountKz * 100),
+          amount: amountCents,
           currency: "AOA",
           description: `SIGA Plus — plano ${plan.name} (${data.billing === "yearly" ? "anual" : "mensal"})`,
           customer: { name: schoolName, email: (school?.email as string | null) ?? "" },

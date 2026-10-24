@@ -91,6 +91,14 @@ describe("avaliações: âmbito do professor e período fechado", () => {
     );
   });
 
+  it("apagar avaliação passa pelo guarda de escrita (escola bloqueada, módulo «Leitura»)", () => {
+    const del = secure.slice(secure.indexOf("export const deleteAssessmentItem"));
+    expect(del.indexOf('requireSgaWriterForWrite("pedagogica"')).toBeGreaterThan(-1);
+    expect(del.indexOf('requireSgaWriterForWrite("pedagogica"')).toBeLessThan(
+      del.indexOf("delete_sga_assessment_item"),
+    );
+  });
+
   it("notas das avaliações: período aberto e pauta não oficial", () => {
     const scores = legacy.slice(legacy.indexOf("export const upsertAssessmentScores"));
     expect(scores.indexOf("assertAssessmentTermNotLocked")).toBeGreaterThan(-1);

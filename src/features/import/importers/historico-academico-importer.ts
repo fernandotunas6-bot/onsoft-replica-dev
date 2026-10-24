@@ -1,4 +1,6 @@
-import { normalizeText } from "../engine/normalize";
+import { rowsOrThrow } from "../engine/paged";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { normalizeGrade } from "@/features/education-catalog/normalize";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
@@ -8,14 +10,6 @@ type HistoricoAcademicoCache = ImportRefCache & {
   /** Chave → classe como está gravada (para actualizar a linha certa). */
   existingKeys: Map<string, string>;
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 /**
  * «10a classe», «10.ª Classe» e «décima classe» são a mesma classe: a chave usa
@@ -32,13 +26,21 @@ export const historicoAcademicoImporter: RowImporter = {
 
   async loadRefCache(ctx) {
     const students = await loadStudentRefs(ctx.db, ctx.schoolId);
-    const { data: existing } = await ctx.db
-      .from("student_academic_history")
-      .select("student_id, academic_year_label, grade_level")
-      .eq("school_id", ctx.schoolId);
+    // Todas as páginas: cortado nas 1000 linhas, um registo já importado entrava outra vez.
+    const existing = await rowsOrThrow(
+      readAllPages((from, to) =>
+        ctx.db
+          .from("student_academic_history")
+          .select("id, student_id, academic_year_label, grade_level")
+          .eq("school_id", ctx.schoolId)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      "Não foi possível carregar o histórico académico",
+    );
 
     const existingKeys = new Map(
-      (existing ?? []).map(
+      existing.map(
         (row: { student_id: string; academic_year_label: string; grade_level: string }) =>
           [
             historyKey(row.student_id, row.academic_year_label, row.grade_level),
