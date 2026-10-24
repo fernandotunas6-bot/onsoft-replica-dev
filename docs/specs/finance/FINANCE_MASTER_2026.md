@@ -36,24 +36,24 @@ O SIGA **não é software de facturação certificado pela AGT** (`saft-export.t
 
 Verificado a 24/10/2026 contra `pg_get_functiondef` na produção (só leitura). Pagamento manual e gateway passam pela mesma função, `private.register_payment`.
 
-| Regra                                              | Estado                     | Prova                                                                                                                      |
-| -------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Pagamento confirmado aplicado uma só vez (gateway) | Cumpre                     | Índice único `finance_receipts_school_external_id_key` presente na produção; leitura do evento anterior por `external_id`  |
-| Recibo único por liquidação (gateway)              | Cumpre                     | O mesmo índice; `receipt_number` único por escola                                                                          |
-| Pagamento parcial actualiza o saldo                | Cumpre                     | `register_payment`: fatura trancada `FOR UPDATE`, soma dos recibos `issued`, recusa excesso                                |
-| Estorno preserva o original                        | Cumpre                     | Recibo passa a `reversed` com autor, data e motivo; nada é apagado                                                         |
-| Fatura anulada não é liquidada                     | Cumpre                     | `register_payment` só aceita `open` e `partially_paid`                                                                     |
-| Precisão monetária                                 | Cumpre                     | `numeric(18,2)` na base                                                                                                    |
-| Isolamento por escola                              | Cumpre                     | Todas as leituras e escritas filtram `school_id`; AAL2 e `has_permission`                                                  |
-| Estorno recalcula o saldo correctamente            | **Corrigido, por aplicar** | O estorno ignorava a multa. Migração `20261024090000_reverse_receipt_counts_late_fee.sql`; 0 faturas afectadas na produção |
-| Falha de rede não duplica (manual)                 | **Parcial**                | O formulário bloqueia o duplo clique; repetir depois de um tempo esgotado gera segundo recibo. Ver pendência 1             |
+| Regra                                              | Estado                     | Prova                                                                                                                         |
+| -------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Pagamento confirmado aplicado uma só vez (gateway) | Cumpre                     | Índice único `finance_receipts_school_external_id_key` presente na produção; leitura do evento anterior por `external_id`     |
+| Recibo único por liquidação (gateway)              | Cumpre                     | O mesmo índice; `receipt_number` único por escola                                                                             |
+| Pagamento parcial actualiza o saldo                | Cumpre                     | `register_payment`: fatura trancada `FOR UPDATE`, soma dos recibos `issued`, recusa excesso                                   |
+| Estorno preserva o original                        | Cumpre                     | Recibo passa a `reversed` com autor, data e motivo; nada é apagado                                                            |
+| Fatura anulada não é liquidada                     | Cumpre                     | `register_payment` só aceita `open` e `partially_paid`                                                                        |
+| Precisão monetária                                 | Cumpre                     | `numeric(18,2)` na base                                                                                                       |
+| Isolamento por escola                              | Cumpre                     | Todas as leituras e escritas filtram `school_id`; AAL2 e `has_permission`                                                     |
+| Estorno recalcula o saldo correctamente            | **Corrigido, por aplicar** | O estorno ignorava a multa. Migração `20261024090000_reverse_receipt_counts_late_fee.sql`; 0 faturas afectadas na produção    |
+| Falha de rede não duplica (manual)                 | **Corrigido, por aplicar** | Chave de idempotência por tentativa. Migração `20261024100000_register_payment_idempotency_key.sql`; sem ela, paga como antes |
 
 ## Pendências que precisam de decisão
 
 Nenhuma destas se fecha só com código: cada uma escreve na produção, depende de terceiros ou de validação profissional.
 
-1. **Idempotência do pagamento manual.** Acrescentar `p_idempotency_key` a `register_payment` e um índice único `(school_id, idempotency_key)`; o formulário gera a chave ao abrir. Migração de esquema.
-2. **Aplicar a correcção do estorno** (`20261024090000`). Depois de aplicada, renomear para o carimbo que `apply_migration` gerar e recapturar o retrato.
+1. **Aplicar as duas migrações**, por esta ordem: `20261024090000` (estorno conta a multa) e `20261024100000` (chave de idempotência). O código do #276 funciona com ou sem elas, por isso podem ser aplicadas antes ou depois de o publicar. Depois de cada `apply_migration`, renomear o ficheiro para o carimbo registado e conferir o md5 do corpo; a segunda acrescenta uma coluna e um índice a `finance_receipts`, por isso recapturar o retrato.
+2. _(Juntou-se à 1.)_
 3. **Caixa por posto, com abertura e fecho de sessão.** Tabela nova (`finance_cash_sessions`), operador, diferença de caixa, relatório de fecho. Precisa de desenho aprovado.
 4. **Estados de pagamento unificados** (iniciado, a aguardar, confirmado, falhado, cancelado, reembolsado). Hoje a fatura tem `open/partially_paid/paid/cancelled`, a cobrança do gateway tem os seus, e o recibo `issued/reversed`. Unificar é decisão de modelo.
 5. **Contabilidade formal** (plano de contas, diário, razão, balancete). Não existe núcleo contabilístico — só tesouraria. Exige projecto técnico e validação de contabilista (PGC Angola).
