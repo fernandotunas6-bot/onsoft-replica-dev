@@ -519,13 +519,15 @@ function ComunicacoesPage() {
             <>
               <PageActionMenu>
                 <DocHelpButton title="Navegação — Comunicações" />
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => setTemplatesModalOpen(true)}
-                >
-                  <FileText className="size-4" /> Modelos
-                </Button>
+                {canManage ? (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setTemplatesModalOpen(true)}
+                  >
+                    <FileText className="size-4" /> Modelos
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   className="gap-2"
