@@ -1,4 +1,5 @@
 import type { Json } from "@/integrations/supabase/types";
+import { escapeLikePattern } from "@/lib/like-pattern";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { nullableHttpUrlSchema } from "@/lib/safe-url";
@@ -30,13 +31,13 @@ const updateSelfProfileSchema = z.object({
 });
 
 const opportunityActionSchema = z.object({
-  opportunityId: z.string().uuid(),
+  opportunityId: z.string().guid(),
   status: z.enum(["interested", "applied", "withdrawn"]).default("interested"),
 });
 
-const eventActionSchema = z.object({ eventId: z.string().uuid() });
+const eventActionSchema = z.object({ eventId: z.string().guid() });
 const surveyActionSchema = z.object({
-  surveyId: z.string().uuid(),
+  surveyId: z.string().guid(),
   response: z.record(z.string(), z.unknown()),
 });
 
@@ -82,10 +83,7 @@ export const claimMyAlumniProfile = createServerFn({ method: "POST" })
       .select("id, email")
       .eq("school_id", membership.schoolId)
       // ilike sem curingas: «_» e «%» no e-mail são letras, não padrões.
-      .ilike(
-        "email",
-        email.replace(/[\\%_]/g, (char) => `\\${char}`),
-      )
+      .ilike("email", escapeLikePattern(email))
       .maybeSingle();
     if (personError)
       throw publicDatabaseError(personError, "Não foi possível validar a identidade na escola.");

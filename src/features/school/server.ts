@@ -27,7 +27,11 @@ import {
   updateSchoolSettingsInputSchema,
 } from "./schemas";
 import { normalizeAngolaIban } from "@/lib/angola-banking";
-import { parseSettingsDomain, updateSettingsDomainValue } from "./settings-domains";
+import {
+  parseSettingsDomain,
+  readSettingsDomainRow,
+  updateSettingsDomainValue,
+} from "./settings-domains";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { validateSchoolNif } from "@/lib/angola-identity";
 
@@ -36,19 +40,6 @@ interface JsonMap {
   [key: string]: JsonValue;
 }
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
-
-async function readSettingDomain(db: AdminDb, schoolId: string, domain: string) {
-  const { data, error } = await db
-    .from("school_settings")
-    .select("id, domain, version, value")
-    .eq("school_id", schoolId)
-    .eq("domain", domain)
-    .maybeSingle();
-  if (error && !/schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
-    throw publicDatabaseError(error, `Não foi possível ler settings:${domain}.`);
-  }
-  return data as { id: string; domain: string; version: number; value: JsonMap } | null;
-}
 
 async function upsertSettingDomain(
   db: AdminDb,
@@ -94,14 +85,14 @@ export async function loadSchoolSettingsBundle(db: AdminDb, schoolId: string) {
       .order("id", { ascending: true })
       .limit(1)
       .maybeSingle(),
-    readSettingDomain(db, schoolId, "academic"),
-    readSettingDomain(db, schoolId, "preferences"),
-    readSettingDomain(db, schoolId, "billing"),
-    readSettingDomain(db, schoolId, "pedagogy"),
-    readSettingDomain(db, schoolId, "branding"),
-    readSettingDomain(db, schoolId, "institution"),
-    readSettingDomain(db, schoolId, "banking"),
-    readSettingDomain(db, schoolId, "agt"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "academic"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "preferences"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "billing"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "pedagogy"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "branding"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "institution"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "banking"),
+    readSettingsDomainRow<JsonMap>(db, schoolId, "agt"),
   ]);
 
   const brandingTableResult = await db
@@ -427,7 +418,7 @@ export const updateSchoolBanking = createServerFn({ method: "POST" })
     requireRecentVerification(context.claims, "Alterar os dados bancários da escola");
     const db = await loadSgaAdminClient();
     const iban = normalizeAngolaIban(data.iban);
-    const previous = await readSettingDomain(db, membership.schoolId, "banking");
+    const previous = await readSettingsDomainRow<JsonMap>(db, membership.schoolId, "banking");
     const previousValue = (previous?.value ?? {}) as Record<string, unknown>;
     const maskIban = (value: unknown) => {
       const text = String(value ?? "").replace(/\s+/g, "");
@@ -532,7 +523,7 @@ export const setTermLock = createServerFn({ method: "POST" })
       "Administrador",
     ]);
     const db = await loadSgaAdminClient();
-    const current = await readSettingDomain(db, membership.schoolId, "pedagogy");
+    const current = await readSettingsDomainRow<JsonMap>(db, membership.schoolId, "pedagogy");
     const pedagogy = pedagogySettingsSchema.safeParse(current?.value ?? {}).data ?? {
       teachingLevels: [],
       courses: [],

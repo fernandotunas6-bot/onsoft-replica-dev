@@ -15,7 +15,7 @@ import { corsPreflight, jsonWithCors } from "@/lib/ecosystem-cors";
 const APPS = ["admin"] as const;
 
 const repairInputSchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
   issueAccessLinks: z.boolean().optional().default(false),
 });
 
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/saas/tenants/admin-access")({
         try {
           await requirePlatformAdminFromRequest(request);
           const tenantId = new URL(request.url).searchParams.get("tenantId") ?? "";
-          if (!z.string().uuid().safeParse(tenantId).success) {
+          if (!z.string().guid().safeParse(tenantId).success) {
             return jsonWithCors(
               request,
               { error: "tenantId inválido." },

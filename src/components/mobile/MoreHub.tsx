@@ -53,9 +53,11 @@ export function MoreHub({
   const [area, setArea] = React.useState<string | null>(null);
   const higherEdOnly = isHigherEdOnly(school?.pedagogy?.teachingLevels ?? []);
   const groups = React.useMemo(() => {
-    const navigation = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
+    const navigation = getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
+      isAlumni: currentUser.isAlumni,
+    });
     return higherEdOnly ? withHigherEdVocabulary(navigation) : navigation;
-  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
+  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly, currentUser.isAlumni]);
   const context = getNavigationContext(groups, pathname, search);
   const areas = getNavigationAreas(groups);
   const selectedContext = areas.find((group) => group.title === area);

@@ -73,7 +73,7 @@ function nowInLuandaHhMm(now = new Date()) {
   }).format(now);
 }
 
-const agendaInputSchema = z.object({ studentId: z.string().uuid().optional() });
+const agendaInputSchema = z.object({ studentId: z.string().guid().optional() });
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 

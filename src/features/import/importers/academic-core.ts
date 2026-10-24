@@ -1,8 +1,9 @@
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalEntityKey } from "../engine/dedupe";
 import { normalizeDate, normalizeText } from "../engine/normalize";
 import { schoolTodayIso } from "@/lib/school-date";
-import { selectAllPages } from "../engine/paged";
+import { rowsOrThrow, selectAllPages } from "../engine/paged";
 import {
   normalizeGrade as catalogGrade,
   normalizePeriod,
@@ -202,14 +203,19 @@ export async function loadClassSubjectRefs(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<ClassSubjectRef[]> {
-  const { data, error } = await db
-    .from("class_subjects")
-    .select("id, class_group_id, subject_id, teacher_id")
-    .eq("school_id", schoolId)
-    .eq("status", "active");
-  if (error)
-    throw new Error(`Não foi possível carregar disciplinas atribuídas à turma: ${error.message}`);
-  return (data ?? []).map((row) => ({
+  const data = await rowsOrThrow(
+    readAllPages((from, to) =>
+      db
+        .from("class_subjects")
+        .select("id, class_group_id, subject_id, teacher_id")
+        .eq("school_id", schoolId)
+        .eq("status", "active")
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    "Não foi possível carregar disciplinas atribuídas à turma",
+  );
+  return data.map((row) => ({
     id: String(row.id),
     class_group_id: String(row.class_group_id),
     subject_id: String(row.subject_id),

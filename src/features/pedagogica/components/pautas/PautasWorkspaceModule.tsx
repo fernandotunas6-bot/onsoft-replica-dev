@@ -66,6 +66,7 @@ import type {
   Gender,
 } from "./types";
 import type { PromotionStatus } from "@/features/academic/assessment-engine";
+import { sexInitial } from "@/features/people/person-fields";
 
 /** PromotionStatus tem "PENDENTE" (sem notas ainda), que a Pauta impressa mostra como estado vazio. */
 function toStudentStatus(status: PromotionStatus): StudentStatus {
@@ -73,11 +74,7 @@ function toStudentStatus(status: PromotionStatus): StudentStatus {
 }
 
 /** people.sex guarda "male"/"female" em inglês; a Pauta usa a inicial em português (M/F). */
-function toGender(sex: string | null | undefined): Gender {
-  if (sex === "male") return "M";
-  if (sex === "female") return "F";
-  return "";
-}
+const toGender = (sex: string | null | undefined): Gender => sexInitial(sex);
 
 interface PautasWorkspaceModuleProps {
   workspace?: PedagogicalWorkspace | null | undefined;

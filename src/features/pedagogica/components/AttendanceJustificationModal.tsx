@@ -17,6 +17,7 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import {
   submitAttendanceJustification,
   reviewAttendanceJustification,
+  openAttendanceJustificationFile,
 } from "@/features/pedagogica/attendance-server";
 
 export function SubmitAttendanceJustificationModal({
@@ -157,6 +158,24 @@ export function ReviewAttendanceJustificationModal({
 }) {
   const queryClient = useQueryClient();
   const [reviewNotes, setReviewNotes] = useState("");
+  const [openingFile, setOpeningFile] = useState(false);
+  const openAttachment = async () => {
+    // A janela abre já (no clique), para o browser não a bloquear.
+    const tab = window.open("", "_blank");
+    setOpeningFile(true);
+    try {
+      const { url } = await openAttendanceJustificationFile({ data: { justificationId } });
+      if (tab) tab.location.href = url;
+      else window.location.assign(url);
+    } catch (error) {
+      tab?.close();
+      toast.error("Não foi possível abrir o anexo", {
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
+    } finally {
+      setOpeningFile(false);
+    }
+  };
 
   const reviewMutation = useMutation({
     mutationFn: reviewAttendanceJustification,
@@ -193,9 +212,16 @@ export function ReviewAttendanceJustificationModal({
             <p className="font-semibold text-muted-foreground">Motivo apresentado:</p>
             <p className="mt-1 font-medium text-foreground">{reason}</p>
             {fileName ? (
-              <p className="mt-2 text-primary font-semibold flex items-center gap-1">
-                <Paperclip className="size-3.5" /> Anexo: {fileName}
-              </p>
+              // Antes só se via o nome: quem decidia não conseguia abrir o atestado.
+              <Button
+                type="button"
+                variant="link"
+                className="mt-2 h-auto gap-1 p-0 text-xs font-semibold"
+                disabled={openingFile}
+                onClick={() => void openAttachment()}
+              >
+                <Paperclip className="size-3.5" /> Abrir anexo: {fileName}
+              </Button>
             ) : null}
           </div>
 

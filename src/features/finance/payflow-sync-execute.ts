@@ -5,7 +5,7 @@
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { schoolTodayIso } from "@/lib/school-date";
-import { invoiceNetTotal } from "./invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
 
 export type PayflowStudentSyncResult = {
   ok: true;
@@ -161,6 +161,27 @@ export async function executePayflowStudentSync(input: {
     : { data: [] as Array<{ id: string; name: string }> };
   const feeNameById = new Map((feeItems ?? []).map((f) => [f.id, f.name]));
 
+  // O que já foi pago (recibos válidos): uma fatura paga em parte na tesouraria ia para o
+  // PayFlow pelo total, e o encarregado pagava outra vez a parte já paga (o SIGA recusava
+  // o excesso na liquidação, depois de o dinheiro estar recebido).
+  const invoiceIds = invoiceRows.map((row) => row.id);
+  const { data: receipts, error: receiptsError } = invoiceIds.length
+    ? await db
+        .from("finance_receipts")
+        .select("invoice_id, amount, status")
+        .eq("school_id", input.schoolId)
+        .in("invoice_id", invoiceIds)
+    : { data: [] as Array<{ invoice_id: string; amount: number; status: string }>, error: null };
+  if (receiptsError) {
+    throw publicDatabaseError(receiptsError, "Não foi possível carregar os recibos do aluno.");
+  }
+  const paidByInvoice = new Map<string, number>();
+  for (const receipt of receipts ?? []) {
+    if (receipt.status === "reversed") continue;
+    const key = String(receipt.invoice_id);
+    paidByInvoice.set(key, (paidByInvoice.get(key) ?? 0) + Number(receipt.amount ?? 0));
+  }
+
   const settings = await loadSchoolSettingsBundle(db, input.schoolId);
   const bank = buildPayflowBankAccount({
     schoolId: input.schoolId,
@@ -192,9 +213,12 @@ export async function executePayflowStudentSync(input: {
     },
     invoices: invoiceRows
       .map((invoice) => {
-        // Total a pagar, com a multa por atraso já aplicada (invoice-settlement.ts).
+        // Total a pagar, com a multa por atraso já aplicada (invoice-settlement.ts), menos o
+        // que os recibos já pagaram. Liquidada vai como paga, pelo total.
         const net = invoiceNetTotal(invoice);
-        const amount = kzToMinorUnits(net);
+        const open = invoiceOpenAmount(net, paidByInvoice.get(invoice.id) ?? 0);
+        const settled = invoice.status === "paid" || open <= 0;
+        const amount = kzToMinorUnits(settled ? net : open);
         if (amount <= 0) return null;
         const due = invoice.due_date || schoolTodayIso();
         const feeName = invoice.fee_item_id ? feeNameById.get(invoice.fee_item_id) : null;
@@ -206,7 +230,9 @@ export async function executePayflowStudentSync(input: {
           amount,
           currency: "AOA",
           due_date: due,
-          status: mapInvoiceStatusToPayflow(invoice.status, invoice.due_date),
+          status: settled
+            ? ("paid" as const)
+            : mapInvoiceStatusToPayflow(invoice.status, invoice.due_date),
         };
       })
       .filter((row): row is NonNullable<typeof row> => row !== null),

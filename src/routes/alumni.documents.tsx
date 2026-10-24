@@ -20,6 +20,8 @@ const statusLabels: Record<string, string> = {
   approved: "Aprovado",
   rejected: "Rejeitado",
   cancelled: "Cancelado",
+  // Faltava: um pedido entregue aparecia com o código cru «fulfilled».
+  fulfilled: "Entregue",
 };
 
 function AlumniDocumentsPage() {
@@ -134,7 +136,10 @@ function AlumniDocumentsPage() {
                           <p className="mt-3 text-sm text-muted-foreground">{request.purpose}</p>
                         ) : null}
                         <p className="mt-3 text-[11px] text-muted-foreground">
-                          Pedido em {new Date(request.createdAt).toLocaleDateString("pt-AO")}
+                          Pedido em{" "}
+                          {new Date(request.createdAt).toLocaleDateString("pt-AO", {
+                            timeZone: "Africa/Luanda",
+                          })}
                         </p>
                       </div>
                     ))

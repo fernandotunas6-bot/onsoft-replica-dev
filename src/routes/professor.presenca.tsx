@@ -7,9 +7,9 @@ import { TeacherAttendancePanel } from "@/features/hr/TeacherAttendancePanel";
 
 const presenceSearchSchema = z.object({
   chamada: z.coerce.number().optional().catch(undefined),
-  sessao: z.string().uuid().optional().catch(undefined),
-  turma: z.string().uuid().optional().catch(undefined),
-  disciplina: z.string().uuid().optional().catch(undefined),
+  sessao: z.string().guid().optional().catch(undefined),
+  turma: z.string().guid().optional().catch(undefined),
+  disciplina: z.string().guid().optional().catch(undefined),
   data: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)

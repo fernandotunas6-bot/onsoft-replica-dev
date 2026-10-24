@@ -7,6 +7,7 @@ import {
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
 import { assertAssessmentTermNotLocked } from "@/features/academic/sga-grades";
+import { escapeLikePattern } from "@/lib/like-pattern";
 import {
   createLessonPlanInputSchema,
   deleteLessonPlanInputSchema,
@@ -258,6 +259,45 @@ function isLessonPlanStaff(membership: { appRole: string; allAppRoles?: string[]
   return ["Administrador", "Secretaria", "Professor"].some((role) => roles.includes(role));
 }
 
+/**
+ * Turmas que um aluno ou encarregado pode ver: as das matrículas do próprio aluno ou dos
+ * seus educandos. `null` para quem não é aluno nem encarregado. Antes viam os planos
+ * publicados de todas as turmas da escola.
+ */
+async function familyClassGroupIds(
+  db: Db,
+  membership: { schoolId: string; appRole: string; allAppRoles?: string[] },
+  userId: string,
+): Promise<string[] | null> {
+  if (isLessonPlanStaff(membership)) return null;
+  const roles = membership.allAppRoles ?? [membership.appRole];
+  if (!roles.some((role) => role === "Aluno" || role === "Encarregado")) return null;
+  const { resolveUserLinkedEntities } = await import("@/features/auth/server");
+  const linked = await resolveUserLinkedEntities(db, membership.schoolId, userId);
+  const studentIds = [
+    ...new Set(
+      [linked.student_id, ...linked.linked_students.map((row) => row.student_id)].filter(
+        (id): id is string => Boolean(id),
+      ),
+    ),
+  ];
+  if (!studentIds.length) return [];
+  const { data, error } = await db
+    .from("enrollments")
+    .select("class_group_id")
+    .eq("school_id", membership.schoolId)
+    .in("student_id", studentIds)
+    .in("status", ["active", "pending"]);
+  if (error) throw publicDatabaseError(error, "Não foi possível carregar os planos de aula.");
+  return [
+    ...new Set(
+      (data ?? [])
+        .map((row: { class_group_id: string | null }) => row.class_group_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+}
+
 async function ownTeacherIds(db: Db, schoolId: string, userId: string) {
   const ids = new Set<string>();
   const { data: direct } = await db
@@ -319,13 +359,17 @@ async function assertLessonPlanScope(
 async function loadPlanScope(db: Db, schoolId: string, planId: string) {
   const { data: plan, error } = await db
     .from("siga_lesson_plans")
-    .select("id, class_group_id, subject_id")
+    .select("id, class_group_id, subject_id, term")
     .eq("id", planId)
     .eq("school_id", schoolId)
     .maybeSingle();
   if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano de aula.");
   if (!plan) throw new Error("Plano de aula não encontrado.");
-  return { classGroupId: String(plan.class_group_id), subjectId: String(plan.subject_id) };
+  return {
+    classGroupId: String(plan.class_group_id),
+    subjectId: String(plan.subject_id),
+    term: plan.term as unknown,
+  };
 }
 
 export const listLessonPlans = createServerFn({ method: "GET" })
@@ -346,6 +390,15 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       .limit(data.limit);
     // Rascunhos são do corpo docente; alunos e encarregados só vêem os publicados.
     if (!isLessonPlanStaff(membership)) query = query.eq("status", "published");
+    const familyClasses = await familyClassGroupIds(db, membership, context.userId);
+    if (familyClasses) {
+      if (!familyClasses.length) return { available: true, plans: [] };
+      query = query.in("class_group_id", familyClasses);
+    }
+    // A pesquisa vai à base: filtrada depois do limite, um plano antigo com o título
+    // procurado nunca aparecia.
+    if (data.query?.trim())
+      query = query.ilike("title", `%${escapeLikePattern(data.query.trim())}%`);
     if (data.classGroupId) query = query.eq("class_group_id", data.classGroupId);
     if (data.subjectId) query = query.eq("subject_id", data.subjectId);
     if (data.term) query = query.eq("term", data.term);
@@ -355,14 +408,7 @@ export const listLessonPlans = createServerFn({ method: "GET" })
       if (isMissingRelation(error)) return { available: false, plans: [] };
       throw publicDatabaseError(error, "Não foi possível carregar os planos de aula.");
     }
-    const rows = (plans ?? []) as Array<Record<string, unknown>>;
-    const filtered = data.query
-      ? rows.filter((row) =>
-          String(row["title"] ?? "")
-            .toLowerCase()
-            .includes(data.query!.trim().toLowerCase()),
-        )
-      : rows;
+    const filtered = (plans ?? []) as Array<Record<string, unknown>>;
 
     const planIds = filtered.map((row) => String(row["id"] ?? ""));
     const { data: components } = planIds.length
@@ -448,6 +494,10 @@ export const getLessonPlan = createServerFn({ method: "GET" })
     if (!isLessonPlanStaff(membership) && plan.status !== "published") {
       throw new Error("Plano de aula não encontrado.");
     }
+    const familyClasses = await familyClassGroupIds(db, membership, context.userId);
+    if (familyClasses && !familyClasses.includes(String(plan.class_group_id))) {
+      throw new Error("Plano de aula não encontrado.");
+    }
     const { data: components } = await db
       .from("siga_lesson_plan_components")
       .select("id, kind, name, planned_count, sequence")
@@ -526,6 +576,27 @@ export const updateLessonPlan = createServerFn({ method: "POST" })
       current.subjectId,
     );
     await assertLessonPlanScope(db, membership, context.userId, data.classGroupId, data.subjectId);
+    // As avaliações do plano já estão na pauta da turma, disciplina e período dele.
+    // Mudar qualquer um dos três deixava-as na pauta antiga, ligadas a um plano que
+    // já não é dessa turma (e as contas seguintes misturavam as duas).
+    const movesScope =
+      current.classGroupId !== data.classGroupId ||
+      current.subjectId !== data.subjectId ||
+      String(current.term ?? "") !== String(data.term ?? "");
+    if (movesScope) {
+      const { count, error: countError } = await db
+        .from("siga_lesson_plan_components")
+        .select("id", { count: "exact", head: true })
+        .eq("lesson_plan_id", data.id);
+      if (countError) {
+        throw publicDatabaseError(countError, "Não foi possível validar o plano de aula.");
+      }
+      if (count) {
+        throw new Error(
+          "Este plano já tem avaliações na pauta: não pode mudar de turma, disciplina ou período. Crie um plano novo.",
+        );
+      }
+    }
     const { data: updated, error } = await db
       .from("siga_lesson_plans")
       .update({

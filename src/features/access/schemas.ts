@@ -9,24 +9,24 @@ export const inviteUserInputSchema = z.object({
 export type InviteUserInput = z.infer<typeof inviteUserInputSchema>;
 
 export const updateAccountCargoInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
   cargo: z.enum(applicationRoles),
 });
 export type UpdateAccountCargoInput = z.infer<typeof updateAccountCargoInputSchema>;
 
 export const setAccountDisabledInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
   disabled: z.boolean(),
 });
 export type SetAccountDisabledInput = z.infer<typeof setAccountDisabledInputSchema>;
 
 export const resendSystemInviteInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
 });
 export type ResendSystemInviteInput = z.infer<typeof resendSystemInviteInputSchema>;
 
 export const resetStaffPasswordInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
   newPassword: z.string().min(8),
 });
 export type ResetStaffPasswordInput = z.infer<typeof resetStaffPasswordInputSchema>;
@@ -39,7 +39,7 @@ export const createSchoolInvitationInputSchema = z.object({
 export type CreateSchoolInvitationInput = z.infer<typeof createSchoolInvitationInputSchema>;
 
 export const revokeSchoolInvitationInputSchema = z.object({
-  invitationId: z.string().uuid(),
+  invitationId: z.string().guid(),
 });
 export type RevokeSchoolInvitationInput = z.infer<typeof revokeSchoolInvitationInputSchema>;
 

@@ -265,6 +265,26 @@ export async function updateTenantSubscription(input: {
     });
     if (refusal) throw new Error(refusal);
   }
+  const paying = input.confirm_payment_months ?? input.confirm_payment_billing;
+  if (paying && input.payment_reference?.trim()) {
+    // O mesmo pagamento registado duas vezes (repetição depois de um erro de rede)
+    // somava dois períodos pagos.
+    const { data: repeated, error: repeatedErr } = await db
+      .from("saas_audit_logs")
+      .select("id")
+      .eq("tenant_id", input.tenantId)
+      .eq("action", "TENANT_SUBSCRIPTION_UPDATED")
+      .eq("metadata->>payment_reference", input.payment_reference.trim())
+      .limit(1);
+    if (repeatedErr) {
+      throw publicDatabaseError(repeatedErr, "Não foi possível confirmar o pagamento.");
+    }
+    if (repeated?.length) {
+      throw new Error(
+        `O pagamento com a referência ${input.payment_reference.trim()} já foi registado.`,
+      );
+    }
+  }
 
   const patch: TablesUpdate<"tenants"> = { updated_at: new Date().toISOString() };
   const metadata: Record<string, unknown> = {};
@@ -323,7 +343,9 @@ export async function updateTenantSubscription(input: {
     metadata.payment_confirmed = true;
     metadata.billing = paidMonths === 12 ? "yearly" : paidMonths === 1 ? "monthly" : undefined;
     metadata.months = paidMonths;
-    if (input.payment_reference) metadata.payment_reference = input.payment_reference;
+    if (input.payment_reference?.trim()) {
+      metadata.payment_reference = input.payment_reference.trim();
+    }
     metadata.paid_until = paidUntil;
   }
 

@@ -27,8 +27,8 @@ import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
 const planosSearchSchema = z.object({
-  turma: z.string().uuid().optional().catch(undefined),
-  disciplina: z.string().uuid().optional().catch(undefined),
+  turma: z.string().guid().optional().catch(undefined),
+  disciplina: z.string().guid().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/planos-aula")({

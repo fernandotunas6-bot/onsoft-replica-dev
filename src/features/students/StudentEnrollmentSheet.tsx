@@ -244,6 +244,9 @@ export function StudentEnrollmentSheet({
             }
           }
           const turma = classGroups.find((group) => group.id === values.turmaId);
+          // A lotação é uma regra da base (enroll_student): não há matrícula acima
+          // dela. O ecrã oferecia «continuar com a matrícula extraordinária», que
+          // depois falhava com o aluno já criado e sem turma.
           if (
             turma &&
             typeof turma.capacity === "number" &&

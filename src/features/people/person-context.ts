@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { schoolTodayIso } from "@/lib/school-date";
-import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "@/features/finance/invoice-settlement";
 
 export type PersonAcademicSummary = {
   total_enrollments: number;
@@ -181,7 +181,7 @@ export async function resolvePersonContext(
         for (const invoice of invoices ?? []) {
           const amount = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(invoice.id) ?? 0;
-          const open = Math.max(amount - paid, 0);
+          const open = invoiceOpenAmount(amount, paid);
           balance += open;
           if (open > 0 && invoice.due_date && invoice.due_date < today) overdueCount += 1;
         }
