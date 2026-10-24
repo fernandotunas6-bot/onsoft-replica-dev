@@ -821,7 +821,7 @@ function FaturasPage() {
                         className="text-xs cursor-pointer text-primary font-medium"
                         onClick={() => void handleValidateSaftAo(new Date().getFullYear())}
                       >
-                        Validar Estrutura AGT
+                        Verificar estrutura do XML
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
@@ -1002,11 +1002,13 @@ function FaturasPage() {
           <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3">
             <AppMark id="agt" className="size-9 shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-semibold">AGT · faturação electrónica</p>
+              <p className="text-sm font-semibold">AGT · documentos internos</p>
               <p className="text-xs text-muted-foreground">
                 {school?.nif
-                  ? `NIF da escola ${school.nif}. Instale a AGT no lançador para activar faturação electrónica neste módulo.`
-                  : "Defina o NIF da escola nas definições e instale a AGT para alinhar as faturas."}
+                  ? `NIF da escola ${school.nif}. `
+                  : "Defina o NIF da escola nas definições. "}
+                O SIGA não é software de facturação certificado pela AGT: estas faturas servem para
+                cobrança e conferência, e o documento fiscal emite-se no software certificado.
               </p>
             </div>
           </div>
