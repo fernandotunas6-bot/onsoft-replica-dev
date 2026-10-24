@@ -195,6 +195,15 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
   });
 });
 
+/** React sintetiza onPointerEnter a partir de pointerover, não de pointerenter
+ * no DOM do jsdom. Forçar pointerType distingue rato de touch no teste.
+ */
+function hoverWithMouse(element: Element) {
+  const event = new window.Event("pointerover", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "pointerType", { value: "mouse" });
+  fireEvent(element, event);
+}
+
 describe("AppSidebar — flyouts contextuais à direita", () => {
   it("apresenta subfunções sem expandir verticalmente a sidebar", async () => {
     currentPathname = "/portal";
@@ -218,7 +227,7 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     currentPathname = "/portal";
     renderSidebar();
     const secretaria = screen.getByRole("button", { name: "Secretaria" });
-    fireEvent.pointerEnter(secretaria, { pointerType: "mouse" });
+    hoverWithMouse(secretaria);
     const flyout = await screen.findByRole("dialog");
     expect(flyout.getAttribute("data-nav-flyout")).toBe("");
     expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
@@ -227,7 +236,7 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
   it("hover da escola abre um menu não-modal que preserva o resto da sidebar", async () => {
     renderSidebar();
     const school = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
-    fireEvent.pointerEnter(school, { pointerType: "mouse" });
+    hoverWithMouse(school);
     const menu = await screen.findByRole("menu");
     expect(menu.hasAttribute("data-school-flyout")).toBe(true);
     expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeTruthy();
