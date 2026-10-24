@@ -24,7 +24,7 @@ import {
 } from "@/features/school-website/blog-server";
 import { BLOG_PREFIX, changeSchoolBlogState } from "@/features/school-website/blog-model";
 import { schoolWebsiteTestDb } from "./fake-db";
-const context = { supabase: {}, userId: "admin-a" };
+const context = { supabase: {}, userId: "admin-a", claims: { aal: "aal2" } };
 const draft = {
   title: "Notícia escolar",
   excerpt: "Resumo público",
@@ -37,8 +37,8 @@ const draft = {
 const invoke = (fn: unknown, input: unknown) => (fn as (input: unknown) => Promise<unknown>)(input);
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.read.mockResolvedValue({ schoolId: "school-a" });
-  mocks.write.mockResolvedValue({ schoolId: "school-a" });
+  mocks.read.mockResolvedValue({ schoolId: "school-a", appRole: "Administrador" });
+  mocks.write.mockResolvedValue({ schoolId: "school-a", appRole: "Administrador" });
   mocks.update.mockImplementation(async (_db, _school, _domain, change) => change(null));
 });
 describe("blog administrado por escola", () => {
@@ -98,4 +98,38 @@ describe("blog administrado por escola", () => {
     expect(mocks.update.mock.calls[0][1]).toBe("school-a");
     expect(mocks.update.mock.calls[0][2]).toBe(BLOG_PREFIX + "noticia");
   });
+});
+
+describe("identidade institucional reservada ao administrador com MFA", () => {
+  it.each(["Secretaria", "Professor", "Tesouraria", "Aluno", "Encarregado", ""])(
+    "recusa %s mesmo quando o guarda de módulo concedeu acesso extraordinário",
+    async (appRole) => {
+      mocks.read.mockResolvedValue({ schoolId: "school-a", appRole });
+      mocks.write.mockResolvedValue({ schoolId: "school-a", appRole });
+      await expect(invoke(listSchoolBlog, { context, data: { page: 0 } })).rejects.toThrow(
+        /Administrador/,
+      );
+      await expect(
+        invoke(changeSchoolBlog, {
+          context,
+          data: { slug: "noticia", action: "save", expectedRevision: 0, draft },
+        }),
+      ).rejects.toThrow(/Administrador/);
+      expect(mocks.db).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["aal1", undefined, "aal3"])(
+    "recusa alterações com aal=%s antes do cliente privilegiado",
+    async (aal) => {
+      await expect(
+        invoke(changeSchoolBlog, {
+          context: { ...context, claims: { aal } },
+          data: { slug: "noticia", action: "save", expectedRevision: 0, draft },
+        }),
+      ).rejects.toThrow(/2FA/);
+      expect(mocks.db).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
+    },
+  );
 });
