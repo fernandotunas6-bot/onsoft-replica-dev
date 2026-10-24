@@ -113,8 +113,8 @@ function TreasuryPage() {
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Saldo de caixa", value: summary?.cash_balance },
-            { label: "Entradas", value: summary?.cash_in },
+            { label: "Saldo em numerário", value: summary?.drawer_balance },
+            { label: "Saldo bancário registado", value: summary?.bank_balance },
             { label: "Saídas", value: summary?.cash_out },
             { label: "Por cobrar (em atraso)", value: summary?.overdue },
           ].map((k) => (

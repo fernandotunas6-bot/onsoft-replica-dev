@@ -849,7 +849,11 @@ function FinanceiroPage() {
           collapsible
           storageKey="financeiro"
           items={[
-            { label: "Saldo actual", value: kwanza(saldo), hint: "Caixa + banco" },
+            {
+              label: "Saldo actual",
+              value: kwanza(saldo),
+              hint: `Numerário ${kwanza(Number(summary?.drawer_balance ?? 0))} · banco ${kwanza(Number(summary?.bank_balance ?? 0))}`,
+            },
             {
               label: "Entradas do período",
               value: kwanza(entradas),

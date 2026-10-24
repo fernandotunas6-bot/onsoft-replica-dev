@@ -31,6 +31,7 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal } from "./invoice-settlement";
+import { splitCashBalances } from "./cash-balances";
 import { discountAmountFor, effectiveDiscountPercent, scholarshipPercentFor } from "./scholarships";
 import { scholarshipsOfStudent } from "./student-scholarship-server";
 import { lateFeeFor, paidOnIso, todayIso } from "./late-fee";
@@ -409,6 +410,8 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
           cash_in: 0,
           cash_out: 0,
           cash_balance: 0,
+          drawer_balance: 0,
+          bank_balance: 0,
           truncated: false,
         },
         monthly: [],
@@ -446,7 +449,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
       fetchAllRows("Não foi possível calcular os recebimentos.", (from, to) =>
         db
           .from("finance_receipts")
-          .select("id, amount, paid_on, status, invoice_id")
+          .select("id, amount, paid_on, status, invoice_id, payment_method")
           .eq("school_id", membership.schoolId)
           .order("paid_on", { ascending: true })
           .range(from, to),
@@ -455,7 +458,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
         ? fetchAllRows("Não foi possível calcular as despesas.", (from, to) =>
             db
               .from("siga_cash_expenses")
-              .select("id, amount, category, occurred_at, status")
+              .select("id, amount, category, occurred_at, status, method")
               .eq("school_id", membership.schoolId)
               .order("occurred_at", { ascending: true })
               .range(from, to),
@@ -571,6 +574,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
         cash_in: cashIn,
         cash_out: cashOut,
         cash_balance: cashIn - cashOut,
+        ...splitCashBalances(receipts ?? [], expenses),
         truncated,
       },
       monthly: [...monthlyMap.entries()]

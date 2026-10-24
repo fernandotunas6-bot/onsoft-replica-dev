@@ -83,6 +83,8 @@ const emptyReporting: Reporting = {
     cash_in: 0,
     cash_out: 0,
     cash_balance: 0,
+    drawer_balance: 0,
+    bank_balance: 0,
     truncated: false,
   },
   monthly: [],
