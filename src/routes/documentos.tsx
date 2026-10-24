@@ -9,6 +9,8 @@ import { Download, FileBadge, FileCheck2, FileDown, FilePlus2, FileStack, X } fr
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -133,6 +135,13 @@ const advanceActionLabel: Record<string, string> = {
 
 function DocumentosPage() {
   const realtimeInstanceId = useId();
+  const account = useCurrentAccount();
+  // A biblioteca da secretaria (Arquivos) é só da equipa; alunos e encarregados também
+  // abrem esta página para os seus pedidos.
+  const canUseLibrary = canAccessPath("/arquivos", account.role, account.grants);
+  // Registar, avançar, recusar e cancelar pedidos e editar modelos é da secretaria (o
+  // servidor só o aceita a Administrador e Secretaria); os outros acompanham os seus.
+  const canManage = account.role === "Administrador" || account.role === "Secretaria";
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.documents");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -155,6 +164,7 @@ function DocumentosPage() {
   const printCatalogQuery = useQuery({
     queryKey: ["documents", "print-templates"],
     queryFn: () => listPrintTemplates(),
+    enabled: canManage,
   });
   const activeTemplate = useMemo(() => {
     const issue = printCatalogQuery.data?.issue;
@@ -423,7 +433,8 @@ function DocumentosPage() {
    * de queries. É o mesmo motivo das faturas: duas cópias divergem na primeira
    * mudança de fluxo da secretaria.
    */
-  function DocumentoActions({ d }: { d: (typeof filtered)[number] }) {
+  function DocumentoActions({ d: row }: { d: (typeof filtered)[number] }) {
+    const d = canManage ? row : { ...row, nextStatus: null };
     return (
       <div className="flex flex-wrap justify-end gap-2">
         {d.nextStatus ? (
@@ -577,11 +588,13 @@ function DocumentosPage() {
           actions={
             <>
               <DocHelpButton title="Navegação — Documentos e permissões" />
-              <Button variant="outline" className="gap-2" asChild>
-                <a href="#modelos">
-                  <FileStack className="size-4" /> Modelos
-                </a>
-              </Button>
+              {canManage ? (
+                <Button variant="outline" className="gap-2" asChild>
+                  <a href="#modelos">
+                    <FileStack className="size-4" /> Modelos
+                  </a>
+                </Button>
+              ) : null}
               <Button variant="outline" className="gap-2" onClick={exportarDocumentosCsv}>
                 <Download className="size-4" /> CSV
               </Button>
@@ -591,78 +604,84 @@ function DocumentosPage() {
               <Button variant="outline" className="gap-2" onClick={exportarDocumentosOficial}>
                 <FileBadge className="size-4" /> Oficial
               </Button>
-              <PickFileButton
-                area="secretaria"
-                onPick={(file) =>
-                  toast.success(file.name, { description: "Ficheiro da secretaria seleccionado." })
-                }
-              />
-              <QuickFormModal
-                title="Novo pedido de documento"
-                eyebrow="Secretaria"
-                description="Registe o pedido, o tipo de documento e a taxa associada."
-                icon={<FilePlus2 className="size-5" />}
-                submitLabel="Registar pedido"
-                fields={[
-                  {
-                    name: "aluno",
-                    label: "Aluno",
-                    type: "select",
-                    options: studentOptions,
-                    full: true,
-                  },
-                  {
-                    name: "modelo",
-                    label: "Modelo de documento",
-                    type: "select",
-                    options: templateOptions,
-                  },
-                  { name: "numero", label: "Número do pedido", placeholder: "DOC 2025/0001" },
-                  {
-                    name: "prazo",
-                    label: "Prazo de entrega",
-                    type: "date",
-                    required: false,
-                  },
-                  {
-                    name: "urgencia",
-                    label: "Urgência",
-                    type: "select",
-                    options: ["Normal", "Urgente"],
-                  },
-                  { name: "notas", label: "Notas internas", type: "textarea", full: true },
-                ]}
-                onSubmit={async (values) => {
-                  const student = students[studentOptions.indexOf(values["aluno"] ?? "")];
-                  const template = templates[templateOptions.indexOf(values["modelo"] ?? "")];
-                  if (!student || !template) throw new Error("Selecione aluno e modelo válidos.");
-                  await createDocumentRequest({
-                    data: {
-                      studentId: student.id,
-                      templateId: template.id,
-                      requestNumber: values["numero"],
-                      priority: values["urgencia"] === "Urgente" ? "urgent" : "normal",
-                      dueOn: values["prazo"] || undefined,
-                      notes: values["notas"] || undefined,
+              {canUseLibrary ? (
+                <PickFileButton
+                  area="secretaria"
+                  onPick={(file) =>
+                    toast.success(file.name, {
+                      description: "Ficheiro da secretaria seleccionado.",
+                    })
+                  }
+                />
+              ) : null}
+              {canManage ? (
+                <QuickFormModal
+                  title="Novo pedido de documento"
+                  eyebrow="Secretaria"
+                  description="Registe o pedido, o tipo de documento e a taxa associada."
+                  icon={<FilePlus2 className="size-5" />}
+                  submitLabel="Registar pedido"
+                  fields={[
+                    {
+                      name: "aluno",
+                      label: "Aluno",
+                      type: "select",
+                      options: studentOptions,
+                      full: true,
                     },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
-                }}
-                trigger={(open) => (
-                  <Button
-                    className="gap-2"
-                    onClick={open}
-                    disabled={!students.length || !templates.length}
-                  >
-                    <FilePlus2 className="size-4" /> Novo pedido
-                  </Button>
-                )}
-              />
+                    {
+                      name: "modelo",
+                      label: "Modelo de documento",
+                      type: "select",
+                      options: templateOptions,
+                    },
+                    { name: "numero", label: "Número do pedido", placeholder: "DOC 2025/0001" },
+                    {
+                      name: "prazo",
+                      label: "Prazo de entrega",
+                      type: "date",
+                      required: false,
+                    },
+                    {
+                      name: "urgencia",
+                      label: "Urgência",
+                      type: "select",
+                      options: ["Normal", "Urgente"],
+                    },
+                    { name: "notas", label: "Notas internas", type: "textarea", full: true },
+                  ]}
+                  onSubmit={async (values) => {
+                    const student = students[studentOptions.indexOf(values["aluno"] ?? "")];
+                    const template = templates[templateOptions.indexOf(values["modelo"] ?? "")];
+                    if (!student || !template) throw new Error("Selecione aluno e modelo válidos.");
+                    await createDocumentRequest({
+                      data: {
+                        studentId: student.id,
+                        templateId: template.id,
+                        requestNumber: values["numero"],
+                        priority: values["urgencia"] === "Urgente" ? "urgent" : "normal",
+                        dueOn: values["prazo"] || undefined,
+                        notes: values["notas"] || undefined,
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
+                  }}
+                  trigger={(open) => (
+                    <Button
+                      className="gap-2"
+                      onClick={open}
+                      disabled={!students.length || !templates.length}
+                    >
+                      <FilePlus2 className="size-4" /> Novo pedido
+                    </Button>
+                  )}
+                />
+              ) : null}
             </>
           }
         />
 
-        {printCatalogQuery.data ? (
+        {canManage && printCatalogQuery.data ? (
           <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
             {activeTemplate ? (
               <>
@@ -956,7 +975,7 @@ function DocumentosPage() {
           </div>
         </Panel>
 
-        <PrintTemplateStudio />
+        {canManage ? <PrintTemplateStudio /> : null}
       </div>
     </AppShell>
   );
