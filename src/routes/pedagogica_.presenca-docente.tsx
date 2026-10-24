@@ -22,7 +22,7 @@ function TeacherQrIssuerPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Pedagógica"
+          group="Académico"
           title="Presença dos professores"
           description="A Direcção Pedagógica sincroniza o horário publicado e apresenta na sala o QR temporário da aula."
           actions={

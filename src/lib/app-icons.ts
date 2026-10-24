@@ -11,6 +11,7 @@
  * por dois conceitos diferentes.
  */
 import {
+  ArrowLeftRight,
   CreditCard,
   Banknote,
   BookOpen,
@@ -116,6 +117,8 @@ export const moduleIcons = {
   institutionalLink: UserRoundCheck,
   /** Tesouraria: caixa e cobranças do dia. */
   treasury: Landmark,
+  /** Bancos e conciliação: cobranças do gateway contra o que entrou. */
+  reconciliation: ArrowLeftRight,
   /** Acompanhamento de alunos em risco de insucesso. */
   studentRisk: TrendingDown,
   /** Diagnóstico de erros do sistema. */

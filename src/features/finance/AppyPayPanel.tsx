@@ -145,7 +145,7 @@ export function AppyPayPanel() {
       ) : !charges.data?.length ? (
         <EmptyState
           title="Sem cobranças"
-          description="Use “Cobrar” numa factura pendente para criar uma referência."
+          description="Use “Cobrar” numa factura pendente da Tesouraria para criar uma referência."
         />
       ) : (
         <ul className="divide-y divide-border text-sm">

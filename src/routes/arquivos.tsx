@@ -32,7 +32,7 @@ function ArquivosPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Aplicativos"
+          group="Gestão e Comunicação"
           title="Arquivos"
           description="Biblioteca no estilo Google Drive & Moodle: gestão de documentos pedagógicos, carregamento sem burocracia, pastas por turma, miniaturas em tempo real e auditoria institucional."
           actions={

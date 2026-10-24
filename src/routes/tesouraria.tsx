@@ -10,11 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getFinanceReporting, listCashEntries, listInvoices } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
-import {
-  AppyPayPanel,
-  ChargeInvoiceButton,
-  useAppyPayStatus,
-} from "@/features/finance/AppyPayPanel";
+import { ChargeInvoiceButton, useAppyPayStatus } from "@/features/finance/AppyPayPanel";
 import { schoolTodayIso } from "@/lib/school-date";
 
 export const Route = createFileRoute("/tesouraria")({
@@ -283,8 +279,6 @@ function TreasuryPage() {
             </div>
           )}
         </Panel>
-
-        <AppyPayPanel />
 
         <Panel
           title="Últimos movimentos de caixa"

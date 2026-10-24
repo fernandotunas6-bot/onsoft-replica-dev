@@ -8,12 +8,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Banknote,
-  BriefcaseBusiness,
   CreditCard,
   Download,
   FileBadge,
   FileDown,
-  FileUp,
   Plus,
   Undo2,
   Wallet,
@@ -26,7 +24,6 @@ import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
-import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 
 const FinanceiroCashChart = lazy(() =>
@@ -35,6 +32,7 @@ const FinanceiroCashChart = lazy(() =>
   })),
 );
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -124,6 +122,7 @@ export const Route = createFileRoute("/financeiro")({
 });
 
 function FinanceiroPage() {
+  const paymentKey = usePaymentAttemptKey();
   useEffect(() => {
     warmFinanceCharts();
   }, []);
@@ -167,7 +166,6 @@ function FinanceiroPage() {
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
   const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
   const schemaBlocked = missingPenalty;
-  const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const cashExpensesAvailable = schemaQuery.data ? !schemaQuery.data.missingCashExpenses : false;
   const movimentos = useMemo(
     () =>
@@ -445,11 +443,6 @@ function FinanceiroPage() {
                   <FileBadge className="size-4" /> Oficial
                 </Button>
                 <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                    <FileUp className="size-4 text-primary" /> Importar Pagamentos
-                  </Link>
-                </Button>
-                <Button variant="outline" className="gap-2" asChild>
                   <a
                     href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
                     target="_blank"
@@ -458,30 +451,11 @@ function FinanceiroPage() {
                     <PayflowBrandIcon size={16} /> Portal PayFlow
                   </a>
                 </Button>
-                <PayflowAdminLaunchButton variant="outline" className="gap-2">
-                  Conciliação PayFlow
-                </PayflowAdminLaunchButton>
                 <Button variant="outline" className="gap-2" asChild>
                   <Link to="/relatorios/financeiros">
                     <Banknote className="size-4" /> Resumo do caixa
                   </Link>
                 </Button>
-                <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/financeiro/rh">
-                    <BriefcaseBusiness className="size-4" /> RH e Folha
-                  </Link>
-                </Button>
-                {financeInvoiceBlocked ? (
-                  <Button variant="outline" className="gap-2" disabled>
-                    <Banknote className="size-4" /> Emitir fatura
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="gap-2" asChild>
-                    <Link to="/faturas">
-                      <Banknote className="size-4" /> Emitir fatura
-                    </Link>
-                  </Button>
-                )}
                 <DocHelpButton title="Navegação e permissões — tesouraria" />
                 <DocPathHelpButton
                   path={DOC_PATHS.financePayflow}
@@ -763,6 +737,7 @@ function FinanceiroPage() {
                   const method = paymentMethods[methodLabel as keyof typeof paymentMethods];
                   if (!invoice || !method || !methodLabel)
                     throw new Error("Selecione uma fatura e um método válidos.");
+                  const attempt = [invoice.id, values["valor"], method, values["data"]].join("|");
                   const paid = await recordInvoicePayment({
                     data: {
                       invoiceId: invoice.id,
@@ -773,8 +748,10 @@ function FinanceiroPage() {
                       paidAt: values["data"]
                         ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                         : undefined,
+                      idempotencyKey: paymentKey.keyFor(attempt),
                     },
                   });
+                  paymentKey.settled(attempt);
                   await Promise.all([
                     queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
                     queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
@@ -826,7 +803,6 @@ function FinanceiroPage() {
         />
 
         <InstalledModuleTools module="financeiro" />
-        <InstalledModuleTools module="faturas" />
 
         {schemaBlocked ? (
           <Alert variant="destructive">
