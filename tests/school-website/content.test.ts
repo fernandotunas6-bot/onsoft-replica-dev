@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  safePublicUrl,
   changeWebsiteState,
   changeWebsiteSchema,
   publicWebsiteContent,
@@ -232,4 +233,38 @@ describe("taxa publicada e apresentação da escola", () => {
       expect(() => validateWebsiteDraft({ ...draft(), admissionFeeAmount })).toThrow();
     },
   );
+});
+
+describe("recursos públicos sem endereços privados nem credenciais temporárias", () => {
+  it.each([
+    "https://localhost/campus.png",
+    "https://escola.localhost/campus.png",
+    "https://servidor.local/campus.png",
+    "https://intranet/campus.png",
+    "https://127.0.0.1/campus.png",
+    "https://2130706433/campus.png",
+    "https://10.0.0.1/campus.png",
+    "https://[::1]/campus.png",
+    "https://[fd00::1]/campus.png",
+    "https://project.supabase.co/storage/v1/object/sign/private/campus.png?token=secret",
+    "https://project.supabase.co/storage/v1/object/authenticated/private/campus.png",
+    "/storage/v1/object/sign/private/campus.png?token=secret",
+    "https://media.example/campus.png?X-Amz-Signature=secret",
+    "https://media.example/campus.png?X-Goog-Credential=secret",
+    "https://account.blob.core.windows.net/private/campus.png?sv=2025-01-01&sig=secret",
+    "https://media.example/campus.png?access_token=secret",
+  ])("recusa %s tanto ao guardar como na projecção pública", (url) => {
+    expect(safePublicUrl(url, true)).toBe(false);
+    expect(() => validateWebsiteDraft({ ...draft(), values: { [image.key]: url } })).toThrow();
+    const stored = publish();
+    stored.published!.content.values[image.key] = url;
+    expect(() => publicWebsiteContent(stored)).toThrow();
+  });
+  it.each([
+    "/assets/campus.webp",
+    "https://media.example/campus.webp?width=1200&format=webp",
+    "https://project.supabase.co/storage/v1/object/public/school-media/campus.webp",
+  ])("preserva imagens locais e recursos públicos estáveis: %s", (url) => {
+    expect(safePublicUrl(url, true)).toBe(true);
+  });
 });

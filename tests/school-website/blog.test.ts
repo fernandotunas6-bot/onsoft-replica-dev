@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  schoolBlogDraftSchema,
   changeSchoolBlogSchema,
   changeSchoolBlogState,
   publicSchoolBlogPost,
@@ -182,5 +183,19 @@ describe("API pública do blog", () => {
     const result = await failing(request("AA"), "AA");
     expect(result.status).toBe(503);
     expect(await result.text()).not.toContain("private");
+  });
+});
+
+describe("capas públicas do blog", () => {
+  it.each([
+    "https://localhost/private.png",
+    "https://192.168.1.2/private.png",
+    "https://media.example/private.png?token=secret",
+    "https://project.supabase.co/storage/v1/object/sign/private/photo.png?token=secret",
+  ])("recusa capa privada ou assinada ao guardar e ao ler: %s", (coverUrl) => {
+    expect(() => schoolBlogDraftSchema.parse({ ...draft, coverUrl })).toThrow();
+    const state = publish();
+    state.published!.coverUrl = coverUrl;
+    expect(() => publicSchoolBlogPost(state)).toThrow();
   });
 });

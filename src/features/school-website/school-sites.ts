@@ -9,6 +9,7 @@ import {
 import { getSigaLoginUrl } from "@/lib/ecosystem-urls";
 import { readWebsiteState, WEBSITE_DOMAIN, type WebsiteState } from "./content-model";
 import { schoolWebStorageReady } from "./storage-guard";
+import { schoolWebsiteDomainVerified } from "./domain-access";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 export type SchoolSite = {
@@ -84,7 +85,7 @@ export async function schoolSiteLinks(db: Db, schoolId: string) {
   ]);
   if (tenant.error || domains.error) throw new Error("Não foi possível ler os domínios da escola.");
   const active = domains.data.filter(
-    (d) => d.status === "active" && (d.type === "siga_subdomain" || Boolean(d.verified_at)),
+    (d) => d.status === "active" && schoolWebsiteDomainVerified(d),
   );
   const primary =
     active.find((d) => d.type === "custom_domain") ??
@@ -120,8 +121,7 @@ export async function loadSchoolSite(
       .eq("status", "active")
       .maybeSingle();
     if (domain.error) throw new Error("Domain lookup failed");
-    if (!domain.data || (domain.data.type === "custom_domain" && !domain.data.verified_at))
-      return null;
+    if (!domain.data || !schoolWebsiteDomainVerified(domain.data)) return null;
     tenantId = domain.data.tenant_id;
   } else {
     const tenant = await db.from("tenants").select("id").eq("slug", selection.value).maybeSingle();
@@ -165,7 +165,7 @@ export async function loadSchoolSite(
   ]);
   if (settings.error || domains.error) throw new Error("School website lookup failed");
   const origins = domains.data
-    .filter((d) => d.status === "active" && (d.type === "siga_subdomain" || d.verified_at))
+    .filter((d) => d.status === "active" && schoolWebsiteDomainVerified(d))
     .map((d) => `https://${d.hostname}`);
   const homePath = selection.mode === "slug" ? selection.basePath + "/" : "/";
   return {
