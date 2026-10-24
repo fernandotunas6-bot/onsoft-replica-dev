@@ -157,3 +157,15 @@ por papel e o estado dos formulários.
 Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada nem
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
+
+
+## Flyouts laterais compactos — referência Claude IDE (24/10/2026)
+
+Incremento na [PR #274](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/274), a partir de `main` `42ad7eff`, **sem substituir** a sidebar das PRs #252/#262/#271 ou os modais simples do projecto.
+
+- O cabeçalho da escola abre um painel à direita com a mesma instituição activa, a lista de escolas autorizadas, o perfil e as configurações existentes. Hover aplica-se apenas ao rato; clique e teclado continuam disponíveis. O painel tem altura limitada e scroll quando necessário.
+- As subfunções da sidebar expandida abrem em `Popover` à direita, fora do contentor com scroll. Destinos, parâmetros, permissões e indicadores activos provêm do catálogo actual; a barra recolhida mantém o seu menu accionado explicitamente, sem reabrir a sidebar em hover.
+- O menu inferior de conta mantém os mesmos destinos e aparece como painel compacto à direita.
+- Modais não foram modificados; não interferir com a PR #272 do agente paralelo.
+
+Evidência automatizada: `tests/routes/sidebar-nav.test.tsx` cobre hover, clique de destino, menu da escola e Escape. O CI da PR deve comprovar lint, TypeScript, testes e build. **A auditoria de dependências está temporariamente bloqueada por três advisories high já presentes em `main`, documentados na issue #273**; não desactivar esta barreira nem declarar integração/produção enquanto persistir. Interacção visual autenticada em dispositivos físicos e alternância entre escolas aguardam staging (#249).
