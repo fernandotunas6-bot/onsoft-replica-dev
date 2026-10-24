@@ -7,6 +7,7 @@ import {
   Building2,
   LayoutGrid,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   CreditCard,
   Lock,
@@ -37,7 +38,7 @@ import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosy
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
 import {
-  NAV_SUB_LIST,
+  NAV_DEPTH_CLASS,
   NAV_ROW_BASE,
   NAV_ROW_ACTIVE,
   NAV_ROW_IDLE,
@@ -47,6 +48,7 @@ import {
   NavSubheader,
 } from "./NavItem";
 import type { NavItem, NavGroup } from "@/features/auth/portal-engine";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import {
   getNavigationContext,
@@ -133,7 +135,6 @@ export function AppSidebar({
   }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
   const context = getNavigationContext(visibleGroups, pathname, locationSearch);
   const [areaPicker, setAreaPicker] = useState(false);
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
   const navigationKey = JSON.stringify([
     pathname,
     locationSearch,
@@ -142,7 +143,6 @@ export function AppSidebar({
   ]);
   useEffect(() => {
     setAreaPicker(false);
-    setOpenMenus((prev) => (prev.length ? [] : prev));
     setSchoolMenuOpen(false);
   }, [navigationKey]);
   const contextual = Boolean(context && !areaPicker);
@@ -161,7 +161,6 @@ export function AppSidebar({
     },
   ];
   const displayedGroups = contextual && context ? [context] : generalGroups;
-  const toggle = (label: string) => setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
 
   return (
     <>
@@ -373,7 +372,6 @@ export function AppSidebar({
               <NavSubheader title={group.title} collapsed={collapsed} />
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isOpen = openMenus.includes(item.label);
                   const childActive =
                     item.children?.some((child) =>
                       isContextDestinationActive(child, displayedGroups, pathname, locationSearch),
@@ -396,49 +394,15 @@ export function AppSidebar({
 
                   if (item.children) {
                     return (
-                      <li key={item.label} className="group/fly relative">
-                        <NavButtonRow
-                          label={item.label}
-                          icon={item.icon}
-                          collapsed={collapsed}
+                      <li key={item.label}>
+                        <ExpandedNavFlyout
+                          navigationKey={navigationKey}
+                          item={item}
+                          groups={displayedGroups}
+                          pathname={pathname}
+                          search={locationSearch}
                           active={childActive}
-                          expanded={isOpen}
-                          onClick={() => toggle(item.label)}
-                          trailing={
-                            <ChevronDown
-                              aria-hidden
-                              className={cn(
-                                "size-4 shrink-0 opacity-50 transition-transform duration-200",
-                                isOpen && "rotate-180",
-                              )}
-                            />
-                          }
                         />
-
-                        {isOpen && !collapsed ? (
-                          <ul className={NAV_SUB_LIST}>
-                            {item.children.map((child) => (
-                              <li key={child.label}>
-                                {child.to ? (
-                                  <NavLinkRow
-                                    to={child.to}
-                                    {...(child.search ? { search: child.search } : {})}
-                                    label={child.label}
-                                    depth="sub"
-                                    active={isContextDestinationActive(
-                                      child,
-                                      displayedGroups,
-                                      pathname,
-                                      locationSearch,
-                                    )}
-                                  />
-                                ) : (
-                                  <NavButtonRow label={child.label} depth="sub" />
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
                       </li>
                     );
                   }
@@ -597,6 +561,103 @@ export function AppSidebar({
         </Suspense>
       ) : null}
     </>
+  );
+}
+
+/** Subfunções compactas: aparecem à direita, fora do scroll da sidebar. */
+function ExpandedNavFlyout({
+  navigationKey,
+  item,
+  groups,
+  pathname,
+  search,
+  active,
+}: {
+  navigationKey: string;
+  item: NavItem;
+  groups: NavGroup[];
+  pathname: string;
+  search: Record<string, unknown>;
+  active: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelClose = () => {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  const scheduleClose = (pointerType: string) => {
+    if (pointerType !== "mouse") return;
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpen(false), 180);
+  };
+  useEffect(() => {
+    setOpen(false);
+    return () => {
+      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    };
+  }, [navigationKey]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title={item.label}
+          aria-label={item.label}
+          onPointerEnter={(event) => {
+            if (event.pointerType === "mouse") {
+              cancelClose();
+              setOpen(true);
+            }
+          }}
+          onPointerLeave={(event) => scheduleClose(event.pointerType)}
+          className={cn(
+            NAV_ROW_BASE,
+            NAV_DEPTH_CLASS.root,
+            active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE,
+          )}
+          data-nav-row=""
+          data-nav-depth="root"
+          data-active={active ? "true" : "false"}
+        >
+          <NavIcon icon={item.icon} active={active} />
+          <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse") cancelClose();
+        }}
+        onPointerLeave={(event) => scheduleClose(event.pointerType)}
+        className="w-64 max-w-[calc(100vw-1.5rem)] max-h-[min(75vh,var(--radix-popover-content-available-height))] overflow-y-auto p-1 shadow-sm"
+        data-nav-flyout=""
+      >
+        <p className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground">{item.label}</p>
+        <nav aria-label={`Subfunções de ${item.label}`} className="space-y-0.5">
+          {item.children?.map((child) =>
+            child.to ? (
+              <NavLinkRow
+                key={child.label}
+                to={child.to}
+                {...(child.search ? { search: child.search } : {})}
+                label={child.label}
+                depth="sub"
+                active={isContextDestinationActive(child, groups, pathname, search)}
+                className="lg:min-h-9"
+              />
+            ) : (
+              <NavButtonRow key={child.label} label={child.label} depth="sub" />
+            ),
+          )}
+        </nav>
+      </PopoverContent>
+    </Popover>
   );
 }
 
