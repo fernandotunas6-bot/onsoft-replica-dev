@@ -203,7 +203,11 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     expect(flyout.hasAttribute("data-nav-flyout")).toBe(true);
     expect(flyout.querySelector("a[data-to='/alunos']")).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
-    expect(screen.getByRole("navigation", { name: "Navegação principal" }).querySelector(".nav-sub-list")).toBeNull();
+    expect(
+      screen
+        .getByRole("navigation", { name: "Navegação principal" })
+        .querySelector(".nav-sub-list"),
+    ).toBeNull();
     fireEvent.click(secretaria);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
