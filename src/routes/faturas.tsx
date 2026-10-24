@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -13,7 +13,6 @@ import {
   FileBadge,
   FileDown,
   FileText,
-  FileUp,
   Plus,
   QrCode,
   Wallet,
@@ -24,9 +23,7 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
-import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
-import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
-import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
@@ -843,29 +840,6 @@ function FaturasPage() {
                   >
                     <Download className="size-3.5" /> Ficheiro CSV
                   </DropdownMenuItem>
-                  <div className="my-1 border-t border-border" />
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
-                    <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                      <FileUp className="size-3.5 text-primary" /> Importar Pagamentos (Excel)
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
-                    <a
-                      href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <PayflowBrandIcon size={14} /> Portal PayFlow (Pagamentos)
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="gap-2 text-xs cursor-pointer p-0"
-                    onSelect={(event) => event.preventDefault()}
-                  >
-                    <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
-                      Conciliação PayFlow
-                    </PayflowAdminLaunchButton>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <QuickFormModal
@@ -1012,7 +986,6 @@ function FaturasPage() {
               </p>
             </div>
           </div>
-          <InstalledModuleTools module="financeiro" />
           <InstalledModuleTools module="faturas" />
         </div>
 

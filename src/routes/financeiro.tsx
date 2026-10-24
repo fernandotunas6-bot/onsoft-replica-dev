@@ -808,7 +808,6 @@ function FinanceiroPage() {
         />
 
         <InstalledModuleTools module="financeiro" />
-        <InstalledModuleTools module="faturas" />
 
         {schemaBlocked ? (
           <Alert variant="destructive">
