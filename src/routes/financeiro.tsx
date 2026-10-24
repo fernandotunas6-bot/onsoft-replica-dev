@@ -12,7 +12,6 @@ import {
   Download,
   FileBadge,
   FileDown,
-  FileUp,
   Plus,
   Undo2,
   Wallet,
@@ -25,7 +24,6 @@ import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
-import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 
 const FinanceiroCashChart = lazy(() =>
@@ -443,11 +441,6 @@ function FinanceiroPage() {
                   <FileBadge className="size-4" /> Oficial
                 </Button>
                 <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                    <FileUp className="size-4 text-primary" /> Importar Pagamentos
-                  </Link>
-                </Button>
-                <Button variant="outline" className="gap-2" asChild>
                   <a
                     href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
                     target="_blank"
@@ -456,9 +449,6 @@ function FinanceiroPage() {
                     <PayflowBrandIcon size={16} /> Portal PayFlow
                   </a>
                 </Button>
-                <PayflowAdminLaunchButton variant="outline" className="gap-2">
-                  Conciliação PayFlow
-                </PayflowAdminLaunchButton>
                 <Button variant="outline" className="gap-2" asChild>
                   <Link to="/relatorios/financeiros">
                     <Banknote className="size-4" /> Resumo do caixa

@@ -121,6 +121,16 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/tesouraria" },
   },
   {
+    id: "siga-conciliacao",
+    name: "Bancos e Conciliação",
+    shortName: "Conciliação",
+    description: "Cobranças do gateway e conciliação bancária.",
+    // Sem marca própria; usa a do Financeiro, de que é parte.
+    mark: "siga-financeiro",
+    navPath: "/financeiro/conciliacao",
+    target: { type: "route", to: "/financeiro/conciliacao" },
+  },
+  {
     id: "siga-rh",
     name: "Recursos Humanos",
     shortName: "RH",

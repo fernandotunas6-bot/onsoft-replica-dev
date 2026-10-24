@@ -54,6 +54,7 @@ import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configura
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
+import { Route as FinanceiroConciliacaoRouteImport } from './routes/financeiro_.conciliacao'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
 import { Route as PedagogicaCatalogoRouteImport } from './routes/pedagogica_.catalogo'
 import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogica_.pautas-superior'
@@ -361,6 +362,11 @@ const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
   id: '/rh',
   path: '/rh',
   getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroConciliacaoRoute = FinanceiroConciliacaoRouteImport.update({
+  id: '/financeiro_/conciliacao',
+  path: '/financeiro/conciliacao',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
   id: '/matricula/$slug',
@@ -833,6 +839,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
+  '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
@@ -960,6 +967,7 @@ export interface FileRoutesByTo {
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
+  '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
@@ -1088,6 +1096,7 @@ export interface FileRoutesById {
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
+  '/financeiro_/conciliacao': typeof FinanceiroConciliacaoRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica_/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica_/pautas-superior': typeof PedagogicaPautasSuperiorRoute
@@ -1217,6 +1226,7 @@ export interface FileRouteTypes {
     | '/configuracoes/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
+    | '/financeiro/conciliacao'
     | '/matricula/$slug'
     | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
@@ -1344,6 +1354,7 @@ export interface FileRouteTypes {
     | '/configuracoes/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
+    | '/financeiro/conciliacao'
     | '/matricula/$slug'
     | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
@@ -1471,6 +1482,7 @@ export interface FileRouteTypes {
     | '/configuracoes_/inicio'
     | '/convite/$token'
     | '/financeiro/rh'
+    | '/financeiro_/conciliacao'
     | '/matricula/$slug'
     | '/pedagogica_/catalogo'
     | '/pedagogica_/pautas-superior'
@@ -1588,6 +1600,7 @@ export interface RootRouteChildren {
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  FinanceiroConciliacaoRoute: typeof FinanceiroConciliacaoRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   PedagogicaCatalogoRoute: typeof PedagogicaCatalogoRoute
   PedagogicaPautasSuperiorRoute: typeof PedagogicaPautasSuperiorRoute
@@ -1960,6 +1973,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/financeiro/rh'
       preLoaderRoute: typeof FinanceiroRhRouteImport
       parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro_/conciliacao': {
+      id: '/financeiro_/conciliacao'
+      path: '/financeiro/conciliacao'
+      fullPath: '/financeiro/conciliacao'
+      preLoaderRoute: typeof FinanceiroConciliacaoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/matricula/$slug': {
       id: '/matricula/$slug'
@@ -2767,6 +2787,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  FinanceiroConciliacaoRoute: FinanceiroConciliacaoRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   PedagogicaCatalogoRoute: PedagogicaCatalogoRoute,
   PedagogicaPautasSuperiorRoute: PedagogicaPautasSuperiorRoute,
