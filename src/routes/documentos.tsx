@@ -9,6 +9,8 @@ import { Download, FileBadge, FileCheck2, FileDown, FilePlus2, FileStack, X } fr
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -133,6 +135,10 @@ const advanceActionLabel: Record<string, string> = {
 
 function DocumentosPage() {
   const realtimeInstanceId = useId();
+  const account = useCurrentAccount();
+  // A biblioteca da secretaria (Arquivos) é só da equipa; alunos e encarregados também
+  // abrem esta página para os seus pedidos.
+  const canUseLibrary = canAccessPath("/arquivos", account.role, account.grants);
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.documents");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -591,12 +597,16 @@ function DocumentosPage() {
               <Button variant="outline" className="gap-2" onClick={exportarDocumentosOficial}>
                 <FileBadge className="size-4" /> Oficial
               </Button>
-              <PickFileButton
-                area="secretaria"
-                onPick={(file) =>
-                  toast.success(file.name, { description: "Ficheiro da secretaria seleccionado." })
-                }
-              />
+              {canUseLibrary ? (
+                <PickFileButton
+                  area="secretaria"
+                  onPick={(file) =>
+                    toast.success(file.name, {
+                      description: "Ficheiro da secretaria seleccionado.",
+                    })
+                  }
+                />
+              ) : null}
               <QuickFormModal
                 title="Novo pedido de documento"
                 eyebrow="Secretaria"
