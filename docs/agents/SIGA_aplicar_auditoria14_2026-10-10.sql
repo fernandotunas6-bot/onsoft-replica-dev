@@ -773,7 +773,7 @@ REVOKE INSERT (school_id, form_id, full_name, payload, status)
   ON public.enrollment_applications FROM anon;
 
 
--- ══════════ 20261018120000_lesson_meetings_server_only.sql ══════════
+-- ══════════ 20261018130000_lesson_meetings_server_only.sql ══════════
 -- Reuniões Zoom das aulas: só com o servidor.
 --
 -- Leitura de 2026-10-18: `authenticated` tinha todos os privilégios em
@@ -875,4 +875,4 @@ SELECT
                             WHERE rolname IN ('anon', 'authenticated'))))
       THEN 'aplicada'
     ELSE 'por aplicar'
-  END AS "20261018120000 reuniões Zoom só no servidor";
+  END AS "20261018130000 reuniões Zoom só no servidor";

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -182,7 +183,7 @@ function HigherEdPage() {
   );
 }
 
-/** Excel com Vagas, Acesso, Matrículas e Graduados para o SISIES (MESCTI). */
+/** Excel com Vagas, Acesso, Matrículas, Graduados e Bolsas para o SISIES (MESCTI). */
 function SisiesExportButton() {
   const run = useMutation({
     mutationFn: () => exportSisiesWorkbook(),
@@ -685,8 +686,10 @@ function StudentsTab({ programId }: { programId: string }) {
   const [search, setSearch] = useState("");
   const list = useMemo(
     () =>
-      (students.data ?? []).filter((s) =>
-        `${s.name} ${s.number ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()),
+      (students.data ?? []).filter(
+        (s) =>
+          s.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+          numberMatches(s.number, search),
       ),
     [students.data, search],
   );

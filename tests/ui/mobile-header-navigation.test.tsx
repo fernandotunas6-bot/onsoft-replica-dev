@@ -31,6 +31,7 @@ function renderHeader(onOpenContext = vi.fn()) {
   render(
     <MobileHeader
       title="Ficha do aluno"
+      moduleLabel="Secretaria"
       fallbackTo="/alunos"
       onOpenContext={onOpenContext}
       onOpenSearch={vi.fn()}
@@ -78,6 +79,14 @@ describe("voltar dentro do SIGA", () => {
 });
 
 describe("acessibilidade do cabeçalho compacto", () => {
+  it("mantém escola e módulo visíveis nas páginas internas", () => {
+    renderHeader();
+    expect(screen.getByText("Escola de demonstração · Secretaria")).toBeTruthy();
+    const trigger = screen.getByRole("button", { name: "Alterar escola, ano lectivo ou período" });
+    expect(
+      document.getElementById(trigger.getAttribute("aria-describedby")!)?.textContent,
+    ).toContain("Escola de demonstração");
+  });
   it("mantém a pesquisa, notificações e conta alcançáveis pelo teclado", () => {
     renderHeader();
     for (const name of ["Pesquisar no SIGA", "Notificações", "Abrir painel da conta"]) {
@@ -86,8 +95,8 @@ describe("acessibilidade do cabeçalho compacto", () => {
     }
   });
 
-  it("abre o contexto na raiz sem perder o acesso à escola", () => {
-    navigation.pathname = "/";
+  it.each(["/", "/portal"])("abre o contexto em %s sem perder o acesso à escola", (pathname) => {
+    navigation.pathname = pathname;
     const openContext = vi.fn();
     renderHeader(openContext);
     const button = screen.getByRole("button", {

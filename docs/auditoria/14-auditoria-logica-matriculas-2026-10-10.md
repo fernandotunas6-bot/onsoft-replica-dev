@@ -613,7 +613,7 @@ Pela API directa (PostgREST), contornando o servidor — confirmado na produçã
   suspensa e sem validação. Migração `20261018110000`: só o servidor (que já faz tudo isto).
 - **API2 — Links das aulas online.** Qualquer membro (alunos incluídos) lia os `join_url` de
   todas as aulas de `siga_lesson_meetings`, e um professor podia trocar o link da aula de um
-  colega. Migração `20261018120000`: só o servidor (que já mostra o link só a quem é da turma).
+  colega. Migração `20261018130000`: só o servidor (que já mostra o link só a quem é da turma).
 - **CT4 — Cartões de catraca em duplicado.** Índice único de um cartão activo por pessoa
   (migração `20261018100000`; produção sem repetidos). O servidor trata a corrida (23505)
   devolvendo o cartão que ficou, e um erro de leitura deixa de passar por «não tem cartão».

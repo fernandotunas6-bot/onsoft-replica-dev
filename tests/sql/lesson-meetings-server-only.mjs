@@ -1,11 +1,11 @@
-// Ensaio local (PGlite) de 20261018120000_lesson_meetings_server_only.sql. Sem produção.
+// Ensaio local (PGlite) de 20261018130000_lesson_meetings_server_only.sql. Sem produção.
 // Executar: SIGA_SQL_TEST_MODULE_PATH=<.../pglite/dist/index.js> node tests/sql/lesson-meetings-server-only.mjs
 const { PGlite } = await import(process.env["SIGA_SQL_TEST_MODULE_PATH"] || "@electric-sql/pglite");
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../../supabase/migrations/20261018120000_lesson_meetings_server_only.sql");
+const migration = read("../../supabase/migrations/20261018130000_lesson_meetings_server_only.sql");
 const pacote = read("../../docs/agents/SIGA_aplicar_auditoria14_2026-10-10.sql");
 assert.ok(pacote.includes(migration), "o pacote leva a migração tal e qual");
 
@@ -23,7 +23,7 @@ INSERT INTO public.siga_lesson_meetings (join_url) VALUES ('https://zoom.us/j/1'
 `);
 const sonda = async () =>
   (await db.query(pacote.slice(pacote.indexOf("-- ══════════ Confirmar ══════════")))).rows[0][
-    "20261018120000 reuniões Zoom só no servidor"
+    "20261018130000 reuniões Zoom só no servidor"
   ];
 const asAuthenticated = async (sql) => {
   await db.exec("SET ROLE authenticated");

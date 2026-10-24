@@ -158,7 +158,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                 pw.SizedBox(height: 14),
                 pw.Center(
                   child: pw.Text(
-                    'OFFICIAL FEE RECEIPT',
+                    'RECIBO DE PROPINA',
                     style: pw.TextStyle(
                       fontSize: 11,
                       fontWeight: pw.FontWeight.bold,
@@ -169,7 +169,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                 pw.SizedBox(height: 4),
                 pw.Center(
                   child: pw.Text(
-                    'This document acknowledges a recorded fee payment.',
+                    'Este documento comprova o pagamento registado de propina.',
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey700,
@@ -177,37 +177,37 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                   ),
                 ),
                 pw.SizedBox(height: 16),
-                _rowStyled('Receipt number', r.id, valueBold: true),
-                _rowStyled('Date & time', _formatWhen(r.createdAt)),
-                _rowStyled('Academic year', data.displayAcademicYear),
-                _rowStyled('Fee term', data.displayFeeTerm),
+                _rowStyled('Número do recibo', r.id, valueBold: true),
+                _rowStyled('Data e hora', _formatWhen(r.createdAt)),
+                _rowStyled('Ano lectivo', data.displayAcademicYear),
+                _rowStyled('Período', data.displayFeeTerm),
                 if (r.studentName != null && r.studentName!.trim().isNotEmpty)
-                  _rowStyled('Student', r.studentName!.trim()),
+                  _rowStyled('Aluno', r.studentName!.trim()),
                 _rowStyled(
-                  'Amount received',
+                  'Valor recebido',
                   formatMoneyForPdf(r.currency, r.amountPaid),
                   labelColor: _kBrandGreen,
                   valueColor: _kBrandGreen,
                   valueBold: true,
                 ),
                 _rowStyled(
-                  'Applied to outstanding fees',
+                  'Aplicado a propinas em dívida',
                   formatMoneyForPdf(r.currency, r.amountToDebt),
                 ),
                 if (r.creditAdded > 0)
                   _rowStyled(
-                    'Credit / advance balance added',
+                    'Crédito acrescentado',
                     formatMoneyForPdf(r.currency, r.creditAdded),
                     labelColor: _kBrandGreen,
                     valueColor: _kBrandGreen,
                     valueBold: true,
                   ),
                 _rowStyled(
-                  'Account balance before payment',
+                  'Saldo antes do pagamento',
                   formatMoneyForPdf(r.currency, r.balanceBefore),
                 ),
                 _rowStyled(
-                  'Account balance after payment',
+                  'Saldo depois do pagamento',
                   formatMoneyForPdf(r.currency, r.balanceAfter),
                   valueColor: r.balanceAfter < 0
                       ? _kOwing
@@ -216,17 +216,17 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                 ),
                 if (r.balanceAfter < 0)
                   _rowStyled(
-                    'Outstanding after this payment',
+                    'Em dívida depois deste pagamento',
                     formatMoneyForPdf(r.currency, r.balanceAfter.abs()),
                     labelColor: _kOwing,
                     valueColor: _kOwing,
                     valueBold: true,
                   ),
-                _rowStyled('Transaction reference', r.transactionId),
+                _rowStyled('Referência da transacção', r.transactionId),
                 if (r.description != null && r.description!.trim().isNotEmpty) ...[
                   pw.SizedBox(height: 6),
                   pw.Text(
-                    'NOTES',
+                    'OBSERVAÇÕES',
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey700,
@@ -242,9 +242,9 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                   padding: const pw.EdgeInsets.all(10),
                   decoration: pw.BoxDecoration(color: PdfColors.grey200),
                   child: pw.Text(
-                    'Retain this receipt for your records. For billing inquiries, contact '
-                    'the school office using the details above. Generated from the school '
-                    'management system.',
+                    'Guarde este recibo. Para questões de facturação, contacte '
+                    'a secretaria pelos contactos acima. Emitido pelo sistema de gestão '
+                    'escolar.',
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey800,

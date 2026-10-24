@@ -66,9 +66,19 @@ describe("Ensino Superior no servidor", () => {
     expect(fn("getMyEnrollmentOffer")).toContain("regulation.student_self_enrollment");
   });
 
+  it("turnos: só a coordenação muda o turno, para uma turma que dá a cadeira, com auditoria", () => {
+    const body = fn("setUnitShift");
+    expect(body).toContain('officeMembership(context, "write")');
+    expect(body).toContain("Essa turma não dá esta cadeira");
+    expect(body).toContain("await audit(");
+  });
+
   it("resultados: só professor da cadeira ou coordenação, época validada, auditoria", () => {
     const body = fn("recordUnitResult");
-    expect(body).toContain("canLaunchUnit(");
+    expect(body).toContain("launchScope(");
+    expect(body).toContain("canLaunchAny(scope)");
+    // Turnos: o professor só lança os estudantes dos seus turnos (ou sem turno).
+    expect(body).toContain("shiftVisible(scope, latestRow.shift)");
     expect(body).toContain("seasonEligibility(");
     expect(body).toContain("Lance primeiro a frequência");
     expect(body).toContain("await audit(");
@@ -89,9 +99,10 @@ describe("Ensino Superior no servidor", () => {
     expect(list).toContain("isOfficeRole(membership)");
     expect(list).toContain("teacherUnitKeys(");
     const sheet = fn("getUnitSheet");
-    expect(sheet.indexOf("canLaunchUnit(")).toBeLessThan(
+    expect(sheet.indexOf("canLaunchAny(scope)")).toBeLessThan(
       sheet.indexOf('.from("course_unit_enrollments")'),
     );
+    expect(sheet).toContain("shiftVisible(scope, row.shift)");
     expect(sheet).toContain("seasonEligibility(");
   });
 

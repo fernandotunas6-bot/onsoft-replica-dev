@@ -3,6 +3,7 @@ import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { escapeLikePattern } from "@/lib/like-pattern";
 import { createServerFn } from "@tanstack/react-start";
 import { serverFnClientIp } from "@/lib/server-fn-ip";
+import { getRequestHost } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -836,6 +837,15 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
     return { email, kind };
   });
 
+/** Endereço do pedido (escola do subdomínio ou domínio próprio). */
+function requestHostname(): string | null {
+  try {
+    return getRequestHost().split(":")[0]?.toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Login por B.I. (ou telefone) e senha, feito no servidor.
  *
@@ -843,6 +853,9 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
  * qualquer pessoa descobria o e-mail de quem tivesse o B.I. Agora o e-mail
  * nunca sai do servidor. Só a sessão volta, e só com a senha certa; um B.I.
  * desconhecido e uma senha errada dão a mesma resposta.
+ *
+ * Também o número de aluno (1260001), quando a escola o permite
+ * (Definições → Segurança): ver `student-number-login.ts`.
  */
 export const signInWithIdentifierFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => signInWithIdentifierInputSchema.parse(input))
@@ -851,7 +864,14 @@ export const signInWithIdentifierFn = createServerFn({ method: "POST" })
     const rateLimitKey = `bi_lookup:${ip}`;
     // Limite partilhado por todas as instâncias: por IP e, à parte, por conta
     // (identificador) — quem use muitos IPs não tenta senhas sem fim numa conta.
-    const identifierKey = `bi_login_identifier:${data.identifier.trim().toLowerCase()}`;
+    // O número de aluno repete-se de escola para escola (todas começam no 1260001):
+    // o limite por conta conta-o por endereço, para um aluno não bloquear outro.
+    const { normalizeStudentNumber } = await import("./student-number-login");
+    const studentNumber = normalizeStudentNumber(data.identifier);
+    const host = studentNumber ? requestHostname() : null;
+    const identifierKey = studentNumber
+      ? `bi_login_identifier:${host ?? ""}:${studentNumber}`
+      : `bi_login_identifier:${data.identifier.trim().toLowerCase()}`;
     if (!isRateLimitBypassed(rateLimitKey)) {
       const { consumeRateLimit } = await import("@/lib/shared-rate-limit");
       const ipOk = await consumeRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
@@ -862,6 +882,13 @@ export const signInWithIdentifierFn = createServerFn({ method: "POST" })
     }
 
     const { resolveBiOrEmailToUserEmail, passwordGrant } = await import("./bi-login");
+    if (studentNumber) {
+      const { studentNumberLoginForHost } = await import("./student-number-login");
+      const login = await studentNumberLoginForHost(studentNumber, host);
+      if (login && "error" in login) return { ok: false as const, error: login.error };
+      if (login) return passwordGrant(login.email, data.password, fetch, data.captchaToken);
+      // Sem aluno com conta numa escola com a opção ligada: segue como B.I./telefone.
+    }
     const email = await resolveBiOrEmailToUserEmail(data.identifier);
     if (!email.includes("@")) return { ok: false as const, error: "invalid_credentials" as const };
 

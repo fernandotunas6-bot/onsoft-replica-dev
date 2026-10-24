@@ -30,7 +30,7 @@ void main() {
     );
 
     expect(find.text('Edu Manager'), findsOneWidget);
-    expect(find.text('Modern School Ecosystem'), findsOneWidget);
+    expect(find.text('Sistema de gestão escolar'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();

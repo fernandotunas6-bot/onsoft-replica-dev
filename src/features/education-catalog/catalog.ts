@@ -21,7 +21,11 @@ import {
   GLOBAL_SUBJECTS,
   globalSubject,
   subjectDisplayName,
+  SUBJECT_AREA_LABEL,
+  SUBJECT_AREA_LEVELS,
+  areaFitsLevel,
   type GlobalSubject,
+  type SubjectArea,
 } from "./data/subjects";
 import { searchItems, type MatchKind } from "./search";
 
@@ -119,9 +123,16 @@ function suggestion(
  */
 export function subjectsForContext(
   ctx: LevelContext,
-  options: { planOnly?: boolean } = {},
+  options: { planOnly?: boolean; area?: SubjectArea | null } = {},
 ): SubjectSuggestion[] {
   const c = resolve(ctx);
+  if (options.area) {
+    assertAreaFits(options.area, c);
+    const area = options.area;
+    return subjectsForContext(ctx, { planOnly: options.planOnly }).filter(
+      (s) => s.subject.area === area,
+    );
+  }
   const entries = planEntries(c);
   const core = new Set(entries.flatMap((e) => e.core));
   const optional = new Set(
@@ -140,8 +151,13 @@ export function subjectsForContext(
 }
 
 /** Pesquisa de disciplinas dentro do contexto de nível. */
-export function searchSubjects(query: string, ctx: LevelContext, limit = 20): SubjectSuggestion[] {
-  const pool = subjectsForContext(ctx);
+export function searchSubjects(
+  query: string,
+  ctx: LevelContext,
+  limit = 20,
+  area?: SubjectArea | null,
+): SubjectSuggestion[] {
+  const pool = subjectsForContext(ctx, { area });
   const byCode = new Map(pool.map((p) => [p.subject.code, p]));
   // O nome local entra na pesquisa: «Português» encontra Língua Portuguesa em PT.
   const items = pool.map((p) => ({ ...p.subject, aliases: [...p.subject.aliases, p.displayName] }));
@@ -153,6 +169,54 @@ export function searchSubjects(query: string, ctx: LevelContext, limit = 20): Su
     })
     .sort((a, b) => b.score! - a.score! || a.displayName.localeCompare(b.displayName, "pt"))
     .slice(0, limit);
+}
+
+function contextLabel(c: ResolvedContext) {
+  return c.stage
+    ? `«${c.stage.name}${c.stage.cycle ? ` — ${c.stage.cycle}` : ""}»`
+    : `o nível ISCED ${c.isced} (${TRACK_LABEL[c.track].toLowerCase()})`;
+}
+
+/**
+ * Áreas de formação que existem no contexto de nível, com quantas disciplinas
+ * cada uma tem nele. O primário não tem nenhuma; o técnico-profissional tem as
+ * técnicas; o superior tem todas.
+ */
+export function areasForContext(ctx: LevelContext) {
+  const c = resolve(ctx);
+  return (Object.keys(SUBJECT_AREA_LEVELS) as SubjectArea[])
+    .filter((area) => areaFitsLevel(area, c.isced, c.track))
+    .map((area) => ({
+      area,
+      label: SUBJECT_AREA_LABEL[area],
+      subjects: GLOBAL_SUBJECTS.filter((s) => s.area === area && fitsLevel(s, c)).length,
+    }))
+    .filter((a) => a.subjects > 0);
+}
+
+function assertAreaFits(area: SubjectArea, c: ResolvedContext) {
+  if (areaFitsLevel(area, c.isced, c.track)) return;
+  const rule = SUBJECT_AREA_LEVELS[area];
+  const from = Math.min(...rule.levels);
+  const vias = rule.tracks.map((t) => TRACK_LABEL[t].toLowerCase()).join(", ");
+  throw new CatalogContextError(
+    `A área ${SUBJECT_AREA_LABEL[area]} não existe em ${contextLabel(c)}: ` +
+      `começa no nível ISCED ${from} (${vias}).`,
+  );
+}
+
+/** Uma área cabe no contexto? Devolve o motivo quando não cabe. */
+export function validateAreaContext(
+  area: SubjectArea,
+  ctx: LevelContext,
+): { ok: true } | { ok: false; reason: string } {
+  try {
+    assertAreaFits(area, resolve(ctx));
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof CatalogContextError) return { ok: false, reason: error.message };
+    throw error;
+  }
 }
 
 /** Uma disciplina cabe no contexto? Devolve o motivo quando não cabe. */

@@ -1,0 +1,42 @@
+{
+  "kind": "static-candidates-not-runtime-diagnosis",
+  "base": "9defaf17521adbdc9a46a497e5838295a42f46b6",
+  "note": "Cada consumidor exige revisão de conteúdo, guardas e destino antes de migrar; tamanho declarado não prova falha.",
+  "candidates": [
+    {
+      "file": "src/components/mobile/MoreHub.tsx",
+      "line": 89,
+      "source": "<BottomSheet open={open} onOpenChange={onOpenChange} size=\"full\">"
+    },
+    {
+      "file": "src/features/documents/PrintTemplateStudio.tsx",
+      "line": 230,
+      "source": "size=\"full\""
+    },
+    {
+      "file": "src/features/students/components/StudentExtensiveModal.tsx",
+      "line": 179,
+      "source": "<ModalShell open={open} onOpenChange={onOpenChange} size=\"xl\" className=\"overflow-hidden\">"
+    },
+    {
+      "file": "src/features/academic/components/TurmaProfileModal.tsx",
+      "line": 179,
+      "source": "<ModalShell open={open} onOpenChange={onOpenChange} size=\"2xl\">"
+    },
+    {
+      "file": "src/features/people/components/PersonWizardModal.tsx",
+      "line": 275,
+      "source": "size=\"2xl\""
+    },
+    {
+      "file": "src/features/people/components/PersonProfile360Modal.tsx",
+      "line": 348,
+      "source": "size=\"2xl\""
+    },
+    {
+      "file": "src/features/pedagogica/components/AssignTeacherForm.tsx",
+      "line": 123,
+      "source": "size=\"2xl\""
+    }
+  ]
+}

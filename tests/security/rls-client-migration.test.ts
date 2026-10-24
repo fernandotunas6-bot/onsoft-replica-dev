@@ -112,11 +112,17 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // de emprego), sem política para `authenticated`; só o servidor lhe toca, com
   // Administrador/Secretaria e 2FA para conceder ou revogar.
   "src/features/higher-ed/student-status.ts",
-  // Bolsa ou desconto do aluno: `finance_contracts` não tem política de escrita para
+  // Desconto do contrato do aluno: `finance_contracts` não tem política de escrita para
   // `authenticated` (só SELECT, mais a RESTRICTIVE do pessoal), e a Tesouraria nem
   // sempre lê `enrollments`. Só o servidor grava, com Administrador/Tesouraria, 2FA,
   // filtro pela escola da sessão e auditoria com o antes e o depois.
   "src/features/finance/scholarship-server.ts",
+  // Bolsas de estudo: `student_scholarships` é financeira e sensível, sem política para
+  // `authenticated`; só o servidor (Administração/Tesouraria escrevem, com 2FA).
+  "src/features/finance/student-scholarship-server.ts",
+  // Lista de espera por turma: `class_group_waitlist` guarda dados de alunos, sem política
+  // para `authenticated`; só o servidor (Administrador/Secretaria; colocar exige 2FA).
+  "src/features/enrollment/waitlist.ts",
 
   // Assinatura da escola (Configurações → Assinatura). `tenants`,
   // `subscriptions`, `tenant_usage` e `saas_audit_logs` só têm política para a
@@ -263,6 +269,13 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   "src/features/hr/salary-amendments.ts",
   "src/features/hr/salary-catalog.ts",
   "src/features/hr/salary-changes.ts",
+  // Entrar com o número de aluno: antes do login não há sessão, por isso só o
+  // servidor procura a ficha, a escola do endereço e a conta (`auth.admin`). O
+  // e-mail nunca sai do servidor, como no login por B.I.
+  "src/features/access/student-number-login.ts",
+  // A mesma definição: o ecrã de entrada pergunta sem sessão se a escola a tem
+  // ligada; ler e gravar exige Administrador (gravar, também 2FA) e fica na auditoria.
+  "src/features/access/student-access-server.ts",
 ]);
 
 /**

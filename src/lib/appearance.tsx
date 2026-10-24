@@ -1,5 +1,6 @@
 import {
   createContext,
+  useRef,
   useCallback,
   useContext,
   useEffect,
@@ -385,6 +386,22 @@ type AppearanceContextValue = {
 
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
 
+/**
+ * Igualdade suficiente para os valores da aparência: primitivos por `Object.is`
+ * e objectos simples (ex.: `schoolBrand`) campo a campo. Serve para não criar
+ * estado novo quando nada mudou.
+ */
+function sameAppearanceValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) return false;
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) return false;
+  return keys.every((key) => Object.is(left[key], right[key]));
+}
+
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppearanceState>(defaults);
 
@@ -419,19 +436,43 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
    */
   const [prefereEscuro, setPrefereEscuro] = useState(false);
 
+  /*
+   * Subscrever uma só vez. Com `[state]`, qualquer alteração da aparência
+   * voltava a correr este efeito — e o efeito escreve estado
+   * (`setPrefereEscuro`). Era a forma exacta do «Maximum update depth
+   * exceeded» (React #185): efeito que depende de um objecto e escreve estado.
+   * O `onChange` precisa do estado actual, mas não precisa de o ter como
+   * dependência: lê-o por referência.
+   */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     setPrefereEscuro(mq.matches);
     const onChange = () => {
       setPrefereEscuro(mq.matches);
-      if (state.mode === "system") applyAppearance(state);
+      const current = stateRef.current;
+      if (current.mode === "system") applyAppearance(current);
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, [state]);
+  }, []);
 
   const set = useCallback((patch: Partial<AppearanceState>) => {
-    setState((s) => ({ ...s, ...patch }));
+    setState((s) => {
+      // Uma alteração que não altera nada tem de devolver o MESMO objecto.
+      // `{ ...s, ...patch }` criava sempre um objecto novo, e o `state` é
+      // dependência de efeitos: quem chamasse `set` em efeito com os mesmos
+      // valores (o `SchoolBrandAppearanceSync` chama em cada montagem) punha a
+      // árvore inteira a redesenhar sem nada ter mudado.
+      const changed = (Object.keys(patch) as (keyof AppearanceState)[]).some(
+        (key) => !sameAppearanceValue(s[key], patch[key]),
+      );
+      return changed ? { ...s, ...patch } : s;
+    });
   }, []);
 
   const reset = useCallback(() => {
