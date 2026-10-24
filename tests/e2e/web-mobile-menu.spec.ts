@@ -29,8 +29,14 @@ test.describe("WEB — menu mobile de soluções", () => {
 
   test("Criar escola, Aplicação Desktop e Ensino público têm destinos certos", async ({ page }) => {
     let menu = page.getByRole("dialog");
-    await expect(menu.getByRole("link", { name: "Aplicação Desktop" })).toHaveAttribute("href", "/download");
-    await expect(menu.getByRole("link", { name: "Criar escola" })).toHaveAttribute("href", "/start");
+    await expect(menu.getByRole("link", { name: "Aplicação Desktop" })).toHaveAttribute(
+      "href",
+      "/download",
+    );
+    await expect(menu.getByRole("link", { name: "Criar escola" })).toHaveAttribute(
+      "href",
+      "/start",
+    );
 
     await menu.getByRole("button", { name: "Soluções" }).click();
     await menu.getByRole("link", { name: "Ensino público" }).click();
@@ -39,6 +45,9 @@ test.describe("WEB — menu mobile de soluções", () => {
 
     await page.getByRole("button", { name: "Abrir menu" }).click();
     menu = page.getByRole("dialog");
-    await expect(menu.getByRole("button", { name: "Soluções" })).toHaveAttribute("aria-expanded", "false");
+    await expect(menu.getByRole("button", { name: "Soluções" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 });
