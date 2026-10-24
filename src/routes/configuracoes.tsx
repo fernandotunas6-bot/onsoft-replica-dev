@@ -41,6 +41,10 @@ function ConfiguracoesPage() {
 
   useEffect(() => {
     const normalized = painel?.trim().toLowerCase();
+    if (normalized === "website") {
+      void navigate({ to: "/website/editor", replace: true });
+      return;
+    }
     if (normalized === "documentos" || normalized === "modelos") {
       void navigate({ to: "/documentos", hash: "modelos", replace: true });
       return;

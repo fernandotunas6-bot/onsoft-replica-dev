@@ -85,6 +85,7 @@
     "@ai-sdk/openai": "^4.0.72",
     "@hookform/resolvers": "^5.2.2",
     "@lovable.dev/mcp-js": "^3.0.4",
+    "@puckeditor/core": "0.23.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",
@@ -189,6 +190,7 @@
     "@modelcontextprotocol/sdk": "1.32.1",
     "@modelcontextprotocol/server": "2.3.0",
     "launch-editor": "2.14.2",
-    "shell-quote": "1.12.0"
+    "shell-quote": "1.12.0",
+    "happy-dom": "21.0.4"
   }
 }

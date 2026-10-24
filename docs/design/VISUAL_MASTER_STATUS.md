@@ -157,3 +157,22 @@ por papel e o estado dos formulários.
 Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada nem
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
+
+
+## Website Studio dedicado — 24/10/2026
+
+Estado global do módulo: **parcial**. Primeiro incremento em `/website/editor`,
+com Puck 0.23.0 carregado apenas no cliente. Páginas à esquerda, preview isolado,
+inspector de conteúdo e aparência por página, largura/zoom e vistas móveis.
+Os atalhos de Website nas Definições abrem o estúdio; as configurações completas
+anteriores e o blog mantêm-se acessíveis.
+
+Validação local: testes de adaptador, Puck real em DOM, comandos editoriais,
+conflitos/falhas, cancelamento ao mudar escola, acesso por cargo/módulo e Chrome
+com fixtures em seis larguras. O template público não foi redesenhado.
+[Evidência e medições](../qa/website-studio-2026-10-24/README.md).
+
+Faltam CI remoto, sessão real AAL2, duas instituições em staging, Worker canário,
+dispositivos físicos e Web Vitals p75. A selecção de elementos por clique no DOM
+isolado e a alteração livre da estrutura não estão implementadas. Não considerar
+a execução integral do padrão global concluída por causa deste incremento.
