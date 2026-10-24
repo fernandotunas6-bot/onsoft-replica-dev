@@ -172,8 +172,8 @@ const pedagogicaSearchSchema = z
         "competencias",
       ])
       .optional(),
-    turma: z.string().uuid().optional(),
-    disciplina: z.string().uuid().optional(),
+    turma: z.string().guid().optional(),
+    disciplina: z.string().guid().optional(),
     pauta: z.enum(["1"]).optional(),
     dia: z
       .string()

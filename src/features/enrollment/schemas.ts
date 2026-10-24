@@ -56,7 +56,7 @@ export const enrollmentFormAppearanceSchema = z.object({
 export type EnrollmentFormAppearance = z.infer<typeof enrollmentFormAppearanceSchema>;
 
 export const updateEnrollmentFormInputSchema = enrollmentFormAppearanceSchema.extend({
-  id: z.string().uuid(),
+  id: z.string().guid(),
 });
 export type UpdateEnrollmentFormInput = z.infer<typeof updateEnrollmentFormInputSchema>;
 
@@ -117,7 +117,7 @@ export const submitPublicEnrollmentInputSchema = z.object({
   }),
   guardianRelationship: optionalText,
   /** Curso pretendido (Ensino Superior): só cursos activos da própria escola. */
-  desiredProgramId: z.string().uuid().optional(),
+  desiredProgramId: z.string().guid().optional(),
 });
 export type SubmitPublicEnrollmentInput = z.infer<typeof submitPublicEnrollmentInputSchema>;
 
@@ -127,9 +127,9 @@ export const listEnrollmentApplicationsInputSchema = z.object({
 });
 
 export const decideEnrollmentApplicationInputSchema = z.object({
-  applicationId: z.string().uuid(),
+  applicationId: z.string().guid(),
   decision: z.enum(["accepted", "rejected"]),
-  classGroupId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
 });
 
 export function candidacyProcessNumber(applicationId: string, createdAt?: string) {

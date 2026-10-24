@@ -9,8 +9,8 @@ import { reportSigaError } from "@/lib/ops-report";
 
 export const payflowSettlementInputSchema = z.object({
   event: z.enum(["payment.paid", "payment.refunded"]),
-  school_id: z.string().uuid(),
-  invoice_id: z.string().uuid(),
+  school_id: z.string().guid(),
+  invoice_id: z.string().guid(),
   payment_id: z.string().trim().min(6).max(80),
   amount_minor: z.number().int().positive().max(999_999_999_99),
   currency: z.string().trim().toUpperCase().regex(/^AOA$/),

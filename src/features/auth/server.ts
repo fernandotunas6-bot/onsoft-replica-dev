@@ -211,7 +211,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {
     if (!input || typeof input !== "object") return { preferredSchoolId: undefined };
-    const parsed = z.object({ preferredSchoolId: z.string().uuid().optional() }).safeParse(input);
+    const parsed = z.object({ preferredSchoolId: z.string().guid().optional() }).safeParse(input);
     return parsed.success ? parsed.data : { preferredSchoolId: undefined };
   })
   .handler(async ({ data, context }) => {

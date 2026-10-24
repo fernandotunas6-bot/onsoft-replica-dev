@@ -14,8 +14,8 @@ import { toastActionError } from "@/lib/action-error-toast";
 import { gradeInWords } from "@/lib/grade-words";
 
 const searchSchema = z.object({
-  programId: z.string().uuid(),
-  studentId: z.string().uuid(),
+  programId: z.string().guid(),
+  studentId: z.string().guid(),
 });
 
 export const Route = createFileRoute("/pedagogica_/superior_/certificado")({

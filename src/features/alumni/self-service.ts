@@ -31,13 +31,13 @@ const updateSelfProfileSchema = z.object({
 });
 
 const opportunityActionSchema = z.object({
-  opportunityId: z.string().uuid(),
+  opportunityId: z.string().guid(),
   status: z.enum(["interested", "applied", "withdrawn"]).default("interested"),
 });
 
-const eventActionSchema = z.object({ eventId: z.string().uuid() });
+const eventActionSchema = z.object({ eventId: z.string().guid() });
 const surveyActionSchema = z.object({
-  surveyId: z.string().uuid(),
+  surveyId: z.string().guid(),
   response: z.record(z.string(), z.unknown()),
 });
 

@@ -189,8 +189,8 @@ async function buildClassFinalResults(
 }
 
 const classInput = z.object({
-  classGroupId: z.string().uuid(),
-  academicYearId: z.string().uuid().optional(),
+  classGroupId: z.string().guid(),
+  academicYearId: z.string().guid().optional(),
 });
 
 export const getClassFinalResults = createServerFn({ method: "GET" })

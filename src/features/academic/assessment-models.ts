@@ -194,7 +194,7 @@ const publishInput = z.object({
   roundingMethod: z.enum(ROUNDING_METHODS),
   gradeChangeRequiresApproval: z.boolean(),
   lockAfterPublication: z.boolean(),
-  keySubjectIds: z.array(z.string().uuid()).max(60),
+  keySubjectIds: z.array(z.string().guid()).max(60),
   keySubjectsCauseFailure: z.boolean(),
   promotionRules: z.object({
     primario: promotionCycleSchema,

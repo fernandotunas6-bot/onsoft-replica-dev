@@ -32,22 +32,22 @@ export type AttendanceStatus = z.infer<typeof attendanceStatusEnum>;
 
 export const listTeacherAttendanceSessionsInputSchema = z.object({
   date: z.string().optional(), // YYYY-MM-DD
-  classGroupId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
 });
 
 export const getAttendanceCallSheetInputSchema = z.object({
-  sessionId: z.string().uuid().optional(),
-  classGroupId: z.string().uuid().optional(),
-  subjectId: z.string().uuid().optional(),
+  sessionId: z.string().guid().optional(),
+  classGroupId: z.string().guid().optional(),
+  subjectId: z.string().guid().optional(),
   date: z.string().optional(),
 });
 
 export const submitAttendanceCallBatchInputSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.string().guid(),
   markAllPresent: z.boolean().optional(),
   records: z.array(
     z.object({
-      studentId: z.string().uuid(),
+      studentId: z.string().guid(),
       status: attendanceStatusEnum,
       notes: z.string().optional(),
     }),
@@ -55,11 +55,11 @@ export const submitAttendanceCallBatchInputSchema = z.object({
 });
 
 export const editFinalizedAttendanceCallInputSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.string().guid(),
   reason: z.string().min(5, "O motivo deve ter pelo menos 5 caracteres."),
   records: z.array(
     z.object({
-      studentId: z.string().uuid(),
+      studentId: z.string().guid(),
       status: attendanceStatusEnum,
       notes: z.string().optional(),
     }),
@@ -67,22 +67,22 @@ export const editFinalizedAttendanceCallInputSchema = z.object({
 });
 
 export const submitAttendanceJustificationInputSchema = z.object({
-  studentId: z.string().uuid(),
-  sessionId: z.string().uuid().optional(),
-  attendanceRecordId: z.string().uuid().optional(),
+  studentId: z.string().guid(),
+  sessionId: z.string().guid().optional(),
+  attendanceRecordId: z.string().guid().optional(),
   reason: z.string().min(8, "A justificativa deve ter pelo menos 8 caracteres."),
-  fileId: z.string().uuid().optional(),
+  fileId: z.string().guid().optional(),
   fileName: z.string().optional(),
 });
 
 export const reviewAttendanceJustificationInputSchema = z.object({
-  justificationId: z.string().uuid(),
+  justificationId: z.string().guid(),
   status: z.enum(["approved", "rejected"]),
   reviewNotes: z.string().optional(),
 });
 
 export const getStudentAttendanceHistoryInputSchema = z.object({
-  studentId: z.string().uuid().optional(),
+  studentId: z.string().guid().optional(),
 });
 
 /**
@@ -887,7 +887,7 @@ async function assertMayDecideJustification(
 /** Abre o anexo (atestado) de uma justificação, para quem a pode decidir. */
 export const openAttendanceJustificationFile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ justificationId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ justificationId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Não autenticado.");
     const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [

@@ -186,8 +186,8 @@ export const getOrCreateVirtualCard = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        studentId: z.string().uuid().optional(),
-        personId: z.string().uuid().optional(),
+        studentId: z.string().guid().optional(),
+        personId: z.string().guid().optional(),
       })
       .parse(input ?? {}),
   )

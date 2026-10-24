@@ -9,7 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import type { AcademicStructureCounts } from "./academic-architecture";
 
-const inputSchema = z.object({ academicYearId: z.string().uuid().optional() });
+const inputSchema = z.object({ academicYearId: z.string().guid().optional() });
 
 export const getAcademicStructureStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

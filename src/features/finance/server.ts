@@ -900,7 +900,7 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
   });
 
 const paymentReferenceInputSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   /** Sem valor, a referência é do que falta pagar (com a multa de um pagamento hoje). */
   amount: z.number().positive().max(100_000_000).optional(),
   /**
@@ -981,7 +981,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
  * atestar que viu o comprovativo do pagamento. Continua gated a Administrador/Tesouraria.
  */
 const confirmManualPaymentInputSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   amount: z.number().positive().max(100_000_000),
   reference: z.string().trim().min(3).max(40),
   method: z.string().trim().max(40).optional(),
@@ -1991,7 +1991,7 @@ const gradeTuitionPricesInputSchema = z.object({
   prices: z
     .array(
       z.object({
-        gradeLevelId: z.string().uuid(),
+        gradeLevelId: z.string().guid(),
         /** null ou vazio: a classe deixa de ter preço próprio e usa a propina geral. */
         amount: z.number().positive().max(999_999_999_999.99).nullable(),
       }),

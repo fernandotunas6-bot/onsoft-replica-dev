@@ -216,7 +216,7 @@ export const saveRiskAnalysis = createServerFn({ method: "POST" })
   });
 
 const interventionSchema = z.object({
-  caseId: z.string().uuid(),
+  caseId: z.string().guid(),
   kind: z.enum([
     "reunião encarregado",
     "tutoria",
@@ -266,11 +266,11 @@ export const addRiskIntervention = createServerFn({ method: "POST" })
   });
 
 const automaticSchema = z.object({
-  classGroupId: z.string().uuid(),
+  classGroupId: z.string().guid(),
   students: z
     .array(
       z.object({
-        enrollment_id: z.string().uuid(),
+        enrollment_id: z.string().guid(),
         risk: z.enum(["alto", "médio"]),
         reasons: z.array(z.string().max(500)).min(1).max(10),
         average: z.number().min(0).max(20).nullable(),

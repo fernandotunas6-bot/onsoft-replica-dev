@@ -401,9 +401,9 @@ export const listCurricula = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        academicYearId: z.string().uuid().optional(),
-        courseId: z.string().uuid().optional(),
-        gradeLevelId: z.string().uuid().optional(),
+        academicYearId: z.string().guid().optional(),
+        courseId: z.string().guid().optional(),
+        gradeLevelId: z.string().guid().optional(),
       })
       .parse(input ?? {}),
   )
@@ -507,8 +507,8 @@ export const listTeacherAvailability = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        teacherId: z.string().uuid(),
-        academicYearId: z.string().uuid().optional(),
+        teacherId: z.string().guid(),
+        academicYearId: z.string().guid().optional(),
       })
       .parse(input),
   )
