@@ -54,7 +54,7 @@ Nenhuma destas se fecha só com código: cada uma escreve na produção, depende
 
 1. **Aplicar as duas migrações**, por esta ordem: `20261024090000` (estorno conta a multa) e `20261024100000` (chave de idempotência). O código do #276 funciona com ou sem elas, por isso podem ser aplicadas antes ou depois de o publicar. Depois de cada `apply_migration`, renomear o ficheiro para o carimbo registado e conferir o md5 do corpo; a segunda acrescenta uma coluna e um índice a `finance_receipts`, por isso recapturar o retrato.
 2. _(Juntou-se à 1.)_
-3. **Caixa por posto, com abertura e fecho de sessão.** Tabela nova (`finance_cash_sessions`), operador, diferença de caixa, relatório de fecho. Precisa de desenho aprovado.
+3. **Caixa por posto, com abertura e fecho de sessão.** Proposta em [`CAIXA_SESSOES.md`](CAIXA_SESSOES.md), com quatro decisões pedidas. O saldo em numerário já aparece separado do bancário (#276), mas é o da escola inteira, não o da gaveta.
 4. **Estados de pagamento unificados** (iniciado, a aguardar, confirmado, falhado, cancelado, reembolsado). Hoje a fatura tem `open/partially_paid/paid/cancelled`, a cobrança do gateway tem os seus, e o recibo `issued/reversed`. Unificar é decisão de modelo.
 5. **Contabilidade formal** (plano de contas, diário, razão, balancete). Não existe núcleo contabilístico — só tesouraria. Exige projecto técnico e validação de contabilista (PGC Angola).
 6. **QR de pagamento real.** Depende de adesão e credenciais EMIS/AppyPay por escola; não se gera QR sem o fornecedor.
