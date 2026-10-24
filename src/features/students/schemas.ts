@@ -102,7 +102,7 @@ export const enrollNewStudentInputSchema = z
   .object({
     requestId: z.string().uuid(),
     person: personCoreFieldsSchema,
-    // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
+    // Não persistido: o nº do aluno (1+ano+4 dígitos, ex.: 1260001) é gerado pela sequência própria
     // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
     registrationNumber: optionalText,
     classGroupId: z.string().uuid().optional(),

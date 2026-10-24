@@ -18,14 +18,14 @@ class ReceiptPreviewScreen extends StatelessWidget {
     final statusColor = isPaid ? Colors.green : Colors.orange;
     final ward = wards.firstWhere(
       (w) => w['id'] == tx['student_id'],
-      orElse: () => {'name': 'Unknown Student', 'id': tx['student_id']},
+      orElse: () => {'name': 'Aluno desconhecido', 'id': tx['student_id']},
     );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Receipt Preview',
+          'Pré-visualização do recibo',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -68,7 +68,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             ),
                           ),
                           const Text(
-                            'Accra, Ghana',
+                            'Angola',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
@@ -111,7 +111,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'OFFICIAL RECEIPT',
+                    'RECIBO',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -160,7 +160,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                (ward['name'] ?? 'Unknown').toString(),
+                                (ward['name'] ?? 'Desconhecido').toString(),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 18,
@@ -208,7 +208,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Payment Details',
+                          'Dados do pagamento',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -232,14 +232,14 @@ class ReceiptPreviewScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    _buildDetailRow('Description', tx['title']?.toString()),
+                    _buildDetailRow('Descrição', tx['title']?.toString()),
                     const SizedBox(height: 12),
                     _buildDetailRow(
-                      'Payment For',
+                      'Referente a',
                       tx['description']?.toString(),
                     ),
                     const SizedBox(height: 12),
-                    _buildDetailRow('Date', tx['date']?.toString()),
+                    _buildDetailRow('Data', tx['date']?.toString()),
                     const SizedBox(height: 12),
                     _buildAmountRow(tx['amount']?.toString()),
                     const SizedBox(height: 20),
@@ -256,7 +256,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Total Amount',
+                            'Valor total',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -289,7 +289,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
               child: Column(
                 children: [
                   const Text(
-                    'Thank you for your payment!',
+                    'Obrigado pelo pagamento.',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -299,7 +299,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'This is a computer-generated receipt. No signature required.',
+                    'Recibo gerado por computador. Dispensa assinatura.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -318,7 +318,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(LucideIcons.x),
-                    label: const Text('Close'),
+                    label: const Text('Fechar'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: BorderSide(
@@ -335,14 +335,14 @@ class ReceiptPreviewScreen extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'PDF Downloaded! Ready for print/share.',
+                            'PDF descarregado. Pronto a imprimir ou partilhar.',
                           ),
                           backgroundColor: AppColors.primary,
                         ),
                       );
                     },
                     icon: const Icon(LucideIcons.download),
-                    label: const Text('Download PDF'),
+                    label: const Text('Descarregar PDF'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -377,7 +377,7 @@ class ReceiptPreviewScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const Text(
-          'Amount Paid',
+          'Valor pago',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         Text(

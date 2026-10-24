@@ -110,10 +110,26 @@ concluir a operação» + Diagnóstico; o texto técnico vai só para a consola.
    Para calar um aviso automático: `meta: { errorToast: false }` na query/mutação; para
    uma mensagem sem correcção: `toast.error(msg, { guidance: false })`.
 
-## Por fazer (fase 2)
+## PayFlow (`painel/payflow`)
 
-- `painel/payflow`, `painel/web` e `painel/admin` têm `toast` próprio (5 ficheiros, ~15
-  chamadas) e não partilham `src/lib`. Copiar o catálogo exige um pacote partilhado.
+O PayFlow é outra aplicação e não partilha `src/lib`. Tem o seu catálogo,
+`painel/payflow/lib/error-guidance.ts` (testes em `tests/error-guidance.test.mjs`),
+**por código da API** (`{ error: { code, message } }`), com dois públicos:
+
+- `admin` (painel de conciliação): `showApiError` no `payflow-admin-dashboard.tsx` mostra a
+  mensagem, a correcção e «Tentar outra vez» quando repetir pode resolver (rede, conector
+  bancário, falha interna). A leitura da conciliação deixou de falhar calada.
+- `student` (portal de pagamento): o bloco de erro (`InlineError`) mostra a correcção por
+  baixo da mensagem, sem caminhos internos do SIGA (um teste garante-o).
+
+Os destinos citados existem no SIGA: «Conciliação PayFlow» em **Financeiro** e
+«Sincronizar IBAN da escola com o PayFlow» em **Definições → Financeiro**.
+
+`painel/web` e `painel/admin` só usam `toast` na demonstração do modelo de tabela (promessa
+falsa) — sem erros reais a orientar.
+
+## Por fazer
+
 - Validação **antes** de enviar: os formulários que só falham no servidor (ex.: emitir
   fatura sem plano) podem consultar o guia de arranque e desactivar o botão com a mesma
   explicação.

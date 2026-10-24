@@ -40,6 +40,8 @@ const MIGRATIONS = {
     "siga_exam_registrations",
   ],
   "supabase/migrations/20261004140000_student_special_statuses.sql": ["student_special_statuses"],
+  "supabase/migrations/20261005160000_student_scholarships.sql": ["student_scholarships"],
+  "supabase/migrations/20261005170000_class_group_waitlist.sql": ["class_group_waitlist"],
   // Contacto do site (nome e e-mail de quem escreve) e restantes tabelas do site público.
   "supabase/migrations/20261007100000_web_site_content.sql": [
     "web_contact_messages",
@@ -50,7 +52,7 @@ const MIGRATIONS = {
   // Registo das acções do ADMIN: nem os administradores da plataforma o alteram.
   "supabase/migrations/20261017100000_saas_audit_logs_server_only.sql": ["saas_audit_logs"],
   // Links das aulas online: alunos liam os de todas as turmas; professores mudavam os alheios.
-  "supabase/migrations/20261018120000_lesson_meetings_server_only.sql": ["siga_lesson_meetings"],
+  "supabase/migrations/20261018120001_lesson_meetings_server_only.sql": ["siga_lesson_meetings"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Check, type LucideIcon } from "lucide-react";
+import { useSubmitLock } from "./use-submit-lock";
 import { ModalShell } from "./ModalShell";
 import { ModalHeader } from "./ModalHeader";
 import { ModalContent } from "./ModalContent";
@@ -60,34 +61,41 @@ export function WizardModal({
   };
 
   const handlePrev = () => {
-    if (!isFirstStep && !isSubmitting) {
+    if (!isFirstStep && !isSubmitting && !submission.pending) {
       onStepChange(currentStepIndex - 1);
     }
   };
+
+  const submission = useSubmitLock();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canProceed || isSubmitting) return;
     if (isLastStep) {
-      await onSubmit();
+      await submission.run(onSubmit);
     } else {
       handleNext();
     }
   };
 
   const guardedClose = () => {
+    if (isSubmitting || submission.pending) return;
     if (confirmDiscardChanges(hasUnsavedChanges)) onOpenChange(false);
   };
 
   return (
     <ModalShell
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => {
+        if (next) onOpenChange(true);
+        else if (!isSubmitting && !submission.pending) onOpenChange(false);
+      }}
       size={size}
       hasUnsavedChanges={hasUnsavedChanges}
     >
       <form
         onSubmit={handleSubmit}
+        aria-busy={isSubmitting || submission.pending}
         className={
           visualPanel
             ? "grid min-h-0 min-w-0 max-h-[90dvh] grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden lg:min-h-[78dvh] lg:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.1fr)]"
@@ -104,6 +112,7 @@ export function WizardModal({
           title={title}
           subtitle={subtitle}
           onClose={guardedClose}
+          closeDisabled={isSubmitting || submission.pending}
         />
 
         {/* Stepper Progress Bar */}
@@ -116,10 +125,12 @@ export function WizardModal({
                 <React.Fragment key={step.id}>
                   <button
                     type="button"
-                    disabled={!isCompleted || isSubmitting}
+                    disabled={!isCompleted || isSubmitting || submission.pending}
                     aria-current={isCurrent ? "step" : undefined}
                     aria-label={`Etapa ${idx + 1}: ${step.label}`}
-                    onClick={() => isCompleted && !isSubmitting && onStepChange(idx)}
+                    onClick={() =>
+                      isCompleted && !isSubmitting && !submission.pending && onStepChange(idx)
+                    }
                     className="flex min-h-[44px] max-w-[260px] shrink-0 items-center gap-2 rounded-lg px-2 py-2 text-left text-[13px] leading-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring enabled:hover:bg-muted"
                   >
                     <span
@@ -168,7 +179,7 @@ export function WizardModal({
           onSubmit={handleSubmit}
           submitLabel={isLastStep ? submitLabel : "Avançar"}
           disabled={!canProceed}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || submission.pending}
           extraActions={
             !isFirstStep ? (
               <Button
@@ -176,7 +187,7 @@ export function WizardModal({
                 variant="outline"
                 size="sm"
                 onClick={handlePrev}
-                disabled={isSubmitting}
+                disabled={isSubmitting || submission.pending}
                 className="h-auto min-h-[44px] max-w-full whitespace-normal rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
               >
                 Anterior

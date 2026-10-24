@@ -87,8 +87,8 @@ class _AppRootState extends ConsumerState<AppRoot> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Your school account has been temporarily suspended by the platform administrator. '
-                                'Please contact your school leadership or support. You have been signed out.',
+                                'A conta da escola foi suspensa temporariamente pela administração da plataforma. '
+                                'Contacte a direcção da escola ou o apoio. A sua sessão foi terminada.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context)
                                     .textTheme

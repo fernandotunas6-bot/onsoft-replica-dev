@@ -111,7 +111,7 @@ export function buildExamPautaStudents({
 
     return {
       id: enrollment.id,
-      code: enrollment.registration_number ?? `EST-${index + 1}`,
+      code: enrollment.registration_number ?? String(index + 1),
       number: index + 1,
       name: enrollment.student_name,
       gender: toGender(enrollment.student_gender),

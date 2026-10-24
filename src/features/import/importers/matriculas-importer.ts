@@ -234,7 +234,7 @@ export const matriculasImporter: RowImporter = {
 
     if (ctx.dryRun) return { status: "will_insert", warnings: [], errors: [], audits: [] };
     // A matrícula nova passa por `enroll_student` (a mesma função do ecrã e do
-    // importador de alunos): gera o `enrollment_number` (MAT-000123), que é
+    // importador de alunos): gera o `enrollment_number` (1260123), que é
     // obrigatório, e valida capacidade, ano activo e data. O insert directo que
     // estava aqui omitia o número e a base recusava todas as linhas.
     // Quem tinha saído é reaberto, como na colocação em turma do ecrã.

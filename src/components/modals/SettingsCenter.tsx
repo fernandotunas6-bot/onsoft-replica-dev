@@ -1,4 +1,6 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useMemo, useRef, useCallback, useState } from "react";
+import { useBlocker } from "@tanstack/react-router";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import {
   Building2,
   CreditCard,
@@ -305,12 +307,25 @@ export function SettingsCenter({
   open,
   onOpenChange,
   initialPanelId,
+  presentation = "modal",
 }: {
+  presentation?: "page" | "modal";
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialPanelId?: string | undefined;
 }) {
   const panels = useSettingsPanels();
+  const [dirty, setDirty] = useState(false);
+  const dirtyRef = useRef(false);
+  const reportDirty = useCallback((value: boolean) => {
+    dirtyRef.current = value;
+    setDirty(value);
+  }, []);
+  useBlocker({
+    disabled: presentation !== "page" || !dirty,
+    enableBeforeUnload: presentation === "page" && dirty,
+    shouldBlockFn: () => !confirmDiscardChanges(dirtyRef.current),
+  });
   return (
     <StackedModal
       open={open}
@@ -318,7 +333,9 @@ export function SettingsCenter({
       panels={panels}
       rootId="root"
       eyebrow="SIGA"
-      size="xl"
+      size="lg"
+      presentation={presentation}
+      onDirtyChange={reportDirty}
       initialPanelId={initialPanelId}
     />
   );

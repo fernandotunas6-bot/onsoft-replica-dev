@@ -1,5 +1,25 @@
 # Handoff — continuar o SIGA
 
+## Navegação contextual e superfícies discretas — 2026-10-22
+
+A sidebar deriva o módulo activo do catálogo já filtrado por papel/grants/plano.
+«Todas as áreas» abre a navegação global; «Voltar ao módulo» regressa ao contexto.
+A lista global abre um submenu de cada vez e já não restaura menus acumulados de
+outras sessões. A árvore académica só monta no contexto pedagógico. O estado de
+navegação é reiniciado por uma chave serializada estável (rota/pesquisa/escola/papel),
+sem depender da identidade de objectos de pesquisa. `NavLinkRow` mantém o destaque
+automático do router quando `active` não é explícito; não retirar esse fallback da
+árvore académica. Painéis e cartões partilhados têm superfícies sem elevação ao hover;
+cores de estado explícitas mantêm-se. Comparação controlada e limites:
+[relatório visual](../visual/2026-10-22/README.md). Sem deploy nem SQL.
+
+Para ligar o visual de outro agente, consultar os
+[pontos de integração e contrato de aparência](../design/CONTEXTUAL_VISUAL_INTEGRATION.md).
+A PR #245 (`e4db10fa`) foi identificada e combinada nesta branch: toque de 44 px,
+movimento reduzido e pesquisa IME. Preservar os dois históricos, os ajustes recentes
+dos modais, os testes de navegação e o catálogo lazy de temas. Isto não confirma a
+reprodução das imagens de outra conversa, que continuam por identificar.
+
 ## Refinamento da navegação académica — 2026-10-21
 
 Escape/clique exterior cancelam hover pendente; toque híbrido não fecha painéis
@@ -49,6 +69,19 @@ valor. A actualização automática de publicação aceita os modelos compatíve
 Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
+
+## Preparação da consolidação de produção (2026-10-21)
+
+O utilizador pediu organizar os trabalhos de todos os agentes, incluindo Claude,
+para a publicação conjunta. [Plano, alvos e bloqueios](../releases/2026-10-21/README.md),
+[inventário](../releases/2026-10-21/inventory.md) e manifesto JSON na mesma pasta.
+O clone era raso e buscava só main; foi completado antes da comparação. A ferramenta
+`scripts/siga/release-inventory.mjs` captura heads, commits, conflitos, patches
+equivalentes, sobreposições e dependências sem integrar código dos agentes.
+O ramo de preparação não é ainda o candidato com todas as funcionalidades.
+Antes de fechar a versão, recapturar fontes e validar o candidato acumulado.
+Cloudflare continua a recusar o token; a ligação GitHub desta sessão não gere
+segredos do ambiente production (403). O utilizador foi informado deste pré-requisito.
 
 ## Website escolar — navegação antes da API (2026-10-21)
 
@@ -303,6 +336,35 @@ gestão académica). Ser administrador da escola nunca dá a Administração Glo
 - O provisionamento também verifica `role_permissions` (`findProvisioningGaps` e
   `siga:audit-provisioning`).
 
+## Revisão #148 — reforço antes de aplicar (2026-10-16)
+
+Preflight antes do lote (datas/ano/zero/capacidade), locks, mapa privado antigo → novo
+`private.siga_numbering_changes` e testes de documentos existentes/rollback. Login geral
+recusa escolher conta ao atingir 50 fichas. Produção continua **por aplicar**.
+Matriz e critérios: [NUMBERING_148_VALIDATION.md](./NUMBERING_148_VALIDATION.md).
+
+## Numeração só com dígitos (2026-10-12) — POR APLICAR
+
+Pedido do dono: número do aluno, da matrícula e dos documentos da escola com 7 dígitos,
+«1» + ano + 4 dígitos (2026 → 1260001), a recomeçar em cada ano por escola e tipo; os
+existentes (EST-…, MAT-…) renumerados por ordem de criação. Migração
+`20261012140000_numbering_one_year_digits.sql`, ensaio `tests/sql/numbering-one-year-digits.mjs`.
+Facturas, recibos, notas de crédito e despesas mantêm a série fiscal (AGT). O código
+PayFlow do aluno passa a ser o próprio número (antes `0900038` de `EST-900038`): um aluno
+já sincronizado no PayFlow com o código antigo tem de ser sincronizado de novo.
+
+Feito à volta (não depende da migração):
+
+- **Entrar com o número de aluno** — escolha da escola em Definições → Segurança
+  (`school_settings` domínio `student_access`, `student_number_login`, desligado por
+  omissão; só Administrador, com 2FA, auditado). Login: `student-number-login.ts` (escola
+  do endereço; no endereço geral só se o número existir numa única escola com a opção
+  ligada, senão `school_required`); `student-access-server.ts` (get/set e a pergunta sem
+  sessão que muda o rótulo do ecrã de entrada). Só fichas activas/candidatas com conta.
+  Antes da migração os números são `EST-…` e o login por número não encontra ninguém.
+- Pesquisa por número tolerante a espaços/traços (`numberMatches`): alunos, matrículas,
+  presenças, avaliações, documentos, arquivo, superior. Exemplos da importação em `1260042`.
+
 ## Catálogo educacional global (2026-10-10)
 
 Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalog/README.md).
@@ -333,9 +395,19 @@ Detalhe e cobertura real: [docs/education-catalog/README.md](../education-catalo
   (`catalog-link.ts`: «Nova», modelo de estrutura, importação; tolerante). Cursos novos
   também (`programs.catalog_course_code`, mesma migração); os existentes em «Ligar cursos». Colunas em
   `COLUNAS_ESPERA_MIGRACAO` até o retrato as ter.
-- **Por aplicar (dono):** `20261010120000_global_education_catalog.sql`, depois
-  `supabase/seeds/education/catalog.sql`, depois `20261010150000_merge_school_subjects.sql`,
-  depois `20261012120000_subjects_catalog_link.sql` (independente das outras). A página não depende delas.
+- **Contexto de nível por área** (`SUBJECT_AREA_LEVELS`): Saúde, Informática, Gestão… só
+  existem do ISCED 3 em diante; `areasForContext`, filtro `area` na pesquisa, na API
+  (`type=areas`, `&area=`) e chips na página. Teste `area-level-context.test.ts`.
+- **Duas sessões fizeram este catálogo em paralelo.** A da branch `ccr-680ee371-6vebkz`
+  começou o mesmo trabalho sem saber deste; ficou num `git stash` local (não publicado) e só
+  entrou a regra por área acima. Antes de começar, `git fetch` e ler este ficheiro na `main`.
+- **Aplicado na produção:** `20261010120000_global_education_catalog.sql`,
+  `20261010150000_merge_school_subjects.sql` e a carga `supabase/seeds/education/catalog.sql`
+  (a 2026-10-10, md5 das 8 tabelas igual ao do ficheiro; ver o README do catálogo), e
+  `20261012120000_subjects_catalog_link.sql` (as colunas `subjects.catalog_subject_code` e
+  `programs.catalog_course_code` existem a 2026-10-12). **Falta:** recapturar o retrato e os
+  tipos (`npm run siga:db-snapshot`, `npm run siga:gen-types`), tirar `merge_school_subjects`
+  de `FUNCOES_ESPERA_MIGRACAO` e as duas colunas de `COLUNAS_ESPERA_MIGRACAO`.
 
 ## Auditoria 14 — lógica das matrículas e repetições (2026-10-10)
 
@@ -489,6 +561,10 @@ o PayFlow é (`provider: unconfigured`, `sigaUrl: null`); chaves de assinatura d
 desktop (**0 releases, 0 tags `v*`, 0 segredos no repositório**); DMARC.
 
 ## Publicar — estado de 2026-10-06
+
+> **PR #87 (bolsas, lista de espera, turnos):** traz `20261006160000_waitlist_scholarship_shift_indexes.sql`
+> (só índices, idempotente), **por aplicar**: aplicar na produção depois do merge, e registar
+> a versão. O resto das tabelas e colunas do PR já está na produção.
 
 Levantamento completo: [estado-deploy-2026-10-06.md](../auditoria/estado-deploy-2026-10-06.md).
 
@@ -739,7 +815,9 @@ servidor lhes toca, ver `PRIVILEGIO_POR_DESENHO`).
   dono): tabela `student_special_statuses` (`20261004140000`, aplicada), ver «Pedidos do
   dono de 2026-10-04». A tabela `higher_ed_student_statuses` do PR #70 não foi criada.
 - **Por fazer:** ver «Pendente» em `docs/higher-ed/ANALISE_REQUISITOS_ANGOLA.md`
-  (bacharelato, bolsas, turnos/lista de espera).
+  (SISIES: Pós-graduados e Recursos Humanos). Turnos por cadeira
+  (`course_unit_enrollments.class_group_id`, 20261006090000, aplicada). Bacharelato (grau no perfil do curso, sem migração), bolsas (`student_scholarships`, 20261005160000) e lista de
+  espera por turma (`class_group_waitlist`, 20261005170000) feitas e aplicadas (PR #87).
 
 ## Auditoria de produção 11 (2026-10-02)
 

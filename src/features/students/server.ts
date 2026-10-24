@@ -1,4 +1,5 @@
-import type { TablesUpdate } from "@/integrations/supabase/types";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";
 import { reportSigaError } from "@/lib/ops-report";
@@ -456,7 +457,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     return mapped.filter(
       (row) =>
         row.full_name.toLowerCase().includes(query) ||
-        row.registration_number.toLowerCase().includes(query) ||
+        numberMatches(row.registration_number, query) ||
         (row.email ?? "").toLowerCase().includes(query) ||
         (row.phone ?? "").toLowerCase().includes(query) ||
         (row.national_id ?? "").toLowerCase().includes(query) ||
@@ -1015,8 +1016,8 @@ export const listEnrollments = createServerFn({ method: "GET" })
         if (!q) return true;
         return (
           row.student_name.toLowerCase().includes(q) ||
-          row.registration_number.toLowerCase().includes(q) ||
-          row.enrollment_number.toLowerCase().includes(q) ||
+          numberMatches(row.registration_number, q) ||
+          numberMatches(row.enrollment_number, q) ||
           row.class_name.toLowerCase().includes(q)
         );
       });

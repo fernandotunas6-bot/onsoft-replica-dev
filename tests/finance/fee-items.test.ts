@@ -161,7 +161,7 @@ describe("propina por classe no servidor", () => {
     expect(body).toContain("kind ? gradeLevelId : null");
     expect(body).toContain("const amount = data.amount ?? feeItem.amount;");
     expect(body.indexOf("const amount =")).toBeLessThan(
-      body.indexOf("contractDiscountPercent > 0"),
+      body.indexOf("discountAmountFor(\n      amount,"),
     );
     expect(body).toMatch(/\.insert\(\{[\s\S]*?amount,\n/);
   });
