@@ -210,6 +210,17 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("fecha o flyout depois de seleccionar a subfunção, sem alterar o destino", async () => {
+    currentPathname = "/portal";
+    renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    const flyout = await screen.findByRole("dialog");
+    const matricular = flyout.querySelector("a[data-to='/alunos'][data-search]");
+    expect(matricular?.getAttribute("data-search")).toContain("matricular");
+    fireEvent.click(matricular as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("mostra configurações e instituições no flyout da escola, mantendo acesso por teclado", async () => {
     renderSidebar();
     const trigger = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
