@@ -7,8 +7,10 @@ import {
   renderRoute,
   resetPersistedFilters,
   resetRealtime,
+  resetCurrentAccount,
   resetRouteLocation,
   routeComponentOf,
+  setCurrentAccount,
 } from "./_harness";
 import type { listDocumentWorkspace, listPrintTemplates } from "@/features/documents/server";
 
@@ -30,6 +32,9 @@ vi.setConfig({ testTimeout: 20_000 });
 
 vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
+vi.mock("@/features/auth/use-current-account", async () =>
+  (await import("./_harness")).currentAccountMock(),
+);
 vi.mock("@/integrations/supabase/client", async () =>
   (await import("./_harness")).supabaseClientMock(),
 );
@@ -133,6 +138,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
+  resetCurrentAccount();
   vi.clearAllMocks();
   resetRouteLocation();
   resetPersistedFilters();
@@ -172,6 +178,24 @@ describe("/documentos — render", () => {
     fireEvent.click(emitir!);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(updateStatusMock).not.toHaveBeenCalled();
+  });
+
+  it("o aluno acompanha o seu pedido sem as acções da secretaria", async () => {
+    setCurrentAccount({ role: "Aluno", roles: ["Aluno"] });
+    seed({
+      workspace: {
+        ...sampleWorkspace,
+        requests: [{ ...sampleWorkspace.requests[0]!, status: "processing", next_status: "ready" }],
+      },
+    });
+    renderRoute(DocumentosRouteComponent);
+    await waitFor(() => {
+      expect(screen.getByText("Teresa Garcia")).toBeDefined();
+    });
+    for (const name of ["Emitir", "Recusar", "Cancelar", "Novo pedido"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    expect(listPrintTemplatesMock).not.toHaveBeenCalled();
   });
 
   it("apresenta o estado vazio com chamada para a secretaria quando não há pedidos", async () => {
