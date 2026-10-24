@@ -252,6 +252,7 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     fireEvent.keyDown(trigger, { key: "Enter" });
     const menu = await screen.findByRole("menu");
     expect(menu.hasAttribute("data-school-flyout")).toBe(true);
+    expect(menu.textContent).toContain("2026/2027");
     expect(screen.getByRole("menuitem", { name: /Instituições/ })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: /Configurações da Escola/ })).toBeTruthy();
     fireEvent.keyDown(menu, { key: "Escape" });
