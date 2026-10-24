@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import {
   submitAttendanceJustification,
   reviewAttendanceJustification,
@@ -105,24 +104,11 @@ export function SubmitAttendanceJustificationModal({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Anexar Atestado ou Documento (Opcional)</Label>
-            <div className="flex items-center gap-2">
-              <PickFileButton
-                acceptKinds={["pdf", "png", "jpeg"]}
-                onPick={(file) => {
-                  setFileId(file.id);
-                  setFileName(file.name);
-                  toast.success("Documento anexado da biblioteca");
-                }}
-              />
-              {fileName ? (
-                <span className="text-xs font-medium truncate flex items-center gap-1 text-primary">
-                  <Paperclip className="size-3.5" /> {fileName}
-                </span>
-              ) : null}
-            </div>
-          </div>
+          {/* Alunos e encarregados não carregam ficheiros nos Arquivos (só o pessoal):
+              o botão abria uma biblioteca vazia e não anexava nada. */}
+          <p className="rounded-lg bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+            Se tiver atestado ou outro documento, entregue-o na secretaria e indique-o no motivo.
+          </p>
         </div>
 
         <DialogFooter>
