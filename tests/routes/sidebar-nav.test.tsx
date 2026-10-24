@@ -165,10 +165,8 @@ afterEach(() => {
 
 describe("AppSidebar — parâmetros de pesquisa nos links", () => {
   it("leva o ?tab= de cada sub-item de Área Pedagógica para o link", () => {
-    // O menu guarda os abertos em localStorage; abrir "Área Pedagógica" à mão.
-    localStorage.setItem("siga:sidebar-open-menus", JSON.stringify(["Área Pedagógica"]));
-
     renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Área Pedagógica" }));
 
     const tabs = linksTo("/pedagogica").map((link) => link.search?.["tab"]);
     expect(tabs).toEqual(["turmas", "notas", "horarios", "chamada"]);
@@ -215,9 +213,10 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     renderSidebar();
     fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
     const flyout = await screen.findByRole("dialog");
-    const matricular = flyout.querySelector("a[data-to='/alunos'][data-search]");
-    expect(matricular?.getAttribute("data-search")).toContain("matricular");
-    fireEvent.click(matricular as HTMLElement);
+    const matricular = screen.getByRole("link", { name: "Matricular Aluno" });
+    expect(matricular.getAttribute("data-to")).toBe("/alunos");
+    expect(matricular.getAttribute("data-search")).toContain("matricular");
+    fireEvent.click(matricular);
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
