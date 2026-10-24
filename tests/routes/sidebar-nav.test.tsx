@@ -166,7 +166,6 @@ afterEach(() => {
 describe("AppSidebar — parâmetros de pesquisa nos links", () => {
   it("leva o ?tab= de cada sub-item de Área Pedagógica para o link", () => {
     renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: "Área Pedagógica" }));
 
     const tabs = linksTo("/pedagogica").map((link) => link.search?.["tab"]);
     expect(tabs).toEqual(["turmas", "notas", "horarios", "chamada"]);
@@ -199,7 +198,7 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     currentPathname = "/portal";
     renderSidebar();
     const secretaria = screen.getByRole("button", { name: "Secretaria" });
-    fireEvent.pointerEnter(secretaria, { pointerType: "mouse" });
+    fireEvent.pointerOver(secretaria, { pointerType: "mouse" });
     const flyout = await screen.findByRole("dialog");
     expect(flyout.hasAttribute("data-nav-flyout")).toBe(true);
     expect(flyout.querySelector("a[data-to='/alunos']")).toBeTruthy();
@@ -223,7 +222,7 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
   it("mostra configurações e instituições no flyout da escola, mantendo acesso por teclado", async () => {
     renderSidebar();
     const trigger = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
-    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.pointerOver(trigger, { pointerType: "mouse" });
     const menu = await screen.findByRole("menu");
     expect(menu.hasAttribute("data-school-flyout")).toBe(true);
     expect(screen.getByRole("menuitem", { name: /Instituições/ })).toBeTruthy();
