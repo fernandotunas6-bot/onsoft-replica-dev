@@ -19,12 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { getSigaLoginUrl } from "@/lib/ecosystem-urls"
+import { getDocsUrl, getSigaLoginUrl } from "@/lib/ecosystem-urls"
 import { MARKETING_NAV_ITEMS } from "@/lib/marketing-nav"
 import { Logo } from "@/components/logo"
 import { MegaMenu } from "@/components/landing/mega-menu"
@@ -117,7 +112,13 @@ export function LandingNavbar() {
     "flex items-center px-4 py-3 text-base font-medium rounded-lg transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
 
   const featuresHref = isLanding ? "#features" : "/#features"
-  const pricingHref = isLanding ? "#pricing" : "/pricing"
+  // Soluções em lista inline: resposta imediata ao toque e acesso com teclado.
+  const mobileSolutions = [
+    { name: t("landing.school_management"), href: featuresHref },
+    { name: t("landing.public_education"), href: "/ensino-publico" },
+    { name: t("landing.secretariat"), href: getDocsUrl("/siga/alunos-e-matriculas.html") },
+    { name: t("landing.pedagogical"), href: getDocsUrl("/siga/area-pedagogica.html") },
+  ]
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -164,11 +165,17 @@ export function LandingNavbar() {
             </a>
           </Button>
           <Button asChild className="cursor-pointer">
-            <Link to="/start">{t("landing.get_started")}</Link>
+            <Link to="/start">{t("nav.create_school")}</Link>
           </Button>
         </div>
 
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <Sheet
+          open={isOpen}
+          onOpenChange={(open) => {
+            setIsOpen(open)
+            if (!open) setSolutionsOpen(false)
+          }}
+        >
           <SheetTrigger asChild className="xl:hidden">
             <Button variant="ghost" size="icon" className="cursor-pointer">
               <Menu className="h-5 w-5" />
@@ -214,33 +221,43 @@ export function LandingNavbar() {
                   {navigationItems.map((item) => (
                     <div key={item.nameKey}>
                       {item.megaMenu ? (
-                        <Collapsible open={solutionsOpen} onOpenChange={setSolutionsOpen}>
-                          <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between rounded-lg px-4 py-3 text-base font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+                        <div>
+                          <button
+                            type="button"
+                            aria-expanded={solutionsOpen}
+                            aria-controls="mobile-solutions-panel"
+                            onClick={() => setSolutionsOpen((open) => !open)}
+                            className="focus-visible:ring-ring flex min-h-11 w-full cursor-pointer items-center justify-between rounded-lg px-4 py-3 text-left text-base font-medium transition-colors hover:bg-accent active:bg-accent focus-visible:ring-2 focus-visible:outline-none"
+                          >
                             {item.name}
                             <ChevronDown
+                              aria-hidden="true"
                               className={cn(
-                                "h-4 w-4 transition-transform",
+                                "size-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none",
                                 solutionsOpen && "rotate-180",
                               )}
                             />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent className="space-y-1 pl-4">
-                            {[
-                              { name: t("landing.features"), href: featuresHref },
-                              { name: t("landing.pricing"), href: pricingHref },
-                              { name: t("landing.get_started"), href: "/start" },
-                            ].map((solution) => (
-                              <MarketingNavAnchor
-                                key={solution.name}
-                                href={solution.href}
-                                className="flex cursor-pointer items-center rounded-lg px-4 py-2 text-sm transition-colors duration-100 hover:bg-accent hover:text-accent-foreground"
-                                onNavigate={() => setIsOpen(false)}
-                              >
-                                {solution.name}
-                              </MarketingNavAnchor>
-                            ))}
-                          </CollapsibleContent>
-                        </Collapsible>
+                          </button>
+                          {solutionsOpen ? (
+                            <div
+                              id="mobile-solutions-panel"
+                              role="group"
+                              aria-label={item.name}
+                              className="ml-4 border-l border-border/70 py-1 pl-3"
+                            >
+                              {mobileSolutions.map((solution) => (
+                                <MarketingNavAnchor
+                                  key={solution.href}
+                                  href={solution.href}
+                                  className="hover:bg-accent focus-visible:ring-ring flex min-h-11 items-center rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors active:bg-accent focus-visible:ring-2 focus-visible:outline-none"
+                                  onNavigate={() => setIsOpen(false)}
+                                >
+                                  {solution.name}
+                                </MarketingNavAnchor>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
                       ) : (
                         <MarketingNavAnchor
                           href={item.href}
@@ -268,7 +285,7 @@ export function LandingNavbar() {
                       <a href={getSigaLoginUrl()}>{t("landing.login")}</a>
                     </Button>
                     <Button asChild size="lg" className="cursor-pointer">
-                      <Link to="/start">{t("landing.get_started")}</Link>
+                      <Link to="/start" onClick={() => setIsOpen(false)}>{t("nav.create_school")}</Link>
                     </Button>
                   </div>
                 </div>
