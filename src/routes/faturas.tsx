@@ -78,6 +78,7 @@ import { HIGHER_ED_FEES } from "@/features/higher-ed/fees";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapInvoicesToFinanceOverviewSnapshot } from "@/features/intelligence/finance/finance-overview-adapter";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
 import { AppMark } from "@/features/integrations/app-marks";
 import { kwanza } from "@/lib/currency";
 import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
@@ -152,6 +153,7 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
 }
 
 function FaturasPage() {
+  const paymentKey = usePaymentAttemptKey();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
@@ -379,6 +381,7 @@ function FaturasPage() {
               const method =
                 methodMap[(values["metodo"] as keyof typeof methodMap) ?? "Numerário"] ?? "cash";
               const reference = values["referencia"] || undefined;
+              const attempt = [f.id, amount, method, values["data"]].join("|");
               const paid = await recordInvoicePayment({
                 data: {
                   invoiceId: f.id,
@@ -389,8 +392,10 @@ function FaturasPage() {
                   paidAt: values["data"]
                     ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                     : undefined,
+                  idempotencyKey: paymentKey.keyFor(attempt),
                 },
               });
+              paymentKey.settled(attempt);
               await Promise.all([
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "invoices"],

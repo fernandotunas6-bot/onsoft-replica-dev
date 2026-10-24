@@ -850,13 +850,20 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
     // o número do recibo atomicamente — evita a corrida de dois pagamentos simultâneos
     // sobre a mesma fatura que o insert directo anterior não protegia.
     // Corre no client da SESSÃO (não no admin) para auth.uid()/aal2 resolverem.
-    const { data: outcome, error } = await context.supabase.rpc("register_payment", {
+    const args = {
       school_id: membership.schoolId,
       invoice_id: data.invoiceId,
       amount: data.amount,
       payment_method: mapPaymentMethodForLedger(data.method),
       paid_on: paidOnIso(data.paidAt),
-    });
+    };
+    const keyed = data.idempotencyKey ? { ...args, idempotency_key: data.idempotencyKey } : args;
+    let { data: outcome, error } = await context.supabase.rpc("register_payment", keyed);
+    // Base ainda sem `20261024100000_register_payment_idempotency_key.sql`: a função
+    // não conhece a chave (PGRST202). Paga como antes, sem protecção à repetição.
+    if (error?.code === "PGRST202" && data.idempotencyKey) {
+      ({ data: outcome, error } = await context.supabase.rpc("register_payment", args));
+    }
     if (error) {
       if (error.code === "42501" || /is_aal2|autorização/i.test(error.message ?? "")) {
         throw new Error(
@@ -869,7 +876,18 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       receiptId: string;
       receiptNumber: string;
       invoiceStatus: string;
+      replayed?: boolean;
     };
+    // Repetição de um pagamento que já entrou: o recibo e o arquivo já existem.
+    if (result.replayed) {
+      return {
+        id: result.receiptId,
+        receipt_number: result.receiptNumber,
+        invoice_status: result.invoiceStatus,
+        library_document_code: stableDocumentCode("recibo", result.receiptId),
+        library_file_id: null,
+      };
+    }
 
     const linked = await personIdForInvoice(db, membership.schoolId, data.invoiceId);
     const documentCode = stableDocumentCode("recibo", result.receiptId);

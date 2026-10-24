@@ -32,6 +32,7 @@ const FinanceiroCashChart = lazy(() =>
   })),
 );
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -121,6 +122,7 @@ export const Route = createFileRoute("/financeiro")({
 });
 
 function FinanceiroPage() {
+  const paymentKey = usePaymentAttemptKey();
   useEffect(() => {
     warmFinanceCharts();
   }, []);
@@ -735,6 +737,7 @@ function FinanceiroPage() {
                   const method = paymentMethods[methodLabel as keyof typeof paymentMethods];
                   if (!invoice || !method || !methodLabel)
                     throw new Error("Selecione uma fatura e um método válidos.");
+                  const attempt = [invoice.id, values["valor"], method, values["data"]].join("|");
                   const paid = await recordInvoicePayment({
                     data: {
                       invoiceId: invoice.id,
@@ -745,8 +748,10 @@ function FinanceiroPage() {
                       paidAt: values["data"]
                         ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                         : undefined,
+                      idempotencyKey: paymentKey.keyFor(attempt),
                     },
                   });
+                  paymentKey.settled(attempt);
                   await Promise.all([
                     queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
                     queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
