@@ -226,9 +226,9 @@ export function AppSidebar({
                         <span className="block truncate text-sm font-bold text-sidebar-foreground">
                           {school?.name}
                         </span>
-                        {schoolMotto ? (
+                        {schoolMotto || activeYearLabel ? (
                           <span className="block truncate text-[11px] font-medium text-sidebar-muted">
-                            {schoolMotto}
+                            {schoolMotto || activeYearLabel}
                           </span>
                         ) : null}
                       </span>
@@ -257,6 +257,9 @@ export function AppSidebar({
                   <span className="block break-words text-sm text-muted-foreground">
                     {currentUser.name} ({currentUser.role})
                   </span>
+                  {activeYearLabel ? (
+                    <span className="block text-xs text-muted-foreground">{activeYearLabel}</span>
+                  ) : null}
                 </DropdownMenuLabel>
 
                 {currentUser.schools.length > 1 ? (
@@ -557,9 +560,7 @@ export function AppSidebar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {!collapsed ? (
-            <p className="px-2 pt-2 text-[11px] text-sidebar-muted">{activeYearLabel}</p>
-          ) : null}
+
         </div>
       </aside>
 
