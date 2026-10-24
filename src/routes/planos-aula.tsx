@@ -23,6 +23,7 @@ import {
   type LessonPlanFormInitial,
 } from "@/features/lesson-plans/LessonPlanModal";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
@@ -65,6 +66,10 @@ function LessonPlansPage() {
     filterDefaults,
   );
   const queryClient = useQueryClient();
+  const account = useCurrentAccount();
+  // Alunos e encarregados vêem os planos publicados; criar, editar e remover é do
+  // corpo docente (o servidor já recusava, mas os botões apareciam).
+  const canEditPlans = ["Administrador", "Secretaria", "Professor"].includes(account.role);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<LessonPlanFormInitial | null>(null);
 
@@ -170,9 +175,11 @@ function LessonPlansPage() {
             <>
               <SqlDocHelpButton />
               <DocHelpButton title="Navegação — Planos de Aula" />
-              <Button className="gap-2" onClick={openCreate} disabled={!classGroups.length}>
-                <Plus className="size-4" /> Novo plano
-              </Button>
+              {canEditPlans ? (
+                <Button className="gap-2" onClick={openCreate} disabled={!classGroups.length}>
+                  <Plus className="size-4" /> Novo plano
+                </Button>
+              ) : null}
             </>
           }
         />
@@ -222,7 +229,11 @@ function LessonPlansPage() {
             icon={BookOpenCheck}
             firstUse
             title="Ainda não há planos de aula"
-            description="Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
+            description={
+              canEditPlans
+                ? "Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
+                : "Os planos aparecem aqui quando os professores os publicarem."
+            }
             compact
           />
         ) : null}
@@ -279,24 +290,26 @@ function LessonPlansPage() {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-auto flex justify-end gap-1.5 border-t border-border pt-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5"
-                        onClick={() => openEdit(plan)}
-                      >
-                        <Pencil className="size-3.5" /> Editar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5 text-destructive hover:text-destructive"
-                        onClick={() => remove(plan)}
-                      >
-                        <Trash2 className="size-3.5" /> Remover
-                      </Button>
-                    </div>
+                    {canEditPlans ? (
+                      <div className="mt-auto flex justify-end gap-1.5 border-t border-border pt-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5"
+                          onClick={() => openEdit(plan)}
+                        >
+                          <Pencil className="size-3.5" /> Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5 text-destructive hover:text-destructive"
+                          onClick={() => remove(plan)}
+                        >
+                          <Trash2 className="size-3.5" /> Remover
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}

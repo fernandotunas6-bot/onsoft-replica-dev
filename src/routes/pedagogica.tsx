@@ -988,14 +988,16 @@ function PedagogicaPage() {
                 if (kind === "sige_classes") exportarTurmasCsv();
               }}
             />
-            <div className="mt-3">
-              <PickFileButton
-                area="escola"
-                onPick={(file) =>
-                  toast.success(file.name, { description: "Material da biblioteca pedagógica." })
-                }
-              />
-            </div>
+            {canReadAcademic ? (
+              <div className="mt-3">
+                <PickFileButton
+                  area="escola"
+                  onPick={(file) =>
+                    toast.success(file.name, { description: "Material da biblioteca pedagógica." })
+                  }
+                />
+              </div>
+            ) : null}
           </div>
 
           {canReadAcademic ? (
