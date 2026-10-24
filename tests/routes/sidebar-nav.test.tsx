@@ -79,6 +79,7 @@ const contas: Record<string, unknown> = {
   },
   Aluno: {
     role: "Aluno",
+    isAlumni: false,
     grants: {},
     name: "Aluno Teste",
     email: "aluno@escola.ao",
@@ -153,6 +154,7 @@ afterEach(() => {
   cleanup();
   papel = "Administrador";
   (contas.Administrador as { schoolId: string }).schoolId = "school-a";
+  (contas.Aluno as { isAlumni: boolean }).isAlumni = false;
   currentPathname = "/pedagogica";
   currentSearch = {};
   localStorage.clear();
@@ -212,6 +214,26 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("abre subfunções com hover do rato, sem depender do clique", async () => {
+    currentPathname = "/portal";
+    renderSidebar();
+    const secretaria = screen.getByRole("button", { name: "Secretaria" });
+    fireEvent.pointerEnter(secretaria, { pointerType: "mouse" });
+    const flyout = await screen.findByRole("dialog");
+    expect(flyout.getAttribute("data-nav-flyout")).toBe("");
+    expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
+  });
+
+  it("hover da escola abre um menu não-modal que preserva o resto da sidebar", async () => {
+    renderSidebar();
+    const school = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
+    fireEvent.pointerEnter(school, { pointerType: "mouse" });
+    const menu = await screen.findByRole("menu");
+    expect(menu.hasAttribute("data-school-flyout")).toBe(true);
+    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeTruthy();
+    expect(document.body.style.pointerEvents).not.toBe("none");
+  });
+
   it("fecha o flyout depois de seleccionar a subfunção, sem alterar o destino", async () => {
     currentPathname = "/portal";
     renderSidebar();
@@ -234,6 +256,18 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     expect(screen.getByRole("menuitem", { name: /Configurações da Escola/ })).toBeTruthy();
     fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
+});
+
+describe("AppSidebar — escola e perfil activos", () => {
+  it("conserva o portal Alumni apenas quando o aluno pertence ao programa", () => {
+    papel = "Aluno";
+    currentPathname = "/portal";
+    (contas.Aluno as { isAlumni: boolean }).isAlumni = true;
+    renderSidebar();
+    expect(screen.getByRole("link", { name: "Meu Portal Alumni" }).getAttribute("data-to")).toBe(
+      "/alumni/portal",
+    );
   });
 });
 
