@@ -1,5 +1,7 @@
 # Tesouraria escolar
 
+> Reorganização por finalidade, auditoria de integridade e pendências de 24/10/2026: [`../finance/FINANCE_MASTER_2026.md`](../finance/FINANCE_MASTER_2026.md).
+
 **Data:** 08/10/2026. **Estado:** implementação presente; aceitação integrada por concluir. As alterações específicas são distinguidas no documento de correcções.
 
 ## Objectivo e âmbito
