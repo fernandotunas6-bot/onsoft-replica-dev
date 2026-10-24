@@ -634,6 +634,9 @@ function ExpandedNavFlyout({
           if (event.pointerType === "mouse") cancelClose();
         }}
         onPointerLeave={(event) => scheduleClose(event.pointerType)}
+        onClick={(event) => {
+          if ((event.target as Element).closest("a[data-nav-row]")) setOpen(false);
+        }}
         className="w-64 max-w-[calc(100vw-1.5rem)] max-h-[min(75vh,var(--radix-popover-content-available-height))] overflow-y-auto p-1 shadow-sm"
         data-nav-flyout=""
       >
