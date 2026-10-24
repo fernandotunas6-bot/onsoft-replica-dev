@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 
 import { canPrefetchResources, onIdle } from "@/lib/preload";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -87,6 +87,20 @@ export function AppSidebar({
   const { school, activeYearLabel } = useSchoolSettings();
   const { signOut, signingOut } = useSignOut();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
+  const schoolMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelSchoolMenuClose = () => {
+    if (schoolMenuCloseTimer.current !== null) clearTimeout(schoolMenuCloseTimer.current);
+    schoolMenuCloseTimer.current = null;
+  };
+  const closeSchoolMenuAfterPointerLeave = (pointerType: string) => {
+    if (pointerType !== "mouse") return;
+    cancelSchoolMenuClose();
+    schoolMenuCloseTimer.current = setTimeout(() => setSchoolMenuOpen(false), 180);
+  };
+  useEffect(() => () => {
+    if (schoolMenuCloseTimer.current !== null) clearTimeout(schoolMenuCloseTimer.current);
+  }, []);
   // Monta à primeira abertura e fica: desmontar cortava a animação de fecho.
   const [profileModalMounted, setProfileModalMounted] = useState(false);
   useEffect(() => {
@@ -129,6 +143,7 @@ export function AppSidebar({
   useEffect(() => {
     setAreaPicker(false);
     setOpenMenus((prev) => (prev.length ? [] : prev));
+    setSchoolMenuOpen(false);
   }, [navigationKey]);
   const contextual = Boolean(context && !areaPicker);
   const areas = getNavigationAreas(visibleGroups);
@@ -166,15 +181,22 @@ export function AppSidebar({
           )}
         >
           {hasSchool ? (
-            <DropdownMenu>
+            <DropdownMenu open={schoolMenuOpen} onOpenChange={setSchoolMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   data-sidebar-header-account=""
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === "mouse") {
+                      cancelSchoolMenuClose();
+                      setSchoolMenuOpen(true);
+                    }
+                  }}
+                  onPointerLeave={(event) => closeSchoolMenuAfterPointerLeave(event.pointerType)}
                   aria-label={`Abrir menu da escola: ${school?.name ?? currentUser.schoolName ?? "Escola"}`}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
-                    collapsed ? "justify-center px-1" : "px-2",
+                    "flex min-h-11 w-full items-center gap-2 rounded-lg text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60 lg:min-h-10",
+                    collapsed ? "justify-center px-1" : "px-1.5",
                   )}
                   title={school?.name ? `${school.name} • ${currentUser.name}` : currentUser.name}
                 >
@@ -210,9 +232,17 @@ export function AppSidebar({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
+                data-school-flyout=""
                 align="start"
-                side="bottom"
-                className="w-64 max-w-[calc(100vw-2rem)] z-50"
+                side="right"
+                sideOffset={8}
+                collisionPadding={12}
+                onPointerEnter={(event) => {
+                  if (event.pointerType === "mouse") cancelSchoolMenuClose();
+                }}
+                onPointerLeave={(event) => closeSchoolMenuAfterPointerLeave(event.pointerType)}
+                onCloseAutoFocus={cancelSchoolMenuClose}
+                className="z-50 w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto border-border/70 p-1 shadow-sm max-h-[min(75vh,var(--radix-dropdown-menu-content-available-height))] [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:py-1"
               >
                 <DropdownMenuLabel className="font-normal">
                   <span className="block break-words text-sm font-semibold text-foreground">
@@ -237,6 +267,7 @@ export function AppSidebar({
                           onClick={() => {
                             if (!isCurrent) {
                               currentUser.setActiveSchoolId(item.schoolId);
+                              setSchoolMenuOpen(false);
                             }
                           }}
                           className={cn(
@@ -475,7 +506,13 @@ export function AppSidebar({
                 ) : null}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-64 max-w-[calc(100vw-2rem)]">
+            <DropdownMenuContent
+              align="end"
+              side="right"
+              sideOffset={8}
+              collisionPadding={12}
+              className="w-64 max-w-[calc(100vw-1.5rem)] border-border/70 p-1 shadow-sm [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:py-1"
+            >
               <DropdownMenuLabel className="font-normal">
                 <span className="block break-words text-sm font-semibold text-foreground">
                   {currentUser.name}
