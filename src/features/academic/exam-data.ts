@@ -3,7 +3,8 @@
  * anual, regra com que foi gerada, nomes dos alunos.
  */
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
+import { ID_CHUNK_SIZE } from "@/integrations/supabase/read-all-pages";
 import {
   ROUNDING_METHODS,
   parsePromotionRules,
@@ -196,9 +197,22 @@ export async function studentNames(db: Db, schoolId: string, enrollmentIds: stri
   return names;
 }
 
+/** Linhas por pedido: o PostgREST devolve no máximo 1000 e corta sem erro. */
+const ATTENDANCE_PAGE = 1000;
+/** Ids de aula por pedido (o `.in(...)` vai no URL; 200 uuids ficam perto do limite). */
+const SESSION_CHUNK = ID_CHUNK_SIZE;
+
 /**
  * Faltas por matrícula a partir das presenças do SIGA (`siga_attendance_*`),
  * que é onde a chamada grava. Só entram matrículas com aulas registadas.
+ *
+ * Lê tudo por páginas ordenadas: uma aula é uma linha por tempo lectivo, e uma
+ * turma com 30 tempos por semana passa as 1000 aulas no ano — o pedido antigo
+ * (`limit(5000)`) recebia só 1000, sem ordem, e a percentagem de faltas da pauta,
+ * dos exames e do histórico saía de parte das aulas. Um erro de leitura também
+ * deixava cair para a percentagem gravada na pauta (que o SIGA não preenche, por
+ * isso 0%): um aluno excluído por faltas passava a transitar. Agora o erro pára a
+ * leitura; só a tabela em falta (base antiga) mantém o recurso à pauta.
  */
 export async function absenceByEnrollment(
   db: Db,
@@ -209,36 +223,49 @@ export async function absenceByEnrollment(
 ): Promise<Map<string, number>> {
   const result = new Map<string, number>();
   if (!enrollmentIds.length) return result;
-  const { data: enrollments } = await db
+  const { data: enrollments, error: enrollmentsError } = await db
     .from("enrollments")
     .select("id, student_id")
     .eq("school_id", schoolId)
     .in("id", enrollmentIds);
+  if (enrollmentsError) {
+    throw publicDatabaseError(enrollmentsError, "Não foi possível ler as matrículas.");
+  }
   const enrollmentOfStudent = new Map(
     ((enrollments ?? []) as Row[]).map((e) => [str(e.student_id), str(e.id)]),
   );
   if (!enrollmentOfStudent.size) return result;
 
-  const { data: sessions, error: sessionsError } = await db
-    .from("siga_attendance_sessions")
-    .select("id")
-    .eq("school_id", schoolId)
-    .eq("academic_year_id", yearId)
-    .eq("class_group_id", classGroupId)
-    .limit(5000);
-  if (sessionsError || !sessions?.length) return result;
-  const sessionIds = (sessions as Row[]).map((s) => str(s.id));
+  const sessionIds: string[] = [];
+  for (let from = 0; ; from += ATTENDANCE_PAGE) {
+    const { data: sessions, error } = await db
+      .from("siga_attendance_sessions")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("academic_year_id", yearId)
+      .eq("class_group_id", classGroupId)
+      .order("id", { ascending: true })
+      .range(from, from + ATTENDANCE_PAGE - 1);
+    if (error) {
+      if (isMissingTable(error)) return result;
+      throw publicDatabaseError(error, "Não foi possível ler as faltas da turma.");
+    }
+    sessionIds.push(...((sessions ?? []) as Row[]).map((s) => str(s.id)));
+    if (!sessions || sessions.length < ATTENDANCE_PAGE) break;
+  }
+  if (!sessionIds.length) return result;
 
   const statuses = new Map<string, string[]>();
-  for (let i = 0; i < sessionIds.length; i += 200) {
-    for (let from = 0; ; from += 1000) {
+  for (let i = 0; i < sessionIds.length; i += SESSION_CHUNK) {
+    for (let from = 0; ; from += ATTENDANCE_PAGE) {
       const { data: records, error } = await db
         .from("siga_attendance_records")
         .select("student_id, status")
         .eq("school_id", schoolId)
-        .in("session_id", sessionIds.slice(i, i + 200))
-        .range(from, from + 999);
-      if (error) return result;
+        .in("session_id", sessionIds.slice(i, i + SESSION_CHUNK))
+        .order("id", { ascending: true })
+        .range(from, from + ATTENDANCE_PAGE - 1);
+      if (error) throw publicDatabaseError(error, "Não foi possível ler as faltas da turma.");
       for (const r of (records ?? []) as Row[]) {
         const enrollmentId = enrollmentOfStudent.get(str(r.student_id));
         if (!enrollmentId) continue;
@@ -246,7 +273,7 @@ export async function absenceByEnrollment(
         list.push(str(r.status));
         statuses.set(enrollmentId, list);
       }
-      if (!records || records.length < 1000) break;
+      if (!records || records.length < ATTENDANCE_PAGE) break;
     }
   }
   for (const [enrollmentId, list] of statuses) {

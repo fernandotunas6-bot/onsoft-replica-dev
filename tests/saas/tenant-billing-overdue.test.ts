@@ -10,6 +10,7 @@ function fakeDb(tables: Record<string, Row[]>) {
     from: (table: string) => {
       const filters: Array<[string, unknown]> = [];
       let patch: Row | null = null;
+      let window: [number, number] | null = null;
       const rows = () => (tables[table] ?? []).filter((r) => filters.every(([k, v]) => r[k] === v));
       const chain = {
         select: () => chain,
@@ -19,6 +20,10 @@ function fakeDb(tables: Record<string, Row[]>) {
         },
         order: () => chain,
         limit: () => chain,
+        range: (from: number, to: number) => {
+          window = [from, to];
+          return chain;
+        },
         maybeSingle: async () => ({ data: rows()[0] ?? null, error: null }),
         update: (values: Row) => {
           patch = values;
@@ -30,10 +35,15 @@ function fakeDb(tables: Record<string, Row[]>) {
         },
         then: (resolve: (result: unknown) => void) => {
           if (patch) {
-            for (const r of rows()) Object.assign(r, patch);
-            return resolve({ data: null, error: null });
+            const changed = rows();
+            for (const r of changed) Object.assign(r, patch);
+            return resolve({ data: changed.map((r) => ({ id: r["id"] })), error: null });
           }
-          return resolve({ data: rows(), error: null });
+          const all = rows();
+          return resolve({
+            data: window ? all.slice(window[0], window[1] + 1) : all,
+            error: null,
+          });
         },
       };
       return chain;
@@ -72,6 +82,19 @@ function setup(overrides: { profile?: Row; tenant?: Row; subscription?: Row } = 
 }
 
 describe("suspendOverdueTenants", () => {
+  it("um erro de leitura falha a tarefa (não passa por «nada a fazer»)", async () => {
+    const db = {
+      from: () => {
+        const chain: Record<string, unknown> = {};
+        for (const m of ["select", "eq", "order", "range"]) chain[m] = () => chain;
+        chain["then"] = (resolve: (r: unknown) => void) =>
+          resolve({ data: null, error: { message: "timeout" } });
+        return chain;
+      },
+    } as unknown as SupabaseClient;
+    await expect(suspendOverdueTenants(db, NOW)).rejects.toThrow(/timeout/);
+  });
+
   it("passa a past_due a escola cobrada com o período pago vencido há mais que a tolerância", async () => {
     const { db, tables } = setup();
     expect(await suspendOverdueTenants(db, NOW)).toBe(1);

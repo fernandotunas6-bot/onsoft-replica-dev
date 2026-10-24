@@ -199,7 +199,8 @@ BEGIN
       AND t.starts_at < NEW.ends_at AND NEW.starts_at < t.ends_at AND t.room_id = NEW.room_id LIMIT 1;
   END IF;
 
-  IF v_conflict IS NULL AND NULLIF(btrim(NEW.room), '') IS NOT NULL AND lower(btrim(NEW.room)) NOT IN ('s/n', 'sala') THEN
+  -- Marcadores de «sala por atribuir»: uma só regra (20261010100000, auditoria 14 H3).
+  IF v_conflict IS NULL AND private.timetable_room_is_explicit(NEW.room) THEN
     SELECT 'A sala já está ocupada neste horário.' INTO v_conflict
     FROM timetable_slots t
     WHERE t.id <> NEW.id AND t.status = 'active' AND t.school_id = NEW.school_id AND t.weekday = NEW.weekday
@@ -251,7 +252,7 @@ BEGIN
       cs.class_group_id = p_class_group_id
       OR (p_teacher_id IS NOT NULL AND cs.teacher_id = p_teacher_id)
       OR (p_room_id IS NOT NULL AND ts.room_id = p_room_id)
-      OR (p_room_label IS NOT NULL AND btrim(p_room_label) <> '' AND lower(btrim(p_room_label)) NOT IN ('s/n','sala')
+      OR (private.timetable_room_is_explicit(p_room_label)
           AND lower(btrim(ts.room)) = lower(btrim(p_room_label)))
     )
   LIMIT 1;
@@ -320,7 +321,7 @@ BEGIN
       cs.class_group_id = v_class_group_id
       OR (p_teacher_id IS NOT NULL AND cs.teacher_id = p_teacher_id)
       OR (p_room_id IS NOT NULL AND ts.room_id = p_room_id)
-      OR (p_room_label IS NOT NULL AND btrim(p_room_label) <> '' AND lower(btrim(p_room_label)) NOT IN ('s/n','sala')
+      OR (private.timetable_room_is_explicit(p_room_label)
           AND lower(btrim(ts.room)) = lower(btrim(p_room_label)))
     )
   LIMIT 1;

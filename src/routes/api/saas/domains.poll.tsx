@@ -17,7 +17,7 @@ function authErrorStatus(message: string): number {
 }
 
 const pollBodySchema = z.object({
-  domainId: z.string().uuid("domainId deve ser um UUID válido."),
+  domainId: z.string().guid("domainId deve ser um UUID válido."),
 });
 
 export const Route = createFileRoute("/api/saas/domains/poll")({

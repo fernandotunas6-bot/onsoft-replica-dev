@@ -111,10 +111,19 @@ describe("navigation catalog", () => {
     expect(paths.has("/configuracoes")).toBe(false);
   });
 
-  it("shows the protected Alumni self-service entry for students", () => {
-    const paths = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan));
-    expect(paths.has("/alumni/portal")).toBe(true);
-    expect(paths.has("/alumni")).toBe(false);
+  it("shows the protected Alumni self-service entry only to students who finished", () => {
+    const alumni = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan, { isAlumni: true }));
+    expect(alumni.has("/alumni/portal")).toBe(true);
+    expect(alumni.has("/alumni")).toBe(false);
+    // Quem ainda estuda não vê o portal de antigos alunos.
+    const current = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan));
+    expect(current.has("/alumni/portal")).toBe(false);
+  });
+
+  it("o encarregado não tem ligações para páginas que lhe estão fechadas", () => {
+    const paths = collectNavPaths(getPortalNavigation("Encarregado", {}, fullPlan));
+    expect(paths.has("/faturas")).toBe(false);
+    expect(paths.has("/financeiro")).toBe(true);
   });
 
   it("shows finance modules for Tesouraria without secretaria-only routes", () => {

@@ -242,8 +242,8 @@ export const listClassWaitlist = createServerFn({ method: "GET" })
   });
 
 const addInput = z.object({
-  studentId: z.string().uuid(),
-  classGroupId: z.string().uuid(),
+  studentId: z.string().guid(),
+  classGroupId: z.string().guid(),
   note: z.string().trim().max(500).optional().default(""),
 });
 
@@ -287,7 +287,7 @@ export const addToClassWaitlist = createServerFn({ method: "POST" })
     return result;
   });
 
-const entryInput = z.object({ entryId: z.string().uuid() });
+const entryInput = z.object({ entryId: z.string().guid() });
 
 /** Coloca o aluno na turma (enroll_student) se for a vez dele e houver vaga. */
 export const placeFromWaitlist = createServerFn({ method: "POST" })
@@ -408,7 +408,7 @@ export const placeFromWaitlist = createServerFn({ method: "POST" })
   });
 
 const cancelInput = z.object({
-  entryId: z.string().uuid(),
+  entryId: z.string().guid(),
   reason: z.string().trim().min(3).max(500),
 });
 

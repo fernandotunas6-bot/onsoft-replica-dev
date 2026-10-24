@@ -22,23 +22,23 @@ const isLocalBrowser =
     window.location.hostname.startsWith("192.168.") ||
     window.location.hostname.endsWith(".local"));
 
-const isLocal = isBrowser ? isLocalBrowser : Boolean(import.meta.env.DEV);
+const isLocal = isBrowser ? isLocalBrowser : Boolean(import.meta.env?.DEV);
 
 export const ECOSYSTEM_URLS = {
   web:
-    import.meta.env.VITE_WEB_URL ||
+    import.meta.env?.VITE_WEB_URL ||
     (isLocal ? "http://localhost:5174" : getEcosystemPlatformOrigin("web")),
   siga:
-    import.meta.env.VITE_SIGA_URL ||
+    import.meta.env?.VITE_SIGA_URL ||
     (isLocal ? "http://localhost:3006" : `https://${getPlatformDomain()}`),
   payflow:
-    import.meta.env.VITE_PAYFLOW_URL ||
+    import.meta.env?.VITE_PAYFLOW_URL ||
     (isLocal ? "http://localhost:3007" : getEcosystemPlatformOrigin("payflow")),
   admin:
-    import.meta.env.VITE_ADMIN_URL ||
+    import.meta.env?.VITE_ADMIN_URL ||
     (isLocal ? "http://localhost:3005" : getEcosystemPlatformOrigin("admin")),
   docs:
-    import.meta.env.VITE_DOCS_URL ||
+    import.meta.env?.VITE_DOCS_URL ||
     (isLocal ? "http://localhost:5173" : getEcosystemPlatformOrigin("docs")),
 } as const;
 

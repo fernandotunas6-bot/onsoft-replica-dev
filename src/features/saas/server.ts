@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
-import { getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   createSchoolWizardInputSchema,
@@ -135,7 +135,7 @@ export const provisionSchoolTenant = createServerFn({ method: "POST" })
 export const signupSchoolPublic = createServerFn({ method: "POST" })
   .validator((input: unknown) => publicSchoolSignupInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     return runPublicSchoolSignup(data, ip);
   });
 
@@ -177,7 +177,7 @@ export const requestDomainVerification = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        tenantId: z.string().uuid(),
+        tenantId: z.string().guid(),
         tenantSlug: z.string().min(2),
         hostname: z
           .string()
@@ -212,7 +212,7 @@ export const updateEmailForwarding = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        tenantId: z.string().uuid(),
+        tenantId: z.string().guid(),
         tenantSlug: z.string().min(2),
         forwardTo: z.string().email("E-mail de encaminhamento inválido."),
       })
@@ -245,7 +245,7 @@ export const updateSchoolBranding = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        tenantId: z.string().uuid(),
+        tenantId: z.string().guid(),
         primaryColor: z.string().optional(),
         secondaryColor: z.string().optional(),
         portalTitle: z.string().optional(),
@@ -274,7 +274,7 @@ export const provisionMailbox = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        tenantId: z.string().uuid(),
+        tenantId: z.string().guid(),
         tenantSlug: z.string().min(2),
         email: z.string().email(),
         displayName: z.string().min(1),

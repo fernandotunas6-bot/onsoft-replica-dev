@@ -211,7 +211,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => {
     if (!input || typeof input !== "object") return { preferredSchoolId: undefined };
-    const parsed = z.object({ preferredSchoolId: z.string().uuid().optional() }).safeParse(input);
+    const parsed = z.object({ preferredSchoolId: z.string().guid().optional() }).safeParse(input);
     return parsed.success ? parsed.data : { preferredSchoolId: undefined };
   })
   .handler(async ({ data, context }) => {
@@ -337,6 +337,20 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       );
     }
 
+    // Antigo aluno: só quem tem processo Alumni nesta escola vê o «Meu Portal Alumni»
+    // (antes aparecia a todos os alunos, também aos que ainda estudam).
+    let isAlumni = false;
+    if (membership?.schoolId && linkedEntities.person_id) {
+      const { data: alumniRow } = await db
+        .from("alumni_profiles")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("person_id", linkedEntities.person_id)
+        .limit(1)
+        .maybeSingle();
+      isAlumni = Boolean(alumniRow);
+    }
+
     const allAppRoles = [...(membership?.allAppRoles ?? [])];
     if (linkedEntities.student_id && !allAppRoles.includes("Aluno")) {
       allAppRoles.push("Aluno");
@@ -370,6 +384,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       roles: allAppRoles,
       grants,
       linkedEntities,
+      is_alumni: isAlumni,
       schools: userSchools,
     };
   });
@@ -394,47 +409,18 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
       updatePayload["phone"] = data.phone ? normalizeAngolaPhone(data.phone) || null : null;
     }
 
-    let row: {
-      full_name: string | null;
-      first_name?: string | null;
-      last_name?: string | null;
-      avatar_url: string | null;
-      phone: string | null;
-      updated_at: string | null;
-    } | null = null;
-
-    try {
-      const { data: updated, error } = await db
-        .from("profiles")
-        .update(updatePayload)
-        .eq("id", context.userId)
-        .eq("updated_at", data.expectedUpdatedAt)
-        .select("full_name, first_name, last_name, avatar_url, phone, updated_at")
-        .maybeSingle();
-      if (error) throw error;
-      row = updated;
-    } catch (error) {
-      const fallbackPayload = { full_name: data.fullName, updated_at: new Date().toISOString() };
-      const { data: updated, error: retryError } = await db
-        .from("profiles")
-        .update(fallbackPayload)
-        .eq("id", context.userId)
-        .eq("updated_at", data.expectedUpdatedAt)
-        .select("full_name, avatar_url, updated_at")
-        .maybeSingle();
-      if (retryError) {
-        throw publicDatabaseError(retryError, "Não foi possível actualizar o perfil.");
-      }
-      row = updated ? { ...updated, phone: data.phone?.trim() || null } : null;
-      if (error instanceof Error && /phone|column/i.test(error.message)) {
-        // Coluna phone ou first_name ainda não aplicada no SGA — continua com metadados Auth.
-      } else if (error) {
-        throw publicDatabaseError(
-          error as { message: string },
-          "Não foi possível actualizar o perfil.",
-        );
-      }
-    }
+    // As colunas phone, first_name e last_name existem na produção (retrato de 2026-10-10).
+    // Havia aqui uma segunda tentativa «só com o nome» para bases antigas: quando a
+    // primeira falhava por outra razão, gravava o nome à parte e devolvia o telefone
+    // escrito como se tivesse ficado guardado.
+    const { data: row, error } = await db
+      .from("profiles")
+      .update(updatePayload)
+      .eq("id", context.userId)
+      .eq("updated_at", data.expectedUpdatedAt)
+      .select("full_name, first_name, last_name, avatar_url, phone, updated_at")
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o perfil.");
 
     if (!row) {
       throw new Error(
@@ -445,7 +431,7 @@ export const updateCurrentProfile = createServerFn({ method: "POST" })
     if (data.phone !== undefined) {
       try {
         await db.auth.admin.updateUserById(context.userId, {
-          user_metadata: { phone_primary: data.phone?.trim() || null },
+          user_metadata: { phone_primary: updatePayload["phone"] ?? null },
         });
       } catch {
         // Metadados Auth opcionais.

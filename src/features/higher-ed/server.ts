@@ -11,6 +11,7 @@
  * a linha fica `status = inscrito`, `season = frequencia` e `final_grade` guarda
  * a média de frequência — é daí que a época normal a lê.
  */
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -580,7 +581,7 @@ export const updateHigherEdProgram = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
+        programId: z.string().guid(),
         name: z.string().trim().min(3).max(120),
         active: z.boolean(),
         years: z.number().int().min(1).max(7),
@@ -653,7 +654,7 @@ export const listSchoolSubjectsForPlan = createServerFn({ method: "GET" })
 
 export const getProgramPlan = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -669,8 +670,8 @@ export const getProgramPlan = createServerFn({ method: "GET" })
   });
 
 const planUnitInput = z.object({
-  programId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  programId: z.string().guid(),
+  subjectId: z.string().guid(),
   semester: z.number().int().min(1).max(14),
   // Decreto Presidencial 193/18: de 1 a 20 unidades de crédito por cadeira.
   credits: z.number().min(1).max(20),
@@ -679,7 +680,7 @@ const planUnitInput = z.object({
 export const savePlanUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    planUnitInput.extend({ id: z.string().uuid().optional() }).parse(input),
+    planUnitInput.extend({ id: z.string().guid().optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
@@ -731,7 +732,7 @@ export const savePlanUnit = createServerFn({ method: "POST" })
 export const removePlanUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), id: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), id: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
@@ -769,9 +770,9 @@ export const setUnitPrerequisites = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        unitId: z.string().uuid(),
-        requiredUnitIds: z.array(z.string().uuid()).max(20),
+        programId: z.string().guid(),
+        unitId: z.string().guid(),
+        requiredUnitIds: z.array(z.string().guid()).max(20),
       })
       .parse(input),
   )
@@ -821,7 +822,7 @@ export const setUnitPrerequisites = createServerFn({ method: "POST" })
 
 export const listProgramStudents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -882,7 +883,7 @@ export const listProgramStudents = createServerFn({ method: "GET" })
 export const getStudentHigherEd = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), studentId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
@@ -1024,7 +1025,7 @@ async function buildTranscript(
 export const getStudentTranscript = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), studentId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
@@ -1079,7 +1080,7 @@ async function findIssuedCertificate(
 export const issueHigherEdCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), studentId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }): Promise<IssuedCertificate> => {
     const membership = await officeMembership(context, "write");
@@ -1091,7 +1092,7 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
 
     const doctoral = transcript.program.degree === "doutoramento";
     const final = transcript.progress.completed
-      ? finalClassification(transcript.progress.average)
+      ? finalClassification(transcript.progress.averageExact)
       : null;
     if (!transcript.progress.completed || (doctoral ? !transcript.juryMention : !final)) {
       throw new Error(
@@ -1301,9 +1302,9 @@ export const enrollStudentUnits = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        unitIds: z.array(z.string().uuid()).min(1).max(30),
+        programId: z.string().guid(),
+        studentId: z.string().guid(),
+        unitIds: z.array(z.string().guid()).min(1).max(30),
       })
       .parse(input),
   )
@@ -1357,9 +1358,9 @@ export const enrollCohort = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
+        programId: z.string().guid(),
         semester: z.number().int().min(1).max(14),
-        studentIds: z.array(z.string().uuid()).min(1).max(400),
+        studentIds: z.array(z.string().guid()).min(1).max(400),
       })
       .parse(input),
   )
@@ -1382,7 +1383,10 @@ export const enrollCohort = createServerFn({ method: "POST" })
     const candidates = units.filter((unit) => unit.semester === data.semester);
     if (!candidates.length) throw new Error("O plano não tem cadeiras neste semestre.");
     const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, studentIds);
-    const { data: recordRows, error: recordsError } = await db
+    // Por páginas: cada estudante tem vários registos e o servidor devolve no máximo
+    // 1000 linhas — com o histórico cortado, havia quem fosse inscrito outra vez em
+    // cadeiras já feitas e sem as precedências confirmadas.
+    const { data: recordRows, error: recordsError } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
       .eq("school_id", schoolId)
@@ -1474,7 +1478,7 @@ export const cancelUnitEnrollment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
-      .object({ enrollmentId: z.string().uuid(), reason: z.string().trim().min(3).max(300) })
+      .object({ enrollmentId: z.string().guid(), reason: z.string().trim().min(3).max(300) })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -1534,7 +1538,7 @@ export const cancelUnitEnrollment = createServerFn({ method: "POST" })
  */
 export const listStalePendingEnrollments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -1606,7 +1610,7 @@ export const correctUnitResult = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        enrollmentId: z.string().uuid(),
+        enrollmentId: z.string().guid(),
         finalGrade: z.number().min(0).max(20),
         reason: z.string().trim().min(5).max(500),
       })
@@ -1676,9 +1680,9 @@ export const recordDoctoralDecision = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        unitId: z.string().uuid(),
+        programId: z.string().guid(),
+        studentId: z.string().guid(),
+        unitId: z.string().guid(),
         mention: z.enum(["aprovado", "distincao", "distincao_louvor"]),
         note: z.string().trim().min(5).max(400),
       })
@@ -1731,9 +1735,9 @@ export const grantUnitExemption = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        unitId: z.string().uuid(),
+        programId: z.string().guid(),
+        studentId: z.string().guid(),
+        unitId: z.string().guid(),
         reason: z.string().trim().min(5).max(500),
       })
       .parse(input),
@@ -1795,9 +1799,9 @@ export const grantUnitExemption = createServerFn({ method: "POST" })
 // ── Lançamento por época ───────────────────────────────────────────────────
 
 const resultInput = z.object({
-  programId: z.string().uuid(),
-  studentId: z.string().uuid(),
-  unitId: z.string().uuid(),
+  programId: z.string().guid(),
+  studentId: z.string().guid(),
+  unitId: z.string().guid(),
   season: z.enum(EXAM_SEASONS),
   frequency: z.number().min(0).max(20).nullable().optional(),
   exam: z.number().min(0).max(20).nullable().optional(),
@@ -1945,6 +1949,9 @@ export const recordUnitResult = createServerFn({ method: "POST" })
               : "Melhoria só depois de aprovar a cadeira, uma vez, se o regulamento a permitir.",
         );
       }
+      // Uma época de exame precisa da nota do exame (a normal, sem ela, aprovava pela
+      // frequência quem não fez o exame).
+      if (data.exam == null) throw new Error("Indique a nota do exame.");
       const frequency = season === "normal" ? latestRecord.finalGrade : null;
       const result = seasonResult({
         season,
@@ -2114,7 +2121,7 @@ export const listLaunchableUnits = createServerFn({ method: "GET" })
 export const getUnitSheet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), unitId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), unitId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
@@ -2175,7 +2182,8 @@ export const getUnitSheet = createServerFn({ method: "GET" })
 
     // O histórico completo de cada estudante no curso: a época especial depende
     // de quantas cadeiras lhe faltam no plano, não só desta.
-    const { data: recordRows, error } = await db
+    // Por páginas (ver enrollCohort): com o histórico cortado, estudantes saíam da pauta.
+    const { data: recordRows, error } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
       .eq("school_id", schoolId)
@@ -2261,10 +2269,10 @@ export const setUnitShift = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        unitId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        classGroupId: z.string().uuid().nullable(),
+        programId: z.string().guid(),
+        unitId: z.string().guid(),
+        studentId: z.string().guid(),
+        classGroupId: z.string().guid().nullable(),
       })
       .parse(input),
   )
@@ -2321,7 +2329,7 @@ export const setUnitShift = createServerFn({ method: "POST" })
 export const getMyHigherEd = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ studentId: z.string().uuid().optional() }).parse(input ?? {}),
+    z.object({ studentId: z.string().guid().optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     const visible = await resolveVisibleStudent(context.userId, data.studentId);
@@ -2525,8 +2533,8 @@ export const enrollMyUnits = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        unitIds: z.array(z.string().uuid()).min(1).max(30),
+        programId: z.string().guid(),
+        unitIds: z.array(z.string().guid()).min(1).max(30),
       })
       .parse(input),
   )
@@ -2573,7 +2581,7 @@ type ApplicationPayload = {
 /** Candidatos a um curso, seriados pela nota do exame de acesso e cortados nas vagas. */
 export const getAccessRanking = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -2618,7 +2626,7 @@ export const setApplicationAccessScore = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        applicationId: z.string().uuid(),
+        applicationId: z.string().guid(),
         score: z.number().min(0).max(20).nullable(),
       })
       .parse(input),
@@ -2902,7 +2910,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
         if (!units.every((unit) => done.has(unit.id))) continue;
         entry.total += 1;
         const final = finalClassification(
-          studentProgress({ plan: units, records, regulation }).average,
+          studentProgress({ plan: units, records, regulation }).averageExact,
         );
         if (final) entry.averages.push(final.value);
       }

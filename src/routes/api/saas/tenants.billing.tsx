@@ -22,12 +22,12 @@ const requirementIds = PUBLIC_SCHOOL_REQUIREMENTS.map((r) => r.id) as [string, .
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("save"),
-    tenantId: z.string().uuid(),
+    tenantId: z.string().guid(),
     profile: tenantBillingProfileInputSchema,
   }),
   z.object({
     action: z.literal("pause"),
-    tenantId: z.string().uuid(),
+    tenantId: z.string().guid(),
     reason: z.string().trim().min(3, "Indique o motivo da pausa.").max(300),
     until: z
       .string()
@@ -35,10 +35,10 @@ const actionSchema = z.discriminatedUnion("action", [
       .nullish()
       .transform((v) => v ?? null),
   }),
-  z.object({ action: z.literal("resume"), tenantId: z.string().uuid() }),
+  z.object({ action: z.literal("resume"), tenantId: z.string().guid() }),
   z.object({
     action: z.literal("public_review"),
-    tenantId: z.string().uuid(),
+    tenantId: z.string().guid(),
     decision: z.enum(["save", "approve", "reject"]),
     requirements: z.record(z.enum(requirementIds), z.boolean()).default({}),
     officialCode: z
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/saas/tenants/billing")({
         try {
           await requirePlatformAdminFromRequest(request);
           const tenantId = new URL(request.url).searchParams.get("tenantId") ?? "";
-          if (!z.string().uuid().safeParse(tenantId).success) {
+          if (!z.string().guid().safeParse(tenantId).success) {
             return jsonWithCors(
               request,
               { error: "tenantId inválido." },

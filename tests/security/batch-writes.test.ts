@@ -17,7 +17,8 @@ describe("atribuir turma em lote (alunos)", () => {
   const fn = body(read("src/features/students/server.ts"), "batchAssignClass");
 
   it("matrículas novas passam por enroll_student (2FA, capacidade, número)", () => {
-    expect(fn).toMatch(/rpc\("enroll_student"/);
+    expect(fn).toMatch(/enrollStudentRpc\(context\.supabase/);
+    expect(read("src/features/students/enrollment-core.ts")).toMatch(/rpc\("enroll_student"/);
     expect(fn).not.toMatch(/from\("enrollments"\)\s*\.insert\(/);
   });
 
@@ -26,8 +27,18 @@ describe("atribuir turma em lote (alunos)", () => {
     expect(fn).toMatch(/count: "exact", head: true/);
   });
 
+  it("confirma a matrícula pendente de quem já está na turma, sem gastar lugar", () => {
+    // Auditoria 14: o aluno ficava activo com a matrícula ainda pendente.
+    expect(fn).toMatch(/row\.class_group_id === group\.id && row\.status === "pending"/);
+    expect(fn).toMatch(/const incoming = toMove\.length \+ toEnroll\.length;/);
+  });
+
+  it("aluno suspenso ou trancado sem matrícula não é matriculado em lote", () => {
+    expect(fn).toMatch(/heldStudentMessage\(statusById\.get\(studentId\)\)/);
+  });
+
   it("só reutiliza matrículas correntes (não reactiva transferidas ou concluídas)", () => {
-    expect(fn).toMatch(/\.in\("status", \["pending", "active"\]\)/);
+    expect(fn).toMatch(/\.in\("status", \[\.\.\.CURRENT_ENROLLMENT_STATUSES\]\)/);
   });
 });
 

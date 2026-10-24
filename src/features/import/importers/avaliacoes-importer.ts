@@ -1,4 +1,5 @@
-import { normalizeDate, normalizeNumber, normalizeText } from "../engine/normalize";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
+import { normalizeDate, normalizeNumber, normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import {
   loadClassSubjectRefs,
@@ -39,14 +40,6 @@ function resolveKind(value: unknown): string {
   if (texto.includes("recupera")) return "recovery";
   if (texto.includes("exame")) return texto.includes("trimestr") ? "term_exam" : "exam";
   return "test";
-}
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
 }
 
 /**
@@ -138,11 +131,22 @@ export const avaliacoesImporter: RowImporter = {
               .eq("school_id", ctx.schoolId)
               .eq("academic_year_id", ctx.academicYearId)
           : ctx.db.from("terms").select("id, sequence").eq("school_id", ctx.schoolId),
-        ctx.db
-          .from("gradebooks")
-          .select("id, class_subject_id, term_id")
-          .eq("school_id", ctx.schoolId),
-        ctx.db.from("grade_items").select("code").eq("school_id", ctx.schoolId),
+        readAllPages((from, to) =>
+          ctx.db
+            .from("gradebooks")
+            .select("id, class_subject_id, term_id")
+            .eq("school_id", ctx.schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        readAllPages((from, to) =>
+          ctx.db
+            .from("grade_items")
+            .select("id, code")
+            .eq("school_id", ctx.schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
 
     const gradebooks = (gradebooksRes.data ?? []).map((g) => ({

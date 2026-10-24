@@ -149,6 +149,7 @@ export function getMoreHubGroups(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
+  options: { isAlumni?: boolean } = {},
 ): MoreHubGroup[] {
   const inBottomNav = new Set(
     getMobileDestinations(role, grants, plan)
@@ -156,7 +157,7 @@ export function getMoreHubGroups(
       .map((destination) => destination.to),
   );
 
-  return getPortalNavigation(role, grants, plan)
+  return getPortalNavigation(role, grants, plan, options)
     .map((group) => ({
       title: group.title,
       items: group.items
