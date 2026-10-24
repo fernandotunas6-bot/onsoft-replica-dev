@@ -402,7 +402,11 @@ export function AppSidebar({
                       <li key={item.label}>
                         <ExpandedNavFlyout
                           open={expandedMenu === item.label}
-                          onOpenChange={(next) => setExpandedMenu(next ? item.label : null)}
+                          onOpenChange={(next) =>
+                            setExpandedMenu((current) =>
+                              next ? item.label : current === item.label ? null : current,
+                            )
+                          }
                           item={item}
                           groups={displayedGroups}
                           pathname={pathname}
