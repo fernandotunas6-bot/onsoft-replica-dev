@@ -418,14 +418,22 @@ export function getPortalNavigation(
           label: "Caixa e Pagamentos",
           icon: moduleIcons.finance,
           children: [
-            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
+            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
             {
               label: "Bancos e Conciliação",
               icon: moduleIcons.reconciliation,
               to: "/financeiro/conciliacao",
             },
+          ],
+        },
+        {
+          // Folha e assiduidade são RH, não caixa: tinham ficado como filhos de
+          // «Caixa e Pagamentos», ao lado das faturas.
+          label: "Recursos Humanos",
+          icon: moduleIcons.hr,
+          children: [
             { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
             { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
             {
