@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -13,9 +13,8 @@ import {
   FileBadge,
   FileDown,
   FileText,
-  FileUp,
+  Hash,
   Plus,
-  QrCode,
   Wallet,
   X,
 } from "lucide-react";
@@ -24,9 +23,7 @@ import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { DocHelpButton, DocPathHelpButton } from "@/components/ui/doc-help-button";
-import { DOC_PATHS, getPayflowPayerUrl } from "@/lib/ecosystem-urls";
-import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
-import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
+import { DOC_PATHS } from "@/lib/ecosystem-urls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { Button } from "@/components/ui/button";
@@ -72,7 +69,7 @@ import {
   recordInvoicePayment,
 } from "@/features/finance/server";
 import { officialReceiptBody } from "@/features/finance/schemas";
-import { buildProformaInvoice } from "@/features/finance/proforma-receipts";
+import { buildProformaInvoice, proformaNumber } from "@/features/finance/proforma-receipts";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -81,6 +78,8 @@ import { HIGHER_ED_FEES } from "@/features/higher-ed/fees";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapInvoicesToFinanceOverviewSnapshot } from "@/features/intelligence/finance/finance-overview-adapter";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
+import { invoiceState, type PaymentStateView } from "@/features/finance/payment-states";
 import { AppMark } from "@/features/integrations/app-marks";
 import { kwanza } from "@/lib/currency";
 import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
@@ -113,6 +112,8 @@ type InvoiceExportRow = {
   valor: number;
   recebido: number;
   estado: "Paga" | "Pendente" | "Vencida";
+  /** O que aconteceu ao dinheiro: distingue «Paga em parte» de «Por pagar». */
+  situacao: PaymentStateView;
 };
 
 export const Route = createFileRoute("/faturas")({
@@ -155,6 +156,7 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
 }
 
 function FaturasPage() {
+  const paymentKey = usePaymentAttemptKey();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const { school, selectedYearLabel } = useSchoolSettings();
@@ -224,6 +226,15 @@ function FaturasPage() {
             : invoice.due_on < schoolTodayIso()
               ? ("Vencida" as const)
               : ("Pendente" as const),
+        situacao: invoiceState(
+          {
+            status: invoice.status,
+            total: Number(invoice.total_amount),
+            paid: Number(invoice.amount_paid),
+            dueOn: invoice.due_on,
+          },
+          schoolTodayIso(),
+        ),
       })),
     [invoicesQuery.data],
   );
@@ -328,7 +339,7 @@ function FaturasPage() {
             variant="ghost"
             onClick={() => setEmisInvoice({ id: f.id, numero: f.numero })}
           >
-            <QrCode className="size-3.5" /> Referência EMIS
+            <Hash className="size-3.5" /> Referência EMIS
           </Button>
         ) : null}
         {f.estado !== "Paga" ? (
@@ -382,6 +393,7 @@ function FaturasPage() {
               const method =
                 methodMap[(values["metodo"] as keyof typeof methodMap) ?? "Numerário"] ?? "cash";
               const reference = values["referencia"] || undefined;
+              const attempt = [f.id, amount, method, values["data"]].join("|");
               const paid = await recordInvoicePayment({
                 data: {
                   invoiceId: f.id,
@@ -392,8 +404,10 @@ function FaturasPage() {
                   paidAt: values["data"]
                     ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                     : undefined,
+                  idempotencyKey: paymentKey.keyFor(attempt),
                 },
               });
+              paymentKey.settled(attempt);
               await Promise.all([
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "invoices"],
@@ -502,7 +516,7 @@ function FaturasPage() {
     { label: "Emissão", value: (row: InvoiceExportRow) => row.emitida },
     { label: "Vencimento", value: (row: InvoiceExportRow) => row.vencimento },
     { label: "Valor (Kz)", value: (row: InvoiceExportRow) => row.valor },
-    { label: "Estado", value: (row: InvoiceExportRow) => row.estado },
+    { label: "Estado", value: (row: InvoiceExportRow) => row.situacao.label },
   ];
   const exportRows: InvoiceExportRow[] = filtered.map((fatura) => ({
     ...fatura,
@@ -714,7 +728,7 @@ function FaturasPage() {
         s.student_id === studentLabel,
     );
 
-    const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
+    const proformaNo = proformaNumber();
     const issueDate = schoolTodayIso();
     const dueDate = schoolDateInDays(15);
     const amount = Number(values["valor"]) || 0;
@@ -779,7 +793,7 @@ function FaturasPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Relatórios"
+          group="Financeiro"
           title="Faturas"
           description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
           actions={
@@ -821,7 +835,7 @@ function FaturasPage() {
                         className="text-xs cursor-pointer text-primary font-medium"
                         onClick={() => void handleValidateSaftAo(new Date().getFullYear())}
                       >
-                        Validar Estrutura AGT
+                        Verificar estrutura do XML
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
@@ -842,29 +856,6 @@ function FaturasPage() {
                     className="gap-2 text-xs cursor-pointer"
                   >
                     <Download className="size-3.5" /> Ficheiro CSV
-                  </DropdownMenuItem>
-                  <div className="my-1 border-t border-border" />
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
-                    <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                      <FileUp className="size-3.5 text-primary" /> Importar Pagamentos (Excel)
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="gap-2 text-xs cursor-pointer">
-                    <a
-                      href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <PayflowBrandIcon size={14} /> Portal PayFlow (Pagamentos)
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="gap-2 text-xs cursor-pointer p-0"
-                    onSelect={(event) => event.preventDefault()}
-                  >
-                    <PayflowAdminLaunchButton asMenuItem className="px-2 py-1.5">
-                      Conciliação PayFlow
-                    </PayflowAdminLaunchButton>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1002,15 +993,16 @@ function FaturasPage() {
           <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-3 py-3">
             <AppMark id="agt" className="size-9 shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-semibold">AGT · faturação electrónica</p>
+              <p className="text-sm font-semibold">AGT · documentos internos</p>
               <p className="text-xs text-muted-foreground">
                 {school?.nif
-                  ? `NIF da escola ${school.nif}. Instale a AGT no lançador para activar faturação electrónica neste módulo.`
-                  : "Defina o NIF da escola nas definições e instale a AGT para alinhar as faturas."}
+                  ? `NIF da escola ${school.nif}. `
+                  : "Defina o NIF da escola nas definições. "}
+                O SIGA não é software de facturação certificado pela AGT: estas faturas servem para
+                cobrança e conferência, e o documento fiscal emite-se no software certificado.
               </p>
             </div>
           </div>
-          <InstalledModuleTools module="financeiro" />
           <InstalledModuleTools module="faturas" />
         </div>
 
@@ -1169,14 +1161,8 @@ function FaturasPage() {
                             </p>
                           </div>
                           <StatusBadge
-                            status={
-                              f.estado === "Paga"
-                                ? "paid"
-                                : f.estado === "Vencida"
-                                  ? "overdue"
-                                  : "pending"
-                            }
-                            label={f.estado}
+                            status={f.situacao.status}
+                            label={f.situacao.label}
                             size="sm"
                           />
                         </div>
@@ -1233,16 +1219,7 @@ function FaturasPage() {
                         <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
                         <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
                         <TableCell className="text-right">
-                          <StatusBadge
-                            status={
-                              f.estado === "Paga"
-                                ? "paid"
-                                : f.estado === "Vencida"
-                                  ? "overdue"
-                                  : "pending"
-                            }
-                            label={f.estado}
-                          />
+                          <StatusBadge status={f.situacao.status} label={f.situacao.label} />
                         </TableCell>
                         <TableCell className="text-right">
                           <FaturaActions f={f} />

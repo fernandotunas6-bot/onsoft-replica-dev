@@ -19,6 +19,7 @@ use zeroize::Zeroize;
 const STORE_FILE: &str = "siga-portal.json";
 const VAULT_FILE: &str = "siga-portal.hold";
 const VAULT_CLIENT: &[u8] = b"siga-auth";
+const OUTBOX_KEY: &[u8] = b"siga.offline-outbox";
 /// Sal do argon2, partilhado com o plugin Stronghold da app local (`lib.rs`).
 pub const SALT_FILE: &str = "siga.salt";
 const SALT_LEN: u64 = 32;
@@ -242,6 +243,48 @@ pub(super) fn portal_vault_reset(
     }
 }
 
+/**
+ * Guard native updater: if the vault exists but cannot be inspected, fail
+ * closed. Any stored outbox blob (pending, sending, rejected or malformed)
+ * blocks installation. Never parse, log or expose student payloads here.
+ */
+fn require_empty_outbox_for_update(
+    open: &Mutex<Option<Stronghold>>,
+    vault_exists: bool,
+) -> Result<(), String> {
+    if !vault_exists {
+        return Ok(());
+    }
+    with_vault(open, |stronghold| {
+        let pending = client_store(stronghold)?
+            .get(OUTBOX_KEY)
+            .map_err(|_| "Não foi possível verificar a fila offline do cofre.".to_string())?;
+        if pending.is_some() {
+            return Err(
+                "Existem lançamentos no cofre offline. Verifique-os no SIGA antes de actualizar."
+                    .into(),
+            );
+        }
+        Ok(())
+    })
+    .map_err(|error| {
+        if error == "O cofre está fechado." {
+            "Desbloqueie o cofre deste computador antes de instalar uma actualização.".into()
+        } else {
+            error
+        }
+    })
+}
+
+/// A verificação corre no Rust, não confia na contagem React nem no WebView.
+pub(super) fn ensure_native_update_safe<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    vault: &PortalVault,
+) -> Result<(), String> {
+    let vault_exists = vault_path(app)?.exists();
+    require_empty_outbox_for_update(&vault.open, vault_exists)
+}
+
 fn with_vault<T>(
     open: &Mutex<Option<Stronghold>>,
     action: impl FnOnce(&Stronghold) -> Result<T, String>,
@@ -384,6 +427,53 @@ mod tests {
         let reopened = Stronghold::new(&snapshot, key).unwrap();
         assert!(reopened.load_client(VAULT_CLIENT).is_ok());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn native_updater_fails_closed_if_vault_is_locked() {
+        let closed = Mutex::new(None);
+        assert!(require_empty_outbox_for_update(&closed, false).is_ok());
+        assert!(require_empty_outbox_for_update(&closed, true)
+            .unwrap_err()
+            .contains("Desbloqueie"));
+    }
+
+    #[test]
+    fn native_updater_blocks_every_stored_outbox_until_reconciled() {
+        let dir = std::env::temp_dir().join(format!("siga-update-guard-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let snapshot = dir.join(VAULT_FILE);
+        let stronghold = prepare_client(
+            Stronghold::new(
+                &snapshot,
+                KeyDerivation::argon2("123456", &dir.join(SALT_FILE)),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        let opened = Mutex::new(Some(stronghold));
+        assert!(require_empty_outbox_for_update(&opened, true).is_ok());
+        with_vault(&opened, |vault| {
+            client_store(vault)?
+                .insert(OUTBOX_KEY.to_vec(), b"[pending]".to_vec(), None)
+                .map(|_| ())
+                .map_err(|_| "Não foi possível criar fila de teste.".to_string())
+        })
+        .unwrap();
+        assert!(require_empty_outbox_for_update(&opened, true)
+            .unwrap_err()
+            .contains("Existem lançamentos"));
+        with_vault(&opened, |vault| {
+            client_store(vault)?
+                .delete(OUTBOX_KEY)
+                .map(|_| ())
+                .map_err(|_| "Não foi possível limpar fila de teste.".to_string())
+        })
+        .unwrap();
+        assert!(require_empty_outbox_for_update(&opened, true).is_ok());
+        drop(opened);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

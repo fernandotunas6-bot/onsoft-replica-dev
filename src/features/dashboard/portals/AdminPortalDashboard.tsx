@@ -144,7 +144,7 @@ export function AdminPortalDashboard({
           : "Aguardando dados",
     },
     {
-      label: capabilities.documents ? "Documentos emitidos" : "Saldo de caixa",
+      label: capabilities.documents ? "Documentos emitidos" : "Total recebido",
       icon: capabilities.documents ? FileText : Receipt,
       value: capabilities.documents
         ? String(data?.totals.documentIssued ?? 0)
@@ -222,7 +222,7 @@ export function AdminPortalDashboard({
       ? [
           {
             id: "cash",
-            label: "Saldo de caixa",
+            label: "Total recebido",
             value: kwanza(data?.finance?.cash_balance ?? 0),
             hint: `${data?.finance?.open_invoice_count ?? 0} faturas em aberto`,
             tone: "success" as const,

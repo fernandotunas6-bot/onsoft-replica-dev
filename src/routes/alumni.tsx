@@ -181,7 +181,7 @@ function AlumniPage() {
     <AppShell>
       <div className="mx-auto w-full max-w-[1500px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
         <PageHeader
-          group="Comunidade & Carreira"
+          group="Alumni"
           title="Rede de Antigos Alunos (Alumni)"
           description="Acompanhe antigos alunos depois da conclusão: carreira, empregabilidade, mentoria, oportunidades, eventos, contribuição social e impacto da instituição."
           actions={

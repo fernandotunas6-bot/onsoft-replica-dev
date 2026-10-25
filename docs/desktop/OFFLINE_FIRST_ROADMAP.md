@@ -29,6 +29,7 @@ segredos da service role ou acesso a outras escolas para o instalador.
 - Sincronizações concorrentes serializadas, inclusive após uma primeira tentativa sem entradas; regressão coberta por testes.
 - Cada lançamento novo associa escola e actor de origem; replay só com a escola e o actor originais, e os dois são novamente validados no servidor.
 - A cache institucional não é restaurada sem escola activa e só é persistida se a escola continuar a mesma quando expira o debounce; cache legada `default` não é usada.
+- A cache v2 exclui definições bancárias/fiscais e eventos pessoais; só guarda arrays explícitos de anos/períodos. Cada linha é associada pelo servidor à escola de origem para bloquear respostas atrasadas de outro tenant; elimina automaticamente o antigo snapshot v1.
 - A fila anterior sem `schoolId` permanece cifrada e bloqueada para envio automático; reconciliação manual antes de qualquer migração.
 - Bloquear actualização enquanto houver *qualquer* lançamento no Stronghold,
   incluindo os recusados, além de mutações React ainda pendentes.
