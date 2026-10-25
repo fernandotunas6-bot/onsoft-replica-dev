@@ -9,6 +9,11 @@ de presenças e migrações verificadas; [evidência e limites](../architecture/
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
 visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
 
+**25/10/2026 — SIGA Context Engine (fase 2, só lógica):** resolução tipada do contexto
+e registo de destinos por turma/disciplina/aluno/professor, com testes; sem mudança
+visual. [Especificação, inventário e estado](../specs/SIGA_CONTEXT_ENGINE_2026.md).
+A fase 3 da navegação contextual continua parcial até o menu da entidade estar na sidebar.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
