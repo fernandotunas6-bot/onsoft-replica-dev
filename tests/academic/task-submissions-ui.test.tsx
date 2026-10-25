@@ -56,10 +56,15 @@ describe("entregas: professor", () => {
   });
 
   it("vê quem entregou, devolve com nota e regista a entrega em papel", async () => {
-    server.listTaskSubmissions.mockResolvedValue([
-      { enrollmentId: "e1", studentName: "Ana", submission: submission(), attempts: 2 },
-      { enrollmentId: "e2", studentName: "Bia", submission: null, attempts: 0 },
-    ]);
+    server.listTaskSubmissions.mockResolvedValue({
+      title: "Resumo",
+      dueOn: "2026-11-01",
+      acceptsLate: true,
+      lines: [
+        { enrollmentId: "e1", studentName: "Ana", submission: submission(), attempts: 2 },
+        { enrollmentId: "e2", studentName: "Bia", submission: null, attempts: 0 },
+      ],
+    });
     server.returnTaskSubmission.mockResolvedValue({ ok: true });
     server.recordPaperSubmission.mockResolvedValue({ attempt: 1 });
     wrap(<TaskSubmissionsPanel taskId={TASK} />);

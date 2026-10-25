@@ -179,7 +179,9 @@ describe("entregas no servidor", () => {
     );
 
     ownTeacher = "t1";
-    const [line] = await server.listTaskSubmissions({ data: { taskId: TASK } });
+    const listed = await server.listTaskSubmissions({ data: { taskId: TASK } });
+    expect(listed).toMatchObject({ title: "Resumo", acceptsLate: false });
+    const [line] = listed.lines;
     expect(line).toMatchObject({ studentName: "Ana", attempts: 1 });
     const submissionId = String(line!.submission!.id);
     await server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } });

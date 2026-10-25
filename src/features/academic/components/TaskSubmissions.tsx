@@ -33,7 +33,7 @@ export function TaskSubmissionsPanel({ taskId }: { taskId: string }) {
       </p>
     );
   }
-  const lines = query.data ?? [];
+  const lines = query.data?.lines ?? [];
   const delivered = lines.filter((line) => line.submission).length;
   return (
     <div className="mt-2 space-y-1">

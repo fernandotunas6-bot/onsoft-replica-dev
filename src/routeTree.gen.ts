@@ -97,6 +97,7 @@ import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh
 import { Route as PedagogicaPautasSuperiorImprimirRouteImport } from './routes/pedagogica_.pautas-superior_.imprimir'
 import { Route as PedagogicaSuperiorCertificadoRouteImport } from './routes/pedagogica_.superior_.certificado'
 import { Route as PedagogicaSuperiorHistoricoRouteImport } from './routes/pedagogica_.superior_.historico'
+import { Route as PedagogicaTarefasTaskIdRouteImport } from './routes/pedagogica_.tarefas.$taskId'
 import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni.portal.portfolio.education'
 import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.portal.portfolio.print'
 import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni.portal.portfolio.showcase'
@@ -584,6 +585,11 @@ const PedagogicaSuperiorHistoricoRoute =
     path: '/pedagogica/superior/historico',
     getParentRoute: () => rootRouteImport,
   } as any)
+const PedagogicaTarefasTaskIdRoute = PedagogicaTarefasTaskIdRouteImport.update({
+  id: '/pedagogica_/tarefas/$taskId',
+  path: '/pedagogica/tarefas/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlumniPortalPortfolioEducationRoute =
   AlumniPortalPortfolioEducationRouteImport.update({
     id: '/education',
@@ -883,6 +889,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
+  '/pedagogica/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1011,6 +1018,7 @@ export interface FileRoutesByTo {
   '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
+  '/pedagogica/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1140,6 +1148,7 @@ export interface FileRoutesById {
   '/pedagogica_/pautas-superior_/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica_/superior_/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica_/superior_/historico': typeof PedagogicaSuperiorHistoricoRoute
+  '/pedagogica_/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1270,6 +1279,7 @@ export interface FileRouteTypes {
     | '/pedagogica/pautas-superior/imprimir'
     | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
+    | '/pedagogica/tarefas/$taskId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1398,6 +1408,7 @@ export interface FileRouteTypes {
     | '/pedagogica/pautas-superior/imprimir'
     | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
+    | '/pedagogica/tarefas/$taskId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1526,6 +1537,7 @@ export interface FileRouteTypes {
     | '/pedagogica_/pautas-superior_/imprimir'
     | '/pedagogica_/superior_/certificado'
     | '/pedagogica_/superior_/historico'
+    | '/pedagogica_/tarefas/$taskId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1637,6 +1649,7 @@ export interface RootRouteChildren {
   PedagogicaPautasSuperiorImprimirRoute: typeof PedagogicaPautasSuperiorImprimirRoute
   PedagogicaSuperiorCertificadoRoute: typeof PedagogicaSuperiorCertificadoRoute
   PedagogicaSuperiorHistoricoRoute: typeof PedagogicaSuperiorHistoricoRoute
+  PedagogicaTarefasTaskIdRoute: typeof PedagogicaTarefasTaskIdRoute
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
@@ -2275,6 +2288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedagogicaSuperiorHistoricoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/tarefas/$taskId': {
+      id: '/pedagogica_/tarefas/$taskId'
+      path: '/pedagogica/tarefas/$taskId'
+      fullPath: '/pedagogica/tarefas/$taskId'
+      preLoaderRoute: typeof PedagogicaTarefasTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alumni/portal/portfolio/education': {
       id: '/alumni/portal/portfolio/education'
       path: '/education'
@@ -2824,6 +2844,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaPautasSuperiorImprimirRoute: PedagogicaPautasSuperiorImprimirRoute,
   PedagogicaSuperiorCertificadoRoute: PedagogicaSuperiorCertificadoRoute,
   PedagogicaSuperiorHistoricoRoute: PedagogicaSuperiorHistoricoRoute,
+  PedagogicaTarefasTaskIdRoute: PedagogicaTarefasTaskIdRoute,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,

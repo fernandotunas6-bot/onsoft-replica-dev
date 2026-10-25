@@ -91,7 +91,10 @@ export const listTaskSubmissions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => taskInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { db, schoolId, classSubject } = await requireTaskManager(context.userId, data.taskId);
+    const { db, schoolId, task, classSubject } = await requireTaskManager(
+      context.userId,
+      data.taskId,
+    );
     const { data: enrollments, error } = await db
       .from("enrollments")
       .select("id, student_id")
@@ -126,7 +129,7 @@ export const listTaskSubmissions = createServerFn({ method: "GET" })
     for (const row of rows)
       attempts.set(row.enrollment_id, (attempts.get(row.enrollment_id) ?? 0) + 1);
 
-    return ((enrollments ?? []) as Row[])
+    const lines = ((enrollments ?? []) as Row[])
       .map((row): TaskSubmissionLine => ({
         enrollmentId: str(row.id),
         studentName: nameOfPerson.get(personOf.get(str(row.student_id)) ?? "") || "—",
@@ -134,6 +137,12 @@ export const listTaskSubmissions = createServerFn({ method: "GET" })
         attempts: attempts.get(str(row.id)) ?? 0,
       }))
       .sort((a, b) => a.studentName.localeCompare(b.studentName, "pt"));
+    return {
+      title: str(task.title),
+      dueOn: task.due_on ? str(task.due_on) : null,
+      acceptsLate: task.accepts_late !== false,
+      lines,
+    };
   });
 
 /** Professor: o aluno entregou em papel (primário, sem plataforma em casa). */

@@ -31,10 +31,8 @@ import {
 } from "@/features/academic/lesson-messages";
 import { publicErrorMessage } from "@/lib/public-error";
 import { safeHref } from "@/lib/safe-url";
-import {
-  MyTaskSubmission,
-  TaskSubmissionsPanel,
-} from "@/features/academic/components/TaskSubmissions";
+import { Link } from "@tanstack/react-router";
+import { MyTaskSubmission } from "@/features/academic/components/TaskSubmissions";
 
 const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const selectClass = "h-9 w-full rounded-md border border-border bg-background px-2 text-sm";
@@ -237,7 +235,6 @@ function TaskRow({
   studentId?: string | null;
 }) {
   const queryClient = useQueryClient();
-  const [showSubmissions, setShowSubmissions] = useState(false);
   const archive = useMutation({
     mutationFn: () => archiveClassTask({ data: { taskId: task.id } }),
     onSuccess: () => {
@@ -260,17 +257,14 @@ function TaskRow({
         ) : null}
         <p className="text-xs text-muted-foreground">{formatDue(task.dueOn)}</p>
         {canEdit ? (
-          <>
-            <button
-              type="button"
-              className="mt-1 text-xs font-semibold text-primary hover:underline"
-              aria-expanded={showSubmissions}
-              onClick={() => setShowSubmissions((value) => !value)}
-            >
-              {showSubmissions ? "Fechar entregas" : "Entregas"}
-            </button>
-            {showSubmissions ? <TaskSubmissionsPanel taskId={task.id} /> : null}
-          </>
+          // A turma inteira, com notas, é uma página (contrato visual 2026).
+          <Link
+            to="/pedagogica/tarefas/$taskId"
+            params={{ taskId: task.id }}
+            className="mt-1 inline-block text-xs font-semibold text-primary hover:underline"
+          >
+            Entregas
+          </Link>
         ) : (
           <MyTaskSubmission taskId={task.id} studentId={studentId} />
         )}
