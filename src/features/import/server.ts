@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { PagedReadError } from "@/integrations/supabase/paged-client";
 import { safeCell } from "@/lib/export-csv";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -26,6 +27,7 @@ import { getImporter, isModuleImplemented } from "./engine/registry";
 import { assertImportModuleGoverned } from "./engine/governance";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
+import { aal2ActionForImport } from "./aal2-modules";
 import {
   assertNewEnrollmentAllowed,
   recordOutsideCycleEnrollments,
@@ -425,10 +427,14 @@ export const commitImportBatch = createServerFn({ method: "POST" })
     );
     const importer = getImporter(job.module);
     await assertImportModuleGoverned(db, job.module);
-    // As regras de cobrança (multa, desconto, vencimento) só mudam com 2FA, como no ecrã
-    // Definições › Cobrança (updateBillingSettings).
-    if (job.module === "propinas" && !data.dry_run) {
-      requireAal2(context.claims, "Importar as regras de cobrança");
+    const aal2Action = aal2ActionForImport(job.module);
+    if (aal2Action && !data.dry_run) {
+      requireAal2(context.claims, aal2Action);
+    }
+    // Matricular e mudar de turma exigem 2FA, como no ecrã (auditoria 14, A3): sem isto,
+    // um ficheiro com «actualizar» mudava alunos de turma sem 2FA.
+    if (job.module === "matriculas" && !data.dry_run) {
+      requireAal2(context.claims, "Importar matrículas");
     }
 
     const PENDING_STATUSES = [
@@ -441,7 +447,10 @@ export const commitImportBatch = createServerFn({ method: "POST" })
 
     let pendingQuery = db
       .from("import_rows")
-      .select("*")
+      // Só os três campos que o ciclo usa. A tabela tem 17 colunas, 11 delas
+      // jsonb/text (raw_data, errors, warnings, diff…): com `*` cada lote trazia
+      // o ficheiro importado outra vez para memória, por nada.
+      .select("id, row_number, normalized_data")
       .eq("import_job_id", job.id)
       .in("status", PENDING_STATUSES)
       .order("row_number", { ascending: true })
@@ -841,6 +850,14 @@ export const exportSchoolDataFn = createServerFn({ method: "POST" })
       classGroupId: data.class_group_id,
       modules: data.modules,
       mode: data.mode,
+    }).catch((error: unknown) => {
+      if (error instanceof PagedReadError) {
+        throw publicDatabaseError(
+          error.dbError,
+          "Não foi possível ler os dados para exportar. Nenhum ficheiro foi gerado.",
+        );
+      }
+      throw error;
     });
 
     // Uma exportação leva dados pessoais da escola inteira: fica registada.

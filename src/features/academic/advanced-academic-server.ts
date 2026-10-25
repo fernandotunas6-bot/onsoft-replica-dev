@@ -23,7 +23,7 @@ import {
   updateScheduleSlotInputSchema,
 } from "./schemas";
 import { z } from "zod";
-import { schoolDayOffsetIso, schoolTodayIso } from "@/lib/school-date";
+import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
 
 function timeSlice(value: unknown): string {
   return String(value ?? "").slice(0, 5);
@@ -401,9 +401,9 @@ export const listCurricula = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        academicYearId: z.string().uuid().optional(),
-        courseId: z.string().uuid().optional(),
-        gradeLevelId: z.string().uuid().optional(),
+        academicYearId: z.string().guid().optional(),
+        courseId: z.string().guid().optional(),
+        gradeLevelId: z.string().guid().optional(),
       })
       .parse(input ?? {}),
   )
@@ -507,8 +507,8 @@ export const listTeacherAvailability = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        teacherId: z.string().uuid(),
-        academicYearId: z.string().uuid().optional(),
+        teacherId: z.string().guid(),
+        academicYearId: z.string().guid().optional(),
       })
       .parse(input),
   )
@@ -1090,7 +1090,7 @@ async function syncScheduleSlotsToSessions({
     .maybeSingle();
 
   const startDate = currentTerm?.starts_on ?? schoolTodayIso();
-  const endDate = currentTerm?.ends_on ?? schoolDayOffsetIso(30);
+  const endDate = currentTerm?.ends_on ?? schoolDateInDays(30);
 
   // Buscar slots da turma
   const { data: classSubjects } = await db

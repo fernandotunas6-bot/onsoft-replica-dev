@@ -6,17 +6,17 @@ identificadores, pesquisa e página de consulta.
 
 ## O que existe
 
-| Peça | Onde |
-|---|---|
-| Dados (fonte única) | `src/features/education-catalog/data/` — `isced.ts`, `sources.ts`, `countries.ts`, `subjects.ts`, `courses.ts`, `stages.ts` |
-| Consultas com contexto de nível obrigatório | `src/features/education-catalog/catalog.ts` |
-| Pesquisa local (sem acentos, códigos, siglas, sinónimos, uma/duas letras trocadas) | `src/features/education-catalog/search.ts` |
-| Normalização de classes, períodos e disciplinas; duplicados | `src/features/education-catalog/normalize.ts` |
-| Identificadores curtos | `src/features/education-catalog/identifiers.ts` |
-| Página **Pedagógica → Catálogo global** (`/pedagogica/catalogo`) | `CatalogExplorer.tsx`, `src/routes/pedagogica_.catalogo.tsx` |
-| Esquema | `supabase/migrations/20261010120000_global_education_catalog.sql` |
-| Carga (gerada, idempotente) | `supabase/seeds/education/catalog.sql` — `npm run siga:catalog-seed` |
-| Testes | `tests/education-catalog/*`, `tests/sql/education-catalog.mjs` (PGlite) |
+| Peça                                                                               | Onde                                                                                                                        |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Dados (fonte única)                                                                | `src/features/education-catalog/data/` — `isced.ts`, `sources.ts`, `countries.ts`, `subjects.ts`, `courses.ts`, `stages.ts` |
+| Consultas com contexto de nível obrigatório                                        | `src/features/education-catalog/catalog.ts`                                                                                 |
+| Pesquisa local (sem acentos, códigos, siglas, sinónimos, uma/duas letras trocadas) | `src/features/education-catalog/search.ts`                                                                                  |
+| Normalização de classes, períodos e disciplinas; duplicados                        | `src/features/education-catalog/normalize.ts`                                                                               |
+| Identificadores curtos                                                             | `src/features/education-catalog/identifiers.ts`                                                                             |
+| Página **Pedagógica → Catálogo global** (`/pedagogica/catalogo`)                   | `CatalogExplorer.tsx`, `src/routes/pedagogica_.catalogo.tsx`                                                                |
+| Esquema                                                                            | `supabase/migrations/20261010120000_global_education_catalog.sql`                                                           |
+| Carga (gerada, idempotente)                                                        | `supabase/seeds/education/catalog.sql` — `npm run siga:catalog-seed`                                                        |
+| Testes                                                                             | `tests/education-catalog/*`, `tests/sql/education-catalog.mjs` (PGlite)                                                     |
 
 ### Camadas
 
@@ -34,12 +34,12 @@ identificadores, pesquisa e página de consulta.
 
 Nada aqui é estimado; é o que `catalogCoverage()` devolve e a página mostra.
 
-| País | Etapas | Classes/anos | Etapas com plano | Disciplinas nos planos | Cursos | Estado |
-|---|---|---|---|---|---|---|
-| Angola | 6 | 22 | 4 | 46 | 16 | Em revisão |
-| Moçambique | 6 | 16 | 0 | 0 | 0 | Em revisão |
-| Portugal | 8 | 20 | 4 | 29 | 19 | Em revisão |
-| Brasil, Cabo Verde, Guiné-Bissau, São Tomé e Príncipe, Timor-Leste | 0 | — | — | — | — | Por carregar |
+| País                                                               | Etapas | Classes/anos | Etapas com plano | Disciplinas nos planos | Cursos | Estado       |
+| ------------------------------------------------------------------ | ------ | ------------ | ---------------- | ---------------------- | ------ | ------------ |
+| Angola                                                             | 6      | 22           | 4                | 46                     | 16     | Em revisão   |
+| Moçambique                                                         | 6      | 16           | 0                | 0                      | 0      | Em revisão   |
+| Portugal                                                           | 8      | 20           | 4                | 29                     | 19     | Em revisão   |
+| Brasil, Cabo Verde, Guiné-Bissau, São Tomé e Príncipe, Timor-Leste | 0      | —            | —                | —                      | —      | Por carregar |
 
 - **Oficial verificado**: só as classificações da UNESCO e os códigos ISO.
 - **Em revisão**: os planos nacionais. Foram escritos a partir da lei e dos planos conhecidos
@@ -101,6 +101,7 @@ cliente do utilizador (RLS), não o privilegiado.
 `ALTER TABLE`, sem chave estrangeira — o catálogo vive no código; formato verificado por
 `CHECK`) diz de que disciplina do catálogo se trata, sem mudar o nome nem o código. Em
 **Rever disciplinas → Ligação ao catálogo**:
+
 - as reconhecidas pelo nome exacto (nome, nome local, sinónimo; nunca siglas soltas nem
   letras trocadas) ligam-se de uma vez;
 - as próprias da escola podem ligar-se à mão («Mat. Aplicada» → Matemática) ou ficar como
@@ -131,10 +132,20 @@ da membership, só o que a revisão (recalculada no servidor) sugere ou um códi
 catálogo conhece, nunca por cima de uma ligação; Administrador/Secretaria, 2FA, auditoria
 (`academic.program.linked_to_catalog`).
 
+### Adopção pelas escolas (ADMIN)
+
+ADMIN → Catálogos globais → **Adopção pelas escolas** (`GET
+/api/saas/education-catalog/adoption`, só administradores da plataforma; contagem em
+`adoption.ts`, leitura em `platform-ops.ts`): por escola e no total, disciplinas e cursos
+ligados ao catálogo, por ligar com o nome já reconhecido, e próprios da escola. Só lê; a
+ligação faz-se em cada escola. Antes da migração 20261012120000 uma sonda de uma linha
+deteta a falta da coluna e a página diz que a ligação ainda não está activa.
+
 ## Criar disciplina com o catálogo
 
 Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
 (com o nome do país) enquanto se escreve, e por baixo aparece, antes de gravar:
+
 - «A escola já tem «Matemática» (MAT), que é a mesma disciplina» — quando o catálogo
   reconhece o nome escrito como uma disciplina que a escola já tem (grafia, sinónimo);
 - o nome do catálogo, se o escrito é diferente;
@@ -147,6 +158,7 @@ Não bloqueia (a escola pode querer «Matemática» e «Matemática A»). Lógic
 ## Documentos: o nome à data da emissão
 
 O que existe:
+
 - **Pautas:** guardam o nome da disciplina nas linhas (`grade_sheet_rows.subject_breakdown`)
   e têm versões arquivadas (`grade_sheet_versions.snapshot`).
 - **Histórico académico:** grava `subject_results` com o nome da altura.
@@ -180,7 +192,7 @@ novo.
   (`is_aal2`) e `academic.subjects.manage`; o servidor exige ainda Administrador/Secretaria e
   só aceita um grupo que a revisão reconhece como a mesma disciplina. Auditado
   (`academic.subject.merged`, com o que mudou).
-- Até a migração ser aplicada, o botão responde «falta aplicar a migração 20261010150000…»
+- A migração está aplicada (2026-10-10). Sem ela, o botão respondia «falta aplicar a migração 20261010150000…»
   (e a função está em `FUNCOES_ESPERA_MIGRACAO`).
 
 ## Importação de dados
@@ -216,12 +228,12 @@ novo.
 SIGA, para ninguém manter um catálogo próprio. Pública (só dados de referência), calculada
 em memória, CORS para WEB e ADMIN; o Mobile V4 chama-a na mesma origem.
 
-| Pedido | Devolve |
-|---|---|
-| `type=subjects&stage=AO-ESG2[&course=SEC-CFB][&grade=10][&q=mat]` | disciplinas do nível, as do plano primeiro (`inPlan`: `core`/`optional`/`null`) |
-| `type=subjects&isced=6&track=higher[&country=PT][&q=…]` | disciplinas do nível ISCED e via |
-| `type=courses[&country=AO][&stage=PT-SEC][&kind=bachelor][&q=enf]` | cursos |
-| `type=stages&country=AO` | etapas, classes com rótulo, períodos, escala, cursos, se há plano |
+| Pedido                                                             | Devolve                                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `type=subjects&stage=AO-ESG2[&course=SEC-CFB][&grade=10][&q=mat]`  | disciplinas do nível, as do plano primeiro (`inPlan`: `core`/`optional`/`null`) |
+| `type=subjects&isced=6&track=higher[&country=PT][&q=…]`            | disciplinas do nível ISCED e via                                                |
+| `type=courses[&country=AO][&stage=PT-SEC][&kind=bachelor][&q=enf]` | cursos                                                                          |
+| `type=stages&country=AO`                                           | etapas, classes com rótulo, períodos, escala, cursos, se há plano               |
 
 `limit` 1–50 (20 por omissão). Disciplinas sem nível → 400 com a explicação; etapa, curso
 ou classe que não existem → 400. Cada resposta leva `version` do catálogo e, por registo, o
@@ -244,6 +256,26 @@ não aparece no primário; Termodinâmica só no superior; «Estudo do Meio» n�
 superior. `validateSubjectContext()` devolve o motivo («Física não é uma disciplina de
 «Ensino Primário».»). Curso ou classe que não pertencem à etapa são recusados.
 
+### Contexto de nível por área (2026-10-10)
+
+Cada área de formação (Saúde, Informática, Gestão, Engenharia, Construção, Agricultura,
+Direito, Educação, Artes, Turismo, Comunicação, Transportes, Ambiente) tem a sua regra em
+`SUBJECT_AREA_LEVELS` (`data/subjects.ts`): **nenhuma começa antes do ISCED 3**, e a via
+geral só existe para Artes (Desenho, História da Arte) e Ambiente (Ecologia).
+
+- `areasForContext(ctx)` — as áreas que existem no nível escolhido, com quantas disciplinas
+  cada uma tem nele. O primário e o I ciclo não têm nenhuma.
+- `subjectsForContext(ctx, { area })` e `searchSubjects(q, ctx, limit, area)` — só a área,
+  e só dentro do nível. Uma área fora do nível é recusada com o motivo («A área Saúde não
+  existe em «Ensino Primário»: começa no nível ISCED 3 (técnico-profissional, ensino
+  superior).»); `validateAreaContext()` devolve-o sem lançar.
+- API: `type=areas&stage=AO-ETP` e `type=subjects&stage=AO-ETP&area=saude` (400 com o
+  motivo quando a área não existe no nível).
+- Página: no modo «Disciplinas», chips com as áreas do nível; no primário aparece a
+  explicação em vez dos chips.
+- Teste `tests/education-catalog/area-level-context.test.ts`: toda a disciplina com área
+  cabe na regra da área, nenhuma etapa ISCED 0–2 sugere disciplinas de especialidade.
+
 ## Pesquisa
 
 Corre sobre os dados empacotados — funciona sem rede, sem base e sem IA. Com ~170 registos
@@ -256,13 +288,13 @@ sobem; nomes locais contam (`Português` em Portugal).
 
 ## Identificadores curtos
 
-| Entidade | Formato | Emitido por |
-|---|---|---|
-| Aluno | `EST-000123` (CHECK na base) e código público de 7 dígitos `0000123` | `private.register_student()` |
-| Professor | `DOC-000123` (já existia) | ao criar o professor: o seguinte ao **maior** `DOC-n` (`insertWithSequentialCode`) |
-| Documento | `<PREFIXO do tipo>-000123` (`FT`, `RC`, … `OT`) | `private.next_document_number()` (já existia) |
-| Sala (sugestão no formulário) | continua o padrão da escola (`S01…S07` → `S08`; `LAB-2` → `LAB-3`); sem padrão, `S-001` | `suggestNextCode` |
-| Funcionário, turma, curso, disciplina, matrícula | `F-0012`, `T-001`, `C-001`, `D-001`, `M-000123` | `private.next_entity_identifier()` (migração por aplicar; ainda não ligado) |
+| Entidade                                         | Formato                                                                                 | Emitido por                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Aluno                                            | `EST-000123` (CHECK na base) e código público de 7 dígitos `0000123`                    | `private.register_student()`                                                       |
+| Professor                                        | `DOC-000123` (já existia)                                                               | ao criar o professor: o seguinte ao **maior** `DOC-n` (`insertWithSequentialCode`) |
+| Documento                                        | `<PREFIXO do tipo>-000123` (`FT`, `RC`, … `OT`)                                         | `private.next_document_number()` (já existia)                                      |
+| Sala (sugestão no formulário)                    | continua o padrão da escola (`S01…S07` → `S08`; `LAB-2` → `LAB-3`); sem padrão, `S-001` | `suggestNextCode`                                                                  |
+| Funcionário, turma, curso, disciplina, matrícula | `F-0012`, `T-001`, `C-001`, `D-001`, `M-000123`                                         | `private.next_entity_identifier()` (migração por aplicar; ainda não ligado)        |
 
 **Corrigido (2026-10-10):** o número automático do professor era «contagem + 1». Depois de
 apagar um professor, ou com um número escrito à mão, repetia um número existente e a
@@ -273,14 +305,25 @@ maior existente e, se outro pedido gravou o mesmo número ao mesmo tempo, tenta 
 UUID continua a ser a chave primária. Os códigos não são credenciais e não vão em URLs
 públicas de dados pessoais.
 
-## Aplicar (dono, SQL Editor) — não aplicado
+## Aplicado na produção (2026-10-10)
 
-1. `supabase/migrations/20261010120000_global_education_catalog.sql` (idempotente; tabelas
-   novas, nenhuma alteração a tabelas existentes).
-2. `supabase/seeds/education/catalog.sql` (idempotente).
-3. `supabase/migrations/20261010150000_merge_school_subjects.sql` (só cria a função).
-4. Recapturar o retrato (`npm run siga:db-snapshot`) e tirar `merge_school_subjects` de
-   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`).
+1. `20261010120000_global_education_catalog.sql` e `20261010150000_merge_school_subjects.sql`
+   — no histórico da produção com estes números. Confirmado: as 9 tabelas com RLS forçada,
+   `anon` sem acesso, `authenticated` só com SELECT, `identifier_sequences` só para o
+   servidor, `merge_school_subjects` SECURITY DEFINER com EXECUTE para `authenticated`.
+2. `supabase/seeds/education/catalog.sql` — carregada por partes (o plano curricular numa
+   forma compacta equivalente, provada em PGlite contra o ficheiro). Verificação: as
+   impressões md5 das 8 tabelas (ordenadas com `COLLATE "C"`) são iguais às do ficheiro
+   carregado em PGlite — 9 fontes, 9 níveis, 41 áreas, 8 países, 115 disciplinas, 54
+   cursos, 20 etapas, 614 entradas de plano.
+3. **Falta (dono, com o CLI ligado):** recapturar o retrato (`npm run siga:db-snapshot`) e
+   os tipos (`npm run siga:gen-types`), e tirar `merge_school_subjects` de
+   `FUNCOES_ESPERA_MIGRACAO` (`tests/security/espera-migracao.ts`) — o teste
+   `colunas-inexistentes` obriga a isso assim que o retrato mostrar a função. Não se fez
+   aqui porque o retrato só se gera com o CLI e não se escreve à mão.
+
+Se a carga mudar (`npm run siga:catalog-seed`), voltar a correr o ficheiro inteiro: é
+idempotente (`ON CONFLICT … DO UPDATE`).
 
 Ensaio local: `SIGA_SQL_TEST_MODULE_PATH=<…/pglite/dist/index.js> node tests/sql/education-catalog.mjs`
 — migração e carga duas vezes, contagens iguais, chaves estrangeiras, estados, anon sem

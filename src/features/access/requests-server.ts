@@ -10,6 +10,7 @@ import { isMissingTable as isMissingDatabaseTable } from "@/integrations/supabas
  * Nunca cria matrícula, contrato ou cadastro novo. Nunca devolve ao requerente
  * dados do cadastro encontrado. Toda a decisão fica em `audit_logs`.
  */
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import type { Json, TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -177,10 +178,13 @@ const REVIEWER_ROLE_CODES = ["owner", "admin", "administrador", "secretary", "se
  * o pedido já está gravado e aparece em Acessos na mesma.
  */
 async function notifyReviewers(
-  db: Db,
+  client: Db,
   schoolId: string,
   input: { title: string; body: string; requestId: string },
 ): Promise<number> {
+  // Por páginas e com os `.in(...)` em lotes: com centenas de contas, a lista de ids
+  // passava o tamanho do URL e ninguém era avisado do pedido.
+  const db = pagedReadClient(client);
   try {
     // Três leituras simples: entre member_roles e roles/school_memberships há
     // duas chaves estrangeiras cada, e um embed seria ambíguo (PGRST201).

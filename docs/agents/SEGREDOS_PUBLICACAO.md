@@ -1,6 +1,14 @@
 # Segredos de publicação — o que falta criar no GitHub
 
-Levantado a 2026-10-04 pela API do GitHub. **Estado: não há nada configurado.**
+**Nota de 21/10/2026:** o levantamento abaixo é histórico, de 04/10. As execuções
+recentes passaram a verificação de existência dos segredos e falharam com token
+Cloudflare inválido (`10000` / `9109`). Não interpretar as contagens antigas como
+estado actual nem substituir segredos que não foram diagnosticados. A ligação
+GitHub desta sessão não permite listar/gerir os segredos do ambiente (HTTP 403).
+O ambiente usado pelo workflow é **production**. Ver a
+[preparação da consolidação](../releases/2026-10-21/README.md).
+
+Levantado a 2026-10-04 pela API do GitHub. **Estado observado nessa data: nada configurado.**
 
 ```
 repositório → secrets: 0   variables: 0
@@ -16,10 +24,10 @@ nunca publicou nada e que os jobs de E2E, Lighthouse e alerta aparecem a
 O job `deploy` do `deploy-production.yml` declara `environment: production`, por
 isso os segredos têm de ir ao **ambiente**, não só ao repositório:
 
-> Settings → Environments → **production** → Environment secrets → *Add secret*
+> Settings → Environments → **production** → Environment secrets → _Add secret_
 
-As `vars` (configuração que não é segredo) vão no mesmo ecrã, em *Environment
-variables*.
+As `vars` (configuração que não é segredo) vão no mesmo ecrã, em _Environment
+variables_.
 
 ## 1. Os três que travam a publicação
 
@@ -27,11 +35,11 @@ O workflow tem um passo de pré-voo (linhas 63–77) que falha em segundos a diz
 o nome do que falta. Verifica cinco nomes, mas dois têm valor por omissão no
 próprio workflow, por serem públicos. Sem estes três, nada chega à Cloudflare:
 
-| Segredo | Onde se obtém |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → *Create Token*. Precisa de **Edit Cloudflare Workers** e, para as Pages, **Account → Cloudflare Pages → Edit**. |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages → barra lateral direita, *Account ID*. Não é propriamente secreto — também serve como `vars.CLOUDFLARE_ACCOUNT_ID`. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → *service_role*. O workflow aceita `SUPABASE_SECRET_KEY` no lugar dela. |
+| Segredo                     | Onde se obtém                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`      | Cloudflare → My Profile → API Tokens → _Create Token_. Precisa de **Edit Cloudflare Workers** e, para as Pages, **Account → Cloudflare Pages → Edit**. |
+| `CLOUDFLARE_ACCOUNT_ID`     | Cloudflare → Workers & Pages → barra lateral direita, _Account ID_. Não é propriamente secreto — também serve como `vars.CLOUDFLARE_ACCOUNT_ID`.       |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → _service_role_. O workflow aceita `SUPABASE_SECRET_KEY` no lugar dela.                                             |
 
 > **Rodar a chave de serviço antes de a colar.** A `service_role` do projecto
 > foi exposta num chat a 2026-10-04 (é o segundo caso deste padrão). Gerar uma
@@ -107,7 +115,7 @@ painel da Cloudflare mantém-se:
 
 1. Rodar a `service_role` no Supabase.
 2. Criar os três do ponto 1 no ambiente `production`.
-3. Correr o `deploy-production.yml` à mão (*Run workflow*) e confirmar **na
+3. Correr o `deploy-production.yml` à mão (_Run workflow_) e confirmar **na
    Cloudflare** qual o commit que ficou em cada uma das quatro apps — o código
    de saída do `deploy:all` engana, já falhou a meio sem o dizer.
 4. Depois disso, acrescentar os do ponto 2 conforme as funcionalidades forem

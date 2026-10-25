@@ -15,10 +15,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  fetchCatalogAdoption,
   fetchEducationCatalog,
+  type CatalogAdoption,
+  type CatalogAdoptionCounts,
   type CatalogVerificationStatus,
   type EducationCatalogOverview,
 } from "@/lib/saas-api"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 /**
  * Inteligência Educacional → Catálogos globais.
@@ -48,6 +52,134 @@ const STATUS_LABEL: Record<CatalogVerificationStatus, string> = {
 
 function StatusBadge({ status, label }: { status: CatalogVerificationStatus; label?: string }) {
   return <Badge variant={STATUS_VARIANT[status]}>{label ?? STATUS_LABEL[status]}</Badge>
+}
+
+async function accessToken(): Promise<string | undefined> {
+  if (!isSupabaseConfigured()) return undefined
+  const supabase = createClient()
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token
+}
+
+function percent(part: number, total: number) {
+  return total ? `${Math.round((part / total) * 100)}%` : "—"
+}
+
+function AdoptionCell({ counts }: { counts: CatalogAdoptionCounts }) {
+  if (!counts.total) return <span className="text-muted-foreground">—</span>
+  return (
+    <span className="tabular-nums">
+      {counts.linked}/{counts.total}
+      {counts.recognized ? (
+        <span className="text-muted-foreground"> · {counts.recognized} por ligar</span>
+      ) : null}
+    </span>
+  )
+}
+
+/**
+ * Adopção pelas escolas: quantas disciplinas e cursos estão ligados ao
+ * catálogo, quantos o nome já reconhece (por ligar) e quantos são próprios.
+ * Só lê. A ligação faz-se em cada escola (Pedagógica → Estrutura).
+ */
+function AdoptionSection() {
+  const [adoption, setAdoption] = useState<CatalogAdoption | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const result = await fetchCatalogAdoption(await accessToken())
+      if (cancelled) return
+      if (result.ok && result.adoption) setAdoption(result.adoption)
+      else setError(result.error || "Não foi possível carregar a adopção do catálogo.")
+      setLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Adopção pelas escolas</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm">
+        {loading ? <p className="text-muted-foreground">A carregar…</p> : null}
+        {error ? (
+          <p className="text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
+        {adoption ? (
+          <>
+            {!adoption.linkAvailable ? (
+              <p className="text-muted-foreground">
+                A ligação ao catálogo fica activa depois de aplicada a migração
+                20261012120000_subjects_catalog_link.sql. Até lá conta-se só o que o nome já
+                reconhece.
+              </p>
+            ) : null}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              {(
+                [
+                  ["Disciplinas ligadas", adoption.totals.subjects.linked, adoption.totals.subjects.total],
+                  ["Disciplinas por ligar (nome reconhecido)", adoption.totals.subjects.recognized, adoption.totals.subjects.total],
+                  ["Cursos ligados", adoption.totals.courses.linked, adoption.totals.courses.total],
+                  ["Cursos por ligar (nome reconhecido)", adoption.totals.courses.recognized, adoption.totals.courses.total],
+                ] as const
+              ).map(([label, value, total]) => (
+                <div key={label} className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-xl font-bold tabular-nums">
+                    {value}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {" "}
+                      / {total} · {percent(value, total)}
+                    </span>
+                  </p>
+                </div>
+              ))}
+            </div>
+            {adoption.schools.length ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Escola</TableHead>
+                      <TableHead>Disciplinas ligadas</TableHead>
+                      <TableHead>Cursos ligados</TableHead>
+                      <TableHead className="text-right">Próprias da escola</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {adoption.schools.map((s) => (
+                      <TableRow key={s.schoolId}>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell>
+                          <AdoptionCell counts={s.subjects} />
+                        </TableCell>
+                        <TableCell>
+                          <AdoptionCell counts={s.courses} />
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {s.subjects.own + s.courses.own}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Nenhuma escola com disciplinas ou cursos.</p>
+            )}
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function EducationCatalogPage() {
@@ -123,6 +255,8 @@ export default function EducationCatalogPage() {
               </Card>
             ))}
           </div>
+
+          <AdoptionSection />
 
           <Card>
             <CardHeader>

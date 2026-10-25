@@ -1,5 +1,6 @@
 import { allSchoolRows } from "./paged-rows";
 import type { TablesUpdate } from "@/integrations/supabase/types";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -284,13 +285,18 @@ export const getAlumniOverview = createServerFn({ method: "GET" })
         .eq("school_id", membership.schoolId)
         .eq("status", "published")
         .gte("starts_at", new Date().toISOString()),
-      allSchoolRows(
-        db,
-        "alumni_profiles",
-        "employment_status, open_to_opportunities, verified_at, graduation_year, profile_completion, province",
-        membership.schoolId,
-      ),
-      allSchoolRows(db, "alumni_contributions", "amount, currency, hours", membership.schoolId),
+      // Todas as linhas: acima de 1000 perfis, a taxa de emprego e o total de
+      // contribuições saíam de uma parte só.
+      pagedReadClient(db)
+        .from("alumni_profiles")
+        .select(
+          "employment_status, open_to_opportunities, verified_at, graduation_year, profile_completion, province",
+        )
+        .eq("school_id", membership.schoolId),
+      pagedReadClient(db)
+        .from("alumni_contributions")
+        .select("amount, currency, hours")
+        .eq("school_id", membership.schoolId),
     ]);
 
     const rows = profiles ?? [];
@@ -336,7 +342,10 @@ export const bootstrapGraduatedStudents = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
     const membership = await requireSgaWriterForWrite("pessoas", context.userId);
-    const db = await loadSgaAdminClient();
+    // Todos os concluídos (por páginas) e os perfis já criados em lotes de ids: cortada
+    // nas 1000 linhas, ou com a lista de ids longa demais para o URL, a leitura dos
+    // existentes falhava em silêncio e criava perfis outra vez.
+    const db = pagedReadClient(await loadSgaAdminClient());
     const { data: graduated, error } = await db
       .from("students")
       .select("id, person_id")
@@ -346,11 +355,14 @@ export const bootstrapGraduatedStudents = createServerFn({ method: "POST" })
     if (!graduated?.length) return { created: 0 };
 
     const ids = graduated.map((row) => row.id);
-    const { data: existing } = await db
+    const { data: existing, error: existingError } = await db
       .from("alumni_profiles")
       .select("student_id")
       .eq("school_id", membership.schoolId)
       .in("student_id", ids);
+    if (existingError) {
+      throw publicDatabaseError(existingError, "Não foi possível ler os Alumni existentes.");
+    }
     const existingIds = new Set((existing ?? []).map((row) => row.student_id));
     const missing = graduated.filter((row) => !existingIds.has(row.id));
     if (!missing.length) return { created: 0 };
@@ -686,6 +698,16 @@ export const registerAlumniForEvent = createServerFn({ method: "POST" })
     const membership = await requireSgaWriterForWrite("pessoas", context.userId);
     const db = await loadSgaAdminClient();
     await assertAlumniInSchool(db, membership.schoolId, data.alumniId);
+    // O evento também tem de ser desta escola: a chave estrangeira é só pelo id, e um
+    // id de outra escola deixava o título e a data desse evento na ficha do alumni.
+    const { data: event, error: eventError } = await db
+      .from("alumni_events")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("id", data.eventId)
+      .maybeSingle();
+    if (eventError) throw publicDatabaseError(eventError, "Não foi possível validar o evento.");
+    if (!event) throw new Error("Evento não encontrado nesta escola.");
     const { error } = await db.from("alumni_event_registrations").upsert(
       {
         school_id: membership.schoolId,

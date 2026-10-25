@@ -1,0 +1,92 @@
+[
+  {
+    "test": "tests/sql/announcements-audience.mjs",
+    "exit_code": 0,
+    "seconds": 17.68,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-announcements-audience.log"
+  },
+  {
+    "test": "tests/sql/annual-sheet-terms.mjs",
+    "exit_code": 0,
+    "seconds": 10.14,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-annual-sheet-terms.log"
+  },
+  {
+    "test": "tests/sql/assessment-closed-term.mjs",
+    "exit_code": 0,
+    "seconds": 11.22,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-assessment-closed-term.log"
+  },
+  {
+    "test": "tests/sql/audit-transactions.mjs",
+    "exit_code": 0,
+    "seconds": 15.89,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-audit-transactions.log"
+  },
+  {
+    "test": "tests/sql/chat-integrity.mjs",
+    "exit_code": 0,
+    "seconds": 15.75,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-chat-integrity.log"
+  },
+  {
+    "test": "tests/sql/direct-writes-mfa.mjs",
+    "exit_code": 0,
+    "seconds": 15.29,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-direct-writes-mfa.log"
+  },
+  {
+    "test": "tests/sql/enrollment-class-change.mjs",
+    "exit_code": 0,
+    "seconds": 15.46,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-enrollment-class-change.log"
+  },
+  {
+    "test": "tests/sql/fee-items-grade-level.mjs",
+    "exit_code": 0,
+    "seconds": 17.24,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-fee-items-grade-level.log"
+  },
+  {
+    "test": "tests/sql/gateway-settlement.mjs",
+    "exit_code": 0,
+    "seconds": 16.42,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-gateway-settlement.log"
+  },
+  {
+    "test": "tests/sql/higher-ed-statuses.mjs",
+    "exit_code": 0,
+    "seconds": 25.6,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-higher-ed-statuses.log"
+  },
+  {
+    "test": "tests/sql/late-fee.mjs",
+    "exit_code": 0,
+    "seconds": 113.56,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-late-fee.log"
+  },
+  {
+    "test": "tests/sql/payment-destination.mjs",
+    "exit_code": 0,
+    "seconds": 19.2,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-payment-destination.log"
+  },
+  {
+    "test": "tests/sql/payroll-confirmation.mjs",
+    "exit_code": 0,
+    "seconds": 22.45,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-payroll-confirmation.log"
+  },
+  {
+    "test": "tests/sql/realtime-package.mjs",
+    "exit_code": 0,
+    "seconds": 19.8,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-realtime-package.log"
+  },
+  {
+    "test": "tests/sql/school-row-role-policies.mjs",
+    "exit_code": 0,
+    "seconds": 17.76,
+    "log": "docs/auditoria/2026-10-07/evidencias/sql-school-row-role-policies.log"
+  }
+]

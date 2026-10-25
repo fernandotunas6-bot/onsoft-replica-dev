@@ -31,9 +31,16 @@ export function invoiceNetTotal(invoice: {
 }
 
 /**
- * Quanto os recibos válidos (não anulados) já pagaram de cada fatura. Estava
- * copiado em seis sítios (tesouraria, painel, ficha da pessoa, lista de alunos).
+ * O que falta pagar, em cêntimos como `invoiceStatusFromPaid`. A subtracção em vírgula
+ * flutuante deixava resíduos (`1000.2 - (500.1 + 500.1)` não dá 0): uma fatura paga
+ * contava como «em aberto» e o aluno aparecia com dívida vencida.
  */
+export function invoiceOpenAmount(total: number, paid: number) {
+  const cents = (v: number) => Math.round(Number(v || 0) * 100);
+  return Math.max(cents(total) - cents(paid), 0) / 100;
+}
+
+/** Soma dos recibos por fatura, sem os estornados. */
 export function sumPaidByInvoice(
   receipts:
     ReadonlyArray<{ invoice_id: unknown; amount: unknown; status?: unknown }> | null | undefined,

@@ -1,6 +1,6 @@
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -27,6 +27,7 @@ import {
 import { updateSettingsDomainValue } from "@/features/school/settings-domains";
 import { buildPersonInsert, isMissingPeopleGeography } from "@/features/people/person-fields";
 import { syncBiDocumentFromNif } from "@/features/people/bi-document";
+import { findExistingGuardian } from "@/features/people/guardian-lookup";
 import {
   publicInstalledProviderIds,
   publicSchoolEmail,
@@ -43,8 +44,11 @@ import {
   updateEnrollmentFormInputSchema,
 } from "./schemas";
 import { schoolTodayIso } from "@/lib/school-date";
+import { addStudentToWaitlist } from "./waitlist";
+import { isClassFullError } from "./waitlist-rules";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { getTenantAccessBlock } from "@/features/saas/tenant-access";
+import { publishedAdmissionFee, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 
 function slugFromSchoolName(name: string) {
   const base = name
@@ -173,7 +177,7 @@ async function schoolAcceptsPublicEnrollment(
   if (!school.tenant_id) return true;
   const { data: tenant, error: tenantError } = await db
     .from("tenants")
-    .select("status, subscription_status, trial_ends_at")
+    .select("status, subscription_status, trial_ends_at, billing_exempt")
     .eq("id", school.tenant_id)
     .maybeSingle();
   if (tenantError) throw publicDatabaseError(tenantError, "Não foi possível validar a escola.");
@@ -238,8 +242,24 @@ export const getPublicEnrollmentForm = createServerFn({ method: "GET" })
       .in("kind", ["undergraduate", "postgraduate"])
       .eq("is_active", true)
       .order("name");
+    // The fee is informational and comes only from this school's published campaign.
+    // An absent/unavailable website must not make an existing enrollment link unusable.
+    let admissionFeeAmount: number | null = null;
+    try {
+      const settings = await db
+        .from("school_settings")
+        .select("value")
+        .eq("school_id", form.school_id)
+        .eq("domain", WEBSITE_DOMAIN)
+        .maybeSingle();
+      if (!settings.error)
+        admissionFeeAmount = publishedAdmissionFee(settings.data?.value, data.slug);
+    } catch {
+      admissionFeeAmount = null;
+    }
     return {
       ...form,
+      admissionFeeAmount,
       programs: (programRows ?? []).map((row) => ({ id: String(row.id), name: String(row.name) })),
       school_name: schoolName,
       school_phone: publicSchoolPhone(schoolPhone, installedProviders),
@@ -254,7 +274,7 @@ export const submitPublicEnrollment = createServerFn({ method: "POST" })
   .validator((input: unknown) => submitPublicEnrollmentInputSchema.parse(input))
   .handler(async ({ data }) => {
     // Formulário público: sem limite, um script enchia a lista de candidaturas.
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKey = `public_enrollment:${ip}`;
     if (ip !== "unknown" && !isRateLimitBypassed(rateLimitKey)) {
       if (!(await consumeRateLimit([rateLimitKey], PUBLIC_ENROLLMENT_RATE_LIMIT))) {
@@ -424,7 +444,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         .eq("decided_by", context.userId);
     };
     // Pessoas criadas por esta tentativa: se o registo do aluno falhar, saem
-    // (marcadas como apagadas) para a tentativa seguinte não as duplicar.
+    // (apagadas) para a tentativa seguinte não as duplicar.
     const createdPeople: string[] = [];
     const discardCreatedPeople = async () => {
       if (!createdPeople.length) return;
@@ -433,11 +453,27 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
         .delete()
         .eq("school_id", membership.schoolId)
         .in("person_id", createdPeople);
-      await db
+      // Apagadas de vez: marcá-las como apagadas deixava o BI e o e-mail presos nos
+      // índices únicos da escola, e a tentativa seguinte falhava com «Já existe…».
+      const removed = await db
         .from("people")
-        .update({ deleted_at: new Date().toISOString(), updated_by: context.userId })
+        .delete()
         .eq("school_id", membership.schoolId)
         .in("id", createdPeople);
+      if (removed.error) {
+        await db
+          .from("people")
+          .update({
+            deleted_at: new Date().toISOString(),
+            status: "inactive",
+            email: null,
+            phone: null,
+            national_id: null,
+            updated_by: context.userId,
+          })
+          .eq("school_id", membership.schoolId)
+          .in("id", createdPeople);
+      }
     };
 
     let studentId: string | null = null;
@@ -553,17 +589,26 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
             { full_name: guardianName, phone_primary: payload.guardianPhone },
             { schoolId: membership.schoolId, userId: context.userId },
           );
-          const { data: guardianPerson, error: guardianError } = await db
-            .from("people")
-            .insert(guardianPayload)
-            .select("id")
-            .single();
-          // Antes o erro era ignorado e o aluno ficava sem encarregado, sem aviso.
-          if (guardianError) {
-            throw publicDatabaseError(guardianError, "Não foi possível registar o encarregado.");
+          // Irmão de um aluno da escola: o encarregado já tem ficha (mesmo nome e
+          // telefone). Antes criava-se sempre uma segunda.
+          guardianPersonId = await findExistingGuardian(db, {
+            schoolId: membership.schoolId,
+            fullName: guardianName,
+            phone: guardianPayload.phone,
+          });
+          if (!guardianPersonId) {
+            const { data: guardianPerson, error: guardianError } = await db
+              .from("people")
+              .insert(guardianPayload)
+              .select("id")
+              .single();
+            // Antes o erro era ignorado e o aluno ficava sem encarregado, sem aviso.
+            if (guardianError) {
+              throw publicDatabaseError(guardianError, "Não foi possível registar o encarregado.");
+            }
+            guardianPersonId = guardianPerson.id;
+            createdPeople.push(guardianPerson.id);
           }
-          guardianPersonId = guardianPerson.id;
-          createdPeople.push(guardianPerson.id);
         }
 
         // register_student cria o aluno (+ encarregado) numa transação atómica: gera o
@@ -617,6 +662,33 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           classGroupId: classGroup.id,
           enrolledOn: classGroup.enrolledOn,
         });
+        if (!enrolled.ok && isClassFullError(enrolled.error)) {
+          // Turma cheia: o aluno fica criado e entra na lista de espera desta turma,
+          // em vez de um erro — a secretaria coloca-o quando houver vaga.
+          const waitlist = await addStudentToWaitlist(db, {
+            schoolId: membership.schoolId,
+            classGroupId: classGroup.id,
+            studentId,
+            userId: context.userId,
+            note: "Candidatura aceite com a turma cheia",
+          });
+          if (waitlist) {
+            await recordStudentStatusHistory(db, {
+              schoolId: membership.schoolId,
+              studentId,
+              previousStatus: null,
+              newStatus: "applicant",
+              reason: `Candidatura aceite; turma cheia, na lista de espera (posição ${waitlist.position})`,
+              changedBy: context.userId,
+            });
+            return {
+              id: application.id,
+              status: "accepted",
+              studentId,
+              waitlistPosition: waitlist.position,
+            };
+          }
+        }
         if (!enrolled.ok) {
           await recordStudentStatusHistory(db, {
             schoolId: membership.schoolId,

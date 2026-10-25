@@ -38,6 +38,13 @@ export const listAnnouncementsInputSchema = z.object({
 });
 export type ListAnnouncementsInput = z.infer<typeof listAnnouncementsInputSchema>;
 
+/**
+ * Um agendado só é publicado no portal: não há tarefa que o envie por SMS, e-mail ou
+ * WhatsApp à hora marcada, e ficava «Enviado» sem ter saído (auditoria 13, F-36).
+ */
+export const SCHEDULED_CHANNEL_MESSAGE =
+  "O agendamento só publica no portal. Para SMS, e-mail ou WhatsApp, envie no momento.";
+
 export const createAnnouncementInputSchema = z
   .object({
     title: z.string().trim().min(2).max(160),
@@ -55,12 +62,19 @@ export const createAnnouncementInputSchema = z
         message: "Indique a data de agendamento.",
       });
     }
+    if (value.status === "scheduled" && value.channel !== "portal") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["channel"],
+        message: SCHEDULED_CHANNEL_MESSAGE,
+      });
+    }
   });
 export type CreateAnnouncementInput = z.infer<typeof createAnnouncementInputSchema>;
 
 export const updateAnnouncementStatusInputSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
     status: z.enum(announcementStatusOptions),
     scheduledFor: optionalDate,
   })
@@ -76,11 +90,11 @@ export const updateAnnouncementStatusInputSchema = z
 export type UpdateAnnouncementStatusInput = z.infer<typeof updateAnnouncementStatusInputSchema>;
 
 export const updateAnnouncementInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().trim().min(2).max(160),
   body: z.string().trim().min(2).max(4000),
 });
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementInputSchema>;
 
-export const archiveAnnouncementInputSchema = z.object({ id: z.string().uuid() });
+export const archiveAnnouncementInputSchema = z.object({ id: z.string().guid() });
 export type ArchiveAnnouncementInput = z.infer<typeof archiveAnnouncementInputSchema>;

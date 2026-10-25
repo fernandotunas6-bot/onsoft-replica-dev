@@ -1,6 +1,9 @@
 import { requireRecentVerification } from "@/lib/step-up";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
+import { escapeLikePattern } from "@/lib/like-pattern";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
+import { getRequestHost } from "@tanstack/react-start/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -197,7 +200,8 @@ export const listSystemAccounts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     if (!context) throw new Error("Unauthorized");
     const { schoolId } = await requireAdminContext(context);
-    const admin = await loadAdminClient();
+    // Todas as contas (por páginas) e os papéis em lotes de ids.
+    const admin = pagedReadClient(await loadAdminClient());
 
     const { data: memberships, error } = await admin
       .from("school_memberships")
@@ -379,20 +383,39 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
       });
     }
 
-    // Vinculação idempotente com o registo de pessoa (se já existir na escola com este email)
+    // Vinculação com a ficha de pessoa da escola com este e-mail (não impeditiva).
+    // Só liga uma ficha sem conta (antes escrevia por cima da conta que lá estivesse),
+    // compara o e-mail sem maiúsculas (como ensureTeacherHrRecord) e, se essa pessoa
+    // for professor, liga também o registo de professor: os ecrãs procuram o professor
+    // por `teachers.user_id`, e a conta ficava sem as turmas dela.
     try {
-      const { data: existingPerson } = await admin
+      const { data: existingPerson, error: personError } = await admin
         .from("people")
         .select("id")
         .eq("school_id", schoolId)
-        .eq("email", data.email.trim().toLowerCase())
+        .ilike("email", escapeLikePattern(data.email.trim()))
+        .is("user_id", null)
+        .is("deleted_at", null)
         .maybeSingle();
-
+      if (personError) throw personError;
       if (existingPerson?.id) {
-        await admin.from("people").update({ user_id: userId }).eq("id", existingPerson.id);
+        const linked = await admin
+          .from("people")
+          .update({ user_id: userId })
+          .eq("id", existingPerson.id)
+          .eq("school_id", schoolId)
+          .is("user_id", null);
+        if (linked.error) throw linked.error;
+        const teacherLinked = await admin
+          .from("teachers")
+          .update({ user_id: userId })
+          .eq("school_id", schoolId)
+          .eq("person_id", existingPerson.id)
+          .is("user_id", null);
+        if (teacherLinked.error) throw teacherLinked.error;
       }
-    } catch {
-      // Falha não impeditiva na vinculação biográfica
+    } catch (linkError) {
+      reportSigaError("access.invite.person_link_failed", linkError, { school_id: schoolId });
     }
 
     // Entrega do link de acesso por e-mail institucional (best-effort: a conta
@@ -814,6 +837,15 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
     return { email, kind };
   });
 
+/** Endereço do pedido (escola do subdomínio ou domínio próprio). */
+function requestHostname(): string | null {
+  try {
+    return getRequestHost().split(":")[0]?.toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Login por B.I. (ou telefone) e senha, feito no servidor.
  *
@@ -821,17 +853,25 @@ export const sendSystemInviteEmail = createServerFn({ method: "POST" })
  * qualquer pessoa descobria o e-mail de quem tivesse o B.I. Agora o e-mail
  * nunca sai do servidor. Só a sessão volta, e só com a senha certa; um B.I.
  * desconhecido e uma senha errada dão a mesma resposta.
+ *
+ * Também o número de aluno (1260001), quando a escola o permite
+ * (Definições → Segurança): ver `student-number-login.ts`.
  */
 export const signInWithIdentifierFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => signInWithIdentifierInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const ip =
-      (typeof getRequestIP === "function" ? getRequestIP({ xForwardedFor: true }) : null) ??
-      "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKey = `bi_lookup:${ip}`;
     // Limite partilhado por todas as instâncias: por IP e, à parte, por conta
     // (identificador) — quem use muitos IPs não tenta senhas sem fim numa conta.
-    const identifierKey = `bi_login_identifier:${data.identifier.trim().toLowerCase()}`;
+    // O número de aluno repete-se de escola para escola (todas começam no 1260001):
+    // o limite por conta conta-o por endereço, para um aluno não bloquear outro.
+    const { normalizeStudentNumber } = await import("./student-number-login");
+    const studentNumber = normalizeStudentNumber(data.identifier);
+    const host = studentNumber ? requestHostname() : null;
+    const identifierKey = studentNumber
+      ? `bi_login_identifier:${host ?? ""}:${studentNumber}`
+      : `bi_login_identifier:${data.identifier.trim().toLowerCase()}`;
     if (!isRateLimitBypassed(rateLimitKey)) {
       const { consumeRateLimit } = await import("@/lib/shared-rate-limit");
       const ipOk = await consumeRateLimit([rateLimitKey], BI_LOOKUP_RATE_LIMIT);
@@ -842,6 +882,13 @@ export const signInWithIdentifierFn = createServerFn({ method: "POST" })
     }
 
     const { resolveBiOrEmailToUserEmail, passwordGrant } = await import("./bi-login");
+    if (studentNumber) {
+      const { studentNumberLoginForHost } = await import("./student-number-login");
+      const login = await studentNumberLoginForHost(studentNumber, host);
+      if (login && "error" in login) return { ok: false as const, error: login.error };
+      if (login) return passwordGrant(login.email, data.password, fetch, data.captchaToken);
+      // Sem aluno com conta numa escola com a opção ligada: segue como B.I./telefone.
+    }
     const email = await resolveBiOrEmailToUserEmail(data.identifier);
     if (!email.includes("@")) return { ok: false as const, error: "invalid_credentials" as const };
 
@@ -1289,10 +1336,7 @@ export const acceptSchoolInvitation = createServerFn({ method: "POST" })
         .from("people")
         .select("id, email")
         .eq("school_id", schoolId)
-        .ilike(
-          "email",
-          invitedEmail.replace(/[\\%_]/g, (c) => `\\${c}`),
-        )
+        .ilike("email", escapeLikePattern(invitedEmail))
         .is("user_id", null)
         .limit(5);
       const exact = (candidates ?? []).filter(

@@ -39,6 +39,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guia', link: '/guide/' },
+      { text: 'Ensino público', link: '/institucional/ensino-publico' },
       { text: 'SIGA', link: '/siga/navegacao' },
       { text: 'WEB', link: '/web/criar-escola' },
       { text: 'ADMIN', link: '/admin/control-center' },
@@ -57,6 +58,11 @@ export default defineConfig({
     ],
 
     sidebar: {
+      '/institucional/': [
+        { text: 'Propostas institucionais', items: [
+          { text: 'Ensino público angolano', link: '/institucional/ensino-publico' },
+        ] },
+      ],
       '/arquitetura/': [
         {
           text: 'Arquitetura do ecossistema',

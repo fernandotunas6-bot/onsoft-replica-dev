@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { getAppName, getAppUrl, getAuthMagicLinkUrl } from "@/lib/app-config";
 import { renderSignupConfirmationEmail } from "./email-templates/signup-confirm.html";
 import { resolveSystemSender, sendResendEmail } from "@/features/integrations/resend-client";
@@ -42,7 +42,7 @@ export const requestSignupFn = createServerFn({ method: "POST" })
     if (!apiKey) return { handled: false, reason: "resend_not_configured" };
 
     const email = data.email.toLowerCase().trim();
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const keys = [`signup:ip:${ip}`, `signup:email:${email}`];
     if (!isRateLimitBypassed(...keys) && !(await consumeRateLimit(keys, SIGNUP_RATE_LIMIT))) {
       return { handled: true, message: NEUTRAL_MESSAGE };

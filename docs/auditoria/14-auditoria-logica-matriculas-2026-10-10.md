@@ -126,132 +126,522 @@ saiu com a função e a garantia passou para os testes de comportamento.
 
 Resultados finais: secção «Verificação final» do PR.
 
-## 8. Segunda passagem (pedido do dono, 2026-10-10): sem matrícula e ciclos de matrícula
+## 8. Segunda passagem — Pessoas, Perfil, Horários e Salas (2026-10-10)
 
-**Filtro «Sem matrícula»** em `/alunos`: alunos da escola sem matrícula pendente ou activa
-(transferidos e concluídos não entram). `searchStudents` devolve `has_current_enrollment`, e a
-turma mostrada passa a ser só a da matrícula corrente (antes podia ser a de uma matrícula
-anulada). A acção «Turma» aparece para todos estes alunos (não só para candidatos), salvo
-suspensos e trancados.
+Continuação no mesmo dia, sobre o commit do núcleo (PR #118). Mesmo método: código de ponta a
+ponta e **só leituras** na produção (corpos de funções com `pg_get_functiondef`, gatilhos,
+restrições e contagens agregadas). Nada escrito na produção.
 
-**Ciclos de matrícula** (`src/features/students/enrollment-cycle.ts`, domínio de definições
-`enrollment`, editor em Definições › Matrícula):
+### 8.1 O PR #118 estava vermelho
 
-- Matrícula **nova** só dentro de um ciclo e **nunca durante um período de aulas** (os `terms` do
-  ano activo). Sem ciclos definidos, fica aberta só fora dos períodos de aulas. Um ciclo que
-  coincida com um período de aulas é recusado ao gravar.
-- **Excepção:** a Administração matricula fora do ciclo indicando o motivo; cada matrícula assim
-  fica em `audit_logs` (`students.enrollment_outside_cycle`). A Secretaria é recusada com a razão
-  e o próximo ciclo.
-- Vale para Nova matrícula com turma, colocar em turma, aceitar candidatura com turma, atribuir
-  turma em lote e importações (a Administração pode importar fora do ciclo, com registo).
-  **Não** vale para mudar de turma dentro do ano, confirmar matrícula pendente, registar o aluno
-  sem turma, nem receber candidaturas no formulário público.
-- Matrícula feita antes de o ano começar grava a data de início do ano (resolve em parte A2:
-  continua a exigir o ano já activo).
+O passo «Estilo, acessibilidade e build» falhava no ensaio `tests/sql/late-fee.mjs`: o núcleo
+pôs `settings-domains.ts` a importar `server-error.ts`, e a cadeia (`sql-doc-hint` →
+`ecosystem-urls`) lia `import.meta.env.DEV` sem guarda, o que rebenta em Node sem Vite.
+`ecosystem-urls.ts` lê agora `import.meta.env?.…`, como `platform-domain.ts`. Na mesma
+leitura, `readSettingsDomainRow` tratava **qualquer** erro `PGRST` como «tabela em falta» e
+devolvia `null` — quem grava com versão passava então a inserir uma linha em vez de recusar.
+Usa `isMissingTable`.
 
-**Efeito imediato na produção:** no Colégio do Huambo os períodos de aulas cobrem o ano inteiro
-(01/09/2026 a 31/07/2027), por isso desde já só a Administração faz matrículas novas, com motivo,
-até a escola definir ciclos fora das aulas (ou os períodos deixarem intervalos). Só 2 escolas têm
-períodos definidos; as restantes ficam abertas.
+### 8.2 Achados corrigidos
 
-**Na base (migração escrita e ensaiada, por aplicar):** `20261012100000_enrollment_cycle_guard.sql`
-— gatilho `BEFORE INSERT` em `enrollments` com a mesma regra, para quem chamar `enroll_student`
-directamente pela API. A Administração passa (o motivo exige-o o servidor); escritas sem
-utilizador não são afectadas; mudar de turma não passa pelo gatilho. Ensaio
-`tests/sql/enrollment-cycle-guard.mjs`. **Dono:** aplicar no SQL Editor
-`docs/agents/SIGA_aplicar_ciclos_matricula.sql` e recapturar o retrato.
+| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Correcção                                                                                                                                                                                                                                                                                                                 |
+| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | P1   | **Duas turmas sem sala à mesma hora eram recusadas.** `timetable_slots.room` é obrigatória e não aceita texto vazio; sem sala escolhida, o ecrã grava «Sala». Na produção, `create/update_timetable_slot_guarded` e o gatilho `guard_timetable_slot_conflicts` tratam **qualquer** etiqueta como sala real: a segunda aula de outra turma sem sala, à mesma hora, dá «Conflito de horário… sala sobreposta», e o ecrã não mostra conflito nenhum. Quatro sítios, três listas diferentes de marcadores. | Migração `20261010100000_timetable_rooms_one_placeholder_rule.sql` (**por aplicar**, pacote `docs/agents/SIGA_aplicar_auditoria14_2026-10-10.sql`): as duas funções e os dois gatilhos perguntam a `private.timetable_room_is_explicit`, que passa a incluir «s/n». O ecrã usa a mesma lista (`PLACEHOLDER_ROOM_LABELS`). |
+| P1  | P2   | **Número de professor por contagem.** «Novo professor» e a ligação de um login a um professor (duas cópias) davam `DOC-<total+1>`. Com um número em falta — há na produção uma escola com um professor importado noutro formato e saltos na série — a contagem repete um número já usado e a criação falha com «chave duplicada». Hoje ainda não colide; colide ao primeiro salto que calhe.                                                                                                           | `people/teacher-number.ts`: maior número `DOC-NNNNNN` + 1, com nova tentativa se um pedido concorrente ficar com ele. Mensagem própria para `teachers_school_id_employee_number_key`.                                                                                                                                     |
+| P2  | P2   | **«Novo professor» deixava uma pessoa solta** quando a criação do professor falhava (número repetido, por exemplo); a tentativa seguinte criava outra.                                                                                                                                                                                                                                                                                                                                                 | A pessoa criada para esse professor é retirada (`deleted_at`) se o professor não ficar gravado.                                                                                                                                                                                                                           |
+| U1  | P3   | **Perfil:** `updateCurrentProfile` tinha uma segunda tentativa «só com o nome» para bases sem `phone`/`first_name`/`last_name`. As colunas existem na produção. Quando a primeira gravação falhava por outra razão, gravava o nome à parte e podia devolver o telefone como se tivesse ficado guardado; os metadados da conta recebiam o telefone por normalizar.                                                                                                                                      | Uma só gravação, com o erro tal como é; os metadados recebem o telefone normalizado.                                                                                                                                                                                                                                      |
 
-## 9. Terceira passagem: Finanças na lista de alunos
+Mais um, corrigido depois: **S1 (P2) Salas** — «Nova sala» e «Editar sala» apanhavam o erro do
+servidor, mostravam-no e devolviam sucesso ao formulário, que dizia também «guardado» e fechava,
+perdendo o que se escreveu (código de sala repetido, sala em uso ao desactivar, reconfirmação de
+identidade). O erro chega agora ao formulário, que fica aberto. Os outros formulários de Pessoas,
+Alunos e Horários foram verificados: já deixavam o erro passar.
 
-| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                        | Correcção                                                                                      |
-| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| F1  | P2   | A lista de alunos calculava a dívida **sem a multa por atraso**: não pedia `penalty_amount` à base, e o total estava copiado em `academic-status.ts`. A ficha e as Finanças incluem a multa, por isso o mesmo aluno tinha duas dívidas diferentes. Produção: 0 faturas com multa (nenhum número errado hoje). | A lista pede a multa; o total usa `invoiceNetTotal`, a regra única de `invoice-settlement.ts`. |
+Na leitura da ficha do aluno e da página pública de matrícula, mais dois, corrigidos:
 
-| F2 | P2 | **Faturas em atraso falsas.** O painel (`ops.overdueInvoices`) e o sino liam as primeiras 250 (ou 5 000) faturas e recibos da escola, sem ordem. Acima disso, uma fatura paga cujo recibo ficasse fora do corte contava como em atraso, e faturas além do corte não contavam. A conta estava escrita duas vezes. Produção: 38 faturas, ainda sem efeito. | `countOverdueInvoices` (`finance/overdue-invoices.ts`): só faturas por pagar já vencidas, em páginas, e só os recibos delas. |
-| F3 | P3 | «Quanto foi pago de cada fatura» copiado em seis sítios. | `sumPaidByInvoice` (`invoice-settlement.ts`) onde a soma era tudo o que o ciclo fazia. |
+- **C1 (P2) Candidatura pública:** o telefone do candidato e o do encarregado não eram validados
+  no envio (o `.pick` usa o esquema da ficha sem as regras do telefone). Um valor que
+  `people_phone_check` recusa (por exemplo «923000000 / 912000000») só falhava ao **aceitar**
+  a candidatura, que ficava presa, sem a secretaria poder corrigir o número. Agora valida-se no
+  envio com a regra que grava (`normalizeStoredPhone`: Angola ou internacional).
+- **AL1 (P3) Mudar estado do aluno:** a gravação em `audit_logs` estava num `try/catch` vazio, mas
+  o cliente devolve o erro em vez de o lançar: uma falha perdia-se. Passa a ser registada
+  (`reportSigaError`), como na fusão de pessoas.
 
-Corrigido depois (F4): os gráficos do painel (receita por mês, canais) liam até 3 000 faturas e
-recibos sem ordem; passam a ler tudo em páginas (`selectAllPages`). Uma agregação na base seria
-mais leve numa escola muito grande, mas já não há números cortados.
+### 8.3 Achados abertos (pedem decisão)
 
-Verificado e sem mudança: os rótulos de opção em Pedagógica, horário e ficha do professor levam o
-início do id, por isso não confundem opções homónimas (ao contrário de M7).
+| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                                                                       | O que falta                                                                                                                                                                                                                                                                                                                                                             |
+| --- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H2  | P2   | **Mudar o professor numa aula muda-o em todas.** O professor é da disciplina na turma (`class_subjects.teacher_id`): editar uma aula com outro professor actualiza essa linha, e as outras aulas dessa disciplina na turma passam ao novo professor **sem verificar conflitos** nelas (os gatilhos só correm em `timetable_slots`). O novo professor pode ficar em duas turmas à mesma hora. | **Corrigido na migração `20261010100000` (por aplicar):** as duas funções recusam a troca quando o novo professor já tem aula noutra turma à hora de alguma aula dessa disciplina. Ensaio em `tests/sql/timetable-room-placeholders.mjs`.                                                                                                                               |
+| H3  | P3   | A migração `20260925170000_timetable_builder_shifts_versions.sql` (nunca aplicada) reescreve as mesmas funções com outra lista (`'s/n','sala'`). Aplicá-la depois da `20261010100000` voltava a recusar «A definir» e «Sem sala fixa».                                                                                                                                                       | **Corrigido no ficheiro:** as três listas passam a `private.timetable_room_is_explicit`. A decisão de a aplicar continua por tomar.                                                                                                                                                                                                                                     |
+| P3  | P3   | **Três numerações de professor:** a do servidor (acima), a do importador (`DOC-` + 10 caracteres do id da pessoa) e a sequência da RPC `register_teacher` (`private.teacher_number_sequences`, sem linha para nenhuma escola). `register_teacher` exige 2FA e permissão; nenhum ecrã a usa. Se alguém a usar, o primeiro número dela é `DOC-000001`, que já existe.                          | **Decidido pelo dono (acertar e usar):** migração `20261010110000` (por aplicar): `register_teacher` numera acima do maior `DOC-NNNNNN` da escola; «Novo professor» passa a usá-la (exige 2FA). Até a migração ser aplicada, um número repetido devolvido pela RPC faz o servidor numerar como antes. O importador e a ligação de login usam a mesma regra (maior + 1). |
+| P4  | P3   | **Fundir pessoas** são cerca de dez escritas sem transacção (aluno, professor, documentos, cartões, RH, encarregados, papéis, duas fichas). Uma falha a meio deixa a fusão parcial.                                                                                                                                                                                                          | **Decidido pelo dono:** migração `20261010110000` (por aplicar): `private.merge_people`, só para o servidor, numa transacção (ensaio `tests/sql/merge-people.mjs` prova que uma falha no último passo desfaz tudo). Até ser aplicada, o servidor segue os passos de antes (`mergePeopleInSteps`).                                                                       |
+| P5  | P3   | **Aceitar candidatura cria sempre um encarregado novo**, mesmo quando o irmão já tem esse encarregado (mesmo telefone): o encarregado fica com duas fichas, cada uma com um educando.                                                                                                                                                                                                        | **Corrigido:** `people/guardian-lookup.ts` reaproveita a ficha com o mesmo telefone e nome, activa, que já é encarregado na escola (só se houver exactamente uma).                                                                                                                                                                                                      |
+| P6  | P3   | Editar a ficha não apaga a morada: se os quatro campos vierem vazios, a morada fica como estava (o servidor só escreve a morada quando há algum campo).                                                                                                                                                                                                                                      | **Corrigido:** a ficha 360 (que mostra a morada) envia `includesGeography`; os quatro campos gravam-se tal como vêm. A edição rápida da lista, que não mostra a morada, não lhe toca.                                                                                                                                                                                   |
 
-## 10. Quarta passagem: pautas e notas
+**Sem defeito encontrado:** aceitar candidatura com turma deixa o aluno activo (`private.enroll_student` actualiza `applicant` → `active`); a reserva da candidatura contra aceitação dupla; desactivar uma sala em uso é recusado; criar e editar aulas fecha a corrida com `pg_advisory_xact_lock`.
 
-| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Correcção                                                                                                                                                  |
-| --- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| N1  | P2   | **A mesma média com dois valores.** Havia três arredondamentos de notas: o do modelo de avaliação (exacto, sobre o valor decimal) e dois com `+ Number.EPSILON` (pautas impressas e médias de `angola-academic`). Em 1 022 de 40 401 pares de notas davam resultados diferentes: (0,1 + 4,6) / 2 = 2,35 saía 2,4 num e 2,3 nos outros, porque o computador guarda 2,3499999…. Não encontrei casos exactamente no limiar de aprovação (10), mas a nota do ecrã e a da pauta podiam diferir em 0,1. Produção: 1 nota lançada, 0 pautas. | `roundHalfUp` em `angola-academic.ts`, usado pelos três. Teste `tests/academic/grade-rounding-single-rule.test.ts` compara as três vias em todos os pares. |
+### 8.4 Verificação
 
-Aberto (P3): quando falta a prova do trimestre, a média de `angola-academic` mostra a MAC sozinha **Decidido (12/10): manter.**
-(provisória) e a da pauta deixa em branco. É uma diferença de propósito (ecrã provisório vs pauta
-oficial), mas convém o dono confirmar.
+Ensaio novo `tests/sql/timetable-room-placeholders.mjs` (PGlite): com os corpos da produção
+reproduz a recusa da segunda turma sem sala; aplica a migração duas vezes; prova que «Sala»,
+«S/N», «A definir» e «Sem sala fixa» deixam de colidir nos quatro sítios e que uma sala de
+verdade (por nome ou por id) e a própria turma continuam a colidir. `tests/people/teacher-number.test.ts`
+(maior número + 1 com saltos; nova tentativa no número tomado). `tests/security/timetable-overlap-rooms.test.ts`
+compara a lista do ecrã com a da migração nova.
 
-## 11. Quinta passagem: presenças
+### 8.5 Decisões do dono sobre A1, A2 e A3 (2026-10-10)
 
-| #   | Sev. | Achado                                                                                                                                                                                                                                                                                             | Correcção                                                |
-| --- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| P1  | P3   | O histórico de presenças do aluno calculava a taxa com fórmula própria, contando as aulas «não registadas» no total: a taxa saía mais baixa do que a da ficha e da pauta (`computeAttendanceRate` e `siga_recompute_attendance_rates` excluem-nas). Produção: 20 registos, nenhum «não registado». | Usa `computeAttendanceRate` sobre os registos contáveis. |
+- **A3 — 2FA na mudança de turma: feito.** `placeStudentInClass` exige 2FA antes de
+  matricular **ou** mudar de turma; o lote («Atribuir turma») exige-o se houver alguém a
+  matricular, mudar ou confirmar; a importação de matrículas exige-o ao gravar. Sem
+  migração.
+- **A2 — Matrícula antecipada: feito, por aplicar.** Migração `20261010130000_early_enrollment.sql`
+  (no mesmo pacote; ensaio `tests/sql/early-enrollment.mjs`): `enroll_student` aceita o ano
+  activo ou em preparação (`draft`) e datas até 183 dias antes do início; a matrícula fica com
+  a data de início do ano. A mesma regra no servidor (`enrollmentWindow`), que a verifica antes
+  de criar o aluno. No ecrã, escolhe-se o ano seguinte no selector de ano e as turmas dele
+  aparecem. Até a migração ser aplicada, a base continua a recusar o ano em preparação.
+- **A1 — Huambo: o dono indicou que são reais; a leitura de 2026-10-10 sugere o contrário.**
+  As 40 matrículas pendentes estão em duas turmas chamadas **«DEMO — 1.ª Classe A» e
+  «DEMO — 1.ª Classe B»** (`DEMO1A`, `DEMO1B`), ambas em rascunho (`draft`), criadas a 08/10,
+  com 20 matrículas cada. 39 alunos estão «candidato» e 1 «activo». Antes de confirmar,
+  verificar na escola se são alunos reais.
+  - **Se forem reais:** (1) Pedagógica › Turmas: pôr as duas turmas em «Activa» (e, se o
+    nome «DEMO» não for o certo, mudar o nome); (2) Alunos: filtrar pela turma, seleccionar os
+    20 alunos e «Atribuir turma» à mesma turma — confirma as matrículas pendentes e põe os
+    alunos «activo», com histórico (M8). Exige 2FA (A3). Repetir para a outra turma.
+  - **Se forem de demonstração:** anular as matrículas (ficha do aluno › anular matrícula, ou
+    um SQL revisto, que posso preparar) e arquivar as duas turmas. Os alunos ficam «inactivo».
 
-## 12. Sexta passagem: recursos humanos
+## 9. Terceira passagem — outros problemas (2026-10-10)
 
-A folha salarial calcula tudo na base (`hr_calculate_payroll_run` e afins): uma só regra.
+**Avisos do Supabase** (segurança e desempenho, leitura de 2026-10-10, lidos por inteiro):
 
-| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                               | Correcção                                                                                                 |
-| --- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| R1  | P3   | O desconto **estimado** de uma falta (ecrã das faltas) usava sempre o salário do contrato; a folha desconta com o salário em vigor na data da falta (últimas alterações salariais). Depois de uma alteração salarial, o ecrã prometia um desconto e a folha fazia outro. Arredondava ainda com `+ Number.EPSILON`. Produção: 0 faltas, 0 alterações. | `absence-deduction.ts` (`baseSalaryOn`, `estimateAbsenceDeduction`) com a regra da folha e `roundHalfUp`. |
+- **Por fazer (dono, painel do Supabase):** Authentication › Password security › activar a
+  protecção contra senhas comprometidas (HaveIBeenPwned). Está desligada.
+- Os restantes avisos de segurança são intencionais: 76 tabelas «RLS sem políticas» são as que
+  só o servidor lê (regra 5 de `DATABASE_RULES.md`); 18 funções `SECURITY DEFINER` chamáveis
+  por `authenticated` são as de apoio às políticas e RPCs que verificam 2FA e permissão por
+  dentro (`merge_school_subjects`, aplicada hoje, verificada).
+- Desempenho: só avisos informativos (209 chaves estrangeiras sem índice, 234 índices sem uso).
+  Com o volume actual não pesam; rever quando houver escolas grandes.
 
-## 13. Sétima passagem: datas e cópias restantes
+**Corrigido — K1 (P2) conta reconhecida como professor pela base e não pelos ecrãs.** A base
+(`current_teacher_id`) reconhece o professor por `teachers.user_id` **ou** `people.user_id`; os
+ecrãs do servidor (`ownTeacherId` e mais oito sítios) só por `teachers.user_id`. Dois caminhos
+ligavam a conta só à pessoa:
 
-| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                                   | Correcção                                                                                  |
-| --- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| D1  | P3   | «Hoje + N dias» calculado em UTC em quatro sítios (Angola é UTC+1): a fatura pró-forma emitia com a data de Luanda e vencia com a de UTC (perto da meia-noite, 14 dias em vez de 15); a lista de aulas recentes do professor e o fim por omissão do horário avançado podiam começar um dia antes; o Ensino Superior somava 1 hora à mão. | `schoolDayOffsetIso` em `school-date.ts`; o Ensino Superior usa `schoolTodayIso`.          |
-| D2  | —    | Cópias idênticas: contexto de administração dos Alumni (2), código HTTP de erro da API SaaS (2), ficheiro → base64 (3, em duas versões).                                                                                                                                                                                                 | `alumni/admin-context.ts`, `saas/auth-error-status.ts`, `fileToBase64` em `lib/base64.ts`. |
+- **Fundir pessoas:** a ficha que fica é professor sem conta e o duplicado tem a conta → depois
+  da fusão a conta estava na pessoa e não no professor. Corrigido nos passos e em
+  `private.merge_people` (ensaio em `tests/sql/merge-people.mjs`).
+- **Convidar uma conta** (`inviteSystemUser`) ligava-a à pessoa com o mesmo e-mail: escrevia
+  por cima de uma conta já ligada, comparava o e-mail com maiúsculas e não ligava o professor.
+  Agora só liga uma ficha sem conta, sem maiúsculas, liga também o professor, e uma falha fica
+  registada (antes era engolida).
 
-## 14. Documentos e numeração
+Na produção, hoje, as 9 fichas de professor têm as duas ligações coerentes; isto evita que
+deixem de ter.
 
-Faturas e recibos: numerados na base (`invoice-numbering`, sequências), sem achados. Documentos
-oficiais: `document_sequences` por escola, sem achados.
+**Feito (interface):** as listas de turma, disciplina, professor, sala, ano, classe e
+matrícula na Pedagógica, no horário e na ficha do professor mostravam «nome · 3f2e79f0». Agora
+só o nome; o pedaço do id entra apenas quando dois nomes coincidem (`distinctOptionLabels`,
+`idOptions` em `src/lib/option-label.ts`). O horário e a ficha do professor passam a opções
+`{ value: id, label }`; as listas que acham o id pela posição continuam a achá-lo, porque os
+rótulos ficam únicos.
 
-| #   | Sev. | Achado                                                                                                                                                                                                                                                                                                                              | O que falta                                                                                                                              |
-| --- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| N2  | P3   | **Número da fatura pró-forma** (`faturas.tsx`): `FP-<ano>/<n.º de faturas + 1>`, calculado no browser e nunca gravado. Todas as pró-formas emitidas entre duas faturas reais saem com o mesmo número, e a contagem é de todos os anos (não recomeça em Janeiro). A pró-forma não é documento fiscal, mas o número aparece impresso. | **Resolvido (12/10, opção B):** número pela data e hora de emissão em Luanda, `FP-AAAAMMDD-HHMMSS` (`proformaNumber`, `school-date.ts`). |
+**Corrigido — G1 (P2) escritas que tinham perdido o guarda de escrita.** Varredura das funções
+do servidor que gravam e não passam por `requireSgaWriterForWrite` nem por um guarda que o
+inclua (`assertModuleNotBlocked` em escrita):
 
-## 15. Oitava passagem: catracas, comunicações, calendário e acessos
+- **Eliminar avaliação** (`deleteAssessmentItem`, a versão endurecida em
+  `server-secure-legacy.ts`): ao reescrevê-la perdeu-se o guarda que a versão antiga tinha.
+  Uma escola bloqueada (suspensa, cancelada, arquivada, trial terminado) continuava a apagar
+  avaliações e as notas delas, e quem tinha a Pedagógica em «Nenhum» ou «Leitura» também.
+  Repostos, com os mesmos papéis. A versão antiga, sem uso, saiu de `server-legacy.ts`.
+- **Registo de documentos emitidos** (`registerIssuedDocument`): emitia documentos oficiais
+  numa escola bloqueada. Passa a recusar (só o bloqueio da escola: os recibos são da
+  Tesouraria, que pode não ter o módulo Pessoas).
+- **Por decidir:** a gestão de acessos (`access/server.ts`: convidar, mudar cargo, suspender
+  contas) não aplica o bloqueio da escola. Pode ser intencional — numa escola suspensa o
+  administrador pode precisar de gerir contas para regularizar — e fica para o dono decidir.
 
-| Id  | Gr. | Achado                                                                                                                                                            | Correcção                                                                       |
-| --- | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| C1  | P2  | **Lista offline das catracas cortada aos 1000 cartões** (`exportGatePassOfflineList`): numa escola maior, os alunos a mais eram recusados com a portaria offline. | Leitura em páginas (`selectAllPages`).                                          |
-| C2  | P2  | **Atrasos à portaria pela hora UTC**: «depois das 08:00» era 09:00 em Luanda; a hora mostrada também vinha em UTC.                                                | Hora e apresentação em `Africa/Luanda`.                                         |
-| C3  | P2  | **«Hoje» na reconciliação portaria/sala começava às 01:00 de Luanda** e sem limite superior; entradas e presenças cortadas aos 1000.                              | Dia de Luanda (`+01:00`, até ao dia seguinte), leituras em páginas.             |
-| C4  | P3  | A «entrada» usada era a primeira linha devolvida, não a primeira do dia: atrasos falsos com várias passagens.                                                     | Escolhe a entrada mais cedo.                                                    |
-| C5  | P3  | Estatísticas de envios (comunicações) contadas sobre leitura cortada aos 1000.                                                                                    | Leitura em páginas.                                                             |
-| C6  | P3  | Cópias: `todayInLuanda` (calendário) e `isMissingTable` (pedidos de acesso); ano do cartão em UTC na noite de 31/12.                                              | Usam `schoolTodayIso` e o `isMissingTable` partilhado; ano pela data de Luanda. |
+O resto das escritas sem `requireSgaWriterForWrite` usa guardas próprios que já o incluem
+(RH, importação, risco, antigos alunos, AppyPay, Ensino Superior) ou é da própria conta
+(perfil, mensagens, portal do antigo aluno) ou pública (candidatura, pedido de acesso).
 
-Verificado sem achados: todas as escritas destas pastas passam por `requireSgaWriterForWrite`.
+**Estrutura do servidor académico (A5):** `server-secure-legacy.ts` é uma fachada — as escritas
+vêm de `server-legacy.ts`; 6 leituras usam a versão endurecida para o professor e delegam na
+antiga para a direcção e a secretaria. As duas continuam necessárias; juntá-las num só
+ficheiro é arrumação, sem defeito à vista, e fica para depois.
 
-## 16. Nona passagem: ensino superior, antigos alunos, arquivo, mensagens
+**Integridade dos dados de produção** (leitura de 2026-10-10, só contagens). A zero:
+matrículas correntes em ano fechado, de turma de outro ano, de aluno inactivo/transferido;
+alunos activos sem matrícula; turmas acima da lotação; pessoas duplicadas por BI; fichas de aluno
+ou professor activas de pessoa inactiva; aulas em disciplinas inactivas; faturas abertas de
+matrícula anulada, pagas sem recibo, com recibos acima do valor, ou abertas já pagas; notas acima
+da cotação, negativas ou de matrícula anulada; disciplinas atribuídas a professor inactivo;
+membros sem papel; contas de professor sem ficha; dois encarregados principais. Diferentes de zero:
 
-| Id  | Gr. | Achado                                                                                                                                                                                   | Correcção                                                                                       |
-| --- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| D1  | P2  | **Mapa SISIES cortado aos 1000 matriculados** (`exportSisiesWorkbook`): o `.limit(20000)` não passa o tecto do PostgREST; o relatório oficial saía com alunos e totais por sexo a menos. | Matrículas em páginas; alunos e pessoas da escola em páginas (sem `.in()` com milhares de ids). |
-| D2  | P3  | Painéis de antigos alunos (visão geral e impacto) contavam sobre leituras cortadas aos 1000.                                                                                             | `allSchoolRows` (`alumni/paged-rows.ts`).                                                       |
-| D3  | P3  | Código dos documentos do arquivo e pasta dos arquivos financeiros pela data UTC: entre 00:00 e 01:00 de Luanda, dia (ou mês) anterior.                                                   | Data de Luanda (`schoolTodayIso`).                                                              |
+- **Turmas «DEMO» (A1):** além das 40 matrículas pendentes, 180 aulas activas no horário, em
+  12 turmas «DEMO» em rascunho, todas de 08/10 e da mesma escola. Nada no código gera estes
+  nomes: foram escritos directamente na base. Reforça que é um conjunto de demonstração.
+- **34 alunos activos sem encarregado.** Não é proibido (alunos adultos, Ensino Superior), mas
+  merece revisão pela secretaria.
 
-Verificado sem achados: todas as escritas destas pastas passam pelo guarda de escrita ou só tocam nas linhas do próprio utilizador; mensagens e notificações sem problemas de datas no servidor.
+## 10. Revisão independente do PR #121 (2026-10-11)
 
-## 17. Décima passagem: académico, integrações, OTP, SaaS
+Revisão de código sobre todo o PR (5 474 linhas). Dez achados, cada um verificado contra o
+código; sete corrigidos:
 
-| Id  | Gr. | Achado                                                                                                                                | Correcção             |
-| --- | --- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| E1  | P2  | **Envio de mensagens retirava destinatários válidos** (`onlySchoolPhones`): `.limit(20000)` devolvia só 1000 telefones.               | Leitura em páginas.   |
-| E2  | P2  | **Faltas para elegibilidade a exame** (`exam-data.ts`): sessões da turma cortadas aos 1000.                                           | Leitura em páginas.   |
-| E3  | P2  | **Ocupação de salas em tempo real pela hora UTC**: aulas «a decorrer» desfasadas uma hora e dia da semana errado entre 23:00 e 24:00. | Hora e dia de Luanda. |
-| E4  | P3  | OTP comparava o hash com `===`.                                                                                                       | `timingSafeEqual`.    |
-| E5  | P3  | Ano lectivo por omissão (arranque da escola) pelo ano UTC.                                                                            | Ano de Luanda.        |
+| #   | Achado                                                                                                                                                                                                                     | Correcção                                                                                                                        |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Com a matrícula antecipada (A2) um aluno pode ter duas matrículas correntes; a ficha escolhia uma qualquer e a lista a última activa da ordenação.                                                                         | `pickCurrentEnrollment`: a que já começou, activa antes de pendente; a antecipada só quando não há outra. Ficha e lista usam-na. |
+| R2  | «Novo professor» com número escrito à mão: criava o professor pela RPC e só depois tentava o número; repetido, ficava criado com outro número e a nova tentativa duplicava-o.                                              | Com número escrito, uma só inserção, como antes.                                                                                 |
+| R3  | «Novo professor» com data de admissão futura: a RPC recusa datas futuras.                                                                                                                                                  | A RPC recebe hoje e a data pedida grava-se a seguir.                                                                             |
+| R4  | A pessoa criada para um professor (ou numa candidatura) que falhou ficava só marcada como apagada, com o e-mail e o BI presos nos índices únicos: a tentativa seguinte falhava com «Já existe uma pessoa com este e-mail». | Apagada de vez (com recurso a limpar os contactos se o apagar falhar).                                                           |
+| R5  | O convite ligava a conta à pessoa por `ilike` no e-mail sem escapar `_`/`%`: «j_silva@…» apanhava «jxsilva@…» e ligava a conta à pessoa errada.                                                                            | `escapeLikePattern` (`src/lib/like-pattern.ts`), também nas três cópias que já existiam e em `ensureTeacherHrRecord`.            |
+| R6  | Importação de matrículas: se actualizar o estado do aluno falhasse depois de gravar a matrícula, a linha abortava sem o registo da matrícula e a reversão já não a desfazia.                                               | A falha vira aviso da linha; a matrícula fica registada.                                                                         |
+| R7  | `isMissingTable` tratava «column … does not exist» e funções em falta como «tabela em falta», e quem a usa lia isso como «sem dados».                                                                                      | Só `42P01`, `PGRST205` e «relation … does not exist».                                                                            |
 
-| E6 | P3 | Painel da estrutura académica: cadernetas e pautas do ano cortadas aos 1000 (`.limit(5000)`). | Leitura em páginas. |
-| E7 | P3 | Código público de escola nova com `Math.random`, sem nova tentativa: uma colisão fazia falhar a criação da escola. | `randomInt` e até 5 tentativas em caso de código repetido. |
+Também: as listas de turma dos alunos (`classGroupChoices`) passam a `idOptions` — dois rótulos
+iguais deixam de aparecer iguais.
 
-Verificado sem achados: as escritas destas pastas passam pelo guarda de escrita (`requireSgaWriterForWrite`, `requireTenantAccess`, `requireSchoolAdminTenant`); as de autenticação e OTP são do próprio utilizador ou públicas, por desenho. Ficam como estão (listas que nunca chegam a mil linhas): turmas do ano, montra de escolas, inscrições comerciais dos últimos dias.
+Não corrigidos (o caminho é improvável e a correcção não compensa): uma sala chamada «Sem sala
+fixa» confunde-se com a opção «sem sala» em Nova turma; o importador de professores relê os
+números da escola a cada linha (custo só em importações muito grandes).
+
+## 11. Leituras cortadas nas 1000 linhas (2026-10-11)
+
+O PostgREST devolve no máximo 1000 linhas por pedido e corta sem erro: um `.limit(5000)`
+recebe 1000. Os volumes de hoje (máx. 4 faturas e 42 alunos por escola, 27 aulas por turma)
+ainda não chegam lá, mas uma escola real chega no primeiro ano:
+
+| #   | Onde                                                                                              | Efeito                                                                                                                                                                                                              | Correcção                                                                            |
+| --- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| L1  | Faltas da pauta, dos exames e do resultado final                                                  | Uma aula é uma linha por tempo lectivo (30 por semana ≈ 1000 no ano): a percentagem saía de parte das aulas. Um erro de leitura caía para os 0% da pauta: **um aluno excluído por faltas transitava** no histórico. | Leitura por páginas ordenadas; um erro pára (só a tabela em falta mantém o recurso). |
+| L2  | Resultado final: épocas e notas de exame                                                          | Um erro de leitura era ignorado e o histórico ficava com o resultado de antes do recurso.                                                                                                                           | O erro pára a leitura.                                                               |
+| L3  | Painel: tesouraria e alerta de faturas vencidas                                                   | Faturas e recibos cortados cada um à sua maneira: uma fatura paga cujo recibo ficava de fora contava como dívida e vencida.                                                                                         | Por páginas (`readAllPages`).                                                        |
+| L4  | Mensagens: telefones conhecidos da escola                                                         | Quem estava depois das primeiras 1000 pessoas era recusado como destinatário.                                                                                                                                       | Por páginas.                                                                         |
+| L5  | Painel: aniversários; estrutura: cadernetas e pautas por estado; heatmap: turma de cada matrícula | Contagens sobre parte dos dados.                                                                                                                                                                                    | Por páginas.                                                                         |
+
+Segunda passagem (a mesma classe de defeito, mais grave):
+
+| #   | Onde                                                                                                                                   | Efeito                                                                                                                                                                                                                                                                             | Correcção                                                                                                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| L6  | Exportação SAF-T (ficheiro para a AGT)                                                                                                 | Faturas e recibos do período num só pedido: com mais de 1000, **o ficheiro fiscal saía incompleto**. Os clientes vinham de uma lista com tecto de 250 alunos e de `.in(...)` com todos os ids: os restantes saíam como «Consumidor final», e um erro de leitura também, sem aviso. | Período por páginas; clientes em lotes de ids, sem o tecto; um erro pára a exportação.                                                       |
+| L7  | Exportação de dados da escola (todas as folhas)                                                                                        | ~40 leituras num só pedido e com os erros ignorados: numa escola com mais de 1000 alunos (ou notas, presenças, faturas) o ficheiro saía cortado, apesar de o motor prometer «nenhum ficheiro parcial».                                                                             | `pagedReadClient` (`src/integrations/supabase/paged-client.ts`): cada lista por páginas, `.in` longos em lotes, e um erro pára a exportação. |
+| L8  | Importadores (pagamentos, dívidas, histórico financeiro e académico, encarregados, horários, avaliações, pautas, disciplinas da turma) | As listas de referência (faturas em aberto, recibos e números já usados, ligações existentes, aulas, cadernetas, matrículas activas) vinham cortadas: pagamentos «sem fatura», alunos da pauta «sem matrícula», e registos já importados entravam outra vez.                       | Por páginas e em lotes (`readAllPages`, `readInChunks`, `rowsOrThrow`).                                                                      |
+
+| #   | Onde                                                                                          | Efeito                                                                                                                                                                                                                                                                                  | Correcção                                                                                       |
+| --- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| L10 | Lista de alunos (`searchStudents`) e âmbito do professor                                      | A página Alunos pede até 1000 alunos e lê fichas, matrículas, encarregados e faturas de todos por `.in(...)`: com mais de ~200 alunos o URL passava o tamanho máximo e **a página deixava de abrir**. O âmbito do professor (centenas de alunos) idem. Hoje: máx. 42 alunos por escola. | `pagedReadClient` nas leituras seguintes; o professor lê os seus alunos em lotes e pagina aqui. |
+| L11 | Publicar modelo de avaliação (NPP) e activar Alumni                                           | Diários abertos num só `.in(...)` (a actualização da NPP falhava só com um aviso no registo); concluídos cortados nas 1000 e os perfis existentes lidos com o erro ignorado (perfis repetidos).                                                                                         | Por páginas, actualização em lotes; erro verificado.                                            |
+| L12 | Presenças do dia (vista da direcção/secretaria) e painel (alunos, sexo, idade, aulas de hoje) | As disciplinas de todas as turmas num só `.in(...)` (hoje já 66 numa escola; a ~200 o URL passa o limite): o erro era ignorado e o ecrã de presenças ficava **sem aulas**. No painel, alunos cortados nas 1000, matrículas nas 500 e as fichas num `.in` longo (sexo e idade a zero).   | `pagedReadClient`; a lista de aulas volta a ser ordenada por hora.                              |
+| L9  | Chat (colegas), aviso de pedidos de acesso, lista de contas                                   | As contas da escola num só pedido e depois todos os ids num `.in(...)`: com ~200 contas (alunos e encarregados também as têm) o URL passa o tamanho máximo — o chat deixa de listar colegas e ninguém é avisado de um pedido de acesso. Hoje: máx. 8 contas activas por escola.         | `pagedReadClient` nos três sítios; `member_roles` (sem `id`) ordena pela chave composta.        |
+
+**Correcção central (L13).** O padrão `.in("coluna", lista)` aparece ~350 vezes no
+servidor, muitas com o erro ignorado. Em vez de as corrigir uma a uma, o cliente do
+servidor (`loadSgaAdminClient`) passa pelo `chunkedInClient`
+(`src/integrations/supabase/chunked-in-client.ts`): uma leitura com uma lista acima de
+150 ids é pedida em lotes, as linhas juntam-se e voltam a ordenar-se pela ordem da
+consulta, e as contagens somam-se. Escritas, `single`/`maybeSingle`, `range`/`limit` e
+listas curtas passam tal e qual (um só pedido, igual ao de antes). Não resolve o corte
+das 1000 linhas por pedido — isso continua nos sítios L1–L12.
+
+O heatmap de desempenho do painel continua a ser uma amostra de 1000 notas (agora dito no
+código): ler todas as notas da escola em cada abertura do painel seria pesado, e o cálculo exacto
+pede uma agregação na base.
+
+## 12. Valor em dívida em cêntimos (2026-10-12)
+
+O estado da fatura (`invoiceStatusFromPaid`) já compara em cêntimos, mas sete sítios
+calculavam o que falta pagar com `total - pago` em vírgula flutuante e contavam `> 0`
+(tesouraria, painel em três sítios, ficha do aluno, contexto da pessoa e importação de
+pagamentos). Um resíduo (`0,3 - (0,1 + 0,2)`) punha uma fatura paga «em aberto» e o aluno
+com dívida vencida. Todos usam agora `invoiceOpenAmount` (cêntimos, a mesma regra do
+estado).
+
+## 13. Envio duplicado nos formulários rápidos (2026-10-12)
+
+`QuickFormModal` (Receber pagamento na ficha do aluno, em Faturas e em Financeiro, e os
+outros formulários rápidos) só desactivava «Guardar» depois de o React voltar a desenhar:
+dois cliques no mesmo instante enviavam duas vezes. `register_payment` tranca a fatura e
+recusa pagar acima do valor em aberto, mas um pagamento parcial repetido cabia nas duas
+vezes — dois recibos. Agora há uma guarda síncrona (`inFlight`); o teste reproduz os dois
+cliques e falha sem ela.
+
+Os outros dois modais partilhados com a mesma corrida — `ConfirmActionModal` (anular,
+estornar, excluir) e `SequentialSheetModal` (assistentes por passos) — têm a mesma guarda.
+
+## 14. Datas a partir do dia de Luanda (2026-10-12)
+
+Dois sítios somavam dias ao instante actual em UTC: o vencimento da pró-forma (Faturas,
+emitida «hoje» em Luanda e a vencer a 15 dias em UTC — perto da meia-noite saía a 14) e o
+fim do período por omissão no calendário avançado. Usam agora `schoolDateInDays`
+(`src/lib/school-date.ts`), que parte de `schoolTodayIso`. Os outros `toISOString().slice(0,
+10)` do código trabalham sobre datas já fixas (sem hora), o que está certo.
+
+## 15. Escola bloqueada: revisão das escritas (2026-10-12)
+
+Revi as 123 funções de escrita (`POST`) que não chamam `requireSgaWriterForWrite` no
+próprio corpo. Quase todas estão cobertas por um guarda local em modo escrita (ensino
+superior, importação, Alumni, risco, RH através de `assertModuleNotBlocked`) ou ficam de
+fora de propósito (autenticação, perfil próprio, registo público, plataforma, pagamento da
+assinatura). Faltava uma: os atalhos da pesquisa (`saveSpotlightOverrides`), uma definição
+da escola que gravava numa escola bloqueada — passa a `requireSgaWriterForWrite("gestao")`,
+como as outras definições. Continua por decidir a gestão de acessos (`access/server.ts`,
+`access/grants.ts`).
+
+## 16. Verificação pública de documentos sem índice (2026-10-13)
+
+`/verificar` (pública, sem sessão) procura o código em `audit_logs` por
+`action = 'documents.issued' AND metadata->>'code'`. Na produção (leitura de 2026-10-13) a
+tabela tem ~16 000 linhas e nenhum índice para isto: cada verificação percorria a tabela
+inteira, e o custo cresce com cada acção de cada escola. O resto está bem (código aleatório
+criptográfico, limite partilhado por IP, titular só com iniciais). Migração
+**`20261013100000`**: índice parcial em `metadata->>'code'` só sobre os documentos emitidos,
+no pacote `SIGA_aplicar_auditoria14_2026-10-10.sql` (nova coluna na consulta do fim).
+Ensaio: `tests/sql/document-code-index.mjs` (o plano passa a usar o índice).
+
+## 17. Ensino superior (2026-10-13)
+
+Revisão do motor e do servidor do ensino superior. Corrigidos (com testes que falham sem a
+correcção):
+
+| #   | Defeito                                                                                                                                                               | Correcção                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| ES1 | Época normal sem nota de exame: a fórmula usava só a frequência e **aprovava quem não fez o exame** (abaixo da dispensa), com os créditos.                            | `seasonResult` sem exame não dá resultado; o servidor exige a nota em todas as épocas. |
+| ES2 | Inscrição em lote, pauta da cadeira e mapa SISIES liam o histórico cortado nas 1000 linhas: reinscrições em cadeiras feitas, alunos fora da pauta, graduados a menos. | `pagedReadClient`.                                                                     |
+| ES3 | Classificação final arredondada duas vezes (13,45 → 13,5 → 14 «Bom» em vez de 13 «Suficiente»), no certificado e no SISIES.                                           | `averageExact` sem arredondamento intermédio.                                          |
+| ES4 | Limites de créditos contavam só as cadeiras «inscrito»: com resultados lançados, cabia o dobro da carga no ano.                                                       | Conta toda a carga do ano, excepto anuladas e creditadas.                              |
+| ES5 | Época especial lançada vezes sem conta (cada vez sobrescrevia a nota).                                                                                                | Uma vez.                                                                               |
+| ES8 | Anular e voltar a inscrever, ou creditar, no mesmo ano: erro técnico da restrição única.                                                                              | Mensagem clara.                                                                        |
+
+Por decidir (mudam regras ou modelo, ficam para o dono): correcção de nota que ignora as
+regras da frequência (ES6); professor autorizado por qualquer turma da disciplina, em qualquer
+ano (ES7 — a migração `20261006090000_course_unit_shift.sql` refere `shifts.ts`, que não
+existe); dois certificados em simultâneo (ES9, falta índice único); SISIES conta graduados de
+todos os anos (ES10).
+
+## 18. PayFlow (2026-10-13)
+
+Corrigidos:
+
+- **PF2 — Fatura paga em parte ia pelo total.** A sincronização SIGA → PayFlow enviava o total
+  líquido, sem os recibos já emitidos: com 30 000 de 50 000 pagos na tesouraria, o encarregado
+  via 50 000 e pagava outra vez; o SIGA recusava o excesso na liquidação, com o dinheiro já
+  recebido. Vai agora o que falta; uma fatura liquidada vai como paga
+  (`payflow-sync-execute.ts`, teste `tests/finance/payflow-sync-outstanding.test.ts`).
+- **PF4 — Montantes dos extractos.** «1.234» era lido como 1,23 Kz, «1,234.56» também, e
+  «1.500.000» ficava por ler: transferências válidas ficavam por conciliar. O separador
+  decimal é o último seguido de 1–2 algarismos; os milhares têm de ser grupos de 3 de um
+  só tipo; o ambíguo fica recusado.
+- **PF5 — Datas impossíveis** (31/02) passavam a 3 de Março; agora ficam vazias.
+- **PF6 — Débitos.** Com uma coluna de natureza (D/C), um débito com a referência e o mesmo
+  valor conciliava o pagamento; passa a erro da linha.
+
+Por decidir (mudam o desenho do PayFlow ou exigem um segredo novo):
+
+- **PF1 (alto):** a notificação PayFlow → SIGA de um pagamento é `void fetch(...)`, sem
+  repetição nem fila: se falhar (ou o Worker a cortar), o SIGA fica com a fatura em aberto, e a
+  sincronização seguinte devolve-a «em aberto» ao PayFlow — pagável outra vez. Precisa de uma
+  fila de notificações pendentes (ou, no mínimo, `ctx.waitUntil`) e de a sincronização não
+  rebaixar uma fatura com pagamento confirmado.
+- **PF3 (médio-alto):** cada pedido sem `Idempotency-Key` cria outro pagamento para a mesma
+  fatura, e a verificação não olha para o estado da fatura: duas transferências dão dois
+  recibos. Recusar um segundo pagamento pendente/pago e, na verificação, marcar para reembolso.
+- **PF7 (médio, segurança):** o PIN do portal do aluno é um hash sem chave do id do aluno
+  (`derivePayflowPaymentPin`): quem souber o id calcula-o. Mudar para HMAC com um segredo do
+  servidor muda os PIN de todos os alunos — decisão do dono.
+- **PF8 (baixo):** um erro a meio da importação de um extracto devolve 500 sem dizer que linhas
+  já foram aplicadas.
+
+## 19. Documentos oficiais e pedidos (2026-10-17)
+
+- **D1 (alto) — O título verificado vinha do browser.** `/verificar` confirmava como autêntico
+  o título que o cliente mandava: um professor (que só emite pautas e boletins) registava
+  «Certificado de habilitações» com o modelo de pauta. O título só fica se corresponder ao
+  modelo (a mesma regra de `matchPrintTemplateKey`); senão fica o nome do modelo. O documento
+  de serviço, genérico, leva sempre «Documento de serviço — …» à frente. O pedido original
+  fica em `requested_title`, só para auditoria (`verifiedDocumentTitle`, teste
+  `tests/documents/verified-title.test.ts`).
+- **D2 — Estados dos pedidos sem regras.** Qualquer estado ia para qualquer outro: um pedido
+  cancelado voltava a «aprovado» (e a declaração saía), e dois cliques em «Avançar» saltavam um
+  passo. Agora: um passo de cada vez, recusar/cancelar só com o pedido aberto, fechado não
+  reabre, e a gravação só acontece se o estado não mudou entretanto
+  (`canChangeDocumentRequestStatus`, teste `tests/documents/request-transitions.test.ts`).
+- **D3 — Certificado do ano errado.** Certificava o último ano com resultado registado, mesmo
+  reprovado, com a turma e a classe de hoje. Passa a certificar o último ano com aprovação
+  («Transitou», ou o texto importado «Aprovado», «Concluído com Êxito»), com a turma e a classe
+  desse ano (`certificate-year.ts`, teste `tests/documents/certificate-year.test.ts`).
+- **D4 — A alternativa imprimia o que o servidor recusara.** Se o registo para verificação
+  falhava (sem permissão para o modelo, escola bloqueada, limite), `issuePrintDocument` caía na
+  alternativa e imprimia o mesmo documento oficial, sem código. Uma recusa do registo chega
+  agora a quem emitiu; a alternativa fica para falhas do modelo
+  (teste `tests/documents/issue-fallback.test.ts`).
+- **D5 — Declaração sem matrícula.** Em Documentos, emitir um pedido imprime «é aluno(a) desta
+  instituição no ano lectivo…», também para quem já não tem matrícula activa. Sem matrícula
+  activa o pedido não passa a «pronto» (teste em `tests/routes/documentos.test.tsx`).
+- **D6 — Pormenores.** «Recusar» gravava «cancelado» (o estado «Recusado» nunca aparecia);
+  no portal de antigos alunos, um pedido entregue aparecia como `fulfilled`; as datas destes
+  ecrãs e da verificação passam a ser as de Luanda.
+
+## 20. ADMIN da plataforma (2026-10-17)
+
+A `main` trouxe a faturação dos tenants (`tenant-billing.ts`), e com ela a tarefa diária
+`suspendOverdueTenants`: o fim do período pago passa a contar, por escola, quando o perfil de
+cobrança o pede. O que ainda faltava:
+
+- **AD1 — Prolongar o trial apagava uma assinatura paga.** Gravava `subscription_status =
+trialing` e punha o fim do período no fim do «trial»: a escola deixava de contar como paga e
+  a tarefa diária punha-a em atraso. Só se prolonga um trial (`trialExtensionAllowed`).
+- **AD2 — O mesmo pagamento duas vezes somava dois períodos** (repetição depois de um erro de
+  rede). Com referência, o segundo registo é recusado. Sem referência não se pode distinguir
+  de um segundo pagamento verdadeiro (teste `tests/saas/trial-extension.test.ts`).
+- **AD3 (migração) — Registo de auditoria do ADMIN alterável.** Leitura de 2026-10-17:
+  `authenticated` tinha todos os privilégios em `saas_audit_logs` e a política
+  `platform_admin_all_saas_audit_logs` (FOR ALL) deixava os 4 administradores da plataforma
+  alterar ou apagar pela API o registo das suas próprias acções, e ler sem 2FA. Todo o código
+  usa a chave de serviço, por isso a tabela fica só com o servidor
+  (`20261017100000_saas_audit_logs_server_only.sql`, no pacote; ensaio
+  `tests/sql/saas-audit-logs-server-only.mjs`). Sonda na produção: «por aplicar».
+
+## 21. Presenças e cobrança das escolas (2026-10-17)
+
+Presenças:
+
+- **PR1 — Atestado sem abrir.** A justificação de uma falta aceitava um anexo, mas quem decidia
+  via só o nome (vindo do browser, sem verificação) e não o conseguia abrir. O anexo passa a ser
+  validado ao enviar (tem de ser um ficheiro que quem envia abre nos Arquivos; o nome é o do
+  ficheiro) e quem decide abre-o (`openAttendanceJustificationFile`, com a mesma regra da
+  decisão: Direcção e Secretaria todas, o professor as das suas aulas).
+- **PR2 — Duas decisões ao mesmo tempo.** Aprovar e rejeitar em simultâneo gravavam ambas; a
+  falta ficava justificada com a justificação «rejeitada». A gravação só acontece se ainda
+  estiver pendente.
+- **PR3 — Saída antecipada.** A taxa de assiduidade da ficha contava-a como falta; a exclusão
+  por faltas (pauta) conta-a como presença. Passa a mesma regra nos dois.
+
+Cobrança das escolas (código novo da `main`, revisto):
+
+- **CB1 (alto) — Acesso grátis sem prazo.** Uma escola que escolhesse «pública» no registo
+  ficava com as cobranças pausadas sem data, isenta do fim do trial e do atraso, enquanto
+  ninguém a revisse. A pausa passa a durar 30 dias (`SELF_DECLARED_PUBLIC_PAUSE_DAYS`); depois
+  volta às regras do trial. O ADMIN aprova (isenção sem fim) ou prolonga.
+- **CB2 — Tarefas diárias.** `suspendOverdueTenants` lia `.limit(1000)` sem ordem: acima de
+  1000 perfis, uma parte nunca era avaliada. As duas tarefas leem tudo por páginas, e um erro
+  de leitura deixa de passar por «nada a fazer» (fica reportado, sem parar as outras). A
+  suspensão só conta quando a escola mudou mesmo de estado.
+- **CB3 — Cobrança PayFlow com valor antigo.** A chave de idempotência era só plano + período +
+  mês: mudado o preço (alunos, desconto), o PayFlow devolvia a referência com o montante
+  antigo. A chave leva o valor, e o mês é o de Luanda.
+- **CB4 — Desconto por período.** O ADMIN aplicava os descontos de `saas_billing_settings`; o
+  valor cobrado à escola e o que ela via usavam os do código. Passam a usar os mesmos.
+- **CB5 — Fim do período pago.** 31 de Janeiro + 1 mês dava 3 de Março, e os dias a mais
+  acumulavam a cada renovação (`addMonthsClamped`).
+
+Por decidir (dono):
+
+- **CB6:** `initBillingProfileForNewSchool` grava um perfil para todas as escolas novas, com
+  `auto_suspend` ligado por omissão; o comentário de `suspendOverdueTenants` diz que só as
+  escolas configuradas no ADMIN são suspensas. Hoje uma escola nova paga que atrase passa a só
+  consulta; as antigas, sem perfil, nunca. Qual das duas é a regra?
+- **AD4:** dois administradores da plataforma a retirarem-se um ao outro ao mesmo tempo podem
+  deixar a plataforma sem nenhum (a contagem é lida antes de apagar).
+
+## 22. Catracas, códigos OTP, acompanhamento de risco, planos e Arquivos (2026-10-18)
+
+Catracas:
+
+- **CT1 (alto) — Manutenção anulada por uma leitura.** O webhook do leitor gravava
+  `status: "online"` a cada leitura: numa catraca posta em «Manutenção» ou «Offline» pelo
+  administrador, a primeira leitura era recusada e a segunda já passava. Grava só o sinal de vida.
+- **CT2 — Lista offline.** Levava o QR e a tag RFID de todos os cartões a quem só tinha
+  leitura em Gestão (dava para clonar cartões); pede escrita, como revelar a chave de uma
+  catraca. Lê todos os cartões (acima de 1000 saía cortada).
+- **CT3 — Reconciliação portaria/aula em UTC.** Uma entrada às 08:40 de Luanda contava como
+  07:40 e não era tardia; o dia começava à 01:00; a hora mostrada era a UTC; podia contar uma
+  entrada que não era a primeira. Passa ao dia e à hora de Luanda, lendo todas as entradas.
+
+Códigos OTP e limites:
+
+- **OT1 (alto) — IP falsificável.** Os limites por IP das server functions (OTP, entrar, repor a
+  senha, registo, matrícula pública, verificação de documentos) liam o primeiro valor de
+  `X-Forwarded-For`, que vem do cliente. Passam a usar `CF-Connecting-IP`
+  (`serverFnClientIp`).
+- **OT2 — Pontos públicos genéricos de OTP.** `requestOtpVerificationFn` e `verifyOtpCodeFn`
+  eram públicos, aceitavam qualquer finalidade e nenhum ecrã os usava: qualquer pessoa enviava
+  SMS pagos para qualquer número ou gastava as tentativas do código de reposição de outra
+  pessoa. Removidos (cada fluxo tem o seu, ligado à conta).
+- **OT3 — Força bruta na reposição de senha.** Cada código novo dava outras 5 tentativas
+  (~300/hora por conta, sem tecto). Passa a haver tecto por conta (20/dia) e por IP (30/hora).
+
+Acompanhamento de risco (IA) e planos de aula:
+
+- **RK1 — O professor via e alterava os casos de risco de toda a escola** (com intervenções
+  como «acompanhamento psicológico»). Fica com as turmas que lecciona ou dirige; o nome do aluno
+  no caso vem da base; os erros do histórico e do estado deixam de ser ignorados.
+- **LP1 — Plano com avaliações a mudar de turma, disciplina ou período** deixava as avaliações na
+  pauta antiga. É recusado (cria-se um plano novo).
+
+Arquivos:
+
+- **AR1 — Mover uma pasta para dentro de uma subpasta sua** fazia um ciclo e as pastas sumiam
+  da árvore. É recusado.
+
+Por decidir ou pendentes (dono):
+
+- **CT4:** sem índice único `(school_id, person_id) WHERE status = 'active'` em
+  `siga_access_cards`, dois pedidos simultâneos criam dois cartões activos e, a partir daí, cada
+  pedido cria mais um. Precisa de migração (e de ver primeiro se a produção já tem repetidos).
+- **OT4:** o SMS de OTP aceita qualquer número E.164; restringir a `+244` (ou a uma lista) é
+  decisão comercial.
+- **AI:** o limite de pedidos à IA é por instância e não há tecto por escola; uma escola
+  suspensa ainda gasta créditos na análise de risco.
+- **Menores:** o feed ICS não deixa de funcionar quando a pessoa sai da escola (só mostra o
+  nome da escola e os períodos); falta `DTSTAMP` nos eventos ICS; a pesquisa de planos filtra
+  depois do limite; alunos e encarregados vêem os planos publicados de todas as turmas; alguns
+  erros do calendário (reabrir o ano anterior, sequência) são ignorados.
+
+## 23. API directa, integrações, antigos alunos e planos (2026-10-18)
+
+Pela API directa (PostgREST), contornando o servidor — confirmado na produção (só leituras):
+
+- **API1 (alto) — Candidaturas públicas gravadas directamente.** `anon` tinha INSERT em
+  `enrollment_applications` (com política) e lia os formulários abertos: com a chave pública,
+  um ciclo de pedidos enchia a lista da secretaria sem o limite por IP, sem o bloqueio da escola
+  suspensa e sem validação. Migração `20261018110000`: só o servidor (que já faz tudo isto).
+- **API2 — Links das aulas online.** Qualquer membro (alunos incluídos) lia os `join_url` de
+  todas as aulas de `siga_lesson_meetings`, e um professor podia trocar o link da aula de um
+  colega. Migração `20261018120000`: só o servidor (que já mostra o link só a quem é da turma).
+- **CT4 — Cartões de catraca em duplicado.** Índice único de um cartão activo por pessoa
+  (migração `20261018100000`; produção sem repetidos). O servidor trata a corrida (23505)
+  devolvendo o cartão que ficou, e um erro de leitura deixa de passar por «não tem cartão».
+
+Integrações:
+
+- **IN1 — Quota da plataforma por pedido.** Cada pedido levava até 50 destinatários: eram 1000
+  SMS/WhatsApp/e-mails por hora por escola pagos pela plataforma. Passa a contar cada
+  destinatário (200 por hora), depois de todos os filtros.
+- **IN2 — Ler a configuração engolia erros.** Uma falha momentânea passava por «sem
+  configuração» e a gravação seguinte gerava outra chave do gateway (os pagamentos deixavam de
+  ser reconciliados) ou apagava as capacidades. Passa a erro.
+- **IN3 — Opt-out que falhava aberto.** Se a leitura de quem desligou os comunicados falhasse,
+  a mensagem seguia para todos. Agora não se envia. E-mails comparados sem maiúsculas.
+
+Antigos alunos e planos de aula:
+
+- **AL1 — Evento de outra escola.** A inscrição num evento não confirmava a escola do evento.
+- **AL2 — Estatísticas, público de campanha e exportação** cortados nas 1000 linhas: leem tudo.
+- **LP2 — Alunos e encarregados** viam os planos publicados de todas as turmas; ficam com as do
+  aluno ou dos educandos. A pesquisa de planos passa a ir à base (antes filtrava depois do
+  limite).
+
+Por fazer (dono ou ciclo seguinte):
+
+- Chaves Resend e WhatsApp da escola ainda vão em claro para o ecrã do Administrador (mascarar
+  como a do gateway).
+- Ligar o Zoom usa a guarda de leitura e não verifica a escola bloqueada.
+- Webhook Resend: erros ignorados e eventos fora de ordem.
+- Pesquisa de antigos alunos só sobre os primeiros 150–200 perfis (pede paginação real na UI).
+- Link de matrícula falha se outra escola tiver o mesmo nome (sufixo no slug).

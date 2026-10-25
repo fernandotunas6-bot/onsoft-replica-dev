@@ -12,6 +12,7 @@ import { selectAllPages } from "@/features/import/engine/paged";
  * a linha fica `status = inscrito`, `season = frequencia` e `final_grade` guarda
  * a média de frequência — é daí que a época normal a lê.
  */
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { linkNewProgramsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -48,6 +49,7 @@ import {
 import { HIGHER_ED_FEES } from "./fees";
 import { studentStatusMap, studentStatusOf } from "./student-status";
 import { rankAccessCandidates } from "./access";
+import { NO_LAUNCH, canLaunchAny, defaultShift, shiftVisible, type LaunchScope } from "./shifts";
 import {
   completedUnitIds,
   decodeJuryDecision,
@@ -78,6 +80,7 @@ import {
   type UnitRecord,
 } from "./engine";
 import { schoolTodayIso } from "@/lib/school-date";
+import { effectiveDiscountPercent, scholarshipInForce } from "@/features/finance/scholarships";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -162,8 +165,55 @@ async function loadPlan(db: Db, schoolId: string, programId: string) {
   return { units, prerequisites };
 }
 
+/**
+ * Planos de vários cursos numa leitura só, para relatórios que percorrem a escola
+ * inteira. O `loadPlan` acima faz 3 consultas por curso (cadeiras, disciplinas,
+ * precedências); num mapa de 30 cursos isso eram 90 idas à base. Aqui são 2, e as
+ * precedências ficam de fora porque quem conta graduados só precisa das cadeiras.
+ */
+async function loadPlanUnitsByProgram(db: Db, schoolId: string, programIds: string[]) {
+  const byProgram = new Map<string, PlanUnit[]>();
+  if (!programIds.length) return byProgram;
+  const rows: Row[] = [];
+  // Mesmo corte de 300 que o resto do ficheiro usa nos `in(...)`.
+  for (let start = 0; start < programIds.length; start += 300) {
+    const { data, error } = await db
+      .from("program_subjects")
+      .select("id, program_id, subject_id, semester, credits")
+      .eq("school_id", schoolId)
+      .in("program_id", programIds.slice(start, start + 300))
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .order("semester");
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar o plano do curso.");
+    rows.push(...((data ?? []) as Row[]));
+  }
+  const subjectIds = [...new Set(rows.map((row) => str(row.subject_id)))];
+  const subjectById = new Map<string, Row>();
+  for (let start = 0; start < subjectIds.length; start += 300) {
+    const { data } = await db
+      .from("subjects")
+      .select("id, name, code")
+      .eq("school_id", schoolId)
+      .in("id", subjectIds.slice(start, start + 300));
+    for (const subject of (data ?? []) as Row[]) subjectById.set(str(subject.id), subject);
+  }
+  for (const row of rows) {
+    const list = byProgram.get(str(row.program_id)) ?? [];
+    list.push({
+      id: str(row.id),
+      subjectId: str(row.subject_id),
+      name: str(subjectById.get(str(row.subject_id))?.name) || "Cadeira",
+      semester: Number(row.semester),
+      credits: Number(row.credits),
+    });
+    byProgram.set(str(row.program_id), list);
+  }
+  return byProgram;
+}
+
 const RECORD_COLUMNS =
-  "id, student_id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at";
+  "id, student_id, program_subject_id, academic_year_id, semester, credits, attempt, status, final_grade, season, credits_earned, updated_at, class_group_id";
 
 function toRecord(row: Row): UnitRecord {
   return {
@@ -188,7 +238,71 @@ async function loadRecords(db: Db, schoolId: string, studentId: string, programI
     .eq("program_id", programId);
   if (error)
     throw publicDatabaseError(error, "Não foi possível carregar o histórico do estudante.");
-  return ((data ?? []) as Row[]).map((row) => ({ id: str(row.id), record: toRecord(row) }));
+  return ((data ?? []) as Row[]).map((row) => ({
+    id: str(row.id),
+    record: toRecord(row),
+    shift: row.class_group_id ? str(row.class_group_id) : null,
+  }));
+}
+
+/**
+ * Turnos do curso no ano activo: que turmas dão cada disciplina (`class_subjects`) e em
+ * que turmas estão os estudantes. Base do turno por omissão (`defaultShift`).
+ */
+async function programShifts(
+  db: Db,
+  schoolId: string,
+  programId: string,
+  yearId: string | null,
+  studentIds: readonly string[] = [],
+) {
+  const offerings = new Map<string, string[]>();
+  const groupsOf = new Map<string, string[]>();
+  const groupName = new Map<string, string>();
+  const { data: grades } = await db
+    .from("grade_levels")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("program_id", programId);
+  const gradeIds = (grades ?? []).map((g) => str(g.id));
+  if (!gradeIds.length) return { offerings, groupsOf, groupName };
+  let groupsQuery = db
+    .from("class_groups")
+    .select("id, name")
+    .eq("school_id", schoolId)
+    .in("grade_level_id", gradeIds);
+  if (yearId) groupsQuery = groupsQuery.eq("academic_year_id", yearId);
+  const { data: groups } = await groupsQuery;
+  for (const group of (groups ?? []) as Row[]) groupName.set(str(group.id), str(group.name));
+  if (!groupName.size) return { offerings, groupsOf, groupName };
+  const groupIds = [...groupName.keys()];
+  const [{ data: subjects }, { data: enrollments }] = await Promise.all([
+    db
+      .from("class_subjects")
+      .select("class_group_id, subject_id")
+      .eq("school_id", schoolId)
+      .in("class_group_id", groupIds),
+    studentIds.length
+      ? db
+          .from("enrollments")
+          .select("student_id, class_group_id")
+          .eq("school_id", schoolId)
+          .in("class_group_id", groupIds)
+          .in("student_id", [...studentIds])
+          .in("status", ["active", "pending"])
+      : Promise.resolve({ data: [] as Row[] }),
+  ]);
+  for (const row of (subjects ?? []) as Row[]) {
+    const list = offerings.get(str(row.subject_id)) ?? [];
+    if (!list.includes(str(row.class_group_id))) list.push(str(row.class_group_id));
+    offerings.set(str(row.subject_id), list);
+  }
+  for (const row of (enrollments ?? []) as Row[]) {
+    const list = groupsOf.get(str(row.student_id)) ?? [];
+    list.push(str(row.class_group_id));
+    groupsOf.set(str(row.student_id), list);
+  }
+  return { offerings, groupsOf, groupName };
 }
 
 async function regulationOf(db: Db, schoolId: string): Promise<HigherEdRegulation> {
@@ -468,7 +582,7 @@ export const updateHigherEdProgram = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
+        programId: z.string().guid(),
         name: z.string().trim().min(3).max(120),
         active: z.boolean(),
         years: z.number().int().min(1).max(7),
@@ -541,7 +655,7 @@ export const listSchoolSubjectsForPlan = createServerFn({ method: "GET" })
 
 export const getProgramPlan = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -557,8 +671,8 @@ export const getProgramPlan = createServerFn({ method: "GET" })
   });
 
 const planUnitInput = z.object({
-  programId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  programId: z.string().guid(),
+  subjectId: z.string().guid(),
   semester: z.number().int().min(1).max(14),
   // Decreto Presidencial 193/18: de 1 a 20 unidades de crédito por cadeira.
   credits: z.number().min(1).max(20),
@@ -567,7 +681,7 @@ const planUnitInput = z.object({
 export const savePlanUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    planUnitInput.extend({ id: z.string().uuid().optional() }).parse(input),
+    planUnitInput.extend({ id: z.string().guid().optional() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
@@ -619,7 +733,7 @@ export const savePlanUnit = createServerFn({ method: "POST" })
 export const removePlanUnit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), id: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), id: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "write");
@@ -657,9 +771,9 @@ export const setUnitPrerequisites = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        unitId: z.string().uuid(),
-        requiredUnitIds: z.array(z.string().uuid()).max(20),
+        programId: z.string().guid(),
+        unitId: z.string().guid(),
+        requiredUnitIds: z.array(z.string().guid()).max(20),
       })
       .parse(input),
   )
@@ -709,7 +823,7 @@ export const setUnitPrerequisites = createServerFn({ method: "POST" })
 
 export const listProgramStudents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -770,7 +884,7 @@ export const listProgramStudents = createServerFn({ method: "GET" })
 export const getStudentHigherEd = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), studentId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
@@ -912,7 +1026,7 @@ async function buildTranscript(
 export const getStudentTranscript = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), studentId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
@@ -960,14 +1074,14 @@ async function findIssuedCertificate(
 
 /**
  * Emite o certificado de conclusão: número da série «certificate» da escola
- * (document_sequences, «CE-000001») e código de verificação para /verificar, no mesmo
+ * (numeração da escola, «1260001») e código de verificação para /verificar, no mesmo
  * registo que os outros documentos oficiais. Só a Direcção e a Secretaria, com 2FA, e
  * só para quem concluiu o curso. Repetir devolve o mesmo certificado.
  */
 export const issueHigherEdCertificate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), studentId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), studentId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }): Promise<IssuedCertificate> => {
     const membership = await officeMembership(context, "write");
@@ -979,7 +1093,7 @@ export const issueHigherEdCertificate = createServerFn({ method: "POST" })
 
     const doctoral = transcript.program.degree === "doutoramento";
     const final = transcript.progress.completed
-      ? finalClassification(transcript.progress.average)
+      ? finalClassification(transcript.progress.averageExact)
       : null;
     if (!transcript.progress.completed || (doctoral ? !transcript.juryMention : !final)) {
       throw new Error(
@@ -1151,6 +1265,7 @@ async function enrollUnitsFor(
   for (const record of records) {
     attempts.set(record.unitId, Math.max(attempts.get(record.unitId) ?? 0, record.attempt));
   }
+  const shifts = await programShifts(db, schoolId, programId, yearId, [studentId]);
   const { data: inserted, error } = await db
     .from("course_unit_enrollments")
     .insert(
@@ -1160,6 +1275,10 @@ async function enrollUnitsFor(
         academic_year_id: yearId,
         program_id: programId,
         program_subject_id: unit.id,
+        class_group_id: defaultShift(
+          shifts.groupsOf.get(studentId) ?? [],
+          shifts.offerings.get(unit.subjectId) ?? [],
+        ),
         semester: academicSemesterOf(unit.semester),
         credits: unit.credits,
         attempt: (attempts.get(unit.id) ?? 0) + 1,
@@ -1184,9 +1303,9 @@ export const enrollStudentUnits = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        unitIds: z.array(z.string().uuid()).min(1).max(30),
+        programId: z.string().guid(),
+        studentId: z.string().guid(),
+        unitIds: z.array(z.string().guid()).min(1).max(30),
       })
       .parse(input),
   )
@@ -1240,9 +1359,9 @@ export const enrollCohort = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
+        programId: z.string().guid(),
         semester: z.number().int().min(1).max(14),
-        studentIds: z.array(z.string().uuid()).min(1).max(400),
+        studentIds: z.array(z.string().guid()).min(1).max(400),
       })
       .parse(input),
   )
@@ -1265,7 +1384,10 @@ export const enrollCohort = createServerFn({ method: "POST" })
     const candidates = units.filter((unit) => unit.semester === data.semester);
     if (!candidates.length) throw new Error("O plano não tem cadeiras neste semestre.");
     const indebted = await assertEnrollmentAllowed(db, schoolId, regulation, studentIds);
-    const { data: recordRows, error: recordsError } = await db
+    // Por páginas: cada estudante tem vários registos e o servidor devolve no máximo
+    // 1000 linhas — com o histórico cortado, havia quem fosse inscrito outra vez em
+    // cadeiras já feitas e sem as precedências confirmadas.
+    const { data: recordRows, error: recordsError } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
       .eq("school_id", schoolId)
@@ -1280,6 +1402,7 @@ export const enrollCohort = createServerFn({ method: "POST" })
       recordsByStudent.set(str(row.student_id), list);
     }
 
+    const shifts = await programShifts(db, schoolId, data.programId, yearId, studentIds);
     const inserts: Row[] = [];
     const skipped: Array<{ studentId: string; unit: string; reasons: string[] }> = [];
     let studentsEnrolled = 0;
@@ -1316,6 +1439,10 @@ export const enrollCohort = createServerFn({ method: "POST" })
           academic_year_id: yearId,
           program_id: data.programId,
           program_subject_id: unit.id,
+          class_group_id: defaultShift(
+            shifts.groupsOf.get(studentId) ?? [],
+            shifts.offerings.get(unit.subjectId) ?? [],
+          ),
           semester: academicSemesterOf(unit.semester),
           credits: unit.credits,
           attempt: attempt + 1,
@@ -1352,7 +1479,7 @@ export const cancelUnitEnrollment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
     z
-      .object({ enrollmentId: z.string().uuid(), reason: z.string().trim().min(3).max(300) })
+      .object({ enrollmentId: z.string().guid(), reason: z.string().trim().min(3).max(300) })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -1412,7 +1539,7 @@ export const cancelUnitEnrollment = createServerFn({ method: "POST" })
  */
 export const listStalePendingEnrollments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -1484,7 +1611,7 @@ export const correctUnitResult = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        enrollmentId: z.string().uuid(),
+        enrollmentId: z.string().guid(),
         finalGrade: z.number().min(0).max(20),
         reason: z.string().trim().min(5).max(500),
       })
@@ -1554,9 +1681,9 @@ export const recordDoctoralDecision = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        unitId: z.string().uuid(),
+        programId: z.string().guid(),
+        studentId: z.string().guid(),
+        unitId: z.string().guid(),
         mention: z.enum(["aprovado", "distincao", "distincao_louvor"]),
         note: z.string().trim().min(5).max(400),
       })
@@ -1609,9 +1736,9 @@ export const grantUnitExemption = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        studentId: z.string().uuid(),
-        unitId: z.string().uuid(),
+        programId: z.string().guid(),
+        studentId: z.string().guid(),
+        unitId: z.string().guid(),
         reason: z.string().trim().min(5).max(500),
       })
       .parse(input),
@@ -1673,26 +1800,29 @@ export const grantUnitExemption = createServerFn({ method: "POST" })
 // ── Lançamento por época ───────────────────────────────────────────────────
 
 const resultInput = z.object({
-  programId: z.string().uuid(),
-  studentId: z.string().uuid(),
-  unitId: z.string().uuid(),
+  programId: z.string().guid(),
+  studentId: z.string().guid(),
+  unitId: z.string().guid(),
   season: z.enum(EXAM_SEASONS),
   frequency: z.number().min(0).max(20).nullable().optional(),
   exam: z.number().min(0).max(20).nullable().optional(),
   absencePercent: z.number().min(0).max(100).nullable().optional(),
 });
 
-/** O professor que dá a cadeira (numa turma do curso) também lança. */
-async function canLaunchUnit(
+/**
+ * Quem lança a cadeira e em que turnos: a coordenação em todos; o professor nas turmas
+ * do curso onde dá a disciplina (`class_subjects`).
+ */
+async function launchScope(
   db: Db,
   membership: { schoolId: string; appRole: string; allAppRoles?: string[] },
   userId: string,
   programId: string,
   subjectId: string,
-) {
+): Promise<LaunchScope> {
   const roles = membership.allAppRoles ?? [membership.appRole];
-  if (roles.some((role) => (OFFICE as readonly string[]).includes(role))) return true;
-  if (!roles.includes("Professor")) return false;
+  if (roles.some((role) => (OFFICE as readonly string[]).includes(role))) return { all: true };
+  if (!roles.includes("Professor")) return NO_LAUNCH;
   const { data: teacher } = await db
     .from("teachers")
     .select("id")
@@ -1700,31 +1830,32 @@ async function canLaunchUnit(
     .eq("user_id", userId)
     .eq("status", "active")
     .maybeSingle();
-  if (!teacher?.id) return false;
+  if (!teacher?.id) return NO_LAUNCH;
   const { data: grades } = await db
     .from("grade_levels")
     .select("id")
     .eq("school_id", membership.schoolId)
     .eq("program_id", programId);
   const gradeIds = (grades ?? []).map((g) => str(g.id));
-  if (!gradeIds.length) return false;
+  if (!gradeIds.length) return NO_LAUNCH;
   const { data: groups } = await db
     .from("class_groups")
     .select("id")
     .eq("school_id", membership.schoolId)
     .in("grade_level_id", gradeIds);
   const groupIds = (groups ?? []).map((g) => str(g.id));
-  if (!groupIds.length) return false;
-  const { data: assignment } = await db
+  if (!groupIds.length) return NO_LAUNCH;
+  const { data: assignments } = await db
     .from("class_subjects")
-    .select("id")
+    .select("class_group_id")
     .eq("school_id", membership.schoolId)
     .eq("subject_id", subjectId)
     .eq("teacher_id", str(teacher.id))
-    .in("class_group_id", groupIds)
-    .limit(1)
-    .maybeSingle();
-  return Boolean(assignment);
+    .in("class_group_id", groupIds);
+  return {
+    all: false,
+    groups: new Set((assignments ?? []).map((a) => str(a.class_group_id))),
+  };
 }
 
 export const recordUnitResult = createServerFn({ method: "POST" })
@@ -1746,7 +1877,8 @@ export const recordUnitResult = createServerFn({ method: "POST" })
     ]);
     const unit = units.find((u) => u.id === data.unitId);
     if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
-    if (!(await canLaunchUnit(db, membership, context.userId, data.programId, unit.subjectId))) {
+    const scope = await launchScope(db, membership, context.userId, data.programId, unit.subjectId);
+    if (!canLaunchAny(scope)) {
       throw new Error("Só a coordenação ou o professor desta cadeira lança as notas.");
     }
     const records = rows.map((row) => row.record);
@@ -1755,6 +1887,9 @@ export const recordUnitResult = createServerFn({ method: "POST" })
     const latestRow = unitRows.find((row) => row.record === latestRecord);
     if (!latestRow || !latestRecord)
       throw new Error("O estudante não está inscrito nesta cadeira.");
+    if (!shiftVisible(scope, latestRow.shift)) {
+      throw new Error("Este estudante tem a cadeira noutro turno: lança o professor desse turno.");
+    }
 
     let patch: Row;
     if (data.season === "frequencia") {
@@ -1815,6 +1950,9 @@ export const recordUnitResult = createServerFn({ method: "POST" })
               : "Melhoria só depois de aprovar a cadeira, uma vez, se o regulamento a permitir.",
         );
       }
+      // Uma época de exame precisa da nota do exame (a normal, sem ela, aprovava pela
+      // frequência quem não fez o exame).
+      if (data.exam == null) throw new Error("Indique a nota do exame.");
       const frequency = season === "normal" ? latestRecord.finalGrade : null;
       const result = seasonResult({
         season,
@@ -1984,7 +2122,7 @@ export const listLaunchableUnits = createServerFn({ method: "GET" })
 export const getUnitSheet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ programId: z.string().uuid(), unitId: z.string().uuid() }).parse(input),
+    z.object({ programId: z.string().guid(), unitId: z.string().guid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
@@ -1999,7 +2137,8 @@ export const getUnitSheet = createServerFn({ method: "GET" })
     ]);
     const unit = units.find((u) => u.id === data.unitId);
     if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
-    if (!(await canLaunchUnit(db, membership, context.userId, data.programId, unit.subjectId))) {
+    const scope = await launchScope(db, membership, context.userId, data.programId, unit.subjectId);
+    if (!canLaunchAny(scope)) {
       throw new Error("Só a coordenação ou o professor desta cadeira vê esta pauta.");
     }
     const { data: inUnit, error: inUnitError } = await db
@@ -2012,6 +2151,7 @@ export const getUnitSheet = createServerFn({ method: "GET" })
     if (inUnitError) throw publicDatabaseError(inUnitError, "Não foi possível carregar a pauta.");
     const studentIds = [...new Set((inUnit ?? []).map((row) => str(row.student_id)))];
     const yearId = await activeYearId(db, schoolId);
+    const shifts = await programShifts(db, schoolId, data.programId, yearId);
     const [{ data: school }, { data: year }] = await Promise.all([
       db.from("schools").select("name, commercial_name, logo_url").eq("id", schoolId).maybeSingle(),
       yearId
@@ -2032,12 +2172,19 @@ export const getUnitSheet = createServerFn({ method: "GET" })
         logoUrl: school?.logo_url ? str(school.logo_url) : null,
       },
       yearName: year?.name ? str(year.name) : null,
+      canAssignShift: scope.all,
     };
-    if (!studentIds.length) return { ...base, rows: [] };
+    // Turnos onde a cadeira é dada; o professor só vê os seus.
+    const offered = (shifts.offerings.get(unit.subjectId) ?? [])
+      .filter((id) => scope.all || scope.groups.has(id))
+      .map((id) => ({ id, name: shifts.groupName.get(id) ?? "Turma" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt"));
+    if (!studentIds.length) return { ...base, shifts: offered, rows: [] };
 
     // O histórico completo de cada estudante no curso: a época especial depende
     // de quantas cadeiras lhe faltam no plano, não só desta.
-    const { data: recordRows, error } = await db
+    // Por páginas (ver enrollCohort): com o histórico cortado, estudantes saíam da pauta.
+    const { data: recordRows, error } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select(RECORD_COLUMNS)
       .eq("school_id", schoolId)
@@ -2045,9 +2192,12 @@ export const getUnitSheet = createServerFn({ method: "GET" })
       .in("student_id", studentIds);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar a pauta.");
     const byStudent = new Map<string, UnitRecord[]>();
+    const shiftOf = new Map<UnitRecord, string | null>();
     for (const row of (recordRows ?? []) as Row[]) {
       const list = byStudent.get(str(row.student_id)) ?? [];
-      list.push(toRecord(row));
+      const record = toRecord(row);
+      shiftOf.set(record, row.class_group_id ? str(row.class_group_id) : null);
+      list.push(record);
       byStudent.set(str(row.student_id), list);
     }
     const { data: students } = await db
@@ -2083,6 +2233,7 @@ export const getUnitSheet = createServerFn({ method: "GET" })
           name: nameOf.get(str(student.person_id)) || "Estudante",
           number: student.student_number ? str(student.student_number) : null,
           workerStudent: status.workerStudent,
+          shift: latest ? (shiftOf.get(latest) ?? null) : null,
           latest: latest
             ? {
                 status: latest.status,
@@ -2101,8 +2252,72 @@ export const getUnitSheet = createServerFn({ method: "GET" })
         };
       })
       .filter((row) => row.latest && row.latest.status !== "anulado")
+      .filter((row) => shiftVisible(scope, row.shift))
+      .map((row) => ({
+        ...row,
+        shiftName: row.shift ? (shifts.groupName.get(row.shift) ?? "Outra turma") : null,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name, "pt"));
-    return { ...base, rows };
+    return { ...base, shifts: offered, rows };
+  });
+
+/**
+ * Troca de turno: a secretaria põe a inscrição do estudante na cadeira noutra turma que
+ * a dá (ou sem turno). Só a inscrição mais recente, se não estiver anulada.
+ */
+export const setUnitShift = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        programId: z.string().guid(),
+        unitId: z.string().guid(),
+        studentId: z.string().guid(),
+        classGroupId: z.string().guid().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await officeMembership(context, "write");
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const [{ units }, rows] = await Promise.all([
+      loadPlan(db, schoolId, data.programId),
+      loadRecords(db, schoolId, data.studentId, data.programId),
+    ]);
+    const unit = units.find((u) => u.id === data.unitId);
+    if (!unit) throw new Error("Cadeira não encontrada no plano deste curso.");
+    const latestRecord = latestRecordByUnit(rows.map((row) => row.record)).get(unit.id);
+    const latestRow = rows.find((row) => row.record === latestRecord);
+    if (!latestRow || !latestRecord || latestRecord.status === "anulado") {
+      throw new Error("O estudante não está inscrito nesta cadeira.");
+    }
+    if (data.classGroupId) {
+      const shifts = await programShifts(
+        db,
+        schoolId,
+        data.programId,
+        await activeYearId(db, schoolId),
+      );
+      if (!(shifts.offerings.get(unit.subjectId) ?? []).includes(data.classGroupId)) {
+        throw new Error("Essa turma não dá esta cadeira no ano lectivo activo.");
+      }
+    }
+    if (latestRow.shift === data.classGroupId) return { shift: data.classGroupId };
+    const { error } = await db
+      .from("course_unit_enrollments")
+      .update({ class_group_id: data.classGroupId, updated_by: context.userId })
+      .eq("school_id", schoolId)
+      .eq("id", latestRow.id);
+    if (error) throw publicDatabaseError(error, "Não foi possível mudar o turno.");
+    await audit(db, {
+      schoolId,
+      actor: context.userId,
+      action: "higher_ed.unit.shift_changed",
+      entityId: latestRow.id,
+      metadata: { before: latestRow.shift, after: data.classGroupId },
+    });
+    return { shift: data.classGroupId };
   });
 
 // ── Portal do estudante e do encarregado ───────────────────────────────────
@@ -2115,7 +2330,7 @@ export const getUnitSheet = createServerFn({ method: "GET" })
 export const getMyHigherEd = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ studentId: z.string().uuid().optional() }).parse(input ?? {}),
+    z.object({ studentId: z.string().guid().optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     const visible = await resolveVisibleStudent(context.userId, data.studentId);
@@ -2319,8 +2534,8 @@ export const enrollMyUnits = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        programId: z.string().uuid(),
-        unitIds: z.array(z.string().uuid()).min(1).max(30),
+        programId: z.string().guid(),
+        unitIds: z.array(z.string().guid()).min(1).max(30),
       })
       .parse(input),
   )
@@ -2367,7 +2582,7 @@ type ApplicationPayload = {
 /** Candidatos a um curso, seriados pela nota do exame de acesso e cortados nas vagas. */
 export const getAccessRanking = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ programId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ programId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await officeMembership(context, "read");
     const db = await loadSgaAdminClient();
@@ -2412,7 +2627,7 @@ export const setApplicationAccessScore = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        applicationId: z.string().uuid(),
+        applicationId: z.string().guid(),
         score: z.number().min(0).max(20).nullable(),
       })
       .parse(input),
@@ -2480,7 +2695,7 @@ const REGIME_TEXT = { regular: "Regular", pos_laboral: "Pós-laboral" } as const
 
 /**
  * Ficheiro Excel com as bases que o GEPE/MESCTI recolhe pelo SISIES e que o
- * SIGA conhece: Vagas, Acesso, Matrículas e Graduados (por curso, no ano activo).
+ * SIGA conhece: Vagas, Acesso, Matrículas, Graduados e Bolsas (por curso, no ano activo).
  */
 export const exportSisiesWorkbook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -2546,6 +2761,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
         )
       : [];
     const enrolledStudentIds = new Set(enrollments.map((e) => str(e.student_id)));
+    const studentIds = [...enrolledStudentIds];
     const students: Row[] = enrolledStudentIds.size
       ? (
           await selectAllPages<Row>(
@@ -2592,8 +2808,9 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
       enrolledBy.set(programId, count);
     }
 
-    // Bolsas: matrículas do ano com desconto no contrato financeiro (bolsa ou
-    // desconto do aluno, finance/scholarship-server.ts), por curso e sexo.
+    // Bolsas: matrículas do ano com desconto — o do contrato financeiro
+    // (finance/scholarship-server.ts) ou uma bolsa em vigor (`student_scholarships`,
+    // finance/student-scholarship-server.ts). Conta o maior, como na emissão das faturas.
     const enrollmentRows = (enrollments ?? []) as Row[];
     const discountOf = new Map<string, number>();
     for (let start = 0; start < enrollmentRows.length; start += 300) {
@@ -2611,12 +2828,37 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
         discountOf.set(str(contract.enrollment_id), Number(contract.discount_percentage ?? 0));
       }
     }
+    const { data: scholarshipRows } = studentIds.length
+      ? await db
+          .from("student_scholarships")
+          .select("student_id, percent, scope, valid_from, valid_until, revoked_at")
+          .eq("school_id", schoolId)
+          .in("student_id", studentIds)
+          .is("revoked_at", null)
+      : { data: [] };
+    const today = schoolTodayIso();
+    const scholarshipOf = new Map<string, number>();
+    for (const row of (scholarshipRows ?? []) as Row[]) {
+      const scholarship = {
+        percent: Number(row.percent),
+        scope: str(row.scope),
+        valid_from: str(row.valid_from),
+        valid_until: row.valid_until ? str(row.valid_until) : null,
+        revoked_at: null,
+      };
+      if (!scholarshipInForce(scholarship, today)) continue;
+      const id = str(row.student_id);
+      scholarshipOf.set(id, Math.max(scholarshipOf.get(id) ?? 0, scholarship.percent));
+    }
     const scholarsBy = new Map<
       string,
       { total: number; m: number; f: number; percents: number[] }
     >();
     for (const enrollment of enrollmentRows) {
-      const percent = discountOf.get(str(enrollment.id));
+      const percent = effectiveDiscountPercent(
+        discountOf.get(str(enrollment.id)) ?? 0,
+        scholarshipOf.get(str(enrollment.student_id)) ?? 0,
+      );
       if (!percent) continue;
       const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
       if (!grade) continue;
@@ -2652,28 +2894,49 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     // Graduados: estudantes com todas as cadeiras do plano concluídas.
     const regulation = await regulationOf(db, schoolId);
     const graduatesBy = new Map<string, { total: number; averages: number[] }>();
-    for (const programId of programIds) {
-      const { units } = await loadPlan(db, schoolId, programId);
-      if (!units.length) continue;
-      const { data: recordRows } = await db
-        .from("course_unit_enrollments")
-        .select(RECORD_COLUMNS)
-        .eq("school_id", schoolId)
-        .eq("program_id", programId)
-        .limit(50000);
-      const byStudent = new Map<string, UnitRecord[]>();
-      for (const row of (recordRows ?? []) as Row[]) {
-        const list = byStudent.get(str(row.student_id)) ?? [];
-        list.push(toRecord(row));
-        byStudent.set(str(row.student_id), list);
+    // Antes: 4 consultas por curso (3 do plano + as inscrições), e o `limit(50000)`
+    // por curso cortava em silêncio uma escola grande. Agora são 2 consultas para
+    // todos os planos e páginas de 1000 até acabarem, sem tecto escondido.
+    const unitsByProgram = await loadPlanUnitsByProgram(db, schoolId, programIds);
+    const recordsByProgram = new Map<string, Map<string, UnitRecord[]>>();
+    const RECORD_PAGE = 1000;
+    for (let start = 0; start < programIds.length; start += 300) {
+      const slice = programIds.slice(start, start + 300);
+      for (let from = 0; ; from += RECORD_PAGE) {
+        const { data, error } = await db
+          .from("course_unit_enrollments")
+          .select(`${RECORD_COLUMNS}, program_id`)
+          // `order` fixo: sem ele a paginação pode repetir ou saltar linhas.
+          .order("id")
+          .eq("school_id", schoolId)
+          .in("program_id", slice)
+          .range(from, from + RECORD_PAGE - 1);
+        if (error)
+          throw publicDatabaseError(error, "Não foi possível carregar as inscrições em cadeiras.");
+        const page = (data ?? []) as Row[];
+        for (const row of page) {
+          const programId = str(row.program_id);
+          const byStudent = recordsByProgram.get(programId) ?? new Map<string, UnitRecord[]>();
+          const studentId = str(row.student_id);
+          const list = byStudent.get(studentId) ?? [];
+          list.push(toRecord(row));
+          byStudent.set(studentId, list);
+          recordsByProgram.set(programId, byStudent);
+        }
+        if (page.length < RECORD_PAGE) break;
       }
+    }
+    for (const programId of programIds) {
+      const units = unitsByProgram.get(programId) ?? [];
+      if (!units.length) continue;
+      const byStudent = recordsByProgram.get(programId) ?? new Map<string, UnitRecord[]>();
       const entry = { total: 0, averages: [] as number[] };
       for (const records of byStudent.values()) {
         const done = completedUnitIds(records);
         if (!units.every((unit) => done.has(unit.id))) continue;
         entry.total += 1;
         const final = finalClassification(
-          studentProgress({ plan: units, records, regulation }).average,
+          studentProgress({ plan: units, records, regulation }).averageExact,
         );
         if (final) entry.averages.push(final.value);
       }

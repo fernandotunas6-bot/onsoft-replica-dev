@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo, useRef, useCallback, useState } from "react";
+import { useBlocker } from "@tanstack/react-router";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import {
   Building2,
   CreditCard,
@@ -32,6 +34,18 @@ import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaig
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { actionIcons } from "@/lib/app-icons";
+
+const WebsiteSettingsPanel = lazy(() =>
+  import("@/features/school-website/WebsiteSettingsPanel").then((module) => ({
+    default: module.WebsiteSettingsPanel,
+  })),
+);
+const BlogSettingsPanel = lazy(() =>
+  import("@/features/school-website/BlogSettingsPanel").then((module) => ({
+    default: module.BlogSettingsPanel,
+  })),
+);
 
 /**
  * Centro único de configurações do SIGA: tudo o que antes vivia espalhado
@@ -75,6 +89,20 @@ function useSettingsPanels(): StackPanel[] {
             icon: Link2,
             tone: "info",
             to: "matricula",
+          },
+          {
+            label: "Website escolar",
+            description: "Conteúdos, publicação e ligação ao site",
+            icon: Globe,
+            tone: "info",
+            to: "website",
+          },
+          {
+            label: "Blog da escola",
+            description: "Artigos, rascunhos e publicação no website",
+            icon: actionIcons.edit,
+            tone: "info",
+            to: "website.blog",
           },
           {
             label: "Destaques",
@@ -174,6 +202,30 @@ function useSettingsPanels(): StackPanel[] {
         render: () => <DigitalIdentityPanel />,
       },
       {
+        id: "website",
+        title: "Website escolar",
+        description: "Edite e publique os conteúdos públicos a partir do SIGA Plus.",
+        icon: Globe,
+        tone: "info",
+        render: () => (
+          <Suspense fallback={<p role="status">A carregar o editor…</p>}>
+            <WebsiteSettingsPanel />
+          </Suspense>
+        ),
+      },
+      {
+        id: "website.blog",
+        title: "Blog da escola",
+        description: "Notícias e artigos públicos da sua instituição.",
+        icon: actionIcons.edit,
+        tone: "info",
+        render: () => (
+          <Suspense fallback={<p role="status">A carregar o blog…</p>}>
+            <BlogSettingsPanel />
+          </Suspense>
+        ),
+      },
+      {
         id: "pedagogico",
         title: "Pedagógico",
         description: "Níveis de ensino, cursos do II ciclo e disciplinas do currículo.",
@@ -255,12 +307,25 @@ export function SettingsCenter({
   open,
   onOpenChange,
   initialPanelId,
+  presentation = "modal",
 }: {
+  presentation?: "page" | "modal";
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialPanelId?: string | undefined;
 }) {
   const panels = useSettingsPanels();
+  const [dirty, setDirty] = useState(false);
+  const dirtyRef = useRef(false);
+  const reportDirty = useCallback((value: boolean) => {
+    dirtyRef.current = value;
+    setDirty(value);
+  }, []);
+  useBlocker({
+    disabled: presentation !== "page" || !dirty,
+    enableBeforeUnload: presentation === "page" && dirty,
+    shouldBlockFn: () => !confirmDiscardChanges(dirtyRef.current),
+  });
   return (
     <StackedModal
       open={open}
@@ -268,7 +333,9 @@ export function SettingsCenter({
       panels={panels}
       rootId="root"
       eyebrow="SIGA"
-      size="xl"
+      size="lg"
+      presentation={presentation}
+      onDirtyChange={reportDirty}
       initialPanelId={initialPanelId}
     />
   );

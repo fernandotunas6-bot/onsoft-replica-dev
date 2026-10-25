@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceNetTotal, invoiceStatusFromPaid } from "./invoice-settlement";
 import { lateFeeFor, todayIso } from "./late-fee";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingFunction, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 import {
   referencesMatch,
@@ -511,14 +511,6 @@ async function finishGatewaySettlement(
     invoiceStatus: result.invoiceStatus,
     planSettled,
   };
-}
-
-function isMissingFunction(error: { code?: string; message?: string }) {
-  return (
-    error.code === "PGRST202" ||
-    error.code === "42883" ||
-    /could not find the function|function .* does not exist/i.test(error.message ?? "")
-  );
 }
 
 /**

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ENROLLMENT_2FA_MESSAGE,
   assertClassAcceptsEnrollment,
+  enrollmentWindow,
   isRpcAuthDenied,
   placeStudentInClass,
   studentStatusAfterPlacement,
@@ -230,6 +231,16 @@ describe("colocar em turma", () => {
     expect(rpc).not.toHaveBeenCalled();
     expect(store.writes).toEqual([]);
   });
+
+  it("sem 2FA, mudar de turma também é recusado, sem escrever (A3)", async () => {
+    const store = fixture({ status: "active" }, [
+      { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
+    ]);
+    const rpc = enrollRpc(store);
+    await expect(place(store, rpc, { hasAal2: false })).rejects.toThrow(ENROLLMENT_2FA_MESSAGE);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(store.writes).toEqual([]);
+  });
 });
 
 describe("estado depois da colocação", () => {
@@ -268,7 +279,7 @@ describe("turma validada antes de criar o aluno", () => {
     const store = fixture({ status: "applicant" });
     await expect(
       assertClassAcceptsEnrollment(store.db, { schoolId: SCHOOL, classGroupId: "turma-velha" }),
-    ).rejects.toThrow(/2025\/2026 não está activo/);
+    ).rejects.toThrow(/2025\/2026 está fechado/);
     await expect(
       assertClassAcceptsEnrollment(store.db, {
         schoolId: SCHOOL,
@@ -279,59 +290,32 @@ describe("turma validada antes de criar o aluno", () => {
   });
 });
 
-describe("ciclo de matrículas na colocação em turma", () => {
-  const inClasses = (store: ReturnType<typeof fixture>) => {
-    store.tables["terms"] = [
-      {
-        school_id: SCHOOL,
-        academic_year_id: YEAR,
-        name: "1.º Trimestre",
-        starts_on: "2000-01-01",
-        ends_on: "2999-12-31",
-      },
-    ];
-    return store;
-  };
+describe("matrícula antecipada (A2, igual a enroll_student)", () => {
+  const year = { name: "2027/2028", status: "draft", startsOn: "2027-09-01", endsOn: "2028-07-31" };
 
-  it("durante as aulas, a Secretaria não matricula (e nada é escrito)", async () => {
-    const store = inClasses(fixture({ status: "applicant" }));
-    const rpc = enrollRpc(store);
-    await expect(place(store, rpc)).rejects.toThrow(/Só a Administração/);
-    expect(rpc).not.toHaveBeenCalled();
-    expect(store.writes).toEqual([]);
-  });
-
-  it("a Administração matricula fora do ciclo com motivo", async () => {
-    const store = inClasses(fixture({ status: "applicant" }));
-    const rpc = enrollRpc(store);
-    await expect(place(store, rpc, { appRole: "Administrador" })).rejects.toThrow(
-      /indique o motivo/,
-    );
-    await place(store, rpc, {
-      appRole: "Administrador",
-      overrideReason: "Transferência autorizada pela direcção",
+  it("aceita o ano em preparação até 183 dias antes, com a data de início do ano", () => {
+    expect(enrollmentWindow(year, "2027-08-20")).toEqual({
+      ok: true,
+      enrolledOn: "2027-09-01",
+      early: true,
     });
-    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(enrollmentWindow(year, "2027-03-02").ok).toBe(true); // 183 dias antes
+    expect(enrollmentWindow(year, "2027-03-01").ok).toBe(false); // 184 dias antes
   });
 
-  it("mudar de turma não é matrícula nova: continua possível durante as aulas", async () => {
-    const store = inClasses(
-      fixture({ status: "active" }, [
-        { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
-      ]),
-    );
-    const result = await place(store, enrollRpc(store));
-    expect(result.moved).toBe(true);
+  it("dentro do ano grava a data pedida; depois do fim recusa", () => {
+    expect(enrollmentWindow({ ...year, status: "active" }, "2027-10-05")).toEqual({
+      ok: true,
+      enrolledOn: "2027-10-05",
+      early: false,
+    });
+    expect(enrollmentWindow(year, "2028-08-01").ok).toBe(false);
   });
 
-  it("matrícula antes de o ano começar vale desde o primeiro dia do ano", async () => {
-    const store = fixture({ status: "applicant" });
-    store.tables["academic_years"]![0]!["starts_on"] = "2999-09-01";
-    const rpc = enrollRpc(store);
-    await place(store, rpc);
-    expect(rpc).toHaveBeenCalledWith(
-      "enroll_student",
-      expect.objectContaining({ enrolled_on: "2999-09-01" }),
-    );
+  it("ano fechado ou arquivado continua recusado", () => {
+    for (const status of ["closed", "archived"]) {
+      const result = enrollmentWindow({ ...year, status }, "2027-10-05");
+      expect(result.ok).toBe(false);
+    }
   });
 });

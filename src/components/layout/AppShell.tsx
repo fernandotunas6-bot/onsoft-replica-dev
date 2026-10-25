@@ -2,7 +2,7 @@ import {
   PersonalNotificationsList,
   usePersonalNotifications,
 } from "@/features/notifications/PersonalNotificationsList";
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useCallback, useMemo, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 
@@ -26,6 +26,7 @@ import {
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
+import { EnvironmentSwitcher } from "./EnvironmentSwitcher";
 import { DesktopNotifications } from "./DesktopNotifications";
 import { CommandPalette, requestOpenCommandPalette } from "./CommandPalette";
 import { TopbarCalendar } from "./TopbarCalendar";
@@ -54,6 +55,8 @@ import { useNavigationMemory } from "@/features/auth/use-navigation-memory";
 import { useAppearance } from "@/lib/appearance";
 import { cn } from "@/lib/utils";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { getPortalNavigation } from "@/features/auth/portal-engine";
+import { getNavigationContext } from "@/features/auth/contextual-navigation";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { useTenant } from "@/features/saas/tenant-context";
 import { planIncludesPath, trialDaysRemaining } from "@/features/saas/plan-features";
@@ -74,7 +77,7 @@ import {
 } from "@/components/mobile";
 import type { SchoolAlert } from "@/features/dashboard/alerts";
 
-const COLLAPSE_KEY = "siga:sidebar-collapsed";
+import { workspacePresentation } from "@/lib/workspace-presentation";
 const SettingsCenter = lazy(() =>
   import("@/components/modals/SettingsCenter").then(({ SettingsCenter }) => ({
     default: SettingsCenter,
@@ -92,9 +95,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const locationSearch = useRouterState({
+    select: (r) => r.location.search as Record<string, unknown>,
+  });
   const router = useRouter();
   const currentUser = useCurrentAccount();
   const { activePlan, activeTenant } = useTenant();
+  const navigationGroups = useMemo(
+    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
+    [currentUser.role, currentUser.grants, activePlan],
+  );
+  const navigationContext = getNavigationContext(navigationGroups, pathname, locationSearch);
   const trialDaysLeft = trialDaysRemaining(activeTenant?.trial_ends_at);
   const studentCapacity = buildStudentCapacity(
     activeTenant?.active_students_count ?? 0,
@@ -122,18 +133,28 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
-  const [pinnedCollapsed, setPinnedCollapsed] = useState(false);
-  const [hoverOpen, setHoverOpen] = useState(false);
-  const hoverLeaveTimer = useRef<number>(0);
+  const presentation = workspacePresentation(school?.preferences);
+  const [sidebarOverride, setSidebarOverride] = useState<{
+    schoolId: string;
+    collapsed: boolean;
+  } | null>(null);
   const { isDark, toggleDark } = useAppearance();
   const { favorited, toggleFavorite, current: navCurrent } = useNavigationMemory();
   const [accountOpen, setAccountOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPanelId, setSettingsPanelId] = useState<string | undefined>(undefined);
-  const openSettings = (panelId?: string) => {
-    setSettingsPanelId(panelId);
-    setSettingsOpen(true);
-  };
+  const openSettings = useCallback(
+    (panelId?: string) => {
+      if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
+      if (!presentation.settingsModal) {
+        void router.navigate({ to: "/configuracoes", search: { painel: panelId } });
+        return;
+      }
+      setSettingsPanelId(panelId);
+      setSettingsOpen(true);
+    },
+    [currentUser.role, currentUser.grants, presentation.settingsModal, router],
+  );
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<"politicas" | "termos" | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -146,37 +167,25 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const [contextOpen, setContextOpen] = useState(false);
 
   useEffect(() => {
-    // O sidebar deve sempre iniciar expandido
-    const stored = localStorage.getItem(COLLAPSE_KEY);
-    if (stored === "1") {
-      setPinnedCollapsed(true);
-    } else {
-      setPinnedCollapsed(false);
-    }
-    return () => window.clearTimeout(hoverLeaveTimer.current);
-  }, []);
-
-  useEffect(() => {
     const panelId = consumeSettingsOpen();
     if (
       panelId !== undefined &&
       canAccessPath("/configuracoes", currentUser.role, currentUser.grants)
     ) {
-      setSettingsPanelId(panelId);
-      setSettingsOpen(true);
+      openSettings(panelId);
     }
-  }, [currentUser.role, currentUser.grants]);
+  }, [currentUser.role, currentUser.grants, openSettings, school?.id]);
 
   useEffect(() => {
     const onOpenSettings = (event: Event) => {
       if (!canAccessPath("/configuracoes", currentUser.role, currentUser.grants)) return;
       const panelId = (event as CustomEvent<{ panelId?: string }>).detail?.panelId;
-      setSettingsPanelId(panelId);
-      setSettingsOpen(true);
+      openSettings(panelId);
+      event.preventDefault();
     };
     window.addEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
     return () => window.removeEventListener(OPEN_SETTINGS_EVENT, onOpenSettings);
-  }, [currentUser.role, currentUser.grants]);
+  }, [currentUser.role, currentUser.grants, openSettings, school?.id]);
 
   useEffect(() => {
     // As folhas mobile têm de fechar na navegação: um toque no hub "Mais"
@@ -189,7 +198,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     if (!activePlan || pathname === "/" || pathname.startsWith("/api/")) return;
     if (!planIncludesPath(pathname, activePlan)) {
       toast.error("Este módulo não está incluído no plano da sua escola.");
-      void router.navigate({ to: "/" });
+      void router.navigate({ to: "/portal" });
     }
   }, [pathname, activePlan, router]);
 
@@ -215,13 +224,14 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     });
   }, [router, currentUser.role, currentUser.grants]);
 
-  const collapsed = pinnedCollapsed && !hoverOpen;
+  const collapsed =
+    sidebarOverride && sidebarOverride.schoolId === school?.id
+      ? sidebarOverride.collapsed
+      : !presentation.expandedSidebar;
 
-  const toggleCollapsed = () =>
-    setPinnedCollapsed((c) => {
-      localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
-      return !c;
-    });
+  const toggleCollapsed = () => {
+    if (school?.id) setSidebarOverride({ schoolId: school.id, collapsed: !collapsed });
+  };
 
   const selectYear = (yearId: string) => {
     if (yearId === "fallback") return;
@@ -247,7 +257,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background lg:bg-sidebar">
       <OfflineBanner />
       <DesktopNotifications />
       <div className="flex flex-1 min-h-0">
@@ -255,16 +265,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           Saltar para o conteúdo principal
         </a>
 
-        <div
-          className="sticky top-0 z-40 hidden h-screen lg:block lg:py-2 lg:pl-2"
-          onMouseEnter={() => {
-            window.clearTimeout(hoverLeaveTimer.current);
-            setHoverOpen(true);
-          }}
-          onMouseLeave={() => {
-            hoverLeaveTimer.current = window.setTimeout(() => setHoverOpen(false), 220);
-          }}
-        >
+        <div className="sticky top-0 z-40 hidden h-screen lg:block">
           <AppSidebar
             collapsed={collapsed}
             className="h-full"
@@ -272,7 +273,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col lg:my-2 lg:mx-2 lg:overflow-clip lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+        {/* A superfície principal desenha as curvas côncavas da sidebar na junção. */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background lg:overflow-clip lg:rounded-l-2xl">
           {/*
               Header mobile (§10): substitui o header de computador abaixo de
               1024px. O de computador continua igual — os dez controlos do topo
@@ -280,6 +282,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           */}
           <MobileHeader
             title={navCurrent.label}
+            moduleLabel={navigationContext?.title}
             noticeCount={noticeCount}
             onOpenContext={() => setContextOpen(true)}
             onOpenSearch={() => requestOpenCommandPalette()}
@@ -287,7 +290,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="app-topbar sticky top-0 z-30 hidden h-16 items-center gap-3 border-b border-border/50 px-6 lg:flex">
+          <header className="sticky top-0 z-30 hidden h-14 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card px-3 lg:flex xl:gap-2 xl:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -298,13 +301,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               <Menu className="size-5" />
             </Button>
 
+            <EnvironmentSwitcher />
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="topbar-chip flex min-w-0 max-w-[min(100%,22rem)] items-center gap-2 px-3.5 py-2 text-sm font-medium text-secondary-foreground"
+                  className="flex min-w-0 max-w-36 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 2xl:max-w-56"
                 >
-                  <span className="hidden truncate text-muted-foreground sm:inline">
+                  <span className="hidden truncate text-muted-foreground min-[1800px]:inline">
                     {school?.name ? `${school.name} · ` : ""}
                   </span>
                   <span className="truncate whitespace-nowrap font-semibold">
@@ -333,7 +338,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="topbar-chip hidden min-w-0 items-center gap-2 px-3.5 py-2 text-sm font-medium text-secondary-foreground md:flex"
+                    className="hidden min-w-0 max-w-28 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex 2xl:max-w-44"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
                     <ChevronDown className="size-4 shrink-0 opacity-60" />
@@ -369,12 +374,15 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => requestOpenCommandPalette()}
-              className="topbar-chip hidden sm:flex items-center gap-2.5 px-3.5 py-2 text-sm text-muted-foreground hover:text-foreground md:w-64 lg:w-80"
+              aria-label="Pesquisar no SIGA"
+              className="hidden items-center justify-center gap-2.5 rounded-lg border border-border/80 bg-secondary/40 px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-secondary/70 hover:text-foreground sm:flex lg:w-9 lg:shrink-0 xl:w-44 xl:justify-start xl:px-3 2xl:w-52"
               title="Pesquisa global e atalhos rápidos (Ctrl/⌘ K)"
             >
-              <Search className="size-4 opacity-60 shrink-0" />
-              <span className="truncate flex-1 text-left">Pesquisar no SIGA…</span>
-              <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground shrink-0">
+              <Search className="size-3.5 opacity-60 shrink-0" />
+              <span className="hidden min-w-0 flex-1 truncate text-left xl:block">
+                Pesquisar no SIGA…
+              </span>
+              <kbd className="pointer-events-none hidden h-4 shrink-0 select-none items-center gap-0.5 rounded border border-border/80 bg-muted/70 px-1 font-mono text-[11px] font-medium text-muted-foreground min-[1800px]:inline-flex">
                 <span className="text-[11px]">⌘</span>K
               </kbd>
             </button>
@@ -507,11 +515,13 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   </span>
                 ) : null}
               </span>
-              <span className="hidden text-left leading-tight sm:block">
-                <span className="block text-sm font-semibold">{currentUser.name}</span>
-                <span className="block text-xs text-muted-foreground">{currentUser.role}</span>
+              <span className="hidden max-w-36 min-w-0 text-left leading-tight min-[1800px]:block">
+                <span className="block truncate text-sm font-semibold">{currentUser.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {currentUser.role}
+                </span>
               </span>
-              <ChevronDown className="hidden size-4 opacity-60 sm:block" />
+              <ChevronDown className="hidden size-4 opacity-60 min-[1800px]:block" />
             </button>
 
             <AccountDrawer
@@ -526,29 +536,54 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
               <SheetContent
                 side="right"
-                className="flex w-full flex-col gap-0 p-0 sm:max-w-[420px]"
+                className="flex h-dvh w-[320px] max-w-[100vw] flex-col overflow-hidden p-4 sm:w-[360px] sm:p-6"
               >
-                <SheetHeader className="notifications-hero border-b border-border/60 px-5 pb-4 pt-5 text-left">
-                  <div className="flex items-center gap-3">
-                    <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                      <Bell className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <SheetTitle className="text-lg font-semibold tracking-tight">
-                        Notificações
-                      </SheetTitle>
-                      <p className="text-xs text-muted-foreground">
-                        {noticeCount > 0 ? `${noticeCount} por ver` : "Está tudo em dia"}
-                      </p>
-                    </div>
-                  </div>
+                <SheetHeader>
+                  <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
-
-                <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
-                  {personalCount ? (
-                    <NotificationSection title="Para si">
-                      <PersonalNotificationsList open={notificationsOpen} />
-                    </NotificationSection>
+                <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto [scrollbar-width:thin]">
+                  <PersonalNotificationsList open={notificationsOpen} />
+                  {alerts.map((alert) => (
+                    <SchoolAlertRow
+                      key={alert.id}
+                      alert={alert}
+                      onClose={() => setNotificationsOpen(false)}
+                      onOpenSettings={(panelId) => {
+                        setNotificationsOpen(false);
+                        openSettings(panelId);
+                      }}
+                    />
+                  ))}
+                  {unread.map((row) => (
+                    <button
+                      key={row.conversationId}
+                      type="button"
+                      className="flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary"
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        requestOpenConversation(row.conversationId);
+                      }}
+                    >
+                      <UserAvatar
+                        url={row.avatar_url}
+                        initials={initialsFromName(row.full_name)}
+                        className="size-9 bg-primary-soft text-xs font-bold text-primary"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">
+                          {row.full_name}
+                        </span>
+                        <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                          {row.lastBody}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                  {!alerts.length && !unread.length && !personalCount ? (
+                    <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
+                      Sem notificações novas. Candidaturas, documentos, faturas em atraso e
+                      mensagens internas aparecem aqui.
+                    </p>
                   ) : null}
                   {alerts.length ? (
                     <NotificationSection title="Escola" count={alerts.length}>
@@ -640,7 +675,9 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               </DialogContent>
             </Dialog>
 
-            {settingsOpen && canAccessPath("/configuracoes", currentUser.role) ? (
+            {presentation.settingsModal &&
+            settingsOpen &&
+            canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
               <Suspense fallback={null}>
                 <SettingsCenter
                   open={settingsOpen}
@@ -654,7 +691,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5 [content-visibility:auto]"
+            className="page-enter mx-auto w-full max-w-[1400px] flex-1 px-4 py-4 pb-bottom-nav md:px-5 md:pt-5 lg:px-6 lg:py-5 lg:pb-5"
           >
             {studentCapacity.nearLimit || studentCapacity.atLimit ? (
               <div

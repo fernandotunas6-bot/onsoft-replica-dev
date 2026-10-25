@@ -98,7 +98,7 @@ async function assertCanManageClassSubject(
   }
 }
 
-const slotInput = z.object({ slotId: z.string().uuid(), studentId: z.string().uuid().optional() });
+const slotInput = z.object({ slotId: z.string().guid(), studentId: z.string().guid().optional() });
 
 export const getLessonDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -214,7 +214,7 @@ export const getLessonDetail = createServerFn({ method: "GET" })
   });
 
 const saveDetailInput = z.object({
-  slotId: z.string().uuid(),
+  slotId: z.string().guid(),
   lessonType: z.enum(LESSON_TYPES),
   deliveryMode: z.enum(DELIVERY_MODES),
   onlineUrl: z
@@ -274,7 +274,7 @@ export const saveLessonDetail = createServerFn({ method: "POST" })
   });
 
 const createTaskInput = z.object({
-  slotId: z.string().uuid(),
+  slotId: z.string().guid(),
   kind: z.enum(TASK_KINDS),
   title: z.string().trim().min(2).max(160),
   description: z.string().trim().max(2000).optional(),
@@ -360,7 +360,7 @@ export const createClassTask = createServerFn({ method: "POST" })
 
 export const archiveClassTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ taskId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ taskId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterForWrite(
       "pedagogica",

@@ -93,7 +93,7 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
-import { proformaNumber, schoolDayOffsetIso, schoolTodayIso } from "@/lib/school-date";
+import { proformaNumber, schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
 
 const faturasFilterDefaults = {
   q: "",
@@ -716,7 +716,7 @@ function FaturasPage() {
 
     const proformaNo = proformaNumber();
     const issueDate = schoolTodayIso();
-    const dueDate = schoolDayOffsetIso(15);
+    const dueDate = schoolDateInDays(15);
     const amount = Number(values["valor"]) || 0;
     const nif = values["nif"];
 

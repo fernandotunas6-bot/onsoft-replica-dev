@@ -12,7 +12,7 @@ import { authErrorStatus } from "@/features/saas/auth-error-status";
 const APPS = ["web", "admin"] as const;
 
 const pollBodySchema = z.object({
-  domainId: z.string().uuid("domainId deve ser um UUID válido."),
+  domainId: z.string().guid("domainId deve ser um UUID válido."),
 });
 
 export const Route = createFileRoute("/api/saas/domains/poll")({

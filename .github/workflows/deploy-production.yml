@@ -49,6 +49,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      - name: Confirmar contratos dependentes de SQL antes de publicar
+        run: node scripts/siga/check-release-contracts.mjs
       - run: bun run typecheck
       - run: bun run lint
       - run: bun run test

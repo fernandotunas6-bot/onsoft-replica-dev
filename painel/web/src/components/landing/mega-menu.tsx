@@ -38,6 +38,12 @@ const menuSections = [
         href: '/#features'
       },
       {
+        title: 'Ensino público',
+        description: 'Modernizar a gestão das escolas públicas angolanas',
+        icon: Building2,
+        href: '/ensino-publico'
+      },
+      {
         title: 'App para computador',
         description: 'Windows, macOS e Linux, também sem rede',
         icon: Layout,
@@ -103,7 +109,7 @@ const menuSections = [
         href: '/#contact'
       },
       {
-        title: 'Começar',
+        title: 'Criar escola',
         description: 'Crie a escola em poucos minutos',
         icon: Zap,
         href: '/start'

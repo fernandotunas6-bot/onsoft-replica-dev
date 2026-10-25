@@ -1,0 +1,124 @@
+[
+  {
+    "label": "desktop",
+    "path": "/",
+    "status": 200,
+    "elapsed_ms": 21518,
+    "url": "http://127.0.0.1:3006/",
+    "text": "Sistema Integrado de Gestão\n\nA instituição em pleno controlo operacional.\n\nSecretaria académica, estudantes, turmas, contabilidade, propinas e relatórios integrados com segurança e rapidez.\n\nAulas presenciais e à distância\n\nA sala de aula ligada a cada aluno.\n\nAulas em directo, presenças, sumários e materiais partilhados com os estudantes onde quer que estejam.\n\nTesouraria e propinas\n\nCobranças claras, recibos imediatos.\n\nFacturas, pagamentos, caixa e extractos acompanhados em tempo real, com relatórios prontos a imprimir.\n\nPautas e avaliações\n\nNotas oficiais sem erros de cálculo.\n\nMini-pautas, pautas finais e boletins gerados automaticamente segundo as regras em vigor.\n\nAutenticação Segura\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "desktop",
+    "path": "/alunos",
+    "status": 200,
+    "elapsed_ms": 9855,
+    "url": "http://127.0.0.1:3006/alunos",
+    "text": "Sistema Integrado de Gestão\n\nA instituição em pleno controlo operacional.\n\nSecretaria académica, estudantes, turmas, contabilidade, propinas e relatórios integrados com segurança e rapidez.\n\nAulas presenciais e à distância\n\nA sala de aula ligada a cada aluno.\n\nAulas em directo, presenças, sumários e materiais partilhados com os estudantes onde quer que estejam.\n\nTesouraria e propinas\n\nCobranças claras, recibos imediatos.\n\nFacturas, pagamentos, caixa e extractos acompanhados em tempo real, com relatórios prontos a imprimir.\n\nPautas e avaliações\n\nNotas oficiais sem erros de cálculo.\n\nMini-pautas, pautas finais e boletins gerados automaticamente segundo as regras em vigor.\n\nAutenticação Segura\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "desktop",
+    "path": "/faturas",
+    "status": 200,
+    "elapsed_ms": 10044,
+    "url": "http://127.0.0.1:3006/faturas",
+    "text": "Sistema Integrado de Gestão\n\nA instituição em pleno controlo operacional.\n\nSecretaria académica, estudantes, turmas, contabilidade, propinas e relatórios integrados com segurança e rapidez.\n\nAulas presenciais e à distância\n\nA sala de aula ligada a cada aluno.\n\nAulas em directo, presenças, sumários e materiais partilhados com os estudantes onde quer que estejam.\n\nTesouraria e propinas\n\nCobranças claras, recibos imediatos.\n\nFacturas, pagamentos, caixa e extractos acompanhados em tempo real, com relatórios prontos a imprimir.\n\nPautas e avaliações\n\nNotas oficiais sem erros de cálculo.\n\nMini-pautas, pautas finais e boletins gerados automaticamente segundo as regras em vigor.\n\nAutenticação Segura\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "desktop",
+    "path": "/pedagogica",
+    "status": 200,
+    "elapsed_ms": 37323,
+    "url": "http://127.0.0.1:3006/pedagogica",
+    "text": "Sistema Integrado de Gestão\n\nA instituição em pleno controlo operacional.\n\nSecretaria académica, estudantes, turmas, contabilidade, propinas e relatórios integrados com segurança e rapidez.\n\nAulas presenciais e à distância\n\nA sala de aula ligada a cada aluno.\n\nAulas em directo, presenças, sumários e materiais partilhados com os estudantes onde quer que estejam.\n\nTesouraria e propinas\n\nCobranças claras, recibos imediatos.\n\nFacturas, pagamentos, caixa e extractos acompanhados em tempo real, com relatórios prontos a imprimir.\n\nPautas e avaliações\n\nNotas oficiais sem erros de cálculo.\n\nMini-pautas, pautas finais e boletins gerados automaticamente segundo as regras em vigor.\n\nAutenticação Segura\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "desktop",
+    "path": "/importar",
+    "status": 200,
+    "elapsed_ms": 5679,
+    "url": "http://127.0.0.1:3006/importar",
+    "text": "Sistema Integrado de Gestão\n\nA instituição em pleno controlo operacional.\n\nSecretaria académica, estudantes, turmas, contabilidade, propinas e relatórios integrados com segurança e rapidez.\n\nAulas presenciais e à distância\n\nA sala de aula ligada a cada aluno.\n\nAulas em directo, presenças, sumários e materiais partilhados com os estudantes onde quer que estejam.\n\nTesouraria e propinas\n\nCobranças claras, recibos imediatos.\n\nFacturas, pagamentos, caixa e extractos acompanhados em tempo real, com relatórios prontos a imprimir.\n\nPautas e avaliações\n\nNotas oficiais sem erros de cálculo.\n\nMini-pautas, pautas finais e boletins gerados automaticamente segundo as regras em vigor.\n\nAutenticação Segura\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "desktop",
+    "path": "WEB /start",
+    "text": "SIGA Plus\nInício\nFuncionalidades\nSoluções\nEquipa\nPreços\nFAQ\nContacto\npt\nAlternar idioma\nAlternar para modo escuro\nEntrar\nComeçar\n\nNOVA ESCOLA\n\nCriar a sua escola\n\nCerca de cinco minutos. A escola fica pronta a usar no fim.\n\n1\nInstituição\nNome, NIF, natureza e níveis\n2\nLocalização\nOnde fica a escola\n3\nResponsável\nQuem trata do registo\n4\nPlano\nPode mudar depois\n5\nConta\nAcesso do administrador\n6\nEndereço\nO seu subdomínio\n7\nRevisão\nConfirmar e criar\n\nA sua escola\n\nE\n\nNome da escola\n\nPrivada\n\na-sua-escola.portal-siga.com\nPeríodo experimental antes de qualquer pagamento\nEndereço próprio para a escola\nPautas, matrículas e propinas no mesmo sítio\n\nPasso 1 de 7\n\nInstituição\nOs dados oficiais aparecem nas facturas, pautas e certificados. Os níveis de ensino definem as classes e disciplinas que a escola recebe já criadas.\nNome oficial da instituição\nNIF da instituição\n\nNIF de entidade da AGT (9–10 dígitos).\n\nNome comercial (opcional)\n\nSe for diferente do nome oficial.\n\nNatureza da instituição\nPrivada\nPública\nComparticipada\nConfessional\nInternacional\nOutra\nNíveis de ensino que a escola lecciona\n\nEscolha todos os que se aplicam. O SIGA cria logo as classes e disciplinas de cada um.\n\nIniciação\nPré-escolar\nEnsino Primário\n1ª à 6ª classe\nI Ciclo\n7ª à 9ª classe\nII Ciclo / Médio\n10ª à 12ª/13ª classe\nEnsino Superior\nLicenciatura\nCancelar\nContinuar",
+    "overflow": false
+  },
+  {
+    "label": "mobile",
+    "path": "/",
+    "status": 200,
+    "elapsed_ms": 8562,
+    "url": "http://127.0.0.1:3006/",
+    "text": "SIGA\nPlus\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "mobile",
+    "path": "/alunos",
+    "status": 200,
+    "elapsed_ms": 1871,
+    "url": "http://127.0.0.1:3006/alunos",
+    "text": "SIGA\nPlus\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "mobile",
+    "path": "/faturas",
+    "status": 200,
+    "elapsed_ms": 2508,
+    "url": "http://127.0.0.1:3006/faturas",
+    "text": "SIGA\nPlus\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "mobile",
+    "path": "/pedagogica",
+    "status": 200,
+    "elapsed_ms": 2129,
+    "url": "http://127.0.0.1:3006/pedagogica",
+    "text": "SIGA\nPlus\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "mobile",
+    "path": "/importar",
+    "status": 200,
+    "elapsed_ms": 1534,
+    "url": "http://127.0.0.1:3006/importar",
+    "text": "SIGA\nPlus\nIniciar sessão\n\nEntre com Google, e-mail ou Nº de BI.\n\nJá tenho conta\nCriar conta\nEmail ou Nº de BI / NIF\nSenha\nEsqueceu a senha?\nLembrar email neste dispositivo\nEntrar no PortalOu entrar sem senha por link de e-mail\nou\nEntrar com Google",
+    "overflow": false,
+    "errors": [],
+    "external_requests": "blocked; no production access"
+  },
+  {
+    "label": "mobile",
+    "path": "WEB /start",
+    "text": "SIGA Plus\nAbrir menu\n\nPasso 1 de 7 · Criar a sua escola\n\nInstituição\nOs dados oficiais aparecem nas facturas, pautas e certificados. Os níveis de ensino definem as classes e disciplinas que a escola recebe já criadas.\nNome oficial da instituição\nNIF da instituição\n\nNIF de entidade da AGT (9–10 dígitos).\n\nNome comercial (opcional)\n\nSe for diferente do nome oficial.\n\nNatureza da instituição\nPrivada\nPública\nComparticipada\nConfessional\nInternacional\nOutra\nNíveis de ensino que a escola lecciona\n\nEscolha todos os que se aplicam. O SIGA cria logo as classes e disciplinas de cada um.\n\nIniciação\nPré-escolar\nEnsino Primário\n1ª à 6ª classe\nI Ciclo\n7ª à 9ª classe\nII Ciclo / Médio\n10ª à 12ª/13ª classe\nEnsino Superior\nLicenciatura\nCancelar\nContinuar",
+    "overflow": false
+  }
+]

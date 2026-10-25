@@ -30,7 +30,7 @@ import { calendarIcsFeedUrl } from "@/features/calendar/ics";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapTeacherWorkspaceToSnapshot } from "@/features/intelligence/teachers/teacher-relations-adapter";
 import { toast } from "@/lib/toast";
-import { optionLabel } from "@/lib/option-label";
+import { idOptions } from "@/lib/option-label";
 
 export const Route = createFileRoute("/professores/$teacherId")({
   head: () => ({
@@ -83,8 +83,8 @@ function TeacherProfilePage() {
   useDeclareEntityFocus(focusedTeacherEntity);
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const subjects = workspaceQuery.data?.subjects ?? [];
-  const turmaOptions = classGroups.map((group) => optionLabel(group.id, group.name));
-  const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
+  const turmaOptions = idOptions(classGroups, (group) => group.name);
+  const subjectOptions = idOptions(subjects, (subject) => subject.name);
 
   return (
     <AppShell>
@@ -250,10 +250,10 @@ function TeacherProfilePage() {
                   ]}
                   onSubmit={async (values) => {
                     const classGroupId = classGroups.find(
-                      (group) => optionLabel(group.id, group.name) === values["turma"],
+                      (group) => group.id === values["turma"],
                     )?.id;
                     const subjectId = subjects.find(
-                      (subject) => optionLabel(subject.id, subject.name) === values["disciplina"],
+                      (subject) => subject.id === values["disciplina"],
                     )?.id;
                     if (!classGroupId || !subjectId) {
                       throw new Error("Seleccione turma e disciplina.");

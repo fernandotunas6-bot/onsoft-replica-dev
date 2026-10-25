@@ -17,8 +17,8 @@ import {
 import { adminContext } from "./admin-context";
 
 const pipelineListSchema = z.object({
-  opportunityId: z.string().uuid().optional(),
-  eventId: z.string().uuid().optional(),
+  opportunityId: z.string().guid().optional(),
+  eventId: z.string().guid().optional(),
   status: z.string().trim().max(40).optional(),
   limit: z.number().int().min(1).max(300).default(200),
 });

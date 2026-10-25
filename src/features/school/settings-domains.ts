@@ -18,6 +18,7 @@
  *   volta a escrever `value["campo"] ?? x` noutro sítio.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
 import { parseEnrollmentCycles, type EnrollmentCycle } from "@/features/students/enrollment-cycle";
@@ -242,7 +243,18 @@ export type AcademicSettings = {
   passing_grade: number;
 };
 
+export type StudentAccessSettings = {
+  /** Os alunos podem entrar com o número de aluno (1260001) e a senha da conta. */
+  student_number_login: boolean;
+};
+
 export const SETTINGS_DOMAINS = {
+  student_access: {
+    label: "Acesso dos alunos",
+    parse: (value: unknown): StudentAccessSettings => ({
+      student_number_login: asRecord(value)["student_number_login"] === true,
+    }),
+  },
   billing: {
     label: "Cobrança",
     parse: (value: unknown): BillingSettings => {
@@ -474,9 +486,8 @@ export async function readSettingsDomainRow<V = unknown>(
     .eq("domain", domain)
     .maybeSingle();
   // Base sem a tabela (instalação antiga): sem linha, como uma escola que nunca gravou.
-  // Sem server-error: este ficheiro corre também fora do Vite (ensaios tests/sql).
-  if (error && !/schema cache|does not exist|42P01|PGRST/i.test(error.message)) {
-    throw new Error(`Não foi possível ler as definições (${domain}).`);
+  if (error && !isMissingTable(error)) {
+    throw publicDatabaseError(error, `Não foi possível ler as definições (${domain}).`);
   }
   return (data as { id: string; domain: string; version: number; value: V } | null) ?? null;
 }

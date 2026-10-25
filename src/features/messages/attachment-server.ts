@@ -12,7 +12,7 @@ const signMessageAttachmentInputSchema = z.object({
   // As mensagens directas antigas (`siga_direct_messages`) foram copiadas para o
   // chat a 2026-10-02 e já ninguém lá escreve: os anexos abrem só pelo chat.
   source: z.literal("chat"),
-  messageId: z.string().uuid(),
+  messageId: z.string().guid(),
 });
 
 /**

@@ -90,11 +90,12 @@ describe("ficha de pessoa a inserir", () => {
   });
 
   it("os três ecrãs usam a mesma montagem", () => {
-    for (const file of [
-      "src/features/people/server.ts",
-      "src/features/students/server.ts",
-      "src/features/enrollment/server.ts",
-    ]) {
+    // Matricular um aluno novo passou a criar a pessoa dentro da RPC atómica
+    // (siga_enroll_new_student_atomic), que recebe os campos e grava tudo de uma vez.
+    expect(readFileSync("src/features/students/server.ts", "utf8")).toContain(
+      '"siga_enroll_new_student_atomic"',
+    );
+    for (const file of ["src/features/people/server.ts", "src/features/enrollment/server.ts"]) {
       const source = readFileSync(file, "utf8");
       expect(source, file).toContain("buildPersonInsert(");
       expect(source, file).not.toMatch(/sex === "M" \? "male"|function mapSex/);

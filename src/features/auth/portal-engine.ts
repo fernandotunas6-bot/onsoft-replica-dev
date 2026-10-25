@@ -94,6 +94,7 @@ export function getPortalNavigation(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
+  options: { isAlumni?: boolean } = {},
 ): NavGroup[] {
   const mode = resolvePortalMode(role);
 
@@ -103,7 +104,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Aluno",
           items: [
-            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Académico",
               icon: moduleIcons.pedagogy,
@@ -142,7 +143,10 @@ export function getPortalNavigation(
             },
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
-            { label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" },
+            // Só para quem já concluiu (tem processo Alumni), não para quem ainda estuda.
+            ...(options.isAlumni
+              ? [{ label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" }]
+              : []),
             { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
           ],
         },
@@ -159,7 +163,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Encarregado",
           items: [
-            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Desempenho",
               icon: moduleIcons.academicReports,
@@ -191,14 +195,9 @@ export function getPortalNavigation(
               to: "/pedagogica",
               search: { tab: "presencas" },
             },
-            {
-              label: "Financeiro",
-              icon: moduleIcons.finance,
-              children: [
-                { label: "Propinas e Faturas", icon: moduleIcons.finance, to: "/financeiro" },
-                { label: "Recibos", icon: moduleIcons.receipts, to: "/faturas" },
-              ],
-            },
+            // «Recibos» apontava para /faturas, que é só da Direcção e da Tesouraria:
+            // o item ficava escondido. Propinas, faturas e recibos estão em /financeiro.
+            { label: "Financeiro", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
             { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
@@ -217,7 +216,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Professor",
           items: [
-            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Frequência",
               icon: moduleIcons.attendance,
@@ -288,7 +287,7 @@ export function getPortalNavigation(
     {
       title: "Principal",
       items: [
-        { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+        { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
         { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
       ],
     },

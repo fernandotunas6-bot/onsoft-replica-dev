@@ -1,3 +1,4 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadStudentRefs, uniqueExactMatch, type StudentRef } from "./academic-core";
@@ -14,11 +15,15 @@ export const pautasImporter: RowImporter = {
   async loadRefCache(ctx) {
     const [students, enrollments] = await Promise.all([
       loadStudentRefs(ctx.db, ctx.schoolId),
-      ctx.db
-        .from("enrollments")
-        .select("id, student_id, final_average")
-        .eq("school_id", ctx.schoolId)
-        .eq("status", "active"),
+      readAllPages((from, to) =>
+        ctx.db
+          .from("enrollments")
+          .select("id, student_id, final_average")
+          .eq("school_id", ctx.schoolId)
+          .eq("status", "active")
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (enrollments.error) {

@@ -78,7 +78,7 @@ export async function studentStatusOf(
   return (await studentStatusMap(db, schoolId, [studentId])).get(studentId) ?? NO_STATUS;
 }
 
-const studentInput = z.object({ studentId: z.string().uuid() });
+const studentInput = z.object({ studentId: z.string().guid() });
 
 export const getStudentSpecialStatuses = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -109,7 +109,7 @@ export const getStudentSpecialStatuses = createServerFn({ method: "GET" })
 
 const grantInput = z
   .object({
-    studentId: z.string().uuid(),
+    studentId: z.string().guid(),
     validFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     validUntil: z
       .string()
@@ -183,7 +183,7 @@ export const grantWorkerStudentStatus = createServerFn({ method: "POST" })
   });
 
 const revokeInput = z.object({
-  statusId: z.string().uuid(),
+  statusId: z.string().guid(),
   reason: z.string().trim().min(3).max(500),
 });
 

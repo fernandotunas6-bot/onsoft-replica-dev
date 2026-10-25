@@ -1,5 +1,4 @@
 import * as React from "react";
-import { LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +28,7 @@ export function ModalFooter({
   return (
     <div
       className={cn(
-        "flex shrink-0 flex-wrap items-center justify-between border-t border-border bg-muted/10 px-5 py-3 gap-3",
+        "flex shrink-0 flex-wrap items-center justify-between border-t border-border bg-card px-5 py-4 gap-3",
         className,
       )}
     >
@@ -45,7 +44,7 @@ export function ModalFooter({
             size="sm"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="h-auto whitespace-normal text-xs"
+            className="h-auto min-h-[44px] max-w-full whitespace-normal break-words rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
           >
             {cancelLabel}
           </Button>
@@ -57,12 +56,10 @@ export function ModalFooter({
             variant={submitVariant}
             size="sm"
             onClick={onSubmit}
-            disabled={disabled || isSubmitting}
-            className="h-auto gap-1.5 whitespace-normal text-xs min-w-[90px]"
+            disabled={disabled}
+            loading={isSubmitting}
+            className="h-auto min-h-[44px] min-w-[90px] max-w-full gap-2 whitespace-normal break-words rounded-xl px-4 py-3 text-[13px] leading-[20px] lg:min-h-[44px]"
           >
-            {isSubmitting && (
-              <LoaderCircle className="size-3.5 animate-spin motion-reduce:animate-none" />
-            )}
             {submitLabel}
           </Button>
         )}

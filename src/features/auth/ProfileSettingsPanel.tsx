@@ -12,6 +12,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { CameraCaptureModal } from "@/components/modals/CameraCaptureModal";
 import { useOptionalStackNav } from "@/components/ui/stacked-modal";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { canAccessPath } from "@/features/auth/access-policy";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeAngolaPhone, validateAngolaPhone } from "@/lib/angola-phone";
@@ -55,6 +56,9 @@ const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 function ProfileAvatarField() {
   const currentUser = useCurrentAccount();
+  // A biblioteca (Arquivos) é só da equipa: para alunos e encarregados o botão abria
+  // um seletor que o servidor recusa.
+  const canUseLibrary = canAccessPath("/arquivos", currentUser.role, currentUser.grants);
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -128,26 +132,31 @@ function ProfileAvatarField() {
           </Button>
 
           {/* 3. Escolher dos Arquivos SIGA */}
-          <PickFileButton
-            label="Da biblioteca"
-            area="pessoal"
-            acceptKinds={["png", "jpeg"]}
-            variant="outline"
-            size="sm"
-            onPick={(file) => {
-              void (async () => {
-                try {
-                  const blob = await resolveFileBlob(file);
-                  const asFile = new File([blob], file.name, { type: file.mime || blob.type });
-                  await uploadAvatar(asFile);
-                } catch (error) {
-                  toast.error("Não foi possível usar o ficheiro da biblioteca", {
-                    description: error instanceof Error ? error.message : "Tente novamente.",
-                  });
-                }
-              })();
-            }}
-          />
+          {canUseLibrary && (
+            <PickFileButton
+              label="Da biblioteca"
+              area="pessoal"
+              acceptKinds={["png", "jpeg"]}
+              variant="outline"
+              size="sm"
+              onPick={(file) => {
+                void (async () => {
+                  try {
+                    const blob = await resolveFileBlob(file, {
+                      schoolId: currentUser.schoolId,
+                      ownerUserId: currentUser.id,
+                    });
+                    const asFile = new File([blob], file.name, { type: file.mime || blob.type });
+                    await uploadAvatar(asFile);
+                  } catch (error) {
+                    toast.error("Não foi possível usar o ficheiro da biblioteca", {
+                      description: error instanceof Error ? error.message : "Tente novamente.",
+                    });
+                  }
+                })();
+              }}
+            />
+          )}
         </div>
 
         <input

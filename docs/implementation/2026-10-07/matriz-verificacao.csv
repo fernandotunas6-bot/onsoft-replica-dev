@@ -1,0 +1,11 @@
+﻿id,modulo,perfil,cenario,esperado,observado,evidencia,estado,gravidade
+F01,students,Secretaria AAL2,turma cheia e reenvio,rollback; nenhum aluno órfão,Passou no fixture SQL,evidencias/sql-atomic-final.log,Verificado localmente; SQL preparado,Crítica
+F01-R,students,Secretaria AAL2,pedido repetido/alterado,resposta única/rejeitar alteração,Passou no fixture SQL,evidencias/sql-atomic-final.log,Verificado localmente; SQL preparado,Alta
+F01-Q,students,Secretaria AAL2,quota e observações,recusar novo acima do limite; recuperar reenvio; persistir notas no histórico,Passou no fixture SQL,evidencias/sql-atomic-final.log,Verificado localmente; SQL preparado,Alta
+F02,calendar,Administrador AAL2,falha de activação/criação,ano anterior preservado; um activo no sucesso,Passou no fixture SQL,evidencias/sql-atomic-final.log,Verificado localmente; SQL preparado,Crítica
+F08,access,Administrador AAL1/AAL2,inserir/alterar/remover grants,AAL1 não escreve; AAL2 só na própria escola,Passou no fixture RLS,evidencias/sql-mfa-final.log,Verificado localmente; SQL preparado,Crítica
+F03,import,Pessoal autorizado,CSV malformado e mais de 25000 linhas,rejeitar integralmente antes de gravar,Regressões aprovadas,evidencias/targeted-final.json,Verificado localmente,Alta
+F04,security,Operador E2E,destino produção/misto/remoto,bloquear antes de escrita,Regressões aprovadas,evidencias/targeted-final.json,Verificado localmente,Crítica
+F-LOG,audit,Servidor,erro com SQL/dados pessoais,log apenas de código/constraint reconhecidos,Regressões aprovadas,evidencias/targeted-final.json,Verificado localmente,Alta
+F-DEP,release,Operador,RPCs/políticas MFA ausentes no catálogo confirmado,bloquear publicação,Bloqueado como esperado,evidencias/release-contracts.log,Bloqueado até revisão/aplicação e staging,Crítica
+J01,ecosystem,Todos os papéis,jornada anual HTTP/UI em duas escolas,aceitação integrada completa,Não executada; staging indisponível,../../specs/JORNADA_INTEGRADA.md,Bloqueado por ambiente,Crítica

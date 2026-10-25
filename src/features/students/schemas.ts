@@ -17,32 +17,32 @@ export const searchStudentsInputSchema = z.object({
   query: z.string().trim().optional(),
   limit: z.number().int().min(1).max(1000).default(25),
   offset: z.number().int().min(0).default(0),
-  academicYearId: z.string().uuid().optional(),
-  classGroupId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
+  classGroupId: z.string().guid().optional(),
   status: z.string().trim().optional(),
   paymentStatus: z.string().trim().optional(),
   quickFilter: z.string().trim().optional(),
 });
 export type SearchStudentsInput = z.infer<typeof searchStudentsInputSchema>;
 
-export const getStudentInputSchema = z.object({ id: z.string().uuid() });
+export const getStudentInputSchema = z.object({ id: z.string().guid() });
 
 export const getStudentStatusHistoryInputSchema = z.object({
-  studentId: z.string().uuid(),
+  studentId: z.string().guid(),
 });
 export type GetStudentStatusHistoryInput = z.infer<typeof getStudentStatusHistoryInputSchema>;
 
 export const batchAssignClassInputSchema = z.object({
-  studentIds: z.array(z.string().uuid()).min(1).max(100),
-  classGroupId: z.string().uuid(),
-  academicYearId: z.string().uuid(),
+  studentIds: z.array(z.string().guid()).min(1).max(100),
+  classGroupId: z.string().guid(),
+  academicYearId: z.string().guid(),
   /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
   outsideCycleReason: z.string().trim().max(300).optional(),
 });
 export type BatchAssignClassInput = z.infer<typeof batchAssignClassInputSchema>;
 
 export const batchUpdateStudentStatusInputSchema = z.object({
-  studentIds: z.array(z.string().uuid()).min(1).max(100),
+  studentIds: z.array(z.string().guid()).min(1).max(100),
   newStatus: z.enum(studentStatusOptions),
   reason: z
     .string()
@@ -59,7 +59,7 @@ const optionalText = z
   .optional();
 
 export const studentGuardianInputSchema = z.object({
-  guardian_person_id: z.string().uuid(),
+  guardian_person_id: z.string().guid(),
   relationship: z.string().trim().min(1),
   is_primary: z.boolean().default(false),
   authorized_pickup: z.boolean().default(true),
@@ -90,23 +90,61 @@ export function mapSgaGuardianRelationship(value: string): string {
   return sgaGuardianRelationshipMap[key] ?? "other";
 }
 
-export const enrollNewStudentInputSchema = z.object({
-  person: personCoreFieldsSchema,
-  // Não persistido: o nº do aluno (EST-######) é gerado pela sequência própria
-  // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
-  registrationNumber: optionalText,
-  classGroupId: z.string().uuid().optional(),
-  academicYearId: z.string().uuid().optional(),
+export const createStudentInputSchema = z.object({
+  personId: z.string().guid(),
+  registrationNumber: z.string().trim().min(1, "Número de processo é obrigatório"),
+  classGroupId: z.string().guid().optional(),
+  academicYearId: z.string().guid().optional(),
   admittedOn: optionalText,
   guardians: z.array(studentGuardianInputSchema).default([]),
-  duplicateDecision: optionalText,
-  /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
-  outsideCycleReason: optionalText,
 });
+export type CreateStudentInput = z.infer<typeof createStudentInputSchema>;
+
+export const enrollNewStudentInputSchema = z
+  .object({
+    requestId: z.string().guid(),
+    person: personCoreFieldsSchema,
+    // Não persistido: o nº do aluno (1+ano+4 dígitos, ex.: 1260001) é gerado pela sequência própria
+    // do RPC `register_student`. Mantido opcional só por compatibilidade de tipos.
+    registrationNumber: optionalText,
+    classGroupId: z.string().guid().optional(),
+    academicYearId: z.string().guid().optional(),
+    admittedOn: optionalText,
+    guardians: z.array(studentGuardianInputSchema).default([]),
+    duplicateDecision: optionalText,
+    /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
+    outsideCycleReason: optionalText,
+  })
+  .superRefine((input, ctx) => {
+    if (Boolean(input.classGroupId) !== Boolean(input.academicYearId)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["classGroupId"],
+        message: "Seleccione a turma e o ano lectivo correspondente.",
+      });
+    }
+    if (input.guardians.filter((guardian) => guardian.is_primary).length > 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["guardians"],
+        message: "Indique apenas um encarregado principal.",
+      });
+    }
+    if (
+      new Set(input.guardians.map((guardian) => guardian.guardian_person_id)).size !==
+      input.guardians.length
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["guardians"],
+        message: "Não repita o mesmo encarregado.",
+      });
+    }
+  });
 export type EnrollNewStudentInput = z.infer<typeof enrollNewStudentInputSchema>;
 
 export const changeStudentStatusInputSchema = z.object({
-  studentId: z.string().uuid(),
+  studentId: z.string().guid(),
   newStatus: z.enum(studentStatusOptions),
   reason: optionalText,
 });
@@ -131,7 +169,7 @@ const optionalPhone = z
   });
 
 export const updateStudentProfileInputSchema = z.object({
-  personId: z.string().uuid(),
+  personId: z.string().guid(),
   expectedVersion: z.number().int().positive(),
   fullName: z.string().trim().min(2).max(160),
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
@@ -143,10 +181,10 @@ export const updateStudentProfileInputSchema = z.object({
 });
 
 export const enrollStudentInClassInputSchema = z.object({
-  studentId: z.string().uuid(),
-  classGroupId: z.string().uuid(),
+  studentId: z.string().guid(),
+  classGroupId: z.string().guid(),
   /** O ano é o da turma; se vier, o servidor só confirma que coincide. */
-  academicYearId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
   enrolledOn: optionalText,
   /** Matrícula nova fora do ciclo: só a Administração, com motivo (fica registado). */
   outsideCycleReason: optionalText,
@@ -154,14 +192,14 @@ export const enrollStudentInClassInputSchema = z.object({
 export type EnrollStudentInClassInput = z.infer<typeof enrollStudentInClassInputSchema>;
 
 export const cancelEnrollmentInputSchema = z.object({
-  enrollmentId: z.string().uuid(),
+  enrollmentId: z.string().guid(),
   reason: optionalText,
 });
 export type CancelEnrollmentInput = z.infer<typeof cancelEnrollmentInputSchema>;
 
 export const listEnrollmentsInputSchema = z.object({
-  academicYearId: z.string().uuid().optional(),
-  classGroupId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
+  classGroupId: z.string().guid().optional(),
   status: z.string().trim().optional(),
   query: z.string().trim().optional(),
   limit: z.number().int().min(1).max(250).default(100),
@@ -169,21 +207,21 @@ export const listEnrollmentsInputSchema = z.object({
 export type ListEnrollmentsInput = z.infer<typeof listEnrollmentsInputSchema>;
 
 export const assignGuardianInputSchema = z.object({
-  studentId: z.string().uuid(),
-  guardianPersonId: z.string().uuid(),
+  studentId: z.string().guid(),
+  guardianPersonId: z.string().guid(),
   relationship: z.string().trim().min(1).max(40),
   isPrimary: z.boolean().default(false),
 });
 export type AssignGuardianInput = z.infer<typeof assignGuardianInputSchema>;
 
 export const removeGuardianInputSchema = z.object({
-  studentId: z.string().uuid(),
-  guardianPersonId: z.string().uuid(),
+  studentId: z.string().guid(),
+  guardianPersonId: z.string().guid(),
 });
 export type RemoveGuardianInput = z.infer<typeof removeGuardianInputSchema>;
 
 export const updateEnrollmentAttendanceInputSchema = z.object({
-  enrollmentId: z.string().uuid(),
+  enrollmentId: z.string().guid(),
   attendanceRate: z.coerce.number().min(0, "Mínimo 0%").max(100, "Máximo 100%"),
 });
 export type UpdateEnrollmentAttendanceInput = z.infer<typeof updateEnrollmentAttendanceInputSchema>;

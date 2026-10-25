@@ -28,6 +28,12 @@ const kz = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
+/** «2026-11-30» → «30/11/2026» (data civil, sem fuso). */
+const formatDate = (iso: string) => {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : iso;
+};
+
 /**
  * Pagar o plano: (1) gerar a cobrança com referência própria no PayFlow — ou,
  * sem PayFlow, o IBAN da plataforma — e (2) enviar o recibo de uma transferência
@@ -47,7 +53,13 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
   const submitProof = useServerFn(submitPlanPaymentProof);
 
   const plan = data.plans.find((p) => p.code === planCode) ?? null;
-  const amount = plan ? planPriceKz(plan, billing) : 0;
+  // Condições próprias da escola (por aluno ou valor fixo): o valor vem do servidor.
+  const amount =
+    data.billing.customByPeriodKz != null
+      ? data.billing.customByPeriodKz[billing]
+      : plan
+        ? planPriceKz(plan, billing)
+        : 0;
 
   const startMutation = useMutation({
     mutationFn: () => start({ data: { planCode: planCode as never, billing } }),
@@ -85,6 +97,24 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
         error instanceof Error ? error.message : "Não foi possível enviar o comprovativo.",
       ),
   });
+
+  if (data.billing.mode !== "charging") {
+    return (
+      <Panel title="Pagamento">
+        <p className="text-sm">{data.billing.label}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {data.billing.mode === "exempt"
+            ? "Escola pública isenta do plano: não há pagamentos a fazer."
+            : (data.billing.reason ?? "Não há pagamentos a fazer enquanto a pausa durar.")}
+        </p>
+        {data.billing.mode !== "exempt" && data.billing.until ? (
+          <p className="mt-1 text-sm text-muted-foreground">
+            As cobranças retomam a {formatDate(data.billing.until)}.
+          </p>
+        ) : null}
+      </Panel>
+    );
+  }
 
   return (
     <Panel title="Pagamento">
@@ -127,6 +157,24 @@ export function PlanPaymentPanel({ data }: { data: SubscriptionOverview }) {
         <p className="text-sm">
           A pagar: <strong>{amount ? kz(amount) : "sem preço definido"}</strong>
         </p>
+        <dl className="grid gap-1 text-xs text-muted-foreground">
+          {data.billing.customLines.length ? (
+            <div>
+              <dt className="sr-only">Como se calcula</dt>
+              {data.billing.customLines.map((line) => (
+                <dd key={line}>{line}</dd>
+              ))}
+            </div>
+          ) : null}
+          <div>
+            <dt className="inline">Vencimento: </dt>
+            <dd className="inline">dia {data.billing.dueDay} do período</dd>
+          </div>
+          <div>
+            <dt className="inline">Pagamentos aceites: </dt>
+            <dd className="inline">{data.billing.paymentMethods.join(", ")}</dd>
+          </div>
+        </dl>
 
         {!charge ? (
           <Button

@@ -1,6 +1,7 @@
 import { allSchoolRows } from "./paged-rows";
 import type { Json } from "@/integrations/supabase/types";
 import { createServerFn } from "@tanstack/react-start";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -198,7 +199,8 @@ export const getAlumniImpactAnalytics = createServerFn({ method: "GET" })
       "Administrador",
       "Secretaria",
     ]);
-    const db = await loadSgaAdminClient();
+    // Estatísticas sobre todas as linhas (o PostgREST cortava nas 1000).
+    const db = pagedReadClient(await loadSgaAdminClient());
     const [
       { data: profiles },
       { data: contributions },

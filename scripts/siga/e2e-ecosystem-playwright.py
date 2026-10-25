@@ -29,6 +29,8 @@ ADMIN = os.environ.get("VITE_ADMIN_URL", "http://localhost:3005")
 DOC = os.environ.get("VITE_DOCS_URL", "http://localhost:5173")
 LIVE = os.environ.get("SIGA_E2E_LIVE", "").lower() in ("1", "true")
 ROOT = Path(__file__).resolve().parents[2]
+if LIVE:
+    subprocess.run(["node", str(ROOT / "scripts/siga/e2e-safety.mjs")], check=True, cwd=ROOT)
 
 
 def unique_slug(prefix: str = "e2e") -> str:
@@ -115,14 +117,15 @@ async def test_routes(page, failures: list[str]) -> None:
 
 
 async def fill_wizard_until_review(
-    page, *, school: str, contact: str, email: str, slug: str | None = None
+    page, *, school: str, contact: str, email: str, slug: str | None = None,
+    nif: str = "5417000001",
 ) -> None:
     """Assistente "Criar a sua escola" (7 passos) até à revisão, sem submeter."""
     continuar = page.get_by_role("button", name="Continuar")
     # 1. Instituição — NIF obrigatório (9–10 dígitos) e pelo menos um nível de
     # ensino. Fica o Primário: o II Ciclo abriria os cursos do médio.
     await page.get_by_label("Nome oficial da instituição").fill(school)
-    await page.get_by_label("NIF da instituição").fill("5417000001")
+    await page.get_by_label("NIF da instituição").fill(nif)
     await page.get_by_role("checkbox", name=re.compile("Ensino Primário")).click()
     await continuar.click()
     # 2. Localização.
@@ -218,28 +221,35 @@ def test_live_signup_api(failures: list[str]) -> None:
 async def test_live_wizard(page, failures: list[str]) -> None:
     slug = unique_slug("web")
     email = f"e2e+{slug}@siga-plus.test"
+    school = f"Escola Live {slug}"
+    nif = f"5417{int(time.time() * 1000) % 1_000_000:06d}"
     try:
         await page.goto(f"{WEB}/start", wait_until="domcontentloaded")
         await fill_wizard_until_review(
-            page, school=f"Escola Live {slug}", contact="Live Director", email=email, slug=slug
+            page, school=school, contact="Live Director", email=email,
+            slug=slug, nif=nif,
         )
         await page.get_by_role("button", name="Criar escola").click()
 
-        heading = page.get_by_role("heading", name="Escola criada")
-        await heading.wait_for(state="visible", timeout=60_000)
-        if not await page.get_by_text(f"{slug}.portal-siga.com").is_visible():
+        # O ecrã actual não tem heading "Escola criada", nem os links
+        # legados "Control Center" / "Abrir o SIGA Plus". São três escolhas.
+        await page.get_by_text(f"{school} está criada").wait_for(
+            state="visible", timeout=60_000
+        )
+        if not await page.get_by_text(f"{slug}.portal-siga.com").first.is_visible():
             failures.append("Live wizard: hostname de sucesso não visível")
-        admin_link = page.get_by_role("link", name="Ver no Control Center (ADMIN)")
-        if not await admin_link.is_visible():
-            failures.append("Live wizard: link ADMIN em falta no ecrã de sucesso")
-        siga_link = page.get_by_role("link", name="Abrir o SIGA Plus")
-        if await siga_link.is_visible():
-            await siga_link.click()
-            await page.wait_for_load_state("domcontentloaded")
-            login_visible = await page.get_by_text("Entrar no Portal").is_visible()
-            login_visible = login_visible or await page.get_by_text("Iniciar sessão").is_visible()
-            if not login_visible:
-                failures.append("Live wizard: SIGA não mostrou ecrã de login após provisionamento")
+        for label in (
+            "Painel Administrativo",
+            "Portal Escolar",
+            "Assistente de configuração",
+        ):
+            link = page.get_by_role("link", name=label)
+            if not await link.is_visible():
+                failures.append(f"Live wizard: opção «{label}» em falta")
+            elif not await link.get_attribute("href"):
+                failures.append(f"Live wizard: opção «{label}» sem destino")
+        # Links visíveis não provam login/MFA. O teste de matrícula @live
+        # valida o login real em staging e é reportado separadamente.
     except Exception as exc:  # noqa: BLE001
         failures.append(f"Live wizard UI: {exc}")
     finally:

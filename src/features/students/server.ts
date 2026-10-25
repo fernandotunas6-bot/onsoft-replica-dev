@@ -1,5 +1,16 @@
-import type { TablesUpdate } from "@/integrations/supabase/types";
+import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import { numberMatches } from "@/features/education-catalog/identifiers";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { createServerFn } from "@tanstack/react-start";
+import { reportSigaError } from "@/lib/ops-report";
+import { normalizeStoredPhone } from "@/lib/angola-phone";
+import { sgaClient } from "@/integrations/supabase/sga";
+import {
+  workflowRpcClient,
+  atomicStudentResultSchema,
+  assertWorkflowRpcAvailable,
+} from "@/integrations/supabase/workflow-rpcs";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -55,7 +66,7 @@ import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-aud
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { schoolTodayIso } from "@/lib/school-date";
-import { sumPaidByInvoice } from "@/features/finance/invoice-settlement";
+import { pickCurrentEnrollment } from "./current-enrollment";
 
 async function linkGuardian(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
@@ -132,14 +143,33 @@ export const searchStudents = createServerFn({ method: "GET" })
     const scope = await loadStudentScope(db, membership, context.userId);
     if (!scope.all && scope.studentIds.length === 0) return [];
 
-    let studentsQuery = db
-      .from("students")
-      .select("id, student_number, status, person_id, school_id, admission_date")
-      .eq("school_id", membership.schoolId);
-    if (!scope.all) studentsQuery = studentsQuery.in("id", scope.studentIds);
-    const { data: students, error } = await studentsQuery
-      .order("student_number")
-      .range(data.offset, data.offset + data.limit - 1);
+    // A lista pede até 1000 alunos e, a seguir, as fichas, matrículas, encarregados e
+    // faturas de todos eles por `.in(...)`: com mais de ~200 alunos o URL passava o
+    // tamanho máximo e a página de alunos deixava de abrir. Estas leituras vão por
+    // páginas e em lotes de ids.
+    const reads = pagedReadClient(db);
+    const studentColumns = "id, student_number, status, person_id, school_id, admission_date";
+    const { data: students, error } = scope.all
+      ? await db
+          .from("students")
+          .select(studentColumns)
+          .eq("school_id", membership.schoolId)
+          .order("student_number")
+          .range(data.offset, data.offset + data.limit - 1)
+      : // Professor: os alunos das suas turmas (centenas de ids) em lotes, e a página aqui.
+        await reads
+          .from("students")
+          .select(studentColumns)
+          .eq("school_id", membership.schoolId)
+          .in("id", scope.studentIds)
+          .then((result) => ({
+            ...result,
+            data: (result.data ?? [])
+              .sort((a, b) =>
+                String(a.student_number ?? "").localeCompare(String(b.student_number ?? "")),
+              )
+              .slice(data.offset, data.offset + data.limit),
+          }));
     if (error) throw publicDatabaseError(error, "Não foi possível pesquisar os alunos.");
 
     const rows = students ?? [];
@@ -148,7 +178,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
     const [{ data: people }, { data: allEnrollments }, { data: guardians }] = await Promise.all([
       personIds.length
-        ? db
+        ? reads
             .from("people")
             .select("id, full_name, email, phone, photo_url, national_id")
             .eq("school_id", membership.schoolId)
@@ -164,7 +194,7 @@ export const searchStudents = createServerFn({ method: "GET" })
             }>,
           }),
       studentIds.length
-        ? db
+        ? reads
             .from("enrollments")
             .select("id, student_id, class_group_id, academic_year_id, status, enrolled_on")
             .in("student_id", studentIds)
@@ -181,7 +211,7 @@ export const searchStudents = createServerFn({ method: "GET" })
             }>,
           }),
       studentIds.length
-        ? db
+        ? reads
             .from("student_guardians")
             .select("student_id, guardian_person_id, is_primary")
             .in("student_id", studentIds)
@@ -196,16 +226,16 @@ export const searchStudents = createServerFn({ method: "GET" })
           }),
     ]);
 
-    // Matrícula mostrada: a activa, depois a pendente, depois a mais recente (as
-    // linhas vêm por data descendente). Antes uma anulada recente podia ficar à
-    // frente de uma pendente, e a lista mostrava a turma de onde o aluno saiu.
-    const rank = (status: unknown) => (status === "active" ? 0 : status === "pending" ? 1 : 2);
-    const enrollmentByStudent = new Map<string, Record<string, unknown>>();
+    // A matrícula de cada aluno, com a mesma regra da ficha (pickCurrentEnrollment).
+    const enrollmentsOf = new Map<string, NonNullable<typeof allEnrollments>>();
     for (const enr of allEnrollments ?? []) {
-      const existing = enrollmentByStudent.get(enr.student_id);
-      if (!existing || rank(enr.status) < rank(existing["status"])) {
-        enrollmentByStudent.set(enr.student_id, enr as Record<string, unknown>);
-      }
+      enrollmentsOf.set(enr.student_id, [...(enrollmentsOf.get(enr.student_id) ?? []), enr]);
+    }
+    const today = schoolTodayIso();
+    const enrollmentByStudent = new Map<string, Record<string, unknown>>();
+    for (const [studentId, rows] of enrollmentsOf) {
+      const picked = pickCurrentEnrollment(rows, today);
+      if (picked) enrollmentByStudent.set(studentId, picked as Record<string, unknown>);
     }
 
     // Carregamento financeiro para os alunos pesquisados
@@ -213,7 +243,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     let invoicesByStudent = new Map<string, InvoiceLike[]>();
     try {
       if (enrollmentIds.length) {
-        const { data: contracts } = await db
+        const { data: contracts } = await reads
           .from("finance_contracts")
           .select("id, enrollment_id")
           .in("enrollment_id", enrollmentIds)
@@ -221,7 +251,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
         const contractIds = (contracts ?? []).map((c) => c.id);
         if (contractIds.length) {
-          const { data: invoices } = await db
+          const { data: invoices } = await reads
             .from("finance_invoices")
             .select("id, contract_id, amount, discount_amount, penalty_amount, due_date, status")
             .in("contract_id", contractIds)
@@ -230,7 +260,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
           const invoiceIds = (invoices ?? []).map((inv) => inv.id);
           const { data: receipts } = invoiceIds.length
-            ? await db
+            ? await reads
                 .from("finance_receipts")
                 .select("invoice_id, amount, status")
                 .in("invoice_id", invoiceIds)
@@ -300,7 +330,7 @@ export const searchStudents = createServerFn({ method: "GET" })
 
     const [{ data: classGroups }, { data: years }, { data: guardianPeople }] = await Promise.all([
       classGroupIds.length
-        ? db
+        ? reads
             .from("class_groups")
             .select("id, name, grade_level_id")
             .eq("school_id", membership.schoolId)
@@ -309,14 +339,14 @@ export const searchStudents = createServerFn({ method: "GET" })
             data: [] as Array<{ id: string; name: string; grade_level_id: string | null }>,
           }),
       yearIds.length
-        ? db
+        ? reads
             .from("academic_years")
             .select("id, name")
             .eq("school_id", membership.schoolId)
             .in("id", yearIds)
         : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
       guardianPersonIds.length
-        ? db
+        ? reads
             .from("people")
             .select("id, full_name")
             .eq("school_id", membership.schoolId)
@@ -332,7 +362,7 @@ export const searchStudents = createServerFn({ method: "GET" })
       ),
     ] as string[];
     const { data: gradeLevels } = gradeLevelIds.length
-      ? await db
+      ? await reads
           .from("grade_levels")
           .select("id, name")
           .eq("school_id", membership.schoolId)
@@ -434,7 +464,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     return mapped.filter(
       (row) =>
         row.full_name.toLowerCase().includes(query) ||
-        row.registration_number.toLowerCase().includes(query) ||
+        numberMatches(row.registration_number, query) ||
         (row.email ?? "").toLowerCase().includes(query) ||
         (row.phone ?? "").toLowerCase().includes(query) ||
         (row.national_id ?? "").toLowerCase().includes(query) ||
@@ -501,9 +531,8 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         .select("guardian_person_id, relationship, is_primary")
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId),
-      // Matrícula corrente: a activa e, sem ela, a pendente (que já ocupa lugar na
-      // turma); «active» ordena antes de «pending». Só a activa deixava a ficha sem
-      // turma para quem estava pendente.
+      // Matrículas correntes (activa ou pendente, que já ocupa lugar na turma). Com a
+      // matrícula antecipada pode haver duas, uma por ano: escolhe pickCurrentEnrollment.
       db
         .from("enrollments")
         .select(
@@ -511,10 +540,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         )
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
-        .in("status", [...CURRENT_ENROLLMENT_STATUSES])
-        .order("status", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+        .in("status", [...CURRENT_ENROLLMENT_STATUSES]),
     ]);
     const person = personResult.data as {
       full_name?: string | null;
@@ -530,7 +556,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       address?: string | null;
     } | null;
     const guardians = guardiansResult.data;
-    let enrollment = enrollmentResult.data as {
+    type CurrentEnrollment = {
       id: string;
       class_group_id: string | null;
       academic_year_id: string | null;
@@ -538,7 +564,8 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       enrolled_on: string | null;
       attendance_rate?: number | null;
       final_average?: number | null;
-    } | null;
+    };
+    let enrollmentRows = (enrollmentResult.data ?? []) as CurrentEnrollment[];
     if (
       enrollmentResult.error &&
       /attendance_rate|final_average|42703|schema cache/i.test(enrollmentResult.error.message)
@@ -548,16 +575,16 @@ export const getStudentProfile = createServerFn({ method: "GET" })
         .select("id, class_group_id, academic_year_id, status, enrolled_on")
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId)
-        .in("status", [...CURRENT_ENROLLMENT_STATUSES])
-        .order("status", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      enrollment = fallback.data
-        ? { ...fallback.data, attendance_rate: null, final_average: null }
-        : null;
+        .in("status", [...CURRENT_ENROLLMENT_STATUSES]);
+      enrollmentRows = (fallback.data ?? []).map((row) => ({
+        ...row,
+        attendance_rate: null,
+        final_average: null,
+      }));
     } else if (enrollmentResult.error) {
       throw publicDatabaseError(enrollmentResult.error, "Não foi possível carregar a matrícula.");
     }
+    const enrollment = pickCurrentEnrollment(enrollmentRows, schoolTodayIso());
 
     const guardianIds = (guardians ?? []).map(
       (row: { guardian_person_id: string }) => row.guardian_person_id,
@@ -670,136 +697,71 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
-    // register_student e enroll_student exigem 2FA: verificado antes de criar a
-    // pessoa, em vez de a criar e apagar a seguir.
-    requireAal2(context.claims, "Matricular um aluno");
+    requireAal2(context.claims, "Matricular alunos");
+    // Um reenvio de uma operação já concluída não acrescenta alunos e deve
+    // funcionar mesmo quando o primeiro pedido ocupou o último lugar do plano.
     const db = await loadSgaAdminClient();
-
-    await assertCanAddStudentForSchool(membership.schoolId);
-
-    const admittedOn = data.admittedOn ?? schoolTodayIso();
-    // Com turma é uma matrícula nova: só no ciclo de matrículas (ou Administração
-    // com motivo). Sem turma, o aluno fica candidato e pode registar-se a qualquer altura.
-    const outsideCycle = data.classGroupId
-      ? await assertNewEnrollmentAllowed(db, {
-          schoolId: membership.schoolId,
-          appRole: membership.appRole,
-          overrideReason: data.outsideCycleReason ?? null,
-        })
-      : null;
-    // Turma cheia, ano por abrir ou data fora do ano: recusado antes de criar o aluno.
-    const classGroup = data.classGroupId
-      ? await assertClassAcceptsEnrollment(db, {
-          schoolId: membership.schoolId,
-          classGroupId: data.classGroupId,
-          academicYearId: data.academicYearId ?? null,
-          enrolledOn: admittedOn,
-        })
-      : null;
-
-    const { payload: personPayload, hasGeography } = buildPersonInsert(data.person, {
-      schoolId: membership.schoolId,
-      userId: context.userId,
-    });
-    if (!personPayload.full_name) throw new Error("Nome do aluno é obrigatório.");
-    const { data: person, error: personError } = await db
-      .from("people")
-      .insert(personPayload)
+    const { data: completed, error: requestError } = await db
+      .from("audit_logs")
       .select("id")
-      .single();
-    if (personError && hasGeography && isMissingPeopleGeography(personError)) {
-      throw new Error(
-        "A localização do aluno não pôde ser guardada porque a migration de Pessoas ainda não foi aplicada.",
+      .eq("school_id", membership.schoolId)
+      .eq("actor_user_id", context.userId)
+      .eq("request_id", data.requestId)
+      .eq("action", "students.enrollment_created")
+      .limit(1)
+      .maybeSingle();
+    if (requestError)
+      throw publicDatabaseError(
+        requestError,
+        "Não foi possível confirmar o estado deste pedido. Tente novamente.",
       );
-    }
-    if (personError) throw publicDatabaseError(personError, "Não foi possível criar a pessoa.");
-
-    // register_student cria o aluno (+ 1º encarregado) numa transação atómica, com o
-    // número de processo da sequência própria.
-    const [firstGuardian, ...otherGuardians] = data.guardians ?? [];
-    const registered = await registerStudentRpc(context.supabase, {
-      schoolId: membership.schoolId,
-      personId: person.id,
-      admissionDate: admittedOn,
-      guardian: firstGuardian
-        ? {
-            personId: firstGuardian.guardian_person_id,
-            relationship: firstGuardian.relationship,
-            isPrimary: firstGuardian.is_primary,
-            pickup: firstGuardian.authorized_pickup,
-          }
-        : null,
-    });
-    if (!registered.ok) {
-      // Compensa o insert de people acima: sem aluno, a pessoa ficava órfã.
-      await db.from("people").delete().eq("id", person.id);
-      throw rpcFailureError(registered, { fallback: "Não foi possível concluir a matrícula." });
-    }
-    const studentOutcome = registered.value;
-
-    for (const guardian of otherGuardians) {
-      await linkGuardian(db, {
-        schoolId: membership.schoolId,
-        studentId: studentOutcome.studentId,
-        guardianPersonId: guardian.guardian_person_id,
-        relationship: guardian.relationship,
-        isPrimary: guardian.is_primary,
-        userId: context.userId,
-      });
-    }
-
-    let enrollmentNumber: string | null = null;
-    if (classGroup) {
-      const enrolled = await enrollStudentRpc(context.supabase, {
-        schoolId: membership.schoolId,
-        studentId: studentOutcome.studentId,
-        classGroupId: classGroup.id,
-        enrolledOn: classGroup.enrolledOn,
-      });
-      if (!enrolled.ok) {
-        throw rpcFailureError(enrolled, {
-          auth: "Aluno criado, mas esta conta precisa de 2FA activo para o matricular numa turma.",
-          fallback: "Aluno criado, mas falhou a matrícula na turma.",
-        });
-      }
-      enrollmentNumber = enrolled.value.enrollmentNumber;
-      await recordOutsideCycleEnrollments(outsideCycle, {
-        schoolId: membership.schoolId,
-        userId: context.userId,
-        studentIds: [studentOutcome.studentId],
-        action: "nova matrícula",
-      });
-    }
-
-    // O BI também em `person_documents`, como ao aceitar uma candidatura. No fim e sem
-    // parar a matrícula: o aluno já existe e o documento é secundário.
-    await syncBiDocumentFromNif(
-      db,
-      membership.schoolId,
-      person.id,
-      personPayload.national_id,
-      context.userId,
-    ).catch((error) => console.error("[matricula] documento BI por registar", person.id, error));
-
+    if (!completed) await assertCanAddStudentForSchool(membership.schoolId);
+    const person = data.person;
+    const fullName = person.full_name.trim();
+    const { data: result, error } = await workflowRpcClient(context.supabase).rpc(
+      "siga_enroll_new_student_atomic",
+      {
+        p_school_id: membership.schoolId,
+        p_request_id: data.requestId,
+        p_person: {
+          full_name: fullName,
+          preferred_name: person.preferred_name || person.first_name || fullName.split(/\s+/)[0],
+          email: person.email || null,
+          phone: person.phone_primary ? normalizeStoredPhone(person.phone_primary) : null,
+          national_id: person.nif || null,
+          date_of_birth: person.birth_date || null,
+          sex:
+            person.sex === "M"
+              ? "male"
+              : person.sex === "F"
+                ? "female"
+                : person.sex === "outro"
+                  ? "other"
+                  : null,
+          province: person.province || null,
+          municipality: person.municipality || null,
+          commune: person.commune || null,
+          address: person.address || null,
+          notes: person.notes || null,
+        },
+        p_guardians: data.guardians.map((guardian) => ({
+          ...guardian,
+          relationship: mapSgaGuardianRelationship(guardian.relationship),
+        })),
+        p_class_group_id: data.classGroupId ?? null,
+        p_academic_year_id: data.academicYearId ?? null,
+        p_admission_date: data.admittedOn ?? null,
+      },
+    );
+    assertWorkflowRpcAvailable(error);
+    if (error)
+      throw publicDatabaseError(
+        error,
+        "Não foi possível concluir a matrícula. Nenhum registo foi criado.",
+      );
+    const outcome = atomicStudentResultSchema.parse(result);
     queueTenantUsageSync(membership.schoolId);
-
-    const finalStatus = enrollmentNumber ? "active" : studentOutcome.status;
-    await recordStudentStatusHistory(db, {
-      schoolId: membership.schoolId,
-      studentId: studentOutcome.studentId,
-      previousStatus: null,
-      newStatus: finalStatus,
-      reason: enrollmentNumber ? "Nova matrícula interna com turma" : "Nova matrícula interna",
-      changedBy: context.userId,
-    });
-
-    return {
-      id: studentOutcome.studentId,
-      student_number: studentOutcome.studentNumber,
-      status: finalStatus,
-      person_id: person.id,
-      enrollment_number: enrollmentNumber,
-    };
+    return outcome;
   });
 
 export const changeStudentStatus = createServerFn({ method: "POST" })
@@ -856,26 +818,30 @@ export const changeStudentStatus = createServerFn({ method: "POST" })
       changedBy: context.userId,
     });
 
-    try {
-      // `audit_logs` tem `actor_user_id` e um `metadata` jsonb — não `actor_id`,
-      // `reason`, `before_data` nem `after_data`. Com esses nomes o PostgREST recusava
-      // a linha inteira, e o `catch` vazio engolia o erro: a mudança de estado do aluno
-      // nunca deixou rasto de auditoria.
-      await db.from("audit_logs").insert({
+    // `audit_logs` tem `actor_user_id` e um `metadata` jsonb — não `actor_id`,
+    // `reason`, `before_data` nem `after_data`. Com esses nomes o PostgREST recusava
+    // a linha inteira, e o `catch` vazio engolia o erro: a mudança de estado do aluno
+    // nunca deixou rasto de auditoria.
+    const { error: auditError } = await db.from("audit_logs").insert({
+      school_id: membership.schoolId,
+      actor_user_id: context.userId,
+      action: "student.status_change",
+      entity_type: "student",
+      entity_id: data.studentId,
+      metadata: {
+        reason: data.reason || null,
+        before: { status: previousStatus },
+        after: { status: nextStatus },
+        enrollments_closed: closedEnrollments,
+      },
+    });
+    // O cliente devolve o erro em vez de o lançar: o `catch` que aqui estava nunca o via.
+    // A mudança de estado já ficou feita; o rasto que falta fica registado.
+    if (auditError) {
+      reportSigaError("students.status_change.audit_failed", auditError, {
         school_id: membership.schoolId,
-        actor_user_id: context.userId,
-        action: "student.status_change",
-        entity_type: "student",
-        entity_id: data.studentId,
-        metadata: {
-          reason: data.reason || null,
-          before: { status: previousStatus },
-          after: { status: nextStatus },
-          enrollments_closed: closedEnrollments,
-        },
+        student_id: data.studentId,
       });
-    } catch {
-      // Fallback
     }
 
     queueTenantUsageSync(membership.schoolId);
@@ -1059,8 +1025,8 @@ export const listEnrollments = createServerFn({ method: "GET" })
         if (!q) return true;
         return (
           row.student_name.toLowerCase().includes(q) ||
-          row.registration_number.toLowerCase().includes(q) ||
-          row.enrollment_number.toLowerCase().includes(q) ||
+          numberMatches(row.registration_number, q) ||
+          numberMatches(row.enrollment_number, q) ||
           row.class_name.toLowerCase().includes(q)
         );
       });
@@ -1470,9 +1436,12 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       if (held) failed.push({ studentId, message: held });
       else toEnroll.push(studentId);
     }
-    // A matrícula nova exige 2FA na base e o ciclo de matrículas: recusado antes de
-    // mexer em qualquer aluno. Mudar de turma e confirmar pendentes não são matrículas novas.
-    if (toEnroll.length && context.claims?.["aal"] !== "aal2") {
+    // Matricular, mudar de turma e confirmar exigem 2FA (auditoria 14, A3): recusado
+    // antes de mexer em qualquer aluno.
+    if (
+      (toEnroll.length || toMove.length || toConfirm.length) &&
+      context.claims?.["aal"] !== "aal2"
+    ) {
       throw new Error(ENROLLMENT_2FA_MESSAGE);
     }
     const outsideCycle = toEnroll.length

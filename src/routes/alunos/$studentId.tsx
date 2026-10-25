@@ -58,6 +58,7 @@ import {
   uploadPersonPhotoToLibrary,
 } from "@/features/arquivos/apply-person-photo";
 import { StudentRelatedFilesPanel } from "@/features/arquivos/StudentRelatedFilesPanel";
+import { StudentScholarshipPanel } from "@/features/finance/StudentScholarshipPanel";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -101,6 +102,7 @@ import {
   overlayServico,
 } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { latestCertifiableYear } from "@/features/documents/certificate-year";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
 import {
@@ -281,7 +283,7 @@ function StudentDetail() {
     // Só para escolher o encarregado, que é da Administração e da Secretaria.
     enabled: canRequestDocument,
   });
-  // Bolsa ou desconto do contrato (vale para as faturas emitidas a seguir).
+  // Desconto do contrato (vale para as faturas emitidas a seguir).
   const scholarshipQuery = useQuery({
     queryKey: ["finance", "scholarship", studentId],
     queryFn: () => getStudentScholarship({ data: { studentId } }),
@@ -290,7 +292,7 @@ function StudentDetail() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
     retry: false,
   });
   const documentsQuery = useQuery({
@@ -614,7 +616,7 @@ function StudentDetail() {
         status:
           subject.mfd == null
             ? "Pendente"
-            : subject.mfd >= angolaGradeScale.passing
+            : subject.mfd >= (year.passingValue ?? angolaGradeScale.passing)
               ? "Aprovado"
               : "Reprovado",
       })),
@@ -770,27 +772,27 @@ function StudentDetail() {
   };
 
   const downloadCertificado = async () => {
-    // Certificado deriva do Histórico, mas certifica apenas o ano lectivo mais recente concluído
-    // (o Histórico completo mostra a trajectória multi-ano; ver historicoPeriods()).
-    // Só certifica o que está no histórico oficial: o ano mais recente com
-    // resultado registado. Sem registo, não há certificado.
-    const periods = historicoPeriods()
-      .filter((period) => period.official)
-      .slice(-1);
-    if (!periods.length) {
+    // Certifica o último ano concluído com aprovação registada no histórico oficial
+    // (Pedagógica → Exames → Resultado final), com a turma e a classe desse ano.
+    const year = latestCertifiableYear(historyQuery.data?.years ?? []);
+    if (!year) {
       throw new Error(
-        "O certificado só se emite com o resultado do ano registado no histórico (Pedagógica → Exames → Resultado final).",
+        "O certificado só se emite para um ano com aprovação registada no histórico (Pedagógica → Exames → Resultado final).",
       );
     }
-    const academicYear = periods[0].periodName || studentPrintSchool.academicYear || "";
+    const periods = historicoPeriods().filter(
+      (period) => period.official && period.periodName === year.academicYearName,
+    );
+    const academicYear = year.academicYearName;
+    const valid = (value: string) => (value && value !== "—" ? value : null);
     await issuePrintDocument({
       tipo: "Certificado de habilitações",
-      school: studentPrintSchool,
+      school: { ...studentPrintSchool, academicYear },
       student: {
         fullName: student.full_name,
         academicNumber: student.registration_number,
-        className: student.class_name,
-        programName: student.grade_name ?? student.course_name,
+        className: valid(year.classGroupName),
+        programName: valid(year.gradeName) ?? valid(year.courseName),
         validationCode: documentValidationCode([
           student.id,
           student.registration_number,
@@ -798,7 +800,7 @@ function StudentDetail() {
           academicYear,
         ]),
       },
-      overlay: overlayHistorico({ periods }),
+      overlay: overlayHistorico({ periods: periods.slice(-1) }),
     });
   };
 
@@ -1268,11 +1270,11 @@ function StudentDetail() {
                 {canReceivePayment ? (
                   <QuickFormModal
                     eyebrow={student.registration_number}
-                    title="Bolsa ou desconto"
-                    description="Percentagem descontada nas faturas emitidas a partir de agora (bolsa, irmãos, funcionário…). As já emitidas não mudam. Pede a verificação em duas etapas."
+                    title="Desconto do contrato"
+                    description="Percentagem descontada nas faturas emitidas a partir de agora (irmãos, funcionário, acordo…). As já emitidas não mudam. As bolsas de estudo ficam no painel «Bolsa de estudo»: vale o maior dos dois. Pede a verificação em duas etapas."
                     icon={<Wallet className="size-5" />}
                     submitLabel="Gravar"
-                    successDescription="Bolsa ou desconto gravado."
+                    successDescription="Desconto do contrato gravado."
                     onSubmit={async (values) => {
                       const percent = Number(String(values["percentagem"] ?? "").replace(",", "."));
                       if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
@@ -1297,12 +1299,12 @@ function StudentDetail() {
                         label: "Motivo",
                         type: "textarea",
                         full: true,
-                        placeholder: "Ex.: bolsa de mérito 2026, aprovada pela Direcção",
+                        placeholder: "Ex.: desconto de irmãos acordado pela Direcção",
                       },
                     ]}
                     trigger={(open) => (
                       <Button variant="outline" className="gap-2" onClick={open}>
-                        <Wallet className="size-4" /> Bolsa
+                        <Wallet className="size-4" /> Desconto
                       </Button>
                     )}
                   />
@@ -1463,6 +1465,8 @@ function StudentDetail() {
           schoolId={String(student.school_id)}
           studentId={student.id}
         />
+
+        {canIssueInvoice ? <StudentScholarshipPanel studentId={student.id} /> : null}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
@@ -1772,7 +1776,7 @@ function StudentDetail() {
               />
               {scholarshipQuery.data?.percent ? (
                 <Field
-                  label="Bolsa ou desconto"
+                  label="Desconto do contrato"
                   value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
                 />
               ) : null}

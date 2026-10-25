@@ -1,4 +1,5 @@
 import { requireAal2 } from "@/features/hr/require-aal2";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { z } from "zod";
@@ -14,6 +15,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   financeListInputSchema,
+  listInvoicesInputSchema,
   issueInvoiceInputSchema,
   recordCashExpenseInputSchema,
   recordInvoicePaymentInputSchema,
@@ -23,11 +25,15 @@ import {
   cancelPaymentPlanInputSchema,
   upsertFeePlanSettingsInputSchema,
   syncStudentToPayflowInputSchema,
+  paidOnDateSchema,
+  paidAtFromPaidOn,
 } from "./schemas";
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
-import { invoiceNetTotal } from "./invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
+import { discountAmountFor, effectiveDiscountPercent, scholarshipPercentFor } from "./scholarships";
+import { scholarshipsOfStudent } from "./student-scholarship-server";
 import { lateFeeFor, paidOnIso, todayIso } from "./late-fee";
 import {
   feeItemMatcher,
@@ -299,12 +305,21 @@ async function loadStudentDirectory(
   schoolId: string,
   studentIds?: string[],
 ) {
-  let query = db
-    .from("students")
-    .select("id, student_number, person_id, status")
-    .eq("school_id", schoolId);
-  if (studentIds?.length) query = query.in("id", studentIds);
-  const { data: students, error } = await query.limit(250);
+  // Com ids, todos (em lotes): o tecto de 250 da lista deixava os restantes alunos da
+  // SAF-T como «Consumidor final». Sem ids, os primeiros 250 para a lista.
+  const { data: students, error } = studentIds?.length
+    ? await readInChunks(studentIds, (chunk) =>
+        db
+          .from("students")
+          .select("id, student_number, person_id, status")
+          .eq("school_id", schoolId)
+          .in("id", chunk),
+      )
+    : await db
+        .from("students")
+        .select("id, student_number, person_id, status")
+        .eq("school_id", schoolId)
+        .limit(250);
   if (error) throw publicDatabaseError(error, "Não foi possível carregar os alunos.");
   const personIds = [
     ...new Set((students ?? []).map((row: { person_id: string }) => row.person_id)),
@@ -516,7 +531,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     for (const invoice of activeInvoices) {
       const amount = invoiceNetTotal(invoice);
       const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-      const openAmount = Math.max(amount - paid, 0);
+      const openAmount = invoiceOpenAmount(amount, paid);
       billed += amount;
       outstanding += openAmount;
       if (openAmount > 0) {
@@ -595,7 +610,7 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
 
 export const listInvoices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => financeListInputSchema.parse(input))
+  .validator((input: unknown) => listInvoicesInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
       "Administrador",
@@ -604,13 +619,39 @@ export const listInvoices = createServerFn({ method: "GET" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: invoices, error } = await db
+    let studentContractIds: string[] | null = null;
+    if (data.studentId) {
+      const { data: studentEnrollments, error: enrollmentsError } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("student_id", data.studentId);
+      if (enrollmentsError) {
+        throw publicDatabaseError(enrollmentsError, "Não foi possível carregar as faturas.");
+      }
+      const enrollmentIds = (studentEnrollments ?? []).map((row: { id: string }) => row.id);
+      if (!enrollmentIds.length) return [];
+      const { data: studentContracts, error: contractsError } = await db
+        .from("finance_contracts")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .in("enrollment_id", enrollmentIds);
+      if (contractsError) {
+        throw publicDatabaseError(contractsError, "Não foi possível carregar as faturas.");
+      }
+      studentContractIds = (studentContracts ?? []).map((row: { id: string }) => row.id);
+      if (!studentContractIds.length) return [];
+    }
+
+    let invoicesQuery = db
       .from("finance_invoices")
       .select(
         "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
       )
       .eq("school_id", membership.schoolId)
-      .neq("status", "cancelled")
+      .neq("status", "cancelled");
+    if (studentContractIds) invoicesQuery = invoicesQuery.in("contract_id", studentContractIds);
+    const { data: invoices, error } = await invoicesQuery
       .order("created_at", { ascending: false })
       .limit(data.limit);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as faturas.");
@@ -853,9 +894,14 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
   });
 
 const paymentReferenceInputSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   /** Sem valor, a referência é do que falta pagar (com a multa de um pagamento hoje). */
   amount: z.number().positive().max(100_000_000).optional(),
+  /**
+   * Dia em que a família pagou (comprovativo). A multa é a desse dia, não a de hoje:
+   * confirmar tarde um pagamento feito dentro da tolerância não pode criar multa.
+   */
+  paidOn: paidOnDateSchema.optional(),
 });
 
 export const generateInvoicePaymentReference = createServerFn({ method: "POST" })
@@ -896,7 +942,7 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     // A referência é paga electronicamente: se hoje já é depois da tolerância, a liquidação
     // (webhook ou confirmação manual) aplica a multa, e a referência tem de a incluir.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
-    const lateFee = lateFeeFor(invoice, billing, todayIso(), "electronic");
+    const lateFee = lateFeeFor(invoice, billing, data.paidOn ?? todayIso(), "electronic");
     const due = Math.round((invoiceNetTotal(invoice) + lateFee - alreadyPaid) * 100) / 100;
     if (due <= 0.009) throw new Error("Esta fatura já não tem valor por pagar.");
     const amount = data.amount ?? due;
@@ -929,10 +975,12 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
  * atestar que viu o comprovativo do pagamento. Continua gated a Administrador/Tesouraria.
  */
 const confirmManualPaymentInputSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   amount: z.number().positive().max(100_000_000),
   reference: z.string().trim().min(3).max(40),
   method: z.string().trim().max(40).optional(),
+  /** Dia do pagamento no comprovativo; sem ele, hoje. */
+  paidOn: paidOnDateSchema.optional(),
 });
 
 export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
@@ -952,6 +1000,7 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
         invoiceId: data.invoiceId,
         amount: data.amount,
         method: data.method ?? "multicaixa_express",
+        ...(data.paidOn ? { paidAt: paidAtFromPaidOn(data.paidOn) } : {}),
         receiptNumber: `MCX-CONF-${data.reference.replace(/\s+/g, "")}`,
       },
     });
@@ -1177,10 +1226,6 @@ export const issueInvoice = createServerFn({ method: "POST" })
         "Indique o valor: esta categoria ainda não tem preço no plano de propinas (Definições › Cobrança).",
       );
     }
-    const discountAmount =
-      contractDiscountPercent > 0
-        ? Math.round(((amount * contractDiscountPercent) / 100) * 100) / 100
-        : 0;
 
     const competenceMonth = invoiceCompetenceMonth({
       kind: feeItem.kind,
@@ -1214,6 +1259,18 @@ export const issueInvoice = createServerFn({ method: "POST" })
         );
       }
     }
+
+    // Desconto: o maior entre o do contrato (irmãos) e o da bolsa em vigor na data de
+    // emissão (scholarships.ts) — não se somam.
+    const scholarshipPercent = scholarshipPercentFor(
+      await scholarshipsOfStudent(db, membership.schoolId, data.studentId),
+      kind,
+      data.issuedOn ?? schoolTodayIso(),
+    );
+    const discountAmount = discountAmountFor(
+      amount,
+      effectiveDiscountPercent(contractDiscountPercent, scholarshipPercent),
+    );
 
     // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
     // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
@@ -1928,7 +1985,7 @@ const gradeTuitionPricesInputSchema = z.object({
   prices: z
     .array(
       z.object({
-        gradeLevelId: z.string().uuid(),
+        gradeLevelId: z.string().guid(),
         /** null ou vazio: a classe deixa de ter preço próprio e usa a propina geral. */
         amount: z.number().positive().max(999_999_999_999.99).nullable(),
       }),
@@ -2088,24 +2145,34 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       "id, contract_id, fee_item_id, invoice_number, amount, discount_amount, status, created_at, cancelled_at";
 
     const period = saftPeriodBounds(data);
+    // Todas as linhas do período, por páginas: o servidor devolve no máximo 1000 por
+    // pedido, sem erro, e o ficheiro para a AGT saía incompleto num mês ou ano maior.
     const [{ data: invoiceRows, error }, { data: receiptRows, error: receiptsError }] =
       await Promise.all([
-        db
-          .from("finance_invoices")
-          .select(invoiceColumns)
-          .eq("school_id", membership.schoolId)
-          .gte("created_at", `${period.start}T00:00:00`)
-          .lte("created_at", `${period.end}T23:59:59`)
-          .order("created_at", { ascending: true }),
-        db
-          .from("finance_receipts")
-          .select(
-            "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
-          )
-          .eq("school_id", membership.schoolId)
-          .gte("paid_on", period.start)
-          .lte("paid_on", period.end)
-          .order("paid_on", { ascending: true }),
+        readAllPages((from, to) =>
+          db
+            .from("finance_invoices")
+            .select(invoiceColumns)
+            .eq("school_id", membership.schoolId)
+            .gte("created_at", `${period.start}T00:00:00`)
+            .lte("created_at", `${period.end}T23:59:59`)
+            .order("created_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        readAllPages((from, to) =>
+          db
+            .from("finance_receipts")
+            .select(
+              "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversed_at, created_at",
+            )
+            .eq("school_id", membership.schoolId)
+            .gte("paid_on", period.start)
+            .lte("paid_on", period.end)
+            .order("paid_on", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
 
     if (error) {
@@ -2130,13 +2197,21 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
           .filter((id): id is string => Boolean(id) && !invoiceById.has(id as string)),
       ),
     ];
+    // As leituras seguintes em lotes de ids e com o erro verificado: antes, um erro ou
+    // um URL longo demais deixava os clientes como «Consumidor final», sem aviso.
+    const saftLookupError = "Não foi possível carregar os clientes para o SAFT-AO.";
     if (missingInvoiceIds.length) {
-      const { data: earlier } = await db
-        .from("finance_invoices")
-        .select(invoiceColumns)
-        .eq("school_id", membership.schoolId)
-        .in("id", missingInvoiceIds);
-      for (const row of (earlier ?? []) as InvoiceRow[]) invoiceById.set(row.id, row);
+      const { data: earlier, error: earlierError } = await readInChunks(
+        missingInvoiceIds,
+        (chunk) =>
+          db
+            .from("finance_invoices")
+            .select(invoiceColumns)
+            .eq("school_id", membership.schoolId)
+            .in("id", chunk),
+      );
+      if (earlierError) throw publicDatabaseError(earlierError, saftLookupError);
+      for (const row of earlier as InvoiceRow[]) invoiceById.set(row.id, row);
     }
     const allInvoices = [...invoiceById.values()];
 
@@ -2147,33 +2222,40 @@ export const exportSaftAoXml = createServerFn({ method: "POST" })
       ...new Set(allInvoices.map((row) => row.fee_item_id).filter(Boolean)),
     ] as string[];
 
-    const [{ data: contracts }, { data: feeItems }] = await Promise.all([
-      contractIds.length
-        ? db
-            .from("finance_contracts")
-            .select("id, enrollment_id")
-            .eq("school_id", membership.schoolId)
-            .in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
-      feeIds.length
-        ? db
-            .from("fee_items")
-            .select("id, name")
-            .eq("school_id", membership.schoolId)
-            .in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+    const [contractsRead, feeItemsRead] = await Promise.all([
+      readInChunks(contractIds, (chunk) =>
+        db
+          .from("finance_contracts")
+          .select("id, enrollment_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", chunk),
+      ),
+      readInChunks(feeIds, (chunk) =>
+        db
+          .from("fee_items")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", chunk),
+      ),
     ]);
+    if (contractsRead.error) throw publicDatabaseError(contractsRead.error, saftLookupError);
+    if (feeItemsRead.error) throw publicDatabaseError(feeItemsRead.error, saftLookupError);
+    const contracts = contractsRead.data;
+    const feeItems = feeItemsRead.data;
 
     const enrollmentIds = [
-      ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
-    ];
-    const { data: enrollments } = enrollmentIds.length
-      ? await db
+      ...new Set(contracts.map((row) => row.enrollment_id).filter(Boolean)),
+    ] as string[];
+    const { data: enrollments, error: enrollmentsError } = await readInChunks(
+      enrollmentIds,
+      (chunk) =>
+        db
           .from("enrollments")
           .select("id, student_id")
           .eq("school_id", membership.schoolId)
-          .in("id", enrollmentIds)
-      : { data: [] as Array<{ id: string; student_id: string }> };
+          .in("id", chunk),
+    );
+    if (enrollmentsError) throw publicDatabaseError(enrollmentsError, saftLookupError);
 
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const students = studentIds.length

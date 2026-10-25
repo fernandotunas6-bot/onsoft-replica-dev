@@ -87,7 +87,7 @@ const fontes = ficheirosFonte(resolve(raiz, "src")).map((caminho) => ({
 }));
 
 // Tipos gerados não contam como uso: descrevem o esquema, não lhe tocam.
-const relevantes = fontes.filter((f) => !f.caminho.endsWith("integrations/supabase/types.ts"));
+const relevantes = fontes.filter((f) => !f.caminho.endsWith("integrations/supabase/types.sga.ts"));
 
 const usos = new Map();
 for (const tabela of tabelas) {
