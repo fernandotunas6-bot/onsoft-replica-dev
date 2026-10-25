@@ -214,44 +214,51 @@ export async function sendOrQueue(
  */
 export function flushOutbox(userId: string | null, schoolId: string | null): Promise<void> {
   if (!storage || !userId || !schoolId) return Promise.resolve();
-  flushing ??= (async () => {
-    try {
-      // Entradas legadas sem escola nunca são transmitidas automaticamente.
-      for (const item of items.filter(
-        (entry) => entry.userId === userId && entry.schoolId === schoolId && !entry.failedReason,
-      )) {
-        try {
-          if (!items.some((entry) => entry.id === item.id)) continue;
-          // O utilizador pode ter mudado de escola enquanto se enviava a entrada anterior.
-          if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
-          if (
-            !item.variables ||
-            typeof item.variables !== "object" ||
-            Array.isArray(item.variables)
-          ) {
-            throw new Error("Os dados da operação guardada são inválidos.");
-          }
-          await senders[item.kind]({
-            ...item.variables,
-            offlineSchoolId: item.schoolId,
-            offlineActorId: item.userId,
-          });
-          await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
-        } catch (error) {
-          if (isNetworkError(error) || isSessionError(error)) return;
-          const reason = error instanceof Error ? error.message : "O servidor recusou o envio.";
-          await mutateItems((current) =>
-            current.map((entry) =>
-              entry.id === item.id ? { ...entry, failedReason: reason } : entry,
-            ),
-          );
+  // Uma tentativa sem entradas é válida. O antigo `??=` com `finally`
+  // síncrono deixava uma Promise concluída presa em `flushing`.
+  const previous = flushing;
+  const run = async () => {
+    // Entradas legadas sem escola nunca são transmitidas automaticamente.
+    for (const item of items.filter(
+      (entry) => entry.userId === userId && entry.schoolId === schoolId && !entry.failedReason,
+    )) {
+      try {
+        if (!items.some((entry) => entry.id === item.id)) continue;
+        // A escola pode mudar enquanto a tentativa anterior estava em curso.
+        if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
+        if (
+          !item.variables ||
+          typeof item.variables !== "object" ||
+          Array.isArray(item.variables)
+        ) {
+          throw new Error("Os dados da operação guardada são inválidos.");
         }
+        await senders[item.kind]({
+          ...item.variables,
+          offlineSchoolId: item.schoolId,
+          offlineActorId: item.userId,
+        });
+        await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
+      } catch (error) {
+        if (isNetworkError(error) || isSessionError(error)) return;
+        const reason = error instanceof Error ? error.message : "O servidor recusou o envio.";
+        await mutateItems((current) =>
+          current.map((entry) =>
+            entry.id === item.id ? { ...entry, failedReason: reason } : entry,
+          ),
+        );
       }
-    } finally {
-      flushing = null;
     }
-  })();
-  return flushing;
+  };
+  // Tentativas concorrentes, mesmo para escolas diferentes, não sobrepõem envios.
+  // Depois da primeira terminar, a próxima verifica o contexto da escola de novo.
+  const task = (previous ?? Promise.resolve()).catch(() => undefined).then(run);
+  flushing = task;
+  void task.then(
+    () => { if (flushing === task) flushing = null; },
+    () => { if (flushing === task) flushing = null; },
+  );
+  return task;
 }
 
 /** Retira da fila um envio recusado pelo servidor (depois de o ler). */

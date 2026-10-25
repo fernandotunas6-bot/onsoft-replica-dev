@@ -164,6 +164,31 @@ describe("fila de envio sem rede", () => {
     expect(outboxItems()).toHaveLength(0);
   });
 
+  it("não bloqueia uma tentativa nova após uma anterior sem operações", async () => {
+    setOnline(true);
+    await flushOutbox("prof-1", "school-a");
+    setOnline(false);
+    await sendOrQueue("attendance.submit", { n: 8 }, meta);
+    setOnline(true);
+    attendance.mockResolvedValueOnce({});
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).toHaveBeenCalledTimes(1);
+    expect(outboxItems()).toHaveLength(0);
+  });
+
+  it("serializa duas sincronizações solicitadas ao mesmo tempo", async () => {
+    setOnline(false);
+    await sendOrQueue("attendance.submit", { n: 9 }, meta);
+    setOnline(true);
+    attendance.mockResolvedValueOnce({});
+    await Promise.all([
+      flushOutbox("prof-1", "school-a"),
+      flushOutbox("prof-1", "school-a"),
+    ]);
+    expect(attendance).toHaveBeenCalledTimes(1);
+    expect(outboxItems()).toHaveLength(0);
+  });
+
   it("sem escola activa recusa guardar sem rede", async () => {
     setOnline(false);
     await expect(
