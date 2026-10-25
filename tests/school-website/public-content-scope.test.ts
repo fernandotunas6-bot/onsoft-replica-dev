@@ -110,8 +110,30 @@ describe.each(endpoints)("API pública de %s", (_name, route) => {
     expect(await response.text()).not.toMatch(/RASCUNHO-SECRETO|PUBLICAÇÃO-B|school-b/);
     if (route === BlogRoute) expect(mocks.posts).toHaveBeenCalledWith("school-a", 0, undefined);
   });
-  it("falha fechado para tenant suspenso", async () => {
-    tables.tenants[0].status = "suspended";
-    expect((await request(route)).status).toBe(404);
+  it("website e blog continuam públicos com trial expirado ou propina SaaS em atraso", async () => {
+    const tenant = tables.tenants[0];
+    tenant.status = "trial";
+    tenant.subscription_status = "trialing";
+    tenant.trial_ends_at = "2020-01-01T00:00:00.000Z";
+    const trial = await request(route, "AA", "https://a.example");
+    expect(trial.status).toBe(200);
+    expect(trial.headers.get("Cache-Control")).toBe("no-store");
+
+    tenant.status = "past_due";
+    tenant.subscription_status = "past_due";
+    expect((await request(route, "AA", "https://a.example")).status).toBe(200);
+
+    tenant.status = "active";
+    tenant.subscription_status = "unpaid";
+    expect((await request(route, "AA", "https://a.example")).status).toBe(200);
   });
+
+  it.each(["suspended", "archived", "cancelled", "provisioning_failed"])(
+    "falha fechado para tenant institucionalmente %s",
+    async (status) => {
+      tables.tenants[0].status = status;
+      expect((await request(route)).status).toBe(404);
+      expect(mocks.posts).not.toHaveBeenCalled();
+    },
+  );
 });
