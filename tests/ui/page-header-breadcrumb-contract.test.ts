@@ -3,6 +3,7 @@ import { createElement, type ComponentPropsWithRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ActiveContext, type ActiveContextValue } from "@/features/intelligence/active-context";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -68,5 +69,82 @@ describe("PageHeader — hierarquia e orientação", () => {
     header({ group: "Documentos", title: "Documentos", hideBreadcrumb: true, description: "" });
     expect(screen.queryByRole("navigation")).toBeNull();
     expect(screen.getAllByText("Documentos")).toHaveLength(1);
+  });
+});
+
+/** Contexto que a AppShell daria para a pauta de Matemática da 10.ª A. */
+const pautaDeMatematica = {
+  context: null,
+  crumbs: {
+    page: { to: "/pedagogica", search: { tab: "notas" } },
+    frames: [
+      { label: "10.ª A", to: "/pedagogica", search: { tab: "notas", turma: "t-a", pauta: "1" } },
+      {
+        label: "Matemática",
+        to: "/pedagogica",
+        search: { tab: "notas", turma: "t-a", disciplina: "d-m", pauta: "1" },
+      },
+    ],
+  },
+} satisfies ActiveContextValue;
+
+function headerInContext(
+  value: ActiveContextValue,
+  props: Partial<Parameters<typeof PageHeader>[0]> = {},
+) {
+  return render(
+    createElement(
+      ActiveContext.Provider,
+      { value },
+      createElement(PageHeader, {
+        group: "Académico",
+        title: "Área Pedagógica",
+        description: "",
+        ...props,
+      }),
+    ),
+  );
+}
+
+const passos = () =>
+  Array.from(
+    screen.getByRole("navigation").querySelectorAll("li:not([role=presentation])"),
+    (item) => item.textContent,
+  );
+
+describe("PageHeader — contexto da URL", () => {
+  it("põe a turma e a disciplina depois do título, cada uma com o seu nível", () => {
+    headerInContext(pautaDeMatematica);
+    expect(passos()).toEqual(["Início", "Académico", "Área Pedagógica", "10.ª A", "Matemática"]);
+    const nav = screen.getByRole("navigation");
+    const pagina = within(nav).getByRole("link", { name: "Área Pedagógica" });
+    expect(pagina.getAttribute("href")).toBe("/pedagogica");
+    expect(JSON.parse(pagina.getAttribute("data-search") ?? "null")).toEqual({ tab: "notas" });
+    const turma = within(nav).getByRole("link", { name: "10.ª A" });
+    expect(JSON.parse(turma.getAttribute("data-search") ?? "null")).toEqual({
+      tab: "notas",
+      turma: "t-a",
+      pauta: "1",
+    });
+    expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    expect(nav.querySelector('[aria-current="page"]')?.textContent).toBe("Matemática");
+    // O título da página não muda.
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Área Pedagógica");
+  });
+
+  it("um breadcrumb explícito da página manda sobre o contexto", () => {
+    headerInContext(pautaDeMatematica, {
+      crumbs: [{ label: "Início", to: "/portal" }, { label: "Pautas" }],
+    });
+    expect(passos()).toEqual(["Início", "Pautas"]);
+  });
+
+  it("na página da própria entidade não repete o título", () => {
+    const professora = {
+      context: null,
+      crumbs: { page: null, frames: [{ label: "Maria Domingos" }] },
+    } satisfies ActiveContextValue;
+    headerInContext(professora, { title: "Maria Domingos" });
+    expect(passos()).toEqual(["Início", "Académico", "Maria Domingos"]);
   });
 });
