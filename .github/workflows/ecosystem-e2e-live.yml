@@ -32,6 +32,7 @@ jobs:
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           STAGING_SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
         run: node scripts/siga/check-staging-readiness.mjs
 
       - uses: oven-sh/setup-bun@v2
@@ -70,6 +71,8 @@ jobs:
       - name: Pipeline @live (smoke + Python + Playwright TS)
         env:
           SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+          # Credencial privilegiada só disponível durante a execução dos testes e cleanup.
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
           SIGA_E2E_LIVE: "1"
           CI: "true"
         run: node scripts/siga/e2e-ecosystem-live.mjs
