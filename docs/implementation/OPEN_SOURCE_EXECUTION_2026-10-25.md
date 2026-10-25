@@ -21,6 +21,8 @@ Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistem
 
 **Saída:** E2E autenticado executado (sem skip), CI último SHA aprovado, provas de bloqueio cross-tenant, plano de rollback e relatório de staging. O workflow não valida por si só que as credenciais remotas estão activas: só os testes e o inventário confirmam.
 
+**Auditoria de resíduos ao terminar (25/10):** `scripts/siga/check-e2e-staging-residue.mjs` analisa as escolas com slugs sintéticos e as contas Auth `e2e+...@siga-plus.test` em páginas de 200; falha fechado se faltar acesso, se forem ultrapassadas 100 páginas ou se restarem artefactos. Corre mesmo que o pipeline E2E falhe e **nunca elimina dados**. O antigo `e2e-cleanup-stale.mjs` é apenas inventário por defeito e não deve ser considerado prova de limpeza; remoções são operações distintas e devem continuar guardadas. O arnês Python passou a usar NIF fictício derivado do slug, como o helper TypeScript, evitando a reutilização permanente de `5417000000`. Nenhum dado real ou credencial de produção deve entrar nesta verificação.
+
 ## Fase 2 — terminar o que os outros agentes já fizeram
 
 **Bloqueio de reconciliação detectado em 25/10:** as tabelas, RPCs e gatilhos de caixa da #283 já aparecem no projecto de produção, mas a versão `20261024110000` falta no histórico. As alterações de idempotência e estorno da #276 ainda não estão reflectidas. Consultar [FINANCE_MIGRATION_DRIFT_2026-10-25.md](FINANCE_MIGRATION_DRIFT_2026-10-25.md) e usar apenas o verificador **read-only** `scripts/siga/check-finance-schema-drift.mjs`; não reaplicar nem reparar o histórico automaticamente. O CI de #276 e #283 passou no último SHA revisto, mas falta staging e compatibilidade real.
