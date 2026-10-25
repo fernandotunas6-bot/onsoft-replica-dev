@@ -13,7 +13,9 @@ const PAGE_SIZE = 200;
 const MAX_PAGES = 100;
 
 export function isSyntheticE2EAccount(email) {
-  const normalized = String(email ?? "").trim().toLowerCase();
+  const normalized = String(email ?? "")
+    .trim()
+    .toLowerCase();
   return /^e2e\+[^@\s]+@siga-plus\.test$/.test(normalized);
 }
 
@@ -44,27 +46,21 @@ export async function readAllPages(fetchPage, label) {
 }
 
 export async function checkE2EStagingResidue(admin) {
-  const tenants = await readAllPages(
-    async (page, size) => {
-      const { data, error } = await admin
-        .from("tenants")
-        .select("slug")
-        .order("slug")
-        .range((page - 1) * size, page * size - 1);
-      return { data, error };
-    },
-    "tenants",
-  );
-  const users = await readAllPages(
-    async (page, size) => {
-      const { data, error } = await admin.auth.admin.listUsers({
-        page,
-        perPage: size,
-      });
-      return { data: data?.users, error };
-    },
-    "utilizadores Auth",
-  );
+  const tenants = await readAllPages(async (page, size) => {
+    const { data, error } = await admin
+      .from("tenants")
+      .select("slug")
+      .order("slug")
+      .range((page - 1) * size, page * size - 1);
+    return { data, error };
+  }, "tenants");
+  const users = await readAllPages(async (page, size) => {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: size,
+    });
+    return { data: data?.users, error };
+  }, "utilizadores Auth");
   return summarizeE2EResidue(tenants, users);
 }
 
@@ -77,7 +73,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       `Auditoria E2E: ${report.schoolCount} escola(s) sintética(s), ${report.userCount} conta(s) Auth sintética(s).`,
     );
     if (!report.clean) {
-      console.error("E2E bloqueado: existem resíduos de ensaio; investigar e limpar individualmente.");
+      console.error(
+        "E2E bloqueado: existem resíduos de ensaio; investigar e limpar individualmente.",
+      );
       process.exitCode = 1;
     } else {
       console.log("Staging sem resíduos E2E identificados.");
