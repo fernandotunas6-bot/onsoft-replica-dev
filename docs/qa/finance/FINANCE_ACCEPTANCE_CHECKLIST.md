@@ -12,7 +12,7 @@ Legenda: **Feito** com prova automática · **Parcial** · **Por fazer** · **Bl
 | Sem pagamentos duplicados (gateway)        | Feito                                | Índice único `finance_receipts_school_external_id_key`, confirmado na produção a 24/10      |
 | Sem pagamentos duplicados (manual)         | Feito no código, por aplicar         | Migração `20261024100000`; `payment-attempt-key.test.ts`                                    |
 | Recibos com origem verificável             | Feito                                | QR `/verificar`; `validation-footer.test.ts`                                                |
-| QR de pagamento sem integração real        | Feito: não existe nenhum             | Texto `EMIS                                                                                 | ENT:…` retirado; «Referência EMIS» sem ícone de QR |
+| QR de pagamento sem integração real        | Feito: não existe nenhum             | Texto de QR «EMIS» inventado retirado; «Referência EMIS» sem ícone de QR                    |
 | Faturas não apresentadas como certificadas | Feito                                | Cartão de Faturas, rodapé dos documentos, sem linhas «AGT;…»                                |
 | Isolamento por escola                      | Feito no servidor e na base          | RPC com `school_id`, AAL2 e `has_permission`; **sem teste com duas escolas**                |
 | Saldos correctos                           | Feito, com uma correcção por aplicar | Numerário e banco separados (`cash-balances.test.ts`); estorno com multa (`20261024090000`) |
