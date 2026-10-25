@@ -1,6 +1,11 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { publicErrorMessage } from "@/lib/public-error";
-import { PWNED_PASSWORD_MESSAGE, passwordPolicyMessage } from "@/lib/password-policy-error";
+import {
+  PWNED_PASSWORD_MESSAGE,
+  passwordChecksOf,
+  passwordMeetsPolicy,
+  passwordPolicyMessage,
+} from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -56,22 +61,16 @@ function ResetPasswordPage() {
   const schoolName = activeTenant?.name || getAppName();
   const initials = useMemo(() => getSchoolInitials(schoolName), [schoolName]);
 
-  // Validação de requisitos de senha
-  const passwordChecks = useMemo(() => {
-    return {
-      length: password.length >= 8,
-      hasLetter: /[a-zA-Z]/.test(password),
-      hasNumber: /\d/.test(password),
-      hasSpecial: /[^a-zA-Z0-9]/.test(password),
+  // Os mesmos requisitos que o Supabase Auth aplica, de `password-policy-error`.
+  const passwordChecks = useMemo(
+    () => ({
+      ...passwordChecksOf(password),
       matches: password.length > 0 && password === confirmPassword,
-    };
-  }, [password, confirmPassword]);
+    }),
+    [password, confirmPassword],
+  );
 
-  const isFormValid =
-    passwordChecks.length &&
-    passwordChecks.hasLetter &&
-    passwordChecks.hasNumber &&
-    passwordChecks.matches;
+  const isFormValid = passwordMeetsPolicy(password) && passwordChecks.matches;
 
   useEffect(() => {
     let active = true;
@@ -366,18 +365,18 @@ function ResetPasswordPage() {
                       <span>Mínimo 8 caracteres</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.hasLetter ? "text-success font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.lower && passwordChecks.upper ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
-                        className={`size-3.5 ${passwordChecks.hasLetter ? "opacity-100" : "opacity-40"}`}
+                        className={`size-3.5 ${passwordChecks.lower && passwordChecks.upper ? "opacity-100" : "opacity-40"}`}
                       />
-                      <span>Pelo menos 1 letra</span>
+                      <span>Maiúsculas e minúsculas</span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 ${passwordChecks.hasNumber ? "text-success font-medium" : "text-muted-foreground"}`}
+                      className={`flex items-center gap-1.5 ${passwordChecks.number ? "text-success font-medium" : "text-muted-foreground"}`}
                     >
                       <CheckCircle2
-                        className={`size-3.5 ${passwordChecks.hasNumber ? "opacity-100" : "opacity-40"}`}
+                        className={`size-3.5 ${passwordChecks.number ? "opacity-100" : "opacity-40"}`}
                       />
                       <span>Pelo menos 1 número</span>
                     </div>

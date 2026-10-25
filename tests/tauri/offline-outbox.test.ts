@@ -11,6 +11,7 @@ import {
   enableOutbox,
   flushOutbox,
   OUTBOX_MAX_BYTES,
+  OUTBOX_UNCERTAIN_MESSAGE,
   outboxItems,
   resetOutboxForTests,
   sendOrQueue,
@@ -44,8 +45,12 @@ afterEach(() => setOnline(true));
 const meta = { label: "Chamada 7ª A", userId: "prof-1", schoolId: "school-a" };
 
 describe("fila de envio sem rede", () => {
-  it("com rede envia logo e não guarda nada", async () => {
-    attendance.mockResolvedValueOnce({ ok: true });
+  it("com rede grava sending no cofre antes do HTTP e remove só com ACK", async () => {
+    attendance.mockImplementationOnce(async () => {
+      const duringHttp = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
+      expect(duringHttp).toMatchObject([{ deliveryState: "sending", schoolId: "school-a" }]);
+      return { ok: true };
+    });
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
       queued: false,
       result: { ok: true },
@@ -58,6 +63,7 @@ describe("fila de envio sem rede", () => {
     setOnline(false);
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
       queued: true,
+      requiresVerification: false,
     });
     expect(attendance).not.toHaveBeenCalled();
     const saved = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
@@ -89,12 +95,29 @@ describe("fila de envio sem rede", () => {
     expect(vault.get("siga.offline-outbox")).toBe("{incompleto");
   });
 
+  it("nenhum pedido HTTP sai quando a gravação cifrada falha", async () => {
+    const blockedVault = {
+      ...fakeVault,
+      setItem: async () => {
+        throw new Error("Cofre indisponível");
+      },
+    };
+    await enableOutbox(vaultOutboxStorage(blockedVault));
+    await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).rejects.toThrow(
+      /Cofre indisponível/,
+    );
+    expect(attendance).not.toHaveBeenCalled();
+  });
+
   it("se a rede cai durante o envio, guarda em vez de perder", async () => {
     attendance.mockRejectedValueOnce(offline());
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
       queued: true,
+      requiresVerification: true,
     });
-    expect(outboxItems()).toHaveLength(1);
+    expect(outboxItems()).toMatchObject([
+      { deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
+    ]);
   });
 
   it("uma recusa do servidor com rede não vai para a fila: o erro chega ao ecrã", async () => {
@@ -128,12 +151,19 @@ describe("fila de envio sem rede", () => {
       offlineSchoolId: "school-a",
       offlineActorId: "prof-1",
     });
-    expect(outboxItems()).toMatchObject([{ kind: "grades.term" }]);
+    expect(outboxItems()).toMatchObject([
+      {
+        kind: "grades.term",
+        deliveryState: "needs_verification",
+        failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+      },
+    ]);
 
     grades.mockResolvedValueOnce({});
     await flushOutbox("prof-1", "school-a");
-    expect(outboxItems()).toHaveLength(0);
-    expect(vault.has("siga.offline-outbox")).toBe(false);
+    expect(grades).toHaveBeenCalledTimes(1);
+    expect(outboxItems()).toHaveLength(1);
+    expect(vault.has("siga.offline-outbox")).toBe(true);
   });
 
   it("só envia com a sessão de quem fez o lançamento", async () => {
@@ -213,6 +243,74 @@ describe("fila de envio sem rede", () => {
     expect(vault.get("siga.offline-outbox")).toBe(JSON.stringify(legacy));
   });
 
+  it("não reenfileira automaticamente operação online cujo ACK se perdeu", async () => {
+    attendance.mockRejectedValueOnce(offline());
+    await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
+      queued: true,
+      requiresVerification: true,
+    });
+    expect(outboxItems()).toMatchObject([
+      { deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
+    ]);
+    attendance.mockResolvedValueOnce({});
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).toHaveBeenCalledTimes(1);
+    expect(outboxItems()).toHaveLength(1);
+  });
+
+  it("usa o mesmo ID ao perder a resposta online, sem criar nova operação", async () => {
+    attendance.mockImplementationOnce(async () => {
+      const started = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
+      expect(started).toHaveLength(1);
+      expect(started[0]?.deliveryState).toBe("sending");
+      throw offline();
+    });
+    const result = await sendOrQueue("attendance.submit", { sessionId: "s1" }, meta);
+    expect(result).toEqual({ queued: true, requiresVerification: true });
+    const after = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({
+      deliveryState: "needs_verification",
+      failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+    });
+  });
+
+  it("reinício durante HTTP converte sending em revisão, sem reenviar", async () => {
+    const interrupted: OutboxItem = {
+      id: "old-id",
+      kind: "attendance.submit",
+      userId: "prof-1",
+      schoolId: "school-a",
+      label: "Chamada interrompida",
+      variables: { sessionId: "s1" },
+      createdAt: "2026-10-25T08:00:00.000Z",
+      deliveryState: "sending",
+    };
+    vault.set("siga.offline-outbox", JSON.stringify([interrupted]));
+    resetOutboxForTests({ "attendance.submit": attendance, "grades.term": grades });
+    await enableOutbox(vaultOutboxStorage(fakeVault));
+    expect(outboxItems()).toMatchObject([
+      { id: "old-id", deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
+    ]);
+    expect(vault.get("siga.offline-outbox")).toContain("needs_verification");
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).not.toHaveBeenCalled();
+  });
+
+  it("grava sending no cofre antes de enviar e remove só depois de confirmar", async () => {
+    setOnline(false);
+    await sendOrQueue("attendance.submit", { sessionId: "s1" }, meta);
+    setOnline(true);
+    attendance.mockImplementationOnce(async () => {
+      const current = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
+      expect(current).toMatchObject([{ deliveryState: "sending" }]);
+      return { ok: true };
+    });
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).toHaveBeenCalledTimes(1);
+    expect(outboxItems()).toHaveLength(0);
+  });
+
   it("sessão expirada: fica à espera do próximo início de sessão", async () => {
     setOnline(false);
     await sendOrQueue("attendance.submit", { n: 1 }, meta);
@@ -236,8 +334,27 @@ describe("fila de envio sem rede", () => {
     ]);
     await flushOutbox("prof-1", "school-a");
     expect(attendance).toHaveBeenCalledTimes(1);
-    await discardOutboxItem(outboxItems()[0]!.id);
-    expect(outboxItems()).toHaveLength(0);
+    await expect(discardOutboxItem(outboxItems()[0]!.id)).rejects.toThrow(
+      /precisa de confirmação no servidor/,
+    );
+    expect(outboxItems()).toHaveLength(1);
+  });
+
+  it("não descarta lançamentos cujo envio continua em curso", async () => {
+    const sending: OutboxItem = {
+      id: "pending-ack",
+      kind: "grades.term",
+      userId: "prof-1",
+      schoolId: "school-a",
+      label: "Pauta",
+      variables: { n: 1 },
+      createdAt: "2026-10-25T08:00:00Z",
+      deliveryState: "sending",
+    };
+    vault.set("siga.offline-outbox", JSON.stringify([sending]));
+    await enableOutbox(vaultOutboxStorage(fakeVault));
+    await expect(discardOutboxItem(sending.id)).rejects.toThrow(/precisa de confirmação/);
+    expect(outboxItems()).toHaveLength(1);
   });
 
   it("recusa guardar mais do que o cofre aceita, sem perder o que já estava", async () => {

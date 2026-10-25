@@ -7,12 +7,19 @@ import { resolveSystemSender, sendResendEmail } from "@/features/integrations/re
 import { isRateLimitBypassed } from "@/lib/rate-limit";
 import { consumeRateLimit } from "@/lib/shared-rate-limit";
 
+import { PASSWORD_POLICY_HINT, passwordMeetsPolicy } from "@/lib/password-policy-error";
+
 const SIGNUP_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 };
 
 export const requestSignupInputSchema = z.object({
   fullName: z.string().trim().min(3).max(160),
   email: z.string().trim().email("Indique um endereço de e-mail válido."),
-  password: z.string().min(8).max(128),
+  password: z
+    .string()
+    .min(8)
+    .max(128)
+    // O Auth recusaria de qualquer forma; validar aqui dá a mensagem em português.
+    .refine(passwordMeetsPolicy, { message: PASSWORD_POLICY_HINT }),
 });
 export type RequestSignupInput = z.infer<typeof requestSignupInputSchema>;
 

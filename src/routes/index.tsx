@@ -262,7 +262,7 @@ export function Dashboard() {
           : "Aguardando dados",
     },
     {
-      label: capabilities.documents ? "Documentos emitidos" : "Saldo de caixa",
+      label: capabilities.documents ? "Documentos emitidos" : "Total recebido",
       value: capabilities.documents
         ? String(data?.totals.documentIssued ?? 0)
         : capabilities.finance

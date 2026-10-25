@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { KeyRound, LoaderCircle } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { PWNED_PASSWORD_MESSAGE, passwordPolicyMessage } from "@/lib/password-policy-error";
+import {
+  PASSWORD_POLICY_HINT,
+  PWNED_PASSWORD_MESSAGE,
+  passwordMeetsPolicy,
+  passwordPolicyMessage,
+} from "@/lib/password-policy-error";
 import { passwordExposureCount } from "@/lib/pwned-password";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { Button } from "@/components/ui/button";
@@ -35,8 +40,8 @@ export function PasswordChangeForm({ compact = false }: { compact?: boolean }) {
       toast.error("A nova senha deve ser diferente da senha actual.");
       return;
     }
-    if (!/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      toast.error("Use pelo menos uma letra, um número e um símbolo.");
+    if (!passwordMeetsPolicy(password)) {
+      toast.error(PASSWORD_POLICY_HINT);
       return;
     }
     if (!session.user.email) {

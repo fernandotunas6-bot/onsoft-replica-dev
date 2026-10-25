@@ -127,17 +127,12 @@
       </section>
 
       <section class="validation">
-        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" />{{/if}}
+        {{#if document.qrCodeDataUrl}}<img class="qr" src="{{document.qrCodeDataUrl}}" alt="QR de verificação do documento" />{{/if}}
         <div>
-          UUID:
-          {{document.uuid}}
-          | Hash:
+          Código de verificação:
           {{document.hash}}<br />
-          QR para validação pública:
-          {{document.qrCodeUrl}}<br />
-          Assinatura digital:
-          {{document.signatureAlgorithm}}
-          {{document.digitalSignature}}
+          {{#if document.verifyUrl}}O QR serve para verificar a autenticidade, não para pagar. Confirme também em {{document.verifyUrl}}.<br />{{/if}}
+          {{#if document.financial}}Documento interno do SIGA: não é fatura nem recibo fiscal certificado pela AGT.{{/if}}
         </div>
       </section>
     </main>

@@ -144,6 +144,11 @@ export function getPortalNavigation(
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
             // Só para quem já concluiu (tem processo Alumni), não para quem ainda estuda.
+            //
+            // Fica, ao contrário das outras entradas de Alumni, retiradas a 25/10 por o
+            // módulo não ter um único registo em produção. Esta é condicional: com zero
+            // antigos alunos nunca aparece, e no dia em que existir um aparece a quem é.
+            // Não é uma concha vazia — é uma porta que só abre quando há dados atrás.
             ...(options.isAlumni
               ? [{ label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" }]
               : []),
@@ -323,6 +328,11 @@ export function getPortalNavigation(
               search: { tab: "chamada" },
             },
             {
+              label: "Presença dos Professores",
+              icon: moduleIcons.qrPresence,
+              to: "/pedagogica/presenca-docente",
+            },
+            {
               label: "Planos de Aula",
               icon: moduleIcons.lessonPlans,
               to: "/planos-aula",
@@ -392,7 +402,6 @@ export function getPortalNavigation(
               to: "/alunos",
               search: { action: "estado" },
             },
-            { label: "Alumni · Antigos Alunos", icon: moduleIcons.alumni, to: "/alumni" },
           ],
         },
         {
@@ -412,25 +421,13 @@ export function getPortalNavigation(
           label: "Caixa e Pagamentos",
           icon: moduleIcons.finance,
           children: [
-            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
+            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
-            { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
-            { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
             {
-              label: "Ordens de Pagamento RH",
-              icon: moduleIcons.payouts,
-              to: "/financeiro/rh/pagamentos",
-            },
-            {
-              label: "Faltas e Assiduidade",
-              icon: moduleIcons.staffAbsences,
-              to: "/financeiro/rh/faltas",
-            },
-            {
-              label: "Validação de Presença",
-              icon: moduleIcons.qrPresence,
-              to: "/financeiro/rh/presenca",
+              label: "Bancos e Conciliação",
+              icon: moduleIcons.reconciliation,
+              to: "/financeiro/conciliacao",
             },
           ],
         },
@@ -454,7 +451,6 @@ export function getPortalNavigation(
     {
       title: "Gestão e Comunicação",
       items: [
-        { label: "Catracas & Cartão Virtual", icon: moduleIcons.accessCards, to: "/catracas" },
         { label: "Gestão de Acessos", icon: moduleIcons.access, to: "/acessos" },
         { label: "Comunicações", icon: moduleIcons.communications, to: "/comunicacoes" },
       ],
@@ -531,7 +527,6 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   if (mode === "student") {
     return [
-      { label: "Meu Portal Alumni", to: "/alumni/portal" },
       { label: "Notas e Boletim", to: "/pedagogica", search: { tab: "notas" } },
       { label: "Frequência", to: "/pedagogica", search: { tab: "presencas" } },
       { label: "Horário", to: "/pedagogica", search: { tab: "horarios" } },
@@ -552,13 +547,11 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   return [
     { label: "Gestão de Alunos", to: "/alunos" },
-    { label: "Rede Alumni", to: "/alumni" },
     { label: "Importar Dados", to: "/importar" },
     { label: "Biblioteca de Arquivos", to: "/arquivos" },
     { label: "Caixa e Pagamentos", to: "/financeiro" },
     { label: "Relatórios Académicos", to: "/relatorios/academicos" },
     { label: "Emissão de Documentos", to: "/documentos" },
-    { label: "Catracas & Cartão", to: "/catracas" },
     { label: "Gestão de Acessos", to: "/acessos" },
   ];
 }

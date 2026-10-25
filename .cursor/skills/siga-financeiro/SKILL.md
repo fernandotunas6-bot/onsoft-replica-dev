@@ -11,7 +11,13 @@ description: >-
 Billing da **plataforma** (assinatura SIGA, upgrade, planos comerciais) não
 pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
 
-- Rotas: `financeiro.tsx`, `faturas.tsx`, `relatorios.financeiros.tsx`
+- Rotas: `tesouraria.tsx` (visão geral), `financeiro.tsx` (Movimentos de Caixa),
+  `faturas.tsx`, `financeiro_.conciliacao.tsx` (Bancos e Conciliação),
+  `relatorios.financeiros.tsx`. **Uma página, uma finalidade**: a matriz rota → funções
+  está em `docs/specs/finance/FINANCE_MASTER_2026.md`, e há testes que a trancam
+  (`tests/ui/finance-installed-tools-context.test.ts`, `page-header-area-coherence`).
+- Estados do dinheiro: mostrar sempre por `src/features/finance/payment-states.ts`
+  (fatura, cobrança do gateway, recibo, plano), nunca com rótulos à mão.
 - RH / Folha (submódulo): skill `siga-rh` — `/financeiro/rh*` e `/professor/presenca`
 - Domínio: `src/features/finance/{schemas,server,payflow-sso,payflow-education-sync,payflow-sync-execute}.ts`
 - PayFlow UI: `PayflowAdminLaunchButton`, `PayflowStudentSyncButton`, `PayflowBankSyncButton`, `PayflowPayerLink` (portais aluno/encarregado)
@@ -29,8 +35,8 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
    Teste local: `npm run siga:gateway-simulate -- --invoice-id=<uuid>`.
 4. SQL: `APPLY_ENROLLMENT_AND_PREMIUM.sql` cria `finance_payment_plans`.
 5. Ficha do aluno pode emitir fatura (Secretaria/Admin). `paymentStatusFromInvoices` calcula settled/pending/overdue.
-6. `/faturas` recebe pagamento na linha (**Receber**) e imprime o recibo no modelo `service-document` com **Dados de pagamento** (IBAN de Definições → Financeiro; fallback `officialReceiptBody`). **Fatura** imprime o documento de cobrança. A lista tem **Oficial** e toolbars `financeiro` + `faturas`. Faturas pagas têm **Recibo**. Sem recibos: **Anular** (`cancelInvoice` → `cancelled`). Admin também recebe na ficha. Com Resend/WhatsApp: partilha da fatura, do recibo de caixa e da referência do plano. Relatório financeiro tem AGT, WhatsApp e **E-mail** Resend; PDFs oficiais incluem logótipo (`branding.logo_url`) e IBAN.
-7. Relatório financeiro: CSV/PDF das tabelas, **Oficial** completo e **Oficial cobrança** / **Oficial categorias** por secção (fallback `exportOfficialPautaPdf`). Caixa tem **Recibo** por lançamento, **Oficial** na lista filtrada e **Talão** nos planos. `/financeiro` e `/faturas` mostram toolbars de integrações instaladas. Helper: `src/lib/finance-print.ts`.
+6. `/faturas` recebe pagamento na linha (**Receber**) e imprime o recibo no modelo `service-document` com **Dados de pagamento** (IBAN de Definições → Financeiro; fallback `officialReceiptBody`). **Fatura** imprime o documento de cobrança. A lista tem **Oficial** e só as funções instaladas do módulo `faturas`. Faturas pagas têm **Recibo**. Sem recibos: **Anular** (`cancelInvoice` → `cancelled`). Admin também recebe na ficha. Com Resend/WhatsApp: partilha da fatura, do recibo de caixa e da referência do plano. Relatório financeiro partilha o resumo por WhatsApp e **E-mail** Resend dentro do menu «Exportar»; PDFs oficiais incluem logótipo (`branding.logo_url`) e IBAN.
+7. Relatório financeiro: CSV/PDF das tabelas, **Oficial** completo e **Oficial cobrança** / **Oficial categorias** por secção (fallback `exportOfficialPautaPdf`). Caixa tem **Recibo** por lançamento, **Oficial** na lista filtrada e **Talão** nos planos. Cada página mostra só as funções instaladas do seu módulo (`financeiro` em Caixa, `faturas` em Faturas; Relatórios nenhuma). Helper: `src/lib/finance-print.ts`.
 8. **Arquivo na biblioteca**: receber/emitir/criar plano (e imprimir talão) grava stub em `siga_files` com ID pesquisável (`library_document_code`) e liga ao aluno via `related_person_id` quando existe.
 9. **PayFlow:**
    - SSO admin: `createPayflowAdminLaunch` + botão Conciliação (requer `PAYFLOW_SSO_SECRET`).
@@ -44,3 +50,11 @@ pertence aqui — fica em ADMIN/WEB. Ver `siga-ecosystem`.
    - Alertas: `PAYFLOW_ALERT_WEBHOOK_URL` (opt-in HTTPS; fail-closed). Inclui falhas de acerto SIGA.
    - Health: `GET /api/v1/health` → banco / settlement / alertas / EMIS (sem segredos).
    - Webhook EMIS: `POST /api/v1/webhooks/emis` (HMAC; fail-closed; não liquida até adaptador de produção).
+10. **Fiscal:** o SIGA não é software de facturação certificado pela AGT. Nunca gerar
+    linhas «AGT;…», QR «fiscais» nem rótulos que o sugiram; documentos com valor levam o
+    aviso de documento interno (`document.financial` em `print-issue.ts`).
+11. **QR:** só o de verificação (`/verificar`) e os de presença/acesso. QR de pagamento
+    só quando o fornecedor o emitir; nunca montar payloads bancários (`EMIS|ENT:…`).
+12. **Integridade:** pagamentos só por `register_payment` (com `idempotencyKey` do
+    `usePaymentAttemptKey`); estornos só por `siga_reverse_finance_receipt`. Migrações
+    por aplicar: `20261024090000`, `20261024100000`, `20261024110000` (sessões de caixa).

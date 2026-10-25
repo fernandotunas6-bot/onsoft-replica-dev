@@ -154,7 +154,15 @@ const ANON_POLICIES_ESPERADAS = [
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
 // O retrato de 2026-10-21 confirma também tenant_billing_profiles.
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
+// 2026-10-24: sessões de caixa (20261024110000_finance_cash_sessions.sql), por
+// aplicar. `getCashSessionState` lê primeiro `finance_cash_points` e, sem a
+// tabela, devolve `available: false` — o ecrã não mostra o bloco do caixa e
+// nada mais consulta as duas tabelas. Saem quando o retrato as mostrar.
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
+  "finance_cash_points",
+  "finance_cash_sessions",
+  "finance_cash_deposits",
+]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {
