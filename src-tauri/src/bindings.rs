@@ -6,6 +6,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
         preferences::greet,
         crate::commands::siga::open_siga_portal,
+        crate::commands::siga::open_offline_shell,
         crate::commands::siga::desktop_update_status,
         preferences::load_preferences,
         preferences::save_preferences,

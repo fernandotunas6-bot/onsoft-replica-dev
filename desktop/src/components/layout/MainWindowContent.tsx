@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowRight,
+  Monitor,
   KeyRound,
   RefreshCw,
   Tag,
@@ -64,6 +65,7 @@ export function MainWindowContent({
   const availableVersion = useDesktopAvailableUpdate()
   const quickPaneShortcut = useQuickPaneShortcut()
   const [opening, setOpening] = useState(false)
+  const [openingLocal, setOpeningLocal] = useState(false)
   const [checking, setChecking] = useState(false)
   const [status, setStatus] = useState('')
 
@@ -76,6 +78,18 @@ export function MainWindowContent({
       setStatus(error instanceof Error ? error.message : String(error))
     } finally {
       setOpening(false)
+    }
+  }
+
+  async function openLocalPreview() {
+    setOpeningLocal(true)
+    setStatus('')
+    try {
+      unwrapResult(await commands.openOfflineShell())
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error))
+    } finally {
+      setOpeningLocal(false)
     }
   }
 
@@ -132,6 +146,15 @@ export function MainWindowContent({
               </Button>
               <Button
                 size="lg"
+                variant="secondary"
+                disabled={openingLocal}
+                onClick={openLocalPreview}
+              >
+                <Monitor className="me-2 size-4" aria-hidden="true" />
+                {openingLocal ? 'A abrir base local…' : 'Pré-visualização local'}
+              </Button>
+              <Button
+                size="lg"
                 variant="outline"
                 disabled={checking}
                 onClick={checkUpdate}
@@ -143,6 +166,10 @@ export function MainWindowContent({
                 {t('siga.update.check')}
               </Button>
             </div>
+            <p className="max-w-xl text-xs text-muted-foreground">
+              A pré-visualização local não contém notas, presenças nem alunos. O
+              portal completo ainda precisa de Internet.
+            </p>
             <p
               role="status"
               aria-live="polite"

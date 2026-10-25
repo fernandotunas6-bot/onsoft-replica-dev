@@ -5,8 +5,10 @@ Data: 25/10/2026 · Issue [#289](https://github.com/fernandotunas6-bot/onsoft-re
 
 ## Diagnóstico confirmado no código
 
-A versão Tauri **1.2.2** empacota apenas o frontend da central `desktop/`.
-`desktop/vite.config.ts` tem duas entradas HTML locais: `main` e `quick-pane`.
+A versão Tauri **1.2.2** empacota o frontend da central `desktop/`
+e agora uma pré-visualização escolar local, pública e sem dados pessoais.
+`desktop/vite.config.ts` tem três entradas HTML locais: `main`,
+`quick-pane` e `offline-shell`.
 `src-tauri/tauri.conf.json` aponta `frontendDist` para `../desktop/dist`.
 `src-tauri/src/school/mod.rs` cria a janela `school` com
 `WebviewUrl::External("https://portal-siga.com")`, sujeita às permissões
@@ -57,6 +59,9 @@ calendário/salas), utilizando adaptadores explícitos em vez de tentar executar
 server functions no WebView. Só então introduzir SQLite cifrado e migrar
 as escritas de presença/notas sob contratos de idempotência e conflito.
 
-**Estado:** inventário executável e critérios de separação preparados; **não**
-foi criado bundle escolar local completo nem activada base SQLite. Nenhum
+**Estado:** inventário executável e critérios de separação preparados; a
+primeira janela estática `offline-shell` usa um bundle separado e uma capability
+mínima (`src-tauri/capabilities/offline-shell.json`), sem autenticação nem
+persistência, e só demonstra que uma interface instalada abre sem rede.
+**Não** foi criado bundle escolar funcional completo nem activada base SQLite. Nenhum
 contrato de produção foi alterado.

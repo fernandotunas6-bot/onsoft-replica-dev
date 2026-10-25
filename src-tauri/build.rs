@@ -14,6 +14,7 @@ fn main() {
             "get_default_quick_pane_shortcut",
             "update_quick_pane_shortcut",
             "open_siga_portal",
+            "open_offline_shell",
             "desktop_update_status",
             "get_system_info",
             "pulse_turnstile_relay",

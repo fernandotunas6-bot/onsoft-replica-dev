@@ -275,6 +275,28 @@ pub(super) async fn open_school_portal(app: tauri::AppHandle) -> Result<(), Stri
     .map_err(|e| format!("Não foi possível abrir o SIGA: {e}"))
 }
 
+/// Abre a primeira interface escolar empacotada, sem acesso a dados privados.
+/// É uma base de ensaio local; a janela remota "school" continua intacta.
+pub(super) async fn open_offline_shell(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("offline-shell") {
+        window.show().map_err(|e| e.to_string())?;
+        window.unminimize().map_err(|e| e.to_string())?;
+        return window.set_focus().map_err(|e| e.to_string());
+    }
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "offline-shell",
+        tauri::WebviewUrl::App("offline-shell.html".into()),
+    )
+    .title("SIGA Plus — Base local (sem dados)")
+    .inner_size(1080.0, 740.0)
+    .min_inner_size(760.0, 540.0)
+    .center()
+    .build()
+    .map(|_| ())
+    .map_err(|e| format!("Não foi possível abrir a base local do SIGA: {e}"))
+}
+
 /// Retorna informações nativas da plataforma em execução.
 #[tauri::command]
 fn get_system_info() -> SystemInfo {

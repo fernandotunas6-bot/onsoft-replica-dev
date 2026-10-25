@@ -31,6 +31,7 @@ vi.mock('@tauri-apps/plugin-updater', () => ({
 vi.mock('@/lib/tauri-bindings', () => ({
   commands: {
     openSigaPortal: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    openOfflineShell: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
     desktopUpdateStatus: vi.fn().mockResolvedValue({
       status: 'ok',
       data: {

@@ -31,6 +31,17 @@ async openSigaPortal() : Promise<Result<null, string>> {
 }
 },
 /**
+ * Opens the bundled read-only school preview in a restricted native window.
+ */
+async openOfflineShell() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_offline_shell") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Reports update configuration without invoking an unconfigured updater plugin.
  */
 async desktopUpdateStatus() : Promise<Result<AppUpdate, string>> {
