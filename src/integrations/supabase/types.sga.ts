@@ -7683,6 +7683,53 @@ export type Database = {
           },
         ]
       }
+      offline_sync_receipts: {
+        Row: {
+          actor_id: string
+          completed_at: string | null
+          device_id: string | null
+          kind: string
+          op_id: string
+          payload_hash: string
+          result: Json | null
+          school_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          actor_id: string
+          completed_at?: string | null
+          device_id?: string | null
+          kind: string
+          op_id: string
+          payload_hash: string
+          result?: Json | null
+          school_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          actor_id?: string
+          completed_at?: string | null
+          device_id?: string | null
+          kind?: string
+          op_id?: string
+          payload_hash?: string
+          result?: Json | null
+          school_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_sync_receipts_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_gateway_charges: {
         Row: {
           amount: number
@@ -10551,8 +10598,105 @@ export type Database = {
           },
         ]
       }
+      siga_class_task_submissions: {
+        Row: {
+          attempt: number
+          body: string | null
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          feedback: string | null
+          file_id: string | null
+          grade: number | null
+          graded_by: string | null
+          id: string
+          is_late: boolean
+          on_paper: boolean
+          returned_at: string | null
+          school_id: string
+          status: string
+          submitted_at: string | null
+          task_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          attempt?: number
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          feedback?: string | null
+          file_id?: string | null
+          grade?: number | null
+          graded_by?: string | null
+          id?: string
+          is_late?: boolean
+          on_paper?: boolean
+          returned_at?: string | null
+          school_id: string
+          status?: string
+          submitted_at?: string | null
+          task_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          attempt?: number
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          feedback?: string | null
+          file_id?: string | null
+          grade?: number | null
+          graded_by?: string | null
+          id?: string
+          is_late?: boolean
+          on_paper?: boolean
+          returned_at?: string | null
+          school_id?: string
+          status?: string
+          submitted_at?: string | null
+          task_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_class_task_submissions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_task_submissions_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "siga_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_task_submissions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_class_task_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "siga_class_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_class_tasks: {
         Row: {
+          accepts_late: boolean
+          assessment_item_id: string | null
           class_subject_id: string
           created_at: string
           created_by: string | null
@@ -10568,6 +10712,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          accepts_late?: boolean
+          assessment_item_id?: string | null
           class_subject_id: string
           created_at?: string
           created_by?: string | null
@@ -10583,6 +10729,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          accepts_late?: boolean
+          assessment_item_id?: string | null
           class_subject_id?: string
           created_at?: string
           created_by?: string | null
@@ -10598,6 +10746,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "siga_class_tasks_assessment_item_id_fkey"
+            columns: ["assessment_item_id"]
+            isOneToOne: false
+            referencedRelation: "siga_assessment_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "siga_class_tasks_class_subject_id_fkey"
             columns: ["class_subject_id"]
@@ -14124,6 +14279,26 @@ export type Database = {
           school_id: string
         }
         Returns: string
+      }
+      offline_receipt_claim: {
+        Args: {
+          actor_id: string
+          device_id: string
+          kind: string
+          op_id: string
+          payload_hash: string
+          school_id: string
+          stale_seconds?: number
+        }
+        Returns: Json
+      }
+      offline_receipt_complete: {
+        Args: { op_id: string; result: Json; school_id: string }
+        Returns: boolean
+      }
+      offline_receipt_release: {
+        Args: { op_id: string; school_id: string }
+        Returns: boolean
       }
       open_attendance_session: {
         Args: {
