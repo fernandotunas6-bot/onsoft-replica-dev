@@ -243,6 +243,27 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     expect(document.body.style.pointerEvents).not.toBe("none");
   });
 
+  it("organiza as opções institucionais num submenu à direita, acessível por teclado", async () => {
+    renderSidebar();
+    const schoolTrigger = screen.getByRole("button", {
+      name: "Abrir menu da escola: Escola Teste",
+    });
+    fireEvent.keyDown(schoolTrigger, { key: "Enter" });
+    const institutions = await screen.findByRole("menuitem", { name: /Instituições/ });
+    fireEvent.keyDown(institutions, { key: "ArrowRight" });
+    const management = await screen.findByRole("menuitem", { name: "Gerir instituições" });
+    expect(management.closest("[data-school-submenu]")).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Criar escola" })).toBeTruthy();
+  });
+
+  it("mantém as configurações escolares no topo e apenas opções pessoais na conta", async () => {
+    renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menu da conta" }));
+    expect(await screen.findByRole("menuitem", { name: "Perfil" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Configurações" })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Alterar senha" })).toBeTruthy();
+  });
+
   it("fecha o flyout depois de seleccionar a subfunção, sem alterar o destino", async () => {
     currentPathname = "/portal";
     renderSidebar();
@@ -264,6 +285,8 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     expect(menu.textContent).toContain("2026/2027");
     expect(screen.getByRole("menuitem", { name: /Instituições/ })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: /Configurações da Escola/ })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Meu perfil" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Criar escola" })).toBeNull();
     fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
   });
