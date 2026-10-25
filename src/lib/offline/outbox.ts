@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { isSessionError } from "@/lib/session-expiry";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 
 /**
  * Fila de envio sem rede (app desktop).
@@ -27,6 +28,8 @@ export type OutboxItem = {
   id: string;
   kind: OutboxKind;
   userId: string;
+  /** Escola de origem; ausente apenas nas entradas legadas. */
+  schoolId?: string;
   /** Texto para o professor reconhecer o envio («Chamada 7ª A, 06/10»). */
   label: string;
   variables: unknown;
@@ -100,6 +103,8 @@ export function vaultOutboxStorage(vault: {
               typeof item === "object" &&
               typeof item.id === "string" &&
               typeof item.userId === "string" &&
+              (item.schoolId === undefined ||
+                (typeof item.schoolId === "string" && item.schoolId.length > 0)) &&
               typeof item.label === "string" &&
               (item.kind === "attendance.submit" || item.kind === "grades.term"),
           )
@@ -167,16 +172,24 @@ function newId() {
 export async function sendOrQueue(
   kind: OutboxKind,
   variables: unknown,
-  meta: { label: string; userId: string | null },
+  meta: { label: string; userId: string | null; schoolId: string | null },
 ): Promise<{ queued: false; result: unknown } | { queued: true }> {
   const queueIt = async () => {
-    if (!meta.userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
+    const userId = meta.userId;
+    const schoolId = meta.schoolId;
+    if (!userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
+    if (!schoolId) {
+      throw new Error(
+        "Seleccione uma escola antes de guardar sem rede. A operação não pode ficar sem instituição.",
+      );
+    }
     await mutateItems((current) => [
       ...current,
       {
         id: newId(),
         kind,
-        userId: meta.userId,
+        userId,
+        schoolId,
         label: meta.label,
         variables,
         createdAt: new Date().toISOString(),
@@ -199,13 +212,26 @@ export async function sendOrQueue(
  * Envia, por ordem, o que está na fila desta pessoa. Pára no primeiro erro de rede
  * ou de sessão; uma recusa do servidor marca o envio e passa ao seguinte.
  */
-export function flushOutbox(userId: string | null): Promise<void> {
-  if (!storage || !userId) return Promise.resolve();
+export function flushOutbox(userId: string | null, schoolId: string | null): Promise<void> {
+  if (!storage || !userId || !schoolId) return Promise.resolve();
   flushing ??= (async () => {
     try {
-      for (const item of items.filter((entry) => entry.userId === userId && !entry.failedReason)) {
+      // Entradas legadas sem escola nunca são transmitidas automaticamente.
+      for (const item of items.filter(
+        (entry) => entry.userId === userId && entry.schoolId === schoolId && !entry.failedReason,
+      )) {
         try {
-          await senders[item.kind](item.variables);
+          if (!items.some((entry) => entry.id === item.id)) continue;
+          // O utilizador pode ter mudado de escola enquanto se enviava a entrada anterior.
+          if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
+          if (!item.variables || typeof item.variables !== "object" || Array.isArray(item.variables)) {
+            throw new Error("Os dados da operação guardada são inválidos.");
+          }
+          await senders[item.kind]({
+            ...item.variables,
+            offlineSchoolId: item.schoolId,
+            offlineActorId: item.userId,
+          });
           await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
         } catch (error) {
           if (isNetworkError(error) || isSessionError(error)) return;
@@ -249,6 +275,7 @@ export function useOutbox() {
     items: snapshot,
     waiting: snapshot.filter((entry) => !entry.failedReason).length,
     failed: snapshot.filter((entry) => entry.failedReason),
+    legacy: snapshot.filter((entry) => !entry.schoolId),
   };
 }
 

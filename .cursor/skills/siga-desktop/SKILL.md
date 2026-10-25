@@ -44,6 +44,7 @@ Ler `docs/desktop/TAURI_RUNTIME.md`, `docs/desktop/OFFLINE_FIRST_ROADMAP.md` e `
 - Não usar carimbo temporal isolado como resolução automática de conflitos: manter versões de registo, idempotência e revisão humana em notas, pagamentos e dados críticos. Nunca perder escrita silenciosamente.
 - Escritas locais simultâneas devem ser persistidas sequencialmente; corrupção da fila cifrada bloqueia escrita e exige recuperação, não substituição por fila vazia.
 - Nenhuma fila offline nova sem `school_id`, `actor_id`, `op_id` e validação RLS/MFA no servidor, com migração segura da fila legada.
+- A fila actual agora regista escola e actor, e verifica os dois ao enviar; registos anteriores sem escola nunca são enviados automaticamente. Idempotência `op_id` e SQLite total permanecem pendentes.
 
 ## Sistema de ficheiros, impressão, notificações
 

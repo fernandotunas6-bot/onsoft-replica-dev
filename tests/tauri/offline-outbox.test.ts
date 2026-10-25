@@ -36,7 +36,7 @@ beforeEach(async () => {
 });
 afterEach(() => setOnline(true));
 
-const meta = { label: "Chamada 7ª A", userId: "prof-1" };
+const meta = { label: "Chamada 7ª A", userId: "prof-1", schoolId: "school-a" };
 
 describe("fila de envio sem rede", () => {
   it("com rede envia logo e não guarda nada", async () => {
@@ -57,7 +57,12 @@ describe("fila de envio sem rede", () => {
     expect(attendance).not.toHaveBeenCalled();
     const saved = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
     expect(saved).toMatchObject([
-      { kind: "attendance.submit", userId: "prof-1", label: "Chamada 7ª A" },
+      {
+        kind: "attendance.submit",
+        userId: "prof-1",
+        schoolId: "school-a",
+        label: "Chamada 7ª A",
+      },
     ]);
   });
 
@@ -95,7 +100,7 @@ describe("fila de envio sem rede", () => {
 
   it("sobrevive a fechar a app: a fila volta a carregar do cofre", async () => {
     setOnline(false);
-    await sendOrQueue("grades.term", { subjectId: "m1" }, { label: "Pauta", userId: "prof-1" });
+    await sendOrQueue("grades.term", { subjectId: "m1" }, { label: "Pauta", userId: "prof-1", schoolId: "school-a" });
     resetOutboxForTests({ "attendance.submit": attendance, "grades.term": grades });
     await enableOutbox(vaultOutboxStorage(fakeVault));
     expect(outboxItems()).toMatchObject([{ kind: "grades.term", label: "Pauta" }]);
@@ -108,12 +113,16 @@ describe("fila de envio sem rede", () => {
     setOnline(true);
     attendance.mockResolvedValueOnce({});
     grades.mockRejectedValueOnce(offline());
-    await flushOutbox("prof-1");
-    expect(attendance).toHaveBeenCalledWith({ n: 1 });
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).toHaveBeenCalledWith({
+      n: 1,
+      offlineSchoolId: "school-a",
+      offlineActorId: "prof-1",
+    });
     expect(outboxItems()).toMatchObject([{ kind: "grades.term" }]);
 
     grades.mockResolvedValueOnce({});
-    await flushOutbox("prof-1");
+    await flushOutbox("prof-1", "school-a");
     expect(outboxItems()).toHaveLength(0);
     expect(vault.has("siga.offline-outbox")).toBe(false);
   });
@@ -122,9 +131,54 @@ describe("fila de envio sem rede", () => {
     setOnline(false);
     await sendOrQueue("attendance.submit", { n: 1 }, meta);
     setOnline(true);
-    await flushOutbox("outra-pessoa");
+    await flushOutbox("outra-pessoa", "school-a");
     expect(attendance).not.toHaveBeenCalled();
     expect(outboxItems()).toHaveLength(1);
+  });
+
+  it("não envia para outra escola, mesmo com o mesmo professor", async () => {
+    setOnline(false);
+    await sendOrQueue("attendance.submit", { n: 7 }, { ...meta, schoolId: "school-b" });
+    setOnline(true);
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).not.toHaveBeenCalled();
+    expect(outboxItems()).toHaveLength(1);
+
+    attendance.mockResolvedValueOnce({});
+    await flushOutbox("prof-1", "school-b");
+    expect(attendance).toHaveBeenCalledWith({
+      n: 7,
+      offlineSchoolId: "school-b",
+      offlineActorId: "prof-1",
+    });
+    expect(outboxItems()).toHaveLength(0);
+  });
+
+  it("sem escola activa recusa guardar sem rede", async () => {
+    setOnline(false);
+    await expect(
+      sendOrQueue("attendance.submit", { n: 1 }, { ...meta, schoolId: null }),
+    ).rejects.toThrow(/Seleccione uma escola/);
+    expect(outboxItems()).toHaveLength(0);
+  });
+
+  it("preserva lançamentos legados sem escola, sem sincronizar nem apagar", async () => {
+    const legacy: OutboxItem[] = [
+      {
+        id: "legacy-1",
+        kind: "attendance.submit",
+        userId: "prof-1",
+        label: "Chamada antiga",
+        variables: { n: 1 },
+        createdAt: "2026-10-01T08:00:00.000Z",
+      },
+    ];
+    vault.set("siga.offline-outbox", JSON.stringify(legacy));
+    await enableOutbox(vaultOutboxStorage(fakeVault));
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).not.toHaveBeenCalled();
+    expect(outboxItems()).toEqual(legacy);
+    expect(vault.get("siga.offline-outbox")).toBe(JSON.stringify(legacy));
   });
 
   it("sessão expirada: fica à espera do próximo início de sessão", async () => {
@@ -132,7 +186,7 @@ describe("fila de envio sem rede", () => {
     await sendOrQueue("attendance.submit", { n: 1 }, meta);
     setOnline(true);
     attendance.mockRejectedValueOnce(Object.assign(new Error("Unauthorized"), { status: 401 }));
-    await flushOutbox("prof-1");
+    await flushOutbox("prof-1", "school-a");
     expect(outboxItems()).toMatchObject([{ kind: "attendance.submit" }]);
     expect(outboxItems()[0]!.failedReason).toBeUndefined();
   });
@@ -144,11 +198,11 @@ describe("fila de envio sem rede", () => {
     setOnline(true);
     attendance.mockRejectedValueOnce(new Error("O período está fechado."));
     grades.mockResolvedValueOnce({});
-    await flushOutbox("prof-1");
+    await flushOutbox("prof-1", "school-a");
     expect(outboxItems()).toMatchObject([
       { kind: "attendance.submit", failedReason: "O período está fechado." },
     ]);
-    await flushOutbox("prof-1");
+    await flushOutbox("prof-1", "school-a");
     expect(attendance).toHaveBeenCalledTimes(1);
     await discardOutboxItem(outboxItems()[0]!.id);
     expect(outboxItems()).toHaveLength(0);

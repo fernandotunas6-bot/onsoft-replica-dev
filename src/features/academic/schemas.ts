@@ -189,6 +189,9 @@ export const upsertTermGradeInputSchema = z.object({
 export type UpsertTermGradeInput = z.infer<typeof upsertTermGradeInputSchema>;
 
 export const upsertTermGradesBatchInputSchema = z.object({
+  /** Defesa do servidor contra replay offline noutra escola/conta. */
+  offlineSchoolId: z.string().guid().optional(),
+  offlineActorId: z.string().guid().optional(),
   subjectId: z.string().guid(),
   term: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   rows: z

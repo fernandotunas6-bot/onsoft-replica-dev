@@ -26,6 +26,8 @@ segredos da service role ou acesso a outras escolas para o instalador.
 ### 0. Integridade e ciclo de actualização — melhoria em curso
 
 - Fila protegida contra chamadas simultâneas; não apagar a fila em erro de leitura.
+- Cada lançamento novo associa escola e actor de origem; replay só com a escola e o actor originais, e os dois são novamente validados no servidor.
+- A fila anterior sem `schoolId` permanece cifrada e bloqueada para envio automático; reconciliação manual antes de qualquer migração.
 - Bloquear actualização enquanto houver *qualquer* lançamento no Stronghold,
   incluindo os recusados, além de mutações React ainda pendentes.
 - Voltar a procurar uma release ao recuperar a ligação, sem instalar à força.
