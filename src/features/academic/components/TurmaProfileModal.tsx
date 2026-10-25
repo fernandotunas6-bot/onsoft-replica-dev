@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import {
   BookOpen,
   Calendar,
-  CalendarPlus,
   GraduationCap,
   Pencil,
   RotateCcw,
@@ -22,7 +21,6 @@ import {
   type ModalSidebarItem,
 } from "@/components/ui/modal-system";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
-import { TurmaRenewalSubModal } from "./TurmaRenewalSubModal";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import {
   assignClassSubjectTeacher,
@@ -78,7 +76,6 @@ export function TurmaProfileModal({
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [renewOpen, setRenewOpen] = useState(false);
   const [applyingCurriculum, setApplyingCurriculum] = useState(false);
   const { school } = useSchoolSettings();
 
@@ -224,15 +221,6 @@ export function TurmaProfileModal({
               onClick={() => setEditOpen(true)}
             >
               <Pencil className="size-3.5" /> Editar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setRenewOpen(true)}
-            >
-              <CalendarPlus className="size-3.5" /> Renovar para o próximo ano
             </Button>
             {turma.status !== "active" ? (
               <Button
@@ -531,17 +519,6 @@ export function TurmaProfileModal({
         salas={salas}
         onSaved={onRefresh}
       />
-      {renewOpen ? (
-        <TurmaRenewalSubModal
-          open={renewOpen}
-          onOpenChange={setRenewOpen}
-          classGroupId={turma.id}
-          currentYearId={turma.academic_year_id}
-          currentYearName={turma.academic_year_name}
-          academicYears={workspace?.academicYears ?? []}
-          onRenewed={onRefresh}
-        />
-      ) : null}
       <TurmaAssignTeacherSubModal
         open={assignOpen}
         onOpenChange={setAssignOpen}

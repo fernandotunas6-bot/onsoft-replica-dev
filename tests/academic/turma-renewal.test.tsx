@@ -13,8 +13,7 @@ vi.mock("@/features/academic/year-rollover-server", () => ({
   applyRenewal: (args: unknown) => applyRenewalMock(args),
 }));
 
-const { TurmaRenewalSubModal } =
-  await import("@/features/academic/components/TurmaRenewalSubModal");
+const { TurmaRenewalPanel } = await import("@/features/academic/components/TurmaRenewalPanel");
 
 const years = [
   { id: "y25", name: "2025/2026" },
@@ -64,9 +63,7 @@ function renderModal() {
   const onRenewed = vi.fn().mockResolvedValue(undefined);
   render(
     <QueryClientProvider client={client}>
-      <TurmaRenewalSubModal
-        open
-        onOpenChange={() => {}}
+      <TurmaRenewalPanel
         classGroupId="7a"
         currentYearId="y25"
         currentYearName="2025/2026"

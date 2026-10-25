@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { SubModal } from "@/components/ui/modal-system";
+import { Button } from "@/components/ui/button";
 import { applyRenewal, getRenewalPlan } from "@/features/academic/year-rollover-server";
 import { nextYearGuess } from "@/features/academic/year-rollover";
 
@@ -15,17 +14,13 @@ type YearOption = { id: string; name: string };
  * final gravado: quem transitou vai para a classe seguinte, quem não transitou
  * repete, os restantes ficam de fora com o motivo à vista.
  */
-export function TurmaRenewalSubModal({
-  open,
-  onOpenChange,
+export function TurmaRenewalPanel({
   classGroupId,
   currentYearId,
   currentYearName,
   academicYears,
   onRenewed,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   classGroupId: string;
   currentYearId: string | null;
   currentYearName: string;
@@ -56,7 +51,7 @@ export function TurmaRenewalSubModal({
           ...(repeatId ? { repeatClassGroupId: repeatId } : {}),
         },
       }),
-    enabled: open && Boolean(targetYearId),
+    enabled: Boolean(targetYearId),
     retry: false,
   });
   const plan = planQuery.data;
@@ -89,7 +84,6 @@ export function TurmaRenewalSubModal({
       }
       setUnchecked(new Set());
       await Promise.all([onRenewed(), planQuery.refetch()]);
-      if (!result.failed.length) onOpenChange(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível renovar.");
     } finally {
@@ -101,17 +95,7 @@ export function TurmaRenewalSubModal({
     option.free == null ? option.name : `${option.name} · ${option.free} vaga(s)`;
 
   return (
-    <SubModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Renovar matrículas para o próximo ano"
-      subtitle="A partir do resultado final gravado no histórico. Nada é gravado até confirmar."
-      icon={CalendarPlus}
-      size="lg"
-      submitLabel={toEnroll.length ? `Matricular ${toEnroll.length} aluno(s)` : "Matricular"}
-      isSubmitting={saving}
-      onSubmit={submit}
-    >
+    <div className="space-y-4">
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1 text-xs font-semibold text-muted-foreground">
@@ -227,7 +211,16 @@ export function TurmaRenewalSubModal({
             </ul>
           </>
         ) : null}
+        <div className="flex justify-end">
+          <Button type="button" disabled={saving || !toEnroll.length} onClick={() => void submit()}>
+            {saving
+              ? "A matricular…"
+              : toEnroll.length
+                ? `Matricular ${toEnroll.length} aluno(s)`
+                : "Matricular"}
+          </Button>
+        </div>
       </div>
-    </SubModal>
+    </div>
   );
 }

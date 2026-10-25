@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -715,6 +716,14 @@ function FinalResultsPanel({ board }: { board: ExamBoard }) {
                 : counts.recorded
                   ? "Actualizar histórico"
                   : "Registar no histórico"}
+            </Button>
+          ) : null}
+          {/* Com o resultado no histórico, o passo seguinte é a renovação do ano. */}
+          {data?.canManage && counts.recorded ? (
+            <Button asChild size="sm" variant="outline">
+              <Link to="/pedagogica/turmas/$turmaId/renovar" params={{ turmaId: classGroupId }}>
+                Renovar para o próximo ano
+              </Link>
             </Button>
           ) : null}
         </div>
