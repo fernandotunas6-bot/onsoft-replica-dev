@@ -12,6 +12,16 @@ const productionObservation: FinanceInventory = {
   cash_history: false,
   receipt_cash_trigger: true,
   expense_cash_trigger: true,
+  receipt_reversal_trigger: true,
+  expense_reversal_trigger: true,
+  cash_points_rls: true,
+  cash_sessions_rls: true,
+  cash_points_anon_select: false,
+  cash_points_auth_select: false,
+  cash_sessions_anon_select: false,
+  cash_sessions_auth_select: false,
+  cash_rpc_complete: true,
+  cash_rpc_anon_executable: false,
   idempotency_column: false,
   idempotency_index: false,
   payment_rpc_six_args: false,
@@ -36,6 +46,29 @@ describe("inventário de migrações financeiras — leitura exclusiva", () => {
     });
     expect(report.blockers.join(" ")).toContain("Esquema de caixa parcial");
     expect(report.blockers.join(" ")).toContain("idempotência aplicada parcialmente");
+  });
+
+  it("bloqueia RLS desligado, leitura directa e RPC acessível anonimamente", () => {
+    const report = evaluateFinanceInventory({
+      ...productionObservation,
+      cash_points_rls: false,
+      cash_sessions_auth_select: true,
+      cash_rpc_anon_executable: true,
+    });
+    expect(report.blocked).toBe(true);
+    expect(report.blockers.join(" ")).toContain("RLS");
+    expect(report.blockers.join(" ")).toContain("Leitura directa");
+    expect(report.blockers.join(" ")).toContain("EXECUTE");
+  });
+
+  it("bloqueia estorno sem trigger e RPC de caixa em falta", () => {
+    const report = evaluateFinanceInventory({
+      ...productionObservation,
+      receipt_reversal_trigger: false,
+      cash_rpc_complete: false,
+    });
+    expect(report.blockers.join(" ")).toContain("estorno incompletos");
+    expect(report.blockers.join(" ")).toContain("quatro RPC");
   });
 
   it("não confunde indicadores coerentes com homologação ou publicação", () => {
@@ -65,6 +98,9 @@ describe("inventário de migrações financeiras — leitura exclusiva", () => {
     expect(request.query).not.toMatch(/\b(?:DELETE|INSERT|UPDATE|DROP|ALTER|TRUNCATE)\s/i);
     expect(request.query).toContain("pg_catalog.pg_trigger");
     expect(request.query).toContain("pg_catalog.pg_proc");
+    expect(request.query).toContain("pg_catalog.has_table_privilege");
+    expect(request.query).toContain("pg_catalog.has_function_privilege");
+    expect(request.query).toContain("receipt_reversal_trigger");
 
     const send = vi.fn(async (_url: string, _init?: RequestInit) => ({
       ok: true,
