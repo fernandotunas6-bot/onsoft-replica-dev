@@ -1,7 +1,12 @@
 -- SIGA · Financeiro 2026 · aplicar as cinco migrações (escreve na base)
 --
--- ESTADO: POR APLICAR. Gerado a 2026-10-25 a partir dos ficheiros dos ramos, sem
--- transcrição; o md5 de cada corpo está ao lado do nome.
+-- ESTADO: APLICADO na produção a 2026-10-25 (projecto xodgfmxiaunpamctfeea), pela API
+-- de gestão, numa transacção; a confirmação deu true nas cinco linhas e o histórico
+-- registou as seis versões. Esquema do PostgREST recarregado a seguir. Não voltar a correr:
+-- a guarda recusa (propina única já existe).
+--
+-- Gerado a 2026-10-25 a partir dos ficheiros dos ramos, sem transcrição; o md5 de cada
+-- corpo está ao lado do nome.
 --
 -- Como aplicar:
 --   1. Correr antes SIGA_verificar_financeiro_2026.sql. No resultado 2, só a lista de
