@@ -55,6 +55,11 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Sessões de caixa (2026-10-24): as tabelas nascem sem políticas e sem
+  // privilégios para authenticated; escrevem-se só pelas RPC (sessão do
+  // utilizador, AAL2). A leitura do estado corre aqui, depois da guarda de
+  // Administrador/Tesouraria, filtrada pela escola da membership.
+  "src/features/finance/cash-session.functions.ts",
   // Conteúdos escolares (2026-10-21): a política RESTRICTIVE retira aos JWT
   // todo o acesso a school_website/school_blog.* para não expor rascunhos.
   // Os editores exigem Administrador + Gestão e a sonda da base antes de ler

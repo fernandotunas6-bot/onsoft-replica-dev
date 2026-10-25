@@ -64,6 +64,13 @@ vi.mock("@/features/finance/server", () => ({
   reverseCashEntry: vi.fn(),
 }));
 
+vi.mock("@/features/finance/cash-session.functions", () => ({
+  getCashSessionState: async () => ({ available: false }),
+  openCashSession: vi.fn(),
+  closeCashSession: vi.fn(),
+  approveCashDifference: vi.fn(),
+}));
+
 vi.mock("@/features/arquivos/server", () => ({
   archiveFinanceDocument: vi.fn(),
 }));

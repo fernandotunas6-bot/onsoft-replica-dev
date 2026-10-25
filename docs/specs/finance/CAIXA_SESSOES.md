@@ -1,6 +1,6 @@
 # Sessões de caixa — proposta
 
-**Data:** 24/10/2026. **Estado:** proposta para aprovação; nada aplicado. Pendência 3 de [`FINANCE_MASTER_2026.md`](FINANCE_MASTER_2026.md).
+**Data:** 24/10/2026. **Estado:** implementado no #283, com as decisões abaixo respondidas (um posto por escola; 30 dias de aviso; aprovação de qualquer diferença; estorno na sessão aberta). A migração `20261024110000` está por aplicar. Pendência 3 de [`FINANCE_MASTER_2026.md`](FINANCE_MASTER_2026.md).
 
 ## Problema
 
@@ -45,6 +45,10 @@ Hoje o caixa não tem sessão. As entradas são os recibos (`finance_receipts`) 
 ### Ligação aos movimentos
 
 `finance_receipts.cash_session_id` e `siga_cash_expenses.cash_session_id`: uuid, nulos nos registos anteriores e em tudo o que não é numerário (gateway, transferência, cartão). `register_payment` e o registo de despesa preenchem a coluna quando o método é `cash`, e **recusam numerário sem sessão aberta** no posto do operador. Esta recusa é a mudança de comportamento visível: hoje qualquer pessoa da tesouraria regista numerário a qualquer hora.
+
+Uma despesa «Por aprovar» (acima de 50 000 Kz, #295) não entra na sessão ao ser registada: o numerário só sai da gaveta quando é aprovada, e entra então na sessão aberta (ou é recusada se não houver). Anulada antes de aprovar, não conta em sessão nenhuma.
+
+**Depósito da gaveta no banco** (decidido a 25/10/2026): `finance_cash_deposits`. O numerário levado ao banco sai do esperado da sessão aberta, com o nº do talão (o mesmo talão não entra duas vezes), e não pode ser maior do que o que há na gaveta. Fica por confirmar até alguém que não o registou o ver no extracto. Anula-se, com motivo, só com o caixa ainda aberto e antes de confirmado. Funções `record_cash_deposit`, `reverse_cash_deposit` e `confirm_cash_deposit`; na Tesouraria, «Depósitos por confirmar»; no relatório dos fechos, a coluna «Depósitos».
 
 ## Funções (RPC, `private` com invólucro em `public`)
 
