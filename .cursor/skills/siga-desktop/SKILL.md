@@ -19,7 +19,7 @@ description: >-
 Ler `docs/desktop/TAURI_RUNTIME.md`, `docs/desktop/OFFLINE_FIRST_ROADMAP.md` e `desktop/AGENTS.md`.
 
 - Base completa Danny Smith Tauri Template; frontend local em `desktop/`, Rust único em `src-tauri/`.
-- `main` e `quick-pane` locais usam as capacidades do template. Portal SSR em `school`, apenas `https://portal-siga.com/*`, com permissões escolares mínimas.
+- `main` e `quick-pane` locais usam as capacidades do template. A janela `offline-shell` tem bundle próprio e capability mínima (`src-tauri/capabilities/offline-shell.json`): apenas demonstra a UI instalada, sem dados escolares nem permissão para serviços nativos privilegiados. Portal SSR em `school`, apenas `https://portal-siga.com/*`, com permissões escolares mínimas.
 - Comandos tipados em `bindings.rs` e manifesto `build.rs`; compatibilidade web em `school/mod.rs`. Capabilities correspondentes e testes verificam o contrato.
 - Nunca conceder ao portal plugins livres de fs, updater, process, shell, store, dialog ou stronghold.
 - Store e Stronghold no portal: só pelos comandos de caminho fixo `portal_store_*` / `portal_vault_*` (`src-tauri/src/school/native_storage.rs`); a app local recebe os plugins completos.
@@ -45,6 +45,9 @@ Ler `docs/desktop/TAURI_RUNTIME.md`, `docs/desktop/OFFLINE_FIRST_ROADMAP.md` e `
 - Escritas locais simultâneas devem ser persistidas sequencialmente; corrupção da fila cifrada bloqueia escrita e exige recuperação, não substituição por fila vazia.
 - Nenhuma fila offline nova sem `school_id`, `actor_id`, `op_id` e validação RLS/MFA no servidor, com migração segura da fila legada.
 - A fila actual agora regista escola e actor, e verifica os dois ao enviar; registos anteriores sem escola nunca são enviados automaticamente. Idempotência `op_id` e SQLite total permanecem pendentes.
+- **Política da cache não cifrada (v2):** guardar somente o DTO mínimo dos anos e períodos lectivos; **nunca** serializar `school.settings`, dados bancários/AGT, calendários, listas de alunos, salas ou snapshots completos do TanStack Query em `localStorage`.
+- A origem `school_id` dos anos/períodos é fornecida pelo servidor com membership autenticado e tem de corresponder à escola activa antes de persistir. As cópias antigas `siga:offline-queries:v1:` devem ser apagadas; nunca reidratá-las. Usar `tests/tauri/offline-queries.test.ts` como teste de regressão.
+- Metadados do calendário académico em cache **não** são SQLite offline autenticado. Dados privados exigem cofre/cifragem, isolamento por utilizador e dispositivo, política de expiração e revogação.
 
 ## Sistema de ficheiros, impressão, notificações
 
