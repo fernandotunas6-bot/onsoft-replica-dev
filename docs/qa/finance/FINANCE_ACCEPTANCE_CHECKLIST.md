@@ -14,7 +14,7 @@ Legenda: **Feito** com prova automática · **Parcial** · **Por fazer** · **Bl
 | Recibos com origem verificável             | Feito                                | QR `/verificar`; `validation-footer.test.ts`                                                                                                                                    |
 | QR de pagamento sem integração real        | Feito: não existe nenhum             | Texto de QR «EMIS» inventado retirado; «Referência EMIS» sem ícone de QR                                                                                                        |
 | Faturas não apresentadas como certificadas | Feito                                | Cartão de Faturas, rodapé dos documentos, sem linhas «AGT;…»                                                                                                                    |
-| Isolamento por escola                      | Feito no servidor e na base          | RPC com `school_id`, AAL2 e `has_permission`; **sem teste com duas escolas**                                                                                                    |
+| Isolamento por escola                      | Feito no servidor e na base          | RPC com `school_id`, AAL2 e `has_permission`; duas escolas nos ensaios SQL `payment-integrity`, `cash-sessions` e `one-tuition-per-month`; sem RLS real nem E2E                 |
 | Saldos correctos                           | Feito, com uma correcção por aplicar | Numerário e banco separados (`cash-balances.test.ts`); estorno com multa (`20261024090000`)                                                                                     |
 | Operações sensíveis com autorização        | Feito                                | Estorno, fecho e aprovação de caixa com AAL2 e papéis; quem fecha não aprova; despesa acima de 50 000 Kz aprovada por outro Administrador (#295, `expense-segregation.test.ts`) |
 | Sem regressões de navegação                | Feito para breadcrumb e acesso       | `access-policy.test.ts`; **sem teste E2E**                                                                                                                                      |
@@ -24,21 +24,21 @@ Legenda: **Feito** com prova automática · **Parcial** · **Por fazer** · **Bl
 
 ## Fluxos obrigatórios (§14)
 
-| Fluxo                                                          | Estado    | Nota                                                                   |
-| -------------------------------------------------------------- | --------- | ---------------------------------------------------------------------- |
-| Cobrança: plano → obrigação → vencimento → pagamento           | Parcial   | Propina única por mês na base e emissão por turma (#290); sem E2E      |
-| Pagamento: criar → confirmar no fornecedor → liquidar → recibo | Parcial   | Gateway coberto por `gateway-settlement*.test.ts`; sem sandbox AppyPay |
-| Pagamento parcial até fechar                                   | Parcial   | Lógica em `register_payment` lida na produção; sem E2E                 |
-| Pagamento por QR                                               | Bloqueado | O fornecedor não emite QR na integração actual                         |
-| Reconciliação: importar → corresponder → aprovar               | Por fazer | Vive no PayFlow; não auditado                                          |
-| Estorno com motivo e histórico                                 | Parcial   | Função lida e corrigida; sem E2E                                       |
-| Contabilidade                                                  | Bloqueado | Projecto em `CONTABILIDADE_PROPOSTA.md`; espera contabilista           |
-| Isolamento com duas escolas                                    | Por fazer |                                                                        |
-| Navegação sem componentes de outros módulos                    | Parcial   | Testes de fonte, não de ecrã                                           |
-| Desktop, tablet, Android, iOS, zoom, teclado                   | Por fazer | Sem Playwright nesta máquina                                           |
+| Fluxo                                                          | Estado    | Nota                                                                                                                      |
+| -------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Cobrança: plano → obrigação → vencimento → pagamento           | Parcial   | Propina única por mês na base e emissão por turma (#290); sem E2E                                                         |
+| Pagamento: criar → confirmar no fornecedor → liquidar → recibo | Parcial   | Gateway coberto por `gateway-settlement*.test.ts`; sem sandbox AppyPay                                                    |
+| Pagamento parcial até fechar                                   | Parcial   | Lógica em `register_payment` lida na produção; sem E2E                                                                    |
+| Pagamento por QR                                               | Bloqueado | O fornecedor não emite QR na integração actual                                                                            |
+| Reconciliação: importar → corresponder → aprovar               | Por fazer | Vive no PayFlow; não auditado                                                                                             |
+| Estorno com motivo e histórico                                 | Parcial   | Função lida e corrigida; sem E2E                                                                                          |
+| Contabilidade                                                  | Bloqueado | Projecto em `CONTABILIDADE_PROPOSTA.md`; espera contabilista                                                              |
+| Isolamento com duas escolas                                    | Parcial   | Pagar, estornar, fechar e aprovar caixa de outra escola recusados nos ensaios PGlite; o RLS e as permissões são simulados |
+| Navegação sem componentes de outros módulos                    | Parcial   | Testes de fonte, não de ecrã                                                                                              |
+| Desktop, tablet, Android, iOS, zoom, teclado                   | Por fazer | Sem Playwright nesta máquina                                                                                              |
 
 ## Bloqueios que não dependem de código
 
-1. Aplicar as cinco migrações na produção, por ordem: `20261024090000`, `20261024100000`, `20261024110000`, `20261025090000`, `20261025100000`. Antes, corrê-las num ramo do Supabase: nenhuma correu em base alguma.
+1. Aplicar as cinco migrações na produção, por ordem: `20261024090000`, `20261024100000`, `20261024110000`, `20261025090000`, `20261025100000`. Todas correm em Postgres (PGlite) no CI, em `tests/sql/`, sobre tabelas com as colunas da produção; falta corrê-las num ramo do Supabase, porque as restrições e gatilhos que o repositório não captura só lá aparecem.
 2. Contabilista para validar o plano de contas e as regras de lançamento.
 3. AppyPay ou EMIS: confirmar se o contrato inclui QR dinâmico.
