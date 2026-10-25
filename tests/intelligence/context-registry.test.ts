@@ -49,13 +49,28 @@ describe("getContextEntries", () => {
       "subject.grades",
       "academic.attendance",
       "academic.lesson-plans",
+      "academic.files",
     ]);
   });
 
   it("separa as entradas da turma das da disciplina", () => {
     const entries = getContextEntries(context("Professor", [classFrame]), ACADEMIC_CONTEXT_ENTRIES);
+    // Só com a turma, o separador de presenças não filtra por ela: a entrada fica
+    // na disciplina, onde abre a chamada dessa aula.
     expect(entries.map((e) => e.id)).toEqual([
       "class.grades",
+      "academic.lesson-plans",
+      "academic.files",
+    ]);
+  });
+
+  it("«Nenhum» em Arquivos tira os materiais, e só eles", () => {
+    const entries = getContextEntries(
+      context("Professor", [classFrame, subjectFrame], { arquivos: "Nenhum" }),
+      ACADEMIC_CONTEXT_ENTRIES,
+    );
+    expect(entries.map((e) => e.id)).toEqual([
+      "subject.grades",
       "academic.attendance",
       "academic.lesson-plans",
     ]);
@@ -69,7 +84,7 @@ describe("getContextEntries", () => {
     for (const role of applicationRoles) {
       const ctx = context(role, [classFrame, subjectFrame]);
       for (const entry of getContextEntries(ctx, ACADEMIC_CONTEXT_ENTRIES)) {
-        expect(entry.module).toBe("pedagogica");
+        expect(["pedagogica", "arquivos"]).toContain(entry.module);
       }
     }
     expect(
@@ -109,6 +124,9 @@ describe("links e entrada activa", () => {
       to: "/planos-aula",
       search: { turma: TURMA_A, disciplina: MATEMATICA },
     });
+    // Os ficheiros estão por turma: da disciplina abre-se a pasta da turma.
+    const files = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "academic.files")!;
+    expect(contextEntryLink(files, ctx)).toEqual({ to: "/arquivos", search: { turma: TURMA_A } });
   });
 
   it("activa só a entrada da localização actual", () => {

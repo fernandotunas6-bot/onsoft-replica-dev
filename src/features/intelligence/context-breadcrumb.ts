@@ -1,5 +1,6 @@
 import { academicIdsFromTrail } from "./academic-context-entries";
 import type { ContextSearch } from "./context-registry";
+import { CLASS_SEARCH_ROUTES } from "./context-resolver";
 import type { ContextFrame } from "./types";
 
 /**
@@ -22,9 +23,6 @@ export type ContextCrumbs = {
 
 export const NO_CONTEXT_CRUMBS: ContextCrumbs = { page: null, frames: [] };
 
-/** Páginas cujo contexto vem de `turma` e `disciplina` na URL (`routeContextCandidates`). */
-const ACADEMIC_SEARCH_ROUTES = new Set(["/pedagogica", "/planos-aula"]);
-
 /**
  * Passos do breadcrumb para o caminho resolvido da URL (o mesmo do menu da
  * entidade). Uma turma em foco num modal não chega aqui: não está na URL, e uma
@@ -36,7 +34,8 @@ export function contextCrumbs(
   search: Record<string, unknown>,
 ): ContextCrumbs {
   if (!trail || trail.length === 0) return NO_CONTEXT_CRUMBS;
-  if (!ACADEMIC_SEARCH_ROUTES.has(pathname)) {
+  // Páginas cujo contexto vem de `turma` (e `disciplina`) na URL, como no resolvedor.
+  if (!CLASS_SEARCH_ROUTES.has(pathname)) {
     // A entidade está no caminho (/alunos/$id): sem nível acima na mesma página.
     return { page: null, frames: trail.map((frame) => ({ label: frame.label })) };
   }

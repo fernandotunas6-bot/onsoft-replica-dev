@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
 import { applyAppearance, type AppearanceState } from "@/lib/appearance";
@@ -621,6 +621,24 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     renderSidebar();
     expect(screen.getByRole("region", { name: "Turma: Turma A" })).toBeTruthy();
     expect(linksTo("/planos-aula").some((link) => link.label === "Planos de aula")).toBe(true);
+  });
+
+  it("nos arquivos da turma, o menu da turma fica com os materiais marcados", () => {
+    academic.tree = tree();
+    currentPathname = "/arquivos";
+    currentSearch = { turma: TURMA_A };
+    renderSidebar();
+
+    const section = screen.getByRole("region", { name: "Turma: Turma A" });
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Materiais e ficheiros");
+    expect(
+      linksTo("/arquivos").find((link) => link.label === "Materiais e ficheiros")?.search,
+    ).toEqual({ turma: TURMA_A });
+    // Só com a turma, as presenças não entram: o separador não filtra pela turma.
+    expect(within(section).queryByRole("link", { name: /Presenças/ })).toBeNull();
   });
 
   it("recolhida, mantém os destinos com nome acessível", () => {

@@ -61,6 +61,14 @@ describe("contextCrumbs", () => {
     expect(crumbs.page).toEqual({ to: "/planos-aula", search: {} });
   });
 
+  it("nos arquivos, a turma segue o título, que leva à biblioteca toda", () => {
+    const crumbs = contextCrumbs([turma], "/arquivos", { turma: TURMA_A });
+    expect(crumbs.page).toEqual({ to: "/arquivos", search: {} });
+    expect(crumbs.frames).toEqual([
+      { label: "10.ª A", to: "/arquivos", search: { turma: TURMA_A } },
+    ]);
+  });
+
   it("sem caminho confirmado, sem passos", () => {
     const vazio = { page: null, frames: [] };
     expect(contextCrumbs([], "/pedagogica", { tab: "turmas" })).toEqual(vazio);

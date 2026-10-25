@@ -85,6 +85,17 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/alunos/novo")).toEqual([]);
   });
 
+  it("nos arquivos, a turma abre o contexto da turma e a disciplina não entra", () => {
+    // Os ficheiros estão por turma: `/arquivos` não aceita disciplina.
+    expect(routeContextCandidates("/arquivos", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(routeContextCandidates("/arquivos", { turma: TURMA_A, disciplina: MATEMATICA })).toEqual(
+      [{ type: "class", id: TURMA_A }],
+    );
+    expect(routeContextCandidates("/arquivos", { pessoa: ALUNO })).toEqual([]);
+  });
+
   it("reconhece os perfis de aluno e professor, sem sub-rotas", () => {
     expect(routeContextCandidates(`/alunos/${ALUNO}`)).toEqual([{ type: "student", id: ALUNO }]);
     expect(routeContextCandidates(`/professores/${ALUNO}`)).toEqual([

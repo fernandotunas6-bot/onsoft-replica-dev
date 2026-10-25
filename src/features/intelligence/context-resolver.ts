@@ -64,6 +64,15 @@ export function parseSubjectOfferingId(id: string): { classId: string; subjectId
   return { classId, subjectId };
 }
 
+/** Páginas que abrem uma turma por `?turma=` e, nas que o aceitam, a disciplina por `?disciplina=`. */
+export const CLASS_SEARCH_ROUTES: ReadonlySet<string> = new Set([
+  "/pedagogica",
+  "/planos-aula",
+  // Os ficheiros estão por turma: `/arquivos` não aceita disciplina.
+  "/arquivos",
+]);
+const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set(["/pedagogica", "/planos-aula"]);
+
 /** (1) Só rotas e parâmetros tipados que já existem; ids mal formados são ignorados. */
 export function routeContextCandidates(
   pathname: string,
@@ -74,12 +83,16 @@ export function routeContextCandidates(
     if (first === "alunos") return [{ type: "student", id: second }];
     if (first === "professores") return [{ type: "teacher", id: second }];
   }
-  if (pathname === "/pedagogica" || pathname === "/planos-aula") {
+  if (CLASS_SEARCH_ROUTES.has(pathname)) {
     const turma = typeof search.turma === "string" && UUID.test(search.turma) ? search.turma : null;
     if (!turma) return [];
     const candidates: ContextCandidate[] = [{ type: "class", id: turma }];
     const disciplina = search.disciplina;
-    if (typeof disciplina === "string" && UUID.test(disciplina)) {
+    if (
+      SUBJECT_SEARCH_ROUTES.has(pathname) &&
+      typeof disciplina === "string" &&
+      UUID.test(disciplina)
+    ) {
       candidates.push({ type: "subject-offering", id: subjectOfferingId(turma, disciplina) });
     }
     return candidates;

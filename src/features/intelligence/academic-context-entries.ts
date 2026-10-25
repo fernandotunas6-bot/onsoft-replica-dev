@@ -7,7 +7,7 @@ import type { ContextFrame } from "./types";
 /**
  * Entradas do contexto académico (turma e disciplina numa turma), primeiro
  * piloto do SIGA Context Engine. Só rotas e separadores que já existem e já
- * aceitam `turma` e `disciplina`; Trabalhos entra quando tiver ecrã próprio.
+ * filtram por `turma` e `disciplina`; Trabalhos entra quando tiver ecrã próprio.
  */
 
 /** Turma e disciplina do caminho; a disciplina nunca vem sem a sua turma. */
@@ -68,11 +68,14 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 10,
   },
   {
+    // Com turma e disciplina, o separador abre a chamada dessa aula. Só com a
+    // turma não filtra por ela (AttendanceWorkspaceModule), por isso não entra
+    // no menu da turma.
     id: "academic.attendance",
     label: "Presenças",
     icon: moduleIcons.attendance,
     group: "Acompanhamento",
-    contexts: ["class", "subject-offering"],
+    contexts: ["subject-offering"],
     to: "/pedagogica",
     search: (trail) => ({ tab: "presencas", ...academicIdsFromTrail(trail) }),
     module: "pedagogica",
@@ -90,5 +93,18 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     module: "pedagogica",
     roles: ACADEMIC_STAFF_ROLES,
     order: 30,
+  },
+  {
+    id: "academic.files",
+    label: "Materiais e ficheiros",
+    icon: moduleIcons.files,
+    group: "Ensino",
+    contexts: ["class", "subject-offering"],
+    to: "/arquivos",
+    // Os ficheiros estão por turma: da disciplina abre-se a pasta da turma.
+    search: (trail) => ({ turma: academicIdsFromTrail(trail).turma }),
+    module: "arquivos",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 40,
   },
 ];

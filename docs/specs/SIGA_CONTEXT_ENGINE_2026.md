@@ -89,7 +89,9 @@ da URL é recusada.
 1. `useEntityNavigation(pathname, search)` só actua para **Administrador, Secretaria e
    Professor** (as entradas são de gestão da turma; aluno e encarregado vêem o que é seu
    pelo portal, e as regras de rota deixam-nos abrir `/pedagogica` e `/planos-aula`).
-2. Lê `routeContextCandidates`. Sem turma na URL não pede nada.
+2. Lê `routeContextCandidates`: `?turma=` em `/pedagogica`, `/planos-aula` e `/arquivos`;
+   `?disciplina=` só nas duas primeiras (os ficheiros estão por turma). Sem turma na URL
+   não pede nada.
 3. `useAcademicNavTree` devolve as turmas e disciplinas da conta (professor: as suas
    atribuições; equipa: as da escola e ano). Mesmas chaves de query que a árvore
    académica: um só pedido. As chaves levam escola e papel e a troca de escola repõe-nas.
@@ -121,14 +123,14 @@ da URL é recusada.
 | Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                         |
 | Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                  |
 | Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                  |
-| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`        | Parcial — confirmar em sessão que o separador filtra pela turma                               |
+| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — só na disciplina: com a turma sozinha o separador não filtra                   |
 | Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                  |
-| Materiais e ficheiros                  | `/arquivos?turma`                                   | Parcial — `/arquivos` não está em `routeContextCandidates`; abrir perderia o contexto         |
-| Chamada do professor                   | `/professor/presenca?turma&disciplina`              | Parcial — mesma razão                                                                         |
+| Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)     |
+| Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora      |
 | Trabalhos, entregas, correcção         | —                                                   | Parcial — `siga_class_tasks` e `siga_class_task_submissions` (#331) sem ecrã; SPEC na PR #329 |
 | Alunos da turma, horário da turma      | `/pedagogica?tab=turmas` / `horarios`               | Parcial — filtro por `turma` por confirmar                                                    |
 | Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                              |
-| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica` e `/planos-aula`                                                 |
+| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula` e `/arquivos`                                    |
 
 ### 5.2 Aluno (prioridade 2)
 
@@ -187,13 +189,13 @@ da URL é recusada.
 | ------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 Auditoria         | Parcial                                            | Inventário §5; falta auditoria em sessão autenticada                                                                                                                                           |
 | 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                                                                            |
-| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 11 testes de sidebar + 7 de lookup; breadcrumb com 7 testes                                                                                                                |
+| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 12 testes de sidebar + 7 de lookup; breadcrumb com 8 testes                                                                                                                |
 | 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
 | 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 6 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                    |
 | 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
-| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (693 ficheiros); Playwright pendente                                                                                                                  |
+| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (694 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
@@ -206,7 +208,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (693 ficheiros, 4783 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (694 ficheiros, 4795 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 
@@ -231,7 +233,8 @@ abrir a entrada perde o contexto).
 
 - No telemóvel, o menu da entidade só aparece ao abrir o hub «Mais»; falta validar em
   aparelhos.
-- Presenças, Materiais e Chamada precisam de confirmação ou de entrar no resolvedor.
+- Presenças e Materiais estão cobertos em jsdom e em capturas com dados fictícios; falta
+  confirmar numa sessão autenticada que a chamada e a pasta da turma abrem com dados reais.
 - A memória de contexto não está ligada.
 - Na ficha do aluno, o Encarregado vê botões de gestão (Editar ficha, Estado, Anular); o
   servidor recusa essas acções, mas os botões não deviam aparecer.
