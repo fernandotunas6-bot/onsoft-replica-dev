@@ -1,34 +1,34 @@
 # Financeiro 2026 — relatório final (§18)
 
-**Data:** 25/10/2026. **Referência:** prompt «SIGA Plus Finance 2026». **Estado:** oito PRs abertos, nenhum fundido nem publicado e nenhuma migração aplicada na produção. Desenho e decisões: [`FINANCE_MASTER_2026.md`](../../specs/finance/FINANCE_MASTER_2026.md). Critérios do §17: [`FINANCE_ACCEPTANCE_CHECKLIST.md`](FINANCE_ACCEPTANCE_CHECKLIST.md).
+**Data:** 25/10/2026. **Referência:** prompt «SIGA Plus Finance 2026». **Estado:** onze PRs abertos, nenhum fundido nem publicado e nenhuma migração aplicada na produção. Desenho e decisões: [`FINANCE_MASTER_2026.md`](../../specs/finance/FINANCE_MASTER_2026.md). Critérios do §17: [`FINANCE_ACCEPTANCE_CHECKLIST.md`](FINANCE_ACCEPTANCE_CHECKLIST.md).
 
 ## Cobertura do prompt, secção a secção
 
 Legenda: **Feito** com prova automática · **Parcial** · **Proposto** (desenho escrito, não activado) · **Bloqueado** (depende de terceiros ou de aprovação).
 
-| Secção                        | Estado   | Onde                                                                                                                                                                       |
-| ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| §2 Uma página, uma finalidade | Feito    | #276: atalhos fora do Caixa, um módulo por página, QR de presença em Pedagógica, Conciliação com página própria                                                            |
-| §3 Auditoria do estado real   | Feito    | `FINANCE_MASTER_2026.md`, «Matriz rota → funções»                                                                                                                          |
-| §4.1 Visão geral              | Parcial  | «Total recebido» com numerário e banco separados (#276); os alertas não foram revistos                                                                                     |
-| §4.2 Propinas e cobranças     | Parcial  | Propina única por mês na base e emissão por turma (#290); multas, prestações, bolsas e descontos já existiam; calendário de vencimentos e avisos automáticos não revistos  |
-| §4.3 Pagamentos               | Feito    | Estados por domínio (`payment-states.ts`); idempotência manual (#276); importação pela liquidação atómica (#304); AppyPay sem valor confirmado fica em revisão (#298)      |
-| §4.4 Facturas                 | Parcial  | Proforma com número único (#296); fatura, proforma e documento fiscal distinguidos (#276); séries e rectificação não mudaram                                               |
-| §4.5 Recibos                  | Feito    | Estorno preserva o original, com motivo; estorno conta a multa (#276); verificação por QR `/verificar`                                                                     |
-| §4.6 Caixa e tesouraria       | Parcial  | Sessões com abertura, fecho, diferença e aprovação (#283); relatório de fecho (#283); despesas aprovadas acima de 50 000 Kz (#295); **transferências internas não feitas** |
-| §4.7 Bancos e reconciliação   | Parcial  | Página Conciliação (#276); a importação não casa por montante (aluno exacto, nº de fatura ou mês); a conciliação bancária vive no PayFlow e **não foi auditada**           |
-| §5 Contabilidade              | Proposto | [`CONTABILIDADE_PROPOSTA.md`](../../specs/finance/CONTABILIDADE_PROPOSTA.md); espera contabilista                                                                          |
-| §6 QR por finalidade          | Parcial  | QR de verificação e de presença separados; payload «EMIS» inventado retirado (#276); **QR de pagamento bloqueado** (o fornecedor não o emite na integração actual)         |
-| §7 Integrações                | Parcial  | Webhooks idempotentes por `external_id`, assinatura verificada; valor e moeda AppyPay (#298); política de tentativas e eventos fora de ordem não revistos                  |
-| §8 Multi-tenant e auditoria   | Parcial  | Separação de funções nas despesas e no caixa (#295, #283); despesas em `audit_logs` (#295); IBAN com 2FA e auditoria; **descontos sem limite por papel** (pendência 3)     |
-| §9 Design system              | Parcial  | Cabeçalhos e menu «Exportar» (#276); estados com ícone e texto; tabelas com as facturas por pagar todas (#299); modais não revistos                                        |
-| §10 Motor de contexto         | Feito    | `access-policy` e matriz no `FINANCE_MASTER_2026.md`                                                                                                                       |
-| §11 Integridade (10 regras)   | Feito    | Tabela em `FINANCE_MASTER_2026.md`; ensaios SQL das migrações                                                                                                              |
-| §12 Fiscal e AGT              | Feito    | O SIGA não se apresenta como certificado (cartão de Facturas, rodapés, sem «AGT;…»); o SAF-T exporta e valida a estrutura, sem submissão                                   |
-| §13 Performance               | Parcial  | Pedidos repetidos entre páginas retirados (#299); **nada medido**                                                                                                          |
-| §14 Validação funcional       | Parcial  | Testes unitários e de contrato; quatro ensaios SQL em Postgres; **nenhum E2E**                                                                                             |
-| §16 Documentação              | Feito    | `AGENTS.md` «Financeiro», skill `siga-financeiro`, specs e esta pasta                                                                                                      |
-| §17 Critérios                 | Parcial  | Checklist                                                                                                                                                                  |
+| Secção                        | Estado  | Onde                                                                                                                                                                                     |
+| ----------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §2 Uma página, uma finalidade | Feito   | #276: atalhos fora do Caixa, um módulo por página, QR de presença em Pedagógica, Conciliação com página própria                                                                          |
+| §3 Auditoria do estado real   | Feito   | `FINANCE_MASTER_2026.md`, «Matriz rota → funções»                                                                                                                                        |
+| §4.1 Visão geral              | Parcial | «Total recebido» com numerário e banco separados (#276); os alertas não foram revistos                                                                                                   |
+| §4.2 Propinas e cobranças     | Parcial | Propina única por mês na base e emissão por turma (#290); multas, prestações, bolsas e descontos já existiam; calendário de vencimentos e avisos automáticos não revistos                |
+| §4.3 Pagamentos               | Feito   | Estados por domínio (`payment-states.ts`); idempotência manual (#276); importação pela liquidação atómica (#304); AppyPay sem valor confirmado fica em revisão (#298)                    |
+| §4.4 Facturas                 | Parcial | Proforma com número único (#296); fatura, proforma e documento fiscal distinguidos (#276); séries e rectificação não mudaram                                                             |
+| §4.5 Recibos                  | Feito   | Estorno preserva o original, com motivo; estorno conta a multa (#276); verificação por QR `/verificar`                                                                                   |
+| §4.6 Caixa e tesouraria       | Parcial | Sessões com abertura, fecho, diferença e aprovação (#283); relatório de fecho e depósito da gaveta no banco (#283); despesas aprovadas acima de 50 000 Kz (#295); receber por TPA (#308) |
+| §4.7 Bancos e reconciliação   | Parcial | Página Conciliação (#276); a importação não casa por montante (aluno exacto, nº de fatura ou mês); a conciliação bancária vive no PayFlow e **não foi auditada**                         |
+| §5 Contabilidade              | Feito   | Decidido: contabilista externo; o SIGA exporta o mês para ele em Excel (#311)                                                                                                            |
+| §6 QR por finalidade          | Parcial | QR de verificação e de presença separados; payload «EMIS» inventado retirado (#276); **QR de pagamento bloqueado** (o fornecedor não o emite na integração actual)                       |
+| §7 Integrações                | Parcial | Webhooks idempotentes por `external_id`, assinatura verificada; valor e moeda AppyPay (#298); política de tentativas e eventos fora de ordem não revistos                                |
+| §8 Multi-tenant e auditoria   | Parcial | Separação de funções nas despesas e no caixa (#295, #283); despesas em `audit_logs` (#295); IBAN com 2FA e auditoria; descontos: Tesouraria até 25 %, acima só Administrador (#310)      |
+| §9 Design system              | Parcial | Cabeçalhos e menu «Exportar» (#276); estados com ícone e texto; tabelas com as facturas por pagar todas (#299); modais não revistos                                                      |
+| §10 Motor de contexto         | Feito   | `access-policy` e matriz no `FINANCE_MASTER_2026.md`                                                                                                                                     |
+| §11 Integridade (10 regras)   | Feito   | Tabela em `FINANCE_MASTER_2026.md`; ensaios SQL das migrações                                                                                                                            |
+| §12 Fiscal e AGT              | Feito   | O SIGA não se apresenta como certificado (cartão de Facturas, rodapés, sem «AGT;…»); o SAF-T exporta e valida a estrutura, sem submissão                                                 |
+| §13 Performance               | Parcial | Pedidos repetidos entre páginas retirados (#299); **nada medido**                                                                                                                        |
+| §14 Validação funcional       | Parcial | Testes unitários e de contrato; quatro ensaios SQL em Postgres; **nenhum E2E**                                                                                                           |
+| §16 Documentação              | Feito   | `AGENTS.md` «Financeiro», skill `siga-financeiro`, specs e esta pasta                                                                                                                    |
+| §17 Critérios                 | Parcial | Checklist                                                                                                                                                                                |
 
 ## 1–2. Diagnóstico e problemas confirmados no código
 
@@ -58,10 +58,9 @@ Encontrados nas próprias migrações ao corrê-las em Postgres (25/10), antes d
 
 **Propostas mas não executadas:**
 
-- contabilidade (§5);
-- QR de pagamento (§6.1);
-- transferências internas de caixa (§4.6);
-- limite de desconto por papel (§8);
+- contabilidade completa dentro do SIGA (§5): decidido não fazer, a escola tem contabilista externo;
+- QR de pagamento gerado pelo SIGA (§6.1): decidido deixar com as plataformas da AppyPay e da EMIS;
+- reforço do fundo de maneio e transferências entre contas bancárias (§4.6): fora do que se decidiu, só o depósito da gaveta;
 - totais do resumo calculados na base (§13), que só compensam acima de cerca de 10 000 faturas por escola.
 
 ## 5–6. Páginas reorganizadas e funcionalidades preservadas
@@ -114,6 +113,9 @@ Testes de fonte e de política de acesso (`page-header-area-coherence`, `finance
 | #296 | main                             | Número de proforma                                                    | —                                  |
 | #298 | main                             | Valor e moeda AppyPay                                                 | —                                  |
 | #299 | main                             | Facturas por pagar todas; cache partilhada                            | —                                  |
+| #308 | main                             | Receber por TPA                                                       | —                                  |
+| #310 | main                             | Limite de desconto por papel                                          | —                                  |
+| #311 | `fix/taxonomia-areas-financeiro` | Exportação mensal para o contabilista                                 | —                                  |
 | #304 | main                             | Importação de pagamentos atómica                                      | —                                  |
 
 ## 13. Estado real de publicação
@@ -124,7 +126,7 @@ Nada publicado. Nenhum PR fundido. Nenhuma das cinco migrações aplicada. O có
 
 1. Fundir os PRs. O #283 vai depois do #276, que é a sua base. Com o #283 por fundir, a ordem entre ele e o #295 é indiferente.
 2. Aplicar as migrações por ordem, primeiro num ramo do Supabase: `20261024090000`, `20261024100000`, `20261024110000`, `20261025090000`, `20261025100000`. Depois de cada uma, renomear o ficheiro para o carimbo registado e recapturar o retrato.
-3. Decidir o limite de desconto por papel (§8). Hoje, a Tesouraria dá até 100 % com 2FA, motivo e auditoria, sem segunda pessoa.
-4. Contabilista para a contabilidade (§5).
+3. ~~Limite de desconto~~: decidido a 25/10 (25 % para a Tesouraria), #310.
+4. ~~Contabilidade~~: decidido a 25/10 (contabilista externo; exportação mensal), #311.
 5. AppyPay ou EMIS para o QR de pagamento (§6.1).
 6. Ambiente isolado para os E2E, as capturas e as medições (§14, §18.9–10).
