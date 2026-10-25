@@ -17,6 +17,7 @@ import {
   financeListInputSchema,
   listInvoicesInputSchema,
   issueInvoiceInputSchema,
+  type IssueInvoiceInput,
   recordCashExpenseInputSchema,
   recordInvoicePaymentInputSchema,
   createPaymentPlanInputSchema,
@@ -1185,240 +1186,363 @@ export const issueInvoice = createServerFn({ method: "POST" })
     );
     const db = await loadSgaAdminClient();
 
-    const { data: studentCheck, error: studentCheckError } = await db
-      .from("students")
-      .select("id")
-      .eq("id", data.studentId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (studentCheckError)
-      throw publicDatabaseError(studentCheckError, "Não foi possível validar o aluno.");
-    if (!studentCheck) throw new Error("Aluno não encontrado nesta escola.");
+    return issueInvoiceFor(db, membership, context.userId, data);
+  });
 
-    const { data: enrollment } = await db
-      .from("enrollments")
-      .select("id, academic_year_id, class_group_id")
-      .eq("student_id", data.studentId)
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
+/**
+ * Emissão de uma fatura, partilhada pela emissão individual e pela de propinas em
+ * lote: o mesmo contrato, preço da classe, bolsa, verificação do mês e numeração.
+ */
+async function issueInvoiceFor(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  membership: Awaited<ReturnType<typeof requireSgaWriterForWrite>>,
+  userId: string,
+  data: IssueInvoiceInput,
+) {
+  const { data: studentCheck, error: studentCheckError } = await db
+    .from("students")
+    .select("id")
+    .eq("id", data.studentId)
+    .eq("school_id", membership.schoolId)
+    .maybeSingle();
+  if (studentCheckError)
+    throw publicDatabaseError(studentCheckError, "Não foi possível validar o aluno.");
+  if (!studentCheck) throw new Error("Aluno não encontrado nesta escola.");
 
-    if (!enrollment) {
-      throw new Error(
-        "Este aluno ainda não tem matrícula activa. Atribua uma turma em Alunos antes de emitir a fatura.",
-      );
-    }
+  const { data: enrollment } = await db
+    .from("enrollments")
+    .select("id, academic_year_id, class_group_id")
+    .eq("student_id", data.studentId)
+    .eq("school_id", membership.schoolId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
 
-    const { data: plan } = await db
-      .from("fee_plans")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
-    if (!plan?.id) throw new Error("Não há plano financeiro activo na escola.");
+  if (!enrollment) {
+    throw new Error(
+      "Este aluno ainda não tem matrícula activa. Atribua uma turma em Alunos antes de emitir a fatura.",
+    );
+  }
 
-    let { data: contract } = await db
+  const { data: plan } = await db
+    .from("fee_plans")
+    .select("id")
+    .eq("school_id", membership.schoolId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (!plan?.id) throw new Error("Não há plano financeiro activo na escola.");
+
+  let { data: contract } = await db
+    .from("finance_contracts")
+    .select("id, discount_percentage")
+    .eq("enrollment_id", enrollment.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (!contract) {
+    const siblingDiscountPercent = await resolveSiblingDiscountPercent(
+      db,
+      membership.schoolId,
+      data.studentId,
+    );
+    const { data: createdContract, error: contractError } = await db
       .from("finance_contracts")
+      .insert({
+        school_id: membership.schoolId,
+        enrollment_id: enrollment.id,
+        fee_plan_id: plan.id,
+        discount_percentage: siblingDiscountPercent,
+        status: "active",
+        created_by: userId,
+      })
       .select("id, discount_percentage")
-      .eq("enrollment_id", enrollment.id)
-      .eq("status", "active")
+      .single();
+    if (contractError) {
+      throw publicDatabaseError(contractError, "Não foi possível criar o contrato financeiro.");
+    }
+    contract = createdContract;
+  }
+  const contractDiscountPercent = Number(contract.discount_percentage ?? 0);
+
+  // Classe do aluno (pela turma): a propina e a matrícula usam o preço da classe, se a
+  // escola o definiu; senão o preço geral (fee-items.ts).
+  const { data: classGroup } = enrollment.class_group_id
+    ? await db
+        .from("class_groups")
+        .select("grade_level_id")
+        .eq("school_id", membership.schoolId)
+        .eq("id", enrollment.class_group_id)
+        .maybeSingle()
+    : { data: null };
+  const gradeLevelId = classGroup?.grade_level_id ? String(classGroup.grade_level_id) : null;
+
+  // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
+  const feeCode = higherEdFeeCodeForCategory(data.category);
+  const kind = feeCode ? null : categoryToFeeKind(data.category);
+  // `select("*")`: a coluna da classe só existe depois de 20261005150000.
+  const { data: itemRows, error: itemsError } = await db
+    .from("fee_items")
+    .select("*")
+    .eq("school_id", membership.schoolId)
+    .eq("fee_plan_id", plan.id)
+    .eq("is_active", true);
+  if (itemsError) {
+    throw publicDatabaseError(itemsError, "Não foi possível ler o plano de propinas.");
+  }
+  const feeItem = pickFeeItem(
+    (itemRows ?? []).map((row) => toFeeItemRow(row as Record<string, unknown>)),
+    feeItemMatcher({ feeCode, kind }),
+    kind ? gradeLevelId : null,
+  );
+  if (!feeItem) {
+    throw new Error(
+      feeCode
+        ? "Este emolumento ainda não está definido. Defina o valor em Ensino Superior → Emolumentos."
+        : "Não há item de taxa activo para esta categoria.",
+    );
+  }
+  // Sem valor escrito, o preço do item (o da classe, se houver).
+  const amount = data.amount ?? feeItem.amount;
+  if (!(amount > 0)) {
+    throw new Error(
+      "Indique o valor: esta categoria ainda não tem preço no plano de propinas (Definições › Cobrança).",
+    );
+  }
+
+  const competenceMonth = invoiceCompetenceMonth({
+    kind: feeItem.kind,
+    dueOn: data.dueOn,
+    issuedOn: data.issuedOn ?? schoolTodayIso(),
+  });
+
+  // Uma propina por aluno e por mês: emitir outra para o mesmo mês cobrava duas
+  // vezes (o preço da classe e o geral são itens diferentes, por isso conta o tipo).
+  if (feeItem.kind === "tuition") {
+    const tuitionItemIds = (itemRows ?? [])
+      .map((row) => toFeeItemRow(row as Record<string, unknown>))
+      .filter((item) => item.kind === "tuition")
+      .map((item) => item.id);
+    const { data: sameMonth, error: sameMonthError } = await db
+      .from("finance_invoices")
+      .select("invoice_number")
+      .eq("school_id", membership.schoolId)
+      .eq("contract_id", contract.id)
+      .eq("competence_month", competenceMonth)
+      .in("fee_item_id", tuitionItemIds.length ? tuitionItemIds : [feeItem.id])
+      .neq("status", "cancelled")
       .limit(1)
       .maybeSingle();
-    if (!contract) {
-      const siblingDiscountPercent = await resolveSiblingDiscountPercent(
-        db,
-        membership.schoolId,
-        data.studentId,
-      );
-      const { data: createdContract, error: contractError } = await db
-        .from("finance_contracts")
-        .insert({
-          school_id: membership.schoolId,
-          enrollment_id: enrollment.id,
-          fee_plan_id: plan.id,
-          discount_percentage: siblingDiscountPercent,
-          status: "active",
-          created_by: context.userId,
-        })
-        .select("id, discount_percentage")
-        .single();
-      if (contractError) {
-        throw publicDatabaseError(contractError, "Não foi possível criar o contrato financeiro.");
-      }
-      contract = createdContract;
+    if (sameMonthError) {
+      throw publicDatabaseError(sameMonthError, "Não foi possível verificar as propinas do mês.");
     }
-    const contractDiscountPercent = Number(contract.discount_percentage ?? 0);
+    if (sameMonth) {
+      throw new Error(
+        `Este aluno já tem a propina de ${competenceMonth.slice(0, 7)} (${String(sameMonth.invoice_number)}). Anule-a antes de emitir outra, ou escolha o vencimento do mês certo.`,
+      );
+    }
+  }
 
-    // Classe do aluno (pela turma): a propina e a matrícula usam o preço da classe, se a
-    // escola o definiu; senão o preço geral (fee-items.ts).
-    const { data: classGroup } = enrollment.class_group_id
-      ? await db
-          .from("class_groups")
-          .select("grade_level_id")
-          .eq("school_id", membership.schoolId)
-          .eq("id", enrollment.class_group_id)
-          .maybeSingle()
-      : { data: null };
-    const gradeLevelId = classGroup?.grade_level_id ? String(classGroup.grade_level_id) : null;
+  // Desconto: o maior entre o do contrato (irmãos) e o da bolsa em vigor na data de
+  // emissão (scholarships.ts) — não se somam.
+  const scholarshipPercent = scholarshipPercentFor(
+    await scholarshipsOfStudent(db, membership.schoolId, data.studentId),
+    kind,
+    data.issuedOn ?? schoolTodayIso(),
+  );
+  const discountAmount = discountAmountFor(
+    amount,
+    effectiveDiscountPercent(contractDiscountPercent, scholarshipPercent),
+  );
 
-    // Emolumento do Ensino Superior: o item certo pelo código, não o primeiro activo.
-    const feeCode = higherEdFeeCodeForCategory(data.category);
-    const kind = feeCode ? null : categoryToFeeKind(data.category);
-    // `select("*")`: a coluna da classe só existe depois de 20261005150000.
-    const { data: itemRows, error: itemsError } = await db
-      .from("fee_items")
+  // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
+  // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
+  const invoiceYear = invoiceYearForSchool();
+  let sequence = await loadNextInvoiceSequence(db, membership.schoolId, invoiceYear);
+
+  let invoice: Record<string, unknown> | null = null;
+  let invoiceNumber = "";
+  let error: { code?: string; message: string } | null = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    invoiceNumber = formatInvoiceNumber(invoiceYear, sequence);
+    const result = await db
+      .from("finance_invoices")
+      .insert({
+        school_id: membership.schoolId,
+        contract_id: contract.id,
+        fee_item_id: feeItem.id,
+        invoice_number: invoiceNumber,
+        competence_month: competenceMonth,
+        amount,
+        discount_amount: discountAmount,
+        penalty_amount: 0,
+        due_date: data.dueOn,
+        status: "open",
+        issued_by: userId,
+      })
       .select("*")
-      .eq("school_id", membership.schoolId)
-      .eq("fee_plan_id", plan.id)
-      .eq("is_active", true);
-    if (itemsError) {
-      throw publicDatabaseError(itemsError, "Não foi possível ler o plano de propinas.");
-    }
-    const feeItem = pickFeeItem(
-      (itemRows ?? []).map((row) => toFeeItemRow(row as Record<string, unknown>)),
-      feeItemMatcher({ feeCode, kind }),
-      kind ? gradeLevelId : null,
-    );
-    if (!feeItem) {
-      throw new Error(
-        feeCode
-          ? "Este emolumento ainda não está definido. Defina o valor em Ensino Superior → Emolumentos."
-          : "Não há item de taxa activo para esta categoria.",
-      );
-    }
-    // Sem valor escrito, o preço do item (o da classe, se houver).
-    const amount = data.amount ?? feeItem.amount;
-    if (!(amount > 0)) {
-      throw new Error(
-        "Indique o valor: esta categoria ainda não tem preço no plano de propinas (Definições › Cobrança).",
-      );
-    }
-
-    const competenceMonth = invoiceCompetenceMonth({
-      kind: feeItem.kind,
-      dueOn: data.dueOn,
-      issuedOn: data.issuedOn ?? schoolTodayIso(),
-    });
-
-    // Uma propina por aluno e por mês: emitir outra para o mesmo mês cobrava duas
-    // vezes (o preço da classe e o geral são itens diferentes, por isso conta o tipo).
-    if (feeItem.kind === "tuition") {
-      const tuitionItemIds = (itemRows ?? [])
-        .map((row) => toFeeItemRow(row as Record<string, unknown>))
-        .filter((item) => item.kind === "tuition")
-        .map((item) => item.id);
-      const { data: sameMonth, error: sameMonthError } = await db
-        .from("finance_invoices")
-        .select("invoice_number")
-        .eq("school_id", membership.schoolId)
-        .eq("contract_id", contract.id)
-        .eq("competence_month", competenceMonth)
-        .in("fee_item_id", tuitionItemIds.length ? tuitionItemIds : [feeItem.id])
-        .neq("status", "cancelled")
-        .limit(1)
-        .maybeSingle();
-      if (sameMonthError) {
-        throw publicDatabaseError(sameMonthError, "Não foi possível verificar as propinas do mês.");
-      }
-      if (sameMonth) {
-        throw new Error(
-          `Este aluno já tem a propina de ${competenceMonth.slice(0, 7)} (${String(sameMonth.invoice_number)}). Anule-a antes de emitir outra, ou escolha o vencimento do mês certo.`,
-        );
-      }
-    }
-
-    // Desconto: o maior entre o do contrato (irmãos) e o da bolsa em vigor na data de
-    // emissão (scholarships.ts) — não se somam.
-    const scholarshipPercent = scholarshipPercentFor(
-      await scholarshipsOfStudent(db, membership.schoolId, data.studentId),
-      kind,
-      data.issuedOn ?? schoolTodayIso(),
-    );
-    const discountAmount = discountAmountFor(
-      amount,
-      effectiveDiscountPercent(contractDiscountPercent, scholarshipPercent),
-    );
-
-    // Número gerado pelo servidor (nunca pelo cliente) para nunca aceitar texto livre
-    // (ex.: nº de processo do aluno colado por engano) na numeração fiscal FT-AAAA/NNNN.
-    const invoiceYear = invoiceYearForSchool();
-    let sequence = await loadNextInvoiceSequence(db, membership.schoolId, invoiceYear);
-
-    let invoice: Record<string, unknown> | null = null;
-    let invoiceNumber = "";
-    let error: { code?: string; message: string } | null = null;
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      invoiceNumber = formatInvoiceNumber(invoiceYear, sequence);
-      const result = await db
-        .from("finance_invoices")
-        .insert({
-          school_id: membership.schoolId,
-          contract_id: contract.id,
-          fee_item_id: feeItem.id,
-          invoice_number: invoiceNumber,
-          competence_month: competenceMonth,
-          amount,
-          discount_amount: discountAmount,
-          penalty_amount: 0,
-          due_date: data.dueOn,
-          status: "open",
-          issued_by: context.userId,
-        })
-        .select("*")
-        .single();
-      if (!result.error) {
-        invoice = result.data;
-        error = null;
-        break;
-      }
-      error = result.error;
-      if (result.error.code === "23505") {
-        sequence += 1;
-        continue;
-      }
+      .single();
+    if (!result.error) {
+      invoice = result.data;
+      error = null;
       break;
     }
-    if (error) {
-      if (/penalty_amount/i.test(error.message)) {
-        throw new Error(
-          "A base SGA precisa da coluna finance_invoices.penalty_amount. No SQL Editor do projecto xodgfmxiaunpamctfeea execute supabase/APPLY_IN_SQL_EDITOR.sql.",
-        );
-      }
-      throw publicDatabaseError(error, "Não foi possível emitir a fatura.");
+    error = result.error;
+    if (result.error.code === "23505") {
+      sequence += 1;
+      continue;
     }
-    if (!invoice) throw new Error("Não foi possível emitir a fatura.");
+    break;
+  }
+  if (error) {
+    if (/penalty_amount/i.test(error.message)) {
+      throw new Error(
+        "A base SGA precisa da coluna finance_invoices.penalty_amount. No SQL Editor do projecto xodgfmxiaunpamctfeea execute supabase/APPLY_IN_SQL_EDITOR.sql.",
+      );
+    }
+    throw publicDatabaseError(error, "Não foi possível emitir a fatura.");
+  }
+  if (!invoice) throw new Error("Não foi possível emitir a fatura.");
 
-    const student = await personIdForStudent(db, membership.schoolId, data.studentId);
-    const documentCode = stableDocumentCode("fatura", String(invoice.id ?? invoiceNumber));
-    const archived = await archiveFinanceQuietly(db, {
-      schoolId: membership.schoolId,
-      userId: context.userId,
-      role: membership.appRole,
-      category: "fatura",
-      title: `Fatura ${invoiceNumber}`,
-      description: `Fatura escolar ${invoiceNumber} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
-      relatedPersonId: student.personId,
-      sourceLabel: invoiceNumber,
-      amountLabel: formatAmountKz(amount),
-      documentCode,
-    });
+  const student = await personIdForStudent(db, membership.schoolId, data.studentId);
+  const documentCode = stableDocumentCode("fatura", String(invoice.id ?? invoiceNumber));
+  const archived = await archiveFinanceQuietly(db, {
+    schoolId: membership.schoolId,
+    userId: userId,
+    role: membership.appRole,
+    category: "fatura",
+    title: `Fatura ${invoiceNumber}`,
+    description: `Fatura escolar ${invoiceNumber} (${data.category}). ${data.description?.trim() || "Documento de cobrança arquivado na biblioteca."} Processo ${student.studentNumber ?? "—"}.`,
+    relatedPersonId: student.personId,
+    sourceLabel: invoiceNumber,
+    amountLabel: formatAmountKz(amount),
+    documentCode,
+  });
 
-    const { queuePayflowStudentSyncBestEffort } = await import("./payflow-sync-execute");
-    queuePayflowStudentSyncBestEffort({
-      schoolId: membership.schoolId,
-      studentId: data.studentId,
-    });
+  const { queuePayflowStudentSyncBestEffort } = await import("./payflow-sync-execute");
+  queuePayflowStudentSyncBestEffort({
+    schoolId: membership.schoolId,
+    studentId: data.studentId,
+  });
 
-    return {
-      ...invoice,
-      invoice_number: invoiceNumber,
-      /** Valor da fatura: o escrito ou o preço do plano (o da classe do aluno). */
-      amount,
-      library_document_code: archived?.documentCode ?? documentCode,
-      library_file_id: archived?.fileId ?? null,
-    };
+  return {
+    ...invoice,
+    invoice_number: invoiceNumber,
+    /** Valor da fatura: o escrito ou o preço do plano (o da classe do aluno). */
+    amount,
+    library_document_code: archived?.documentCode ?? documentCode,
+    library_file_id: archived?.fileId ?? null,
+  };
+}
+
+/**
+ * Um lote cabe nos limites de um Worker: cada fatura custa uma dezena de pedidos à
+ * base (contrato, preço, bolsa, mês, número, arquivo). Uma turma cabe; a escola
+ * inteira não, por isso o lote é por turma.
+ */
+const TUITION_BATCH_LIMIT = 60;
+
+const issueTuitionBatchInputSchema = z.object({
+  classGroupId: z.string().guid(),
+  dueOn: z.string().date(),
+  issuedOn: z.string().date().optional(),
+});
+
+export type TuitionBatchResult = {
+  issued: Array<{ studentId: string; invoiceNumber: string }>;
+  skipped: Array<{ studentId: string; reason: string }>;
+  failed: Array<{ studentId: string; reason: string }>;
+};
+
+/** Turmas activas da escola, para escolher o lote. Só as que têm alunos matriculados. */
+export const listTuitionBatchClasses = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const [groups, enrollments] = await Promise.all([
+      db
+        .from("class_groups")
+        .select("id, name, code")
+        .eq("school_id", membership.schoolId)
+        .order("name"),
+      db
+        .from("enrollments")
+        .select("class_group_id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .not("class_group_id", "is", null),
+    ]);
+    if (groups.error) throw publicDatabaseError(groups.error, "Não foi possível ler as turmas.");
+    if (enrollments.error) {
+      throw publicDatabaseError(enrollments.error, "Não foi possível ler as matrículas.");
+    }
+    const counts = new Map<string, number>();
+    for (const row of enrollments.data ?? []) {
+      const id = String(row.class_group_id);
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return (groups.data ?? [])
+      .filter((group) => counts.has(String(group.id)))
+      .map((group) => ({
+        id: String(group.id),
+        label: String(group.name || group.code || "Turma"),
+        students: counts.get(String(group.id)) ?? 0,
+      }));
+  });
+
+/**
+ * Propinas de um mês para todos os alunos activos de uma turma (§4.2, cobranças em
+ * lote). Usa a mesma emissão que a individual, um aluno de cada vez: quem já tem a
+ * propina desse mês fica de fora, e uma falha num aluno não pára os outros.
+ */
+export const issueTuitionBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => issueTuitionBatchInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<TuitionBatchResult> => {
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria", "Secretaria"],
+    );
+    const db = await loadSgaAdminClient();
+    const { data: rows, error } = await db
+      .from("enrollments")
+      .select("student_id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .eq("status", "active")
+      .limit(TUITION_BATCH_LIMIT + 1);
+    if (error) throw publicDatabaseError(error, "Não foi possível ler os alunos da turma.");
+    const studentIds = [...new Set((rows ?? []).map((row) => String(row.student_id)))];
+    if (studentIds.length > TUITION_BATCH_LIMIT) {
+      throw new Error(
+        `A turma tem mais de ${TUITION_BATCH_LIMIT} alunos activos. Emita as propinas em duas vezes ou aluno a aluno.`,
+      );
+    }
+
+    const result: TuitionBatchResult = { issued: [], skipped: [], failed: [] };
+    for (const studentId of studentIds) {
+      try {
+        const invoice = await issueInvoiceFor(db, membership, context.userId, {
+          studentId,
+          category: "Propina",
+          dueOn: data.dueOn,
+          ...(data.issuedOn ? { issuedOn: data.issuedOn } : {}),
+        });
+        result.issued.push({ studentId, invoiceNumber: String(invoice.invoice_number) });
+      } catch (cause) {
+        const reason = cause instanceof Error ? cause.message : "Não foi possível emitir.";
+        if (/já tem a propina/i.test(reason)) result.skipped.push({ studentId, reason });
+        else result.failed.push({ studentId, reason });
+      }
+    }
+    return result;
   });
 
 export const recordCashExpense = createServerFn({ method: "POST" })
