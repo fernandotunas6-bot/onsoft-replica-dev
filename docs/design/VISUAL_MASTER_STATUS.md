@@ -9,6 +9,11 @@ de presenças e migrações verificadas; [evidência e limites](../architecture/
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
 visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
 
+**25/10/2026 — SIGA Context Engine (fase 3, opção A):** com turma ou disciplina aberta,
+a sidebar existente (240/64 px) mostra «Voltar», o cabeçalho da entidade e só as funções
+dessa entidade; sem coluna nova nem estilos novos. Motor da PR #332. Desktop testado em
+jsdom; mobile e capturas por fazer. [Especificação, inventário e estado](../specs/SIGA_CONTEXT_ENGINE_2026.md).
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

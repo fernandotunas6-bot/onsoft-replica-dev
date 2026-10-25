@@ -41,6 +41,7 @@ import { getPortalNavigation } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
+import { ContextEntityNav, useEntityNavigation } from "./ContextEntityNav";
 import {
   NAV_DEPTH_CLASS,
   NAV_ROW_BASE,
@@ -179,7 +180,11 @@ export function AppSidebar({
         })),
     },
   ];
-  const displayedGroups = contextual && context ? [context] : generalGroups;
+  // Turma ou disciplina aberta (confirmada pelo servidor): a sidebar passa a ser
+  // o menu dessa entidade; «Voltar» e «Todas as áreas» repõem o módulo.
+  const entityNavigation = useEntityNavigation(pathname, locationSearch);
+  const entityActive = contextual && entityNavigation !== null;
+  const displayedGroups = entityActive ? [] : contextual && context ? [context] : generalGroups;
 
   return (
     <>
@@ -402,6 +407,13 @@ export function AppSidebar({
               className={!context ? "hidden" : undefined}
             />
           </div>
+          {entityActive && entityNavigation ? (
+            <ContextEntityNav
+              navigation={entityNavigation}
+              areaTitle={context?.title ?? null}
+              collapsed={collapsed}
+            />
+          ) : null}
           {contextual &&
           pathname.startsWith("/pedagogica") &&
           canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
