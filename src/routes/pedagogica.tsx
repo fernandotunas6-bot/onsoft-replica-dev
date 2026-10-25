@@ -1408,6 +1408,10 @@ function PedagogicaPage() {
                   initialClassGroupId={turmaFromSearch}
                   initialSubjectId={disciplinaFromSearch}
                   initialDate={diaFromSearch}
+                  teacherId={professorFromSearch}
+                  teacherName={
+                    teachers.find((teacher) => teacher.id === professorFromSearch)?.full_name
+                  }
                 />
               </LazyTab>
             )}

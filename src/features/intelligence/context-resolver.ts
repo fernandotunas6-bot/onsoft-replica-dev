@@ -73,11 +73,11 @@ export const CLASS_SEARCH_ROUTES: ReadonlySet<string> = new Set([
 ]);
 const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set(["/pedagogica", "/planos-aula"]);
 /**
- * Páginas que filtram por professor (`?professor=`, sem turma): o horário da escola
- * (só no separador Horários) e os planos de aula.
+ * Páginas que filtram por professor (`?professor=`, sem turma): o horário e as
+ * aulas do dia da escola (só nos separadores Horários e Presenças) e os planos de aula.
  */
 function filtersByTeacher(pathname: string, search: Record<string, unknown>): boolean {
-  if (pathname === "/pedagogica") return search.tab === "horarios";
+  if (pathname === "/pedagogica") return search.tab === "horarios" || search.tab === "presencas";
   return pathname === "/planos-aula";
 }
 

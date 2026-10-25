@@ -31,13 +31,18 @@ const ids = (role: string, grants = {}) =>
   getContextEntries(context(role, grants), TEACHER_CONTEXT_ENTRIES).map((entry) => entry.id);
 
 describe("entradas do contexto Professor", () => {
-  it("a quem gere o Pedagógico: o perfil, o horário semanal e os planos", () => {
-    const all = ["teacher.overview", "teacher.timetable", "teacher.lesson-plans"];
+  it("a quem gere o Pedagógico: perfil, horário, planos e presenças", () => {
+    const all = [
+      "teacher.overview",
+      "teacher.timetable",
+      "teacher.lesson-plans",
+      "teacher.attendance",
+    ];
     expect(ids("Administrador")).toEqual(all);
     expect(ids("Secretaria")).toEqual(all);
   });
 
-  it("o horário e os planos por professor só com escrita no Pedagógico", () => {
+  it("horário, planos e presenças por professor só com escrita no Pedagógico", () => {
     // O professor vê o seu horário no perfil; a vista da escola não tem a lista.
     expect(ids("Professor")).toEqual(["teacher.overview"]);
     expect(ids("Secretaria", { pedagogica: "Leitura" })).toEqual(["teacher.overview"]);
@@ -59,11 +64,18 @@ describe("entradas do contexto Professor", () => {
 
   it("ligações com o professor do caminho e entrada activa", () => {
     const ctx = context("Secretaria");
-    const [overview, timetable, plans] = getContextEntries(ctx, TEACHER_CONTEXT_ENTRIES);
+    const [overview, timetable, plans, attendance] = getContextEntries(
+      ctx,
+      TEACHER_CONTEXT_ENTRIES,
+    );
     expect(contextEntryLink(overview!, ctx)).toEqual({ to: `/professores/${PROF}`, search: {} });
     expect(contextEntryLink(timetable!, ctx)).toEqual({
       to: "/pedagogica",
       search: { tab: "horarios", professor: PROF },
+    });
+    expect(contextEntryLink(attendance!, ctx)).toEqual({
+      to: "/pedagogica",
+      search: { tab: "presencas", professor: PROF },
     });
     expect(contextEntryLink(plans!, ctx)).toEqual({
       to: "/planos-aula",

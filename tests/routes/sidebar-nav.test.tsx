@@ -749,7 +749,7 @@ describe("AppSidebar — menu do professor (Context Engine)", () => {
   const JOAO = "66666666-6666-4666-8666-666666666666";
   const joao = { type: "teacher" as const, id: JOAO, label: "João Mendes", schoolId: "school-a" };
 
-  it("no perfil: voltar a Pessoas, o professor, o perfil marcado e o horário semanal", () => {
+  it("no perfil: voltar a Pessoas, o professor, o perfil marcado, o horário e as presenças", () => {
     papel = "Secretaria";
     focus.entity = joao;
     currentPathname = `/professores/${JOAO}`;
@@ -764,7 +764,10 @@ describe("AppSidebar — menu do professor (Context Engine)", () => {
         .getAllByRole("link")
         .filter((el) => el.getAttribute("data-to") === "/pedagogica")
         .map((el) => JSON.parse(el.getAttribute("data-search") ?? "null")),
-    ).toEqual([{ tab: "horarios", professor: JOAO }]);
+    ).toEqual([
+      { tab: "horarios", professor: JOAO },
+      { tab: "presencas", professor: JOAO },
+    ]);
     const active = within(section)
       .getAllByRole("link")
       .find((link) => link.getAttribute("aria-current") === "page");

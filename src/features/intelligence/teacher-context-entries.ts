@@ -6,8 +6,8 @@ import type { ContextFrame } from "./types";
 /**
  * Entradas do contexto Professor: o perfil `/professores/<id>` (dados, turmas e
  * disciplinas atribuídas e o horário da semana), o horário semanal da escola
- * aberto nesse professor e os planos de aula das disciplinas que ele dá. As
- * presenças entram quando a página aceitar filtrar por professor.
+ * aberto nesse professor, os planos de aula das disciplinas que ele dá e as
+ * suas aulas do dia, com a chamada de cada uma.
  */
 
 /** O professor mais interior do caminho; o tipo do contexto garante que existe. */
@@ -55,5 +55,19 @@ export const TEACHER_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     // gere o Pedagógico; o professor já só vê os das suas turmas.
     allow: (role, grants) => canWriteModule(role, "pedagogica", grants),
     order: 20,
+  },
+  {
+    id: "teacher.attendance",
+    label: "Presenças",
+    icon: moduleIcons.attendance,
+    group: "Professor",
+    contexts: ["teacher"],
+    to: "/pedagogica",
+    search: (trail) => ({ tab: "presencas", professor: teacherId(trail) }),
+    module: "pedagogica",
+    // As aulas do dia e a chamada de cada uma, só desse professor
+    // (`listTeacherAttendanceSessions` com `teacherId`).
+    allow: (role, grants) => canWriteModule(role, "pedagogica", grants),
+    order: 30,
   },
 ];
