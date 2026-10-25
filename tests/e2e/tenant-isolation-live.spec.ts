@@ -60,9 +60,7 @@ test.describe("Isolamento multi-tenant @live — Supabase RLS", () => {
       // key nunca entra nas operações que provam a autorização RLS.
       const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? "";
       const publishable =
-        process.env.SUPABASE_PUBLISHABLE_KEY ??
-        process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-        "";
+        process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
       expect(url).toMatch(/^https:\/\/[a-z0-9]+\.supabase\.co\/?$/);
       expect(publishable.length).toBeGreaterThan(10);
 
@@ -106,11 +104,13 @@ test.describe("Isolamento multi-tenant @live — Supabase RLS", () => {
           .select("school_id, user_id")
           .eq("school_id", other.schoolId)
           .eq("user_id", other.userId);
-        expect(foreignError, "A sonda não pode aprovar um erro de leitura como isolamento").toBeNull();
         expect(
-          foreign ?? [],
-          "Fuga: uma escola recebeu a membership autenticada da outra",
-        ).toEqual([]);
+          foreignError,
+          "A sonda não pode aprovar um erro de leitura como isolamento",
+        ).toBeNull();
+        expect(foreign ?? [], "Fuga: uma escola recebeu a membership autenticada da outra").toEqual(
+          [],
+        );
       }
     } finally {
       const cleanupErrors: string[] = [];
@@ -121,7 +121,9 @@ test.describe("Isolamento multi-tenant @live — Supabase RLS", () => {
         try {
           await cleanupE2ETenantBySlug(slug, email);
         } catch (error) {
-          cleanupErrors.push(`${slug}: ${error instanceof Error ? error.message : "erro desconhecido"}`);
+          cleanupErrors.push(
+            `${slug}: ${error instanceof Error ? error.message : "erro desconhecido"}`,
+          );
         }
       }
       expect(cleanupErrors, "Limpeza dos dois tenants de staging").toEqual([]);
