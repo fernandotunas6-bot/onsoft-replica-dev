@@ -58,11 +58,13 @@ describe("inventário de migrações financeiras — leitura exclusiva", () => {
     expect(() => evaluateFinanceInventory({ cash_points: true })).toThrow(/incompleto/);
   });
 
-  it("a API recebe apenas SQL fixa, com read_only activado", async () => {
+  it("usa exclusivamente o endpoint do utilizador read-only, com SQL fixa", async () => {
     const request = financeReadOnlyRequest();
-    expect(request.read_only).toBe(true);
+    expect(Object.keys(request)).toEqual(["query"]);
     expect(request.query.trim()).toMatch(/^SELECT\b/i);
     expect(request.query).not.toMatch(/\b(?:DELETE|INSERT|UPDATE|DROP|ALTER|TRUNCATE)\s/i);
+    expect(request.query).toContain("pg_catalog.pg_trigger");
+    expect(request.query).toContain("pg_catalog.pg_proc");
 
     const send = vi.fn(async (_url: string, _init?: RequestInit) => ({
       ok: true,
@@ -76,8 +78,11 @@ describe("inventário de migrações financeiras — leitura exclusiva", () => {
     expect(data.cash_history).toBe(false);
     expect(send).toHaveBeenCalledTimes(1);
     const [url, init] = send.mock.calls[0]!;
-    expect(url).toContain("abcde12345abcde12345/database/query");
-    expect(JSON.parse(String(init?.body))).toMatchObject({ read_only: true });
+    expect(url).toBe(
+      "https://api.supabase.com/v1/projects/abcde12345abcde12345/database/query/read-only",
+    );
+    expect(JSON.parse(String(init?.body))).toEqual({ query: request.query });
+    expect(init?.method).toBe("POST");
   });
 
   it("falha fechado sem token ou em HTTP de erro sem expor a resposta", async () => {
