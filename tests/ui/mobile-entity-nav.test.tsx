@@ -145,6 +145,7 @@ describe("hub «Mais» — menu do aluno", () => {
       ["Académico", { secao: "academico" }],
       ["Financeiro", { secao: "financeiro" }],
       ["Documentos", { secao: "documentos" }],
+      ["Histórico", { secao: "historico" }],
     ]);
     expect(
       within(menu).getByRole("link", { name: "Financeiro" }).getAttribute("aria-current"),

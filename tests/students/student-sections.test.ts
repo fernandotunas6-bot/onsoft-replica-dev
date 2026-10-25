@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applicationRoles } from "@/features/auth/access-policy";
 import {
   canReadStudentFinance,
+  canReadStudentHistory,
   canReadStudentSection,
   resolveStudentSection,
   STUDENT_SECTIONS,
@@ -57,6 +58,7 @@ describe("secções que cada conta pode abrir", () => {
       "academico",
       "financeiro",
       "documentos",
+      "historico",
     ]);
   });
 
@@ -69,6 +71,23 @@ describe("secções que cada conta pode abrir", () => {
       "identificacao",
       "financeiro",
     ]);
+  });
+});
+
+describe("histórico académico do aluno", () => {
+  it("segue o servidor: só Administração e Secretaria", () => {
+    const allowed = applicationRoles.filter((role) => canReadStudentHistory(role));
+    expect(allowed).toEqual(["Administrador", "Secretaria"]);
+  });
+
+  it("nem o professor (só as suas turmas) nem o encarregado, com ou sem permissões", () => {
+    expect(canReadStudentHistory("Professor", { pedagogica: "Total" })).toBe(false);
+    expect(canReadStudentHistory("Encarregado", { pedagogica: "Total" })).toBe(false);
+    expect(canReadStudentHistory("Tesouraria", { pedagogica: "Escrita" })).toBe(false);
+  });
+
+  it("«Nenhum» no Pedagógico tira a secção", () => {
+    expect(canReadStudentHistory("Secretaria", { pedagogica: "Nenhum" })).toBe(false);
   });
 });
 

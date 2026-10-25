@@ -108,7 +108,9 @@ da URL é recusada.
 8. As entradas do aluno (`student-context-entries.ts`) levam a `/alunos/<id>?secao=…`.
    `allow` tira as secções que a conta não lê; o Financeiro segue o servidor
    (`listInvoices`, `getStudentScholarship`): Administração, Secretaria e Tesouraria, salvo
-   «Nenhum» no módulo, ou cargo elevável com permissão. Sem `?secao=`, a ficha completa.
+   «Nenhum» no módulo, ou cargo elevável com permissão. O Histórico também segue o servidor
+   (`getStudentAcademicHistory`): só Administração e Secretaria. Sem `?secao=`, a ficha
+   completa.
 9. `ActiveContextProvider`, na `AppShell`, resolve o contexto uma vez e partilha-o com o
    `PageHeader` (`useActiveContext`), que acrescenta os passos depois do título.
 
@@ -134,16 +136,17 @@ da URL é recusada.
 
 ### 5.2 Aluno (prioridade 2)
 
-| Função                           | Destino                                                                     | Estado                                                                                    |
-| -------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Rota reconhecida pelo resolvedor | `/alunos/$studentId`                                                        | Implementado (#332)                                                                       |
-| Lookup e entradas do aluno       | foco da ficha + `student-context-entries.ts`                                | Implementado (fase 5)                                                                     |
-| Menu do aluno na sidebar         | `ContextEntityNav`                                                          | Implementado (desktop; só a equipa)                                                       |
-| Ficha por secção                 | `/alunos/$studentId?secao=identificacao\|academico\|financeiro\|documentos` | Implementado                                                                              |
-| Comunicação, Histórico           | —                                                                           | Ausente — a ficha não mostra esse conteúdo (o histórico só alimenta documentos impressos) |
-| Faturas e documentos do aluno    | `/faturas`, `/documentos`                                                   | Parcial — sem filtro por aluno na URL; na ficha, secções Financeiro e Documentos          |
-| Relações no painel direito       | `students/student-relation-map`                                             | Implementado                                                                              |
-| Botões de gestão da ficha        | foto, turma, estado, anular, editar, encarregados, presença                 | Implementado — só a quem grava em Pessoas (o guarda do servidor); o encarregado não os vê |
+| Função                           | Destino                                                                                | Estado                                                                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rota reconhecida pelo resolvedor | `/alunos/$studentId`                                                                   | Implementado (#332)                                                                                                                          |
+| Lookup e entradas do aluno       | foco da ficha + `student-context-entries.ts`                                           | Implementado (fase 5)                                                                                                                        |
+| Menu do aluno na sidebar         | `ContextEntityNav`                                                                     | Implementado (desktop; só a equipa)                                                                                                          |
+| Ficha por secção                 | `/alunos/$studentId?secao=identificacao\|academico\|financeiro\|documentos\|historico` | Implementado                                                                                                                                 |
+| Histórico                        | `/alunos/$studentId?secao=historico`                                                   | Implementado — um bloco por ano lectivo, com média, situação e médias por disciplina (o motor da Pauta Final); só Administração e Secretaria |
+| Comunicação                      | —                                                                                      | Ausente — a ficha não mostra esse conteúdo                                                                                                   |
+| Faturas e documentos do aluno    | `/faturas`, `/documentos`                                                              | Parcial — sem filtro por aluno na URL; na ficha, secções Financeiro e Documentos                                                             |
+| Relações no painel direito       | `students/student-relation-map`                                                        | Implementado                                                                                                                                 |
+| Botões de gestão da ficha        | foto, turma, estado, anular, editar, encarregados, presença                            | Implementado — só a quem grava em Pessoas (o guarda do servidor); o encarregado não os vê                                                    |
 
 ### 5.3 Restantes contextos
 
@@ -192,7 +195,7 @@ da URL é recusada.
 | 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                                                                            |
 | 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 12 testes de sidebar + 7 de lookup; breadcrumb com 8 testes                                                                                                                |
 | 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
-| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 10 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
+| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
 | 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
@@ -209,7 +212,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (694 ficheiros, 4799 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (694 ficheiros, 4805 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 

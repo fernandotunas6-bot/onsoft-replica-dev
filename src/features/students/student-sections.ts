@@ -17,6 +17,7 @@ export const STUDENT_SECTIONS = [
   { id: "academico", label: "Académico" },
   { id: "financeiro", label: "Financeiro" },
   { id: "documentos", label: "Documentos" },
+  { id: "historico", label: "Histórico" },
 ] as const;
 
 export type StudentSection = (typeof STUDENT_SECTIONS)[number]["id"];
@@ -54,6 +55,16 @@ export function canReadStudentFinance(role: string, grants: ModuleGrantMap = {})
   );
 }
 
+/**
+ * Quem o servidor deixa ler o histórico académico de vários anos
+ * (`getStudentAcademicHistory`): Administração e Secretaria. O professor só vê as
+ * turmas que lecciona e o encarregado recebe a recusa. «Nenhum» no módulo
+ * Pedagógico também tira a secção (o servidor não o verifica; aqui só estreita).
+ */
+export function canReadStudentHistory(role: string, grants: ModuleGrantMap = {}): boolean {
+  return (role === "Administrador" || role === "Secretaria") && grants.pedagogica !== "Nenhum";
+}
+
 /** O módulo cuja leitura cada secção pede (o do servidor que lhe dá os dados). */
 export function canReadStudentSection(
   section: StudentSection,
@@ -69,6 +80,8 @@ export function canReadStudentSection(
       return canReadStudentFinance(role, grants);
     case "documentos":
       return canReadModule(role, "arquivos", grants);
+    case "historico":
+      return canReadStudentHistory(role, grants);
   }
 }
 

@@ -36,7 +36,7 @@ function context(role: string, trail: ContextFrame[], grants = {}): ResolvedCont
 const ids = (entries: ContextNavEntry[]) => entries.map((entry) => entry.id);
 
 describe("entradas do contexto Aluno", () => {
-  it("a Secretaria vê a ficha completa e as quatro secções, pela ordem", () => {
+  it("a Secretaria vê a ficha completa e as cinco secções, pela ordem", () => {
     expect(
       ids(getContextEntries(context("Secretaria", [studentFrame]), STUDENT_CONTEXT_ENTRIES)),
     ).toEqual([
@@ -45,6 +45,7 @@ describe("entradas do contexto Aluno", () => {
       "student.academico",
       "student.financeiro",
       "student.documentos",
+      "student.historico",
     ]);
   });
 
@@ -80,6 +81,7 @@ describe("entradas do contexto Aluno", () => {
       { to: `/alunos/${ANA}`, search: { secao: "academico" } },
       { to: `/alunos/${ANA}`, search: { secao: "financeiro" } },
       { to: `/alunos/${ANA}`, search: { secao: "documentos" } },
+      { to: `/alunos/${ANA}`, search: { secao: "historico" } },
     ]);
   });
 

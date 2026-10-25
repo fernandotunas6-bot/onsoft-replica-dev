@@ -27,7 +27,10 @@ autenticada) e falta validar em aparelhos.
 da disciplina ganha «Materiais e ficheiros» (`/arquivos?turma`, com o menu e o breadcrumb da
 turma); «Presenças» fica só na disciplina. Na ficha do aluno, foto, turma, estado, anular,
 editar, encarregados e presença só aparecem a quem grava em Pessoas; o encarregado vê a
-ficha sem esses botões. Sem estilos novos; capturas com dados fictícios a 1440 px.
+ficha sem esses botões. Nova secção «Histórico» (`?secao=historico`, só Administração e
+Secretaria): um bloco por ano lectivo com média, situação e médias por disciplina; no
+telemóvel a tabela fica com a disciplina e a média. Sem estilos novos; capturas com dados
+fictícios a 1440 e 390 px, sem scroll horizontal.
 
 ## Diagnóstico por prioridade
 

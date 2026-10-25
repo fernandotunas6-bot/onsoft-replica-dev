@@ -9,8 +9,8 @@ import type { ContextFrame } from "./types";
 
 /**
  * Entradas do contexto Aluno: as secções da ficha `/alunos/<id>`, cada uma com
- * URL própria (`?secao=`). «Ficha completa» é a página de sempre. Comunicação e
- * Histórico entram quando tiverem conteúdo na ficha.
+ * URL própria (`?secao=`). «Ficha completa» é a página de sempre. Comunicação entra
+ * quando tiver conteúdo na ficha.
  */
 
 /** O aluno mais interior do caminho; o tipo do contexto garante que existe. */
@@ -24,6 +24,7 @@ const SECTION_ICONS: Record<StudentSection, ContextNavEntry["icon"]> = {
   academico: moduleIcons.students,
   financeiro: moduleIcons.finance,
   documentos: moduleIcons.documents,
+  historico: moduleIcons.academicReports,
 };
 
 const base = {

@@ -49,6 +49,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { StudentAcademicHistoryCard } from "@/features/students/components/StudentAcademicHistoryCard";
 import { StudentDigitalCardModal } from "@/features/students/components/StudentDigitalCardModal";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -1499,6 +1500,14 @@ function StudentDetail() {
             Sem acesso a «{studentSectionLabel(refusedSection)}» nesta conta: mostra-se a ficha
             completa.
           </p>
+        ) : null}
+
+        {section === "historico" ? (
+          <StudentAcademicHistoryCard
+            years={historyQuery.data?.years ?? []}
+            loading={historyQuery.isLoading}
+            failed={historyQuery.isError}
+          />
         ) : null}
 
         {show("documentos") ? (

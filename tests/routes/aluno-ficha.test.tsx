@@ -87,6 +87,50 @@ const invoices = [
   },
 ];
 
+// Anos lectivos que o servidor devolveria (o motor da Pauta Final), do mais antigo
+// para o mais recente.
+const history = { years: [] as unknown[] };
+const subject = (subjectId: string, subjectName: string, mfd: number | null) => ({
+  subjectId,
+  subjectName,
+  mt1: mfd,
+  mt2: mfd,
+  mt3: mfd,
+  mfd,
+});
+const twoYears = [
+  {
+    academicYearId: "ano-0",
+    academicYearName: "2025/2026",
+    academicYearStartsOn: "2025-09-01",
+    classGroupName: "9.ª B",
+    gradeName: "9.ª",
+    courseName: "",
+    enrollmentStatus: "completed",
+    cycle: "i_ciclo",
+    subjects: [subject("mat", "Matemática", 12.4), subject("fis", "Física", 8.6)],
+    overallMfd: 10.5,
+    status: "TRANSITA",
+    official: { outcome: "TRANSITA", finalAverage: 11 },
+    passingValue: 10,
+  },
+  {
+    academicYearId: "ano-1",
+    academicYearName: "2026/2027",
+    academicYearStartsOn: "2026-09-01",
+    classGroupName: "10.ª A",
+    gradeName: "10.ª",
+    courseName: "Ciências Físicas e Biológicas",
+    enrollmentStatus: "active",
+    cycle: "ii_ciclo",
+    subjects: [subject("mat", "Matemática", 14.2)],
+    overallMfd: 14.2,
+    status: "PENDENTE",
+    official: null,
+    passingValue: 10,
+  },
+];
+
 vi.mock("@/features/students/server", () => ({
   getStudentProfile: () => Promise.resolve(profile),
   assignGuardian: vi.fn(),
@@ -114,7 +158,7 @@ vi.mock("@/features/finance/student-scholarship-server", () => ({
 vi.mock("@/features/academic/server", () => ({
   listPedagogicalWorkspace: () =>
     Promise.resolve({ classGroups: [], subjects: [], classSubjects: [], termGrades: [] }),
-  getStudentAcademicHistory: () => Promise.resolve({ years: [] }),
+  getStudentAcademicHistory: () => Promise.resolve({ years: history.years }),
 }));
 vi.mock("@/features/documents/server", () => ({
   createDocumentRequest: vi.fn(),
@@ -135,6 +179,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
+  history.years = [];
   resetRouteLocation();
   resetCurrentAccount();
 });
@@ -261,5 +306,49 @@ describe("/alunos/$studentId — botões de gestão", () => {
   it("a Tesouraria com escrita em Pessoas vê-os, como o servidor deixa", async () => {
     await open({}, "Tesouraria", { pessoas: "Escrita" });
     expect(visible()).toEqual(buttons);
+  });
+});
+
+describe("/alunos/$studentId — Histórico", () => {
+  it("mostra cada ano lectivo, o mais recente primeiro, com a média e a situação", async () => {
+    history.years = twoYears;
+    await open({ secao: "historico" });
+    expect(screen.getByRole("heading", { level: 2, name: "Histórico" })).toBeDefined();
+    const years = await screen.findAllByRole("heading", { level: 3 });
+    expect(years.map((year) => year.textContent)).toEqual(["2026/2027", "2025/2026"]);
+    const [current, previous] = screen.getAllByRole("listitem");
+    // Sem resultado oficial, o cálculo das notas sai como provisório.
+    expect(current?.textContent).toContain("10.ª Classe · Turma 10.ª A");
+    expect(current?.textContent).toContain("14.2");
+    expect(current?.textContent).toContain("PENDENTE(provisório)");
+    // O resultado registado pela secretaria manda sobre o cálculo.
+    expect(previous?.textContent).toContain("11.0");
+    expect(previous?.textContent).toContain("TRANSITA");
+    expect(previous?.textContent).not.toContain("provisório");
+    expect(previous?.textContent).toContain("Disciplinas (2)");
+    expect(screen.getAllByRole("rowheader").map((cell) => cell.textContent)).toEqual([
+      "Matemática",
+      "Matemática",
+      "Física",
+    ]);
+    // Só o histórico: nem dados pessoais nem faturas.
+    expect(screen.queryByText("Dados pessoais")).toBeNull();
+    expect(screen.queryByText("Situação financeira")).toBeNull();
+  });
+
+  it("sem matrículas, diz que ainda não há histórico", async () => {
+    await open({ secao: "historico" });
+    expect(
+      await screen.findByText("Ainda não há matrículas com histórico para este aluno."),
+    ).toBeDefined();
+  });
+
+  it("o encarregado, a quem o servidor recusa o histórico, recebe a ficha completa", async () => {
+    await open({ secao: "historico" }, "Encarregado");
+    const notice = screen
+      .getAllByRole("status")
+      .find((element) => element.textContent?.includes("Sem acesso a «Histórico»"));
+    expect(notice).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Histórico académico" })).toBeNull();
   });
 });

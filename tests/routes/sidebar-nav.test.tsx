@@ -683,6 +683,7 @@ describe("AppSidebar — menu do aluno (Context Engine, piloto Aluno)", () => {
       { label: "Académico", search: { secao: "academico" } },
       { label: "Financeiro", search: { secao: "financeiro" } },
       { label: "Documentos", search: { secao: "documentos" } },
+      { label: "Histórico", search: { secao: "historico" } },
     ]);
     const active = screen
       .getAllByRole("link")
