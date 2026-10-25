@@ -9,15 +9,17 @@ const valid = {
   STAGING_SUPABASE_URL: `https://${STAGING_REF}.supabase.co`,
   STAGING_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture",
   STAGING_SUPABASE_SECRET_KEY: "secret_fixture_do_not_use",
+  STAGING_SUPABASE_ACCESS_TOKEN: "management_token_fixture",
 };
 
 describe("pré-verificação E2E @live", () => {
-  it("não permite conclusão verde sem os quatro secrets de staging", () => {
+  it("não permite conclusão verde sem os cinco secrets de staging", () => {
     for (const key of [
       "STAGING_SUPABASE_PROJECT_ID",
       "STAGING_SUPABASE_URL",
       "STAGING_SUPABASE_PUBLISHABLE_KEY",
       "STAGING_SUPABASE_SECRET_KEY",
+      "STAGING_SUPABASE_ACCESS_TOKEN",
     ]) {
       expect(() => assertStagingReady({ ...valid, [key]: "" })).toThrow(/Staging não configurado/);
     }
