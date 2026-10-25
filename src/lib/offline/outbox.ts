@@ -88,7 +88,11 @@ export async function enableOutbox(next: OutboxStorage) {
   // cofre era "sending". Tratar o resultado como incerto, nunca fazer replay.
   const recovered = loaded.map((item) =>
     item.deliveryState === "sending"
-      ? { ...item, deliveryState: "needs_verification" as const, failedReason: OUTBOX_UNCERTAIN_MESSAGE }
+      ? {
+          ...item,
+          deliveryState: "needs_verification" as const,
+          failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+        }
       : item,
   );
   if (recovered.some((item, i) => item !== loaded[i])) {
@@ -251,14 +255,12 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
       if (!items.some((entry) => entry.id === item.id)) continue;
       // A escola pode mudar enquanto a tentativa anterior estava em curso.
       if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
-      if (
-        !item.variables ||
-        typeof item.variables !== "object" ||
-        Array.isArray(item.variables)
-      ) {
+      if (!item.variables || typeof item.variables !== "object" || Array.isArray(item.variables)) {
         await mutateItems((current) =>
           current.map((entry) =>
-            entry.id === item.id ? { ...entry, failedReason: "Os dados guardados são inválidos." } : entry,
+            entry.id === item.id
+              ? { ...entry, failedReason: "Os dados guardados são inválidos." }
+              : entry,
           ),
         );
         continue;

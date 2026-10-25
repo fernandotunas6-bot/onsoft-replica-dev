@@ -132,7 +132,11 @@ describe("fila de envio sem rede", () => {
       offlineActorId: "prof-1",
     });
     expect(outboxItems()).toMatchObject([
-      { kind: "grades.term", deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
+      {
+        kind: "grades.term",
+        deliveryState: "needs_verification",
+        failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+      },
     ]);
 
     grades.mockResolvedValueOnce({});
