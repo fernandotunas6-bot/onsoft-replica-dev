@@ -6,7 +6,7 @@
 
 Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistema-2026-10-22.md`, `scripts/siga/e2e-safety.mjs`, `.github/workflows/ecosystem-e2e-live.yml`, `docs/desktop/TAURI_RUNTIME.md` e PRs abaixo. CI verde **não** comprova fluxo autenticado; código existente **não** implica operação homologada; merge e deploy são actos distintos (mas a main pode disparar deploy). Não publicar com base apenas em mocks, testes unitários ou relatórios antigos.
 
-**Entrega deste ramo:** novo `scripts/siga/check-staging-readiness.mjs`; testes `tests/security/staging-readiness.test.ts`; workflow @live deixa de fazer `skip` silencioso quando faltam segredos e valida o projecto/URL antes de instalar dependências. O portão existente `assertSafeE2ETarget` já recusava produção; é reutilizado, não substituído.
+**Entrega deste ramo:** novo `scripts/siga/check-staging-readiness.mjs` e testes `tests/security/staging-readiness.test.ts` / `staging-workflow.test.ts`; workflow @live deixa de fazer `skip` silencioso quando faltam segredos e valida projecto/URL, autorização de escrita e ref E2E antes de instalar dependências. O portão `assertSafeE2ETarget` continua a recusar produção. Foi incluído `tests/e2e/tenant-isolation-live.spec.ts` na suite @live: cria duas escolas de staging com contas distintas, autentica via Supabase, exige a leitura do vínculo da própria escola e bloqueia a leitura da outra. Falha se a limpeza dos tenants deixar erro.
 
 ## Fase 1 — staging independente e homologação (P0)
 
@@ -16,7 +16,7 @@ Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistem
 2. Configurar GitHub Environment `staging` com approval rules e estes quatro secrets: `STAGING_SUPABASE_PROJECT_ID`, `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_PUBLISHABLE_KEY`, `STAGING_SUPABASE_SECRET_KEY`; nunca colocar chave de serviço em `VITE_*`.
 3. Reproduzir apenas as migrações canónicas `supabase/migrations/` depois de comparar versões com a base de destino. **Não** aplicar `supabase/migrations-lovable-nao-aplicar/`, nem executar migrações experimentais contra o SGA.
 4. Testar no staging duas escolas A/B com administrador, secretaria, professor, aluno, encarregado e tesouraria; MFA AAL1/AAL2, contas sem vínculo, mudança de escola, revogação e sessão expirada. Testar acesso directo à API, não apenas menus.
-5. Playwright @live: criação e configuração de escola, matrícula, pautas/notas, chamadas, documentos e pagamento **simulado** (sem liquidação real), ficheiros, perfil e recuperação. Executar `responsive-auth.spec.ts` nas larguras 767/768/1023/1024, zoom e teclado.
+5. Playwright @live: começar pelos testes já implementados de criação/matrícula/gateway e **isolamento RLS com dois administradores, duas escolas e duas sessões reais** (`tenant-isolation-live.spec.ts`). Completar separadamente as jornadas autenticadas de pautas/notas, chamadas, documentos, perfis, MFA AAL2 e permissões nas *server functions*; o teste de RLS **não substitui** essas provas. Executar `responsive-auth.spec.ts` nas larguras 767/768/1023/1024, zoom e teclado. Pagamento apenas simulado, sem liquidação real.
 6. Ensaiar restauro de backup **em staging** e verificar auditoria e semântica das permissões. Rever avisos individuais de `SECURITY DEFINER`, protecção de passwords comprometidas e rotação da credencial Google OAuth exposta historicamente (pelo fornecedor, sem publicar valor).
 
 **Saída:** E2E autenticado executado (sem skip), CI último SHA aprovado, provas de bloqueio cross-tenant, plano de rollback e relatório de staging. O workflow não valida por si só que as credenciais remotas estão activas: só os testes e o inventário confirmam.
@@ -84,4 +84,4 @@ Cada piloto tem PR própria, custo de infraestrutura documentado e evidência de
 | 4 | **planeada** | Upstreams/limites mapeados | Pilotos da fase 3 |
 | 5 | **planeada** | Definição de critérios offline | Política de dados e sincronização |
 
-**Não instalado:** pdfme, Uppy, TanStack Table, FullCalendar, ZXing, Drift ou plugin SQL nesta entrega. **Não executado:** E2E remoto, migração, deploy, alteração Supabase/Cloudflare ou release. Não declarar fases completas sem a prova correspondente.
+**Não instalado:** pdfme, Uppy, TanStack Table, FullCalendar, ZXing, Drift ou plugin SQL nesta entrega. **Não executado nesta entrega:** E2E autenticado remoto (incluindo a nova prova com duas escolas), migração, deploy, alteração Supabase/Cloudflare ou release. Testes unitários e CI de PR não provam RLS efectiva em staging. Não declarar fases completas sem a prova correspondente.
