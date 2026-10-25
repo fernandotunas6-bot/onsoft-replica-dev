@@ -6,9 +6,10 @@ verifica isolamento da escola, autor, dispositivo, revisão e resposta do servid
 
 **Não está ligado ao fluxo de notas/presenças existente.** A fila actual usa
 Stronghold e os handlers existentes. A outbox Stronghold foi entretanto
-endurecida: persiste `sending` ANTES do envio; após perda do ACK, ou reinício
-durante o HTTP, transforma-o em `needs_verification` e bloqueia reenvios até
-reconciliação assistida. A ausência de recibo transaccional no servidor impede
+endurecida: **também nas operações iniciadas com rede**, grava `sending` ANTES do
+HTTP (write-ahead), bloqueando o pedido se o cofre falhar. Após perda do ACK,
+ou reinício durante o HTTP, transforma-o em `needs_verification` e bloqueia
+reenvios e descartes até reconciliação assistida. A ausência de recibo transaccional no servidor impede
 automatizar com segurança a recuperação destas operações. Não enviar operações desta especificação
 para produção antes de existirem endpoints com `op_id` transaccional e recibos
 autenticados de idempotência.
