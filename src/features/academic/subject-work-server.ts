@@ -11,6 +11,7 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { todayInLuanda } from "@/features/calendar/dates";
+import { loadAttachmentInfo } from "./task-attachment-store";
 import {
   latestByEnrollment,
   studentView,
@@ -25,7 +26,7 @@ type Row = Record<string, unknown>;
 const str = (value: unknown) => (value == null ? "" : String(value));
 
 const SUBMISSION_COLUMNS =
-  "id, task_id, enrollment_id, attempt, status, submitted_at, is_late, on_paper, body, grade, feedback, returned_at";
+  "id, task_id, enrollment_id, attempt, status, submitted_at, is_late, on_paper, body, grade, feedback, returned_at, file_id";
 
 export type SubjectWorkTask = {
   id: string;
@@ -134,12 +135,18 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
       )
       .in("enrollment_id", enrollmentIds);
     if (subError) throw publicDatabaseError(subError, "Não foi possível ler as entregas.");
-    const byTask = new Map<string, SubmissionRow[]>();
-    for (const row of (submissions ?? []) as unknown as Array<
+    const submissionRows = (submissions ?? []) as unknown as Array<
       SubmissionRow & { task_id: string }
-    >) {
+    >;
+    const files = await loadAttachmentInfo(
+      db,
+      schoolId,
+      submissionRows.map((row) => row.file_id),
+    );
+    const byTask = new Map<string, SubmissionRow[]>();
+    for (const row of submissionRows) {
       const list = byTask.get(row.task_id) ?? [];
-      list.push(row);
+      list.push({ ...row, file: row.file_id ? (files.get(row.file_id) ?? null) : null });
       byTask.set(row.task_id, list);
     }
 

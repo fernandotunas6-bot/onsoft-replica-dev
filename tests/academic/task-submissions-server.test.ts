@@ -6,7 +6,10 @@ let membership: { schoolId: string; appRole: string } | null = null;
 let ownTeacher: string | null = null;
 let visibleStudent: string | null = null;
 let tenantBlocked = false;
+let storedObjects: Record<string, unknown> = {};
+let failSubmissionInsert = false;
 const writeAssessmentScores = vi.fn();
+const assertCanStoreBytes = vi.fn();
 
 /** Base em memória com o que este módulo usa: leituras, insert e update. */
 function memoryDb() {
@@ -15,9 +18,17 @@ function memoryDb() {
       const filters: Array<(row: Row) => boolean> = [];
       let patch: Row | null = null;
       let inserted: Row | null = null;
+      let removing = false;
       const rows = () => (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
       const run = () => {
+        if (removing) {
+          tables[table] = (tables[table] ?? []).filter((row) => !filters.every((f) => f(row)));
+          return { data: null, error: null };
+        }
         if (inserted) {
+          if (table === "siga_class_task_submissions" && failSubmissionInsert) {
+            return { data: null, error: { code: "XX000", message: "falhou" } };
+          }
           const list = (tables[table] ??= []);
           const clash = list.some(
             (r) =>
@@ -48,6 +59,14 @@ function memoryDb() {
           filters.push((row) => values.includes(row[column]));
           return chain;
         },
+        is: (column: string, value: unknown) => {
+          filters.push((row) => (row[column] ?? null) === value);
+          return chain;
+        },
+        delete: () => {
+          removing = true;
+          return chain;
+        },
         insert: (row: Row) => {
           inserted = row;
           return chain;
@@ -67,6 +86,22 @@ function memoryDb() {
       };
       return chain;
     },
+    storage: {
+      from: (bucket: string) => ({
+        upload: async (path: string, body: unknown) => {
+          storedObjects[`${bucket}/${path}`] = body;
+          return { error: null };
+        },
+        remove: async (paths: string[]) => {
+          for (const path of paths) delete storedObjects[`${bucket}/${path}`];
+          return { error: null };
+        },
+        createSignedUrl: async (path: string) => ({
+          data: { signedUrl: `https://signed/${bucket}/${path}` },
+          error: null,
+        }),
+      }),
+    },
   };
 }
 
@@ -84,6 +119,9 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
     await assertTenant();
     return membership;
   },
+}));
+vi.mock("@/features/saas/tenant-limits-server", () => ({
+  assertCanStoreBytesForSchool: (...args: unknown[]) => assertCanStoreBytes(...args),
 }));
 vi.mock("@/features/academic/assessment-score-write", () => ({
   writeAssessmentScores: (...args: unknown[]) => writeAssessmentScores(...args),
@@ -129,6 +167,9 @@ beforeEach(() => {
   ownTeacher = null;
   visibleStudent = "st1";
   tenantBlocked = false;
+  storedObjects = {};
+  failSubmissionInsert = false;
+  assertCanStoreBytes.mockReset();
   writeAssessmentScores.mockReset();
   writeAssessmentScores.mockResolvedValue({ saved: 1 });
   tables = {
@@ -375,5 +416,99 @@ describe("entregas no servidor", () => {
     const [line] = listed.lines;
     expect(line!.history.map((sub) => sub.body)).toEqual(["v2", "v1"]);
     expect(listed.summary).toMatchObject({ total: 1, delivered: 1, returned: 0 });
+  });
+
+  const pdf = (text = "%PDF-1.7 trabalho") => Buffer.from(text).toString("base64");
+
+  it("o aluno entrega só com a foto ou o PDF; fica na sua área pessoal, privado", async () => {
+    const attachment = { name: "../caderno.pdf", contentType: "application/pdf", base64: pdf() };
+    expect(await server.submitTaskWork({ data: { taskId: TASK, attachment } })).toMatchObject({
+      attempt: 1,
+    });
+    const [file] = tables.siga_files!;
+    expect(file).toMatchObject({
+      school_id: S,
+      owner_user_id: "u1",
+      name: "caderno.pdf",
+      mime: "application/pdf",
+      area: "pessoal",
+      visibility: "private",
+      storage_backend: "sga",
+      class_group_id: "cg1",
+    });
+    expect(String(file!.storage_path)).toMatch(
+      new RegExp(`^${S}/trabalhos/${TASK}/${E1}/.+\\.pdf$`),
+    );
+    expect(Object.keys(storedObjects)).toEqual([`siga-files/${file!.storage_path}`]);
+    expect(assertCanStoreBytes).toHaveBeenCalledWith(S, 17);
+    const [sub] = tables.siga_class_task_submissions!;
+    expect(sub).toMatchObject({ file_id: file!.id, body: null });
+
+    const mine = await server.getMyTaskSubmission({ data: { taskId: TASK } });
+    expect(mine.submission?.file).toMatchObject({ name: "caderno.pdf", sizeBytes: 17 });
+  });
+
+  it("sem texto nem anexo, ou com bytes que não são do tipo, recusa sem guardar nada", async () => {
+    await expect(
+      Promise.resolve().then(() => server.submitTaskWork({ data: { taskId: TASK } })),
+    ).rejects.toThrow("Escreva a resposta ou anexe o trabalho.");
+    const fake = {
+      name: "x.pdf",
+      contentType: "application/pdf",
+      base64: Buffer.from("<html>").toString("base64"),
+    };
+    await expect(
+      server.submitTaskWork({ data: { taskId: TASK, attachment: fake } }),
+    ).rejects.toThrow("não é um PDF nem uma imagem");
+    await expect(
+      Promise.resolve().then(() =>
+        server.submitTaskWork({
+          data: { taskId: TASK, attachment: { ...fake, contentType: "text/html" } },
+        }),
+      ),
+    ).rejects.toThrow("Envie um PDF ou uma imagem");
+    expect(tables.siga_files ?? []).toHaveLength(0);
+    expect(storedObjects).toEqual({});
+  });
+
+  it("quota do plano esgotada, ou a entrega falha: o anexo não fica órfão", async () => {
+    const attachment = { name: "a.pdf", contentType: "application/pdf", base64: pdf() };
+    assertCanStoreBytes.mockRejectedValueOnce(new Error("O espaço de arquivo do plano acabou."));
+    await expect(server.submitTaskWork({ data: { taskId: TASK, attachment } })).rejects.toThrow(
+      "espaço de arquivo",
+    );
+    expect(storedObjects).toEqual({});
+
+    failSubmissionInsert = true;
+    await expect(server.submitTaskWork({ data: { taskId: TASK, attachment } })).rejects.toThrow();
+    expect(tables.siga_files ?? []).toHaveLength(0);
+    expect(storedObjects).toEqual({});
+  });
+
+  it("abrir o anexo: o aluno e o professor da disciplina; outro aluno ou professor não", async () => {
+    await server.submitTaskWork({
+      data: {
+        taskId: TASK,
+        attachment: { name: "a.pdf", contentType: "application/pdf", base64: pdf() },
+      },
+    });
+    const submissionId = String(tables.siga_class_task_submissions![0]!.id);
+    const open = () => server.openTaskSubmissionFile({ data: { taskId: TASK, submissionId } });
+
+    expect(await open()).toMatchObject({ name: "a.pdf" });
+    expect((await open()).url).toContain("https://signed/siga-files/");
+
+    visibleStudent = null; // aluno ou encarregado sem acesso a este aluno
+    await expect(open()).rejects.toThrow("Sem permissão");
+
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t9";
+    await expect(open()).rejects.toThrow("Só o professor desta disciplina");
+    ownTeacher = "t1";
+    expect(await open()).toMatchObject({ name: "a.pdf" });
+
+    // Ficheiro apagado nos Arquivos: deixa de abrir.
+    tables.siga_files![0]!.deleted_at = "2026-11-01T00:00:00Z";
+    await expect(open()).rejects.toThrow("já não existe");
   });
 });

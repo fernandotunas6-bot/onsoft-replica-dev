@@ -75,6 +75,7 @@ vi.mock("@/features/academic/task-submissions-server", () => ({
   recordPaperSubmission: vi.fn(),
   returnTaskSubmission: vi.fn(),
   updateTaskSettings: vi.fn(),
+  openTaskSubmissionFile: vi.fn(),
 }));
 
 const { SubjectWorkView } = await import("@/features/academic/components/SubjectWorkPage");

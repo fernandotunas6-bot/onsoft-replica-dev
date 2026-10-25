@@ -32,6 +32,13 @@ import {
   summarizeWork,
   type SubmissionRow,
 } from "./task-submissions";
+import { ATTACHMENT_TYPES, MAX_ATTACHMENT_BASE64 } from "./task-attachments";
+import {
+  FILES_BUCKET,
+  discardTaskAttachment,
+  loadAttachmentInfo,
+  storeTaskAttachment,
+} from "./task-attachment-store";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -39,7 +46,7 @@ const str = (value: unknown) => (value == null ? "" : String(value));
 
 const MANAGER_ROLES = ["Administrador", "Secretaria"] as const;
 const SUBMISSION_COLUMNS =
-  "id, enrollment_id, attempt, status, submitted_at, is_late, on_paper, body, grade, feedback, returned_at";
+  "id, enrollment_id, attempt, status, submitted_at, is_late, on_paper, body, grade, feedback, returned_at, file_id";
 
 const taskInput = z.object({ taskId: z.string().guid(), studentId: z.string().guid().optional() });
 
@@ -96,7 +103,16 @@ async function readSubmissions(db: Db, schoolId: string, taskId: string, enrollm
   if (enrollmentId) query = query.eq("enrollment_id", enrollmentId);
   const { data, error } = await query;
   if (error) throw publicDatabaseError(error, "Não foi possível ler as entregas.");
-  return (data ?? []) as unknown as SubmissionRow[];
+  const rows = (data ?? []) as unknown as SubmissionRow[];
+  const files = await loadAttachmentInfo(
+    db,
+    schoolId,
+    rows.map((row) => row.file_id),
+  );
+  return rows.map((row) => ({
+    ...row,
+    file: row.file_id ? (files.get(row.file_id) ?? null) : null,
+  }));
 }
 
 export type TaskSubmissionLine = {
@@ -417,7 +433,7 @@ async function resolveOwnEnrollment(userId: string, taskId: string, studentId?: 
     .limit(1)
     .maybeSingle();
   if (!enrollment) throw new Error("Tarefa não encontrada.");
-  return { db, schoolId, task, enrollmentId: str(enrollment.id) };
+  return { db, schoolId, task, classSubject, enrollmentId: str(enrollment.id) };
 }
 
 /** Aluno/encarregado: a entrega do aluno nesta tarefa. */
@@ -444,16 +460,33 @@ export const getMyTaskSubmission = createServerFn({ method: "GET" })
     };
   });
 
-/** Aluno: entrega (ou reenvia, até o professor devolver). */
+const attachmentInput = z.object({
+  name: z.string().max(255),
+  contentType: z.enum(ATTACHMENT_TYPES as [string, ...string[]], {
+    message: "Envie um PDF ou uma imagem (JPG, PNG, WebP).",
+  }),
+  base64: z.string().min(1).max(MAX_ATTACHMENT_BASE64, "O anexo deve ter no máximo 5 MB."),
+});
+
+/** Aluno: entrega (ou reenvia, até o professor devolver), com texto, anexo ou os dois. */
 export const submitTaskWork = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ taskId: z.string().guid(), body: z.string().trim().min(1).max(4000) }).parse(input),
+    z
+      .object({
+        taskId: z.string().guid(),
+        body: z.string().trim().max(4000).optional(),
+        attachment: attachmentInput.optional(),
+      })
+      .refine((value) => Boolean(value.body) || Boolean(value.attachment), {
+        message: "Escreva a resposta ou anexe o trabalho.",
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (membership?.appRole !== "Aluno") throw new Error("Só o aluno pode entregar o trabalho.");
-    const { db, schoolId, task, enrollmentId } = await resolveOwnEnrollment(
+    const { db, schoolId, task, classSubject, enrollmentId } = await resolveOwnEnrollment(
       context.userId,
       data.taskId,
     );
@@ -472,20 +505,89 @@ export const submitTaskWork = createServerFn({ method: "POST" })
       now,
     });
     if (!decision.ok) throw new Error(decision.reason);
+    // O anexo só se guarda depois de a entrega ser aceite; se a entrega falhar, sai.
+    const stored = data.attachment
+      ? await storeTaskAttachment(db, {
+          schoolId,
+          userId: context.userId,
+          taskId: data.taskId,
+          enrollmentId,
+          classGroupId: str(classSubject.class_group_id) || null,
+          title: str(task.title),
+          upload: data.attachment as Parameters<typeof storeTaskAttachment>[1]["upload"],
+        })
+      : null;
     const { error } = await db.from("siga_class_task_submissions").insert({
       school_id: schoolId,
       task_id: data.taskId,
       enrollment_id: enrollmentId,
       attempt: decision.attempt,
       status: "submitted",
-      body: data.body,
+      body: data.body || null,
+      file_id: stored?.fileId ?? null,
       submitted_at: now,
       is_late: decision.late,
       created_by: context.userId,
       updated_by: context.userId,
     });
+    if (error && stored) await discardTaskAttachment(db, schoolId, stored);
     // Dois envios no mesmo instante: a base recusa a tentativa repetida.
     if (error?.code === "23505") throw new Error("A entrega já foi registada. Actualize a página.");
     if (error) throw publicDatabaseError(error, "Não foi possível entregar o trabalho.");
     return { attempt: decision.attempt, late: decision.late };
+  });
+
+/**
+ * Abrir o anexo de uma entrega: o professor da disciplina e a direcção, o próprio
+ * aluno e o seu encarregado. URL assinado por 10 minutos.
+ */
+export const openTaskSubmissionFile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ taskId: z.string().guid(), submissionId: z.string().guid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem vínculo activo com uma escola.");
+    const db = await loadSgaAdminClient();
+    const { data: submission, error } = await db
+      .from("siga_class_task_submissions")
+      .select("id, enrollment_id, file_id")
+      .eq("school_id", membership.schoolId)
+      .eq("task_id", data.taskId)
+      .eq("id", data.submissionId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir o anexo.");
+    if (!submission?.file_id) throw new Error("Anexo não encontrado.");
+
+    const isFamily = ["Aluno", "Encarregado"].includes(membership.appRole);
+    if (isFamily) {
+      const { data: enrollment } = await db
+        .from("enrollments")
+        .select("student_id")
+        .eq("school_id", membership.schoolId)
+        .eq("id", str(submission.enrollment_id))
+        .maybeSingle();
+      const visible = enrollment?.student_id
+        ? await resolveVisibleStudent(context.userId, str(enrollment.student_id))
+        : null;
+      if (!visible) throw new Error("Sem permissão para abrir este anexo.");
+    } else {
+      // Professor de outra disciplina: recusado, como nas entregas.
+      await requireTaskManager(context.userId, data.taskId, "read");
+    }
+
+    const { data: file, error: fileError } = await db
+      .from("siga_files")
+      .select("name, storage_backend, storage_path, deleted_at")
+      .eq("school_id", membership.schoolId)
+      .eq("id", str(submission.file_id))
+      .maybeSingle();
+    if (fileError) throw publicDatabaseError(fileError, "Não foi possível abrir o anexo.");
+    if (!file || file.deleted_at || file.storage_backend !== "sga") {
+      throw new Error("O anexo já não existe.");
+    }
+    const signed = await db.storage.from(FILES_BUCKET).createSignedUrl(str(file.storage_path), 600);
+    if (signed.error || !signed.data?.signedUrl) throw new Error("Não foi possível abrir o anexo.");
+    return { url: signed.data.signedUrl, name: str(file.name) };
   });

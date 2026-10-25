@@ -20,6 +20,7 @@ const server = {
   returnTaskSubmission: vi.fn(),
   getMyTaskSubmission: vi.fn(),
   submitTaskWork: vi.fn(),
+  openTaskSubmissionFile: vi.fn(),
 };
 vi.mock("@/features/academic/task-submissions-server", () => ({
   listTaskSubmissions: (a: unknown) => server.listTaskSubmissions(a),
@@ -29,6 +30,7 @@ vi.mock("@/features/academic/task-submissions-server", () => ({
   returnTaskSubmission: (a: unknown) => server.returnTaskSubmission(a),
   getMyTaskSubmission: (a: unknown) => server.getMyTaskSubmission(a),
   submitTaskWork: (a: unknown) => server.submitTaskWork(a),
+  openTaskSubmissionFile: (a: unknown) => server.openTaskSubmissionFile(a),
 }));
 
 const { TaskSubmissionsPanel, MyTaskSubmission } =
@@ -366,5 +368,89 @@ describe("entregas: aluno e encarregado", () => {
     expect(server.getMyTaskSubmission).toHaveBeenCalledWith({
       data: { taskId: TASK, studentId: "00000000-0000-0000-0000-0000000000a1" },
     });
+  });
+
+  it("o aluno anexa um PDF e entrega só com o anexo", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    const input = await screen.findByLabelText("Anexar foto ou PDF");
+    const file = new File(["%PDF-1.7 trabalho"], "caderno.pdf", { type: "application/pdf" });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(await screen.findByText("caderno.pdf")).toBeTruthy();
+    expect(screen.getByText("17 B")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Entregar" }));
+    await waitFor(() =>
+      expect(server.submitTaskWork).toHaveBeenCalledWith({
+        data: {
+          taskId: TASK,
+          attachment: {
+            name: "caderno.pdf",
+            contentType: "application/pdf",
+            base64: btoa("%PDF-1.7 trabalho"),
+          },
+        },
+      }),
+    );
+  });
+
+  it("um ficheiro de outro tipo é recusado no ecrã, antes de enviar", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+    const input = await screen.findByLabelText("Anexar foto ou PDF");
+    fireEvent.change(input, {
+      target: { files: [new File(["x"], "virus.exe", { type: "application/x-msdownload" })] },
+    });
+    await waitFor(() => expect(screen.queryByText("virus.exe")).toBeNull());
+    expect((screen.getByRole("button", { name: "Entregar" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("o anexo entregue abre num separador, por URL assinado", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: {
+        id: "sub-9",
+        attempt: 1,
+        status: "submitted",
+        submittedAt: "2026-11-01T10:00:00Z",
+        isLate: false,
+        onPaper: false,
+        body: null,
+        grade: null,
+        feedback: null,
+        returnedAt: null,
+        file: { id: "f1", name: "caderno.jpg", mime: "image/jpeg", sizeBytes: 250_000 },
+      },
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.openTaskSubmissionFile.mockResolvedValue({
+      url: "https://signed/x",
+      name: "caderno.jpg",
+    });
+    const tab = { location: { href: "" }, close: vi.fn() };
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir anexo caderno.jpg" }));
+    await waitFor(() => expect(tab.location.href).toBe("https://signed/x"));
+    expect(server.openTaskSubmissionFile).toHaveBeenCalledWith({
+      data: { taskId: TASK, submissionId: "sub-9" },
+    });
+    expect(screen.getByText("244 KB")).toBeTruthy();
+    openSpy.mockRestore();
   });
 });

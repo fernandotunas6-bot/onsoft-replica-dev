@@ -24,6 +24,7 @@ import type { TaskState } from "@/features/academic/task-submissions";
 import { TASK_KIND_LABELS } from "@/features/academic/lesson-messages";
 import { GradeMeter } from "./GradeMeter";
 import { gradeToneClass } from "./grade-tone";
+import { AttachmentLink } from "./TaskAttachment";
 import { MyTaskSubmission } from "./TaskSubmissions";
 import { StatePill } from "./task-state-ui";
 import { TASK_STATE_UI } from "./task-state-meta";
@@ -343,7 +344,7 @@ function TaskItem({
           {task.attempts.length ? (
             <ol aria-label={`Entregas de ${task.title}`} className="space-y-2 border-l pl-3">
               {task.attempts.map((attempt) => (
-                <li key={attempt.attempt} className="space-y-0.5">
+                <li key={attempt.attempt} className="space-y-1">
                   <p className="flex items-center gap-1 text-muted-foreground">
                     <FileText className="size-3" aria-hidden />
                     {[
@@ -357,6 +358,13 @@ function TaskItem({
                       .join(" · ")}
                   </p>
                   {attempt.body ? <p className="whitespace-pre-line">{attempt.body}</p> : null}
+                  {attempt.file ? (
+                    <AttachmentLink
+                      taskId={task.id}
+                      submissionId={attempt.id}
+                      file={attempt.file}
+                    />
+                  ) : null}
                 </li>
               ))}
             </ol>

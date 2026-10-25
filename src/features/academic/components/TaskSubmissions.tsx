@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlarmClock,
   Archive,
+  Camera,
   ArchiveRestore,
   History,
   Hourglass,
   Inbox,
+  Paperclip,
   Pencil,
   Settings2,
   Star,
+  X,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -34,7 +37,10 @@ import {
   type TaskAssessmentOption,
   type TaskSubmissionLine,
 } from "@/features/academic/task-submissions-server";
+import { formatBytes } from "@/features/academic/task-attachments";
 import { GradeMeter } from "./GradeMeter";
+import { AttachmentLink } from "./TaskAttachment";
+import { prepareAttachment, type PreparedAttachment } from "./prepare-attachment";
 import { gradeToneClass } from "./grade-tone";
 import { StatePill } from "./task-state-ui";
 
@@ -566,6 +572,11 @@ function SubmissionLine({
           {sub.body}
         </p>
       ) : null}
+      {sub?.file ? (
+        <div className="pl-11">
+          <AttachmentLink taskId={taskId} submissionId={sub.id} file={sub.file} />
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-1 pl-11">
         {!sub ? (
           <Button
@@ -644,6 +655,9 @@ function SubmissionLine({
                 {attempt.status === "returned" ? " · devolvida" : ""}
               </p>
               {attempt.body ? <p className="whitespace-pre-line">{attempt.body}</p> : null}
+              {attempt.file ? (
+                <AttachmentLink taskId={taskId} submissionId={attempt.id} file={attempt.file} />
+              ) : null}
             </li>
           ))}
         </ol>
@@ -663,29 +677,61 @@ export function MyTaskSubmission({
   const queryClient = useQueryClient();
   const queryKey = ["my-task-submission", taskId, studentId ?? "self"];
   const [body, setBody] = useState("");
+  const [attachment, setAttachment] = useState<PreparedAttachment | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const query = useQuery({
     queryKey,
     queryFn: () => getMyTaskSubmission({ data: { taskId, ...(studentId ? { studentId } : {}) } }),
     retry: false,
   });
   const submit = useMutation({
-    mutationFn: () => submitTaskWork({ data: { taskId, body } }),
+    mutationFn: () =>
+      submitTaskWork({
+        data: {
+          taskId,
+          ...(body.trim() ? { body } : {}),
+          ...(attachment
+            ? {
+                attachment: {
+                  name: attachment.name,
+                  contentType: attachment.contentType,
+                  base64: attachment.base64,
+                },
+              }
+            : {}),
+        },
+      }),
     onSuccess: (result) => {
       toast.success(result.late ? "Trabalho entregue, com atraso." : "Trabalho entregue.");
       setBody("");
+      setAttachment(null);
       void queryClient.invalidateQueries({ queryKey });
       // A página da disciplina mostra o mesmo trabalho: actualizá-la também.
       void queryClient.invalidateQueries({ queryKey: ["subject-work"] });
     },
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível entregar.")),
   });
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setPreparing(true);
+    try {
+      setAttachment(await prepareAttachment(file));
+    } catch (error) {
+      toast.error(publicErrorMessage(error, "Não foi possível usar este ficheiro."));
+    } finally {
+      setPreparing(false);
+    }
+  };
   // Sem acesso a esta tarefa (ex.: pessoal sem a disciplina): não há nada a mostrar.
   if (!query.data) return null;
   const { submission, canSubmit } = query.data;
   const returned = submission?.status === "returned";
+  const ready = Boolean(body.trim() || attachment);
 
   return (
-    <div className="mt-2 space-y-1 text-xs">
+    <div className="mt-2 space-y-2 text-xs">
       {submission ? (
         <p className="text-muted-foreground">
           {returned
@@ -697,33 +743,101 @@ export function MyTaskSubmission({
       ) : (
         <p className="text-muted-foreground">Ainda não entregue.</p>
       )}
+      {submission?.file ? (
+        <AttachmentLink taskId={taskId} submissionId={submission.id} file={submission.file} />
+      ) : null}
       {returned && submission?.feedback ? (
         <p className="whitespace-pre-line">Comentário do professor: {submission.feedback}</p>
       ) : null}
       {canSubmit && !returned ? (
         <form
-          className="space-y-1"
+          className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (body.trim()) submit.mutate();
+            if (ready) submit.mutate();
           }}
         >
           <Textarea
             aria-label="O meu trabalho"
             rows={3}
             maxLength={4000}
-            placeholder="Escreva aqui a resposta ou o resumo do trabalho."
+            placeholder="Escreva aqui a resposta, ou anexe a foto do caderno ou um PDF."
             value={body}
             onChange={(event) => setBody(event.target.value)}
           />
-          <Button
-            type="submit"
-            size="sm"
-            className="h-8"
-            disabled={!body.trim() || submit.isPending}
-          >
-            {submission ? "Reenviar" : "Entregar"}
-          </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
+            className="sr-only"
+            aria-label="Anexar foto ou PDF"
+            onChange={(event) => {
+              void pick(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          <input
+            ref={cameraInput}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={(event) => {
+              void pick(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          {attachment ? (
+            <div className="flex max-w-full items-center gap-2 rounded-lg border bg-muted/40 px-2.5 py-1.5">
+              <Paperclip className="size-3.5 shrink-0 text-primary" aria-hidden />
+              <span className="min-w-0 truncate font-medium">{attachment.name}</span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">
+                {formatBytes(attachment.sizeBytes)}
+              </span>
+              <button
+                type="button"
+                className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Retirar anexo"
+                onClick={() => setAttachment(null)}
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1.5 text-xs"
+              disabled={preparing}
+              onClick={() => fileInput.current?.click()}
+            >
+              <Paperclip className="size-3.5" aria-hidden />
+              {preparing ? "A preparar…" : attachment ? "Trocar anexo" : "Anexar"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1.5 text-xs"
+              disabled={preparing}
+              onClick={() => cameraInput.current?.click()}
+            >
+              <Camera className="size-3.5" aria-hidden /> Tirar foto
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="ml-auto h-8"
+              disabled={!ready || preparing || submit.isPending}
+            >
+              {submit.isPending ? "A enviar…" : submission ? "Reenviar" : "Entregar"}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">PDF ou foto, até 5 MB.</p>
         </form>
       ) : null}
     </div>

@@ -5,6 +5,7 @@
  * nada se apaga. O aluno pode reenviar até o professor devolver; a nota e o
  * comentário só lhe aparecem depois de devolvidos.
  */
+import type { AttachmentInfo } from "./task-attachments";
 
 export type SubmissionRow = {
   id: string;
@@ -18,6 +19,9 @@ export type SubmissionRow = {
   grade: number | null;
   feedback: string | null;
   returned_at: string | null;
+  file_id?: string | null;
+  /** Preenchido pelo servidor a partir de `siga_files`. */
+  file?: AttachmentInfo | null;
 };
 
 /** Dia em Luanda (UTC+1, sem hora de Verão) de um instante ISO. */
@@ -71,6 +75,8 @@ export function studentView(row: SubmissionRow | null) {
   if (!row) return null;
   const returned = row.status === "returned";
   return {
+    // Para abrir o anexo (openTaskSubmissionFile); não revela nada de outros alunos.
+    id: row.id,
     attempt: row.attempt,
     status: row.status,
     submittedAt: row.submitted_at,
@@ -80,6 +86,7 @@ export function studentView(row: SubmissionRow | null) {
     grade: returned ? row.grade : null,
     feedback: returned ? row.feedback : null,
     returnedAt: returned ? row.returned_at : null,
+    file: row.file ?? null,
   };
 }
 
