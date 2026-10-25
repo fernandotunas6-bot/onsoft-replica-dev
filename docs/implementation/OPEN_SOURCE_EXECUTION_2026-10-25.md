@@ -23,6 +23,9 @@ Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistem
 
 ## Fase 2 — terminar o que os outros agentes já fizeram
 
+**Bloqueio de reconciliação detectado em 25/10:** as tabelas, RPCs e gatilhos de caixa da #283 já aparecem no projecto de produção, mas a versão `20261024110000` falta no histórico. As alterações de idempotência e estorno da #276 ainda não estão reflectidas. Consultar [FINANCE_MIGRATION_DRIFT_2026-10-25.md](FINANCE_MIGRATION_DRIFT_2026-10-25.md) e usar apenas o verificador **read-only** `scripts/siga/check-finance-schema-drift.mjs`; não reaplicar nem reparar o histórico automaticamente. O CI de #276 e #283 passou no último SHA revisto, mas falta staging e compatibilidade real.
+
+
 | Sequência | PR | Gate de integração |
 | --- | --- | --- |
 | 1 | [#287 — senhas](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/287) | Cliente/servidor alinhados; recuperação/MFA e CI do último SHA |
