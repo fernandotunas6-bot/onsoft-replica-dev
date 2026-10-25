@@ -32,3 +32,13 @@ export async function selectAllPages<T>(
   }
   return rows;
 }
+
+/** O resultado de `readAllPages`/`readInChunks`, ou o erro com o prefixo da importação. */
+export async function rowsOrThrow<T>(
+  read: PromiseLike<{ data: T[]; error: { message: string } | null }>,
+  errorPrefix: string,
+): Promise<T[]> {
+  const { data, error } = await read;
+  if (error) throw new Error(`${errorPrefix}: ${error.message}`);
+  return data;
+}

@@ -9,6 +9,8 @@ import { Download, FileBadge, FileCheck2, FileDown, FilePlus2, FileStack, X } fr
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
@@ -77,6 +79,7 @@ type DocumentWorkspaceView = {
     student_name: string;
     registration_number: string;
     class_name: string | null;
+    enrolled?: boolean;
     requested_at: string;
     assigned_to: string | null;
     status: string;
@@ -132,6 +135,13 @@ const advanceActionLabel: Record<string, string> = {
 
 function DocumentosPage() {
   const realtimeInstanceId = useId();
+  const account = useCurrentAccount();
+  // A biblioteca da secretaria (Arquivos) é só da equipa; alunos e encarregados também
+  // abrem esta página para os seus pedidos.
+  const canUseLibrary = canAccessPath("/arquivos", account.role, account.grants);
+  // Registar, avançar, recusar e cancelar pedidos e editar modelos é da secretaria (o
+  // servidor só o aceita a Administrador e Secretaria); os outros acompanham os seus.
+  const canManage = account.role === "Administrador" || account.role === "Secretaria";
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.documents");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -154,6 +164,7 @@ function DocumentosPage() {
   const printCatalogQuery = useQuery({
     queryKey: ["documents", "print-templates"],
     queryFn: () => listPrintTemplates(),
+    enabled: canManage,
   });
   const activeTemplate = useMemo(() => {
     const issue = printCatalogQuery.data?.issue;
@@ -201,6 +212,7 @@ function DocumentosPage() {
         aluno: request.student_name,
         processo: request.registration_number,
         turma: request.class_name ?? null,
+        matriculado: request.enrolled ?? true,
         pedidoEm: request.requested_at,
         responsavel: request.assigned_to ? "Secretaria" : "Por atribuir",
         estado: statusLabels[request.status] ?? "Em processamento",
@@ -281,10 +293,19 @@ function DocumentosPage() {
       aluno: string;
       processo: string;
       turma: string | null;
+      matriculado: boolean;
       nextStatus: string | null;
     },
     nextStatus: string,
   ) => {
+    // A declaração sai ao ficar «pronto» e diz que o aluno está matriculado: sem
+    // matrícula activa, não se aprova (antes aprovava-se e saía na mesma).
+    if (nextStatus === "ready" && !documento.matriculado) {
+      toast.error(
+        `${documento.aluno} não tem matrícula activa: a declaração diria que é aluno(a) da escola. Recuse o pedido ou matricule primeiro.`,
+      );
+      return;
+    }
     setAdvancingId(documento.id);
     try {
       await updateDocumentRequestStatus({
@@ -412,7 +433,8 @@ function DocumentosPage() {
    * de queries. É o mesmo motivo das faturas: duas cópias divergem na primeira
    * mudança de fluxo da secretaria.
    */
-  function DocumentoActions({ d }: { d: (typeof filtered)[number] }) {
+  function DocumentoActions({ d: row }: { d: (typeof filtered)[number] }) {
+    const d = canManage ? row : { ...row, nextStatus: null };
     return (
       <div className="flex flex-wrap justify-end gap-2">
         {d.nextStatus ? (
@@ -430,12 +452,14 @@ function DocumentosPage() {
         {d.nextStatus ? (
           <>
             <ConfirmActionModal
-              title="Cancelar pedido"
-              description={`Cancela o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
-              confirmLabel="Cancelar pedido"
+              title="Recusar pedido"
+              description={`Recusa o pedido de ${d.tipo} de ${d.aluno}. O aluno pode voltar a pedir.`}
+              confirmLabel="Recusar pedido"
               onConfirm={async () => {
+                // «Recusar» gravava «cancelado»: o aluno via «Cancelado» como se tivesse
+                // sido ele, e o estado «Recusado» nunca aparecia.
                 await updateDocumentRequestStatus({
-                  data: { requestId: d.id, status: "cancelled" },
+                  data: { requestId: d.id, status: "rejected" },
                 });
                 await Promise.all([
                   queryClient.invalidateQueries({
@@ -564,11 +588,13 @@ function DocumentosPage() {
           actions={
             <>
               <DocHelpButton title="Navegação — Documentos e permissões" />
-              <Button variant="outline" className="gap-2" asChild>
-                <a href="#modelos">
-                  <FileStack className="size-4" /> Modelos
-                </a>
-              </Button>
+              {canManage ? (
+                <Button variant="outline" className="gap-2" asChild>
+                  <a href="#modelos">
+                    <FileStack className="size-4" /> Modelos
+                  </a>
+                </Button>
+              ) : null}
               <Button variant="outline" className="gap-2" onClick={exportarDocumentosCsv}>
                 <Download className="size-4" /> CSV
               </Button>
@@ -578,78 +604,84 @@ function DocumentosPage() {
               <Button variant="outline" className="gap-2" onClick={exportarDocumentosOficial}>
                 <FileBadge className="size-4" /> Oficial
               </Button>
-              <PickFileButton
-                area="secretaria"
-                onPick={(file) =>
-                  toast.success(file.name, { description: "Ficheiro da secretaria seleccionado." })
-                }
-              />
-              <QuickFormModal
-                title="Novo pedido de documento"
-                eyebrow="Secretaria"
-                description="Registe o pedido, o tipo de documento e a taxa associada."
-                icon={<FilePlus2 className="size-5" />}
-                submitLabel="Registar pedido"
-                fields={[
-                  {
-                    name: "aluno",
-                    label: "Aluno",
-                    type: "select",
-                    options: studentOptions,
-                    full: true,
-                  },
-                  {
-                    name: "modelo",
-                    label: "Modelo de documento",
-                    type: "select",
-                    options: templateOptions,
-                  },
-                  { name: "numero", label: "Número do pedido", placeholder: "DOC 2025/0001" },
-                  {
-                    name: "prazo",
-                    label: "Prazo de entrega",
-                    type: "date",
-                    required: false,
-                  },
-                  {
-                    name: "urgencia",
-                    label: "Urgência",
-                    type: "select",
-                    options: ["Normal", "Urgente"],
-                  },
-                  { name: "notas", label: "Notas internas", type: "textarea", full: true },
-                ]}
-                onSubmit={async (values) => {
-                  const student = students[studentOptions.indexOf(values["aluno"] ?? "")];
-                  const template = templates[templateOptions.indexOf(values["modelo"] ?? "")];
-                  if (!student || !template) throw new Error("Selecione aluno e modelo válidos.");
-                  await createDocumentRequest({
-                    data: {
-                      studentId: student.id,
-                      templateId: template.id,
-                      requestNumber: values["numero"],
-                      priority: values["urgencia"] === "Urgente" ? "urgent" : "normal",
-                      dueOn: values["prazo"] || undefined,
-                      notes: values["notas"] || undefined,
+              {canUseLibrary ? (
+                <PickFileButton
+                  area="secretaria"
+                  onPick={(file) =>
+                    toast.success(file.name, {
+                      description: "Ficheiro da secretaria seleccionado.",
+                    })
+                  }
+                />
+              ) : null}
+              {canManage ? (
+                <QuickFormModal
+                  title="Novo pedido de documento"
+                  eyebrow="Secretaria"
+                  description="Registe o pedido, o tipo de documento e a taxa associada."
+                  icon={<FilePlus2 className="size-5" />}
+                  submitLabel="Registar pedido"
+                  fields={[
+                    {
+                      name: "aluno",
+                      label: "Aluno",
+                      type: "select",
+                      options: studentOptions,
+                      full: true,
                     },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
-                }}
-                trigger={(open) => (
-                  <Button
-                    className="gap-2"
-                    onClick={open}
-                    disabled={!students.length || !templates.length}
-                  >
-                    <FilePlus2 className="size-4" /> Novo pedido
-                  </Button>
-                )}
-              />
+                    {
+                      name: "modelo",
+                      label: "Modelo de documento",
+                      type: "select",
+                      options: templateOptions,
+                    },
+                    { name: "numero", label: "Número do pedido", placeholder: "DOC 2025/0001" },
+                    {
+                      name: "prazo",
+                      label: "Prazo de entrega",
+                      type: "date",
+                      required: false,
+                    },
+                    {
+                      name: "urgencia",
+                      label: "Urgência",
+                      type: "select",
+                      options: ["Normal", "Urgente"],
+                    },
+                    { name: "notas", label: "Notas internas", type: "textarea", full: true },
+                  ]}
+                  onSubmit={async (values) => {
+                    const student = students[studentOptions.indexOf(values["aluno"] ?? "")];
+                    const template = templates[templateOptions.indexOf(values["modelo"] ?? "")];
+                    if (!student || !template) throw new Error("Selecione aluno e modelo válidos.");
+                    await createDocumentRequest({
+                      data: {
+                        studentId: student.id,
+                        templateId: template.id,
+                        requestNumber: values["numero"],
+                        priority: values["urgencia"] === "Urgente" ? "urgent" : "normal",
+                        dueOn: values["prazo"] || undefined,
+                        notes: values["notas"] || undefined,
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["documents", "workspace"] });
+                  }}
+                  trigger={(open) => (
+                    <Button
+                      className="gap-2"
+                      onClick={open}
+                      disabled={!students.length || !templates.length}
+                    >
+                      <FilePlus2 className="size-4" /> Novo pedido
+                    </Button>
+                  )}
+                />
+              ) : null}
             </>
           }
         />
 
-        {printCatalogQuery.data ? (
+        {canManage && printCatalogQuery.data ? (
           <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
             {activeTemplate ? (
               <>
@@ -806,8 +838,11 @@ function DocumentosPage() {
                             {d.aluno} · <span className="tnum">{d.processo}</span>
                           </p>
                           <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            Pedido {new Date(d.pedidoEm).toLocaleDateString("pt-PT")} ·{" "}
-                            {d.responsavel}
+                            Pedido{" "}
+                            {new Date(d.pedidoEm).toLocaleDateString("pt-PT", {
+                              timeZone: "Africa/Luanda",
+                            })}{" "}
+                            · {d.responsavel}
                           </p>
                         </div>
                         <StatusBadge
@@ -859,7 +894,11 @@ function DocumentosPage() {
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {d.processo}
                         </TableCell>
-                        <TableCell>{new Date(d.pedidoEm).toLocaleDateString("pt-PT")}</TableCell>
+                        <TableCell>
+                          {new Date(d.pedidoEm).toLocaleDateString("pt-PT", {
+                            timeZone: "Africa/Luanda",
+                          })}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {d.responsavel}
                         </TableCell>
@@ -936,7 +975,7 @@ function DocumentosPage() {
           </div>
         </Panel>
 
-        <PrintTemplateStudio />
+        {canManage ? <PrintTemplateStudio /> : null}
       </div>
     </AppShell>
   );

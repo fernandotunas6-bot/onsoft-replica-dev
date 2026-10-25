@@ -100,14 +100,22 @@ export async function issuePrintDocument(input: {
       input.overlay ?? {},
     );
     // O documento diz que se valida pelo QR ou pelo código: passa a ser verdade.
-    const verification = await registerForVerification({
-      title: input.tipo,
-      holderName: input.student?.fullName,
-      templateKey: key,
-      reference: input.student?.documentTitle,
-      amountLabel: input.amountLabel,
-      subjects: printedSubjectNames(payload),
-    });
+    let verification: Awaited<ReturnType<typeof registerForVerification>>;
+    try {
+      verification = await registerForVerification({
+        title: input.tipo,
+        holderName: input.student?.fullName,
+        templateKey: key,
+        reference: input.student?.documentTitle,
+        amountLabel: input.amountLabel,
+        subjects: printedSubjectNames(payload),
+      });
+    } catch (error) {
+      // O registo recusado (sem permissão para o modelo, escola bloqueada, limite) não
+      // cai na alternativa: ela imprimia o mesmo documento oficial, sem código, a quem
+      // o servidor acabara de dizer que não o podia emitir.
+      throw new RegistrationRefused(error);
+    }
     const document = (payload.document ?? {}) as Record<string, unknown>;
     payload.document = {
       ...document,
@@ -121,11 +129,20 @@ export async function issuePrintDocument(input: {
     printOfficialHtml(renderHandlebars(template.source, payload));
     return key;
   } catch (error) {
+    if (error instanceof RegistrationRefused) throw error.refusal;
     if (input.fallback) {
       input.fallback();
       return null;
     }
     throw error;
+  }
+}
+
+class RegistrationRefused extends Error {
+  readonly refusal: unknown;
+  constructor(refusal: unknown) {
+    super("registo recusado");
+    this.refusal = refusal;
   }
 }
 

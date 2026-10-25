@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { getAppUrl, getAppName, getAuthMagicLinkUrl } from "@/lib/app-config";
 import { resolveTenantLookup } from "@/lib/saas/tenant-resolver";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
@@ -49,7 +49,7 @@ export const requestMagicLinkFn = createServerFn({ method: "POST" })
     const email = data.email.toLowerCase().trim();
     const hostname = data.hostname?.toLowerCase().trim() || "";
 
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const rateLimitKeys = [`ip:${ip}`, `email:${email}`];
     if (
       !isRateLimitBypassed(...rateLimitKeys) &&

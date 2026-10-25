@@ -32,7 +32,7 @@ export const financeListInputSchema = z.object({
 export const listInvoicesInputSchema = z
   .object({
     limit: z.number().int().min(1).max(1000).default(100),
-    studentId: z.string().uuid().optional(),
+    studentId: z.string().guid().optional(),
   })
   .refine((input) => Boolean(input.studentId) || input.limit <= 250, {
     message: "Sem aluno, a lista vai até 250 faturas.",
@@ -40,7 +40,7 @@ export const listInvoicesInputSchema = z
   });
 
 export const recordInvoicePaymentInputSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   // Referência opcional do funcionário — o número oficial do recibo é gerado
   // atomicamente pela função register_payment (private.next_document_number),
   // nunca por este valor. Ver features/finance/server.ts.
@@ -66,7 +66,7 @@ export const recordInvoicePaymentInputSchema = z.object({
 export type RecordInvoicePaymentInput = z.infer<typeof recordInvoicePaymentInputSchema>;
 
 export const issueInvoiceInputSchema = z.object({
-  studentId: z.string().uuid(),
+  studentId: z.string().guid(),
   dueOn: z.string().date(),
   issuedOn: z.string().date().optional(),
   description: z.string().trim().max(500).optional(),
@@ -97,7 +97,7 @@ export const recordCashExpenseInputSchema = z.object({
 export type RecordCashExpenseInput = z.infer<typeof recordCashExpenseInputSchema>;
 
 export const reverseCashEntryInputSchema = z.object({
-  cashEntryId: z.string().uuid(),
+  cashEntryId: z.string().guid(),
   // 5..300 é o que `finance_receipts_reversal_reason_check` admite, e o mínimo de 5 é
   // também o que `private.reverse_receipt` exige. Com os limites anteriores (3..500), um
   // motivo curto ou longo demais passava a validação e só rebentava na base, com uma
@@ -109,7 +109,7 @@ export const reverseCashEntryInputSchema = z.object({
 export type ReverseCashEntryInput = z.infer<typeof reverseCashEntryInputSchema>;
 
 export const cancelInvoiceInputSchema = z.object({
-  invoiceId: z.string().uuid(),
+  invoiceId: z.string().guid(),
   // BD exige 5-300 caracteres quando preenchido (finance_invoices_cancellation_reason_check).
   // Obrigatório: uma fatura anulada sem motivo é o que esconde um desvio.
   reason: z.string().trim().min(5, "Indique o motivo da anulação.").max(300),
@@ -117,7 +117,7 @@ export const cancelInvoiceInputSchema = z.object({
 export type CancelInvoiceInput = z.infer<typeof cancelInvoiceInputSchema>;
 
 export const cancelPaymentPlanInputSchema = z.object({
-  planId: z.string().uuid(),
+  planId: z.string().guid(),
 });
 export type CancelPaymentPlanInput = z.infer<typeof cancelPaymentPlanInputSchema>;
 
@@ -132,8 +132,8 @@ export const upsertFeePlanSettingsInputSchema = z.object({
 export type UpsertFeePlanSettingsInput = z.infer<typeof upsertFeePlanSettingsInputSchema>;
 
 export const createPaymentPlanInputSchema = z.object({
-  invoiceId: z.string().uuid().optional(),
-  studentId: z.string().uuid().optional(),
+  invoiceId: z.string().guid().optional(),
+  studentId: z.string().guid().optional(),
   channel: z.enum([
     "cash",
     "multicaixa",
@@ -170,6 +170,6 @@ export function paymentStatusFromInvoices(
 }
 
 export const syncStudentToPayflowInputSchema = z.object({
-  studentId: z.string().uuid(),
+  studentId: z.string().guid(),
 });
 export type SyncStudentToPayflowInput = z.infer<typeof syncStudentToPayflowInputSchema>;

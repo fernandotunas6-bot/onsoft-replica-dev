@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { chunkedInClient } from "@/integrations/supabase/chunked-in-client";
 import { resolveSgaMembership, sgaClient, type SgaMembershipContext } from "./sga";
 import { GRANT_ELEVATABLE_ROLES, type ApplicationRole } from "@/features/auth/access-policy";
 import { ACTIVE_SCHOOL_UNAVAILABLE } from "@/features/auth/active-school";
@@ -10,7 +11,8 @@ import {
 
 export async function loadSgaAdminClient() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return sgaClient(supabaseAdmin);
+  // Os `.in(...)` longos vão em lotes: com ~200 ids o URL passava o tamanho máximo.
+  return chunkedInClient(sgaClient(supabaseAdmin));
 }
 
 /** Import dinâmico como em `loadSgaAdminClient`: só existe do lado do servidor. */

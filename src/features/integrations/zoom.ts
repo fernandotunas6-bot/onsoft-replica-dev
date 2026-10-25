@@ -129,7 +129,7 @@ async function zoomRequest(schoolId: string, path: string, init: RequestInit = {
 }
 
 const createMeetingSchema = z.object({
-  attendanceSessionId: z.string().uuid(),
+  attendanceSessionId: z.string().guid(),
   topic: z.string().trim().min(1).max(200).optional(),
   startTime: z.string().datetime().optional(),
   durationMinutes: z.number().int().positive().max(1440).optional(),
@@ -391,7 +391,7 @@ export const createZoomLessonMeeting = createServerFn({ method: "POST" })
 
 export const getZoomLessonMeeting = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ attendanceSessionId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ attendanceSessionId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Unauthorized");
     const membership = await resolveSgaMembershipAdmin(context.userId);

@@ -76,7 +76,12 @@ function RelatoriosAcademicos() {
     warmReportCharts();
   }, []);
   const account = useCurrentAccount();
-  const canRead = canReadModule(account.role, "pedagogica");
+  // As pautas da escola são da equipa (o servidor só as serve à gestão e aos
+  // professores); alunos e encarregados vêem as suas notas no próprio portal.
+  const canRead =
+    canReadModule(account.role, "pedagogica") &&
+    account.role !== "Aluno" &&
+    account.role !== "Encarregado";
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const resendOn = installed.hasCapability("resend.send");

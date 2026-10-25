@@ -14,21 +14,81 @@ A **publicação está desbloqueada**. O "Deploy produção" passou às 15:30, 1
 O ponto **F-01 da auditoria 16 (P1) está fechado** — os ~20 PRs fundidos desde 12/10, incluindo o #216
 de segurança, chegaram aos utilizadores. A auditoria 16 foi escrita antes disto.
 
-## A crítica central: o sistema está desproporcionado
+## A crítica central, agora medida (25/10)
 
-| Construído                             | Exercido                                          |
-| -------------------------------------- | ------------------------------------------------- |
-| 207 tabelas em produção                | ~100 vazias (leitura de 21/10)                    |
-| 31 áreas em `src/features`, 18 módulos | ≈8 com dados reais                                |
-| 24 841 linhas de _server functions_    | sem uma única prova E2E autenticada               |
-| 49 escolas/tenants                     | ≈85 alunos; a leitura de 21/10 dava 1 escola real |
-| 591 ficheiros de teste, 3979 testes    | 6 tocam a base; 0 autenticados de ponta a ponta   |
+> **A primeira versão desta secção exagerou.** Escrevi-a com números de segunda mão — a auditoria 16
+> e leituras de 21/10 — porque o MCP do Supabase pedia uma autorização que a sessão não tinha. A 25/10
+> voltou a responder, e os números reais mudam a conclusão num ponto importante: **não é um sistema
+> construído para ninguém.** É um sistema cuja metade exercida serve uma escola a sério, e cuja outra
+> metade nunca foi tocada por ninguém. A desproporção está na segunda metade, não no todo.
 
-Este é o defeito estrutural de que os outros descendem. Presenças, RH e folha, pagamentos online,
-alumni, catracas, exames, bolsas, lista de espera, BigBlueButton — está tudo escrito e testado em
-unidade, e nada disto processou um registo real. Cada um destes módulos tem custo de manutenção
-imediato (migrações, tipos, rotas, testes, revisões, conflitos de PR) e valor zero até alguém o usar.
-A pergunta a fazer não é "o que falta construir" mas "o que é que podemos declarar adormecido".
+### O que a produção tem, contado (não estimado)
+
+|                                 |                                               |
+| ------------------------------- | --------------------------------------------- |
+| Tabelas em `public`             | **209**                                       |
+| Nunca tiveram uma linha         | **102** (48,8%)                               |
+| Tabelas por escola              | 170, das quais **76 usadas pela escola real** |
+| Escolas                         | 49 → **6** (limpas a 25/10)                   |
+| Escolas com uso a sério         | **1**                                         |
+| Escolas com exactamente 1 aluno | **43** → 0                                    |
+| Escolas vazias                  | 5 → 4                                         |
+
+### A escola real
+
+**Colégio Adventista — Huambo.** Criada a 03/08/2026, no dia em que o projecto começou. 42 alunos,
+4 professores, 4 facturas, **2355 registos de auditoria**, com actividade a 23/10 — dois dias antes
+desta medição. Exercita **76 das 170 tabelas por escola**: isso é largura de uso real, não um
+cadastro de demonstração nem um resto de ensaio.
+
+Era isto que a frase "o uso real é 1 escola, 2 alunos" escondia. Há uma escola a usar o sistema de
+forma continuada desde Agosto.
+
+### As 43 outras — apagadas a 25/10
+
+Todas com nome de teste, todas com exactamente 1 aluno, e **todas criadas a 8 e 9 de Setembro** — dois
+dias, uma rajada de E2E, não poluição a entrar aos poucos. Traziam consigo:
+
+- **34 das 38 facturas** da base (só 4 eram da escola real)
+- **12 509 dos ~14 900 registos de auditoria** — a auditoria era 84% ruído de ensaio
+
+Qualquer métrica de uso lida sem as excluir mentia por mais do dobro. Foi o que me aconteceu, e à
+auditoria 16 antes de mim.
+
+**Foram removidas a 25/10**, com as 44 contas Auth `e2e+…@siga-plus.test`. A produção ficou com 6
+tenants: o Colégio Adventista (42 alunos, 9 vínculos), três escolas inscritas sem alunos ainda
+(Ekovongo, Epatulokko, Twapandula), a demonstração do ISPAB e um registo arquivado de provisionamento
+falhado. Linhas na base: 37 770 → **14 536**.
+
+Duas notas sobre como foi feito, porque importam a quem repetir:
+
+- O guião do projecto (`siga:e2e-cleanup-stale`) **não consegue** fazer isto: apaga um tenant por
+  invocação e a sua verificação de artefactos aborta se a escola tiver um só aluno. Foi preciso
+  desfazer essa verificação deliberadamente, mantendo as de identidade (slug, contacto
+  `@siga-plus.test` igual ao do tenant, nome, data). Não foi o guião a correr com as protecções todas.
+- Como a purga corre com as verificações de chave estrangeira desligadas (`audit_logs` é append-only
+  por trigger), varreram-se **todas** as FK de `public`, `private` e `academic_evidence` à procura de
+  órfãos no fim: **zero**. E a escola real ficou idêntica — as mesmas 76 tabelas, 42 alunos, 2355
+  registos de auditoria, 183 aulas no horário.
+
+**As 102 tabelas vazias continuam 102.** Não eram ruído de ensaio: tudo o que o E2E tocava, a escola
+real também toca. A desproporção medida acima não se desfez com a limpeza — só ficou visível sem o
+ruído em cima.
+
+### Os módulos adormecidos: zero, confirmado à unidade
+
+Não "≈0 registos" por estimativa do `pg_stat`, mas contagem exacta:
+
+| Módulo                            | Linhas    |
+| --------------------------------- | --------- |
+| Presenças (sessões / registos)    | **0 / 0** |
+| RH: contratos / folhas de salário | **0 / 0** |
+| Pagamentos online (gateway)       | **0**     |
+| Alumni                            | **0**     |
+
+Estes, mais as 102 tabelas que nunca tiveram uma linha, são a desproporção verdadeira — e são a
+razão por que a acção 4 (declarar módulos adormecidos) continua a ser a mais útil da lista. O que
+muda é o tom: não se trata de um sistema sem utilizadores, mas de metade de um sistema a mais.
 
 ## 1. A confiança vem do lugar errado
 
@@ -131,19 +191,39 @@ Com os casos de 04/10 e 22/10, são quatro episódios de segredos colados em can
 
 ## Ordem de ataque
 
-~~1. **Fundir a #139.**~~ Já estava fundida, com a #144. ✔
-~~2. **Portão de guardas nas _server functions_.**~~ Feito a 22/10, na PR #241: 497 declarações, 480
-com guarda, 17 públicas declaradas com a defesa de cada uma. Provado a injectar uma sem guarda. ✔
-~~3. **Triagem das PRs.**~~ Feita, na [18](./18-triagem-prs-2026-10-22.md). Decidir é que falta.
-Entretanto desbloqueadas três PRs paradas há oito dias por CI velho, e fundida a #148. ✔ 4. **Declarar os módulos adormecidos.** Escolher 3 a 5 (presenças, RH, pagamentos online são os
-candidatos óbvios), pôr um piloto real numa escola para um deles e marcar os outros como não
-suportados — em vez de os manter todos a meio caminho entre "feito" e "nunca usado". 5. **Marcar as 43 escolas de teste** ou limpá-las (com `SIGA_CLEANUP_ALLOW_PRODUCTION=1`; o _dry-run_
-salta o guarda). Enquanto não o fizer, nenhuma métrica de uso significa nada. 6. **_Staging_.** É o que desbloqueia a prova E2E autenticada e tira as migrações da produção às cegas. 7. **Rotacionar o segredo Google OAuth** e apagar o ficheiro do disco. 8. Arrumação: `drizzle/` para fora ou com o aviso no nome, `estudo/yft-school-system` para repositório
-próprio, corrigir o comentário de `sga.ts`, `NODE_OPTIONS=--max-old-space-size=8192` no `typecheck`.
+**Feito** (22–23/10, tudo fundido):
+
+- ~~Fundir a #139~~ — já estava fundida, com a #144. ✔
+- ~~Portão de guardas nas _server functions_~~ — PR #241: 497 declarações, 480 com guarda, 17
+  públicas declaradas com a defesa de cada uma. Provado a injectar uma sem guarda; e apanhou uma a
+  sério (`studentNumberLoginAvailable`, da #148) uma hora depois de entrar. ✔
+- ~~Triagem das PRs~~ — na [18](./18-triagem-prs-2026-10-22.md). Desbloqueadas três PRs paradas oito
+  dias por CI caducado; fundidas a #126, #148, #208 e a pilha YFT. ✔
+- ~~Arrumação~~ — `types.ts` apagado (um só ficheiro de tipos), aviso no `drizzle/`, comentário de
+  `sga.ts`, heap de 8 GB no `typecheck`. ✔
+
+**Por fazer**, por ordem de retorno:
+
+1. **Declarar os módulos adormecidos.** Presenças, RH e folha, pagamentos online e alumni têm
+   **exactamente zero linhas** (medido a 25/10, não estimado). Escolher um para piloto real numa
+   escola e marcar os outros como não suportados, em vez de os manter a meio caminho entre "feito" e
+   "nunca usado". É a acção mais útil que resta, e a única que ataca a desproporção medida acima.
+2. ~~**Limpar ou marcar as 43 escolas de ensaio.**~~ Feito a 25/10: apagadas, com as 44 contas
+   Auth. As métricas de uso deixaram de mentir. ✔
+3. **_Staging_.** Desbloqueia a prova E2E autenticada e tira as migrações da produção às cegas.
+4. **Rotacionar o segredo Google OAuth** e só depois apagar o ficheiro do disco. Apagá-lo antes não
+   resolve: o segredo já foi exposto num chat a 25/09 e continua válido.
+5. **Activar a protecção de passwords comprometidas** no Supabase Auth.
+6. **Tirar o `estudo/yft-school-system` para repositório próprio** — falta decidir o destino.
 
 ## Limites desta análise
 
-Não consultei a base de produção nesta sessão — os números de uso vêm das leituras de 21 e 22/10 e
-são estimativas do Postgres. Não corri `vitest`, `tsc` nem `eslint` (a auditoria 16 correu-os hoje:
-3979 aprovados, 0 falhas, 47 avisos). Os 95/103 guardas foram contados por padrão de texto: é um
-limite inferior fiável para quem _usa_ guarda, não uma prova de que cada guarda está correcto.
+**Da versão de 22/10:** não consultei a base de produção — o MCP do Supabase pedia uma autorização
+que a sessão não tinha —, pelo que os números de uso vinham das leituras de 21 e 22/10 e eram
+estimativas do `pg_stat`. Foi essa a causa do exagero que a secção central agora corrige.
+
+**Da revisão de 25/10:** os números de produção são contagens exactas (`count(*)` por tabela, via
+`query_to_xml`), em leitura apenas, sem dados pessoais e sem nada escrito. O que continua por provar
+é o mesmo de antes: **nenhum fluxo autenticado foi exercido de ponta a ponta num browser**, por falta
+de _staging_. E os 480 guardas em 497 _server functions_ são contados por análise do texto do código
+— é um limite inferior fiável para quem usa guarda, não uma prova de que cada guarda está correcto.

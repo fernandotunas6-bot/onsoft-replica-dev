@@ -163,6 +163,20 @@ describe("updatePersonInputSchema", () => {
     expect(parsed.nif).toBe("000204688CA010");
   });
 
+  it("morada apagada chega vazia, com o indicador de que o formulário a mostrava", () => {
+    const parsed = updatePersonInputSchema.parse({
+      personId: "11111111-1111-1111-1111-111111111111",
+      fullName: "Ana Domingos",
+      province: "",
+      municipality: "",
+      commune: "",
+      address: "",
+      includesGeography: true,
+    });
+    expect(parsed.address).toBeUndefined();
+    expect(parsed.includesGeography).toBe(true);
+  });
+
   it("aceita localização territorial na actualização", () => {
     const parsed = updatePersonInputSchema.parse({
       personId: "11111111-1111-1111-1111-111111111111",

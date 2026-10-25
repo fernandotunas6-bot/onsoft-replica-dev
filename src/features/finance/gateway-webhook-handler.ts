@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceNetTotal, invoiceStatusFromPaid } from "./invoice-settlement";
 import { lateFeeFor, todayIso } from "./late-fee";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingFunction, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { normalizePaymentReference } from "@/features/finance/emiss-multicaixa";
 import {
   referencesMatch,
@@ -26,15 +26,7 @@ import { consumeRateLimit } from "@/lib/shared-rate-limit";
 import { reportSigaError } from "@/lib/ops-report";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { schoolTodayIso } from "@/lib/school-date";
-
-function mapPaymentMethodForLedger(method: string): "cash" | "bank_transfer" | "card" | "other" {
-  if (method === "cash") return "cash";
-  if (method === "transfer") return "bank_transfer";
-  if (method === "multicaixa" || method === "multicaixa_express" || method === "express") {
-    return "card";
-  }
-  return "other";
-}
+import { mapPaymentMethodForLedger } from "./payment-method";
 
 const GATEWAY_PROVIDERS = ["multicaixa_express", "unitel_money"] as const;
 
@@ -519,14 +511,6 @@ async function finishGatewaySettlement(
     invoiceStatus: result.invoiceStatus,
     planSettled,
   };
-}
-
-function isMissingFunction(error: { code?: string; message?: string }) {
-  return (
-    error.code === "PGRST202" ||
-    error.code === "42883" ||
-    /could not find the function|function .* does not exist/i.test(error.message ?? "")
-  );
 }
 
 /**

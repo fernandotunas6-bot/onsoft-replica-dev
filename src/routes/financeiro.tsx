@@ -25,6 +25,8 @@ import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
+import { PayflowPayerLink } from "@/features/finance/components/PayflowPayerLink";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 
 const FinanceiroCashChart = lazy(() =>
   import("@/features/finance/FinanceiroCashChart").then((module) => ({
@@ -119,8 +121,42 @@ export const Route = createFileRoute("/financeiro")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: FinanceiroPage,
+  component: FinanceiroRoute,
 });
+
+/**
+ * Alunos e encarregados chegam aqui pelo menu («Propinas», «Financeiro»), mas o
+ * caixa da escola é da tesouraria: o servidor recusa-lhes cada consulta e a página
+ * enchia-se de erros e de botões de registo. As propinas pagam-se no PayFlow.
+ */
+function FinanceiroRoute() {
+  const account = useCurrentAccount();
+  if (account.role === "Aluno" || account.role === "Encarregado") {
+    return <FamilyFinancePage />;
+  }
+  return <FinanceiroPage />;
+}
+
+function FamilyFinancePage() {
+  return (
+    <AppShell>
+      <div className="space-y-6">
+        <PageHeader
+          group="Financeiro"
+          title="Propinas e Pagamentos"
+          description="Consulte e pague as propinas no PayFlow, o portal de pagamentos da escola."
+        />
+        <div className="surface-card space-y-3 p-6">
+          <p className="text-sm text-muted-foreground">
+            As facturas, os recibos e os pagamentos das propinas estão no PayFlow. Para dúvidas
+            sobre valores ou prazos, contacte a tesouraria da escola.
+          </p>
+          <PayflowPayerLink label="Abrir o PayFlow" size="default" variant="default" />
+        </div>
+      </div>
+    </AppShell>
+  );
+}
 
 function FinanceiroPage() {
   const paymentKey = usePaymentAttemptKey();

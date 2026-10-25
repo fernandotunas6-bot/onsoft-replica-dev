@@ -203,11 +203,11 @@ export const getCourseReview = createServerFn({ method: "GET" })
   });
 
 export const linkCoursesToCatalogInputSchema = z.object({
-  auto: z.array(z.string().uuid()).max(200).default([]),
+  auto: z.array(z.string().guid()).max(200).default([]),
   manual: z
     .array(
       z.object({
-        programId: z.string().uuid(),
+        programId: z.string().guid(),
         catalogCode: z.string().regex(/^[A-Z][A-Z0-9-]{0,23}$/),
       }),
     )

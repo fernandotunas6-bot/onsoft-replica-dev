@@ -8,7 +8,7 @@ import { getStudentAttendanceHistory } from "@/features/pedagogica/attendance-se
 import { studentPortalSections } from "./student-portal-bridge";
 
 export const studentWebsitePageInput = z
-  .object({ schoolId: z.string().uuid(), section: z.enum(studentPortalSections) })
+  .object({ schoolId: z.string().guid(), section: z.enum(studentPortalSections) })
   .strict();
 
 /** One authenticated request binds every underlying read to the same active school. */

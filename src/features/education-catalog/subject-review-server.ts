@@ -91,7 +91,7 @@ export const getSubjectReview = createServerFn({ method: "GET" })
   });
 
 export const normalizeSubjectNamesInputSchema = z.object({
-  subjectIds: z.array(z.string().uuid()).min(1).max(200),
+  subjectIds: z.array(z.string().guid()).min(1).max(200),
 });
 
 export const normalizeSubjectNames = createServerFn({ method: "POST" })
@@ -144,8 +144,8 @@ export const normalizeSubjectNames = createServerFn({ method: "POST" })
   });
 
 export const mergeDuplicateSubjectsInputSchema = z.object({
-  keepId: z.string().uuid(),
-  mergeIds: z.array(z.string().uuid()).min(1).max(20),
+  keepId: z.string().guid(),
+  mergeIds: z.array(z.string().guid()).min(1).max(20),
 });
 
 type MergeResult = Record<string, number | string>;
@@ -221,12 +221,12 @@ export const mergeDuplicateSubjects = createServerFn({ method: "POST" })
 
 export const linkSubjectsToCatalogInputSchema = z.object({
   /** Sugestões automáticas da revisão (nome exacto) a aplicar. */
-  auto: z.array(z.string().uuid()).max(500).default([]),
+  auto: z.array(z.string().guid()).max(500).default([]),
   /** Disciplinas próprias da escola ligadas à mão a uma disciplina do catálogo. */
   manual: z
     .array(
       z.object({
-        subjectId: z.string().uuid(),
+        subjectId: z.string().guid(),
         catalogCode: z.string().regex(/^[A-Z][A-Z0-9-]{0,23}$/),
       }),
     )

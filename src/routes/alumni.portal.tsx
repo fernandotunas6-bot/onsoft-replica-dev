@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BriefcaseBusiness,
@@ -197,6 +197,10 @@ function AlumniPortalPage() {
           crumbs={[{ label: "Início", to: "/" }, { label: "Meu Portal Alumni" }]}
           actions={
             <div className="flex items-center gap-3">
+              {/* O portfólio existia mas nada levava até ele. */}
+              <Button variant="outline" size="sm" asChild className="rounded-xl h-9 text-xs">
+                <Link to="/alumni/portal/portfolio">O meu portfólio</Link>
+              </Button>
               <div className="min-w-44 rounded-xl border border-border/70 bg-card p-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-muted-foreground">Perfil completo</span>

@@ -34,7 +34,7 @@ import { requireAal2 } from "@/features/hr/require-aal2";
  */
 
 export const setStaffModuleGrantInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
   moduleKey: z.enum(accessModules.map((item) => item.key) as [string, ...string[]]),
   level: z.enum(["Nenhum", "Leitura", "Escrita", "Total"]),
 });
@@ -101,7 +101,7 @@ export const setStaffModuleGrant = createServerFn({ method: "POST" })
   });
 
 export const clearStaffModuleGrantInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
   moduleKey: z.enum(accessModules.map((item) => item.key) as [string, ...string[]]),
 });
 

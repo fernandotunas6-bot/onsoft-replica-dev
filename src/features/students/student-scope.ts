@@ -6,6 +6,7 @@
  * cadastro (ou o dos educandos). O pessoal da escola vê todos.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 
 export const STUDENT_STAFF_ROLES = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
 /** Vêem todos os alunos da escola. O professor vê só os das suas turmas. */
@@ -108,7 +109,10 @@ async function teacherStudentScope(
   if (!teacherId) return { studentIds: [], personIds: own };
   const classGroupIds = await teacherClassGroupIds(db, schoolId, teacherId);
   if (!classGroupIds.length) return { studentIds: [], personIds: own };
-  const { data: enrollments, error } = await db
+  // Por páginas e em lotes de ids: um professor com várias turmas tem centenas de
+  // alunos, e a lista de ids passava o tamanho do URL (as fichas ficavam de fora).
+  const reads = pagedReadClient(db);
+  const { data: enrollments, error } = await reads
     .from("enrollments")
     .select("student_id")
     .eq("school_id", schoolId)
@@ -120,8 +124,8 @@ async function teacherStudentScope(
   ];
   if (!studentIds.length) return { studentIds, personIds: own };
   const [{ data: students }, { data: guardians }] = await Promise.all([
-    db.from("students").select("person_id").eq("school_id", schoolId).in("id", studentIds),
-    db
+    reads.from("students").select("person_id").eq("school_id", schoolId).in("id", studentIds),
+    reads
       .from("student_guardians")
       .select("guardian_person_id")
       .eq("school_id", schoolId)

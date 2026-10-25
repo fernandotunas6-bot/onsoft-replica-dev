@@ -1,4 +1,4 @@
-import { normalizeText } from "../engine/normalize";
+import { normalizeText, valueOf } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { uniqueExactMatch } from "./academic-core";
 
@@ -6,14 +6,6 @@ type Ref = { id: string; code: string; name: string };
 type SalasCache = ImportRefCache & {
   existingRooms: Ref[];
 };
-
-function valueOf(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    const value = row[key];
-    if (value !== undefined && value !== null && normalizeText(value)) return value;
-  }
-  return null;
-}
 
 export const salasImporter: RowImporter = {
   module: "salas",

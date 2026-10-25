@@ -71,10 +71,16 @@ import {
   enrollStudentInClass,
   getStudentProfile,
   removeGuardian,
-  updateEnrollment,
   updateEnrollmentAttendance,
   updateStudentProfile,
 } from "@/features/students/server";
+import {
+  academicStatusLabel,
+  enrollmentStatusLabel,
+  studentStatusChoices,
+  type ManualStudentStatus,
+} from "@/features/students/academic-status";
+import { classGroupChoices } from "@/features/students/enrollment-directory";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
@@ -92,6 +98,7 @@ import {
   overlayServico,
 } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
+import { latestCertifiableYear } from "@/features/documents/certificate-year";
 import { officialDeclarationBody } from "@/features/documents/schemas";
 import { issueInvoice, listInvoices, recordInvoicePayment } from "@/features/finance/server";
 import {
@@ -131,13 +138,6 @@ export const Route = createFileRoute("/alunos/$studentId")({
 });
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
-
-const estadoLabels: Record<string, string> = {
-  active: "Activo",
-  inactive: "Inactivo",
-  transferred: "Transferido",
-  graduated: "Concluído",
-};
 
 const pagamentoLabels: Record<string, string> = {
   settled: "Regularizado",
@@ -181,6 +181,7 @@ type StudentProfile = {
   enrollment_id: string | null;
   enrollment_status: string | null;
   enrolled_on: string | null;
+  class_group_id: string | null;
   academic_year_id: string | null;
   final_average: number | null;
   attendance_rate: number | null;
@@ -479,13 +480,7 @@ function StudentDetail() {
   };
 
   const handleChangeStatus = async (values: Record<string, string>) => {
-    const statusMap: Record<string, "active" | "inactive" | "transferred" | "graduated"> = {
-      Activo: "active",
-      Inactivo: "inactive",
-      Transferido: "transferred",
-      Concluído: "graduated",
-    };
-    const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
+    const newStatus = (values["estado"] || "active") as ManualStudentStatus;
     await changeStudentStatus({
       data: {
         studentId,
@@ -500,10 +495,7 @@ function StudentDetail() {
   };
 
   const classGroups = workspaceQuery.data?.classGroups ?? [];
-  const turmaOptions = classGroups.map(
-    (group) =>
-      `${group.name} · ${group.grade_name} · ${group.course_name} · ${group.id.slice(0, 8)}`,
-  );
+  const turmaOptions = classGroupChoices(classGroups);
 
   const invalidateStudent = async () => {
     await Promise.all([
@@ -515,29 +507,11 @@ function StudentDetail() {
   };
 
   const handleAssignClass = async (values: Record<string, string>) => {
-    const index = turmaOptions.indexOf(values["turma"] ?? "");
-    const selected = index >= 0 ? classGroups[index] : undefined;
+    const selected = classGroups.find((group) => group.id === values["turma"]);
     if (!selected) throw new Error("Seleccione uma turma válida.");
-    if (student.enrollment_id) {
-      await updateEnrollment({
-        data: {
-          enrollmentId: student.enrollment_id,
-          classGroupId: selected.id,
-          status: "active",
-        },
-      });
-    } else {
-      const academicYearId =
-        selected.academic_year_id ?? student.academic_year_id ?? selectedYearId;
-      if (!academicYearId) throw new Error("A turma seleccionada não tem ano lectivo associado.");
-      await enrollStudentInClass({
-        data: {
-          studentId,
-          classGroupId: selected.id,
-          academicYearId,
-        },
-      });
-    }
+    // Atribuir e alterar são a mesma operação no servidor: com matrícula no ano da
+    // turma muda a turma nessa matrícula, sem ela matricula (o ano vem da turma).
+    await enrollStudentInClass({ data: { studentId, classGroupId: selected.id } });
     await invalidateStudent();
   };
 
@@ -748,10 +722,10 @@ function StudentDetail() {
         programName: student.grade_name ?? student.course_name,
       },
       overlay: overlayDossie({
-        status: estadoLabels[student.student_status] ?? student.student_status,
-        enrollmentStatus: student.enrollment_id ? "Activa" : "Sem matrícula",
+        status: academicStatusLabel(student.student_status),
+        enrollmentStatus: enrollmentStatusLabel(student.enrollment_status),
         checklist: [
-          { item: "Matrícula activa", ok: Boolean(student.enrollment_id) },
+          { item: "Matrícula activa", ok: student.enrollment_status === "active" },
           { item: "Turma atribuída", ok: Boolean(student.class_name) },
           { item: "Encarregado de educação", ok: guardians.length > 0 },
           { item: "Contacto do aluno", ok: Boolean(student.email || student.phone) },
@@ -787,27 +761,27 @@ function StudentDetail() {
   };
 
   const downloadCertificado = async () => {
-    // Certificado deriva do Histórico, mas certifica apenas o ano lectivo mais recente concluído
-    // (o Histórico completo mostra a trajectória multi-ano; ver historicoPeriods()).
-    // Só certifica o que está no histórico oficial: o ano mais recente com
-    // resultado registado. Sem registo, não há certificado.
-    const periods = historicoPeriods()
-      .filter((period) => period.official)
-      .slice(-1);
-    if (!periods.length) {
+    // Certifica o último ano concluído com aprovação registada no histórico oficial
+    // (Pedagógica → Exames → Resultado final), com a turma e a classe desse ano.
+    const year = latestCertifiableYear(historyQuery.data?.years ?? []);
+    if (!year) {
       throw new Error(
-        "O certificado só se emite com o resultado do ano registado no histórico (Pedagógica → Exames → Resultado final).",
+        "O certificado só se emite para um ano com aprovação registada no histórico (Pedagógica → Exames → Resultado final).",
       );
     }
-    const academicYear = periods[0].periodName || studentPrintSchool.academicYear || "";
+    const periods = historicoPeriods().filter(
+      (period) => period.official && period.periodName === year.academicYearName,
+    );
+    const academicYear = year.academicYearName;
+    const valid = (value: string) => (value && value !== "—" ? value : null);
     await issuePrintDocument({
       tipo: "Certificado de habilitações",
-      school: studentPrintSchool,
+      school: { ...studentPrintSchool, academicYear },
       student: {
         fullName: student.full_name,
         academicNumber: student.registration_number,
-        className: student.class_name,
-        programName: student.grade_name ?? student.course_name,
+        className: valid(year.classGroupName),
+        programName: valid(year.gradeName) ?? valid(year.courseName),
         validationCode: documentValidationCode([
           student.id,
           student.registration_number,
@@ -815,7 +789,7 @@ function StudentDetail() {
           academicYear,
         ]),
       },
-      overlay: overlayHistorico({ periods }),
+      overlay: overlayHistorico({ periods: periods.slice(-1) }),
     });
   };
 
@@ -1034,7 +1008,7 @@ function StudentDetail() {
                       ? "inactive"
                       : "neutral"
                 }
-                label={estadoLabels[student.student_status] ?? student.student_status}
+                label={academicStatusLabel(student.student_status)}
               />
               {student.course_name ? (
                 <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-semibold text-secondary-foreground border border-border/50">
@@ -1208,9 +1182,7 @@ function StudentDetail() {
                     type: "select",
                     options: turmaOptions,
                     full: true,
-                    defaultValue: student.class_name
-                      ? turmaOptions.find((option) => option.startsWith(`${student.class_name} ·`))
-                      : undefined,
+                    defaultValue: student.class_group_id ?? undefined,
                   },
                 ]}
                 trigger={(open) => (
@@ -1402,8 +1374,8 @@ function StudentDetail() {
                   name: "estado",
                   label: "Novo estado",
                   type: "select",
-                  options: ["Activo", "Inactivo", "Transferido", "Concluído"],
-                  defaultValue: estadoLabels[student.student_status] ?? "Activo",
+                  options: studentStatusChoices(),
+                  defaultValue: student.student_status,
                 },
                 {
                   name: "motivo",
@@ -1554,7 +1526,7 @@ function StudentDetail() {
             title="Estado académico"
             value={
               student.enrollment_status
-                ? (estadoLabels[student.enrollment_status] ?? student.enrollment_status)
+                ? enrollmentStatusLabel(student.enrollment_status)
                 : "Sem matrícula activa"
             }
             subtitle={
@@ -1950,7 +1922,7 @@ function StudentDetail() {
           ...(student.course_name ? { course_name: student.course_name } : {}),
           academic_year: activeYearLabel,
           photo_url: student.photo_url ?? null,
-          status: estadoLabels[student.student_status] ?? student.student_status,
+          status: academicStatusLabel(student.student_status),
         }}
       />
     </AppShell>

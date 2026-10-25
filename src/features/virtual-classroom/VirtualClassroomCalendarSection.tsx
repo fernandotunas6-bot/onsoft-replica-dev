@@ -2,6 +2,13 @@ import { useVirtualClassrooms } from "./useVirtualClassrooms";
 
 type Props = { schoolId: string };
 
+const statusLabels: Record<string, string> = {
+  scheduled: "Agendada",
+  live: "A decorrer",
+  ended: "Terminada",
+  cancelled: "Cancelada",
+};
+
 export default function VirtualClassroomCalendarSection({ schoolId }: Props) {
   const { sessions, loading, error, refresh } = useVirtualClassrooms(schoolId);
   return (
@@ -44,7 +51,9 @@ export default function VirtualClassroomCalendarSection({ schoolId }: Props) {
               {new Date(session.starts_at).toLocaleString("pt-AO")} —{" "}
               {new Date(session.ends_at).toLocaleString("pt-AO")}
             </p>
-            <p className="text-xs text-muted-foreground">Estado: {session.status}</p>
+            <p className="text-xs text-muted-foreground">
+              Estado: {statusLabels[session.status] ?? session.status}
+            </p>
           </article>
         ))}
     </section>
