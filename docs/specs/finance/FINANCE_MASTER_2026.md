@@ -69,6 +69,8 @@ Cada uma é um PR próprio, para se poder fundir e reverter sozinha.
 | 3    | #296 | §4.4 Facturas           | Número da proforma repetido e com o ano UTC                                                          | `FP-AAAA/MMDD-XXXX` com a data de Luanda                                                                                    | —                |
 | 4    | #298 | §7 Integrações          | AppyPay confirmado sem valor creditava o total; moeda não verificada                                 | Sem valor positivo em AOA fica «Em revisão»; credita o menor dos dois valores                                               | —                |
 | 5    | #299 | §9.2 Tabelas, §13       | Facturas, Caixa e Tesouraria mostravam só as 250 facturas recentes; vencidas antigas não se cobravam | Todas as por pagar entram, em páginas de 1000; as quatro páginas partilham a cache do resumo                                | —                |
+| 6    | #304 | §4.3 Pagamentos, §11    | A importação de pagamentos pagava sem trancar a fatura, sem a multa, e repetia a folha               | Liquidação atómica dos webhooks, com a chave da linha no `external_id`                                                      | —                |
+| 7    | #283 | §4.6 Caixa              | Sessão fechada sem diferença desaparecia; sem relatório de fecho                                     | «Fechos de caixa» na Tesouraria: fundo, entradas, saídas, esperado, contado, diferença                                      | —                |
 
 ## Performance (§13)
 
@@ -79,6 +81,8 @@ Não medida em ambiente real: a sessão local liga à produção. Leitura do có
 
 ## Pendências que precisam de decisão
 
+Relatório final do §18, com a cobertura do prompt secção a secção: [`RELATORIO_FINAL_2026.md`](../../qa/finance/RELATORIO_FINAL_2026.md).
+
 Nenhuma destas se fecha só com código: cada uma escreve na produção, depende de terceiros ou de validação profissional.
 
 1. **Aplicar as migrações**, por esta ordem: `20261024090000` (estorno conta a multa), `20261024100000` (chave de idempotência), `20261024110000` (sessões de caixa, #283), `20261025090000` (propina única, #290) e `20261025100000` (aprovação e auditoria de despesas, #295). O #283 já não prende à sessão uma despesa por aprovar do #295, em qualquer ordem de fusão. Cada uma tem um ensaio em `tests/sql/` que a corre numa base e falha com o defeito que corrige. O código do #276 funciona com ou sem elas, por isso podem ser aplicadas antes ou depois de o publicar. Depois de cada `apply_migration`, renomear o ficheiro para o carimbo registado e conferir o md5 do corpo; a segunda acrescenta uma coluna e um índice a `finance_receipts`, por isso recapturar o retrato.
@@ -87,3 +91,4 @@ Nenhuma destas se fecha só com código: cada uma escreve na produção, depende
 4. **Estados de pagamento unificados.** Feito na apresentação, sem mudar o modelo: `src/features/finance/payment-states.ts` traduz o estado da fatura, da cobrança do gateway, do recibo e do plano para o registo de estados (ícone e texto além da cor). A base continua com um estado por domínio, como o plano pede («distinguir estado do pagamento, da fatura e da reconciliação»). Fica por decidir só se algum dia se quer uma tabela única de transacções; hoje não há razão para isso.
 5. **Contabilidade formal.** Projecto técnico em [`CONTABILIDADE_PROPOSTA.md`](CONTABILIDADE_PROPOSTA.md): modelo, restrições de integridade na base, regras de lançamento indicativas (PGC Angola), cinco fases e quatro decisões pedidas. A primeira é quem valida, porque sem contabilista nada se activa.
 6. **QR de pagamento real.** A integração AppyPay suporta hoje referência (`REF`) e Multicaixa Express por telemóvel (`GPO`), ambos reais e confirmados no servidor. Não suporta QR. O QR exige que o fornecedor o emita, com adesão e credenciais por escola. Retirou-se o texto `EMIS|ENT:…|REF:…` que `emiss-multicaixa.ts` montava como «QR»: era um formato inventado, que ninguém desenhava mas que pareceria um QR de pagamento. Para avançar é preciso confirmar com a AppyPay ou a EMIS se o contrato da escola inclui QR dinâmico e qual é a API.
+7. **Limite de desconto por papel (§8).** Bolsas e descontos de contrato exigem Administrador ou Tesouraria, 2FA, motivo e auditoria, mas a Tesouraria dá até 100 % sem segunda pessoa. Proposta: acima de um limite (por exemplo 50 %), só um Administrador. Falta decidir o limite.
