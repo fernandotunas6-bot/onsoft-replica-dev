@@ -72,6 +72,7 @@ describe("modelos de impressão sem código activo", () => {
           "core:default",
           "core:window:allow-close",
           "allow-desktop-offline-readiness",
+          "allow-open-siga-portal",
         ]);
       }
     }

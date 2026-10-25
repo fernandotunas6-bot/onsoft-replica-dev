@@ -44,6 +44,7 @@ assert.deepEqual(offlinePreview.permissions, [
   "core:default",
   "core:window:allow-close",
   "allow-desktop-offline-readiness",
+  "allow-open-siga-portal",
 ]);
 const nativeReadiness = readFileSync("src-tauri/src/commands/siga.rs", "utf8");
 assert(nativeReadiness.includes("pub fn desktop_offline_readiness"));

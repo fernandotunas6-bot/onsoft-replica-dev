@@ -54,8 +54,7 @@
       ],
       "tests": ["tests/students/schemas.test.ts"],
       "accessKey": "pessoas",
-      "navPath": "/alunos",
-      "secondaryNavPaths": ["/alumni"]
+      "navPath": "/alunos"
     },
     {
       "id": "alumni",
@@ -115,7 +114,9 @@
         "supabase/migrations/20260907060000_alumni_portfolio.sql",
         "supabase/migrations/20260907070000_alumni_portfolio_education_levels.sql",
         "supabase/migrations/20260907080000_alumni_portfolio_education_history.sql"
-      ]
+      ],
+      "dormant": true,
+      "dormantReason": "Zero registos em produção a 25/10/2026; fora do lançador e do menu. Rotas intactas."
     },
     {
       "id": "pessoas",
@@ -158,7 +159,7 @@
       "feature": ["src/features/finance/schemas.ts", "src/features/finance/server.ts"],
       "accessKey": "financeiro",
       "navPath": "/financeiro",
-      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros", "/financeiro/rh"]
+      "secondaryNavPaths": ["/faturas", "/relatorios/financeiros"]
     },
     {
       "id": "rh",
@@ -183,13 +184,9 @@
       ],
       "tests": ["tests/hr/schemas-contract.test.ts"],
       "accessKey": "financeiro",
-      "secondaryNavPaths": [
-        "/financeiro/rh/folha",
-        "/financeiro/rh/faltas",
-        "/financeiro/rh/presenca",
-        "/financeiro/rh/pagamentos"
-      ],
-      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
+      "dormant": true,
+      "dormantReason": "Zero registos em produção a 25/10/2026; fora do lançador e do menu. Rotas intactas."
     },
     {
       "id": "documentos",
@@ -244,8 +241,7 @@
       ],
       "tests": ["tests/auth/access-policy.test.ts"],
       "accessKey": "gestao",
-      "navPath": "/acessos",
-      "secondaryNavPaths": ["/catracas"]
+      "navPath": "/acessos"
     },
     {
       "id": "matricula",
@@ -349,7 +345,9 @@
         "tests/catracas/reconciliation.test.ts"
       ],
       "accessKey": "gestao",
-      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql"
+      "sql": "supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql",
+      "dormant": true,
+      "dormantReason": "Zero registos em produção a 25/10/2026; fora do lançador e do menu. Rotas intactas."
     },
     {
       "id": "saas",
