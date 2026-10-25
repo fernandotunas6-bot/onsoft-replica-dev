@@ -9,9 +9,7 @@ import {
   restoreOfflineQueries,
 } from "@/lib/offline/offline-queries";
 
-const years = [
-  { id: "year-a", code: "2026", name: "2026", status: "active" },
-];
+const years = [{ id: "year-a", code: "2026", name: "2026", status: "active" }];
 const serverYears = years.map((year) => ({ ...year, school_id: "school-a" }));
 
 const terms = [
@@ -72,12 +70,14 @@ describe("cache offline mínima por escola", () => {
       banking: { iban: "AO987654321" },
     });
     client.setQueryData(["calendar", "events"], [{ description: "Segredo do aluno" }]);
-    client.setQueryData(["school", "academic-years"], [
-      { ...serverYears[0], internalNotes: "Só o director" },
-    ]);
-    client.setQueryData(["school", "academic-terms"], [
-      { ...serverTerms[0], individualStudent: "Aluno privado" },
-    ]);
+    client.setQueryData(
+      ["school", "academic-years"],
+      [{ ...serverYears[0], internalNotes: "Só o director" }],
+    );
+    client.setQueryData(
+      ["school", "academic-terms"],
+      [{ ...serverTerms[0], individualStudent: "Aluno privado" }],
+    );
     await vi.advanceTimersByTimeAsync(1000);
     const raw = localStorage.getItem(offlineQueriesStorageKey("school-a"));
     expect(raw).not.toBeNull();

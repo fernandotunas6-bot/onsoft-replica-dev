@@ -58,7 +58,9 @@ function cleanAcademicYears(value: unknown, schoolId?: string): AcademicYear[] |
       !isBoundedString(data.code, 120) ||
       !isBoundedString(data.name, 120) ||
       !isBoundedString(data.status, 40)
-    ) return null;
+    ) {
+      return null;
+    }
     result.push({
       id: data.id,
       code: data.code,
@@ -86,7 +88,9 @@ function cleanAcademicTerms(value: unknown, schoolId?: string): AcademicTerm[] |
       !Number.isInteger(data.sequence) ||
       data.sequence < 0 ||
       data.sequence > 50
-    ) return null;
+    ) {
+      return null;
+    }
     result.push({
       id: data.id,
       name: data.name,
@@ -140,7 +144,9 @@ export function restoreOfflineQueries(queryClient: QueryClient, schoolId: string
       !Number.isFinite(cache.savedAt) ||
       cache.savedAt > now ||
       now - cache.savedAt > MAX_AGE_MS
-    ) return false;
+    ) {
+      return false;
+    }
 
     const years = cache.years === undefined ? null : cleanAcademicYears(cache.years);
     const terms = cache.terms === undefined ? null : cleanAcademicTerms(cache.terms);
@@ -164,8 +170,14 @@ export function persistOfflineQueries(queryClient: QueryClient, schoolId: () => 
     if (schoolId() !== schoolAtQuery) return;
     // Cada linha traz a escola certificada pelo servidor. Recusar respostas
     // antigas de outro tenant que tenham chegado após o utilizador trocar escola.
-    const years = cleanAcademicYears(queryClient.getQueryData(["school", "academic-years"]), schoolAtQuery);
-    const terms = cleanAcademicTerms(queryClient.getQueryData(["school", "academic-terms"]), schoolAtQuery);
+    const years = cleanAcademicYears(
+      queryClient.getQueryData(["school", "academic-years"]),
+      schoolAtQuery,
+    );
+    const terms = cleanAcademicTerms(
+      queryClient.getQueryData(["school", "academic-terms"]),
+      schoolAtQuery,
+    );
     if (years === null && terms === null) return;
 
     const payload: OfflineCache = {
@@ -202,10 +214,9 @@ export function persistOfflineQueries(queryClient: QueryClient, schoolId: () => 
 export function clearOfflineQueries(): void {
   try {
     for (const key of Object.keys(localStorage)) {
-      if (
-        key.startsWith(`${STORAGE_PREFIX}:`) ||
-        key.startsWith(`${LEGACY_STORAGE_PREFIX}:`)
-      ) localStorage.removeItem(key);
+      if (key.startsWith(`${STORAGE_PREFIX}:`) || key.startsWith(`${LEGACY_STORAGE_PREFIX}:`)) {
+        localStorage.removeItem(key);
+      }
     }
   } catch {
     // Sem armazenamento local: nada a apagar.
