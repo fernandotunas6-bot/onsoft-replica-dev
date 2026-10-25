@@ -26,7 +26,7 @@ Executar num terminal **privado**, nunca em frontend, com um token de gestão Su
 node scripts/siga/check-finance-schema-drift.mjs --project-ref=<REF_DO_PROJECTO>
 ```
 
-Definir previamente `SUPABASE_ACCESS_TOKEN` como variável de ambiente apenas no processo seguro. A script usa **SQL de SELECT constante** com `read_only: true` da Management API; não aceita texto SQL arbitrário e falha com código diferente de zero se encontrar drift, pendências ou resposta malformada. A API é experimental, pelo que deve ser validada quando o fornecedor mudar de versão.
+Definir previamente `SUPABASE_ACCESS_TOKEN` como variável de ambiente apenas no processo seguro. A script usa **SQL de SELECT constante** através do endpoint dedicado **`POST /v1/projects/{ref}/database/query/read-only`**, que executa a consulta como `supabase_read_only_user` (Beta). **Não** usa `POST /database/query` nem depende da opção `read_only` nesse endpoint de escrita. Não aceita texto SQL arbitrário e falha com código diferente de zero se encontrar drift, pendências ou resposta malformada. A API requer monitorização de alterações do fornecedor.
 
 Uma saída sem divergência **não** prova que o sistema está pronto: o teste cobre nove indicadores de inventário, não o DDL integral, os constrangimentos, a semântica das RPCs, as permissões por escola nem a funcionalidade autenticada.
 
@@ -48,4 +48,4 @@ Uma saída sem divergência **não** prova que o sistema está pronto: o teste c
 - **#288:** desktop Tauri integrado na `main` (incremental; não significa offline integral).
 - **#291:** portão E2E/staging + este inventário; CI e testes locais anteriores aprovados; novo CI deve ser validado no último commit antes de integração.
 
-**Fonte normativa:** [Supabase — migrations](https://supabase.com/docs/guides/deployment/database-migrations) e [Management API — run query](https://supabase.com/docs/reference/api/v1-run-a-query). A decisão de reparar histórico nunca deve ser automática.
+**Fonte normativa:** [Supabase — migrations](https://supabase.com/docs/guides/deployment/database-migrations) e [Management API — consulta exclusiva de leitura](https://supabase.com/docs/reference/api/v1-read-only-query). A decisão de reparar histórico nunca deve ser automática.
