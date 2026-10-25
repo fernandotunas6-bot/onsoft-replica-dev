@@ -462,10 +462,7 @@ async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
     // mas não é suficiente: o IPC pode ser invocado directamente do WebView.
     // O Rust bloqueia instalações se o cofre estiver fechado ou houver alguma
     // entrada offline, incluindo lançamentos sem confirmação do servidor.
-    native_storage::ensure_native_update_safe(
-        &app,
-        &app.state::<native_storage::PortalVault>(),
-    )?;
+    native_storage::ensure_native_update_safe(&app, &app.state::<native_storage::PortalVault>())?;
     use tauri_plugin_updater::UpdaterExt;
     let Some(update) = app
         .updater()
@@ -477,10 +474,7 @@ async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
         return Err("Já tem a versão mais recente do SIGA.".into());
     };
     // Revalidar após a consulta online, imediatamente antes da instalação.
-    native_storage::ensure_native_update_safe(
-        &app,
-        &app.state::<native_storage::PortalVault>(),
-    )?;
+    native_storage::ensure_native_update_safe(&app, &app.state::<native_storage::PortalVault>())?;
     update
         .download_and_install(|_, _| {}, || {})
         .await

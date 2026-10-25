@@ -444,8 +444,11 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let snapshot = dir.join(VAULT_FILE);
         let stronghold = prepare_client(
-            Stronghold::new(&snapshot, KeyDerivation::argon2("123456", &dir.join(SALT_FILE)))
-                .unwrap(),
+            Stronghold::new(
+                &snapshot,
+                KeyDerivation::argon2("123456", &dir.join(SALT_FILE)),
+            )
+            .unwrap(),
         )
         .unwrap();
 
