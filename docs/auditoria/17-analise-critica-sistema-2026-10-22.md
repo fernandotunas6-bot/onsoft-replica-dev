@@ -29,10 +29,10 @@ de segurança, chegaram aos utilizadores. A auditoria 16 foi escrita antes disto
 | Tabelas em `public`             | **209**                                       |
 | Nunca tiveram uma linha         | **102** (48,8%)                               |
 | Tabelas por escola              | 170, das quais **76 usadas pela escola real** |
-| Escolas                         | 49                                            |
+| Escolas                         | 49 → **6** (limpas a 25/10)                   |
 | Escolas com uso a sério         | **1**                                         |
-| Escolas com exactamente 1 aluno | **43**                                        |
-| Escolas vazias                  | 5                                             |
+| Escolas com exactamente 1 aluno | **43** → 0                                    |
+| Escolas vazias                  | 5 → 4                                         |
 
 ### A escola real
 
@@ -44,16 +44,36 @@ cadastro de demonstração nem um resto de ensaio.
 Era isto que a frase "o uso real é 1 escola, 2 alunos" escondia. Há uma escola a usar o sistema de
 forma continuada desde Agosto.
 
-### As 43 outras
+### As 43 outras — apagadas a 25/10
 
 Todas com nome de teste, todas com exactamente 1 aluno, e **todas criadas a 8 e 9 de Setembro** — dois
-dias, uma rajada de E2E, não poluição a entrar aos poucos. Trazem consigo:
+dias, uma rajada de E2E, não poluição a entrar aos poucos. Traziam consigo:
 
-- **34 das 38 facturas** da base (só 4 são da escola real)
-- **12 509 dos ~14 900 registos de auditoria** — a tabela de auditoria é 84% ruído de ensaio
+- **34 das 38 facturas** da base (só 4 eram da escola real)
+- **12 509 dos ~14 900 registos de auditoria** — a auditoria era 84% ruído de ensaio
 
-Qualquer métrica de uso lida sem as excluir mente por mais do dobro. Foi o que me aconteceu, e à
+Qualquer métrica de uso lida sem as excluir mentia por mais do dobro. Foi o que me aconteceu, e à
 auditoria 16 antes de mim.
+
+**Foram removidas a 25/10**, com as 44 contas Auth `e2e+…@siga-plus.test`. A produção ficou com 6
+tenants: o Colégio Adventista (42 alunos, 9 vínculos), três escolas inscritas sem alunos ainda
+(Ekovongo, Epatulokko, Twapandula), a demonstração do ISPAB e um registo arquivado de provisionamento
+falhado. Linhas na base: 37 770 → **14 536**.
+
+Duas notas sobre como foi feito, porque importam a quem repetir:
+
+- O guião do projecto (`siga:e2e-cleanup-stale`) **não consegue** fazer isto: apaga um tenant por
+  invocação e a sua verificação de artefactos aborta se a escola tiver um só aluno. Foi preciso
+  desfazer essa verificação deliberadamente, mantendo as de identidade (slug, contacto
+  `@siga-plus.test` igual ao do tenant, nome, data). Não foi o guião a correr com as protecções todas.
+- Como a purga corre com as verificações de chave estrangeira desligadas (`audit_logs` é append-only
+  por trigger), varreram-se **todas** as FK de `public`, `private` e `academic_evidence` à procura de
+  órfãos no fim: **zero**. E a escola real ficou idêntica — as mesmas 76 tabelas, 42 alunos, 2355
+  registos de auditoria, 183 aulas no horário.
+
+**As 102 tabelas vazias continuam 102.** Não eram ruído de ensaio: tudo o que o E2E tocava, a escola
+real também toca. A desproporção medida acima não se desfez com a limpeza — só ficou visível sem o
+ruído em cima.
 
 ### Os módulos adormecidos: zero, confirmado à unidade
 
@@ -188,11 +208,8 @@ Com os casos de 04/10 e 22/10, são quatro episódios de segredos colados em can
    **exactamente zero linhas** (medido a 25/10, não estimado). Escolher um para piloto real numa
    escola e marcar os outros como não suportados, em vez de os manter a meio caminho entre "feito" e
    "nunca usado". É a acção mais útil que resta, e a única que ataca a desproporção medida acima.
-2. **Limpar ou marcar as 43 escolas de ensaio.** São identificáveis sem ambiguidade: nome de teste,
-   exactamente 1 aluno, todas criadas a 8–9/09. Trazem 34 das 38 facturas e 12 509 dos ~14 900
-   registos de auditoria. Enquanto estiverem por marcar, toda a métrica de uso mente por mais do
-   dobro — foi o que aconteceu à auditoria 16 e à primeira versão deste relatório. A limpeza exige
-   `SIGA_CLEANUP_ALLOW_PRODUCTION=1` (o _dry-run_ salta o guarda).
+2. ~~**Limpar ou marcar as 43 escolas de ensaio.**~~ Feito a 25/10: apagadas, com as 44 contas
+   Auth. As métricas de uso deixaram de mentir. ✔
 3. **_Staging_.** Desbloqueia a prova E2E autenticada e tira as migrações da produção às cegas.
 4. **Rotacionar o segredo Google OAuth** e só depois apagar o ficheiro do disco. Apagá-lo antes não
    resolve: o segredo já foi exposto num chat a 25/09 e continua válido.
