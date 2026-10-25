@@ -214,22 +214,27 @@ function LessonPlansPage() {
               name: "turma",
               type: "select",
               label: "Turma",
-              options: classGroups.map((group) => ({ value: group.id, label: group.name })),
+              // Sem a opção vazia, o select mostrava a primeira turma com o filtro desligado.
+              options: [
+                { value: "", label: "Todas" },
+                ...classGroups.map((group) => ({ value: group.id, label: group.name })),
+              ],
             },
             {
               name: "disciplina",
               type: "select",
               label: "Disciplina",
-              options: filterSubjects.map((subject) => ({
-                value: subject.id,
-                label: subject.name,
-              })),
+              options: [
+                { value: "", label: "Todas" },
+                ...filterSubjects.map((subject) => ({ value: subject.id, label: subject.name })),
+              ],
             },
             {
               name: "trimestre",
               type: "select",
               label: "Trimestre",
               options: [
+                { value: "", label: "Todos" },
                 { value: "1", label: "1º Trimestre" },
                 { value: "2", label: "2º Trimestre" },
                 { value: "3", label: "3º Trimestre" },
