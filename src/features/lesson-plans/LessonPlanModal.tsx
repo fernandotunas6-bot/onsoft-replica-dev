@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "@/lib/toast";
 import { ClipboardCheck, FileText, Plus, Sparkles, Trash2 } from "lucide-react";
 import { FormModal } from "@/components/ui/modal-system";
@@ -10,6 +10,11 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { createLessonPlan, updateLessonPlan } from "./server";
 import type { LessonPlanComponentInput } from "./schemas";
+import {
+  NO_CLASS_SUBJECTS,
+  subjectsOfClass,
+  type ClassSubjectLink,
+} from "@/features/academic/pauta-subjects";
 import { generateAiLessonPlanInide } from "./ai-lesson-plan-generator";
 
 type ClassGroupOption = { id: string; name: string };
@@ -37,6 +42,7 @@ export function LessonPlanModal({
   onOpenChange,
   classGroups,
   subjects,
+  classSubjects = NO_CLASS_SUBJECTS,
   initial,
   defaultClassGroupId,
   defaultSubjectId,
@@ -47,6 +53,8 @@ export function LessonPlanModal({
   onOpenChange: (open: boolean) => void;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
+  /** Disciplinas de cada turma; sem nenhuma para a turma, mostra o catálogo da escola. */
+  classSubjects?: ClassSubjectLink[];
   initial?: LessonPlanFormInitial | null;
   defaultClassGroupId?: string;
   defaultSubjectId?: string;
@@ -71,8 +79,14 @@ export function LessonPlanModal({
 
   useEffect(() => {
     if (!open) return;
-    setClassGroupId(initial?.classGroupId ?? defaultClassGroupId ?? classGroups[0]?.id ?? "");
-    setSubjectId(initial?.subjectId ?? defaultSubjectId ?? subjects[0]?.id ?? "");
+    const groupId = initial?.classGroupId ?? defaultClassGroupId ?? classGroups[0]?.id ?? "";
+    setClassGroupId(groupId);
+    setSubjectId(
+      initial?.subjectId ??
+        defaultSubjectId ??
+        subjectsOfClass(subjects, classSubjects, groupId)[0]?.id ??
+        "",
+    );
     setTerm(initial?.term ?? defaultTerm ?? 1);
     setTitle(initial?.title ?? "");
     setContent(initial?.content ?? "");
@@ -93,7 +107,32 @@ export function LessonPlanModal({
     setAvaliacoes(initialAvaliacoes.length ? initialAvaliacoes : [emptyComponentRow("avaliacao")]);
     setProvas(initialProvas.length ? initialProvas : [emptyComponentRow("prova")]);
     setFormError(null);
-  }, [open, initial, defaultClassGroupId, defaultSubjectId, defaultTerm, classGroups, subjects]);
+  }, [
+    open,
+    initial,
+    defaultClassGroupId,
+    defaultSubjectId,
+    defaultTerm,
+    classGroups,
+    subjects,
+    classSubjects,
+  ]);
+
+  // Só as disciplinas da turma; a de um plano antigo que não seja dela continua visível.
+  const groupSubjects = useMemo(() => {
+    const list = subjectsOfClass(subjects, classSubjects, classGroupId);
+    if (!subjectId || list.some((subject) => subject.id === subjectId)) return list;
+    const current = subjects.find((subject) => subject.id === subjectId);
+    return current ? [...list, current] : list;
+  }, [subjects, classSubjects, classGroupId, subjectId]);
+
+  const changeClassGroup = (nextGroupId: string) => {
+    setClassGroupId(nextGroupId);
+    const nextSubjects = subjectsOfClass(subjects, classSubjects, nextGroupId);
+    if (!nextSubjects.some((subject) => subject.id === subjectId)) {
+      setSubjectId(nextSubjects[0]?.id ?? "");
+    }
+  };
 
   const submit = async () => {
     if (!classGroupId || !subjectId) {
@@ -167,7 +206,7 @@ export function LessonPlanModal({
               id="lp-turma"
               className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
               value={classGroupId}
-              onChange={(event) => setClassGroupId(event.target.value)}
+              onChange={(event) => changeClassGroup(event.target.value)}
             >
               {classGroups.map((group) => (
                 <option key={group.id} value={group.id}>
@@ -184,7 +223,7 @@ export function LessonPlanModal({
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
             >
-              {subjects.map((subject) => (
+              {groupSubjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
                 </option>
