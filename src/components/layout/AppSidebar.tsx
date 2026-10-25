@@ -59,6 +59,15 @@ import {
   getNavigationAreas,
   isContextDestinationActive,
 } from "@/features/auth/contextual-navigation";
+import { ACADEMIC_CONTEXT_ENTRIES } from "@/features/intelligence/academic-context-entries";
+import {
+  CONTEXT_TYPE_LABELS,
+  contextEntryLink,
+  findActiveContextEntry,
+  getContextLevels,
+  type ContextLevel,
+} from "@/features/intelligence/context-registry";
+import { useResolvedContext } from "@/features/intelligence/use-resolved-context";
 
 /**
  * Fora do grafo estático da barra: o `AppShell` entra no manifesto da rota `/`, que
@@ -151,6 +160,14 @@ export function AppSidebar({
     currentUser.enabledModules,
   ]);
   const context = getNavigationContext(visibleGroups, pathname, locationSearch);
+  // SIGA Context Engine: turma e disciplina validadas no servidor abrem o seu
+  // próprio nível; cada «voltar» sobe um nível sem mudar de página.
+  const { context: resolvedContext } = useResolvedContext();
+  const contextLevels = useMemo(
+    () => getContextLevels(resolvedContext, ACADEMIC_CONTEXT_ENTRIES, activePlan),
+    [resolvedContext, activePlan],
+  );
+  const [levelsUp, setLevelsUp] = useState(0);
   const [areaPicker, setAreaPicker] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const navigationKey = JSON.stringify([
@@ -163,7 +180,15 @@ export function AppSidebar({
     setAreaPicker(false);
     setSchoolMenuOpen(false);
     setExpandedMenu(null);
+    setLevelsUp(0);
   }, [navigationKey]);
+  const levelIndex = contextLevels.length - 1 - levelsUp;
+  const contextLevel = !areaPicker && levelIndex >= 0 ? contextLevels[levelIndex] : null;
+  const parentLevel = contextLevel && levelIndex > 0 ? contextLevels[levelIndex - 1] : null;
+  const activeEntryId =
+    contextLevel && levelsUp === 0
+      ? findActiveContextEntry(contextLevel.entries, contextLevel.context, pathname, locationSearch)
+      : null;
   const contextual = Boolean(context && !areaPicker);
   const areas = getNavigationAreas(visibleGroups);
   const generalGroups: NavGroup[] = [
@@ -390,24 +415,37 @@ export function AppSidebar({
             collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-2.5",
           )}
         >
-          <div className="pt-2 pb-0.5">
-            <NavButtonRow
-              label={
-                contextual ? "Todas as áreas" : context ? "Voltar ao módulo" : "Áreas de trabalho"
+          {contextLevel ? (
+            <ContextLevelNav
+              level={contextLevel}
+              backLabel={
+                parentLevel ? parentLevel.frame.label : (context?.title ?? "Áreas de trabalho")
               }
-              icon={contextual ? LayoutGrid : ArrowLeft}
+              onBack={() => setLevelsUp((levels) => levels + 1)}
+              activeEntryId={activeEntryId}
               collapsed={collapsed}
-              onClick={() => setAreaPicker((open) => !open)}
-              expanded={!contextual}
-              className={!context ? "hidden" : undefined}
             />
-          </div>
-          {contextual &&
+          ) : (
+            <div className="pt-2 pb-0.5">
+              <NavButtonRow
+                label={
+                  contextual ? "Todas as áreas" : context ? "Voltar ao módulo" : "Áreas de trabalho"
+                }
+                icon={contextual ? LayoutGrid : ArrowLeft}
+                collapsed={collapsed}
+                onClick={() => setAreaPicker((open) => !open)}
+                expanded={!contextual}
+                className={!context ? "hidden" : undefined}
+              />
+            </div>
+          )}
+          {!contextLevel &&
+          contextual &&
           pathname.startsWith("/pedagogica") &&
           canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
             <AcademicNavTree collapsed={collapsed} />
           ) : null}
-          {displayedGroups.map((group) => (
+          {(contextLevel ? [] : displayedGroups).map((group) => (
             <div key={group.title}>
               <NavSubheader title={group.title} collapsed={collapsed} />
               <ul className="space-y-0.5">
@@ -604,6 +642,79 @@ export function AppSidebar({
         </Suspense>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Nível de uma entidade (turma, disciplina): cabeçalho, regresso ao nível
+ * superior e só as entradas autorizadas desse contexto, todas para rotas que já
+ * existem.
+ */
+function ContextLevelNav({
+  level,
+  backLabel,
+  onBack,
+  activeEntryId,
+  collapsed,
+}: {
+  level: ContextLevel;
+  backLabel: string;
+  onBack: () => void;
+  activeEntryId: string | null;
+  collapsed: boolean;
+}) {
+  const typeLabel = CONTEXT_TYPE_LABELS[level.frame.type];
+  const title = `${typeLabel} · ${level.frame.label}`;
+  const parents = level.context.trail
+    .slice(0, -1)
+    .map((frame) => frame.label)
+    .join(" · ");
+  return (
+    <div data-context-level={level.frame.type}>
+      <div className="pt-2 pb-0.5">
+        <NavButtonRow
+          label={backLabel}
+          ariaLabel={`Voltar para ${backLabel}`}
+          icon={ArrowLeft}
+          collapsed={collapsed}
+          onClick={onBack}
+        />
+      </div>
+      {collapsed ? (
+        <NavSubheader title={title} collapsed />
+      ) : (
+        <div
+          data-context-header=""
+          className="mx-1 mb-1 border-b border-sidebar-border/40 px-2 pt-3 pb-2"
+        >
+          <p className="truncate text-sm font-semibold text-sidebar-foreground" title={title}>
+            {title}
+          </p>
+          {parents ? (
+            <p className="truncate text-[11px] font-medium text-sidebar-muted" title={parents}>
+              {parents}
+            </p>
+          ) : null}
+        </div>
+      )}
+      <ul className="space-y-0.5" aria-label={title}>
+        {level.entries.map((entry) => {
+          const link = contextEntryLink(entry, level.context);
+          return (
+            <li key={entry.id}>
+              <NavLinkRow
+                to={link.to}
+                search={link.search}
+                label={entry.label}
+                icon={entry.icon}
+                collapsed={collapsed}
+                active={entry.id === activeEntryId}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

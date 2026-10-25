@@ -1,21 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Layers } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
-import { canAccessPath } from "@/features/auth/access-policy";
-import {
-  getTeacherWorkspace,
-  listPedagogicalWorkspace,
-  type PedagogicalWorkspace,
-} from "@/features/academic/server";
-import {
-  buildAcademicNavTree,
-  isClassTeacherLevel,
-  type AcademicNavAssignment,
-  type AcademicNavBranch,
-} from "@/lib/academic-nav";
+import type { AcademicNavBranch } from "@/lib/academic-nav";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -34,12 +22,12 @@ import {
   NavLinkRow,
   NavSubheader,
 } from "./NavItem";
+import { useAcademicNavTree } from "@/features/academic/use-academic-nav-tree";
 
 export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) {
   const account = useCurrentAccount();
   const { selectedYearId } = useSchoolSettings();
-  const canRead = canAccessPath("/pedagogica", account.role, account.grants);
-  const isTeacher = account.role === "Professor";
+  const { tree, canRead } = useAcademicNavTree();
   const [branchId, setBranchId] = useState<string | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [openClass, setOpenClass] = useState<string | null>(null);
@@ -56,76 +44,6 @@ export function AcademicNavTree({ collapsed = false }: { collapsed?: boolean }) 
     setOpenClass(null);
     setPopoverOpen(false);
   }, [account.schoolId, account.role, selectedYearId]);
-
-  const teacherQuery = useQuery({
-    queryKey: ["academic", "teacher-workspace", "nav", account.schoolId, account.role],
-    queryFn: () => getTeacherWorkspace({ data: {} }),
-    enabled: canRead && isTeacher,
-    retry: false,
-  });
-  const workspaceQuery = useQuery({
-    queryKey: ["academic", "pedagogical-workspace", selectedYearId, account.schoolId, account.role],
-    queryFn: () =>
-      listPedagogicalWorkspace({
-        data: selectedYearId ? { academicYearId: selectedYearId } : {},
-      }) as Promise<PedagogicalWorkspace>,
-    enabled: canRead && !isTeacher,
-    retry: false,
-  });
-
-  const tree = useMemo(() => {
-    if (isTeacher) {
-      const classes = teacherQuery.data?.classes ?? [];
-      return buildAcademicNavTree(
-        classes.map((row) => ({
-          classGroupId: row.id,
-          className: row.name,
-          gradeName: row.grade_name ?? row.name,
-          courseName: row.course_name,
-          subjectId: row.subject_id,
-          subjectName: row.subject_name,
-        })),
-      );
-    }
-    const groups = workspaceQuery.data?.classGroups ?? [];
-    const subjects = workspaceQuery.data?.subjects ?? [];
-    const classSubjects = workspaceQuery.data?.classSubjects ?? [];
-    const assignments: AcademicNavAssignment[] = [];
-    for (const group of groups) {
-      const linked = classSubjects.filter((row) => row.class_group_id === group.id);
-      if (linked.length > 0) {
-        for (const row of linked) {
-          assignments.push({
-            classGroupId: group.id,
-            className: group.name,
-            gradeName: group.grade_name,
-            courseName: group.course_name,
-            subjectId: row.subject_id,
-            subjectName: row.subject_name,
-          });
-        }
-      } else if (subjects.length > 0 && !isClassTeacherLevel(group.grade_name)) {
-        for (const subject of subjects) {
-          assignments.push({
-            classGroupId: group.id,
-            className: group.name,
-            gradeName: group.grade_name,
-            courseName: group.course_name,
-            subjectId: String(subject.id),
-            subjectName: String(subject.name),
-          });
-        }
-      } else {
-        assignments.push({
-          classGroupId: group.id,
-          className: group.name,
-          gradeName: group.grade_name,
-          courseName: group.course_name,
-        });
-      }
-    }
-    return buildAcademicNavTree(assignments);
-  }, [isTeacher, teacherQuery.data, workspaceQuery.data]);
 
   const selectionKey = JSON.stringify([
     account.schoolId,

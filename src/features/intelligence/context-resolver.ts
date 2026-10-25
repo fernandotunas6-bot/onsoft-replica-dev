@@ -187,3 +187,22 @@ export function resolveContext(input: ResolveContextInput): ResolveContextResult
   // (5) Área geral autorizada.
   return finish([], "area", null);
 }
+
+/** A entidade que a página declarou, já lida do servidor com a escola a que pertence. */
+export function focusContextLookup(focus: EntityFocus | null | undefined): ContextLookup {
+  return (candidate) =>
+    focus && sameCandidate(focus, candidate)
+      ? { type: focus.type, id: focus.id, label: focus.label, schoolId: focus.schoolId }
+      : null;
+}
+
+/** A primeira fonte que confirma a entidade ganha. */
+export function combineContextLookups(...lookups: ContextLookup[]): ContextLookup {
+  return (candidate) => {
+    for (const lookup of lookups) {
+      const entity = lookup(candidate);
+      if (entity) return entity;
+    }
+    return null;
+  };
+}

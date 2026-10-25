@@ -5,10 +5,12 @@ import {
   academicIdsFromTrail,
 } from "@/features/intelligence/academic-context-entries";
 import {
+  CONTEXT_TYPE_LABELS,
   contextBreadcrumb,
   contextEntryLink,
   findActiveContextEntry,
   getContextEntries,
+  getContextLevels,
   withActiveView,
 } from "@/features/intelligence/context-registry";
 import { subjectOfferingId } from "@/features/intelligence/context-resolver";
@@ -129,5 +131,35 @@ describe("academicIdsFromTrail", () => {
       turma: "outra",
       disciplina: undefined,
     });
+  });
+});
+
+describe("getContextLevels", () => {
+  it("dá um nível por passo com entradas, cada um com o seu caminho", () => {
+    const ctx = context("Professor", [classFrame, subjectFrame]);
+    const levels = getContextLevels(ctx, ACADEMIC_CONTEXT_ENTRIES);
+    expect(levels.map((level) => level.frame.label)).toEqual(["Turma A", "Matemática"]);
+    expect(levels[1]!.context).toBe(ctx);
+    expect(levels[0]!.context.trail).toEqual([classFrame]);
+    expect(levels[0]!.context.key).not.toBe(ctx.key);
+    const pauta = levels[0]!.entries.find((entry) => entry.id === "class.grades")!;
+    expect(contextEntryLink(pauta, levels[0]!.context).search).toEqual({
+      tab: "notas",
+      turma: TURMA_A,
+      pauta: "1",
+    });
+  });
+
+  it("salta passos sem entradas e devolve nada sem permissão", () => {
+    const student: ContextFrame = { type: "student", id: "s", label: "Ana" };
+    expect(getContextLevels(context("Professor", [student]), ACADEMIC_CONTEXT_ENTRIES)).toEqual([]);
+    expect(
+      getContextLevels(context("Tesouraria", [classFrame, subjectFrame]), ACADEMIC_CONTEXT_ENTRIES),
+    ).toEqual([]);
+  });
+
+  it("tem nome para cada tipo de entidade", () => {
+    expect(CONTEXT_TYPE_LABELS["subject-offering"]).toBe("Disciplina");
+    expect(CONTEXT_TYPE_LABELS.class).toBe("Turma");
   });
 });

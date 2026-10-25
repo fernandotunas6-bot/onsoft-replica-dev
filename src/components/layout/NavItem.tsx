@@ -185,14 +185,17 @@ export function NavLinkRow(
   );
 }
 
-export function NavButtonRow(props: BaseProps & { onClick?: () => void; expanded?: boolean }) {
-  const { onClick, expanded, ...rest } = props;
+export function NavButtonRow(
+  props: BaseProps & { onClick?: () => void; expanded?: boolean; ariaLabel?: string },
+) {
+  const { onClick, expanded, ariaLabel, ...rest } = props;
   return (
     <button
       type="button"
       onClick={onClick}
       aria-expanded={expanded}
-      title={props.label}
+      aria-label={ariaLabel}
+      title={ariaLabel ?? props.label}
       className={rowClass(rest)}
       data-nav-row=""
       data-nav-depth={props.depth ?? "root"}
