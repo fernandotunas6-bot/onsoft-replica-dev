@@ -181,7 +181,7 @@ function FaturasPage() {
 
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const financeStudentsQuery = useQuery({
     queryKey: ["finance", "students"],
@@ -781,7 +781,7 @@ function FaturasPage() {
         <PageHeader
           group="Relatórios"
           title="Faturas"
-          description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
+          description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação. Mostra as 250 mais recentes e todas as que estão por pagar."
           actions={
             <>
               <DocHelpButton title="Navegação — Faturas e tesouraria" />

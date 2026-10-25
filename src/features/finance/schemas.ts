@@ -33,6 +33,8 @@ export const listInvoicesInputSchema = z
   .object({
     limit: z.number().int().min(1).max(1000).default(100),
     studentId: z.string().guid().optional(),
+    /** Junta às mais recentes todas as faturas por pagar, por mais antigas que sejam. */
+    includeOpen: z.boolean().optional(),
   })
   .refine((input) => Boolean(input.studentId) || input.limit <= 250, {
     message: "Sem aluno, a lista vai até 250 faturas.",

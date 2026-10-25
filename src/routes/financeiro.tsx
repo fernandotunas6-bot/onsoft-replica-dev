@@ -184,7 +184,7 @@ function FinanceiroPage() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const reportingQuery = useQuery({
     queryKey: ["finance", "reporting"],
