@@ -127,7 +127,7 @@ describe("Website Studio com o Puck real", () => {
     const field = ui.container.querySelector<HTMLInputElement>(".studio-field input")!;
     fireEvent.change(field, { target: { value: "Alteração apenas no rascunho" } });
     await screen.findByText("Alterações por guardar");
-    fireEvent.click(screen.getByRole("button", { name: "Ver publicação" }));
+    fireEvent.click(await screen.findByText("Ver publicação", { selector: "button" }));
 
     const save = screen.getByRole("button", { name: "Guardar rascunho" }) as HTMLButtonElement;
     const publish = screen.getByRole("button", { name: "Publicar" }) as HTMLButtonElement;
@@ -137,7 +137,7 @@ describe("Website Studio com o Puck real", () => {
     expect(ui.persist).toHaveBeenCalledTimes(1);
     expect(Object.values(ui.saved().draft.values)).not.toContain("Alteração apenas no rascunho");
 
-    fireEvent.click(screen.getByRole("button", { name: "Voltar ao rascunho" }));
+    fireEvent.click(screen.getByText("Voltar ao rascunho", { selector: "button" }));
     expect(save.disabled).toBe(false);
     expect(ui.persist).toHaveBeenCalledTimes(1);
   });
