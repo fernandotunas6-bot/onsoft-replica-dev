@@ -310,7 +310,7 @@ export function WebsiteStudioWorkspace({
     shownDraft.adoptedPages === undefined ||
     shownDraft.adoptedPages.includes(page.url);
   async function act(action: Action) {
-    if (busyRef.current) return;
+    if (busyRef.current || (publishedView && (action === "save" || action === "publish"))) return;
     if (
       action === "unpublish" &&
       !window.confirm(
@@ -474,14 +474,14 @@ export function WebsiteStudioWorkspace({
                   ? "Publicado · sem alterações"
                   : "Rascunho"}
           </span>
-          <button type="button" disabled={busy || !dirty} onClick={() => void act("save")}>
+          <button type="button" disabled={busy || publishedView || !dirty} onClick={() => void act("save")}>
             Guardar rascunho
           </button>
           <button
             type="button"
             ref={publishButton}
             className="studio-primary"
-            disabled={busy}
+            disabled={busy || publishedView}
             onClick={() => setReviewOpen(true)}
           >
             Publicar
