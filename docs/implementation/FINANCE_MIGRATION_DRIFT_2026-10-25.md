@@ -30,6 +30,20 @@ Definir previamente `SUPABASE_ACCESS_TOKEN` como variável de ambiente apenas no
 
 Uma saída sem divergência **não** prova que o sistema está pronto: o teste cobre nove indicadores de inventário, não o DDL integral, os constrangimentos, a semântica das RPCs, as permissões por escola nem a funcionalidade autenticada.
 
+## Segunda sondagem estrutural — 25/10 (consulta SELECT)
+
+Comparei os **nomes declarados** por `supabase/migrations/20261024110000_finance_cash_sessions.sql` (#283) com `information_schema` e `pg_catalog` da produção, sem consultar linhas financeiras nem executar SQL de escrita:
+
+| Grupo | Encontrados / esperados | Abrangência |
+| --- | --- | --- |
+| Colunas | **12/12** | Estrutura-base de postos e sessões; vínculos dos recibos e despesas às sessões |
+| Índices | **7/7** | Posto activo único, sessão aberta única, ordenação e movimentos de caixa |
+| Restrições nomeadas | **3/3** | Fecho completo, justificação de diferença e separação entre fecho/aprovação |
+| Funções | **13/13** | Nove funções `private` e quatro `public` da migração |
+| Gatilhos | **4/4** | Ligação e estorno dos recibos e das despesas de caixa |
+
+**Limite da evidência:** foi verificada a **existência dos nomes**, não a igualdade de corpos das funções, definições dos índices, políticas, permissões, defaults, tipos precisos das colunas ou histórico de execução. Objectos podem ter sido criados manualmente ou alterados posteriormente. O problema da versão `20261024110000` ausente mantém-se, e **não autoriza** `migration repair` nem reaplicação automática. O próximo passo é comparar DDL completo e ensaiar regressões de caixa em staging.
+
 ## Ordem segura de resolução
 
 1. **Congelar mutações de migrações financeiras em produção.** Não executar novamente `20261024110000` nem alterar manualmente `supabase_migrations.schema_migrations`.
