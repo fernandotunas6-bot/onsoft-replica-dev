@@ -105,11 +105,14 @@ export async function readFinanceInventory(projectRef, token, send = fetch) {
   if (!/^[a-z0-9]{20}$/.test(projectRef) || !String(token ?? "").trim()) {
     throw new Error("Projecto e token Supabase explícitos são obrigatórios.");
   }
-  const result = await send(`https://api.supabase.com/v1/projects/${projectRef}/database/query/read-only`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(financeReadOnlyRequest()),
-  });
+  const result = await send(
+    `https://api.supabase.com/v1/projects/${projectRef}/database/query/read-only`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(financeReadOnlyRequest()),
+    },
+  );
   if (!result.ok) {
     // A resposta do fornecedor pode conter dados sensíveis: não a imprimir.
     throw new Error(`Consulta de inventário recusada (HTTP ${result.status}).`);
