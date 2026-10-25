@@ -14,9 +14,9 @@ description: >-
 - Tauri pertence **só ao SIGA escolar** (raiz). Nunca a ADMIN, WEB, DOC ou PAYFLOW.
 - A central local usa o template completo; os ecrãs escolares continuam no frontend web e abrem na janela school.
 
-## Estado actual (2026-10-05)
+## Estado verificado (2026-10-25)
 
-Ler `docs/desktop/TAURI_RUNTIME.md` e `desktop/AGENTS.md`.
+Ler `docs/desktop/TAURI_RUNTIME.md`, `docs/desktop/OFFLINE_FIRST_ROADMAP.md` e `desktop/AGENTS.md`.
 
 - Base completa Danny Smith Tauri Template; frontend local em `desktop/`, Rust único em `src-tauri/`.
 - `main` e `quick-pane` locais usam as capacidades do template. Portal SSR em `school`, apenas `https://portal-siga.com/*`, com permissões escolares mínimas.
@@ -27,7 +27,9 @@ Ler `docs/desktop/TAURI_RUNTIME.md` e `desktop/AGENTS.md`.
 - Impressão, hardware, exportações e PayFlow preservados. Launcher e `tauri.dev.conf.json` removidos.
 - npm com lockfile em `desktop/`; Bun mantém-se para o SIGA web. `npm run desktop:quality` para os checks do template.
 - Release por tag igual à versão, draft, assinatura só com chaves. Sem tags de teste nem publicação automática.
-- Módulos académicos continuam online. Offline completo, cofre e validação física Windows/macOS são trabalho separado.
+- A central Tauri (v1.2.2) instala-se localmente, mas a janela escolar é REMOTA e parte dos módulos académicos continua online. Não anunciar offline completo antes da base local e dos testes documentados no roadmap.
+- Stronghold guarda a sessão e uma fila limitada de notas/chamadas; não apagar o cofre nem reinstalar sem avaliar alterações por enviar. Windows inclui WebView2 offline, mas isso não instala o backend.
+- Testes físicos Windows/macOS/Linux e revisão de segurança por escola/actor continuam obrigatórios.
 
 ## Janelas e produtividade
 
@@ -39,7 +41,9 @@ Ler `docs/desktop/TAURI_RUNTIME.md` e `desktop/AGENTS.md`.
 
 - Fluxo: UI → cache local → API remota. Invalidar cache correctamente após escrita.
 - Fila de alterações local; sincronizar por prioridade: 1) alterações do utilizador, 2) dados do ecrã activo, 3) restante em segundo plano.
-- Resolver conflitos com carimbo temporal e aviso ao utilizador; nunca perder escrita silenciosamente.
+- Não usar carimbo temporal isolado como resolução automática de conflitos: manter versões de registo, idempotência e revisão humana em notas, pagamentos e dados críticos. Nunca perder escrita silenciosamente.
+- Escritas locais simultâneas devem ser persistidas sequencialmente; corrupção da fila cifrada bloqueia escrita e exige recuperação, não substituição por fila vazia.
+- Nenhuma fila offline nova sem `school_id`, `actor_id`, `op_id` e validação RLS/MFA no servidor, com migração segura da fila legada.
 
 ## Sistema de ficheiros, impressão, notificações
 
@@ -59,4 +63,6 @@ Ler `docs/desktop/TAURI_RUNTIME.md` e `desktop/AGENTS.md`.
 
 ## Actualizações
 
-- Updater assinado, canal estável; nunca actualizar a meio de escrita pendente.
+- Updater assinado, canal estável; verificar no arranque, ao regressar a internet e periodicamente. Pedir confirmação antes de instalar.
+- Nunca actualizar com escrita React pendente **ou fila cifrada por enviar/recusada**; preservar dados e compatibilidade das futuras migrações SQLite.
+- Release por tag e rascunho, com chaves reais no CI; nunca adicionar chave privada ao repositório.
