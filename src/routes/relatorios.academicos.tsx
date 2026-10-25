@@ -313,7 +313,7 @@ function RelatoriosAcademicos() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Relatórios"
+          group="Académico"
           title="Relatórios Académicos"
           description="Indicadores de aproveitamento, evolução das médias e desempenho comparado das turmas."
           actions={

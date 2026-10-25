@@ -328,6 +328,11 @@ export function getPortalNavigation(
               search: { tab: "chamada" },
             },
             {
+              label: "Presença dos Professores",
+              icon: moduleIcons.qrPresence,
+              to: "/pedagogica/presenca-docente",
+            },
+            {
               label: "Planos de Aula",
               icon: moduleIcons.lessonPlans,
               to: "/planos-aula",
@@ -416,9 +421,14 @@ export function getPortalNavigation(
           label: "Caixa e Pagamentos",
           icon: moduleIcons.finance,
           children: [
-            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
+            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
+            {
+              label: "Bancos e Conciliação",
+              icon: moduleIcons.reconciliation,
+              to: "/financeiro/conciliacao",
+            },
           ],
         },
       ],

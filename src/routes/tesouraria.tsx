@@ -10,11 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getFinanceReporting, listCashEntries, listInvoices } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
-import {
-  AppyPayPanel,
-  ChargeInvoiceButton,
-  useAppyPayStatus,
-} from "@/features/finance/AppyPayPanel";
+import { ChargeInvoiceButton, useAppyPayStatus } from "@/features/finance/AppyPayPanel";
 import { schoolTodayIso } from "@/lib/school-date";
 
 export const Route = createFileRoute("/tesouraria")({
@@ -117,8 +113,8 @@ function TreasuryPage() {
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Saldo de caixa", value: summary?.cash_balance },
-            { label: "Entradas", value: summary?.cash_in },
+            { label: "Saldo em numerário", value: summary?.drawer_balance },
+            { label: "Saldo bancário registado", value: summary?.bank_balance },
             { label: "Saídas", value: summary?.cash_out },
             { label: "Por cobrar (em atraso)", value: summary?.overdue },
           ].map((k) => (
@@ -283,8 +279,6 @@ function TreasuryPage() {
             </div>
           )}
         </Panel>
-
-        <AppyPayPanel />
 
         <Panel
           title="Últimos movimentos de caixa"

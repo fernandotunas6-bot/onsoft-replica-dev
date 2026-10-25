@@ -93,6 +93,35 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/financeiro" },
   },
   {
+    id: "siga-faturas",
+    name: "Faturas e Recibos",
+    shortName: "Faturas",
+    description: "Documentos de cobrança e quitação.",
+    mark: "siga-faturas",
+    navPath: "/faturas",
+    target: { type: "route", to: "/faturas" },
+  },
+  {
+    id: "siga-tesouraria",
+    name: "Tesouraria",
+    shortName: "Tesouraria",
+    description: "Caixa, saldos e fecho do dia.",
+    // Sem marca própria; usa a do Financeiro, de que é parte.
+    mark: "siga-financeiro",
+    navPath: "/tesouraria",
+    target: { type: "route", to: "/tesouraria" },
+  },
+  {
+    id: "siga-conciliacao",
+    name: "Bancos e Conciliação",
+    shortName: "Conciliação",
+    description: "Cobranças do gateway e conciliação bancária.",
+    // Sem marca própria; usa a do Financeiro, de que é parte.
+    mark: "siga-financeiro",
+    navPath: "/financeiro/conciliacao",
+    target: { type: "route", to: "/financeiro/conciliacao" },
+  },
+  {
     id: "siga-arquivos",
     name: "Arquivos",
     shortName: "Arquivos",
