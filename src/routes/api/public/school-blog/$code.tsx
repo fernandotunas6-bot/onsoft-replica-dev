@@ -39,7 +39,7 @@ const handle = createSchoolBlogHandler({
           .eq("status", "active"),
       ]);
       if (tenant.error || domains.error) throw new Error("Tenant lookup failed");
-      if (getPublicSiteBlock(tenant.data as Parameters<typeof getTenantAccessBlock>[0]).blocked)
+      if (getPublicSiteBlock(tenant.data as Parameters<typeof getPublicSiteBlock>[0]).blocked)
         return null;
       for (const domain of domains.data)
         if (schoolWebsiteDomainVerified(domain)) origins.push(`https://${domain.hostname}`);
