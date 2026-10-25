@@ -1,4 +1,5 @@
 import { canAccessPath, type ModuleGrantMap } from "@/features/auth/access-policy";
+import { hiddenLauncherIds, resolveEnabledModules } from "@/features/auth/module-availability";
 import { buildWorkspaceLauncherApps } from "@/features/auth/navigation-catalog";
 import type { Plan } from "@/features/saas/types";
 import type { LauncherApp, LauncherSectionId, LauncherTarget } from "./launcher-types";
@@ -150,7 +151,14 @@ export function canOpenLauncherApp(
   role: string,
   grants: ModuleGrantMap = {},
   plan?: Plan | null,
+  /**
+   * Mosaicos de módulos que esta escola não tem ligados
+   * (`hiddenLauncherIds` em `module-availability.ts`). Omitir mostra o que o
+   * produto dá por omissão — nunca mais do que isso.
+   */
+  hidden: ReadonlySet<string> = hiddenLauncherIds(resolveEnabledModules({})),
 ) {
+  if (hidden.has(app.id)) return false;
   if (app.target.type === "settings") return canAccessPath("/configuracoes", role, grants, plan);
   if (app.target.type === "ics") return canAccessPath("/calendario", role, grants, plan);
   return canAccessPath(app.target.to, role, grants, plan);
@@ -161,8 +169,9 @@ export function filterAccessibleApps(
   role: string,
   grants: ModuleGrantMap = {},
   plan?: Plan | null,
+  hidden?: ReadonlySet<string>,
 ) {
-  return apps.filter((app) => canOpenLauncherApp(app, role, grants, plan));
+  return apps.filter((app) => canOpenLauncherApp(app, role, grants, plan, hidden));
 }
 
 export function integrationStatusLabel(status: string) {
@@ -215,9 +224,10 @@ export function searchLauncherApps(
   grants: ModuleGrantMap = {},
   statusByProvider: Map<string, string> = new Map(),
   plan?: Plan | null,
+  hidden?: ReadonlySet<string>,
 ) {
-  const matches = filterAccessibleApps(allLauncherApps(), role, grants, plan).filter((app) =>
-    matchesLauncherQuery(app, query),
+  const matches = filterAccessibleApps(allLauncherApps(), role, grants, plan, hidden).filter(
+    (app) => matchesLauncherQuery(app, query),
   );
   return sortIntegrationsByStatus(matches, statusByProvider);
 }

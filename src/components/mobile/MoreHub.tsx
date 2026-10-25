@@ -55,9 +55,17 @@ export function MoreHub({
   const groups = React.useMemo(() => {
     const navigation = getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
       isAlumni: currentUser.isAlumni,
+      enabledModules: currentUser.enabledModules,
     });
     return higherEdOnly ? withHigherEdVocabulary(navigation) : navigation;
-  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly, currentUser.isAlumni]);
+  }, [
+    currentUser.role,
+    currentUser.grants,
+    activePlan,
+    higherEdOnly,
+    currentUser.isAlumni,
+    currentUser.enabledModules,
+  ]);
   const context = getNavigationContext(groups, pathname, search);
   const areas = getNavigationAreas(groups);
   const selectedContext = areas.find((group) => group.title === area);

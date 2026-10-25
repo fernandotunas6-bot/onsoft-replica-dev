@@ -51,7 +51,7 @@ function PerfilPage() {
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-6">
         <PageHeader
-          group="Conta Global"
+          group="Conta"
           title="Minha Conta & Perfil"
           description="Gerencie a sua identidade institucional, fotografia, instituições onde leciona ou colabora e segurança de acesso."
         />

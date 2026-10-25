@@ -8,12 +8,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Banknote,
-  BriefcaseBusiness,
   CreditCard,
   Download,
   FileBadge,
   FileDown,
-  FileUp,
   Plus,
   Undo2,
   Wallet,
@@ -26,7 +24,6 @@ import { stableDocumentCode } from "@/features/arquivos/document-code";
 import { warmFinanceCharts } from "@/lib/warm-charts";
 import { cn } from "@/lib/utils";
 import { getPayflowPayerUrl } from "@/lib/ecosystem-urls";
-import { PayflowAdminLaunchButton } from "@/features/finance/components/PayflowAdminLaunchButton";
 import { PayflowBrandIcon } from "@/features/finance/components/PayflowBrandIcon";
 import { PayflowPayerLink } from "@/features/finance/components/PayflowPayerLink";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -37,6 +34,9 @@ const FinanceiroCashChart = lazy(() =>
   })),
 );
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { CashSessionBar } from "@/features/finance/components/CashSession";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
+import { paymentPlanState } from "@/features/finance/payment-states";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -84,6 +84,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
+import { paymentMethodLabel } from "@/features/finance/payment-method";
 
 const financeiroFilterDefaults = {
   q: "",
@@ -162,6 +163,7 @@ function FamilyFinancePage() {
 
 function FinanceiroPage() {
   const account = useCurrentAccount();
+  const paymentKey = usePaymentAttemptKey();
   useEffect(() => {
     warmFinanceCharts();
   }, []);
@@ -186,7 +188,7 @@ function FinanceiroPage() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const reportingQuery = useQuery({
     queryKey: ["finance", "reporting"],
@@ -205,7 +207,6 @@ function FinanceiroPage() {
   const missingPenalty = Boolean(schemaQuery.data?.missingPenaltyAmount);
   const missingActiveFeePlan = Boolean(schemaQuery.data?.missingActiveFeePlan);
   const schemaBlocked = missingPenalty;
-  const financeInvoiceBlocked = schemaBlocked || missingActiveFeePlan;
   const cashExpensesAvailable = schemaQuery.data ? !schemaQuery.data.missingCashExpenses : false;
   const movimentos = useMemo(
     () =>
@@ -215,7 +216,7 @@ function FinanceiroPage() {
         data: entry.occurred_at,
         descricao: entry.description,
         categoria: entry.category,
-        metodo: entry.method,
+        metodo: paymentMethodLabel(entry.method),
         status: entry.status,
         tipo: entry.direction === "in" ? ("Entrada" as const) : ("Saída" as const),
         valor: Number(entry.amount),
@@ -343,14 +344,7 @@ function FinanceiroPage() {
       overlay: overlayServico({
         name: "Plano de pagamento",
         reference: libraryCode || plan.reference || String(plan.id).slice(0, 8),
-        status:
-          plan.status === "pending_gateway"
-            ? "Pendente"
-            : plan.status === "cancelled"
-              ? "Cancelado"
-              : plan.status === "settled"
-                ? "Liquidado"
-                : String(plan.status),
+        status: paymentPlanState(plan.status).label,
         parties: [{ label: "Canal", value: channelLabel }],
         sections: [
           {
@@ -378,9 +372,11 @@ function FinanceiroPage() {
     (invoice) =>
       `${invoice.number} · ${invoice.student_name} · ${Number(invoice.total_amount).toLocaleString("pt-PT")} Kz`,
   );
-  // SGA finance_receipts.payment_method only accepts `cash` (confirmed in live smoke).
+  // Recebimento ao balcão: numerário na gaveta ou cartão no TPA do banco. O TPA fica
+  // gravado como `card` e não entra na gaveta (vai para o banco).
   const paymentMethods = {
     Numerário: "cash",
+    "TPA (cartão)": "tpa",
   } as const;
   // Uma despesa por aprovar também se pode recusar (anular), por outra pessoa.
   const reversibleEntries = movimentos.filter(
@@ -496,11 +492,6 @@ function FinanceiroPage() {
                   <FileBadge className="size-4" /> Oficial
                 </Button>
                 <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
-                    <FileUp className="size-4 text-primary" /> Importar Pagamentos
-                  </Link>
-                </Button>
-                <Button variant="outline" className="gap-2" asChild>
                   <a
                     href={getPayflowPayerUrl() ?? "http://localhost:3007/aluno/pagar"}
                     target="_blank"
@@ -509,30 +500,11 @@ function FinanceiroPage() {
                     <PayflowBrandIcon size={16} /> Portal PayFlow
                   </a>
                 </Button>
-                <PayflowAdminLaunchButton variant="outline" className="gap-2">
-                  Conciliação PayFlow
-                </PayflowAdminLaunchButton>
                 <Button variant="outline" className="gap-2" asChild>
                   <Link to="/relatorios/financeiros">
                     <Banknote className="size-4" /> Resumo do caixa
                   </Link>
                 </Button>
-                <Button variant="outline" className="gap-2" asChild>
-                  <Link to="/financeiro/rh">
-                    <BriefcaseBusiness className="size-4" /> RH e Folha
-                  </Link>
-                </Button>
-                {financeInvoiceBlocked ? (
-                  <Button variant="outline" className="gap-2" disabled>
-                    <Banknote className="size-4" /> Emitir fatura
-                  </Button>
-                ) : (
-                  <Button variant="outline" className="gap-2" asChild>
-                    <Link to="/faturas">
-                      <Banknote className="size-4" /> Emitir fatura
-                    </Link>
-                  </Button>
-                )}
                 <DocHelpButton title="Navegação e permissões — tesouraria" />
                 <DocPathHelpButton
                   path={DOC_PATHS.financePayflow}
@@ -847,6 +819,7 @@ function FinanceiroPage() {
                   const method = paymentMethods[methodLabel as keyof typeof paymentMethods];
                   if (!invoice || !method || !methodLabel)
                     throw new Error("Selecione uma fatura e um método válidos.");
+                  const attempt = [invoice.id, values["valor"], method, values["data"]].join("|");
                   const paid = await recordInvoicePayment({
                     data: {
                       invoiceId: invoice.id,
@@ -857,8 +830,10 @@ function FinanceiroPage() {
                       paidAt: values["data"]
                         ? new Date(`${values["data"]}T12:00:00Z`).toISOString()
                         : undefined,
+                      idempotencyKey: paymentKey.keyFor(attempt),
                     },
                   });
+                  paymentKey.settled(attempt);
                   await Promise.all([
                     queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
                     queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
@@ -909,8 +884,9 @@ function FinanceiroPage() {
           }
         />
 
+        <CashSessionBar />
+
         <InstalledModuleTools module="financeiro" />
-        <InstalledModuleTools module="faturas" />
 
         {schemaBlocked ? (
           <Alert variant="destructive">
@@ -957,7 +933,11 @@ function FinanceiroPage() {
           collapsible
           storageKey="financeiro"
           items={[
-            { label: "Saldo actual", value: kwanza(saldo), hint: "Caixa + banco" },
+            {
+              label: "Saldo actual",
+              value: kwanza(saldo),
+              hint: `Numerário ${kwanza(Number(summary?.drawer_balance ?? 0))} · banco ${kwanza(Number(summary?.bank_balance ?? 0))}`,
+            },
             {
               label: "Entradas do período",
               value: kwanza(entradas),

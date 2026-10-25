@@ -102,7 +102,7 @@ function HigherEdPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Pedagógica"
+          group="Académico"
           title="Ensino Superior"
           description="Planos curriculares com créditos e precedências, inscrições por cadeira, épocas de avaliação e o regulamento da instituição."
           icon={GraduationCap}

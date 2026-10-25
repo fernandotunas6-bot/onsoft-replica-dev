@@ -80,8 +80,7 @@ const NAO_DECLARADAS_HOJE = 0;
  * As únicas políticas que concedem acesso ao papel anónimo, todas por desenho e
  * verificadas uma a uma a 2026-09-13:
  *
- *   enrollment_applications  INSERT sem leitura — submissão da matrícula pública
- *   enrollment_forms         SELECT limitado a formulários abertos e não apagados
+ *   Matrícula pública passou a ser só do servidor em 2026-10-25.
  *   reserved_subdomains      lista estática de slugs reservados, lida no registo
  *   school_branding          logótipo e cores, que o login mostra antes da sessão
  *
@@ -89,8 +88,6 @@ const NAO_DECLARADAS_HOJE = 0;
  * tem de ser justificada por escrito antes de passar.
  */
 const ANON_POLICIES_ESPERADAS = [
-  "enrollment_applications.Public insert open enrollment applications",
-  "enrollment_forms.Public read open enrollment forms",
   "reserved_subdomains.public_read_reserved_subdomains",
   "school_branding.public_read_school_branding",
 ];
@@ -154,6 +151,9 @@ const ANON_POLICIES_ESPERADAS = [
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
 // O retrato de 2026-10-21 confirma também tenant_billing_profiles.
+// 2026-10-24/25: sessões de caixa e depósito da gaveta no banco (#283) —
+// `finance_cash_points`, `finance_cash_sessions` e `finance_cash_deposits`
+// confirmadas no retrato recapturado deste ciclo, depois de a #283 fundir.
 const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */

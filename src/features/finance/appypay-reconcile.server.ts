@@ -67,6 +67,27 @@ export async function reconcileAppyPayCharge(
   const s = remote.status.toLowerCase();
   const now = new Date().toISOString();
   if (remote.successful && s === "success") {
+    // Sucesso sem valor confirmado, ou noutra moeda, não se lança: `normalize` dá 0
+    // quando o valor não vem, e `0 || row.amount` creditava a cobrança inteira (§7:
+    // verificar montante e moeda). Fica para revisão humana.
+    const remoteAmount = Number(remote.amount);
+    const currency = String(remote.raw["currency"] ?? "AOA")
+      .trim()
+      .toUpperCase();
+    if (!(remoteAmount > 0) || currency !== "AOA") {
+      const { error } = await db
+        .from("payment_gateway_charges")
+        .update({
+          status: "needs_review",
+          status_message:
+            currency !== "AOA"
+              ? `A AppyPay confirmou o pagamento em ${currency}, não em kwanzas.`
+              : "A AppyPay confirmou o pagamento sem indicar o valor.",
+        })
+        .eq("id", row.id);
+      if (error) reportChargeWrite("needs_review", error, row);
+      return { status: "needs_review" };
+    }
     // Marca primeiro como "a liquidar" só se ainda estiver pendente: evita recibos em dobro
     // quando a AppyPay repete o aviso em simultâneo.
     const staleBefore = new Date(Date.now() - STALE_SETTLING_MINUTES * 60_000).toISOString();
@@ -86,7 +107,7 @@ export async function reconcileAppyPayCharge(
     }
     if (!claimed?.length) return { status: "settling" };
 
-    const amount = Math.min(Number(row.amount), Number(remote.amount || row.amount));
+    const amount = Math.min(Number(row.amount), remoteAmount);
     try {
       const settled = await settleGatewayPayment(db, {
         schoolId: row.school_id,

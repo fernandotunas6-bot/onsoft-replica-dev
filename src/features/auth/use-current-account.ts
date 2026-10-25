@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { resolveEnabledModules } from "@/features/auth/module-availability";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { getCurrentAccountContext } from "@/features/auth/server";
@@ -205,6 +206,11 @@ export function useCurrentAccount() {
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U";
 
+  const enabledModules = useMemo(
+    () => resolveEnabledModules(profile.data?.module_overrides ?? {}),
+    [profile.data?.module_overrides],
+  );
+
   return {
     id: userId ?? "",
     email,
@@ -228,6 +234,12 @@ export function useCurrentAccount() {
     linkedEntities,
     /** Tem processo Alumni nesta escola (vê o «Meu Portal Alumni»). */
     isAlumni: Boolean(profile.data?.is_alumni),
+    /**
+     * Os módulos ligados nesta escola. Enquanto o contexto não chega — primeiro
+     * render, ou uma consulta que falhou — vale a omissão do produto, e não um
+     * conjunto vazio: nunca se fica sem navegação por não se saber ainda.
+     */
+    enabledModules,
     activeStudentId,
     activeStudent,
     setActiveStudentId,

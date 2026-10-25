@@ -4,6 +4,11 @@ Contrato: [VISUAL_MASTER_2026.md](VISUAL_MASTER_2026.md). Esta matriz acompanha
 **todas as dez fases**. O padrão está registado; a execução integral está parcial.
 Não considerar o sistema todo validado por causa dos testes abaixo.
 
+**25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
+de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
+Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
+visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
@@ -170,3 +175,19 @@ Incremento na [PR #274](https://github.com/fernandotunas6-bot/onsoft-replica-dev
 - Modais não foram modificados; não interferir com a PR #272 do agente paralelo.
 
 Evidência automatizada: `tests/routes/sidebar-nav.test.tsx` cobre abertura por clique e teclado, selecção de destino, exclusividade de flyouts, menu da escola e Escape. O hover está implementado para rato, mas requer confirmação visual no navegador (o ambiente jsdom não constitui prova física de ponteiro). O CI da PR deve comprovar lint, TypeScript, testes e build. A auditoria de dependências no CI sincronizado com `main` aprovou em 24/10/2026; a issue #273 permanece para confirmar a remediação dos avisos anteriormente observados. Não ignorar qualquer nova falha de segurança nem declarar produção sem o deploy e a auditoria pós-publicação aprovados. Interacção visual autenticada em dispositivos físicos e alternância entre escolas aguardam staging (#249).
+
+## Alcance das categorias já existentes em Definições (25/10/2026)
+
+Na branch `fix/settings-panels-handoff-20261025`, os painéis previamente
+registados `identidade` e `pedagogico` passam a estar ligados ao menu raiz
+do `SettingsCenter`, junto da escola. Isto corrige destinos órfãos sem criar
+um novo módulo ou mudar o sistema de permissões, backend, RLS ou dados.
+
+- **Implementado no ramo, ainda não validado no navegador:** links dos painéis
+  já existentes e contrato estático em
+  `tests/ui/settings-panel-reachability.test.ts`.
+- **Por validar no CI:** lint, tipos, build e testes após a PR.
+- **Bloqueado até staging autorizado:** deep links em sessão Administrador,
+  preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
+  escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.
+- Orientações para trabalho paralelo: `docs/agents/HANDOFF_SETTINGS_2026-10-25.md`.

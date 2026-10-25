@@ -168,7 +168,7 @@ function LessonPlansPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Área Pedagógica"
+          group="Académico"
           title="Planos de Aula"
           description="Título, conteúdo e estrutura de avaliações/provas por turma, disciplina e trimestre — modelo angolano."
           actions={

@@ -19,21 +19,18 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
 // O retrato de 2026-10-21 inclui também a sonda service-only do website/blog, e já tem
-// `merge_school_subjects`.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // 20261010110000 (auditoria 14, P4): fundir pessoas numa transacção. Sem ela,
-  // mergePeople segue os passos soltos de antes (mergePeopleInSteps, por isMissingFunction).
-  "siga_merge_people",
-]);
+// `merge_school_subjects`. `siga_merge_people` (auditoria 14, P4) e as sete funções das
+// sessões de caixa do #283 (20261024110000) saíram daqui a 25/10: confirmadas as oito em
+// produção por consulta directa a `information_schema.routines`, depois de a produção ter
+// sido recapturada por este ciclo.
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
 
 /**
  * Valores de estado que o código escreve ou filtra e o CHECK da produção ainda não
  * aceita (migração escrita e por aplicar). Só vale se o código funcionar sem o valor:
  * a escrita cai para um valor aceite quando a base o recusa (23514).
- * `production-columns.test.ts` usa-a no teste dos valores literais.
+ * `production-columns.test.ts` e `valores-permitidos.test.ts` usam-na.
  */
-// 2026-10-25: aprovação de despesas, `20261025100000_cash_expenses_audit_and_approval.sql`.
-// `recordCashExpense` volta a `posted` se a base recusar `pending_approval`.
-export const VALORES_ESPERA_MIGRACAO = new Set<string>([
-  "siga_cash_expenses.status=pending_approval",
-]);
+// `siga_cash_expenses.status=pending_approval` saiu a 25/10: a 20261025100000 foi
+// aplicada e o retrato desse dia já o tem.
+export const VALORES_ESPERA_MIGRACAO = new Set<string>([]);

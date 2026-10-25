@@ -12,7 +12,8 @@ describe("emolumentos do Ensino Superior", () => {
 
   it("a fatura liga-se ao item pelo código e as outras categorias não apanham emolumentos", () => {
     const source = readFileSync("src/features/finance/server.ts", "utf8");
-    const start = source.indexOf("export const issueInvoice");
+    // A emissão vive em `issueInvoiceFor`, partilhada pela individual e pelo lote.
+    const start = source.indexOf("async function issueInvoiceFor(");
     const body = source.slice(start, source.indexOf("export const", start + 1));
     // A regra em si (código, tipo, nunca um emolumento por acaso) está em tests/finance/fee-items.test.ts.
     expect(body).toContain("const feeCode = higherEdFeeCodeForCategory(data.category);");

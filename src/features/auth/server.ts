@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import { statusEnablesModule } from "@/features/auth/module-availability";
 import {
   setCurrentProfileAvatarInputSchema,
   signProfileAvatarInputSchema,
@@ -368,6 +369,26 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       resolvedCargo = allAppRoles[0]!;
     }
 
+    // Módulos que esta escola ligou ou desligou explicitamente. Só as linhas que
+    // existem — o que não vier daqui fica na omissão do produto
+    // (`module-availability.ts`). Falhar aqui **não** pode tirar navegação a
+    // ninguém, por isso qualquer erro devolve nenhuma excepção em vez de propagar.
+    let moduleOverrides: Record<string, boolean> = {};
+    if (membership?.schoolId) {
+      try {
+        const { data: rows } = await db
+          .from("school_modules")
+          .select("module_code, status")
+          .eq("school_id", membership.schoolId);
+        for (const row of rows ?? []) {
+          const code = typeof row.module_code === "string" ? row.module_code : null;
+          if (code) moduleOverrides[code] = statusEnablesModule(row.status);
+        }
+      } catch {
+        moduleOverrides = {};
+      }
+    }
+
     return {
       full_name: fullName || null,
       first_name: profileRow?.first_name || null,
@@ -385,6 +406,7 @@ export const getCurrentAccountContext = createServerFn({ method: "GET" })
       grants,
       linkedEntities,
       is_alumni: isAlumni,
+      module_overrides: moduleOverrides,
       schools: userSchools,
     };
   });
