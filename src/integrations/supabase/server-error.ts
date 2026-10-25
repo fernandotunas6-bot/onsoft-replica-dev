@@ -59,6 +59,8 @@ const constraintMessages: Record<string, string> = {
  * lotação chegava ao ecrã como «Um ou mais valores não respeitam as regras».
  */
 const businessMessages = new Set([
+  // Gatilho 20261025090000: segunda propina do mesmo mês, em emissões paralelas.
+  "Este aluno já tem a propina deste mês. Anule-a antes de emitir outra.",
   "A turma atingiu a capacidade configurada.",
   "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
   "Turma ativa inválida para esta escola.",
