@@ -21,7 +21,7 @@ describe('SIGA offline school shell', () => {
   it('shows truthful status from native Rust without school data', async () => {
     render(<OfflineSchoolShell />)
     await waitFor(() =>
-      expect(screen.getByText('Versão instalada: 1.2.2')).toBeVisible()
+      expect(screen.getByText('Versão instalada: 1.3.0')).toBeVisible()
     )
     expect(screen.getByText('SQLCipher: Pendente')).toBeVisible()
     expect(screen.getByText('Dados privados offline: Bloqueados')).toBeVisible()

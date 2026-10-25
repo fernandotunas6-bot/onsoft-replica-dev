@@ -27,7 +27,7 @@ Ler `docs/desktop/TAURI_RUNTIME.md`, `docs/desktop/OFFLINE_FIRST_ROADMAP.md` e `
 - Impressão, hardware, exportações e PayFlow preservados. Launcher e `tauri.dev.conf.json` removidos.
 - npm com lockfile em `desktop/`; Bun mantém-se para o SIGA web. `npm run desktop:quality` para os checks do template.
 - Release por tag igual à versão, draft, assinatura só com chaves. Sem tags de teste nem publicação automática.
-- A central Tauri (v1.2.2) instala-se localmente, mas a janela escolar é REMOTA e parte dos módulos académicos continua online. Não anunciar offline completo antes da base local e dos testes documentados no roadmap.
+- A central Tauri (v1.3.0) instala-se localmente, mas a janela escolar é REMOTA e parte dos módulos académicos continua online. Não anunciar offline completo antes da base local e dos testes documentados no roadmap.
 - Stronghold guarda a sessão e uma fila limitada de notas/chamadas; não apagar o cofre nem reinstalar sem avaliar alterações por enviar. Windows inclui WebView2 offline, mas isso não instala o backend.
 - Testes físicos Windows/macOS/Linux e revisão de segurança por escola/actor continuam obrigatórios.
 
