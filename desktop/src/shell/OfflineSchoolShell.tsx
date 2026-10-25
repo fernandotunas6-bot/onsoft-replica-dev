@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { commands, type DesktopOfflineReadiness } from '@/lib/tauri-bindings'
 import {
   BookOpen,
   Database,
@@ -14,6 +15,10 @@ import {
  */
 export function OfflineSchoolShell() {
   const [online, setOnline] = useState(() => navigator.onLine !== false)
+  const [readiness, setReadiness] = useState<DesktopOfflineReadiness | null>(
+    null
+  )
+  const [readinessError, setReadinessError] = useState(false)
 
   useEffect(() => {
     const refresh = () => setOnline(navigator.onLine !== false)
@@ -22,6 +27,26 @@ export function OfflineSchoolShell() {
     return () => {
       window.removeEventListener('online', refresh)
       window.removeEventListener('offline', refresh)
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void commands
+      .desktopOfflineReadiness()
+      .then(result => {
+        if (!active) return
+        if (result.status === 'ok') {
+          setReadiness(result.data)
+        } else {
+          setReadinessError(true)
+        }
+      })
+      .catch(() => {
+        if (active) setReadinessError(true)
+      })
+    return () => {
+      active = false
     }
   }, [])
 
@@ -97,6 +122,50 @@ export function OfflineSchoolShell() {
               Sem contas nem ficheiros pessoais nesta pré-visualização.
             </p>
           </article>
+        </section>
+
+        <section aria-label="Diagnóstico nativo do funcionamento offline">
+          <h2 className="text-base font-semibold">Diagnóstico do Desktop</h2>
+          {readiness ? (
+            <div className="mt-3 grid gap-3 rounded-xl border border-border bg-card p-5 text-sm sm:grid-cols-2">
+              <p>Versão instalada: {readiness.appVersion}</p>
+              <p>
+                Interface local:{' '}
+                {readiness.bundledUiReady ? 'Disponível' : 'Indisponível'}
+              </p>
+              <p>Esquema SQLite v{readiness.schemaVersion}: apenas preparado</p>
+              <p>
+                SQLCipher:{' '}
+                {readiness.sqlcipherReady ? 'Disponível' : 'Pendente'}
+              </p>
+              <p>
+                Autorização offline:{' '}
+                {readiness.authorizedBootstrapReady ? 'Disponível' : 'Pendente'}
+              </p>
+              <p>
+                Sincronização bidireccional:{' '}
+                {readiness.bidirectionalSyncReady ? 'Disponível' : 'Pendente'}
+              </p>
+              <p>
+                Dados privados offline:{' '}
+                {readiness.privateDataOfflineReady
+                  ? 'Disponíveis'
+                  : 'Bloqueados'}
+              </p>
+              <p>
+                Actualizador assinado:{' '}
+                {readiness.signedUpdaterConfigured
+                  ? 'Configurado'
+                  : 'Não configurado'}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {readinessError
+                ? 'Não foi possível consultar o estado nativo. Nenhum acesso offline adicional foi activado.'
+                : 'A consultar as capacidades instaladas…'}
+            </p>
+          )}
         </section>
 
         <footer className="flex items-start gap-3 text-sm text-muted-foreground">

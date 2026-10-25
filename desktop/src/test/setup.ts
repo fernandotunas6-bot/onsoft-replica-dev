@@ -32,6 +32,19 @@ vi.mock('@/lib/tauri-bindings', () => ({
   commands: {
     openSigaPortal: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
     openOfflineShell: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
+    desktopOfflineReadiness: vi.fn().mockResolvedValue({
+      status: 'ok',
+      data: {
+        appVersion: '1.2.2',
+        bundledUiReady: true,
+        schemaVersion: 1,
+        sqlcipherReady: false,
+        authorizedBootstrapReady: false,
+        bidirectionalSyncReady: false,
+        privateDataOfflineReady: false,
+        signedUpdaterConfigured: false,
+      },
+    }),
     desktopUpdateStatus: vi.fn().mockResolvedValue({
       status: 'ok',
       data: {

@@ -8,6 +8,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         crate::commands::siga::open_siga_portal,
         crate::commands::siga::open_offline_shell,
         crate::commands::siga::desktop_update_status,
+        crate::commands::siga::desktop_offline_readiness,
         preferences::load_preferences,
         preferences::save_preferences,
         notifications::send_native_notification,

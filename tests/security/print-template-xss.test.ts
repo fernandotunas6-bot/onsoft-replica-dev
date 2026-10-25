@@ -68,7 +68,11 @@ describe("modelos de impressão sem código activo", () => {
       if (capability.windows.includes("offline-shell")) {
         expect(capability.windows).toEqual(["offline-shell"]);
         expect(capability.local).toBe(true);
-        expect(capability.permissions).toEqual(["core:default", "core:window:allow-close"]);
+        expect(capability.permissions).toEqual([
+          "core:default",
+          "core:window:allow-close",
+          "allow-desktop-offline-readiness",
+        ]);
       }
     }
   });
