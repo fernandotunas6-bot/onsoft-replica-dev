@@ -45,9 +45,9 @@ describe("pré-verificação E2E @live", () => {
     expect(() => assertStagingReady({ ...valid, SIGA_E2E_ALLOW_WRITES: "0" })).toThrow(
       /SIGA_E2E_ALLOW_WRITES/,
     );
-    expect(() => assertStagingReady({ ...valid, SIGA_E2E_PROJECT_REF: "differentstage1234567" })).toThrow(
-      /SIGA_E2E_PROJECT_REF/,
-    );
+    expect(() =>
+      assertStagingReady({ ...valid, SIGA_E2E_PROJECT_REF: "differentstage1234567" }),
+    ).toThrow(/SIGA_E2E_PROJECT_REF/);
     expect(() => assertStagingReady({ ...valid, SIGA_E2E_PROJECT_REF: "" })).toThrow(
       /SIGA_E2E_PROJECT_REF/,
     );
