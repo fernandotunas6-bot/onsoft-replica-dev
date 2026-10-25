@@ -128,4 +128,18 @@ if (process.env.GITHUB_REF_TYPE === "tag")
     `v${config.version}`,
     "Release tag must match application version",
   );
+// Temporary CI diagnostic: canonical formatting of the two new local-shell files.
+if (process.env.GITHUB_ACTIONS === "true") {
+  const { execFileSync } = await import("node:child_process");
+  for (const path of [
+    "desktop/src/shell/OfflineSchoolShell.tsx",
+    "desktop/src/shell/OfflineSchoolShell.test.tsx",
+  ]) {
+    const formatted = execFileSync(process.execPath, [
+      "desktop/node_modules/prettier/bin/prettier.cjs",
+      path,
+    ], { encoding: "utf8" });
+    console.log("SHELL_FORMAT_" + path.split("/").pop() + "=" + encodeURIComponent(formatted));
+  }
+}
 console.log("Danny Smith template, school permissions, CSP, lockfile and versions verified.");
