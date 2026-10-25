@@ -1203,6 +1203,7 @@ function PedagogicaPage() {
                         gradeMatchesTeachingLevels(String(group.grade_name ?? ""), teachingLevels),
                       )}
                       subjects={subjects}
+                      classSubjects={classSubjects}
                       enrollments={enrollmentOptions}
                       termGrades={termGrades}
                       passingGrade={passing}
