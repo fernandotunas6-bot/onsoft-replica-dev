@@ -41,7 +41,9 @@ describe('SIGA offline school shell', () => {
   it('opens only the fixed school portal when online', async () => {
     const spy = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true)
     render(<OfflineSchoolShell />)
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir portal escolar' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Abrir portal escolar' })
+    )
     await waitFor(() => expect(commands.openSigaPortal).toHaveBeenCalledOnce())
     expect(commands.openOfflineShell).not.toHaveBeenCalled()
     spy.mockRestore()
@@ -65,7 +67,9 @@ describe('SIGA offline school shell', () => {
       new Error('Falha da ligação')
     )
     render(<OfflineSchoolShell />)
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir portal escolar' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Abrir portal escolar' })
+    )
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'O portal não pôde ser aberto'
     )

@@ -189,7 +189,9 @@ export function OfflineSchoolShell() {
           aria-label="Regressar ao portal escolar"
           className="rounded-xl border border-border bg-card p-5"
         >
-          <h2 className="text-base font-semibold">Continuar no portal escolar</h2>
+          <h2 className="text-base font-semibold">
+            Continuar no portal escolar
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Quando a ligação regressar, abra o portal completo para consultar
             dados e trabalhar com a sua escola. Esta janela local permanece
@@ -211,7 +213,8 @@ export function OfflineSchoolShell() {
           )}
           {portalError && (
             <p role="alert" className="mt-2 text-sm text-destructive">
-              O portal não pôde ser aberto. Verifique a Internet e tente novamente.
+              O portal não pôde ser aberto. Verifique a Internet e tente
+              novamente.
             </p>
           )}
         </section>
