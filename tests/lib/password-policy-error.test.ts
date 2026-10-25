@@ -15,8 +15,10 @@ describe("passwordPolicyMessage", () => {
     expect(passwordPolicyMessage({ code: "weak_password", reasons: ["length"] })).toMatch(
       /8 caracteres/,
     );
+    // Desde 25/10/2026 a política do servidor não exige símbolos — a mensagem
+    // deixou de os prometer. Ver tests/security/politica-de-senhas.
     expect(passwordPolicyMessage({ code: "weak_password", reasons: ["characters"] })).toMatch(
-      /símbolos/,
+      /maiúsculas e minúsculas e de números/,
     );
   });
 
