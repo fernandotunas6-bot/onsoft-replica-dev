@@ -38,7 +38,8 @@ export function startDesktopOffline(queryClient: QueryClient, router?: ChunkLoad
     .catch((error) => {
       // A fila no cofre NÃO foi recuperada: não fingir que está vazia.
       toast.error("Não foi possível abrir a fila offline do computador.", {
-        description: error instanceof Error ? error.message : "Peça assistência antes de gravar sem rede.",
+        description:
+          error instanceof Error ? error.message : "Peça assistência antes de gravar sem rede.",
         duration: Infinity,
       });
     });
