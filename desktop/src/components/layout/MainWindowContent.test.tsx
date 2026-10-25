@@ -51,6 +51,30 @@ describe('SIGA desktop actions', () => {
     expect(commands.desktopUpdateStatus).toHaveBeenCalledOnce()
   })
 
+  it('checks for new releases on network reconnection without opening the portal', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    vi.mocked(commands.desktopUpdateStatus).mockResolvedValueOnce({
+      status: 'ok',
+      data: {
+        configured: true,
+        available: true,
+        version: '1.2.3',
+        notes: 'Actualização assinada',
+      },
+    })
+
+    render(<MainWindowContent />)
+    expect(commands.desktopUpdateStatus).not.toHaveBeenCalled()
+    online.mockReturnValue(true)
+    window.dispatchEvent(new Event('online'))
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('1.2.3')
+    )
+    expect(commands.desktopUpdateStatus).toHaveBeenCalledOnce()
+    expect(commands.openSigaPortal).not.toHaveBeenCalled()
+    online.mockRestore()
+  })
+
   it('shows the offline state and keeps the portal button', () => {
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
     render(<MainWindowContent />)
