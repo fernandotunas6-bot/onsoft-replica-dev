@@ -15,7 +15,7 @@ function auth({
     getSession: vi.fn().mockResolvedValue(getSession),
     getUser: vi.fn().mockResolvedValue(getUser),
     refreshSession: vi.fn().mockResolvedValue(refreshSession),
-  } as unknown as Parameters<typeof sessionIsGone>[0];
+  } as unknown as NonNullable<Parameters<typeof sessionIsGone>[0]>;
 }
 
 describe("um 401 só termina a sessão se o Auth a recusar", () => {

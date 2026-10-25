@@ -30,9 +30,10 @@ export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorS
         active = false;
       };
     }
-    if (staleBuild && recoverFromStaleBuild(error)) return;
+    if (staleBuild && recoverFromStaleBuild(error)) return undefined;
     console.error(error);
     reportLovableError(error, { boundary: fullPage ? "siga_root" : "siga_route" });
+    return undefined;
   }, [error, fullPage, sessionExpired, staleBuild]);
 
   if (staleBuild) {
