@@ -129,17 +129,16 @@ describe("Website Studio com o Puck real", () => {
     await screen.findByText("Alterações por guardar");
     fireEvent.click(screen.getByRole("button", { name: "Ver publicação" }));
 
-    expect((screen.getByRole("button", { name: "Guardar rascunho" }) as HTMLButtonElement).disabled)
-      .toBe(true);
-    expect((screen.getByRole("button", { name: "Publicar" }) as HTMLButtonElement).disabled)
-      .toBe(true);
+    const save = screen.getByRole("button", { name: "Guardar rascunho" }) as HTMLButtonElement;
+    const publish = screen.getByRole("button", { name: "Publicar" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(publish.disabled).toBe(true);
     fireEvent.keyDown(window, { key: "s", ctrlKey: true });
     expect(ui.persist).toHaveBeenCalledTimes(1);
-    expect(ui.saved().draft.values).not.toContain("Alteração apenas no rascunho");
+    expect(Object.values(ui.saved().draft.values)).not.toContain("Alteração apenas no rascunho");
 
     fireEvent.click(screen.getByRole("button", { name: "Voltar ao rascunho" }));
-    expect((screen.getByRole("button", { name: "Guardar rascunho" }) as HTMLButtonElement).disabled)
-      .toBe(false);
+    expect(save.disabled).toBe(false);
     expect(ui.persist).toHaveBeenCalledTimes(1);
   });
 
