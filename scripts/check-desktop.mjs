@@ -113,4 +113,13 @@ if (process.env.GITHUB_REF_TYPE === "tag")
     `v${config.version}`,
     "Release tag must match application version",
   );
+// CI temporário: extrair a formatação canónica para uma página nova do desktop.
+if (process.env.GITHUB_ACTIONS === "true" && existsSync("desktop/node_modules/prettier/bin/prettier.cjs")) {
+  const { execFileSync } = await import("node:child_process");
+  const formatted = execFileSync(process.execPath, [
+    "desktop/node_modules/prettier/bin/prettier.cjs",
+    "desktop/src/shell/OfflineSchoolShell.tsx",
+  ], { encoding: "utf8" });
+  console.log("OFFLINE_SHELL_FORMATTED=" + encodeURIComponent(formatted));
+}
 console.log("Danny Smith template, school permissions, CSP, lockfile and versions verified.");
