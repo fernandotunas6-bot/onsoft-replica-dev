@@ -3,6 +3,8 @@ import { assertStagingReady } from "../../scripts/siga/check-staging-readiness.m
 
 const STAGING_REF = "abcde12345abcde12345";
 const valid = {
+  SIGA_E2E_ALLOW_WRITES: "1",
+  SIGA_E2E_PROJECT_REF: STAGING_REF,
   STAGING_SUPABASE_PROJECT_ID: STAGING_REF,
   STAGING_SUPABASE_URL: `https://${STAGING_REF}.supabase.co`,
   STAGING_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture",
@@ -37,6 +39,18 @@ describe("pré-verificação E2E @live", () => {
     expect(() =>
       assertStagingReady({ ...valid, SUPABASE_PROJECT_ID: "projectrefdifferent1" }),
     ).toThrow(/distintos/);
+  });
+
+  it("recusa escrita não autorizada e referência do runtime diferente", () => {
+    expect(() => assertStagingReady({ ...valid, SIGA_E2E_ALLOW_WRITES: "0" })).toThrow(
+      /SIGA_E2E_ALLOW_WRITES/,
+    );
+    expect(() => assertStagingReady({ ...valid, SIGA_E2E_PROJECT_REF: "differentstage1234567" })).toThrow(
+      /SIGA_E2E_PROJECT_REF/,
+    );
+    expect(() => assertStagingReady({ ...valid, SIGA_E2E_PROJECT_REF: "" })).toThrow(
+      /SIGA_E2E_PROJECT_REF/,
+    );
   });
 
   it("recusa projecto malformado ou URL sem HTTPS", () => {
