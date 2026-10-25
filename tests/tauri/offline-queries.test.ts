@@ -12,6 +12,8 @@ import {
 const years = [
   { id: "year-a", code: "2026", name: "2026", status: "active" },
 ];
+const serverYears = years.map((year) => ({ ...year, school_id: "school-a" }));
+
 const terms = [
   {
     id: "term-a",
@@ -22,6 +24,8 @@ const terms = [
     academic_year_id: "year-a",
   },
 ];
+
+const serverTerms = terms.map((term) => ({ ...term, school_id: "school-a" }));
 
 describe("cache offline mínima por escola", () => {
   beforeEach(() => {
@@ -69,10 +73,10 @@ describe("cache offline mínima por escola", () => {
     });
     client.setQueryData(["calendar", "events"], [{ description: "Segredo do aluno" }]);
     client.setQueryData(["school", "academic-years"], [
-      { ...years[0], internalNotes: "Só o director", school_id: "tenant-a" },
+      { ...serverYears[0], internalNotes: "Só o director" },
     ]);
     client.setQueryData(["school", "academic-terms"], [
-      { ...terms[0], individualStudent: "Aluno privado" },
+      { ...serverTerms[0], individualStudent: "Aluno privado" },
     ]);
     await vi.advanceTimersByTimeAsync(1000);
     const raw = localStorage.getItem(offlineQueriesStorageKey("school-a"));
@@ -94,7 +98,7 @@ describe("cache offline mínima por escola", () => {
     const client = new QueryClient();
     let school = "school-a";
     const stop = persistOfflineQueries(client, () => school);
-    client.setQueryData(["school", "academic-years"], years);
+    client.setQueryData(["school", "academic-years"], serverYears);
     school = "school-b";
     await vi.advanceTimersByTimeAsync(1000);
     expect(localStorage.getItem(offlineQueriesStorageKey("school-b"))).toBeNull();
@@ -102,11 +106,21 @@ describe("cache offline mínima por escola", () => {
     stop();
   });
 
+  it("bloqueia uma resposta atrasada de outra escola mesmo quando já se está na escola B", async () => {
+    const client = new QueryClient();
+    const stop = persistOfflineQueries(client, () => "school-b");
+    client.setQueryData(["school", "academic-years"], serverYears);
+    client.setQueryData(["school", "academic-terms"], serverTerms);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(localStorage.getItem(offlineQueriesStorageKey("school-b"))).toBeNull();
+    stop();
+  });
+
   it("repõe somente arrays académicos reconhecidos", async () => {
     const source = new QueryClient();
     const stop = persistOfflineQueries(source, () => "school-a");
-    source.setQueryData(["school", "academic-years"], years);
-    source.setQueryData(["school", "academic-terms"], terms);
+    source.setQueryData(["school", "academic-years"], serverYears);
+    source.setQueryData(["school", "academic-terms"], serverTerms);
     await vi.advanceTimersByTimeAsync(1000);
     const destination = new QueryClient();
     expect(restoreOfflineQueries(destination, "school-a")).toBe(true);

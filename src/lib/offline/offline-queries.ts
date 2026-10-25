@@ -46,12 +46,13 @@ function isBoundedString(value: unknown, max: number): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= max;
 }
 
-function cleanAcademicYears(value: unknown): AcademicYear[] | null {
+function cleanAcademicYears(value: unknown, schoolId?: string): AcademicYear[] | null {
   if (!Array.isArray(value) || value.length > 300) return null;
   const result: AcademicYear[] = [];
   for (const item of value) {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const data = item as Record<string, unknown>;
+    if (schoolId && data.school_id !== schoolId) return null;
     if (
       !isBoundedString(data.id, 64) ||
       !isBoundedString(data.code, 120) ||
@@ -68,12 +69,13 @@ function cleanAcademicYears(value: unknown): AcademicYear[] | null {
   return result;
 }
 
-function cleanAcademicTerms(value: unknown): AcademicTerm[] | null {
+function cleanAcademicTerms(value: unknown, schoolId?: string): AcademicTerm[] | null {
   if (!Array.isArray(value) || value.length > 1000) return null;
   const result: AcademicTerm[] = [];
   for (const item of value) {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const data = item as Record<string, unknown>;
+    if (schoolId && data.school_id !== schoolId) return null;
     if (
       !isBoundedString(data.id, 64) ||
       !isBoundedString(data.academic_year_id, 64) ||
@@ -160,8 +162,10 @@ export function persistOfflineQueries(queryClient: QueryClient, schoolId: () => 
 
   const save = (schoolAtQuery: string) => {
     if (schoolId() !== schoolAtQuery) return;
-    const years = cleanAcademicYears(queryClient.getQueryData(["school", "academic-years"]));
-    const terms = cleanAcademicTerms(queryClient.getQueryData(["school", "academic-terms"]));
+    // Cada linha traz a escola certificada pelo servidor. Recusar respostas
+    // antigas de outro tenant que tenham chegado após o utilizador trocar escola.
+    const years = cleanAcademicYears(queryClient.getQueryData(["school", "academic-years"]), schoolAtQuery);
+    const terms = cleanAcademicTerms(queryClient.getQueryData(["school", "academic-terms"]), schoolAtQuery);
     if (years === null && terms === null) return;
 
     const payload: OfflineCache = {
