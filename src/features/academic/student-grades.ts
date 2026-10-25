@@ -32,7 +32,7 @@ export type StudentGradeReport = { years: StudentYearReport[] };
 /** Diários fechados/homologados: a nota deixa de ser provisória. */
 const FINAL_GRADEBOOK_STATUSES = new Set(["closed", "homologated", "published", "locked"]);
 
-const inputSchema = z.object({ studentId: z.string().uuid().optional() });
+const inputSchema = z.object({ studentId: z.string().guid().optional() });
 
 type Row = Record<string, unknown>;
 const str = (value: unknown) => (value == null ? "" : String(value));

@@ -300,6 +300,7 @@ export function PersonProfile360Modal({
           municipality: editValues.municipality.trim(),
           commune: editValues.commune.trim(),
           address: editValues.address.trim(),
+          includesGeography: true,
         },
       });
       await queryClient.invalidateQueries({ queryKey: ["people", "get", personId] });

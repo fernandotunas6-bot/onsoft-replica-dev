@@ -34,6 +34,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconChip } from "@/components/ui/icon-chip";
 import { CameraCaptureModal } from "@/components/modals/CameraCaptureModal";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
+import { canAccessPath } from "@/features/auth/access-policy";
 import { resolveFileBlob } from "@/features/arquivos/resolve-file";
 import { PasswordChangeForm } from "@/features/auth/PasswordChangeForm";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -69,6 +70,9 @@ export function UserProfileModal({
   defaultTab?: "perfil" | "foto" | "seguranca" | "instituicoes";
 }) {
   const currentUser = useCurrentAccount();
+  // A biblioteca (Arquivos) é só da equipa: para alunos e encarregados o botão abria
+  // um seletor que o servidor recusa.
+  const canUseLibrary = canAccessPath("/arquivos", currentUser.role, currentUser.grants);
   const queryClient = useQueryClient();
   const { signOut, signingOut } = useSignOut();
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
@@ -398,27 +402,29 @@ export function UserProfileModal({
                     Tirar Foto (Câmera)
                   </Button>
 
-                  <PickFileButton
-                    label="Escolher da Biblioteca SIGA"
-                    area="pessoal"
-                    acceptKinds={["png", "jpeg"]}
-                    variant="outline"
-                    size="sm"
-                    onPick={(file) => {
-                      void (async () => {
-                        try {
-                          const blob = await resolveFileBlob(file, {
-                            schoolId: currentUser.schoolId,
-                            ownerUserId: currentUser.id,
-                          });
-                          const chosen = new File([blob], file.name, { type: blob.type });
-                          await uploadAvatar(chosen);
-                        } catch {
-                          toast.error("Não foi possível carregar a imagem da biblioteca.");
-                        }
-                      })();
-                    }}
-                  />
+                  {canUseLibrary && (
+                    <PickFileButton
+                      label="Escolher da Biblioteca SIGA"
+                      area="pessoal"
+                      acceptKinds={["png", "jpeg"]}
+                      variant="outline"
+                      size="sm"
+                      onPick={(file) => {
+                        void (async () => {
+                          try {
+                            const blob = await resolveFileBlob(file, {
+                              schoolId: currentUser.schoolId,
+                              ownerUserId: currentUser.id,
+                            });
+                            const chosen = new File([blob], file.name, { type: blob.type });
+                            await uploadAvatar(chosen);
+                          } catch {
+                            toast.error("Não foi possível carregar a imagem da biblioteca.");
+                          }
+                        })();
+                      }}
+                    />
+                  )}
                 </div>
               </TabsContent>
 

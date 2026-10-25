@@ -45,13 +45,13 @@ import { schedulePublicationReadiness } from "./utils/publicationReadiness";
 import { assertValidScheduleTime, assertNoScheduleConflict } from "./utils/validation";
 import { toast } from "@/lib/toast";
 import { errorMessage } from "@/lib/error-message";
+import { idOptions } from "@/lib/option-label";
+
+const NO_TEACHER = "__sem_professor__";
+const NO_ROOM = "__sem_sala__";
 
 const weekdays = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"] as const;
 const weekdayByLabel = new Map<string, number>(weekdays.map((label, index) => [label, index + 1]));
-
-function optionLabel(id: string, label: string) {
-  return `${label} · ${id.slice(0, 8)}`;
-}
 
 function timeValue(value: string) {
   return value.slice(0, 5);
@@ -177,24 +177,21 @@ export function ScheduleWorkspace({
     classSubjects,
   });
 
-  const classGroupOptions = classGroups.map((group) => optionLabel(group.id, group.name));
-  const subjectOptions = subjects.map((subject) => optionLabel(subject.id, subject.name));
+  // O valor de cada opção é o id; o nome só leva um pedaço do id se houver outro igual.
+  const classGroupOptions = idOptions(classGroups, (group) => group.name);
+  const subjectOptions = idOptions(subjects, (subject) => subject.name);
   const teacherOptions = [
-    "Sem professor atribuído",
-    ...teachers.map((t) => optionLabel(t.id, t.name)),
+    { value: NO_TEACHER, label: "Sem professor atribuído" },
+    ...idOptions(teachers, (t) => t.name),
   ];
   const roomOptions = [
-    "Sem sala fixa",
-    ...rooms.map((r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`)),
+    { value: NO_ROOM, label: "Sem sala fixa" },
+    ...idOptions(rooms, (r) => `${r.name} (${r.capacity || "?"} lugares)`),
   ];
 
   const handleCreateSlot = async (values: Record<string, string | undefined>) => {
-    const groupOption = values["turma"] ?? "";
-    const subjectOption = values["disciplina"] ?? "";
-    const classGroup = classGroups.find(
-      (group) => optionLabel(group.id, group.name) === groupOption,
-    );
-    const subject = subjects.find((item) => optionLabel(item.id, item.name) === subjectOption);
+    const classGroup = classGroups.find((group) => group.id === values["turma"]);
+    const subject = subjects.find((item) => item.id === values["disciplina"]);
     const weekday = weekdayByLabel.get(values["dia"] ?? "");
 
     if (!classGroup || !subject || !weekday) {
@@ -212,16 +209,14 @@ export function ScheduleWorkspace({
       );
 
     const teacherOpt = values["professor"];
-    const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
-    if (teacherOpt && teacherOpt !== "Sem professor atribuído" && !resolvedTeacher) {
+    const resolvedTeacher = teachers.find((t) => t.id === teacherOpt);
+    if (teacherOpt && teacherOpt !== NO_TEACHER && !resolvedTeacher) {
       throw new Error("O professor seleccionado não está disponível nesta instituição.");
     }
 
     const roomOpt = values["sala"];
-    const resolvedRoom = rooms.find(
-      (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
-    );
-    if (roomOpt && roomOpt !== "Sem sala fixa" && !resolvedRoom) {
+    const resolvedRoom = rooms.find((r) => r.id === roomOpt);
+    if (roomOpt && roomOpt !== NO_ROOM && !resolvedRoom) {
       throw new Error("A sala seleccionada não está disponível nesta instituição.");
     }
 
@@ -284,16 +279,14 @@ export function ScheduleWorkspace({
     if (!weekday) throw new Error("Seleccione o dia.");
 
     const teacherOpt = values["professor"];
-    const resolvedTeacher = teachers.find((t) => optionLabel(t.id, t.name) === teacherOpt);
-    if (teacherOpt && teacherOpt !== "Sem professor atribuído" && !resolvedTeacher) {
+    const resolvedTeacher = teachers.find((t) => t.id === teacherOpt);
+    if (teacherOpt && teacherOpt !== NO_TEACHER && !resolvedTeacher) {
       throw new Error("O professor seleccionado não está disponível nesta instituição.");
     }
 
     const roomOpt = values["sala"];
-    const resolvedRoom = rooms.find(
-      (r) => optionLabel(r.id, `${r.name} (${r.capacity || "?"} lugares)`) === roomOpt,
-    );
-    if (roomOpt && roomOpt !== "Sem sala fixa" && !resolvedRoom) {
+    const resolvedRoom = rooms.find((r) => r.id === roomOpt);
+    if (roomOpt && roomOpt !== NO_ROOM && !resolvedRoom) {
       throw new Error("A sala seleccionada não está disponível nesta instituição.");
     }
     const currentGroup = classGroups.find((group) => group.id === slot.class_group_id);
@@ -514,9 +507,7 @@ export function ScheduleWorkspace({
                     label: "Turma",
                     type: "select",
                     options: classGroupOptions,
-                    defaultValue: selectedClassGroup
-                      ? optionLabel(selectedClassGroup.id, selectedClassGroup.name)
-                      : undefined,
+                    defaultValue: selectedClassGroup?.id,
                     required: true,
                     full: true,
                   },
@@ -819,9 +810,7 @@ export function ScheduleWorkspace({
                                         const current = teachers.find(
                                           (t) => t.id === slot.teacher_id,
                                         );
-                                        return current
-                                          ? optionLabel(current.id, current.name)
-                                          : "Sem professor atribuído";
+                                        return current ? current.id : NO_TEACHER;
                                       })(),
                                     },
                                     {
@@ -831,12 +820,7 @@ export function ScheduleWorkspace({
                                       options: roomOptions,
                                       defaultValue: (() => {
                                         const current = rooms.find((r) => r.id === slot.room_id);
-                                        return current
-                                          ? optionLabel(
-                                              current.id,
-                                              `${current.name} (${current.capacity || "?"} lugares)`,
-                                            )
-                                          : "Sem sala fixa";
+                                        return current ? current.id : NO_ROOM;
                                       })(),
                                     },
                                     {

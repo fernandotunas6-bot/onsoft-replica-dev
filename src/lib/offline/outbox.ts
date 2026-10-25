@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { isSessionError } from "@/lib/session-expiry";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 
 /**
  * Fila de envio sem rede (app desktop).
@@ -27,6 +28,8 @@ export type OutboxItem = {
   id: string;
   kind: OutboxKind;
   userId: string;
+  /** Escola de origem; ausente apenas nas entradas legadas. */
+  schoolId?: string;
   /** Texto para o professor reconhecer o envio («Chamada 7ª A, 06/10»). */
   label: string;
   variables: unknown;
@@ -60,6 +63,8 @@ const VAULT_KEY = "siga.offline-outbox";
 let storage: OutboxStorage | null = null;
 let items: OutboxItem[] = [];
 let flushing: Promise<void> | null = null;
+/** Serializa persistências para impedir que dois lançamentos concorrentes se percam. */
+let persistenceQueue: Promise<void> = Promise.resolve();
 const listeners = new Set<() => void>();
 let senders: Record<OutboxKind, Sender> = SENDERS;
 
@@ -69,8 +74,12 @@ function emit() {
 
 /** Liga a fila a um armazenamento (o cofre do posto) e carrega o que lá ficou. */
 export async function enableOutbox(next: OutboxStorage) {
+  // Só activar depois de ler o cofre: nunca sobrescrever uma fila persistida
+  // com uma fila vazia quando o carregamento falha.
+  const loaded = await next.load();
+  await persistenceQueue;
   storage = next;
-  items = await next.load();
+  items = loaded;
   emit();
 }
 
@@ -86,9 +95,28 @@ export function vaultOutboxStorage(vault: {
       if (!raw) return [];
       try {
         const parsed = JSON.parse(raw) as unknown;
-        return Array.isArray(parsed) ? (parsed as OutboxItem[]) : [];
+        if (
+          !Array.isArray(parsed) ||
+          !parsed.every(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              typeof item.id === "string" &&
+              typeof item.userId === "string" &&
+              (item.schoolId === undefined ||
+                (typeof item.schoolId === "string" && item.schoolId.length > 0)) &&
+              typeof item.label === "string" &&
+              (item.kind === "attendance.submit" || item.kind === "grades.term"),
+          )
+        ) {
+          throw new Error("formato inválido");
+        }
+        return parsed as OutboxItem[];
       } catch {
-        return [];
+        // Falhar fechado: um cofre danificado NÃO equivale a uma fila vazia.
+        throw new Error(
+          "A fila offline guardada neste computador não pôde ser lida. Não a substitua; peça assistência para recuperar os lançamentos.",
+        );
       }
     },
     async save(next) {
@@ -114,6 +142,14 @@ async function persist(next: OutboxItem[]) {
   emit();
 }
 
+/** A transformação lê sempre a última versão confirmada da fila. */
+function mutateItems(change: (current: OutboxItem[]) => OutboxItem[]): Promise<void> {
+  const task = persistenceQueue.then(() => persist(change(items)));
+  // Um erro de gravação não deve bloquear permanentemente as próximas tentativas.
+  persistenceQueue = task.catch(() => undefined);
+  return task;
+}
+
 /** Falha de rede (sem resposta do servidor), por oposição a uma recusa do servidor. */
 export function isNetworkError(error: unknown) {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
@@ -136,16 +172,24 @@ function newId() {
 export async function sendOrQueue(
   kind: OutboxKind,
   variables: unknown,
-  meta: { label: string; userId: string | null },
+  meta: { label: string; userId: string | null; schoolId: string | null },
 ): Promise<{ queued: false; result: unknown } | { queued: true }> {
   const queueIt = async () => {
-    if (!meta.userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
-    await persist([
-      ...items,
+    const userId = meta.userId;
+    const schoolId = meta.schoolId;
+    if (!userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
+    if (!schoolId) {
+      throw new Error(
+        "Seleccione uma escola antes de guardar sem rede. A operação não pode ficar sem instituição.",
+      );
+    }
+    await mutateItems((current) => [
+      ...current,
       {
         id: newId(),
         kind,
-        userId: meta.userId,
+        userId,
+        schoolId,
         label: meta.label,
         variables,
         createdAt: new Date().toISOString(),
@@ -168,34 +212,62 @@ export async function sendOrQueue(
  * Envia, por ordem, o que está na fila desta pessoa. Pára no primeiro erro de rede
  * ou de sessão; uma recusa do servidor marca o envio e passa ao seguinte.
  */
-export function flushOutbox(userId: string | null): Promise<void> {
-  if (!storage || !userId) return Promise.resolve();
-  flushing ??= (async () => {
-    try {
-      for (const item of items.filter((entry) => entry.userId === userId && !entry.failedReason)) {
-        try {
-          await senders[item.kind](item.variables);
-          await persist(items.filter((entry) => entry.id !== item.id));
-        } catch (error) {
-          if (isNetworkError(error) || isSessionError(error)) return;
-          const reason = error instanceof Error ? error.message : "O servidor recusou o envio.";
-          await persist(
-            items.map((entry) =>
-              entry.id === item.id ? { ...entry, failedReason: reason } : entry,
-            ),
-          );
+export function flushOutbox(userId: string | null, schoolId: string | null): Promise<void> {
+  if (!storage || !userId || !schoolId) return Promise.resolve();
+  // Uma tentativa sem entradas é válida. O antigo `??=` com `finally`
+  // síncrono deixava uma Promise concluída presa em `flushing`.
+  const previous = flushing;
+  const run = async () => {
+    // Entradas legadas sem escola nunca são transmitidas automaticamente.
+    for (const item of items.filter(
+      (entry) => entry.userId === userId && entry.schoolId === schoolId && !entry.failedReason,
+    )) {
+      try {
+        if (!items.some((entry) => entry.id === item.id)) continue;
+        // A escola pode mudar enquanto a tentativa anterior estava em curso.
+        if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
+        if (
+          !item.variables ||
+          typeof item.variables !== "object" ||
+          Array.isArray(item.variables)
+        ) {
+          throw new Error("Os dados da operação guardada são inválidos.");
         }
+        await senders[item.kind]({
+          ...item.variables,
+          offlineSchoolId: item.schoolId,
+          offlineActorId: item.userId,
+        });
+        await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
+      } catch (error) {
+        if (isNetworkError(error) || isSessionError(error)) return;
+        const reason = error instanceof Error ? error.message : "O servidor recusou o envio.";
+        await mutateItems((current) =>
+          current.map((entry) =>
+            entry.id === item.id ? { ...entry, failedReason: reason } : entry,
+          ),
+        );
       }
-    } finally {
-      flushing = null;
     }
-  })();
-  return flushing;
+  };
+  // Tentativas concorrentes, mesmo para escolas diferentes, não sobrepõem envios.
+  // Depois da primeira terminar, a próxima verifica o contexto da escola de novo.
+  const task = (previous ?? Promise.resolve()).catch(() => undefined).then(run);
+  flushing = task;
+  void task.then(
+    () => {
+      if (flushing === task) flushing = null;
+    },
+    () => {
+      if (flushing === task) flushing = null;
+    },
+  );
+  return task;
 }
 
 /** Retira da fila um envio recusado pelo servidor (depois de o ler). */
 export async function discardOutboxItem(id: string) {
-  await persist(items.filter((entry) => entry.id !== id));
+  await mutateItems((current) => current.filter((entry) => entry.id !== id));
 }
 
 export function outboxItems(): readonly OutboxItem[] {
@@ -218,6 +290,7 @@ export function useOutbox() {
     items: snapshot,
     waiting: snapshot.filter((entry) => !entry.failedReason).length,
     failed: snapshot.filter((entry) => entry.failedReason),
+    legacy: snapshot.filter((entry) => !entry.schoolId),
   };
 }
 
@@ -226,6 +299,7 @@ export function resetOutboxForTests(nextSenders: Record<OutboxKind, Sender> = SE
   storage = null;
   items = [];
   flushing = null;
+  persistenceQueue = Promise.resolve();
   senders = nextSenders;
   listeners.clear();
 }

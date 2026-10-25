@@ -77,7 +77,7 @@ export type ExamBoard = {
 export const getExamBoard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ academicYearId: z.string().uuid().optional() }).parse(input ?? {}),
+    z.object({ academicYearId: z.string().guid().optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }): Promise<ExamBoard> => {
     const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
@@ -161,7 +161,7 @@ export const getExamBoard = createServerFn({ method: "GET" })
   });
 
 const sessionInput = z.object({
-  academicYearId: z.string().uuid(),
+  academicYearId: z.string().guid(),
   kind: z.enum(EXAM_KINDS),
   name: z.string().trim().min(2).max(120).optional(),
   startsOn: z
@@ -221,7 +221,7 @@ export const createExamSession = createServerFn({ method: "POST" })
 export const setExamSessionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ sessionId: z.string().uuid(), status: z.enum(EXAM_SESSION_STATUSES) }).parse(input),
+    z.object({ sessionId: z.string().guid(), status: z.enum(EXAM_SESSION_STATUSES) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterForWrite(
@@ -354,7 +354,7 @@ export type ExamClassDetail = {
   canManage: boolean;
 };
 
-const classInput = z.object({ sessionId: z.string().uuid(), classGroupId: z.string().uuid() });
+const classInput = z.object({ sessionId: z.string().guid(), classGroupId: z.string().guid() });
 
 export const getExamClassDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -598,11 +598,11 @@ async function notifyRegistered(
 }
 
 const scoresInput = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.string().guid(),
   entries: z
     .array(
       z.object({
-        registrationId: z.string().uuid(),
+        registrationId: z.string().guid(),
         score: z.number().min(0).max(100).nullable(),
         absent: z.boolean(),
         examDate: z
@@ -735,7 +735,7 @@ export const saveExamScores = createServerFn({ method: "POST" })
 
 export const cancelExamRegistration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ registrationId: z.string().uuid() }).parse(input))
+  .validator((input: unknown) => z.object({ registrationId: z.string().guid() }).parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterForWrite(
       "pedagogica",

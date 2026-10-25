@@ -10,7 +10,7 @@ import { requirePlatformAdminFromRequest } from "@/features/saas/platform-guard"
 const APPS = ["web", "admin"] as const;
 
 const provisionSchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
   email: z.string().email(),
   displayName: z.string(),
 });

@@ -74,7 +74,7 @@ export type CreateAnnouncementInput = z.infer<typeof createAnnouncementInputSche
 
 export const updateAnnouncementStatusInputSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.string().guid(),
     status: z.enum(announcementStatusOptions),
     scheduledFor: optionalDate,
   })
@@ -90,11 +90,11 @@ export const updateAnnouncementStatusInputSchema = z
 export type UpdateAnnouncementStatusInput = z.infer<typeof updateAnnouncementStatusInputSchema>;
 
 export const updateAnnouncementInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().trim().min(2).max(160),
   body: z.string().trim().min(2).max(4000),
 });
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementInputSchema>;
 
-export const archiveAnnouncementInputSchema = z.object({ id: z.string().uuid() });
+export const archiveAnnouncementInputSchema = z.object({ id: z.string().guid() });
 export type ArchiveAnnouncementInput = z.infer<typeof archiveAnnouncementInputSchema>;

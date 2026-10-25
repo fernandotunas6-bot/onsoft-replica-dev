@@ -20,6 +20,7 @@ import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
@@ -293,6 +294,7 @@ export function GradePautaSheet({
             .filter(Boolean)
             .join(" · "),
           userId: await currentUserId(),
+          schoolId: readStoredActiveSchool(),
         },
       );
       if (outcome.queued) {

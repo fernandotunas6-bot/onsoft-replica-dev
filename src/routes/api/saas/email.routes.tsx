@@ -32,13 +32,13 @@ function authErrorStatus(message: string): number {
 }
 
 const createRouteBodySchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
   forwardTo: z.string().email("E-mail de destino inválido."),
 });
 
 const deleteRouteBodySchema = z.object({
   routeId: z.string().min(1),
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
 });
 
 export const Route = createFileRoute("/api/saas/email/routes")({

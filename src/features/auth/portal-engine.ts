@@ -94,6 +94,7 @@ export function getPortalNavigation(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
+  options: { isAlumni?: boolean } = {},
 ): NavGroup[] {
   const mode = resolvePortalMode(role);
 
@@ -142,7 +143,10 @@ export function getPortalNavigation(
             },
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
-            { label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" },
+            // Só para quem já concluiu (tem processo Alumni), não para quem ainda estuda.
+            ...(options.isAlumni
+              ? [{ label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" }]
+              : []),
             { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
           ],
         },
@@ -191,14 +195,9 @@ export function getPortalNavigation(
               to: "/pedagogica",
               search: { tab: "presencas" },
             },
-            {
-              label: "Financeiro",
-              icon: moduleIcons.finance,
-              children: [
-                { label: "Propinas e Faturas", icon: moduleIcons.finance, to: "/financeiro" },
-                { label: "Recibos", icon: moduleIcons.receipts, to: "/faturas" },
-              ],
-            },
+            // «Recibos» apontava para /faturas, que é só da Direcção e da Tesouraria:
+            // o item ficava escondido. Propinas, faturas e recibos estão em /financeiro.
+            { label: "Financeiro", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
             { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },

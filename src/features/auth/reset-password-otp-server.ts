@@ -1,9 +1,20 @@
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { serverFnClientIp } from "@/lib/server-fn-ip";
 import { OtpService } from "@/features/otp/otp-service";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { resolveResetAccount } from "./reset-account-resolver";
+import { consumeRateLimit } from "@/lib/shared-rate-limit";
+import { isRateLimitBypassed } from "@/lib/rate-limit";
+
+/**
+ * Tecto de tentativas por conta e por IP. Cada código novo invalida o anterior e dá
+ * outras 5 tentativas, e pedir um código é público (1 por minuto): eram ~300
+ * tentativas por hora por conta, sem fim — ~20 % de acertar num código de 6 dígitos
+ * num mês. Com 20 por dia, a hipótese fica desprezável.
+ */
+export const RESET_OTP_TRIES_PER_ACCOUNT = { windowMs: 24 * 60 * 60 * 1000, max: 20 };
+export const RESET_OTP_TRIES_PER_IP = { windowMs: 60 * 60 * 1000, max: 30 };
 
 export const resetPasswordWithOtpInputSchema = z.object({
   targetIdentifier: z.string().trim().min(3, "Indique o e-mail ou telefone da conta."),
@@ -16,8 +27,20 @@ export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpInput
 export const resetPasswordWithOtpFn = createServerFn({ method: "POST" })
   .validator((input: unknown) => resetPasswordWithOtpInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+    const ip = serverFnClientIp();
     const normalized = OtpService.normalizeIdentifier(data.targetIdentifier);
+    const accountKey = `reset_otp_try:${normalized}`;
+    const ipKey = `reset_otp_ip:${ip}`;
+    if (
+      (!isRateLimitBypassed(accountKey) &&
+        !(await consumeRateLimit([accountKey], RESET_OTP_TRIES_PER_ACCOUNT))) ||
+      (!isRateLimitBypassed(ipKey) && !(await consumeRateLimit([ipKey], RESET_OTP_TRIES_PER_IP)))
+    ) {
+      return {
+        success: false,
+        message: "Demasiadas tentativas. Tente de novo mais tarde ou peça ajuda à escola.",
+      };
+    }
 
     // 1. Validação estrita do código OTP via OtpService
     const verification = await OtpService.verifyCode({

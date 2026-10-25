@@ -10,7 +10,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
   requireSgaWriterFor,
@@ -27,7 +27,13 @@ import {
 } from "./exam-engine";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { recordAuditBatch } from "@/features/audit/record-audit";
-import { OFFICIAL_SHEET_STATUSES, activeYearId, loadAnnualSheet, studentNames } from "./exam-data";
+import {
+  OFFICIAL_SHEET_STATUSES,
+  activeYearId,
+  examDbError,
+  loadAnnualSheet,
+  studentNames,
+} from "./exam-data";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -115,8 +121,13 @@ async function buildClassFinalResults(
     .select("id, created_at")
     .eq("school_id", schoolId)
     .eq("academic_year_id", yearId);
+  // Só a tabela em falta conta como «sem exames». Outro erro parava em silêncio
+  // e o resultado (e o histórico) ficava o de antes do recurso.
+  if (sessionsError && !isMissingTable(sessionsError)) {
+    throw examDbError(sessionsError, "Não foi possível ler as épocas de exame.");
+  }
   const sessionAt = new Map(((sessions ?? []) as Row[]).map((s) => [str(s.id), str(s.created_at)]));
-  const { data: regs } =
+  const { data: regs, error: regsError } =
     !sessionsError && sessionAt.size
       ? await db
           .from("siga_exam_registrations")
@@ -124,7 +135,8 @@ async function buildClassFinalResults(
           .eq("school_id", schoolId)
           .eq("class_group_id", classGroupId)
           .in("session_id", [...sessionAt.keys()])
-      : { data: [] as Row[] };
+      : { data: [] as Row[], error: null };
+  if (regsError) throw examDbError(regsError, "Não foi possível ler as notas de exame.");
 
   const enrollmentIds = sheet.rows.map((r) => r.enrollmentId);
   const names = await studentNames(db, schoolId, enrollmentIds);
@@ -177,8 +189,8 @@ async function buildClassFinalResults(
 }
 
 const classInput = z.object({
-  classGroupId: z.string().uuid(),
-  academicYearId: z.string().uuid().optional(),
+  classGroupId: z.string().guid(),
+  academicYearId: z.string().guid().optional(),
 });
 
 export const getClassFinalResults = createServerFn({ method: "GET" })

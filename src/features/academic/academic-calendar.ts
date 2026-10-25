@@ -20,7 +20,7 @@ const calendarTermSchema = z.object({
 
 export const saveAcademicCalendarInputSchema = z
   .object({
-    academicYearId: z.string().uuid().optional(),
+    academicYearId: z.string().guid().optional(),
     yearName: z.string().trim().min(4).max(40),
     startsOn: isoDate,
     endsOn: isoDate,
@@ -81,7 +81,7 @@ export const saveAcademicCalendarInputSchema = z
   });
 
 export const listAcademicCalendarInputSchema = z.object({
-  academicYearId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
 });
 
 export const listAcademicCalendar = createServerFn({ method: "GET" })

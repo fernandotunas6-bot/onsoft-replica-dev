@@ -1,7 +1,12 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
+import {
+  invoiceNetTotal,
+  invoiceOpenAmount,
+  invoiceStatusFromPaid,
+} from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
-import { selectAllPages } from "../engine/paged";
+import { rowsOrThrow, selectAllPages } from "../engine/paged";
 import { categoryToFeeKind } from "@/features/finance/server";
 import { formatInvoiceNumber } from "@/features/finance/invoice-numbering";
 
@@ -255,12 +260,18 @@ export async function loadExistingReceiptNumbers(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<Set<string>> {
-  const { data, error } = await db
-    .from("finance_receipts")
-    .select("receipt_number")
-    .eq("school_id", schoolId);
-  if (error) throw new Error(`Não foi possível carregar recibos existentes: ${error.message}`);
-  return new Set((data ?? []).map((row) => normalizeText(row.receipt_number)).filter(Boolean));
+  const data = await rowsOrThrow(
+    readAllPages((from, to) =>
+      db
+        .from("finance_receipts")
+        .select("id, receipt_number")
+        .eq("school_id", schoolId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    "Não foi possível carregar recibos existentes",
+  );
+  return new Set(data.map((row) => normalizeText(row.receipt_number)).filter(Boolean));
 }
 
 export type OpenInvoiceRef = {
@@ -283,60 +294,69 @@ export async function loadOpenInvoiceRefs(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<OpenInvoiceRef[]> {
-  const { data: invoices, error: invoicesError } = await db
-    .from("finance_invoices")
-    .select(
-      "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
-    )
-    .eq("school_id", schoolId)
-    .in("status", ["open", "partially_paid"]);
-  if (invoicesError) {
-    throw new Error(`Não foi possível carregar faturas em aberto: ${invoicesError.message}`);
-  }
-  if (!invoices?.length) return [];
+  // Por páginas e em lotes de ids: com mais de 1000 faturas em aberto, as restantes
+  // não eram encontradas, e a lista de ids passava o tamanho máximo do URL.
+  const invoices = await rowsOrThrow(
+    readAllPages((from, to) =>
+      db
+        .from("finance_invoices")
+        .select(
+          "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
+        )
+        .eq("school_id", schoolId)
+        .in("status", ["open", "partially_paid"])
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    "Não foi possível carregar faturas em aberto",
+  );
+  if (!invoices.length) return [];
 
   const contractIds = [...new Set(invoices.map((row) => String(row.contract_id)))];
-  const { data: contracts, error: contractsError } = await db
-    .from("finance_contracts")
-    .select("id, enrollment_id")
-    .eq("school_id", schoolId)
-    .in("id", contractIds);
-  if (contractsError) {
-    throw new Error(`Não foi possível carregar contratos financeiros: ${contractsError.message}`);
-  }
+  const contracts = await rowsOrThrow(
+    readInChunks(contractIds, (chunk) =>
+      db
+        .from("finance_contracts")
+        .select("id, enrollment_id")
+        .eq("school_id", schoolId)
+        .in("id", chunk),
+    ),
+    "Não foi possível carregar contratos financeiros",
+  );
   const enrollmentIdByContract = new Map(
-    (contracts ?? []).map((row) => [String(row.id), String(row.enrollment_id)]),
+    contracts.map((row) => [String(row.id), String(row.enrollment_id)]),
   );
 
   const enrollmentIds = [...new Set([...enrollmentIdByContract.values()])];
-  const { data: enrollments, error: enrollmentsError } = enrollmentIds.length
-    ? await db
-        .from("enrollments")
-        .select("id, student_id")
-        .eq("school_id", schoolId)
-        .in("id", enrollmentIds)
-    : { data: [], error: null };
-  if (enrollmentsError) {
-    throw new Error(
-      `Não foi possível carregar matrículas das faturas: ${enrollmentsError.message}`,
-    );
-  }
+  const enrollments = await rowsOrThrow(
+    readInChunks(enrollmentIds, (chunk) =>
+      db.from("enrollments").select("id, student_id").eq("school_id", schoolId).in("id", chunk),
+    ),
+    "Não foi possível carregar matrículas das faturas",
+  );
   const studentIdByEnrollment = new Map(
-    (enrollments ?? []).map((row) => [String(row.id), String(row.student_id)]),
+    enrollments.map((row) => [String(row.id), String(row.student_id)]),
   );
 
   const invoiceIds = invoices.map((row) => String(row.id));
-  const { data: receipts, error: receiptsError } = await db
-    .from("finance_receipts")
-    .select("invoice_id, amount")
-    .eq("school_id", schoolId)
-    .eq("status", "issued")
-    .in("invoice_id", invoiceIds);
-  if (receiptsError) {
-    throw new Error(`Não foi possível carregar recibos existentes: ${receiptsError.message}`);
-  }
+  // Vários recibos por fatura: páginas dentro de cada lote.
+  const receipts = await rowsOrThrow(
+    readInChunks(invoiceIds, (chunk) =>
+      readAllPages((from, to) =>
+        db
+          .from("finance_receipts")
+          .select("id, invoice_id, amount")
+          .eq("school_id", schoolId)
+          .eq("status", "issued")
+          .in("invoice_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+    ),
+    "Não foi possível carregar recibos existentes",
+  );
   const paidByInvoice = new Map<string, number>();
-  for (const row of receipts ?? []) {
+  for (const row of receipts) {
     const key = String(row.invoice_id);
     paidByInvoice.set(key, (paidByInvoice.get(key) ?? 0) + Number(row.amount || 0));
   }
@@ -356,7 +376,7 @@ export async function loadOpenInvoiceRefs(
             amount,
             due_date: String(row.due_date),
             competence_month: row.competence_month ? String(row.competence_month) : null,
-            remaining: Math.max(0, amount - paid),
+            remaining: invoiceOpenAmount(amount, paid),
           }
         : null;
     })

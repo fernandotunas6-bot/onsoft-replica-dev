@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -94,7 +95,8 @@ export const buildAlumniCommunicationAudience = createServerFn({ method: "GET" }
   .handler(async ({ data, context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { membership, db } = await adminContext(context.userId);
-    let profileQuery = db
+    // Todos os destinatários: acima de 1000, a campanha omitia o resto sem aviso.
+    let profileQuery = pagedReadClient(db)
       .from("alumni_profiles")
       .select(
         "id, person_id, graduation_year, province, employment_status, available_for_mentoring, open_to_opportunities, contact_consent, directory_visibility",
@@ -162,7 +164,7 @@ export const getAlumniExportDataset = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     if (!context) throw new Error("Sessão inválida.");
     const { membership, db } = await adminContext(context.userId);
-    const { data: profiles, error } = await db
+    const { data: profiles, error } = await pagedReadClient(db)
       .from("alumni_profiles")
       .select(
         "id, person_id, graduation_year, graduation_grade, graduation_course, headline, current_company, current_role, employment_status, industry, city, province, country, skills, interests, available_for_mentoring, seeking_mentor, open_to_opportunities, directory_visibility, contact_consent, verified_at, profile_completion, last_engagement_at",

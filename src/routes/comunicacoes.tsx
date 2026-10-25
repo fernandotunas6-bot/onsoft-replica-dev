@@ -519,13 +519,15 @@ function ComunicacoesPage() {
             <>
               <PageActionMenu>
                 <DocHelpButton title="Navegação — Comunicações" />
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => setTemplatesModalOpen(true)}
-                >
-                  <FileText className="size-4" /> Modelos
-                </Button>
+                {canManage ? (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setTemplatesModalOpen(true)}
+                  >
+                    <FileText className="size-4" /> Modelos
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   className="gap-2"
@@ -550,14 +552,16 @@ function ComunicacoesPage() {
                 >
                   <FileBadge className="size-4" /> Oficial
                 </Button>
-                <PickFileButton
-                  area="escola"
-                  onPick={(file) =>
-                    toast.success(file.name, {
-                      description: "Ficheiro da biblioteca para o comunicado.",
-                    })
-                  }
-                />
+                {canManage ? (
+                  <PickFileButton
+                    area="escola"
+                    onPick={(file) =>
+                      toast.success(file.name, {
+                        description: "Ficheiro da biblioteca para o comunicado.",
+                      })
+                    }
+                  />
+                ) : null}
               </PageActionMenu>
               {canManage && !migrationMissing ? (
                 <Button className="gap-2" onClick={abrirFormulario}>

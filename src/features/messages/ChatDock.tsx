@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { canAccessPath } from "@/features/auth/access-policy";
 import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { signSchoolFile } from "@/features/arquivos/server";
 import { signMessageAttachment } from "@/features/messages/attachment-server";
@@ -677,7 +678,7 @@ export function ChatDock({
             ) : null}
           </div>
 
-          {conv.student ? (
+          {conv.student && canAccessPath("/alunos", currentUser.role, currentUser.grants) ? (
             <div
               className="flex gap-2 overflow-x-auto px-2 py-2"
               style={{ background: "#fff", borderBottom: `1px solid ${T.line}` }}

@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "@/lib/timing-safe-equal";
+import { bufferToBase64 } from "@/lib/base64";
 
 /**
  * HMAC para verificação de assinaturas de webhooks, com Web Crypto.
@@ -27,13 +28,6 @@ function toHex(buffer: ArrayBuffer): string {
   return [...new Uint8Array(buffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function toBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 export async function hmacHex(
   algorithm: "SHA-1" | "SHA-256",
   secret: string,
@@ -47,7 +41,7 @@ export async function hmacBase64(
   secret: string,
   message: string,
 ): Promise<string> {
-  return toBase64(await hmac(algorithm, secret, message));
+  return bufferToBase64(await hmac(algorithm, secret, message));
 }
 
 /**

@@ -2,7 +2,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { NAV_DEPTH_CLASS } from "@/components/layout/NavItem";
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PremiumModal } from "@/components/ui/premium-modal";
 
 afterEach(cleanup);
@@ -15,6 +21,21 @@ describe("contrato visual partilhado — menus e modais simples", () => {
     expect(NAV_DEPTH_CLASS.sub).toContain("lg:h-8");
     expect(NAV_DEPTH_CLASS.sub).toContain("lg:min-h-8");
     expect(NAV_DEPTH_CLASS.sub).not.toContain("max-h-8");
+  });
+
+  it("reserva 44px no cabeçalho para o botão fechar, sem sobrepor títulos", () => {
+    render(
+      <Dialog open onOpenChange={() => {}}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Documento institucional com título longo</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>,
+    );
+    const title = screen.getByText("Documento institucional com título longo");
+    expect(title.parentElement?.className).toContain("pr-11");
+    expect(screen.getByRole("button", { name: "Fechar" })).toBeTruthy();
   });
 
   it("preserva exactamente as duas acções de um diálogo simples, com área de toque segura", () => {

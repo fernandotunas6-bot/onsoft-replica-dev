@@ -38,10 +38,6 @@ const PUBLIC_SERVER_FNS: Record<string, string> = {
     "Exige o código OTP enviado para o contacto registado.",
   "src/features/auth/signup-server.ts:requestSignupFn":
     "Registo de utilizador; a prova de posse do e-mail vem depois.",
-  "src/features/otp/server.ts:requestOtpVerificationFn":
-    "Envia o código para o contacto; limitado por taxa no despachante.",
-  "src/features/otp/server.ts:verifyOtpCodeFn":
-    "Consome o código OTP — é a própria prova de posse do contacto.",
 
   // ─── Páginas públicas da escola: quem chega não tem conta ────────────────────
   "src/features/saas/server.ts:signupSchoolPublic":
