@@ -79,6 +79,14 @@ describe("routeContextCandidates", () => {
     ]);
   });
 
+  it("a ficha da turma abre o contexto da turma", () => {
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}`)).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(routeContextCandidates("/pedagogica/turmas/nao-e-uuid")).toEqual([]);
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/extra`)).toEqual([]);
+  });
+
   it("ignora a disciplina sem turma e ids mal formados", () => {
     expect(routeContextCandidates("/pedagogica", { disciplina: MATEMATICA })).toEqual([]);
     expect(routeContextCandidates("/pedagogica", { turma: "1 or 1=1" })).toEqual([]);

@@ -66,6 +66,9 @@ function backLink(
 ): EntityNavigation["back"] {
   if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
   if (pathname.startsWith("/professores/")) return { to: "/pessoas" };
+  if (pathname.startsWith("/pedagogica/turmas/")) {
+    return { to: "/pedagogica", search: { tab: "turmas" } };
+  }
   const tab = typeof search.tab === "string" ? search.tab : undefined;
   return { to: pathname, ...(tab ? { search: { tab } } : {}) };
 }

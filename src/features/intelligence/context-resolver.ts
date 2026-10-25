@@ -86,7 +86,11 @@ export function routeContextCandidates(
   pathname: string,
   search: Record<string, unknown> = {},
 ): ContextCandidate[] {
-  const [, first, second, extra] = pathname.split("/");
+  const [, first, second, extra, more] = pathname.split("/");
+  // A ficha da turma (`/pedagogica/turmas/$classGroupId`).
+  if (first === "pedagogica" && second === "turmas" && more === undefined) {
+    return extra && UUID.test(extra) ? [{ type: "class", id: extra }] : [];
+  }
   if (extra === undefined && second && UUID.test(second)) {
     if (first === "alunos") return [{ type: "student", id: second }];
     if (first === "professores") return [{ type: "teacher", id: second }];

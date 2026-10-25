@@ -46,6 +46,8 @@ describe("getContextEntries", () => {
       ACADEMIC_CONTEXT_ENTRIES,
     );
     expect(entries.map((e) => e.id)).toEqual([
+      "class.profile",
+      "class.students",
       "subject.grades",
       "academic.attendance",
       "class.timetable",
@@ -59,6 +61,8 @@ describe("getContextEntries", () => {
     // Só com a turma, o separador de presenças não filtra por ela: a entrada fica
     // na disciplina, onde abre a chamada dessa aula.
     expect(entries.map((e) => e.id)).toEqual([
+      "class.profile",
+      "class.students",
       "class.grades",
       "class.timetable",
       "academic.lesson-plans",
@@ -72,6 +76,8 @@ describe("getContextEntries", () => {
       ACADEMIC_CONTEXT_ENTRIES,
     );
     expect(entries.map((e) => e.id)).toEqual([
+      "class.profile",
+      "class.students",
       "subject.grades",
       "academic.attendance",
       "class.timetable",
@@ -130,6 +136,17 @@ describe("links e entrada activa", () => {
     // Os ficheiros estão por turma: da disciplina abre-se a pasta da turma.
     const files = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "academic.files")!;
     expect(contextEntryLink(files, ctx)).toEqual({ to: "/arquivos", search: { turma: TURMA_A } });
+    // A ficha da turma tem página própria; os alunos são uma secção dela.
+    const profile = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.profile")!;
+    expect(contextEntryLink(profile, ctx)).toEqual({
+      to: `/pedagogica/turmas/${TURMA_A}`,
+      search: {},
+    });
+    const students = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.students")!;
+    expect(contextEntryLink(students, ctx)).toEqual({
+      to: `/pedagogica/turmas/${TURMA_A}`,
+      search: { secao: "alunos" },
+    });
     // O horário também é da turma.
     const timetable = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.timetable")!;
     expect(contextEntryLink(timetable, ctx)).toEqual({
@@ -151,6 +168,12 @@ describe("links e entrada activa", () => {
     expect(
       findActiveContextEntry(entries, ctx, "/pedagogica", { tab: "horarios", turma: TURMA_A }),
     ).toBe("class.timetable");
+    expect(findActiveContextEntry(entries, ctx, `/pedagogica/turmas/${TURMA_A}`, {})).toBe(
+      "class.profile",
+    );
+    expect(
+      findActiveContextEntry(entries, ctx, `/pedagogica/turmas/${TURMA_A}`, { secao: "alunos" }),
+    ).toBe("class.students");
     expect(
       withActiveView(ctx, entries, "/planos-aula", { turma: TURMA_A, disciplina: MATEMATICA })
         .activeView,

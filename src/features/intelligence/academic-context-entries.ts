@@ -7,7 +7,8 @@ import type { ContextFrame } from "./types";
 /**
  * Entradas do contexto académico (turma e disciplina numa turma), primeiro
  * piloto do SIGA Context Engine. Só rotas e separadores que já existem e já
- * filtram por `turma` e `disciplina`; Trabalhos entra quando tiver ecrã próprio.
+ * filtram por `turma` e `disciplina`, e a ficha da turma; Trabalhos entra quando
+ * tiver ecrã próprio.
  */
 
 /** Turma e disciplina do caminho; a disciplina nunca vem sem a sua turma. */
@@ -42,7 +43,37 @@ export const ACADEMIC_STAFF_ROLES: readonly ApplicationRole[] = [
   "Professor",
 ];
 
+/** A ficha da turma do caminho (`/pedagogica/turmas/<id>`). */
+function classProfilePath(trail: ContextFrame[]): string {
+  return `/pedagogica/turmas/${academicIdsFromTrail(trail).turma ?? ""}`;
+}
+
 export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
+  {
+    id: "class.profile",
+    label: "Ficha da turma",
+    icon: moduleIcons.classes,
+    group: "Turma",
+    contexts: ["class", "subject-offering"],
+    to: "/pedagogica/turmas/$classGroupId",
+    path: classProfilePath,
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 0,
+  },
+  {
+    id: "class.students",
+    label: "Alunos da turma",
+    icon: moduleIcons.students,
+    group: "Turma",
+    contexts: ["class", "subject-offering"],
+    to: "/pedagogica/turmas/$classGroupId",
+    path: classProfilePath,
+    search: () => ({ secao: "alunos" }),
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 5,
+  },
   {
     id: "subject.grades",
     label: "Avaliações e notas",

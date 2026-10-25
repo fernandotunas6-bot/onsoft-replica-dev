@@ -40,6 +40,13 @@ import { safeHref } from "@/lib/safe-url";
 
 type SalaOption = { id: string; name: string; capacity: number | null };
 
+/** As secções da ficha da turma; na página, `?secao=`. */
+export const TURMA_SECTIONS = ["resumo", "alunos", "disciplinas", "horario", "avaliacoes"] as const;
+export type TurmaSection = (typeof TURMA_SECTIONS)[number];
+export function isTurmaSection(value: unknown): value is TurmaSection {
+  return typeof value === "string" && (TURMA_SECTIONS as readonly string[]).includes(value);
+}
+
 const weekdayLabels = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const shiftLabelMap: Record<string, string> = {
   morning: "Manhã",
@@ -61,6 +68,9 @@ export function TurmaProfileModal({
   teacherIds,
   salas = [],
   onRefresh,
+  variant = "modal",
+  section,
+  onSectionChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -71,8 +81,21 @@ export function TurmaProfileModal({
   /** Salas físicas activas (`rooms`) para escolher na edição. */
   salas?: SalaOption[];
   onRefresh: () => Promise<void>;
+  /**
+   * `page`: a ficha da turma em `/pedagogica/turmas/$classGroupId` (SIGA Context
+   * Engine), com a secção na URL. `modal`: a janela de sempre.
+   */
+  variant?: "modal" | "page";
+  section?: TurmaSection;
+  onSectionChange?: (section: TurmaSection) => void;
 }) {
-  const [activeTab, setActiveTab] = useState("resumo");
+  const [localTab, setLocalTab] = useState<TurmaSection>("resumo");
+  const activeTab = section ?? localTab;
+  const setActiveTab = (value: string) => {
+    if (!isTurmaSection(value)) return;
+    if (onSectionChange) onSectionChange(value);
+    else setLocalTab(value);
+  };
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -175,343 +198,353 @@ export function TurmaProfileModal({
     ? Math.min(100, Math.round((turma.enrolled_count / turma.capacity) * 100))
     : 0;
 
-  return (
-    <ModalShell open={open} onOpenChange={onOpenChange} size="2xl">
-      <div className="flex h-full max-h-[88vh] flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-lg font-extrabold text-foreground">{turma.name}</h2>
-              <Badge variant={turma.status === "active" ? "default" : "secondary"}>
-                {turma.status === "active" ? "Activa" : "Inactiva"}
-              </Badge>
-            </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {turma.grade_name} · {turma.course_name} · {shiftLabelMap[turma.shift] ?? turma.shift}{" "}
-              · {turma.academic_year_name}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setAssignOpen(true)}
-            >
-              <UserPlus className="size-3.5" /> Professor
-            </Button>
-            {turma.course_id ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={applyingCurriculum}
-                onClick={handleApplyCurriculum}
-              >
-                <BookOpen className="size-3.5" /> Aplicar currículo do curso
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setEditOpen(true)}
-            >
-              <Pencil className="size-3.5" /> Editar
-            </Button>
-            {turma.status !== "active" ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                disabled={reactivating}
-                onClick={async () => {
-                  setReactivating(true);
-                  try {
-                    await updateClassGroup({
-                      data: {
-                        id: turma.id,
-                        code: turma.code,
-                        name: turma.name,
-                        // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
-                        status: "active",
-                      },
-                    });
-                    await onRefresh();
-                    toast.success("Turma reactivada.");
-                  } catch (err) {
-                    toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
-                  } finally {
-                    setReactivating(false);
-                  }
-                }}
-              >
-                <RotateCcw className="size-3.5" /> Reactivar
-              </Button>
-            ) : null}
-            <ConfirmActionModal
-              trigger={(openConfirm) =>
-                turma.status === "active" ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-destructive"
-                    onClick={openConfirm}
-                  >
-                    <Trash2 className="size-3.5" /> Desactivar
-                  </Button>
-                ) : null
+  const body = (
+    <div
+      className={
+        variant === "page"
+          ? "flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft"
+          : "flex h-full max-h-[88vh] flex-col overflow-hidden"
+      }
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-gradient-to-r from-card via-card to-secondary/30 px-6 py-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Na página, o nome já é o título (h1). */}
+            <h2
+              className={
+                variant === "page" ? "sr-only" : "truncate text-lg font-extrabold text-foreground"
               }
-              eyebrow="Turma"
-              title="Desactivar esta turma?"
-              description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
-              confirmLabel="Desactivar turma"
-              onConfirm={async () => {
+            >
+              {turma.name}
+            </h2>
+            <Badge variant={turma.status === "active" ? "default" : "secondary"}>
+              {turma.status === "active" ? "Activa" : "Inactiva"}
+            </Badge>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {turma.grade_name} · {turma.course_name} · {shiftLabelMap[turma.shift] ?? turma.shift} ·{" "}
+            {turma.academic_year_name}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setAssignOpen(true)}
+          >
+            <UserPlus className="size-3.5" /> Professor
+          </Button>
+          {turma.course_id ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={applyingCurriculum}
+              onClick={handleApplyCurriculum}
+            >
+              <BookOpen className="size-3.5" /> Aplicar currículo do curso
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setEditOpen(true)}
+          >
+            <Pencil className="size-3.5" /> Editar
+          </Button>
+          {turma.status !== "active" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={reactivating}
+              onClick={async () => {
+                setReactivating(true);
                 try {
-                  await deleteClassGroup({ data: { id: turma.id } });
+                  await updateClassGroup({
+                    data: {
+                      id: turma.id,
+                      code: turma.code,
+                      name: turma.name,
+                      // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
+                      status: "active",
+                    },
+                  });
                   await onRefresh();
-                  onOpenChange(false);
-                  toast.success("Turma desactivada.");
+                  toast.success("Turma reactivada.");
                 } catch (err) {
-                  toast.error(
-                    err instanceof Error ? err.message : "Não foi possível desactivar a turma.",
-                  );
-                  throw err;
+                  toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
+                } finally {
+                  setReactivating(false);
                 }
               }}
-            />
-          </div>
+            >
+              <RotateCcw className="size-3.5" /> Reactivar
+            </Button>
+          ) : null}
+          <ConfirmActionModal
+            trigger={(openConfirm) =>
+              turma.status === "active" ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-destructive"
+                  onClick={openConfirm}
+                >
+                  <Trash2 className="size-3.5" /> Desactivar
+                </Button>
+              ) : null
+            }
+            eyebrow="Turma"
+            title="Desactivar esta turma?"
+            description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
+            confirmLabel="Desactivar turma"
+            onConfirm={async () => {
+              try {
+                await deleteClassGroup({ data: { id: turma.id } });
+                await onRefresh();
+                onOpenChange(false);
+                toast.success("Turma desactivada.");
+              } catch (err) {
+                toast.error(
+                  err instanceof Error ? err.message : "Não foi possível desactivar a turma.",
+                );
+                throw err;
+              }
+            }}
+          />
         </div>
-
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          orientation="vertical"
-          className="flex min-h-0 flex-1 flex-col sm:flex-row"
-        >
-          <ModalSidebar items={sidebarItems} />
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-secondary/10 p-6">
-            <TabsContent value="resumo" className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <span className="text-xs font-semibold text-muted-foreground">Ocupação</span>
-                  <p className="mt-2 text-2xl font-extrabold tabular-nums">
-                    {turma.enrolled_count}
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {" "}
-                      / {turma.capacity ?? "—"}
-                    </span>
-                  </p>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full ${occupancyPct >= 90 ? "bg-destructive" : occupancyPct >= 70 ? "bg-warning" : "bg-success"}`}
-                      style={{ width: `${occupancyPct}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <span className="text-xs font-semibold text-muted-foreground">Média Geral</span>
-                  <p className="mt-2 text-2xl font-extrabold tabular-nums">
-                    {turma.average_score != null ? turma.average_score.toFixed(1) : "—"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <span className="text-xs font-semibold text-muted-foreground">Assiduidade</span>
-                  <p className="mt-2 text-2xl font-extrabold tabular-nums">
-                    {turma.attendance_rate != null ? `${Math.round(turma.attendance_rate)}%` : "—"}
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <dl className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
-                  <div>
-                    <dt className="text-muted-foreground">Código</dt>
-                    <dd className="mt-0.5 text-sm font-medium">{turma.code}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Sala</dt>
-                    <dd className="mt-0.5 text-sm font-medium">
-                      {turma.room_name && turma.room_name !== "—"
-                        ? turma.room_name
-                        : "Sem sala fixa"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Campus</dt>
-                    <dd className="mt-0.5 text-sm font-medium">{turma.campus_name || "—"}</dd>
-                  </div>
-                  {turma.whatsapp_invite_url ? (
-                    <div className="sm:col-span-2">
-                      <dt className="text-muted-foreground">WhatsApp</dt>
-                      <dd className="mt-0.5 text-sm font-medium">
-                        <a
-                          href={safeHref(turma.whatsapp_invite_url)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          {turma.whatsapp_group_name || "Abrir grupo"}
-                        </a>
-                      </dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </div>
-              {classRelations.length > 0 || classSuggestions.length > 0 ? (
-                <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                  <p className="mb-3 text-xs font-semibold text-muted-foreground">Relacionado</p>
-                  <div className="mb-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    {classRelations.map((relation) => (
-                      <div key={relation.key} className="flex items-center gap-2 text-xs">
-                        <span
-                          className={`size-1.5 shrink-0 rounded-full ${
-                            relation.status === "ok"
-                              ? "bg-success"
-                              : relation.status === "attention"
-                                ? "bg-warning"
-                                : relation.status === "critical"
-                                  ? "bg-destructive"
-                                  : "bg-muted-foreground/40"
-                          }`}
-                        />
-                        <span className="font-medium text-foreground">{relation.label}</span>
-                        <span className="text-muted-foreground">· {relation.summary}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {classSuggestions.length > 0 ? (
-                    <>
-                      <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                        Próximas ações
-                      </p>
-                      <div className="space-y-2">
-                        {classSuggestions.slice(0, 4).map((suggestion) => (
-                          <div
-                            key={suggestion.id}
-                            className="rounded-lg border border-border/70 p-2.5 text-xs"
-                          >
-                            <p className="font-semibold text-foreground">{suggestion.title}</p>
-                            {suggestion.description ? (
-                              <p className="mt-0.5 text-muted-foreground">
-                                {suggestion.description}
-                              </p>
-                            ) : null}
-                            <p className="mt-0.5 text-[11px] text-muted-foreground/80">
-                              {suggestion.reason}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
-            </TabsContent>
-
-            <TabsContent value="alunos">
-              {alunos.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {alunos.map((aluno) => (
-                    <Link
-                      key={aluno.id}
-                      to="/alunos/$studentId"
-                      params={{ studentId: aluno.student_id ?? "" }}
-                      className="flex items-center justify-between gap-2 p-3 text-xs hover:bg-secondary/40"
-                    >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {aluno.student_name}
-                      </span>
-                      <span className="shrink-0 text-muted-foreground">
-                        {aluno.registration_number || "—"}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhum aluno matriculado nesta turma ainda.
-                </p>
-              )}
-            </TabsContent>
-
-            <TabsContent value="disciplinas">
-              {disciplinas.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {disciplinas.map((row) => (
-                    <div
-                      key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="font-medium text-foreground">{row.subject_name}</span>
-                      <span className={row.teacher_name ? "text-muted-foreground" : "text-warning"}>
-                        {row.teacher_name || "Sem professor atribuído"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhuma disciplina associada a esta turma ainda.
-                </p>
-              )}
-            </TabsContent>
-
-            <TabsContent value="horario">
-              {horario.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {horario.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="font-medium text-foreground">
-                        {weekdayLabels[slot.weekday] ?? slot.weekday}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {slot.starts_at}–{slot.ends_at} · {slot.subject_name || slot.label || "—"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Sem horário definido para esta turma.
-                </p>
-              )}
-            </TabsContent>
-
-            <TabsContent value="avaliacoes">
-              {avaliacoes.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {avaliacoes.map((grade) => (
-                    <div
-                      key={grade.id}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {grade.student_name} · {grade.term}º trimestre
-                      </span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">
-                        Média: {grade.average?.toFixed(1) ?? "—"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Ainda sem avaliações lançadas para os alunos desta turma.
-                </p>
-              )}
-            </TabsContent>
-          </div>
-        </Tabs>
       </div>
 
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        orientation="vertical"
+        className="flex min-h-0 flex-1 flex-col sm:flex-row"
+      >
+        <ModalSidebar items={sidebarItems} />
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-secondary/10 p-6">
+          <TabsContent value="resumo" className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <span className="text-xs font-semibold text-muted-foreground">Ocupação</span>
+                <p className="mt-2 text-2xl font-extrabold tabular-nums">
+                  {turma.enrolled_count}
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {" "}
+                    / {turma.capacity ?? "—"}
+                  </span>
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full ${occupancyPct >= 90 ? "bg-destructive" : occupancyPct >= 70 ? "bg-warning" : "bg-success"}`}
+                    style={{ width: `${occupancyPct}%` }}
+                  />
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <span className="text-xs font-semibold text-muted-foreground">Média Geral</span>
+                <p className="mt-2 text-2xl font-extrabold tabular-nums">
+                  {turma.average_score != null ? turma.average_score.toFixed(1) : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <span className="text-xs font-semibold text-muted-foreground">Assiduidade</span>
+                <p className="mt-2 text-2xl font-extrabold tabular-nums">
+                  {turma.attendance_rate != null ? `${Math.round(turma.attendance_rate)}%` : "—"}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <dl className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground">Código</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{turma.code}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Sala</dt>
+                  <dd className="mt-0.5 text-sm font-medium">
+                    {turma.room_name && turma.room_name !== "—" ? turma.room_name : "Sem sala fixa"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Campus</dt>
+                  <dd className="mt-0.5 text-sm font-medium">{turma.campus_name || "—"}</dd>
+                </div>
+                {turma.whatsapp_invite_url ? (
+                  <div className="sm:col-span-2">
+                    <dt className="text-muted-foreground">WhatsApp</dt>
+                    <dd className="mt-0.5 text-sm font-medium">
+                      <a
+                        href={safeHref(turma.whatsapp_invite_url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {turma.whatsapp_group_name || "Abrir grupo"}
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+            {classRelations.length > 0 || classSuggestions.length > 0 ? (
+              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                <p className="mb-3 text-xs font-semibold text-muted-foreground">Relacionado</p>
+                <div className="mb-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {classRelations.map((relation) => (
+                    <div key={relation.key} className="flex items-center gap-2 text-xs">
+                      <span
+                        className={`size-1.5 shrink-0 rounded-full ${
+                          relation.status === "ok"
+                            ? "bg-success"
+                            : relation.status === "attention"
+                              ? "bg-warning"
+                              : relation.status === "critical"
+                                ? "bg-destructive"
+                                : "bg-muted-foreground/40"
+                        }`}
+                      />
+                      <span className="font-medium text-foreground">{relation.label}</span>
+                      <span className="text-muted-foreground">· {relation.summary}</span>
+                    </div>
+                  ))}
+                </div>
+                {classSuggestions.length > 0 ? (
+                  <>
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                      Próximas ações
+                    </p>
+                    <div className="space-y-2">
+                      {classSuggestions.slice(0, 4).map((suggestion) => (
+                        <div
+                          key={suggestion.id}
+                          className="rounded-lg border border-border/70 p-2.5 text-xs"
+                        >
+                          <p className="font-semibold text-foreground">{suggestion.title}</p>
+                          {suggestion.description ? (
+                            <p className="mt-0.5 text-muted-foreground">{suggestion.description}</p>
+                          ) : null}
+                          <p className="mt-0.5 text-[11px] text-muted-foreground/80">
+                            {suggestion.reason}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </TabsContent>
+
+          <TabsContent value="alunos">
+            {alunos.length ? (
+              <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                {alunos.map((aluno) => (
+                  <Link
+                    key={aluno.id}
+                    to="/alunos/$studentId"
+                    params={{ studentId: aluno.student_id ?? "" }}
+                    className="flex items-center justify-between gap-2 p-3 text-xs hover:bg-secondary/40"
+                  >
+                    <span className="min-w-0 truncate font-medium text-foreground">
+                      {aluno.student_name}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {aluno.registration_number || "—"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Nenhum aluno matriculado nesta turma ainda.
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="disciplinas">
+            {disciplinas.length ? (
+              <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                {disciplinas.map((row) => (
+                  <div
+                    key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
+                    className="flex items-center justify-between gap-2 p-3 text-xs"
+                  >
+                    <span className="font-medium text-foreground">{row.subject_name}</span>
+                    <span className={row.teacher_name ? "text-muted-foreground" : "text-warning"}>
+                      {row.teacher_name || "Sem professor atribuído"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Nenhuma disciplina associada a esta turma ainda.
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="horario">
+            {horario.length ? (
+              <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                {horario.map((slot) => (
+                  <div
+                    key={slot.id}
+                    className="flex items-center justify-between gap-2 p-3 text-xs"
+                  >
+                    <span className="font-medium text-foreground">
+                      {weekdayLabels[slot.weekday] ?? slot.weekday}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {slot.starts_at}–{slot.ends_at} · {slot.subject_name || slot.label || "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Sem horário definido para esta turma.
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="avaliacoes">
+            {avaliacoes.length ? (
+              <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                {avaliacoes.map((grade) => (
+                  <div
+                    key={grade.id}
+                    className="flex items-center justify-between gap-2 p-3 text-xs"
+                  >
+                    <span className="min-w-0 truncate font-medium text-foreground">
+                      {grade.student_name} · {grade.term}º trimestre
+                    </span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      Média: {grade.average?.toFixed(1) ?? "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                Ainda sem avaliações lançadas para os alunos desta turma.
+              </p>
+            )}
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  );
+  const subModals = (
+    <>
       <TurmaEditSubModal
         open={editOpen}
         onOpenChange={setEditOpen}
@@ -530,6 +563,21 @@ export function TurmaProfileModal({
         teacherIds={teacherIds}
         onAssigned={onRefresh}
       />
+    </>
+  );
+
+  if (variant === "page") {
+    return (
+      <>
+        {body}
+        {subModals}
+      </>
+    );
+  }
+  return (
+    <ModalShell open={open} onOpenChange={onOpenChange} size="2xl">
+      {body}
+      {subModals}
     </ModalShell>
   );
 }

@@ -54,6 +54,14 @@ inteira. Sem estilos novos; captura com dados fictícios a 1440 px.
 com o nome dele ao lado da data, e cada uma abre a chamada como antes. O histórico geral de
 presenças fica o da escola. Sem estilos novos; captura com dados fictícios a 1440 px.
 
+**25/10/2026 — SIGA Context Engine (ficha da turma):** a turma passa de modal a página própria,
+`/pedagogica/turmas/<id>`, com a secção em `?secao=` (resumo, alunos, professores e
+disciplinas, horário, avaliações). O conteúdo é o do modal (o mesmo componente, numa caixa da
+página; o nome passa a ser o título). O separador Turmas abre a página, e o menu da turma ganha
+«Ficha da turma» e «Alunos da turma». Sem estilos novos; capturas com dados fictícios a 1440 e
+390 px, sem scroll horizontal. No telemóvel a tira de secções da ficha (`ModalSidebar`, como em
+todos os modais) só mostra uma de cada vez; o hub «Mais» leva às secções do menu.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

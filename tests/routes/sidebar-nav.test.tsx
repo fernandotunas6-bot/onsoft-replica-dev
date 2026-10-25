@@ -635,6 +635,31 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     expect(linksTo("/planos-aula").some((link) => link.label === "Planos de aula")).toBe(true);
   });
 
+  it("na ficha da turma: voltar à lista de turmas e «Alunos da turma» marcado", () => {
+    academic.tree = tree();
+    currentPathname = `/pedagogica/turmas/${TURMA_A}`;
+    currentSearch = { secao: "alunos" };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Turma: Turma A" });
+    const back = linksTo("/pedagogica").find((link) => link.label.startsWith("Voltar"));
+    expect(back?.search).toEqual({ tab: "turmas" });
+    expect(linksTo(`/pedagogica/turmas/${TURMA_A}`)).toEqual([
+      { label: "Ficha da turma", search: {} },
+      { label: "Alunos da turma", search: { secao: "alunos" } },
+    ]);
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Alunos da turma");
+  });
+
+  it("a ficha de uma turma que o servidor não devolveu não muda o menu", () => {
+    academic.tree = tree();
+    currentPathname = `/pedagogica/turmas/${TURMA_B}`;
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Turma/ })).toBeNull();
+  });
+
   it("nos arquivos da turma, o menu da turma fica com os materiais marcados", () => {
     academic.tree = tree();
     currentPathname = "/arquivos";
