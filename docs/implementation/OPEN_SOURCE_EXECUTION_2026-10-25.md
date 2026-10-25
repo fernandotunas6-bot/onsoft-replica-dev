@@ -30,9 +30,9 @@ Leituras: `AGENTS.md`, `package.json`, `docs/auditoria/17-analise-critica-sistem
 | 3 | [#277 — Puck Studio](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/277) | Empilhada em **#275**; rebase correcto, CSP, acessibilidade, editor em lazy chunk, publicação canário |
 | 4 | [#276 — financeiro por finalidade](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/276) | Fluxos factura/tesouraria/conciliação, RBAC, sem prometer emissão fiscal certificada |
 | 5 | [#283 — sessões de caixa](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/283) | Empilhada em **#276**; ordem SQL, corridas de fecho/estorno, separação de operador/aprovador |
-| 6 | [#288 — desktop](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/288) | Outbox por actor/tenant, cifra, corrupção, updater assinado e teste Windows/macOS/Linux |
+| 6 | [#288 — desktop](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/288) — **integrada na main a 25/10, 06:26 UTC** | Verificar rollout e validar em dispositivos reais; outbox, isolamento e updater são incrementais, não offline integral |
 
-**Estados em 25/10:** seis abertas; #275, #277 e #288 em draft. Não integrar #277 nem #283 sem as respectivas bases; não reimplementar backend alternativo da #200. Antes de integrar verificar checks/commits actuais, contratos de schema e impacto do merge que pode publicar. Não alterar branches dos outros agentes neste plano.
+**Estados revistos a 25/10, 06:26 UTC:** #275, #276, #277, #283 e #287 abertas; #275 e #277 em draft. #288 foi integrada durante esta auditoria. Não integrar #277 nem #283 sem as respectivas bases; não reimplementar backend alternativo da #200. Antes de integrar verificar checks/commits actuais, contratos de schema e impacto do merge que pode publicar. Não alterar branches dos outros agentes neste plano.
 
 ## Fase 3 — pilotos independentes, não migração geral
 
