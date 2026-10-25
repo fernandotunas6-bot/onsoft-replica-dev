@@ -6,7 +6,7 @@ Actualizado a 8 de Outubro de 2026. Referência: banco SGA existente, snapshot d
 
 As SPECs de módulo abaixo completam as especificações temáticas anteriores, que conservam as suas datas históricas. Fonte de estados/colunas: `supabase/PRODUCTION_SNAPSHOT.json`; fonte de campos/validações: schemas ligados em cada módulo. Uma página ou um teste mock não prova UI→API→persistência real.
 
-[Regras transversais](CONTRATOS_TRANSVERSAIS.md) · [Alterações críticas e aceitação](CORRECCOES_2026-10-08.md) · [Progresso](../implementation/2026-10-07/PROGRESSO.md) · [Matriz](matriz-evolucao.csv) · [Contratos API inventariados](contratos-api.csv)
+[Trabalhos com entrega e renovação de matrícula (25/10)](SGA_TRABALHOS_MATRICULAS_2026-10-25.md) · [Regras transversais](CONTRATOS_TRANSVERSAIS.md) · [Alterações críticas e aceitação](CORRECCOES_2026-10-08.md) · [Progresso](../implementation/2026-10-07/PROGRESSO.md) · [Matriz](matriz-evolucao.csv) · [Contratos API inventariados](contratos-api.csv)
 
 | Módulo | SPEC | Estado de validação |
 | --- | --- | --- |
