@@ -17,7 +17,7 @@
 --
 --   20261024090000_reverse_receipt_counts_late_fee  6e2a906209093855d5a0efc682d8274c  O estorno conta a multa por atraso
 --   20261024100000_register_payment_idempotency_key  f35a95dce275b237015eeeca122f93a4  Pagamento manual idempotente (chave por tentativa)
---   20261024110000_finance_cash_sessions  3e7cec5a52a15e54dbab2f7a13bf8343  Sessões de caixa (#283)
+--   20261024110000_finance_cash_sessions  1b893e4491424c5cd806c27f29147f22  Sessões de caixa (#283)
 --   20261025090000_one_tuition_invoice_per_month  1799278d315b1be4fdd726635b95b0fa  Uma propina por aluno e por mês (#290)
 --   20261025100000_cash_expenses_audit_and_approval  3ae2c45c93d14c8f4c2ab0e98324d3ae  Aprovação e auditoria das despesas (#295)
 
@@ -236,7 +236,7 @@ GRANT EXECUTE ON FUNCTION public.register_payment(uuid, uuid, numeric, text, dat
 -- 20261024110000_finance_cash_sessions — Sessões de caixa (#283)
 -- ════════════════════════════════════════════════════════════════════
 
--- Sessões de caixa: abertura com fundo de maneio, fecho com contagem, diferença
+-- Sessões de caixa: abertura com fundo de maneio, depósitos no banco, fecho com contagem, diferença
 -- gravada e aprovada por quem não fechou.
 --
 -- Desenho e decisões em docs/specs/finance/CAIXA_SESSOES.md (24/10/2026):
@@ -328,14 +328,50 @@ CREATE INDEX IF NOT EXISTS siga_cash_expenses_cash_session
 CREATE INDEX IF NOT EXISTS siga_cash_expenses_reversed_in_session
   ON public.siga_cash_expenses (reversed_in_session_id) WHERE reversed_in_session_id IS NOT NULL;
 
+-- ---------------------------------------------------------------- depósitos no banco
+-- Numerário que sai da gaveta para o banco (decidido a 25/10/2026). Sai na sessão aberta
+-- e fica por confirmar até alguém que não o registou o ver no extracto. O mesmo talão
+-- não entra duas vezes; anular só com o caixa ainda aberto e antes de confirmado.
+
+CREATE TABLE public.finance_cash_deposits (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id uuid NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  cash_session_id uuid NOT NULL REFERENCES public.finance_cash_sessions(id),
+  amount numeric(18,2) NOT NULL CHECK (amount > 0),
+  bank_reference text NOT NULL CHECK (length(btrim(bank_reference)) >= 3),
+  status text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted', 'reversed')),
+  deposited_by uuid NOT NULL,
+  deposited_at timestamptz NOT NULL DEFAULT now(),
+  confirmed_by uuid,
+  confirmed_at timestamptz,
+  reversed_by uuid,
+  reversed_at timestamptz,
+  reversal_reason text,
+  CONSTRAINT finance_cash_deposits_confirmer_not_depositor CHECK (
+    confirmed_by IS NULL OR confirmed_by IS DISTINCT FROM deposited_by
+  ),
+  CONSTRAINT finance_cash_deposits_reversal_complete CHECK (
+    status = 'posted'
+    OR (reversed_by IS NOT NULL AND reversed_at IS NOT NULL
+        AND length(btrim(coalesce(reversal_reason, ''))) >= 3 AND confirmed_at IS NULL)
+  )
+);
+
+CREATE INDEX finance_cash_deposits_session ON public.finance_cash_deposits (cash_session_id);
+CREATE UNIQUE INDEX finance_cash_deposits_one_reference
+  ON public.finance_cash_deposits (school_id, btrim(bank_reference)) WHERE status = 'posted';
+
 -- ---------------------------------------------------------------- acesso às tabelas
 
 ALTER TABLE public.finance_cash_points ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_cash_sessions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.finance_cash_points FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON public.finance_cash_sessions FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.finance_cash_deposits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.finance_cash_deposits FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.finance_cash_points TO service_role;
 GRANT SELECT ON public.finance_cash_sessions TO service_role;
+GRANT SELECT ON public.finance_cash_deposits TO service_role;
 
 -- ---------------------------------------------------------------- auxiliares
 
@@ -377,7 +413,7 @@ AS $function$
 $function$;
 
 -- Fundo + numerário que entrou − numerário estornado − despesas em numerário
--- + despesas estornadas, tudo nesta sessão. Um recibo feito e estornado na mesma
+-- + despesas estornadas − depósitos no banco, tudo nesta sessão. Um recibo feito e estornado na mesma
 -- sessão anula-se; estornado noutra, sai na sessão do estorno.
 CREATE FUNCTION private.cash_session_expected(p_session_id uuid)
  RETURNS numeric
@@ -395,6 +431,9 @@ AS $function$
                 where e.school_id = s.school_id and e.cash_session_id = s.id), 0)
     + coalesce((select sum(e.amount) from public.siga_cash_expenses e
                 where e.school_id = s.school_id and e.reversed_in_session_id = s.id), 0)
+    - coalesce((select sum(d.amount) from public.finance_cash_deposits d
+                where d.school_id = s.school_id and d.cash_session_id = s.id
+                  and d.status = 'posted'), 0)
   from public.finance_cash_sessions s
   where s.id = p_session_id;
 $function$;
@@ -612,6 +651,126 @@ begin
 end;
 $function$;
 
+-- Depositar no banco: tranca a sessão como o fecho, para o esperado não mudar entre a
+-- verificação e o registo; não deposita mais do que há na gaveta.
+CREATE FUNCTION private.record_cash_deposit(p_school_id uuid, p_amount numeric, p_bank_reference text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_session uuid;
+  v_id uuid;
+begin
+  if (select auth.uid()) is null or not private.is_aal2()
+     or private.sga_app_role(p_school_id) not in ('Administrador', 'Tesouraria')
+     or not private.has_permission(p_school_id, 'finance.payments.create') then
+    raise exception using errcode = '42501', message = 'Sem autorização para depositar.';
+  end if;
+  if p_amount is null or p_amount <= 0 then
+    raise exception using errcode = '22023', message = 'Indique o valor depositado.';
+  end if;
+  if length(btrim(coalesce(p_bank_reference, ''))) < 3 then
+    raise exception using errcode = '22023', message = 'Indique o nº do talão de depósito.';
+  end if;
+  select s.id into v_session from public.finance_cash_sessions s
+  join public.finance_cash_points p on p.id = s.cash_point_id and p.active
+  where s.school_id = p_school_id and s.status = 'open'
+  for update of s;
+  if v_session is null then
+    raise exception using errcode = '22023', message = 'Abra o caixa antes de depositar.';
+  end if;
+  if p_amount > private.cash_session_expected(v_session) then
+    raise exception using errcode = '22023', message = 'O depósito é maior do que o numerário na gaveta.';
+  end if;
+  begin
+    insert into public.finance_cash_deposits (school_id, cash_session_id, amount, bank_reference, deposited_by)
+    values (p_school_id, v_session, p_amount, btrim(p_bank_reference), (select auth.uid()))
+    returning id into v_id;
+  exception when unique_violation then
+    raise exception using errcode = '22023', message = 'Este talão de depósito já está registado.';
+  end;
+  return jsonb_build_object('depositId', v_id, 'sessionId', v_session);
+end;
+$function$;
+
+-- Anular um depósito registado por engano: só com o caixa ainda aberto e antes de
+-- confirmado no extracto. O numerário volta ao esperado da gaveta.
+CREATE FUNCTION private.reverse_cash_deposit(p_school_id uuid, p_deposit_id uuid, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_deposit public.finance_cash_deposits%rowtype;
+  v_status text;
+begin
+  if (select auth.uid()) is null or not private.is_aal2()
+     or private.sga_app_role(p_school_id) not in ('Administrador', 'Tesouraria')
+     or not private.has_permission(p_school_id, 'finance.payments.create') then
+    raise exception using errcode = '42501', message = 'Sem autorização para anular o depósito.';
+  end if;
+  if length(btrim(coalesce(p_reason, ''))) < 3 then
+    raise exception using errcode = '22023', message = 'Indique o motivo da anulação do depósito.';
+  end if;
+  -- A sessão primeiro, como o fecho: um fecho a meio espera, ou já a fechou.
+  select s.status into v_status from public.finance_cash_sessions s
+  join public.finance_cash_deposits d on d.cash_session_id = s.id
+  where d.id = p_deposit_id and d.school_id = p_school_id
+  for update of s;
+  select * into v_deposit from public.finance_cash_deposits
+  where id = p_deposit_id and school_id = p_school_id
+  for update;
+  if v_deposit.id is null or v_deposit.status <> 'posted' then
+    raise exception using errcode = '22023', message = 'Depósito não encontrado ou já anulado.';
+  end if;
+  if v_deposit.confirmed_at is not null then
+    raise exception using errcode = '22023', message = 'Este depósito já foi confirmado no extracto e não se anula.';
+  end if;
+  if v_status is distinct from 'open' then
+    raise exception using errcode = '22023', message = 'O caixa deste depósito já fechou: a diferença fica no fecho.';
+  end if;
+  update public.finance_cash_deposits set
+    status = 'reversed', reversed_by = (select auth.uid()), reversed_at = now(),
+    reversal_reason = btrim(p_reason)
+  where id = v_deposit.id;
+  return jsonb_build_object('depositId', v_deposit.id);
+end;
+$function$;
+
+-- Confirmar no extracto: quem registou o depósito não o confirma.
+CREATE FUNCTION private.confirm_cash_deposit(p_school_id uuid, p_deposit_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_deposit public.finance_cash_deposits%rowtype;
+begin
+  if (select auth.uid()) is null or not private.is_aal2()
+     or private.sga_app_role(p_school_id) not in ('Administrador', 'Tesouraria')
+     or not private.has_permission(p_school_id, 'finance.payments.create') then
+    raise exception using errcode = '42501', message = 'Sem autorização para confirmar o depósito.';
+  end if;
+  select * into v_deposit from public.finance_cash_deposits
+  where id = p_deposit_id and school_id = p_school_id
+  for update;
+  if v_deposit.id is null or v_deposit.status <> 'posted' or v_deposit.confirmed_at is not null then
+    raise exception using errcode = '22023', message = 'Não há depósito por confirmar com este número.';
+  end if;
+  if v_deposit.deposited_by = (select auth.uid()) then
+    raise exception using errcode = '42501', message = 'Quem registou o depósito não o pode confirmar.';
+  end if;
+  update public.finance_cash_deposits
+  set confirmed_by = (select auth.uid()), confirmed_at = now()
+  where id = v_deposit.id;
+  return jsonb_build_object('depositId', v_deposit.id);
+end;
+$function$;
+
 -- ---------------------------------------------------------------- invólucros públicos
 
 CREATE FUNCTION public.open_cash_session(school_id uuid, opening_float numeric)
@@ -625,6 +784,18 @@ AS $function$ select private.close_cash_session(school_id, session_id, counted_c
 CREATE FUNCTION public.approve_cash_difference(school_id uuid, session_id uuid)
  RETURNS jsonb LANGUAGE sql SET search_path TO ''
 AS $function$ select private.approve_cash_difference(school_id, session_id); $function$;
+
+CREATE FUNCTION public.record_cash_deposit(school_id uuid, amount numeric, bank_reference text)
+ RETURNS jsonb LANGUAGE sql SET search_path TO ''
+AS $function$ select private.record_cash_deposit(school_id, amount, bank_reference); $function$;
+
+CREATE FUNCTION public.reverse_cash_deposit(school_id uuid, deposit_id uuid, reason text)
+ RETURNS jsonb LANGUAGE sql SET search_path TO ''
+AS $function$ select private.reverse_cash_deposit(school_id, deposit_id, reason); $function$;
+
+CREATE FUNCTION public.confirm_cash_deposit(school_id uuid, deposit_id uuid)
+ RETURNS jsonb LANGUAGE sql SET search_path TO ''
+AS $function$ select private.confirm_cash_deposit(school_id, deposit_id); $function$;
 
 -- O esperado em tempo real, para o ecrã; lido pelo servidor com service_role.
 CREATE FUNCTION public.cash_session_expected(session_id uuid)
@@ -658,6 +829,20 @@ REVOKE ALL ON FUNCTION public.close_cash_session(uuid, uuid, numeric, text) FROM
 GRANT EXECUTE ON FUNCTION public.close_cash_session(uuid, uuid, numeric, text) TO authenticated;
 REVOKE ALL ON FUNCTION public.approve_cash_difference(uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.approve_cash_difference(uuid, uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION private.record_cash_deposit(uuid, numeric, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.record_cash_deposit(uuid, numeric, text) TO authenticated;
+REVOKE ALL ON FUNCTION private.reverse_cash_deposit(uuid, uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.reverse_cash_deposit(uuid, uuid, text) TO authenticated;
+REVOKE ALL ON FUNCTION private.confirm_cash_deposit(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION private.confirm_cash_deposit(uuid, uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.record_cash_deposit(uuid, numeric, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_cash_deposit(uuid, numeric, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.reverse_cash_deposit(uuid, uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.reverse_cash_deposit(uuid, uuid, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.confirm_cash_deposit(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.confirm_cash_deposit(uuid, uuid) TO authenticated;
 
 -- ════════════════════════════════════════════════════════════════════
 -- 20261025090000_one_tuition_invoice_per_month — Uma propina por aluno e por mês (#290)
