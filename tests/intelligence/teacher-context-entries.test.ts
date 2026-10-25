@@ -31,12 +31,13 @@ const ids = (role: string, grants = {}) =>
   getContextEntries(context(role, grants), TEACHER_CONTEXT_ENTRIES).map((entry) => entry.id);
 
 describe("entradas do contexto Professor", () => {
-  it("a quem gere o Pedagógico: o perfil e o horário semanal", () => {
-    expect(ids("Administrador")).toEqual(["teacher.overview", "teacher.timetable"]);
-    expect(ids("Secretaria")).toEqual(["teacher.overview", "teacher.timetable"]);
+  it("a quem gere o Pedagógico: o perfil, o horário semanal e os planos", () => {
+    const all = ["teacher.overview", "teacher.timetable", "teacher.lesson-plans"];
+    expect(ids("Administrador")).toEqual(all);
+    expect(ids("Secretaria")).toEqual(all);
   });
 
-  it("o horário por professor só com escrita no Pedagógico", () => {
+  it("o horário e os planos por professor só com escrita no Pedagógico", () => {
     // O professor vê o seu horário no perfil; a vista da escola não tem a lista.
     expect(ids("Professor")).toEqual(["teacher.overview"]);
     expect(ids("Secretaria", { pedagogica: "Leitura" })).toEqual(["teacher.overview"]);
@@ -58,11 +59,15 @@ describe("entradas do contexto Professor", () => {
 
   it("ligações com o professor do caminho e entrada activa", () => {
     const ctx = context("Secretaria");
-    const [overview, timetable] = getContextEntries(ctx, TEACHER_CONTEXT_ENTRIES);
+    const [overview, timetable, plans] = getContextEntries(ctx, TEACHER_CONTEXT_ENTRIES);
     expect(contextEntryLink(overview!, ctx)).toEqual({ to: `/professores/${PROF}`, search: {} });
     expect(contextEntryLink(timetable!, ctx)).toEqual({
       to: "/pedagogica",
       search: { tab: "horarios", professor: PROF },
+    });
+    expect(contextEntryLink(plans!, ctx)).toEqual({
+      to: "/planos-aula",
+      search: { professor: PROF },
     });
     const entries = getContextEntries(ctx, TEACHER_CONTEXT_ENTRIES);
     expect(findActiveContextEntry(entries, ctx, `/professores/${PROF}`, {})).toBe(
@@ -71,6 +76,9 @@ describe("entradas do contexto Professor", () => {
     expect(
       findActiveContextEntry(entries, ctx, "/pedagogica", { tab: "horarios", professor: PROF }),
     ).toBe("teacher.timetable");
+    expect(findActiveContextEntry(entries, ctx, "/planos-aula", { professor: PROF })).toBe(
+      "teacher.lesson-plans",
+    );
     expect(findActiveContextEntry(entries, ctx, "/pedagogica", { tab: "horarios" })).toBeNull();
   });
 });

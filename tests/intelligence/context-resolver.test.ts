@@ -85,7 +85,7 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/alunos/novo")).toEqual([]);
   });
 
-  it("no horário, o professor da URL abre o contexto do professor", () => {
+  it("no horário e nos planos, o professor da URL abre o contexto do professor", () => {
     const PROF = "66666666-6666-4666-8666-666666666666";
     expect(routeContextCandidates("/pedagogica", { tab: "horarios", professor: PROF })).toEqual([
       { type: "teacher", id: PROF },
@@ -95,9 +95,11 @@ describe("routeContextCandidates", () => {
     expect(
       routeContextCandidates("/pedagogica", { tab: "horarios", turma: TURMA_A, professor: PROF }),
     ).toEqual([{ type: "class", id: TURMA_A }]);
-    expect(routeContextCandidates("/planos-aula", { tab: "horarios", professor: PROF })).toEqual(
-      [],
-    );
+    // Os planos de aula também filtram por professor (sem turma).
+    expect(routeContextCandidates("/planos-aula", { professor: PROF })).toEqual([
+      { type: "teacher", id: PROF },
+    ]);
+    expect(routeContextCandidates("/arquivos", { professor: PROF })).toEqual([]);
     expect(routeContextCandidates("/pedagogica", { tab: "horarios", professor: "x" })).toEqual([]);
   });
 

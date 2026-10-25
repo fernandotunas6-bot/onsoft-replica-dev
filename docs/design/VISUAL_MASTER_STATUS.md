@@ -43,6 +43,12 @@ professor (`/pedagogica?tab=horarios&professor`), com o menu e o breadcrumb do p
 para quem grava no Pedagógico, os que têm a lista de professores. Sem estilos novos; capturas
 com dados fictícios a 1440 px.
 
+**25/10/2026 — SIGA Context Engine (planos do professor):** o menu do professor ganha «Planos
+de aula» (`/planos-aula?professor`): só os planos das disciplinas que o professor dá, com a
+linha «Planos das disciplinas de ‹nome› · Ver todos os planos». Os filtros de turma, disciplina
+e trimestre passam a ter a opção «Todas…»; antes o select mostrava a primeira turma com a lista
+inteira. Sem estilos novos; captura com dados fictícios a 1440 px.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

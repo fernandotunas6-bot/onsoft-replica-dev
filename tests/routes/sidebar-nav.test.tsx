@@ -784,6 +784,19 @@ describe("AppSidebar — menu do professor (Context Engine)", () => {
     expect(active?.textContent).toContain("Horário semanal");
   });
 
+  it("nos planos de aula do professor, o menu fica com os planos marcados", () => {
+    papel = "Secretaria";
+    teacherList.rows = [{ id: JOAO, full_name: "João Mendes" }];
+    currentPathname = "/planos-aula";
+    currentSearch = { professor: JOAO };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Professor: João Mendes" });
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Planos de aula");
+  });
+
   it("um professor que a escola não devolveu não muda o menu", () => {
     papel = "Secretaria";
     teacherList.rows = [{ id: "77777777-7777-4777-8777-777777777777", full_name: "Outro" }];
