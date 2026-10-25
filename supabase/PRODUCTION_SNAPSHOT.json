@@ -1,14 +1,14 @@
 {
-  "capturadoEm": "2026-10-25T12:38:24.803Z",
+  "capturadoEm": "2026-10-25T18:53:09.976Z",
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
-    "com_rls": 211,
-    "funcoes_private": 146,
+    "com_rls": 213,
+    "funcoes_private": 149,
     "politicas": 364,
     "politicas_storage": 14,
-    "tabelas": 211,
-    "triggers": 231
+    "tabelas": 213,
+    "triggers": 232
   },
   "tabelas": [
     {
@@ -3457,6 +3457,33 @@
       "anon_select": false,
       "auth_select": false,
       "colunas": [
+        "school_id",
+        "op_id",
+        "actor_id",
+        "device_id",
+        "kind",
+        "payload_hash",
+        "status",
+        "result",
+        "started_at",
+        "completed_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "op_id",
+        "actor_id",
+        "kind",
+        "payload_hash"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "offline_sync_receipts"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
         "id",
         "school_id",
         "provider",
@@ -4761,6 +4788,40 @@
       "colunas": [
         "id",
         "school_id",
+        "task_id",
+        "enrollment_id",
+        "attempt",
+        "status",
+        "body",
+        "file_id",
+        "on_paper",
+        "submitted_at",
+        "is_late",
+        "grade",
+        "feedback",
+        "graded_by",
+        "returned_at",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "task_id",
+        "enrollment_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_class_task_submissions"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
         "class_subject_id",
         "timetable_slot_id",
         "kind",
@@ -4771,7 +4832,9 @@
         "created_by",
         "updated_by",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "accepts_late",
+        "assessment_item_id"
       ],
       "obrigatorias": [
         "school_id",
@@ -9967,6 +10030,24 @@
       "security_definer": true
     },
     {
+      "args": "p_school_id uuid, p_op_id uuid, p_actor_id uuid, p_device_id text, p_kind text, p_payload_hash text, p_stale_seconds integer",
+      "funcao": "offline_receipt_claim",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_op_id uuid, p_result jsonb",
+      "funcao": "offline_receipt_complete",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_op_id uuid",
+      "funcao": "offline_receipt_release",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_timetable_slot_id uuid, target_session_date date",
       "funcao": "open_attendance_session",
       "schema": "private",
@@ -11057,6 +11138,24 @@
       "funcao": "next_document_number_service",
       "schema": "public",
       "security_definer": true
+    },
+    {
+      "args": "school_id uuid, op_id uuid, actor_id uuid, device_id text, kind text, payload_hash text, stale_seconds integer",
+      "funcao": "offline_receipt_claim",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, op_id uuid, result jsonb",
+      "funcao": "offline_receipt_complete",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, op_id uuid",
+      "funcao": "offline_receipt_release",
+      "schema": "public",
+      "security_definer": false
     },
     {
       "args": "school_id uuid, timetable_slot_id uuid, session_date date",
@@ -12535,6 +12634,12 @@
       "funcao_schema": "private",
       "tabela": "siga_chat_messages",
       "trigger": "siga_chat_messages_guard"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_class_task_submissions",
+      "trigger": "siga_class_task_submissions_touch"
     },
     {
       "funcao": "siga_touch_updated_at",
@@ -14095,6 +14200,11 @@
       "para": "schools"
     },
     {
+      "chave": "offline_sync_receipts_school_id_fkey",
+      "de": "offline_sync_receipts",
+      "para": "schools"
+    },
+    {
       "chave": "payment_gateway_charges_school_id_fkey",
       "de": "payment_gateway_charges",
       "para": "schools"
@@ -14570,6 +14680,26 @@
       "para": "siga_files"
     },
     {
+      "chave": "siga_class_task_submissions_enrollment_id_fkey",
+      "de": "siga_class_task_submissions",
+      "para": "enrollments"
+    },
+    {
+      "chave": "siga_class_task_submissions_school_id_fkey",
+      "de": "siga_class_task_submissions",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_class_task_submissions_task_id_fkey",
+      "de": "siga_class_task_submissions",
+      "para": "siga_class_tasks"
+    },
+    {
+      "chave": "siga_class_task_submissions_file_id_fkey",
+      "de": "siga_class_task_submissions",
+      "para": "siga_files"
+    },
+    {
       "chave": "siga_class_tasks_class_subject_id_fkey",
       "de": "siga_class_tasks",
       "para": "class_subjects"
@@ -14578,6 +14708,11 @@
       "chave": "siga_class_tasks_school_id_fkey",
       "de": "siga_class_tasks",
       "para": "schools"
+    },
+    {
+      "chave": "siga_class_tasks_assessment_item_id_fkey",
+      "de": "siga_class_tasks",
+      "para": "siga_assessment_items"
     },
     {
       "chave": "siga_class_tasks_timetable_slot_id_fkey",
@@ -16290,6 +16425,22 @@
       ]
     },
     {
+      "coluna": "kind",
+      "tabela": "offline_sync_receipts",
+      "valores": [
+        "attendance.submit",
+        "grades.term"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "offline_sync_receipts",
+      "valores": [
+        "done",
+        "started"
+      ]
+    },
+    {
       "coluna": "sex",
       "tabela": "people",
       "valores": [
@@ -16622,6 +16773,15 @@
       "valores": [
         "direct",
         "group"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "siga_class_task_submissions",
+      "valores": [
+        "draft",
+        "returned",
+        "submitted"
       ]
     },
     {
