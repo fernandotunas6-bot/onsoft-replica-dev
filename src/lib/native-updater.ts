@@ -1,4 +1,5 @@
 import { isTauri } from "@tauri-apps/api/core";
+import { outboxItems } from "@/lib/offline/outbox";
 
 export interface NativeUpdateInfo {
   configured: boolean;
@@ -51,6 +52,9 @@ export async function installNativeUpdate(): Promise<boolean> {
 export async function installNativeUpdateWhenSafe(
   pendingWrites: number,
 ): Promise<{ installed: boolean; waiting: number }> {
-  if (pendingWrites > 0) return { installed: false, waiting: pendingWrites };
+  // A fila cifrada sobrevive ao fecho da app: também impede instalar com
+  // notas/presenças à espera ou recusadas. A contagem React, por si só, não basta.
+  const waiting = pendingWrites + outboxItems().length;
+  if (waiting > 0) return { installed: false, waiting };
   return { installed: await installNativeUpdate(), waiting: 0 };
 }

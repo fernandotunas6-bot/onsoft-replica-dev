@@ -60,6 +60,8 @@ const VAULT_KEY = "siga.offline-outbox";
 let storage: OutboxStorage | null = null;
 let items: OutboxItem[] = [];
 let flushing: Promise<void> | null = null;
+/** Serializa persistências para impedir que dois lançamentos concorrentes se percam. */
+let persistenceQueue: Promise<void> = Promise.resolve();
 const listeners = new Set<() => void>();
 let senders: Record<OutboxKind, Sender> = SENDERS;
 
@@ -69,8 +71,12 @@ function emit() {
 
 /** Liga a fila a um armazenamento (o cofre do posto) e carrega o que lá ficou. */
 export async function enableOutbox(next: OutboxStorage) {
+  // Só activar depois de ler o cofre: nunca sobrescrever uma fila persistida
+  // com uma fila vazia quando o carregamento falha.
+  const loaded = await next.load();
+  await persistenceQueue;
   storage = next;
-  items = await next.load();
+  items = loaded;
   emit();
 }
 
@@ -86,9 +92,26 @@ export function vaultOutboxStorage(vault: {
       if (!raw) return [];
       try {
         const parsed = JSON.parse(raw) as unknown;
-        return Array.isArray(parsed) ? (parsed as OutboxItem[]) : [];
+        if (
+          !Array.isArray(parsed) ||
+          !parsed.every(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              typeof item.id === "string" &&
+              typeof item.userId === "string" &&
+              typeof item.label === "string" &&
+              (item.kind === "attendance.submit" || item.kind === "grades.term"),
+          )
+        ) {
+          throw new Error("formato inválido");
+        }
+        return parsed as OutboxItem[];
       } catch {
-        return [];
+        // Falhar fechado: um cofre danificado NÃO equivale a uma fila vazia.
+        throw new Error(
+          "A fila offline guardada neste computador não pôde ser lida. Não a substitua; peça assistência para recuperar os lançamentos.",
+        );
       }
     },
     async save(next) {
@@ -112,6 +135,14 @@ async function persist(next: OutboxItem[]) {
   await storage.save(next);
   items = next;
   emit();
+}
+
+/** A transformação lê sempre a última versão confirmada da fila. */
+function mutateItems(change: (current: OutboxItem[]) => OutboxItem[]): Promise<void> {
+  const task = persistenceQueue.then(() => persist(change(items)));
+  // Um erro de gravação não deve bloquear permanentemente as próximas tentativas.
+  persistenceQueue = task.catch(() => undefined);
+  return task;
 }
 
 /** Falha de rede (sem resposta do servidor), por oposição a uma recusa do servidor. */
@@ -140,8 +171,8 @@ export async function sendOrQueue(
 ): Promise<{ queued: false; result: unknown } | { queued: true }> {
   const queueIt = async () => {
     if (!meta.userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
-    await persist([
-      ...items,
+    await mutateItems((current) => [
+      ...current,
       {
         id: newId(),
         kind,
@@ -175,12 +206,12 @@ export function flushOutbox(userId: string | null): Promise<void> {
       for (const item of items.filter((entry) => entry.userId === userId && !entry.failedReason)) {
         try {
           await senders[item.kind](item.variables);
-          await persist(items.filter((entry) => entry.id !== item.id));
+          await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
         } catch (error) {
           if (isNetworkError(error) || isSessionError(error)) return;
           const reason = error instanceof Error ? error.message : "O servidor recusou o envio.";
-          await persist(
-            items.map((entry) =>
+          await mutateItems((current) =>
+            current.map((entry) =>
               entry.id === item.id ? { ...entry, failedReason: reason } : entry,
             ),
           );
@@ -195,7 +226,7 @@ export function flushOutbox(userId: string | null): Promise<void> {
 
 /** Retira da fila um envio recusado pelo servidor (depois de o ler). */
 export async function discardOutboxItem(id: string) {
-  await persist(items.filter((entry) => entry.id !== id));
+  await mutateItems((current) => current.filter((entry) => entry.id !== id));
 }
 
 export function outboxItems(): readonly OutboxItem[] {
@@ -226,6 +257,7 @@ export function resetOutboxForTests(nextSenders: Record<OutboxKind, Sender> = SE
   storage = null;
   items = [];
   flushing = null;
+  persistenceQueue = Promise.resolve();
   senders = nextSenders;
   listeners.clear();
 }

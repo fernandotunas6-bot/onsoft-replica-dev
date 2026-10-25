@@ -61,6 +61,26 @@ describe("fila de envio sem rede", () => {
     ]);
   });
 
+  it("não perde chamadas concorrentes durante a gravação do cofre", async () => {
+    setOnline(false);
+    await Promise.all([
+      sendOrQueue("attendance.submit", { n: 1 }, meta),
+      sendOrQueue("attendance.submit", { n: 2 }, meta),
+      sendOrQueue("grades.term", { n: 3 }, meta),
+    ]);
+    expect(outboxItems()).toHaveLength(3);
+    const persisted = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
+    expect(persisted.map((item) => (item.variables as { n: number }).n)).toEqual([1, 2, 3]);
+  });
+
+  it("cofre corrompido não pode ser silenciosamente substituído por fila vazia", async () => {
+    vault.set("siga.offline-outbox", "{incompleto");
+    await expect(enableOutbox(vaultOutboxStorage(fakeVault))).rejects.toThrow(
+      /não pôde ser lida/,
+    );
+    expect(vault.get("siga.offline-outbox")).toBe("{incompleto");
+  });
+
   it("se a rede cai durante o envio, guarda em vez de perder", async () => {
     attendance.mockRejectedValueOnce(offline());
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
