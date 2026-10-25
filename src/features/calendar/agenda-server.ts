@@ -57,7 +57,6 @@ async function studentAccess(
         .eq("school_id", schoolId)
         .eq("student_id", studentId)
         .in("academic_year_id", yearIds)
-        .in("status", ["active", "transferred", "completed"])
         .order("id"),
     ),
     rows(
@@ -85,8 +84,12 @@ async function studentAccess(
       )
     : [];
   const subjectById = new Map(subjects.map((s) => [s.id, s.subject_id]));
-  const access: AgendaAccess[] = enrollments
-    .filter((e) => e.status === "active" || e.ended_on !== null)
+  const eligible = enrollments.filter(
+    (e) =>
+      e.status === "active" ||
+      (["transferred", "completed"].includes(e.status) && e.ended_on !== null),
+  );
+  const access: AgendaAccess[] = eligible
     .filter((e) => !unitGroups.has(e.class_group_id))
     .map((e) => ({
       classGroupId: e.class_group_id,
@@ -96,13 +99,23 @@ async function studentAccess(
   for (const unit of units) {
     const subjectId = subjectById.get(unit.program_subject_id);
     if (unit.status !== "inscrito" || !unit.class_group_id || !subjectId) continue;
-    const enrollment = enrollments.find((e) => e.class_group_id === unit.class_group_id);
-    access.push({
-      classGroupId: unit.class_group_id,
-      subjectId,
-      startsOn: enrollment?.enrolled_on ?? "0001-01-01",
-      endsOn: enrollment?.ended_on ?? "9999-12-31",
-    });
+    const matching = enrollments.filter((e) => e.class_group_id === unit.class_group_id);
+    // Uma inscrição em cadeira não reabre uma matrícula cancelada/encerrada.
+    // Sem matrícula de turma, a própria inscrição continua a autorizar a cadeira.
+    if (!matching.length)
+      access.push({
+        classGroupId: unit.class_group_id,
+        subjectId,
+        startsOn: "0001-01-01",
+        endsOn: "9999-12-31",
+      });
+    for (const enrollment of matching.filter((e) => eligible.includes(e)))
+      access.push({
+        classGroupId: unit.class_group_id,
+        subjectId,
+        startsOn: enrollment.enrolled_on,
+        endsOn: enrollment.ended_on ?? "9999-12-31",
+      });
   }
   return access;
 }
@@ -117,7 +130,9 @@ export async function loadAcademicAgendaForRequest(
   const roles = membership.allAppRoles ?? [membership.appRole];
   const manager = roles.some((r) => ["Administrador", "Secretaria"].includes(r));
   const schoolViewer = manager || roles.includes("Tesouraria");
-  const staff = schoolViewer || roles.includes("Professor");
+  // Um pedido explícito de educando usa sempre o âmbito do portal, mesmo que
+  // a conta acumule outro papel. Nunca ignorar studentId e devolver a escola.
+  const staff = !data.studentId && (schoolViewer || roles.includes("Professor"));
   if (staff)
     await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
@@ -210,7 +225,9 @@ export async function loadAcademicAgendaForRequest(
         ? rows(
             db
               .from("academic_schedules")
-              .select("id, academic_year_id, class_group_id, status, valid_from, valid_to, term")
+              .select(
+                "id, academic_year_id, class_group_id, status, valid_from, valid_to, term, published_at",
+              )
               .eq("school_id", schoolId)
               .in("class_group_id", scopedGroupIds)
               .in("academic_year_id", yearIds)
@@ -223,7 +240,9 @@ export async function loadAcademicAgendaForRequest(
         ? rows(
             db
               .from("timetable_slots")
-              .select("id, class_subject_id, schedule_id, weekday, starts_at, ends_at, room")
+              .select(
+                "id, class_subject_id, schedule_id, weekday, starts_at, ends_at, room, room_id",
+              )
               .eq("school_id", schoolId)
               .in("class_subject_id", assignmentIds)
               .eq("status", "active")
@@ -245,7 +264,7 @@ export async function loadAcademicAgendaForRequest(
             db
               .from("siga_assessment_items")
               .select(
-                "id, class_group_id, subject_id, name, assessed_on, starts_at, duration_minutes, purpose",
+                "id, class_group_id, subject_id, name, assessed_on, starts_at, duration_minutes, purpose, kind",
               )
               .eq("school_id", schoolId)
               .in("class_group_id", scopedGroupIds)
@@ -279,16 +298,30 @@ export async function loadAcademicAgendaForRequest(
         : [],
     ]);
   const personIds = [...new Set(teacherRows.map((t) => t.person_id))];
-  const people = personIds.length
-    ? await rows(
-        db
-          .from("people")
-          .select("id, full_name")
-          .eq("school_id", schoolId)
-          .in("id", personIds)
-          .order("id"),
-      )
-    : [];
+  const roomIds = [...new Set(slots.map((s) => s.room_id).filter((id): id is string => !!id))];
+  const [people, rooms] = await Promise.all([
+    personIds.length
+      ? rows(
+          db
+            .from("people")
+            .select("id, full_name")
+            .eq("school_id", schoolId)
+            .in("id", personIds)
+            .order("id"),
+        )
+      : [],
+    roomIds.length
+      ? rows(
+          db
+            .from("rooms")
+            .select("id, name")
+            .eq("school_id", schoolId)
+            .in("id", roomIds)
+            .order("id"),
+        )
+      : [],
+  ]);
+  const roomNames = new Map(rooms.map((r) => [r.id, r.name]));
   const personNames = new Map(people.map((p) => [p.id, p.full_name]));
   const teachers = teacherRows.map((t) => ({
     id: t.id,
@@ -299,7 +332,7 @@ export async function loadAcademicAgendaForRequest(
       terms,
       calendar,
       schedules,
-      slots,
+      slots: slots.map((slot) => ({ ...slot, room: roomNames.get(slot.room_id!) ?? slot.room })),
       subjects,
       assessments,
       tasks,

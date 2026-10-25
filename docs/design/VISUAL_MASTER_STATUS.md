@@ -9,6 +9,11 @@ de presenças e migrações verificadas; [evidência e limites](../architecture/
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
 visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
 
+Na continuação de 25/10, a consulta diária passou para a agenda publicada e a
+publicação de horários ganhou uma transacção única, MFA e repetição independente
+das presenças. [Ensaio e limites](../architecture/ACADEMIC_AGENDA.md#continuação-publicação-atómica-e-consulta-diária--25102026).
+Continua a ser trabalho apenas de backend, sem nova validação visual.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
@@ -145,7 +150,6 @@ Commits publicados de implementação: `faa4784` (contrato), `2b0f4be` (padrões
 `fc11dc2` (integração de main), `1be6a91` (feedback de pendência). O commit de
 relatório/evidências que contém esta secção não muda lógica da aplicação.
 
-
 ## Refinamento transversal — sidebar e modais compactos (23/10/2026)
 
 O contrato visual da PR #262 e o trabalho paralelo das PRs #252/#259/#270 já fazem
@@ -153,16 +157,15 @@ parte de `main`. Este incremento **não** substitui sidebar, navegação ou sist
 de diálogos; preserva a margem esquerda recta, a concavidade direita, o catálogo
 por papel e o estado dos formulários.
 
-| Área | Ajuste dirigido | Prova e limite |
-| --- | --- | --- |
-| Navegação | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
-| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange` | Teste de semântica com `Dialog` existente |
-| PremiumModal | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes | Teste DOM; sem conversão de matrículas/finanças em modal simplificado |
+| Área             | Ajuste dirigido                                                                                                         | Prova e limite                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Navegação        | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
+| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange`                         | Teste de semântica com `Dialog` existente                                                             |
+| PremiumModal     | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes                            | Teste DOM; sem conversão de matrículas/finanças em modal simplificado                                 |
 
 Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada nem
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
-
 
 ## Flyouts laterais compactos — referência Claude IDE (24/10/2026)
 
@@ -191,3 +194,12 @@ um novo módulo ou mudar o sistema de permissões, backend, RLS ou dados.
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.
 - Orientações para trabalho paralelo: `docs/agents/HANDOFF_SETTINGS_2026-10-25.md`.
+
+## Agenda dos portais — refinamento de backend (25/10/2026)
+
+As APIs dos horários de aluno/encarregado/docente passam a usar a agenda publicada,
+com semana civil, domingo e inscrições por cadeira. Presenças repetíveis sem
+sobrescrever chamadas. Componentes, dimensões, navegação e preferências visuais
+preservados. Este ciclo não constitui validação visual nem deploy da aplicação.
+Contrato, ensaio SQL revertido e verificações:
+[refinamento da agenda](../architecture/ACADEMIC_AGENDA.md#refinamento-portais-e-ressincronização-de-presenças--25102026).

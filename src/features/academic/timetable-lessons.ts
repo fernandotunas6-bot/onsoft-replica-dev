@@ -8,7 +8,10 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  type SupabaseAuthContext,
+  requireSupabaseAuth,
+} from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
@@ -17,8 +20,10 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { loadHiddenTeachers } from "@/features/people/teacher-contact-visibility";
-import { todayInLuanda } from "@/features/calendar/dates";
-import { groupTimetableByDay, type StudentTimetable } from "@/features/dashboard/student-agenda";
+import { addDaysIso, todayInLuanda } from "@/features/calendar/dates";
+import type { StudentTimetable } from "@/features/dashboard/student-agenda";
+import { loadAcademicAgendaForRequest } from "@/features/calendar/agenda-server";
+import { academicAgendaWeek, timetableFromAcademicAgenda } from "@/features/calendar/portal-agenda";
 import {
   DELIVERY_MODES,
   LESSON_TYPES,
@@ -112,7 +117,7 @@ export const getLessonDetail = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");
     const roles: string[] = membership.allAppRoles ?? [membership.appRole];
-    const isStaff = roles.some((r) => STAFF_ROLES.includes(r));
+    const isStaff = !data.studentId && roles.some((r) => STAFF_ROLES.includes(r));
     const db = await loadSgaAdminClient();
     const loaded = await loadSlot(db, membership.schoolId, data.slotId);
     if (!loaded) throw new Error("Aula não encontrada.");
@@ -120,34 +125,59 @@ export const getLessonDetail = createServerFn({ method: "GET" })
     const schoolId = membership.schoolId;
 
     if (!isStaff) {
-      // Aluno/encarregado: só aulas da turma da matrícula activa do aluno.
+      // A mesma autorização por data/cadeira da agenda, incluindo inscrições
+      // sem matrícula de turma. Um ID directo não abre outras disciplinas.
       const visible = await resolveVisibleStudent(context.userId, data.studentId);
-      if (!visible) throw new Error("Aula não encontrada.");
-      const { data: enrollment } = await visible.db
-        .from("enrollments")
-        .select("id")
-        .eq("school_id", schoolId)
-        .eq("student_id", visible.studentId)
-        .eq("class_group_id", classSubject.class_group_id)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
-      if (!enrollment) throw new Error("Aula não encontrada.");
+      if (!visible || visible.schoolId !== schoolId) throw new Error("Aula não encontrada.");
+      const { start } = academicAgendaWeek(todayInLuanda());
+      const agenda = await loadAcademicAgendaForRequest(
+        {
+          start,
+          end: addDaysIso(start, 93),
+          classGroupId: classSubject.class_group_id,
+          studentId: visible.studentId,
+        },
+        context,
+      );
+      if (
+        !agenda.some(
+          (event) =>
+            event.extendedProps.source === "lesson" &&
+            event.extendedProps.sourceId.split("@")[0] === slot.id,
+        )
+      )
+        throw new Error("Aula não encontrada.");
     }
 
     const [subjectRes, groupRes, teacherRes, roomRes, detailRes, tasksRes, hidden] =
       await Promise.all([
-        db.from("subjects").select("name").eq("id", classSubject.subject_id).maybeSingle(),
-        db.from("class_groups").select("name").eq("id", classSubject.class_group_id).maybeSingle(),
+        db
+          .from("subjects")
+          .select("name")
+          .eq("school_id", schoolId)
+          .eq("id", classSubject.subject_id)
+          .maybeSingle(),
+        db
+          .from("class_groups")
+          .select("name")
+          .eq("school_id", schoolId)
+          .eq("id", classSubject.class_group_id)
+          .maybeSingle(),
         classSubject.teacher_id
           ? db
               .from("teachers")
               .select("id, person_id")
+              .eq("school_id", schoolId)
               .eq("id", classSubject.teacher_id)
               .maybeSingle()
           : Promise.resolve({ data: null }),
         slot.room_id
-          ? db.from("rooms").select("name").eq("id", slot.room_id).maybeSingle()
+          ? db
+              .from("rooms")
+              .select("name")
+              .eq("school_id", schoolId)
+              .eq("id", slot.room_id)
+              .maybeSingle()
           : Promise.resolve({ data: null }),
         db
           .from("siga_timetable_slot_details")
@@ -172,6 +202,7 @@ export const getLessonDetail = createServerFn({ method: "GET" })
       const { data: person } = await db
         .from("people")
         .select("full_name, email, phone")
+        .eq("school_id", schoolId)
         .eq("id", teacherRes.data.person_id)
         .maybeSingle();
       const hide = !isStaff && hidden.has(String(teacherRes.data.id));
@@ -183,8 +214,8 @@ export const getLessonDetail = createServerFn({ method: "GET" })
     }
 
     let canEdit = false;
-    if (roles.some((r) => MANAGER_ROLES.includes(r))) canEdit = true;
-    else if (roles.includes("Professor")) {
+    if (isStaff && roles.some((r) => MANAGER_ROLES.includes(r))) canEdit = true;
+    else if (isStaff && roles.includes("Professor")) {
       canEdit = (await ownTeacherId(db, schoolId, context.userId)) === classSubject.teacher_id;
     }
 
@@ -396,70 +427,24 @@ export const archiveClassTask = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Horário semanal do próprio professor: todas as suas turmas. */
+/** Horário publicado da semana corrente do próprio professor, em todas as turmas. */
+export async function loadTeacherTimetableForRequest(
+  context: Pick<SupabaseAuthContext, "supabase" | "userId">,
+): Promise<StudentTimetable> {
+  const empty: StudentTimetable = { className: null, publishedAt: null, days: [] };
+  const membership = await resolveSgaMembershipAdmin(context.userId);
+  if (!membership) return empty;
+  const db = await loadSgaAdminClient();
+  const teacherId = await ownTeacherId(db, membership.schoolId, context.userId);
+  if (!teacherId) return empty;
+  const week = academicAgendaWeek(todayInLuanda());
+  const events = await loadAcademicAgendaForRequest({ ...week, teacherId }, context);
+  return timetableFromAcademicAgenda(events, week);
+}
+
 export const getMyTeacherTimetable = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<StudentTimetable> => {
-    const empty: StudentTimetable = { className: null, publishedAt: null, days: [] };
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) return empty;
-    const db = await loadSgaAdminClient();
-    const teacherId = await ownTeacherId(db, membership.schoolId, context.userId);
-    if (!teacherId) return empty;
-    const { data: classSubjects } = await db
-      .from("class_subjects")
-      .select("id, class_group_id, subject_id")
-      .eq("school_id", membership.schoolId)
-      .eq("teacher_id", teacherId)
-      .eq("status", "active");
-    const csIds = (classSubjects ?? []).map((cs) => String(cs.id));
-    if (!csIds.length) return empty;
-    const [{ data: slots }, { data: subjects }, { data: groups }] = await Promise.all([
-      db
-        .from("timetable_slots")
-        .select("id, class_subject_id, weekday, starts_at, ends_at, room, room_id")
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active")
-        .in("class_subject_id", csIds),
-      db
-        .from("subjects")
-        .select("id, name")
-        .in("id", [...new Set((classSubjects ?? []).map((cs) => String(cs.subject_id)))]),
-      db
-        .from("class_groups")
-        .select("id, name")
-        .in("id", [...new Set((classSubjects ?? []).map((cs) => String(cs.class_group_id)))]),
-    ]);
-    const roomIds = [
-      ...new Set(
-        (slots ?? [])
-          .map((s) => s.room_id)
-          .filter(Boolean)
-          .map(String),
-      ),
-    ];
-    const { data: rooms } = roomIds.length
-      ? await db.from("rooms").select("id, name").in("id", roomIds)
-      : { data: [] as Array<{ id: string; name: string }> };
-    const subjectName = new Map((subjects ?? []).map((s) => [String(s.id), String(s.name)]));
-    const groupName = new Map((groups ?? []).map((g) => [String(g.id), String(g.name)]));
-    const roomName = new Map((rooms ?? []).map((r) => [String(r.id), String(r.name)]));
-    const csById = new Map((classSubjects ?? []).map((cs) => [String(cs.id), cs]));
-    const lessons = (slots ?? []).map((slot) => {
-      const cs = csById.get(String(slot.class_subject_id));
-      return {
-        weekday: Number(slot.weekday),
-        slotId: String(slot.id),
-        startsAt: String(slot.starts_at ?? "").slice(0, 5),
-        endsAt: String(slot.ends_at ?? "").slice(0, 5),
-        subjectName: subjectName.get(String(cs?.subject_id)) ?? "Disciplina",
-        teacherName: null,
-        className: groupName.get(String(cs?.class_group_id)) ?? null,
-        room: (slot.room_id ? roomName.get(String(slot.room_id)) : null) ?? slot.room ?? null,
-      };
-    });
-    return { className: null, publishedAt: null, days: groupTimetableByDay(lessons) };
-  });
+  .handler(({ context }) => loadTeacherTimetableForRequest(context));
 
 function mapSettings(row: Record<string, unknown> | null): ReminderSettings {
   if (!row) return { ...DEFAULT_REMINDER_SETTINGS };

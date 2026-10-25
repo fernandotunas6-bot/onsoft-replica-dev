@@ -16,6 +16,7 @@ export type AgendaEvent = {
     academicYearId?: string;
     classGroupId?: string | null;
     subjectId?: string | null;
+    classSubjectId?: string;
     teacherId?: string | null;
     room?: string | null;
     version?: number;
@@ -23,6 +24,8 @@ export type AgendaEvent = {
     classGroupName?: string;
     subjectName?: string;
     teacherName?: string | null;
+    publishedAt?: string | null;
+    assessmentKind?: string | null;
   };
 };
 export type AgendaTerm = {
@@ -41,6 +44,7 @@ export type AgendaSchedule = {
   valid_from: string | null;
   valid_to: string | null;
   term: number | null;
+  published_at?: string | null;
 };
 export type AgendaSlot = {
   id: string;
@@ -97,6 +101,7 @@ export type AgendaData = {
     starts_at: string | null;
     duration_minutes: number | null;
     purpose: string | null;
+    kind?: string | null;
   }>;
   tasks: Array<{
     id: string;
@@ -279,11 +284,13 @@ export function buildAcademicAgenda(
           academicYearId: s.academic_year_id,
           classGroupId: a.class_group_id,
           subjectId: a.subject_id,
+          classSubjectId: a.id,
           teacherId: a.teacher_id,
           room: slot.room,
           classGroupName: group.name,
           subjectName: subjects.get(a.subject_id) ?? "Disciplina",
           teacherName: a.teacher_id ? (teachers.get(a.teacher_id) ?? null) : null,
+          publishedAt: s.published_at ?? null,
         },
         false,
       );
@@ -314,6 +321,8 @@ export function buildAcademicAgenda(
         academicYearId: groups.get(a.class_group_id)?.academic_year_id,
         classGroupId: a.class_group_id,
         subjectId: a.subject_id,
+        subjectName: subjects.get(a.subject_id) ?? "Disciplina",
+        assessmentKind: a.kind ?? null,
       },
       !a.starts_at,
     );

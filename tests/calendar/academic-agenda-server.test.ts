@@ -46,6 +46,52 @@ type Handler = (args: {
   context: typeof context;
 }) => Promise<unknown>;
 
+function studentLessonFixture() {
+  state.membership.appRole = "Aluno";
+  state.membership.allAppRoles = ["Aluno"];
+  state.visible = { schoolId: "school-a", studentId: "student" };
+  state.records.terms = [
+    {
+      id: "term",
+      academic_year_id: "year",
+      name: "Trimestre",
+      sequence: 1,
+      starts_on: "2026-09-01",
+      ends_on: "2026-12-15",
+    },
+  ];
+  state.records.academic_schedules = [
+    {
+      id: "schedule",
+      academic_year_id: "year",
+      class_group_id: "group",
+      status: "published",
+      valid_from: "2026-09-01",
+      valid_to: "2026-12-15",
+      term: null,
+      published_at: "2026-10-24T12:00:00Z",
+    },
+  ];
+  state.records.timetable_slots = [
+    {
+      id: "slot",
+      class_subject_id: "cs",
+      schedule_id: "schedule",
+      weekday: 1,
+      starts_at: "08:00:00",
+      ends_at: "08:45:00",
+      room: "Antiga",
+      room_id: "room",
+    },
+  ];
+  state.records.subjects = [{ id: "subject", name: "Matemática" }];
+  state.records.rooms = [{ id: "room", name: "Laboratório" }];
+  state.records.course_unit_enrollments = [
+    { class_group_id: "group", program_subject_id: "ps", status: "inscrito" },
+  ];
+  state.records.program_subjects = [{ id: "ps", subject_id: "subject" }];
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   filters.length = 0;
@@ -133,6 +179,27 @@ describe("academic agenda authorization", () => {
     expect(filters).toContainEqual(["enrollments", "student_id", "student"]);
     expect(filters).toContainEqual(["course_unit_enrollments", "student_id", "student"]);
   });
+  it("never ignores an explicit student filter for a staff account", async () => {
+    await expect(
+      loadAcademicAgendaForRequest(
+        { ...range, studentId: "11111111-1111-4111-8111-111111111111" },
+        context,
+      ),
+    ).rejects.toThrow(/estudante/);
+    expect(state.db.from).not.toHaveBeenCalled();
+  });
+  it("keeps an explicit child's scope for a guardian with an additional staff role", async () => {
+    studentLessonFixture();
+    state.membership.appRole = "Encarregado";
+    state.membership.allAppRoles = ["Encarregado", "Administrador"];
+    const events = await loadAcademicAgendaForRequest(
+      { ...range, studentId: "11111111-1111-4111-8111-111111111111" },
+      context,
+    );
+    expect(events.filter((e) => e.extendedProps.source === "lesson")).toHaveLength(1);
+    expect(filters).toContainEqual(["course_unit_enrollments", "student_id", "student"]);
+    expect(state.moduleGuard).not.toHaveBeenCalled();
+  });
   it("pages sources beyond the first database page", async () => {
     state.records.terms = Array.from({ length: 501 }, (_, i) => ({
       id: `term-${i}`,
@@ -153,6 +220,63 @@ describe("academic agenda authorization", () => {
       { class_group_id: "group", enrolled_on: "2026-09-01", ended_on: null, status: "transferred" },
     ];
     expect(await loadAcademicAgendaForRequest(range, context)).toEqual([]);
+  });
+  it.each(["transferred", "completed", "cancelled"])(
+    "does not let a course unit reopen a %s enrollment without an end date",
+    async (status) => {
+      studentLessonFixture();
+      state.records.enrollments = [
+        { class_group_id: "group", enrolled_on: "2026-09-01", ended_on: null, status },
+      ];
+      expect(await loadAcademicAgendaForRequest(range, context)).toEqual([]);
+    },
+  );
+  it("uses all valid enrollment periods instead of the first matching closed row", async () => {
+    studentLessonFixture();
+    state.records.enrollments = [
+      {
+        class_group_id: "group",
+        enrolled_on: "2026-09-01",
+        ended_on: "2026-10-10",
+        status: "transferred",
+      },
+      { class_group_id: "group", enrolled_on: "2026-10-20", ended_on: null, status: "active" },
+    ];
+    const events = await loadAcademicAgendaForRequest(range, context);
+    expect(events.filter((e) => e.extendedProps.source === "lesson")).toHaveLength(1);
+  });
+  it("supports a course unit without cohort enrollment and resolves the room in the school", async () => {
+    studentLessonFixture();
+    const events = await loadAcademicAgendaForRequest(range, context);
+    expect(events.find((e) => e.extendedProps.source === "lesson")?.extendedProps).toMatchObject({
+      room: "Laboratório",
+      subjectName: "Matemática",
+      publishedAt: "2026-10-24T12:00:00Z",
+    });
+    expect(filters).toContainEqual(["rooms", "school_id", "school-a"]);
+  });
+  it("does not fall back to the whole class when a course unit is cancelled", async () => {
+    studentLessonFixture();
+    state.records.enrollments = [
+      { class_group_id: "group", enrolled_on: "2026-09-01", ended_on: null, status: "active" },
+    ];
+    state.records.course_unit_enrollments = [
+      { class_group_id: "group", program_subject_id: "ps", status: "anulado" },
+    ];
+    expect(await loadAcademicAgendaForRequest(range, context)).toEqual([]);
+  });
+  it("keeps course-unit access within the enrollment dates", async () => {
+    studentLessonFixture();
+    state.records.enrollments = [
+      {
+        class_group_id: "group",
+        enrolled_on: "2026-09-01",
+        ended_on: "2026-10-25",
+        status: "completed",
+      },
+    ];
+    const events = await loadAcademicAgendaForRequest(range, context);
+    expect(events.some((e) => e.extendedProps.source === "lesson")).toBe(false);
   });
   it("propagates database failures instead of an empty successful calendar", async () => {
     state.error = { message: "connection refused" };
