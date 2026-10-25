@@ -148,11 +148,15 @@ export function OfflineSchoolShell() {
               </p>
               <p>
                 Dados privados offline:{' '}
-                {readiness.privateDataOfflineReady ? 'Disponíveis' : 'Bloqueados'}
+                {readiness.privateDataOfflineReady
+                  ? 'Disponíveis'
+                  : 'Bloqueados'}
               </p>
               <p>
                 Actualizador assinado:{' '}
-                {readiness.signedUpdaterConfigured ? 'Configurado' : 'Não configurado'}
+                {readiness.signedUpdaterConfigured
+                  ? 'Configurado'
+                  : 'Não configurado'}
               </p>
             </div>
           ) : (

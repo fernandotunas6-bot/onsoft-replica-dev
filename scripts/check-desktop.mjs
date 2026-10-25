@@ -127,13 +127,4 @@ if (process.env.GITHUB_REF_TYPE === "tag")
     `v${config.version}`,
     "Release tag must match application version",
   );
-// Temporary CI diagnostic: fetch canonical frontend formatting before format:check.
-if (process.env.GITHUB_ACTIONS === "true") {
-  const { execFileSync } = await import("node:child_process");
-  const formatted = execFileSync(process.execPath, [
-    "desktop/node_modules/prettier/bin/prettier.cjs",
-    "desktop/src/shell/OfflineSchoolShell.tsx",
-  ], { encoding: "utf8" });
-  console.log("NATIVE_READINESS_FORMAT=" + encodeURIComponent(formatted));
-}
 console.log("Danny Smith template, school permissions, CSP, lockfile and versions verified.");
