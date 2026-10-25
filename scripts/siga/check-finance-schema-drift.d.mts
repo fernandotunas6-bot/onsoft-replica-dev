@@ -14,7 +14,6 @@ export type FinanceInventory = {
 export declare const FINANCE_INVENTORY_SQL: string;
 export declare function financeReadOnlyRequest(): {
   query: string;
-  read_only: true;
 };
 export declare function evaluateFinanceInventory(
   row: unknown,
