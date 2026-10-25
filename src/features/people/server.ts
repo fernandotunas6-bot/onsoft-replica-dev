@@ -564,6 +564,7 @@ export const getPerson = createServerFn({ method: "GET" })
       nif: person.national_id,
       documents: resolvedDocuments,
       roles: personContext.roles,
+      enrollment_status: personContext.enrollment_status,
       academic_summary: personContext.academic_summary,
       financial_summary: personContext.financial_summary,
       has_contact_email: personContext.has_contact_email,

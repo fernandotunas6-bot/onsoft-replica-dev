@@ -57,6 +57,11 @@ import {
 import { whatsappHref } from "@/features/integrations/actions";
 import { formatAngolaBi } from "@/lib/angola-identity";
 import { kwanza } from "@/lib/currency";
+import {
+  personEnrollmentLabel,
+  PERSON_UNENROLLED_REASON_LABELS,
+  type PersonEnrollmentStatus,
+} from "@/features/people/enrollment-state";
 import { angolaProvinces } from "@/lib/angola-territory";
 import { personInstitutionRoleOptions } from "@/features/people/schemas";
 
@@ -89,6 +94,12 @@ export type PersonRecord = {
     issued_at?: string | null;
     expires_at?: string | null;
   }>;
+  /**
+   * Camada canónica resolvida no servidor (`enrollment-state.ts`). Quando
+   * presente, decide o que este ecrã mostra; a derivação por `roles` abaixo
+   * fica apenas como recuo para chamadores que ainda não a enviam.
+   */
+  enrollment_status?: PersonEnrollmentStatus;
   academic_summary?: {
     total_enrollments: number;
     active_enrollment: {
@@ -201,7 +212,21 @@ export function PersonProfile360Modal({
   if (!open || !personId) return null;
 
   const roles = person?.roles ?? [];
-  const hasStudentRole = roles.includes("aluno");
+  // A camada canónica vem do servidor; o papel declarado é apenas o recuo.
+  const enrollmentStatus: PersonEnrollmentStatus =
+    person?.enrollment_status ??
+    (roles.includes("aluno")
+      ? person?.academic_summary?.active_enrollment
+        ? { state: "aluno_matriculado" }
+        : {
+            state: "aluno_sem_matricula",
+            reason: person?.academic_summary?.total_enrollments
+              ? "matricula_encerrada"
+              : "nunca_matriculado",
+          }
+      : { state: "pessoa" });
+  const hasStudentRole = enrollmentStatus.state !== "pessoa";
+  const isEnrolled = enrollmentStatus.state === "aluno_matriculado";
   const phone = person?.phone_primary || person?.phone || "";
   const email = person?.email || "";
   const nifOrBi = person?.nif || person?.national_id || "";
@@ -527,7 +552,7 @@ export function PersonProfile360Modal({
                   <span className="text-xs font-semibold text-muted-foreground block">
                     Vínculo Académico
                   </span>
-                  {hasStudentRole && person?.academic_summary?.active_enrollment ? (
+                  {isEnrolled && person?.academic_summary?.active_enrollment ? (
                     <>
                       <p className="text-sm font-semibold flex items-center gap-2">
                         <GraduationCap className="size-4 text-primary" />
@@ -546,7 +571,7 @@ export function PersonProfile360Modal({
                     <>
                       <p className="text-sm font-semibold flex items-center gap-2">
                         <Users className="size-4 text-muted-foreground" />
-                        Aluno sem matrícula activa
+                        {personEnrollmentLabel(enrollmentStatus)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {person?.academic_summary?.total_enrollments
@@ -1036,7 +1061,7 @@ export function PersonProfile360Modal({
                   </div>
                 ) : null}
 
-                {hasStudentRole && person?.academic_summary?.active_enrollment ? (
+                {isEnrolled && person?.academic_summary?.active_enrollment ? (
                   <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-xs space-y-1.5">
                     <p className="font-semibold text-foreground flex items-center gap-1.5">
                       <CheckCircle2 className="size-3.5 text-primary" /> Matrícula activa
@@ -1060,9 +1085,17 @@ export function PersonProfile360Modal({
                 ) : hasStudentRole ? (
                   <div className="rounded-lg border border-dashed border-border p-4 text-xs text-center text-muted-foreground space-y-2">
                     <p>
+                      {enrollmentStatus.reason
+                        ? PERSON_UNENROLLED_REASON_LABELS[enrollmentStatus.reason]
+                        : "Sem matrícula activa neste momento."}
+                    </p>
+                    <p>
+                      {/* A dívida de anos anteriores sobrevive ao fim da
+                          matrícula: não apresentar «sem matrícula» como se a
+                          conta estivesse encerrada. */}
                       {person?.academic_summary?.total_enrollments
-                        ? "Sem matrícula activa neste momento."
-                        : "Este aluno ainda não possui nenhuma matrícula."}
+                        ? `${person.academic_summary.total_enrollments} matrícula(s) no histórico. O histórico financeiro permanece.`
+                        : "Sem matrícula no histórico."}
                     </p>
                     {onAction && person ? (
                       <Button

@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { schoolTodayIso } from "@/lib/school-date";
 import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
+import {
+  derivePersonEnrollmentStatus,
+  type PersonEnrollmentStatus,
+} from "@/features/people/enrollment-state";
 
 export type PersonAcademicSummary = {
   total_enrollments: number;
@@ -22,6 +26,13 @@ export type PersonFinancialSummary = {
 
 export type PersonContext = {
   roles: string[];
+  /**
+   * Camada canónica da pessoa (`enrollment-state.ts`). Resolvida aqui uma vez
+   * para que nenhum ecrã volte a inferir «é aluno?» ou «está matriculado?» a
+   * partir da presença de `academic_summary` — inferência que confundia quem
+   * nunca se matriculou com quem já saiu da escola.
+   */
+  enrollment_status: PersonEnrollmentStatus;
   academic_summary?: PersonAcademicSummary;
   financial_summary?: PersonFinancialSummary;
   has_contact_email: boolean;
@@ -45,6 +56,12 @@ export async function resolvePersonContext(
       .select("id, status")
       .eq("school_id", schoolId)
       .eq("person_id", personId)
+      // Um registo de aluno eliminado não torna a pessoa aluna: sem este filtro
+      // o papel «aluno» e o resumo financeiro sobreviviam à eliminação. O
+      // limit(1) também evita que maybeSingle() rebente se existir mais de um
+      // registo vivo para a mesma pessoa.
+      .is("deleted_at", null)
+      .limit(1)
       .maybeSingle(),
     db
       .from("teachers")
@@ -57,6 +74,9 @@ export async function resolvePersonContext(
       .select("student_id")
       .eq("school_id", schoolId)
       .eq("guardian_person_id", personId)
+      // Um vínculo de encarregado com validade expirada já não é vínculo
+      // corrente; `valid_until` nulo significa sem termo.
+      .or(`valid_until.is.null,valid_until.gte.${schoolTodayIso()}`)
       .limit(1)
       .maybeSingle(),
     db
@@ -64,7 +84,10 @@ export async function resolvePersonContext(
       .select("role")
       .eq("school_id", schoolId)
       .eq("person_id", personId)
-      .eq("active", true),
+      .eq("active", true)
+      // person_roles também tem eliminação lógica: um vínculo apagado não deve
+      // continuar a declarar o papel.
+      .is("deleted_at", null),
   ]);
 
   const roles = new Set<string>();
@@ -190,8 +213,15 @@ export async function resolvePersonContext(
     }
   }
 
+  const enrollment_status = derivePersonEnrollmentStatus({
+    hasLiveStudentRecord: Boolean(studentId),
+    totalEnrollments: academic_summary?.total_enrollments ?? 0,
+    hasActiveEnrollment: Boolean(academic_summary?.active_enrollment),
+  });
+
   return {
     roles: [...roles],
+    enrollment_status,
     ...(academic_summary !== undefined ? { academic_summary } : {}),
     ...(financial_summary !== undefined ? { financial_summary } : {}),
     has_contact_email: hasContactEmail,
