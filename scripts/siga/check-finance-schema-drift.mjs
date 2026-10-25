@@ -6,7 +6,8 @@
  * Uso:
  *   SUPABASE_ACCESS_TOKEN=... node scripts/siga/check-finance-schema-drift.mjs --project-ref=<ref>
  *
- * O endpoint Supabase Management API recebe read_only:true; a SQL é fixa.
+ * Endpoint exclusivamente read-only do Supabase: /database/query/read-only.
+ * A query é fixa; NÃO usar o endpoint genérico /database/query.
  * Mesmo sem divergências, a saída NÃO substitui staging, diff DDL ou E2E.
  */
 import { resolve } from "node:path";
@@ -14,15 +15,15 @@ import { fileURLToPath } from "node:url";
 
 export const FINANCE_INVENTORY_SQL = `
 SELECT
-  to_regclass('public.finance_cash_points') IS NOT NULL AS cash_points,
-  to_regclass('public.finance_cash_sessions') IS NOT NULL AS cash_sessions,
+  pg_catalog.to_regclass('public.finance_cash_points') IS NOT NULL AS cash_points,
+  pg_catalog.to_regclass('public.finance_cash_sessions') IS NOT NULL AS cash_sessions,
   EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='20261024110000') AS cash_history,
-  EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='finance_receipts_cash_session' AND NOT tgisinternal) AS receipt_cash_trigger,
-  EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='siga_cash_expenses_cash_session' AND NOT tgisinternal) AS expense_cash_trigger,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='finance_receipts_cash_session' AND NOT tgisinternal) AS receipt_cash_trigger,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='siga_cash_expenses_cash_session' AND NOT tgisinternal) AS expense_cash_trigger,
   EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='finance_receipts' AND column_name='idempotency_key') AS idempotency_column,
-  to_regclass('public.finance_receipts_school_idempotency_key') IS NOT NULL AS idempotency_index,
-  EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='register_payment' AND p.pronargs=6) AS payment_rpc_six_args,
-  EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='private' AND p.proname='reverse_finance_receipt' AND position('v_invoice.penalty_amount' IN pg_get_functiondef(p.oid)) > 0) AS reversal_mentions_penalty;
+  pg_catalog.to_regclass('public.finance_receipts_school_idempotency_key') IS NOT NULL AS idempotency_index,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='register_payment' AND p.pronargs=6) AS payment_rpc_six_args,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='private' AND p.proname='reverse_finance_receipt' AND position('v_invoice.penalty_amount' IN pg_catalog.pg_get_functiondef(p.oid)) > 0) AS reversal_mentions_penalty;
 `;
 
 const KEYS = [
@@ -38,7 +39,7 @@ const KEYS = [
 ];
 
 export function financeReadOnlyRequest() {
-  return { query: FINANCE_INVENTORY_SQL, read_only: true };
+  return { query: FINANCE_INVENTORY_SQL };
 }
 
 /** Reporta inconsistências, não deduz autorização de deploy de uma tabela existente. */
@@ -104,7 +105,7 @@ export async function readFinanceInventory(projectRef, token, send = fetch) {
   if (!/^[a-z0-9]{20}$/.test(projectRef) || !String(token ?? "").trim()) {
     throw new Error("Projecto e token Supabase explícitos são obrigatórios.");
   }
-  const result = await send(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
+  const result = await send(`https://api.supabase.com/v1/projects/${projectRef}/database/query/read-only`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(financeReadOnlyRequest()),
