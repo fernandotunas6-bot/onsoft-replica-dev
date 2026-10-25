@@ -143,6 +143,7 @@ da URL é recusada.
 | Comunicação, Histórico           | —                                                                           | Ausente — a ficha não mostra esse conteúdo (o histórico só alimenta documentos impressos) |
 | Faturas e documentos do aluno    | `/faturas`, `/documentos`                                                   | Parcial — sem filtro por aluno na URL; na ficha, secções Financeiro e Documentos          |
 | Relações no painel direito       | `students/student-relation-map`                                             | Implementado                                                                              |
+| Botões de gestão da ficha        | foto, turma, estado, anular, editar, encarregados, presença                 | Implementado — só a quem grava em Pessoas (o guarda do servidor); o encarregado não os vê |
 
 ### 5.3 Restantes contextos
 
@@ -191,7 +192,7 @@ da URL é recusada.
 | 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                                                                            |
 | 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 12 testes de sidebar + 7 de lookup; breadcrumb com 8 testes                                                                                                                |
 | 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
-| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 6 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                    |
+| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 10 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
 | 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
@@ -208,7 +209,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (694 ficheiros, 4795 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (694 ficheiros, 4799 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 
@@ -236,7 +237,5 @@ abrir a entrada perde o contexto).
 - Presenças e Materiais estão cobertos em jsdom e em capturas com dados fictícios; falta
   confirmar numa sessão autenticada que a chamada e a pasta da turma abrem com dados reais.
 - A memória de contexto não está ligada.
-- Na ficha do aluno, o Encarregado vê botões de gestão (Editar ficha, Estado, Anular); o
-  servidor recusa essas acções, mas os botões não deviam aparecer.
 - Referências externas (Moodle, Canvas, Linear, Jira, Salesforce, Notion, VS Code, Odoo,
   ClickUp) inspiram os princípios; nada foi copiado.

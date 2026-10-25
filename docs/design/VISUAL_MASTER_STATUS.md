@@ -23,6 +23,12 @@ No telemóvel, o hub «Mais» mostra o mesmo menu da entidade. Testado em jsdom 
 com dados fictícios a 1440/390 px; o módulo Alunos continua `por auditar` (falta sessão
 autenticada) e falta validar em aparelhos.
 
+**25/10/2026 — SIGA Context Engine (materiais e ficha do encarregado):** o menu da turma e
+da disciplina ganha «Materiais e ficheiros» (`/arquivos?turma`, com o menu e o breadcrumb da
+turma); «Presenças» fica só na disciplina. Na ficha do aluno, foto, turma, estado, anular,
+editar, encarregados e presença só aparecem a quem grava em Pessoas; o encarregado vê a
+ficha sem esses botões. Sem estilos novos; capturas com dados fictícios a 1440 px.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

@@ -141,10 +141,14 @@ afterEach(() => {
 
 const headings = () => screen.getAllByRole("heading").map((heading) => heading.textContent);
 
-async function open(search: Record<string, unknown>, role = "Secretaria") {
+async function open(
+  search: Record<string, unknown>,
+  role = "Secretaria",
+  grants: Record<string, string> = {},
+) {
   setRouteParams({ studentId: STUDENT });
   setRouteSearch(search);
-  setCurrentAccount({ role, roles: [role] });
+  setCurrentAccount({ role, roles: [role], grants });
   renderRoute(Ficha);
   await waitFor(() => {
     expect(screen.getByRole("heading", { level: 1, name: "Ana Paula Silva" })).toBeDefined();
@@ -216,5 +220,46 @@ describe("/alunos/$studentId — secções", () => {
     expect(notice).toBeDefined();
     expect(screen.getByText("Dados pessoais")).toBeDefined();
     expect(screen.queryByRole("heading", { level: 2, name: "Financeiro" })).toBeNull();
+  });
+});
+
+describe("/alunos/$studentId — botões de gestão", () => {
+  // Alterar a foto, a turma, o estado, a matrícula, os dados, os encarregados ou a
+  // presença passa pelo mesmo guarda do servidor: escrita em Pessoas.
+  const buttons = [
+    "Carregar nova foto de perfil",
+    "Foto",
+    "Biblioteca",
+    "Editar ficha",
+    "Estado",
+    "Anular",
+    "Associar",
+    "Remover encarregado",
+    "Registar",
+  ];
+  const visible = () => buttons.filter((name) => screen.queryByRole("button", { name }) !== null);
+
+  it("a Secretaria vê os botões de gestão da ficha", async () => {
+    await open({});
+    expect(visible()).toEqual(buttons);
+    expect(screen.getByRole("link", { name: "Criar turmas em Pedagógica" })).toBeDefined();
+  });
+
+  it("o encarregado vê a ficha sem os botões que o servidor lhe recusa", async () => {
+    await open({}, "Encarregado");
+    expect(screen.getByText("Dados pessoais")).toBeDefined();
+    expect(screen.getByText("Joana Silva")).toBeDefined();
+    expect(visible()).toEqual([]);
+    expect(screen.queryByRole("link", { name: "Criar turmas em Pedagógica" })).toBeNull();
+  });
+
+  it("a Secretaria só com leitura em Pessoas também não os vê", async () => {
+    await open({}, "Secretaria", { pessoas: "Leitura" });
+    expect(visible()).toEqual([]);
+  });
+
+  it("a Tesouraria com escrita em Pessoas vê-os, como o servidor deixa", async () => {
+    await open({}, "Tesouraria", { pessoas: "Escrita" });
+    expect(visible()).toEqual(buttons);
   });
 });

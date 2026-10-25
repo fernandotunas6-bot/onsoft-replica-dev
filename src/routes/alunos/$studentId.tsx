@@ -115,6 +115,7 @@ import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowS
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
+import { canWriteModule } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapStudentProfileToSnapshot } from "@/features/intelligence/students/student-relations-adapter";
@@ -252,6 +253,10 @@ function StudentDetail() {
     account.role === "Tesouraria";
   const canReceivePayment = account.role === "Administrador" || account.role === "Tesouraria";
   const canRequestDocument = account.role === "Administrador" || account.role === "Secretaria";
+  // Foto, turma, estado, matrícula, dados, encarregados e presença gravam pelo mesmo guarda
+  // do servidor (escrita em Pessoas para Administração e Secretaria, ou permissão
+  // de escrita dada a outro cargo). Quem não grava, como o encarregado, não vê os botões.
+  const canManageStudent = canWriteModule(account.role, "pessoas", account.grants);
   // Secção pedida na URL; sem acesso a ela, mostra-se a ficha completa.
   const { secao } = Route.useSearch();
   const { section, refused: refusedSection } = resolveStudentSection(
@@ -291,8 +296,8 @@ function StudentDetail() {
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
-    // Só para escolher o encarregado, que é da Administração e da Secretaria.
-    enabled: canRequestDocument,
+    // Só para escolher o encarregado, que é de quem gere a ficha.
+    enabled: canManageStudent,
   });
   // Desconto do contrato (vale para as faturas emitidas a seguir).
   const scholarshipQuery = useQuery({
@@ -939,78 +944,84 @@ function StudentDetail() {
                 fallback={initials}
                 className="size-20 rounded-2xl text-xl object-cover ring-2 ring-primary/25 shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                title="Carregar nova foto de perfil"
-                className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
-              >
-                {isUploadingPhoto ? (
-                  <LoaderCircle className="size-3.5 animate-spin" />
-                ) : (
-                  <Camera className="size-3.5" />
-                )}
-              </button>
-              <input
-                id="student-photo-upload"
-                aria-label="Carregar foto de perfil do aluno"
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={handleDirectPhotoUpload}
-              />
+              {canManageStudent ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    title="Carregar nova foto de perfil"
+                    className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
+                  >
+                    {isUploadingPhoto ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="size-3.5" />
+                    )}
+                  </button>
+                  <input
+                    id="student-photo-upload"
+                    aria-label="Carregar foto de perfil do aluno"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={handleDirectPhotoUpload}
+                  />
+                </>
+              ) : null}
             </div>
-            <div className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1 px-2 font-medium"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-              >
-                <Camera className="size-3" /> Foto
-              </Button>
-              <PickFileButton
-                label="Biblioteca"
-                area="secretaria"
-                acceptKinds={["png", "jpeg"]}
-                variant="outline"
-                size="sm"
-                onPick={(file) => {
-                  void (async () => {
-                    try {
-                      await applyLibraryPhotoToPerson({
-                        personId: student.person_id,
-                        schoolId: String(student.school_id),
-                        file,
-                      });
-                      await Promise.all([
-                        queryClient.invalidateQueries({
-                          queryKey: ["students", "profile", student.id],
-                        }),
-                        queryClient.invalidateQueries({
-                          queryKey: ["people", "get", student.person_id],
-                        }),
-                        queryClient.invalidateQueries({
-                          queryKey: ["arquivos", "student-related", student.person_id],
-                        }),
-                        queryClient.invalidateQueries({
-                          queryKey: ["students", "search"],
-                        }),
-                      ]);
-                      toast.success("Foto actualizada a partir da biblioteca");
-                    } catch (error) {
-                      toast.error("Não foi possível actualizar a foto", {
-                        description: error instanceof Error ? error.message : "Tente novamente.",
-                      });
-                    }
-                  })();
-                }}
-              />
-            </div>
+            {canManageStudent ? (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 px-2 font-medium"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                >
+                  <Camera className="size-3" /> Foto
+                </Button>
+                <PickFileButton
+                  label="Biblioteca"
+                  area="secretaria"
+                  acceptKinds={["png", "jpeg"]}
+                  variant="outline"
+                  size="sm"
+                  onPick={(file) => {
+                    void (async () => {
+                      try {
+                        await applyLibraryPhotoToPerson({
+                          personId: student.person_id,
+                          schoolId: String(student.school_id),
+                          file,
+                        });
+                        await Promise.all([
+                          queryClient.invalidateQueries({
+                            queryKey: ["students", "profile", student.id],
+                          }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["people", "get", student.person_id],
+                          }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["arquivos", "student-related", student.person_id],
+                          }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["students", "search"],
+                          }),
+                        ]);
+                        toast.success("Foto actualizada a partir da biblioteca");
+                      } catch (error) {
+                        toast.error("Não foi possível actualizar a foto", {
+                          description: error instanceof Error ? error.message : "Tente novamente.",
+                        });
+                      }
+                    })();
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
 
           <div className="min-w-0">
@@ -1190,7 +1201,7 @@ function StudentDetail() {
               </DropdownMenu>
             ) : null}
 
-            {turmaOptions.length > 0 ? (
+            {!canManageStudent ? null : turmaOptions.length > 0 ? (
               <QuickFormModal
                 eyebrow={student.registration_number}
                 title="Atribuir turma"
@@ -1385,86 +1396,90 @@ function StudentDetail() {
               />
             ) : null}
 
-            <QuickFormModal
-              eyebrow={student.registration_number}
-              title="Alterar estado"
-              description="Actualize o estado académico do aluno e registe o motivo. Inactivo, Transferido e Concluído fecham a matrícula do ano e libertam o lugar na turma."
-              icon={<UserCheck className="size-5" />}
-              submitLabel="Confirmar estado"
-              onSubmit={handleChangeStatus}
-              fields={[
-                {
-                  name: "estado",
-                  label: "Novo estado",
-                  type: "select",
-                  options: studentStatusChoices(),
-                  defaultValue: student.student_status,
-                },
-                {
-                  name: "motivo",
-                  label: "Motivo",
-                  type: "textarea",
-                  full: true,
-                  required: false,
-                  placeholder: "Opcional",
-                },
-              ]}
-              trigger={(open) => (
-                <Button variant="outline" className="gap-2" onClick={open}>
-                  <UserCheck className="size-4" /> Estado
-                </Button>
-              )}
-            />
+            {canManageStudent ? (
+              <>
+                <QuickFormModal
+                  eyebrow={student.registration_number}
+                  title="Alterar estado"
+                  description="Actualize o estado académico do aluno e registe o motivo. Inactivo, Transferido e Concluído fecham a matrícula do ano e libertam o lugar na turma."
+                  icon={<UserCheck className="size-5" />}
+                  submitLabel="Confirmar estado"
+                  onSubmit={handleChangeStatus}
+                  fields={[
+                    {
+                      name: "estado",
+                      label: "Novo estado",
+                      type: "select",
+                      options: studentStatusChoices(),
+                      defaultValue: student.student_status,
+                    },
+                    {
+                      name: "motivo",
+                      label: "Motivo",
+                      type: "textarea",
+                      full: true,
+                      required: false,
+                      placeholder: "Opcional",
+                    },
+                  ]}
+                  trigger={(open) => (
+                    <Button variant="outline" className="gap-2" onClick={open}>
+                      <UserCheck className="size-4" /> Estado
+                    </Button>
+                  )}
+                />
 
-            {student.enrollment_id ? (
-              <ConfirmActionModal
-                title="Anular matrícula"
-                description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se; sem outra matrícula, o aluno passa a inactivo até ser matriculado de novo.`}
-                confirmLabel="Anular matrícula"
-                onConfirm={async () => {
-                  await cancelEnrollment({
-                    data: { enrollmentId: student.enrollment_id!, reason: "Anulada na ficha" },
-                  });
-                  await invalidateStudent();
-                }}
-                trigger={(open) => (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-                    onClick={open}
-                  >
-                    <Trash2 className="size-3.5" /> Anular
-                  </Button>
-                )}
-              />
+                {student.enrollment_id ? (
+                  <ConfirmActionModal
+                    title="Anular matrícula"
+                    description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se; sem outra matrícula, o aluno passa a inactivo até ser matriculado de novo.`}
+                    confirmLabel="Anular matrícula"
+                    onConfirm={async () => {
+                      await cancelEnrollment({
+                        data: { enrollmentId: student.enrollment_id!, reason: "Anulada na ficha" },
+                      });
+                      await invalidateStudent();
+                    }}
+                    trigger={(open) => (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                        onClick={open}
+                      >
+                        <Trash2 className="size-3.5" /> Anular
+                      </Button>
+                    )}
+                  />
+                ) : null}
+
+                <QuickFormModal
+                  eyebrow={student.registration_number}
+                  title="Editar ficha"
+                  description="Actualize os dados pessoais e académicos deste estudante."
+                  icon={<Pencil className="size-5" />}
+                  size="lg"
+                  submitLabel="Guardar alterações"
+                  note="No SGA, people não tem coluna de morada — só nome, email e telefone são gravados."
+                  onSubmit={handleUpdateProfile}
+                  fields={[
+                    {
+                      name: "nome",
+                      label: "Nome completo",
+                      defaultValue: student.full_name,
+                      full: true,
+                    },
+                    { name: "email", label: "Email", defaultValue: student.email ?? "" },
+                    { name: "telefone", label: "Telefone", defaultValue: student.phone ?? "" },
+                  ]}
+                  trigger={(open) => (
+                    <Button className="gap-2 shadow-xs" onClick={open}>
+                      <Pencil className="size-4" /> Editar ficha
+                    </Button>
+                  )}
+                />
+              </>
             ) : null}
-
-            <QuickFormModal
-              eyebrow={student.registration_number}
-              title="Editar ficha"
-              description="Actualize os dados pessoais e académicos deste estudante."
-              icon={<Pencil className="size-5" />}
-              size="lg"
-              submitLabel="Guardar alterações"
-              note="No SGA, people não tem coluna de morada — só nome, email e telefone são gravados."
-              onSubmit={handleUpdateProfile}
-              fields={[
-                {
-                  name: "nome",
-                  label: "Nome completo",
-                  defaultValue: student.full_name,
-                  full: true,
-                },
-                { name: "email", label: "Email", defaultValue: student.email ?? "" },
-                { name: "telefone", label: "Telefone", defaultValue: student.phone ?? "" },
-              ]}
-              trigger={(open) => (
-                <Button className="gap-2 shadow-xs" onClick={open}>
-                  <Pencil className="size-4" /> Editar ficha
-                </Button>
-              )}
-            />
           </div>
         </div>
 
@@ -1528,7 +1543,7 @@ function StudentDetail() {
                   : "neutral"
               }
               action={
-                canRequestDocument && student.enrollment_id ? (
+                canManageStudent && student.enrollment_id ? (
                   <QuickFormModal
                     title="Taxa de presença"
                     description="Percentagem de presenças no ano lectivo actual (0 a 100)."
@@ -1650,50 +1665,52 @@ function StudentDetail() {
                     <IconChip icon={Users} size="sm" label="Encarregados" />
                     <h2 className="font-display text-base font-bold">Encarregados de educação</h2>
                   </div>
-                  <QuickFormModal
-                    eyebrow={student.registration_number}
-                    title="Associar encarregado"
-                    description="Liga uma pessoa já existente no registo central a este aluno."
-                    icon={<UserPlus className="size-5" />}
-                    submitLabel="Associar"
-                    onSubmit={handleAssignGuardian}
-                    fields={[
-                      {
-                        name: "pessoa",
-                        label: "Pessoa",
-                        type: "select",
-                        options: guardianOptions,
-                        full: true,
-                      },
-                      {
-                        name: "parentesco",
-                        label: "Parentesco",
-                        type: "select",
-                        options: personRelationshipTypeOptions.flatMap((option) => {
-                          const label = relationshipLabels[option];
-                          return label ? [label] : [];
-                        }),
-                      },
-                      {
-                        name: "principal",
-                        label: "Encarregado principal",
-                        type: "select",
-                        options: ["Não", "Sim"],
-                        defaultValue: guardians.length === 0 ? "Sim" : "Não",
-                      },
-                    ]}
-                    trigger={(open) => (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2"
-                        onClick={open}
-                        disabled={!guardianOptions.length}
-                      >
-                        <UserPlus className="size-3.5" /> Associar
-                      </Button>
-                    )}
-                  />
+                  {canManageStudent ? (
+                    <QuickFormModal
+                      eyebrow={student.registration_number}
+                      title="Associar encarregado"
+                      description="Liga uma pessoa já existente no registo central a este aluno."
+                      icon={<UserPlus className="size-5" />}
+                      submitLabel="Associar"
+                      onSubmit={handleAssignGuardian}
+                      fields={[
+                        {
+                          name: "pessoa",
+                          label: "Pessoa",
+                          type: "select",
+                          options: guardianOptions,
+                          full: true,
+                        },
+                        {
+                          name: "parentesco",
+                          label: "Parentesco",
+                          type: "select",
+                          options: personRelationshipTypeOptions.flatMap((option) => {
+                            const label = relationshipLabels[option];
+                            return label ? [label] : [];
+                          }),
+                        },
+                        {
+                          name: "principal",
+                          label: "Encarregado principal",
+                          type: "select",
+                          options: ["Não", "Sim"],
+                          defaultValue: guardians.length === 0 ? "Sim" : "Não",
+                        },
+                      ]}
+                      trigger={(open) => (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={open}
+                          disabled={!guardianOptions.length}
+                        >
+                          <UserPlus className="size-3.5" /> Associar
+                        </Button>
+                      )}
+                    />
+                  ) : null}
                 </div>
                 <div className="mt-4 space-y-4 text-sm">
                   {guardians.length > 0 ? (
@@ -1718,36 +1735,40 @@ function StudentDetail() {
                               ] ?? g.relationship}
                             </p>
                           </div>
-                          <ConfirmActionModal
-                            title="Remover encarregado"
-                            description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
-                            confirmLabel="Remover"
-                            onConfirm={async () => {
-                              await removeGuardian({
-                                data: {
-                                  studentId,
-                                  guardianPersonId: g.guardian_person_id,
-                                },
-                              });
-                              await Promise.all([
-                                queryClient.invalidateQueries({
-                                  queryKey: ["students", "profile", studentId],
-                                }),
-                                queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
-                              ]);
-                            }}
-                            trigger={(open) => (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive"
-                                aria-label="Remover encarregado"
-                                onClick={open}
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
-                            )}
-                          />
+                          {canManageStudent ? (
+                            <ConfirmActionModal
+                              title="Remover encarregado"
+                              description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
+                              confirmLabel="Remover"
+                              onConfirm={async () => {
+                                await removeGuardian({
+                                  data: {
+                                    studentId,
+                                    guardianPersonId: g.guardian_person_id,
+                                  },
+                                });
+                                await Promise.all([
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "profile", studentId],
+                                  }),
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "search"],
+                                  }),
+                                ]);
+                              }}
+                              trigger={(open) => (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                  aria-label="Remover encarregado"
+                                  onClick={open}
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              )}
+                            />
+                          ) : null}
                         </div>
                         <p className="mt-1 flex items-center gap-2 text-muted-foreground">
                           <Phone className="size-3.5" /> {g.guardian?.phone_primary ?? "—"}
