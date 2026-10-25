@@ -1,4 +1,4 @@
-import { useMemo, lazy, Suspense, useEffect } from "react";
+import { useMemo, lazy, Suspense, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -37,6 +37,7 @@ import {
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getFinanceReporting } from "@/features/finance/server";
+import { AccountantExportDialog } from "@/features/finance/components/AccountantExportDialog";
 import { kwanza } from "@/lib/currency";
 import { exportCsv, type CsvValue } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
@@ -198,6 +199,7 @@ function RelatoriosFinanceiros() {
     { label: "Categoria", value: (row) => row.categoria },
     { label: "Valor (Kz)", value: (row) => row.valor },
   ];
+  const openAccountantExport = useRef<(() => void) | null>(null);
   const exportarCobrancaCsv = () =>
     exportCsv("relatorio-financeiro-cobranca", cobrancaColumns, cobrancaRows);
   const exportarCobrancaPdf = () =>
@@ -389,6 +391,12 @@ function RelatoriosFinanceiros() {
           actions={
             <>
               <DocHelpButton title="Navegação — Relatórios financeiros" />
+              <AccountantExportDialog
+                trigger={(open) => {
+                  openAccountantExport.current = open;
+                  return null;
+                }}
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2">
@@ -427,6 +435,14 @@ function RelatoriosFinanceiros() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={exportarOficial} disabled={cobrancaRows.length === 0}>
                     <FileBadge className="size-4" /> Relatório oficial completo
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Contabilidade</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    // O menu fecha primeiro; o formulário abre a seguir, fora dele.
+                    onSelect={() => setTimeout(() => openAccountantExport.current?.(), 0)}
+                  >
+                    <FileDown className="size-4" /> Mês para o contabilista (Excel)
                   </DropdownMenuItem>
                   {whatsappOn || resendOn ? (
                     <>

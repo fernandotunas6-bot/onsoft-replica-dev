@@ -174,3 +174,8 @@ export const syncStudentToPayflowInputSchema = z.object({
   studentId: z.string().guid(),
 });
 export type SyncStudentToPayflowInput = z.infer<typeof syncStudentToPayflowInputSchema>;
+
+/** Mês da exportação para o contabilista, «AAAA-MM». */
+export const accountantExportInputSchema = z.object({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Indique o mês (AAAA-MM)."),
+});
