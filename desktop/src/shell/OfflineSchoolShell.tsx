@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  commands,
-  type DesktopOfflineReadiness,
-} from '@/lib/tauri-bindings'
+import { commands, type DesktopOfflineReadiness } from '@/lib/tauri-bindings'
 import {
   BookOpen,
   Database,
@@ -132,9 +129,15 @@ export function OfflineSchoolShell() {
           {readiness ? (
             <div className="mt-3 grid gap-3 rounded-xl border border-border bg-card p-5 text-sm sm:grid-cols-2">
               <p>Versão instalada: {readiness.appVersion}</p>
-              <p>Interface local: {readiness.bundledUiReady ? 'Disponível' : 'Indisponível'}</p>
+              <p>
+                Interface local:{' '}
+                {readiness.bundledUiReady ? 'Disponível' : 'Indisponível'}
+              </p>
               <p>Esquema SQLite v{readiness.schemaVersion}: apenas preparado</p>
-              <p>SQLCipher: {readiness.sqlcipherReady ? 'Disponível' : 'Pendente'}</p>
+              <p>
+                SQLCipher:{' '}
+                {readiness.sqlcipherReady ? 'Disponível' : 'Pendente'}
+              </p>
               <p>
                 Autorização offline:{' '}
                 {readiness.authorizedBootstrapReady ? 'Disponível' : 'Pendente'}

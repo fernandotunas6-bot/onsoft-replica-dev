@@ -89,11 +89,8 @@ mod offline_readiness_tests {
 
     #[test]
     fn status_is_non_sensitive_and_serializes_using_frontend_names() {
-        let value = serde_json::to_value(DesktopOfflineReadiness::new(
-            "1.2.2".into(),
-            false,
-        ))
-        .unwrap();
+        let value =
+            serde_json::to_value(DesktopOfflineReadiness::new("1.2.2".into(), false)).unwrap();
         assert_eq!(value["appVersion"], "1.2.2");
         assert_eq!(value["sqlcipherReady"], false);
         assert!(value.get("schoolId").is_none());
