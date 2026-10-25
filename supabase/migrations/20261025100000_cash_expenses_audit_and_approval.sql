@@ -6,10 +6,10 @@
 -- `reversed_by` da própria linha, que um UPDATE pelo servidor podia reescrever sem
 -- deixar nada (§8 do plano financeiro: «um operador não pode eliminar o histórico»).
 --
--- Mesma função genérica das outras tabelas (`private.audit_row_change`): grava a linha
--- antes e depois e os campos alterados. As despesas são gravadas pelo cliente do
+-- Mesma função genérica das outras tabelas (`private.audit_row_change`): grava a
+-- operação, a linha afectada e os nomes dos campos alterados (não os valores). As despesas são gravadas pelo cliente do
 -- servidor, por isso `actor_user_id` fica nulo nesses registos; o autor continua em
--- `created_by` / `reversed_by`, agora com o histórico de qualquer reescrita.
+-- `created_by` / `reversed_by`, e qualquer reescrita fica registada.
 
 DROP TRIGGER IF EXISTS audit_siga_cash_expenses_change ON public.siga_cash_expenses;
 CREATE TRIGGER audit_siga_cash_expenses_change
@@ -21,8 +21,10 @@ CREATE TRIGGER audit_siga_cash_expenses_change
 --
 -- A produção tem um CHECK em `status` que só aceita `posted` e `reversed` (retrato de
 -- 21/10, `valores`), mas o nome não está em nenhum ficheiro do repositório. O bloco
--- abaixo encontra os CHECK da tabela que falam de `status` e troca-os por um com nome
--- conhecido. Sem esta migração o servidor lança a despesa como antes (posted).
+-- abaixo encontra os CHECK que são a lista de valores de `status` e troca-os por um com
+-- nome conhecido. Só esses: outro CHECK que mencione `status` (por exemplo, o motivo
+-- obrigatório do estorno) fica como está. Sem esta migração o servidor lança a despesa
+-- como antes (posted).
 DO $$
 declare
   v_name text;
@@ -31,7 +33,7 @@ begin
     select c.conname from pg_constraint c
     where c.conrelid = 'public.siga_cash_expenses'::regclass
       and c.contype = 'c'
-      and pg_get_constraintdef(c.oid) ilike '%status%'
+      and pg_get_constraintdef(c.oid) ~ '^CHECK \(\(status = ANY \(ARRAY\['
   loop
     execute format('ALTER TABLE public.siga_cash_expenses DROP CONSTRAINT %I', v_name);
   end loop;
