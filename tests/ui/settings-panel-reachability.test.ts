@@ -12,10 +12,8 @@ const settingsSource = readFileSync(
 );
 const ids = [...settingsSource.matchAll(/^\s+id: "([^"]+)",/gm)].map((match) => match[1]);
 const targets = [...settingsSource.matchAll(/^\s+to: "([^"]+)",/gm)].map((match) => match[1]);
-const rootRows = settingsSource.match(/id: "root",[\s\S]*?rows: \[([\s\S]*?)\n        \],/);
-const rootTargets = [...(rootRows?.[1] ?? "").matchAll(/to: "([^"]+)"/g)].map(
-  (match) => match[1],
-);
+const rootRows = settingsSource.match(/id: "root",[\s\S]*?rows: \[([\s\S]*?)\n {8}\],/);
+const rootTargets = [...(rootRows?.[1] ?? "").matchAll(/to: "([^"]+)"/g)].map((match) => match[1]);
 
 describe("acessibilidade das categorias já existentes em Definições", () => {
   it("mantém Identidade Digital e Pedagógico acessíveis na navegação principal", () => {
