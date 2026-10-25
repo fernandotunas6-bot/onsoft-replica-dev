@@ -102,6 +102,27 @@ vi.mock("@/features/auth/use-current-account", () => ({
 // as suas próprias queries.
 vi.mock("@/components/auth/UserProfileModal", () => ({ UserProfileModal: () => null }));
 vi.mock("@/components/layout/AcademicNavTree", () => ({ AcademicNavTree: () => null }));
+// Turmas e disciplinas que o servidor devolveria à conta (menu da entidade).
+const academic = vi.hoisted(() => ({
+  tree: [] as Array<{
+    id: string;
+    label: string;
+    kind: "course" | "grade";
+    classTeacher: boolean;
+    classes: Array<{
+      id: string;
+      name: string;
+      classTeacher: boolean;
+      subjects: Array<{ id: string; name: string }>;
+    }>;
+  }>,
+}));
+vi.mock("@/features/academic/use-academic-nav-tree", () => ({
+  useAcademicNavTree: () => ({
+    tree: academic.tree,
+    schoolId: (contas[papel] as { schoolId?: string }).schoolId ?? null,
+  }),
+}));
 
 // A moldura da barra (escola, tenant, terminar sessão) arrasta os módulos de
 // servidor e o cliente Supabase; o objecto do teste é só a lista de navegação.
@@ -157,6 +178,7 @@ afterEach(() => {
   (contas.Aluno as { isAlumni: boolean }).isAlumni = false;
   currentPathname = "/pedagogica";
   currentSearch = {};
+  academic.tree = [];
   localStorage.clear();
   document.documentElement.style.cssText = "";
   document.documentElement.classList.remove("dark");
@@ -493,4 +515,107 @@ describe("AppSidebar — contexto e perfil", () => {
       expect(Boolean(settings)).toBe(role === "Administrador");
     },
   );
+});
+
+describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
+  const TURMA_A = "11111111-1111-4111-8111-111111111111";
+  const TURMA_B = "22222222-2222-4222-8222-222222222222";
+  const MATEMATICA = "33333333-3333-4333-8333-333333333333";
+  const tree = () => [
+    {
+      id: "grade:10ª classe",
+      label: "10ª Classe",
+      kind: "grade" as const,
+      classTeacher: false,
+      classes: [
+        {
+          id: TURMA_A,
+          name: "Turma A",
+          classTeacher: false,
+          subjects: [{ id: MATEMATICA, name: "Matemática" }],
+        },
+      ],
+    },
+  ];
+
+  it("abre a disciplina: voltar, cabeçalho e só as funções dessa turma e disciplina", () => {
+    academic.tree = tree();
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
+    renderSidebar();
+
+    const section = screen.getByRole("region", { name: "Disciplina: Matemática" });
+    expect(section.textContent).toContain("Disciplina · Matemática");
+    expect(section.textContent).toContain("Turma A");
+
+    const back = linksTo("/pedagogica").find((link) => link.label.startsWith("Voltar"));
+    expect(back?.search).toEqual({ tab: "notas" });
+
+    const notas = linksTo("/pedagogica").find((link) => link.label === "Avaliações e notas");
+    expect(notas?.search).toEqual({
+      tab: "notas",
+      turma: TURMA_A,
+      disciplina: MATEMATICA,
+      pauta: "1",
+    });
+    expect(linksTo("/planos-aula")[0]?.search).toEqual({
+      turma: TURMA_A,
+      disciplina: MATEMATICA,
+    });
+    // A função actual fica marcada.
+    const active = screen
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Avaliações e notas");
+    // Nenhum destino de outra turma, e o catálogo do módulo sai até «Voltar».
+    expect(document.body.innerHTML).not.toContain(TURMA_B);
+    expect(linksTo("/calendario")).toHaveLength(0);
+  });
+
+  it("uma turma que o servidor não devolveu não muda o menu", () => {
+    academic.tree = tree();
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: TURMA_B, disciplina: MATEMATICA };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /Disciplina|Turma/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Voltar a/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
+  });
+
+  it("IDs que não são UUID não abrem contexto", () => {
+    academic.tree = tree();
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: "turma-a" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /Turma/ })).toBeNull();
+  });
+
+  it("só turma abre o contexto da turma", () => {
+    academic.tree = tree();
+    currentPathname = "/planos-aula";
+    currentSearch = { turma: TURMA_A };
+    renderSidebar();
+    expect(screen.getByRole("region", { name: "Turma: Turma A" })).toBeTruthy();
+    expect(linksTo("/planos-aula").some((link) => link.label === "Planos de aula")).toBe(true);
+  });
+
+  it("recolhida, mantém os destinos com nome acessível", () => {
+    academic.tree = tree();
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
+    renderSidebar(true);
+    const section = screen.getByRole("region", { name: "Disciplina: Matemática" });
+    expect(section.textContent).toContain("Avaliações e notas");
+    expect(section.textContent).toContain("Presenças");
+  });
+
+  it("o aluno não recebe o menu de gestão da disciplina", () => {
+    papel = "Aluno";
+    academic.tree = tree();
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /Disciplina|Turma/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Voltar a/ })).toBeNull();
+  });
 });

@@ -32,7 +32,7 @@ interface nem alterar a identidade. Medir antes/depois e preservar segurança e 
 **Visual mestre (sidebar/modais):** [docs/design/SIGA_VISUAL_MASTER_2026-10-23.md](docs/design/SIGA_VISUAL_MASTER_2026-10-23.md) — concavidade à direita e margem esquerda recta; catálogo autorizado, contexto por papel/escola e diálogos simples, sem eliminar campos nem fluxos. Evitar conflitos com a PR #259.
 
 **Navegação contextual (Context Engine):** [docs/specs/SIGA_CONTEXT_ENGINE_2026.md](docs/specs/SIGA_CONTEXT_ENGINE_2026.md) —
-estender `context-frame.ts`/`context-registry.ts`; não criar segunda sidebar nem segundo painel.
+motor único em `context-resolver.ts`/`context-registry.ts` (PR #332), menu em `ContextEntityNav`; opção A (sem coluna nova); não criar segunda sidebar nem segundo painel.
 
 **Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
