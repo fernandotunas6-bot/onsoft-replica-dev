@@ -36,6 +36,9 @@ export function offlineQueriesStorageKey(schoolId: string | null) {
 
 /** Repõe as consultas guardadas. Só faz sentido quando a app abriu sem rede. */
 export function restoreOfflineQueries(queryClient: QueryClient, schoolId: string | null) {
+  // O namespace "default" antigo não pertence comprovadamente a uma escola:
+  // nunca repor dados com origem indeterminada, mesmo quando o posto está offline.
+  if (!schoolId) return false;
   try {
     const raw = localStorage.getItem(offlineQueriesStorageKey(schoolId));
     if (!raw) return false;
@@ -51,16 +54,19 @@ export function restoreOfflineQueries(queryClient: QueryClient, schoolId: string
 /** Guarda (com pausa de 1 s entre gravações) as consultas da lista quando mudam. */
 export function persistOfflineQueries(queryClient: QueryClient, schoolId: () => string | null) {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const save = () => {
+  const save = (schoolAtQuery: string) => {
+    // Uma troca de escola entre a resposta de rede e o timer não pode escrever
+    // a cache da instituição anterior sob a chave da escola nova.
+    if (schoolId() !== schoolAtQuery) return;
     const state = dehydrate(queryClient, {
       shouldDehydrateQuery: (query) =>
         query.state.status === "success" && isOfflineQueryKey(query.queryKey),
     });
     if (state.queries.length === 0) return;
     const value = JSON.stringify({ savedAt: Date.now(), state });
-    if (value.length > MAX_BYTES) return;
+    if (new TextEncoder().encode(value).length > MAX_BYTES) return;
     try {
-      localStorage.setItem(offlineQueriesStorageKey(schoolId()), value);
+      localStorage.setItem(offlineQueriesStorageKey(schoolAtQuery), value);
     } catch {
       // Armazenamento cheio ou bloqueado: a app continua, só sem esta cópia.
     }
@@ -68,8 +74,10 @@ export function persistOfflineQueries(queryClient: QueryClient, schoolId: () => 
   const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
     if (event.type !== "updated" || event.action.type !== "success") return;
     if (!isOfflineQueryKey(event.query.queryKey)) return;
+    const schoolAtQuery = schoolId();
+    if (!schoolAtQuery) return;
     clearTimeout(timer);
-    timer = setTimeout(save, 1000);
+    timer = setTimeout(() => save(schoolAtQuery), 1000);
   });
   return () => {
     clearTimeout(timer);

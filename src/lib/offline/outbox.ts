@@ -224,7 +224,11 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
           if (!items.some((entry) => entry.id === item.id)) continue;
           // O utilizador pode ter mudado de escola enquanto se enviava a entrada anterior.
           if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
-          if (!item.variables || typeof item.variables !== "object" || Array.isArray(item.variables)) {
+          if (
+            !item.variables ||
+            typeof item.variables !== "object" ||
+            Array.isArray(item.variables)
+          ) {
             throw new Error("Os dados da operação guardada são inválidos.");
           }
           await senders[item.kind]({

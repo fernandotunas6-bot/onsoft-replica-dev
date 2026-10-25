@@ -27,6 +27,7 @@ segredos da service role ou acesso a outras escolas para o instalador.
 
 - Fila protegida contra chamadas simultâneas; não apagar a fila em erro de leitura.
 - Cada lançamento novo associa escola e actor de origem; replay só com a escola e o actor originais, e os dois são novamente validados no servidor.
+- A cache institucional não é restaurada sem escola activa e só é persistida se a escola continuar a mesma quando expira o debounce; cache legada `default` não é usada.
 - A fila anterior sem `schoolId` permanece cifrada e bloqueada para envio automático; reconciliação manual antes de qualquer migração.
 - Bloquear actualização enquanto houver *qualquer* lançamento no Stronghold,
   incluindo os recusados, além de mutações React ainda pendentes.

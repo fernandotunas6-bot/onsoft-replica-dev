@@ -100,7 +100,11 @@ describe("fila de envio sem rede", () => {
 
   it("sobrevive a fechar a app: a fila volta a carregar do cofre", async () => {
     setOnline(false);
-    await sendOrQueue("grades.term", { subjectId: "m1" }, { label: "Pauta", userId: "prof-1", schoolId: "school-a" });
+    await sendOrQueue(
+      "grades.term",
+      { subjectId: "m1" },
+      { label: "Pauta", userId: "prof-1", schoolId: "school-a" },
+    );
     resetOutboxForTests({ "attendance.submit": attendance, "grades.term": grades });
     await enableOutbox(vaultOutboxStorage(fakeVault));
     expect(outboxItems()).toMatchObject([{ kind: "grades.term", label: "Pauta" }]);
