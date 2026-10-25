@@ -35,6 +35,12 @@ Lei aplicável: UMA PÁGINA = UMA FINALIDADE. A pertença de cada elemento à su
 [docs/specs/finance/FINANCE_ROUTE_CONTEXT_MATRIX.md](docs/specs/finance/FINANCE_ROUTE_CONTEXT_MATRIX.md)
 e é guardada por `tests/finance/route-context-matrix.test.ts`; o estado de aceitação está em
 [docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md](docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md).
+**Pessoas, alunos e matrículas:** a única derivação autorizada de «é aluno?» e «está
+matriculado?» é `src/features/people/enrollment-state.ts`, resolvida no servidor e devolvida em
+`PersonContext.enrollment_status` — nenhum ecrã a volta a inferir a partir de papéis. Modelo e
+regras em
+[docs/specs/finance/PERSON_ENROLLMENT_MODEL.md](docs/specs/finance/PERSON_ENROLLMENT_MODEL.md);
+em particular, sem matrícula não significa sem dívida.
 Nenhuma função é eliminada por esta lei — o que está fora de contexto muda de lugar. O SIGA Plus
 não é software de facturação certificado pela AGT e não tem núcleo contabilístico: não apresentar
 movimentos de caixa como lançamentos contabilísticos nem exportações como fiscalmente

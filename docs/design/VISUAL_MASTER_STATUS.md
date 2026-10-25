@@ -186,3 +186,39 @@ escolas e papéis distintos, **não** houve captura de evidência visual antes/d
 e a CI do GitHub não foi consultada. O núcleo contabilístico, a sessão de caixa e a
 conciliação bancária continuam ausentes da base de produção e permanecem propostos,
 não executados.
+
+## Financeiro e Pessoas — páginas dedicadas e camada da pessoa (25/10/2026)
+
+Segundo incremento das Etapas A–B do Prompt Master Finance 2026. Mantém os
+limites do primeiro: não substitui sidebar, navegação, diálogos nem identidade,
+e nenhuma funcionalidade é eliminada. Preserva as PRs #252, #259, #262, #270 e
+#271.
+
+Modelo de pessoas, alunos e matrículas em
+[docs/specs/finance/PERSON_ENROLLMENT_MODEL.md](../specs/finance/PERSON_ENROLLMENT_MODEL.md).
+
+| Área      | Ajuste dirigido                                                                                                                                                                                                   | Prova e limite                                                                         |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Propinas  | Nova rota `/financeiro/propinas`; monta os mesmos componentes do painel de configurações, que continua intacto, e as Configurações ligam para a página dedicada                                                   | `tests/finance/route-context-matrix.test.ts`; QA autenticada por papel pendente        |
+| Recibos   | Nova rota `/financeiro/recibos` com `listReceipts`: número, pagador, factura de origem, método, data e estado, com o recibo estornado a permanecer visível com o motivo. Página de consulta — não emite nem anula | `tests/routes/financeiro-recibos.test.tsx` (5 testes) + matriz de contexto             |
+| Navegação | «Faturas e Recibos» separou-se em «Faturas» e «Recibos»; nova entrada «Propinas e Cobranças»                                                                                                                      | `tests/auth/navigation-catalog.test.ts`, `tests/ui/mobile-context-navigation.test.tsx` |
+| Pessoas   | `enrollment-state.ts` passa a ser a única derivação de «é aluno?» e «está matriculado?», com três estados e motivo explícito de não-matrícula, resolvida no servidor                                              | `tests/people/enrollment-state.test.ts` (8 testes)                                     |
+| Pessoas   | Quatro defeitos de vínculo morto tratado como vivo corrigidos em `resolvePersonContext` (`students.deleted_at`, `maybeSingle()` sem `limit(1)`, `person_roles.deleted_at`, `student_guardians.valid_until`)       | `tests/people/person-context-soft-delete.test.ts` (5 testes)                           |
+| Pessoas   | Modal 360 usa a camada canónica e deixa de apresentar o fim da matrícula como encerramento da conta                                                                                                               | Alteração de texto e derivação; varrimento dos restantes ecrãs pendente                |
+
+Verificações locais deste incremento: `tsc --noEmit` limpo, `eslint` limpo nos
+ficheiros alterados, suite completa **4305 testes a passar / 19 ignorados / 0
+falhas**, `check:style` 53/53 rotas, `check:a11y` aprovado, `siga:check` e
+`siga:check-nav` aprovados, build de produção concluído.
+
+Limites a não ultrapassar na leitura destes resultados: **não** há medição p75,
+**não** houve QA autenticada com duas escolas e papéis distintos, **não** houve
+captura de evidência visual antes/depois, e a CI do GitHub não foi consultada.
+
+Lacunas registadas e deliberadamente não corrigidas neste ciclo: a navegação do
+Portal do Encarregado aponta para páginas financeiras que recusam o encarregado,
+e `/portal` não tem vista financeira própria; `/tesouraria` e `/financeiro`
+sobrepõem-se em fluxo de caixa e últimos movimentos; os horários continuam como
+separador dentro de `/pedagogica`. A página dedicada de Pagamentos exige
+refactoração de uma rota de 1284 linhas que lida com dinheiro real e merece
+ciclo próprio.

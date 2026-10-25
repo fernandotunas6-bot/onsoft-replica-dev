@@ -1,7 +1,8 @@
 # Lista de aceitação — Financeiro SIGA Plus
 
 **Data:** 25/10/2026 · **Contexto:** [Finance Master 2026](../../specs/finance/FINANCE_MASTER_2026.md) ·
-[matriz de contexto](../../specs/finance/FINANCE_ROUTE_CONTEXT_MATRIX.md)
+[matriz de contexto](../../specs/finance/FINANCE_ROUTE_CONTEXT_MATRIX.md) ·
+[pessoas, alunos e matrículas](../../specs/finance/PERSON_ENROLLMENT_MODEL.md)
 
 Estado honesto por item: **✅ verificado neste ciclo** · **☐ por validar** · **✖ bloqueado por
 lacuna documentada**. Nenhum item é marcado verificado sem teste ou evidência.
@@ -31,6 +32,22 @@ lacuna documentada**. Nenhum item é marcado verificado sem teste ou evidência.
 | B5  | Importação de pagamentos continua acessível em `/importar` e `/financeiro` | ✅     | `src/routes/financeiro.tsx` mantém o atalho |
 | B6  | Portal PayFlow continua acessível em `/financeiro`                         | ✅     | idem                                        |
 | B7  | Navegação institucional expõe a nova página de assiduidade docente         | ✅     | `tests/auth/navigation-catalog.test.ts`     |
+
+## B-bis. Pessoas, alunos e matrículas
+
+| #   | Critério                                                                   | Estado                                                         | Evidência                                                             |
+| --- | -------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| P1  | Pessoa sem registo de aluno não é tratada como aluna                       | ✅                                                             | `tests/people/enrollment-state.test.ts`                               |
+| P2  | Aluno que nunca se matriculou distingue-se de aluno que já saiu            | ✅                                                             | idem                                                                  |
+| P3  | Matrícula activa tem precedência sobre o histórico                         | ✅                                                             | idem                                                                  |
+| P4  | Cobrança de propina do ano corrente exige matrícula activa                 | ✅                                                             | idem (`canBillTuition`)                                               |
+| P5  | Registo de aluno eliminado não concede papel «aluno» nem resumo financeiro | ✅                                                             | `tests/people/person-context-soft-delete.test.ts`                     |
+| P6  | Ficha da pessoa não falha com dois registos de aluno vivos                 | ✅                                                             | idem                                                                  |
+| P7  | Vínculo declarado eliminado não declara o papel                            | ✅                                                             | idem                                                                  |
+| P8  | Encarregado com ligação expirada não consta como corrente                  | ✅                                                             | idem                                                                  |
+| P9  | A camada é resolvida no servidor e não re-inferida nos ecrãs               | ✅                                                             | `PersonContext.enrollment_status`                                     |
+| P10 | Fim da matrícula não é apresentado como encerramento da conta              | ☐                                                              | texto corrigido no modal 360; varrimento dos restantes ecrãs pendente |
+| P11 | Encarregado tem vista financeira do próprio educando                       | ✖ ausente — navegação do portal aponta para páginas que recusa |
 
 ## C. Integridade financeira
 

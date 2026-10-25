@@ -4,6 +4,7 @@
 **Âmbito desta versão:** diagnóstico verificado no código e na base de produção, mais a correcção contextual já executada.
 **Documentos complementares:** [matriz de contexto por rota](FINANCE_ROUTE_CONTEXT_MATRIX.md) ·
 [lista de aceitação](../../qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md) ·
+[pessoas, alunos e matrículas](PERSON_ENROLLMENT_MODEL.md) ·
 [contrato visual](../../design/VISUAL_MASTER_2026.md) · [tesouraria escolar](../modules/finance.md) ·
 [regras da base de dados](../../agents/DATABASE_RULES.md)
 
@@ -107,6 +108,77 @@ reintroduzir um painel ou atalho fora de contexto falha o teste antes da revisã
 de saída, erro de carregamento). `tests/routes/financeiro-rh.test.tsx` ganhou uma asserção
 explícita de que a folha salarial não emite QR de presença.
 
+## 2-bis. Segundo ciclo — páginas dedicadas e camada da pessoa (25/10/2026)
+
+### 2.5 Propinas ganham página própria
+
+Nova rota `/financeiro/propinas` — **Propinas e Cobranças**. O plano de propinas
+é a base de toda a cobrança (propina mensal, taxa de matrícula, preços por
+classe) e sem plano activo a emissão de facturas fica bloqueada em `/financeiro`
+e `/faturas`. Apesar disso, só era alcançável dentro das Configurações da
+escola, ao lado de parâmetros de instalação.
+
+A página **não duplica** o formulário: monta os mesmos componentes de
+`settings-billing-panel.tsx`, que continua a funcionar como antes. As
+Configurações passaram a ligar para a página dedicada.
+
+### 2.6 Recibos ganham página própria
+
+Nova rota `/financeiro/recibos` — **Recibos**, com a nova função de leitura
+`listReceipts`.
+
+`listCashEntries` já lia `finance_receipts`, mas achatava cada recibo num
+movimento genérico de entrada e perdia o que faz dele um documento: o número, a
+factura liquidada, o pagador e o histórico de estorno. Sem isso não havia como
+responder «de onde vem este recibo?» a partir do ecrã — e um recibo sem origem
+verificável é exactamente o que os critérios de aprovação recusam.
+
+A página é de consulta. A emissão continua a ser consequência da liquidação
+(`recordInvoicePayment`), nunca uma operação autónoma: um recibo sem liquidação
+real não deve poder existir. Um recibo estornado não desaparece — permanece
+visível com o motivo à vista.
+
+A entrada de navegação «Faturas e Recibos» separou-se em «Faturas» e «Recibos»,
+porque passaram a ser duas finalidades com página própria.
+
+### 2.7 Pessoas, alunos e matrículas — camada canónica e defeitos corrigidos
+
+Modelo completo em [PERSON_ENROLLMENT_MODEL.md](PERSON_ENROLLMENT_MODEL.md).
+
+Em resumo: a identidade (`people`), o vínculo de aluno (`students`) e a matrícula
+(`enrollments`) são camadas distintas, e cada ecrã respondia à sua maneira a «é
+aluno?» e «está matriculado?». `src/features/people/enrollment-state.ts` passa a
+ser a única derivação autorizada, com três estados — `pessoa`,
+`aluno_sem_matricula` (com motivo `nunca_matriculado` ou `matricula_encerrada`) e
+`aluno_matriculado` — resolvida uma vez no servidor e devolvida em
+`PersonContext.enrollment_status`.
+
+Quatro defeitos corrigidos em `resolvePersonContext`, todos de vínculo morto
+tratado como vivo:
+
+1. `students.deleted_at` ignorado — um registo de aluno eliminado mantinha o
+   papel «aluno» e continuava a produzir resumo financeiro.
+2. `maybeSingle()` sem `limit(1)` — dois registos vivos faziam falhar a ficha
+   inteira da pessoa.
+3. `person_roles.deleted_at` ignorado — um vínculo apagado continuava a declarar
+   o papel.
+4. `student_guardians.valid_until` ignorado — um encarregado cuja ligação expirou
+   continuava a constar como corrente.
+
+Regra que decorre do modelo e que nenhum ecrã deve contrariar: **sem matrícula
+não significa sem dívida.** Um aluno com matrícula encerrada pode manter
+facturas abertas de anos anteriores, que continuam devidas.
+
+### 2.8 Lacuna confirmada e deliberadamente não corrigida
+
+A navegação do **Portal do Encarregado** aponta para `/financeiro` e `/faturas`,
+que exigem papel de escrita em `financeiro` — um encarregado é recusado ao
+seguir essas entradas, e `/portal` não tem vista financeira própria. Apontar o
+encarregado para a nova página de recibos repetiria o mesmo erro de autorização,
+por isso **nada foi alterado**. Corrigir exige uma vista financeira de
+encarregado com âmbito restrito ao próprio educando: trabalho novo, registado
+para decisão.
+
 ## 3. Regras permanentes do QR Code
 
 Três finalidades distintas, nunca um QR genérico apresentado como servindo qualquer uma delas:
@@ -148,15 +220,25 @@ técnico próprio ou validação externa:
 3. **Bancos e conciliação bancária** (contas da escola, movimentos importados, correspondência
    com evidência de referência/data/conta/identificador do provedor, revisão humana dos casos
    ambíguos). A conciliação actual é de gateway.
-4. **Páginas dedicadas** de Propinas e Cobranças, Pagamentos, Recibos e Relatórios conforme a
-   estrutura proposta — a executar depois de mapear função a função no código actual, sem criar
-   menus duplicados.
-5. **Precisão monetária** auditada em todo o apuramento (unidades mínimas inteiras ou decimal
+4. **Página dedicada de Pagamentos.** `/financeiro` é hoje «Caixa e Pagamentos»: separar a
+   tesouraria (entradas, saídas, fecho) das transacções e respectivos estados é refactoração de
+   uma rota de 1284 linhas que lida com dinheiro real, e merece ciclo próprio em vez de meia
+   execução. A separação de estados exigida pela secção 4.3 — iniciado, aguardando confirmação,
+   confirmado, falhado, cancelado, reembolsado — faz parte desse ciclo.
+5. **Página dedicada de Cobranças** (obrigações emitidas, vencimentos e dívida por aluno),
+   distinta do plano de propinas que `/financeiro/propinas` já cobre.
+6. **Horários**: vivem como separador dentro de `/pedagogica`, uma rota de 1456 linhas com
+   catorze separadores — o caso mais extenso de várias finalidades numa página. Extrair exige
+   mapear cada separador, e a navegação já aponta para `/pedagogica?tab=horarios`.
+7. **`/tesouraria` e `/financeiro` sobrepõem-se**: as duas rotas apresentam fluxo de caixa e
+   últimos movimentos. Decidir qual é a canónica antes de acrescentar função a qualquer uma.
+8. **Precisão monetária** auditada em todo o apuramento (unidades mínimas inteiras ou decimal
    exacto, regras de arredondamento declaradas).
-6. **Separação de funções** reforçada: quem registra uma despesa não a aprova; quem altera dados
+9. **Separação de funções** reforçada: quem registra uma despesa não a aprova; quem altera dados
    bancários não oculta a alteração.
-7. **Medição de desempenho** antes/depois por rota financeira (INP ≤ 200 ms, LCP ≤ 2,5 s,
-   CLS ≤ 0,1 no p75).
+10. **Medição de desempenho** antes/depois por rota financeira (INP ≤ 200 ms, LCP ≤ 2,5 s,
+    CLS ≤ 0,1 no p75).
+11. **Vista financeira do encarregado**, com âmbito restrito ao próprio educando — ver 2.8.
 
 ## 6. Regras para nova funcionalidade financeira
 
