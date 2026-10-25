@@ -4,6 +4,7 @@ import {
   canReadModule,
   type accessModules,
   type ApplicationRole,
+  type ModuleGrantMap,
 } from "@/features/auth/access-policy";
 import type { Plan } from "@/features/saas/types";
 import type { ContextFrame, EntityType, ResolvedContext } from "./types";
@@ -30,6 +31,8 @@ export interface ContextNavEntry {
   contexts: EntityType[];
   /** Rota existente no catálogo de navegação. */
   to: string;
+  /** Caminho concreto quando a rota tem parâmetros (`/alunos/<id>`); por omissão, `to`. */
+  path?: (trail: ContextFrame[]) => string;
   search?: (trail: ContextFrame[]) => ContextSearch;
   module: AccessModuleKey;
   order: number;
@@ -38,6 +41,11 @@ export interface ContextNavEntry {
    * rota continua a precisar de `canAccessPath` e `canReadModule`.
    */
   roles?: readonly ApplicationRole[];
+  /**
+   * Regra do conteúdo, quando a leitura do módulo não chega (o financeiro do
+   * aluno segue o servidor, que o deixa à Secretaria). Também só estreita.
+   */
+  allow?: (role: string, grants: ModuleGrantMap) => boolean;
 }
 
 export type ContextLink = { to: string; search: ContextSearch };
@@ -59,6 +67,7 @@ export function getContextEntries(
       (entry) =>
         entry.contexts.includes(inner.type) &&
         (!entry.roles || (entry.roles as readonly string[]).includes(context.role)) &&
+        (!entry.allow || entry.allow(context.role, context.grants)) &&
         canAccessPath(entry.to, context.role, context.grants, plan) &&
         canReadModule(context.role, entry.module, context.grants),
     )
@@ -66,7 +75,10 @@ export function getContextEntries(
 }
 
 export function contextEntryLink(entry: ContextNavEntry, context: ResolvedContext): ContextLink {
-  return { to: entry.to, search: entry.search?.(context.trail) ?? {} };
+  return {
+    to: entry.path?.(context.trail) ?? entry.to,
+    search: entry.search?.(context.trail) ?? {},
+  };
 }
 
 /**
@@ -82,10 +94,9 @@ export function findActiveContextEntry(
 ): string | null {
   let best: { id: string; specificity: number } | null = null;
   for (const entry of entries) {
-    if (entry.to !== pathname) continue;
-    const fixed = Object.entries(contextEntryLink(entry, context).search).filter(
-      ([, value]) => value !== undefined,
-    );
+    const link = contextEntryLink(entry, context);
+    if (link.to !== pathname) continue;
+    const fixed = Object.entries(link.search).filter(([, value]) => value !== undefined);
     if (!fixed.every(([key, value]) => search[key] === value)) continue;
     if (!best || fixed.length > best.specificity) {
       best = { id: entry.id, specificity: fixed.length };

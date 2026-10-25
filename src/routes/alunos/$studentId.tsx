@@ -81,6 +81,12 @@ import {
   type ManualStudentStatus,
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
+import {
+  resolveStudentSection,
+  studentSectionLabel,
+  validateStudentDetailSearch,
+  type StudentSection,
+} from "@/features/students/student-sections";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
@@ -117,6 +123,8 @@ import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/expo
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/alunos/$studentId")({
+  // `?secao=financeiro` abre só essa parte da ficha; sem secção, a ficha completa.
+  validateSearch: validateStudentDetailSearch,
   head: () => ({
     meta: [
       { title: "Ficha do Aluno · SIGA" },
@@ -244,6 +252,14 @@ function StudentDetail() {
     account.role === "Tesouraria";
   const canReceivePayment = account.role === "Administrador" || account.role === "Tesouraria";
   const canRequestDocument = account.role === "Administrador" || account.role === "Secretaria";
+  // Secção pedida na URL; sem acesso a ela, mostra-se a ficha completa.
+  const { secao } = Route.useSearch();
+  const { section, refused: refusedSection } = resolveStudentSection(
+    secao,
+    account.role,
+    account.grants,
+  );
+  const show = (part: StudentSection) => section === null || section === part;
   const installed = useInstalledIntegrations();
   const agtOn = installed.hasCapability("agt.einvoice") || installed.hasCapability("agt.nif");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -893,6 +909,13 @@ function StudentDetail() {
     .slice(0, 2)
     .map((p) => p[0])
     .join("");
+  // O mesmo cartão serve a ficha completa e as secções Académico e Financeiro.
+  const enrollmentCardTitle =
+    section === "financeiro"
+      ? "Situação financeira"
+      : section === "academico"
+        ? "Matrícula"
+        : "Matrícula e situação";
 
   return (
     <AppShell>
@@ -904,8 +927,8 @@ function StudentDetail() {
         </Button>
 
         <InstalledModuleTools module="alunos" />
-        <InstalledModuleTools module="faturas" />
-        <InstalledModuleTools module="documentos" />
+        {show("financeiro") ? <InstalledModuleTools module="faturas" /> : null}
+        {show("documentos") ? <InstalledModuleTools module="documentos" /> : null}
 
         <div className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-card p-6 shadow-soft">
           <div className="flex flex-col items-center gap-2.5">
@@ -1445,469 +1468,520 @@ function StudentDetail() {
           </div>
         </div>
 
-        <StudentRelatedFilesPanel
-          personId={student.person_id}
-          schoolId={String(student.school_id)}
-          studentId={student.id}
-        />
+        {section ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-bold tracking-tight">
+              {studentSectionLabel(section)}
+            </h2>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/alunos/$studentId" params={{ studentId }}>
+                Ver ficha completa
+              </Link>
+            </Button>
+          </div>
+        ) : refusedSection ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            Sem acesso a «{studentSectionLabel(refusedSection)}» nesta conta: mostra-se a ficha
+            completa.
+          </p>
+        ) : null}
 
-        {canIssueInvoice ? <StudentScholarshipPanel studentId={student.id} /> : null}
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            title="Média final"
-            value={mediaFinal != null ? mediaFinal.toFixed(1) : "—"}
-            subtitle={
-              student.final_average == null && mediaFinal != null
-                ? "Calculada das notas lançadas · 0–20 valores"
-                : "Escala curricular 0–20 valores"
-            }
-            icon={GraduationCap}
-            tone={mediaFinal != null ? (mediaFinal >= 10 ? "success" : "destructive") : "neutral"}
+        {show("documentos") ? (
+          <StudentRelatedFilesPanel
+            personId={student.person_id}
+            schoolId={String(student.school_id)}
+            studentId={student.id}
           />
-          <StatCard
-            title="Taxa de presença"
-            value={
-              student.attendance_rate != null
-                ? `${Math.round(Number(student.attendance_rate))}%`
-                : "—"
-            }
-            subtitle="Frequência no ano lectivo actual"
-            icon={CalendarDays}
-            tone={
-              student.attendance_rate != null
-                ? student.attendance_rate >= 80
-                  ? "success"
-                  : "warning"
-                : "neutral"
-            }
-            action={
-              canRequestDocument && student.enrollment_id ? (
-                <QuickFormModal
-                  title="Taxa de presença"
-                  description="Percentagem de presenças no ano lectivo actual (0 a 100)."
-                  submitLabel="Guardar"
-                  successDescription="Presença actualizada na matrícula."
-                  fields={[
-                    {
-                      name: "presenca",
-                      label: "Presença (%)",
-                      type: "number",
-                      required: true,
-                      defaultValue: student.attendance_rate ?? "",
-                      placeholder: "96",
-                    },
-                  ]}
-                  trigger={(open) => (
-                    <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={open}>
-                      Registar
-                    </Button>
-                  )}
-                  onSubmit={async (values) => {
-                    await updateEnrollmentAttendance({
-                      data: {
-                        enrollmentId: student.enrollment_id as string,
-                        attendanceRate: Number(values["presenca"]),
+        ) : null}
+
+        {canIssueInvoice && show("financeiro") ? (
+          <StudentScholarshipPanel studentId={student.id} />
+        ) : null}
+
+        {show("academico") ? (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              title="Média final"
+              value={mediaFinal != null ? mediaFinal.toFixed(1) : "—"}
+              subtitle={
+                student.final_average == null && mediaFinal != null
+                  ? "Calculada das notas lançadas · 0–20 valores"
+                  : "Escala curricular 0–20 valores"
+              }
+              icon={GraduationCap}
+              tone={mediaFinal != null ? (mediaFinal >= 10 ? "success" : "destructive") : "neutral"}
+            />
+            <StatCard
+              title="Taxa de presença"
+              value={
+                student.attendance_rate != null
+                  ? `${Math.round(Number(student.attendance_rate))}%`
+                  : "—"
+              }
+              subtitle="Frequência no ano lectivo actual"
+              icon={CalendarDays}
+              tone={
+                student.attendance_rate != null
+                  ? student.attendance_rate >= 80
+                    ? "success"
+                    : "warning"
+                  : "neutral"
+              }
+              action={
+                canRequestDocument && student.enrollment_id ? (
+                  <QuickFormModal
+                    title="Taxa de presença"
+                    description="Percentagem de presenças no ano lectivo actual (0 a 100)."
+                    submitLabel="Guardar"
+                    successDescription="Presença actualizada na matrícula."
+                    fields={[
+                      {
+                        name: "presenca",
+                        label: "Presença (%)",
+                        type: "number",
+                        required: true,
+                        defaultValue: student.attendance_rate ?? "",
+                        placeholder: "96",
                       },
-                    });
-                    await queryClient.invalidateQueries({
-                      queryKey: ["students", "profile", studentId],
-                    });
-                    await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-                    await queryClient.invalidateQueries({
-                      queryKey: ["academic", "pedagogical-workspace"],
-                    });
-                  }}
-                />
-              ) : null
-            }
-          />
-          <StatCard
-            title="Estado académico"
-            value={
-              student.enrollment_status
-                ? enrollmentStatusLabel(student.enrollment_status)
-                : "Sem matrícula activa"
-            }
-            subtitle={
-              student.enrolled_on
-                ? `Matriculado a ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`
-                : "Ainda sem turma atribuída"
-            }
-            icon={UserCheck}
-            tone={student.enrollment_status === "active" ? "success" : "neutral"}
-          />
-        </div>
+                    ]}
+                    trigger={(open) => (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs px-2"
+                        onClick={open}
+                      >
+                        Registar
+                      </Button>
+                    )}
+                    onSubmit={async (values) => {
+                      await updateEnrollmentAttendance({
+                        data: {
+                          enrollmentId: student.enrollment_id as string,
+                          attendanceRate: Number(values["presenca"]),
+                        },
+                      });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["students", "profile", studentId],
+                      });
+                      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["academic", "pedagogical-workspace"],
+                      });
+                    }}
+                  />
+                ) : null
+              }
+            />
+            <StatCard
+              title="Estado académico"
+              value={
+                student.enrollment_status
+                  ? enrollmentStatusLabel(student.enrollment_status)
+                  : "Sem matrícula activa"
+              }
+              subtitle={
+                student.enrolled_on
+                  ? `Matriculado a ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`
+                  : "Ainda sem turma atribuída"
+              }
+              icon={UserCheck}
+              tone={student.enrollment_status === "active" ? "success" : "neutral"}
+            />
+          </div>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={User} size="sm" label="Dados pessoais" />
-              <h2 className="font-display text-base font-bold">Dados pessoais</h2>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Nome completo" value={student.full_name} />
-              <Field label="Género" value={student.gender ?? "—"} />
-              <Field
-                label="Data de nascimento"
-                value={
-                  student.birth_date
-                    ? new Date(student.birth_date).toLocaleDateString("pt-PT")
-                    : "—"
-                }
-              />
-              <Field label="Nº de processo" value={student.registration_number} />
-              <div>
-                <Field label="Email" value={student.email ?? "—"} />
-                {resendOn && student.email ? (
-                  <button
-                    type="button"
-                    className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(
-                        `SIGA · ${student.full_name} (${student.registration_number})\n${student.email}`,
-                      );
-                      toast.success("Contacto copiado para e-mail Resend");
-                    }}
-                  >
-                    E-mail Resend
-                  </button>
-                ) : null}
-              </div>
-              <div>
-                <Field label="Telefone" value={student.phone ?? "—"} />
-                {whatsappOn && student.phone ? (
-                  <a
-                    href={whatsappHref(student.phone)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
-                  >
-                    WhatsApp
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <div className="flex items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5">
-                <IconChip icon={Users} size="sm" label="Encarregados" />
-                <h2 className="font-display text-base font-bold">Encarregados de educação</h2>
-              </div>
-              <QuickFormModal
-                eyebrow={student.registration_number}
-                title="Associar encarregado"
-                description="Liga uma pessoa já existente no registo central a este aluno."
-                icon={<UserPlus className="size-5" />}
-                submitLabel="Associar"
-                onSubmit={handleAssignGuardian}
-                fields={[
-                  {
-                    name: "pessoa",
-                    label: "Pessoa",
-                    type: "select",
-                    options: guardianOptions,
-                    full: true,
-                  },
-                  {
-                    name: "parentesco",
-                    label: "Parentesco",
-                    type: "select",
-                    options: personRelationshipTypeOptions.flatMap((option) => {
-                      const label = relationshipLabels[option];
-                      return label ? [label] : [];
-                    }),
-                  },
-                  {
-                    name: "principal",
-                    label: "Encarregado principal",
-                    type: "select",
-                    options: ["Não", "Sim"],
-                    defaultValue: guardians.length === 0 ? "Sim" : "Não",
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={open}
-                    disabled={!guardianOptions.length}
-                  >
-                    <UserPlus className="size-3.5" /> Associar
-                  </Button>
-                )}
-              />
-            </div>
-            <div className="mt-4 space-y-4 text-sm">
-              {guardians.length > 0 ? (
-                guardians.map((g) => (
-                  <div
-                    key={g.guardian_person_id}
-                    className="border-b border-border pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold">
-                          {g.guardian?.full_name ?? "—"}
-                          {g.is_primary ? (
-                            <span className="ml-2 text-[11px] font-normal text-muted-foreground">
-                              (principal)
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {relationshipLabels[g.relationship as keyof typeof relationshipLabels] ??
-                            g.relationship}
-                        </p>
-                      </div>
-                      <ConfirmActionModal
-                        title="Remover encarregado"
-                        description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
-                        confirmLabel="Remover"
-                        onConfirm={async () => {
-                          await removeGuardian({
-                            data: {
-                              studentId,
-                              guardianPersonId: g.guardian_person_id,
-                            },
-                          });
-                          await Promise.all([
-                            queryClient.invalidateQueries({
-                              queryKey: ["students", "profile", studentId],
-                            }),
-                            queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
-                          ]);
+          {show("identificacao") ? (
+            <>
+              <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={User} size="sm" label="Dados pessoais" />
+                  <h2 className="font-display text-base font-bold">Dados pessoais</h2>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Field label="Nome completo" value={student.full_name} />
+                  <Field label="Género" value={student.gender ?? "—"} />
+                  <Field
+                    label="Data de nascimento"
+                    value={
+                      student.birth_date
+                        ? new Date(student.birth_date).toLocaleDateString("pt-PT")
+                        : "—"
+                    }
+                  />
+                  <Field label="Nº de processo" value={student.registration_number} />
+                  <div>
+                    <Field label="Email" value={student.email ?? "—"} />
+                    {resendOn && student.email ? (
+                      <button
+                        type="button"
+                        className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(
+                            `SIGA · ${student.full_name} (${student.registration_number})\n${student.email}`,
+                          );
+                          toast.success("Contacto copiado para e-mail Resend");
                         }}
-                        trigger={(open) => (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive"
-                            aria-label="Remover encarregado"
-                            onClick={open}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        )}
-                      />
-                    </div>
-                    <p className="mt-1 flex items-center gap-2 text-muted-foreground">
-                      <Phone className="size-3.5" /> {g.guardian?.phone_primary ?? "—"}
-                      {whatsappOn && g.guardian?.phone_primary ? (
-                        <a
-                          href={whatsappHref(
-                            g.guardian.phone_primary,
-                            `SIGA · ${student.full_name} (${student.registration_number})`,
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-primary hover:underline"
-                        >
-                          WhatsApp
-                        </a>
-                      ) : null}
-                    </p>
-                    <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
-                      <Mail className="size-3.5" /> {g.guardian?.email ?? "—"}
-                      {resendOn && g.guardian?.email ? (
-                        <button
-                          type="button"
-                          className="text-[11px] font-semibold text-primary hover:underline"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(
-                              `SIGA · encarregado de ${student.full_name}\n${g.guardian?.email}`,
-                            );
-                            toast.success("E-mail copiado para Resend");
-                          }}
-                        >
-                          E-mail Resend
-                        </button>
-                      ) : null}
-                    </p>
+                      >
+                        E-mail Resend
+                      </button>
+                    ) : null}
                   </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground">Sem encarregados associados.</p>
-              )}
-              <p className="flex items-start gap-2 text-muted-foreground">
-                <MapPin className="mt-0.5 size-4 shrink-0" />
-                <span>
-                  {[student.address, student.commune, student.municipality, student.province]
-                    .filter(Boolean)
-                    .join(" · ") || "Morada não registada"}
-                </span>
-              </p>
-            </div>
-          </section>
+                  <div>
+                    <Field label="Telefone" value={student.phone ?? "—"} />
+                    {whatsappOn && student.phone ? (
+                      <a
+                        href={whatsappHref(student.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={GraduationCap} size="sm" label="Matrícula e situação" />
-              <h2 className="font-display text-base font-bold">Matrícula e situação</h2>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Curso" value={student.course_name ?? "—"} />
-              <Field
-                label="Classe"
-                value={student.grade_name ? `${student.grade_name} Classe` : "—"}
-              />
-              <Field label="Turma" value={student.class_name ?? "—"} />
-              <Field
-                label="Situação financeira"
-                value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
-              />
-              {scholarshipQuery.data?.percent ? (
-                <Field
-                  label="Desconto do contrato"
-                  value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
-                />
-              ) : null}
-            </div>
-            {studentInvoices.length > 0 ? (
-              <ul className="mt-4 space-y-2 text-sm">
-                {studentInvoices.slice(0, 5).map((invoice) => {
-                  const openAmount = Math.max(
-                    Number(invoice.total_amount ?? 0) - Number(invoice.amount_paid ?? 0),
-                    0,
-                  );
-                  return (
-                    <li
-                      key={invoice.id}
-                      className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
-                    >
-                      <span>
-                        {invoice.number} · {invoice.description}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">
-                          {kwanza(Number(invoice.total_amount ?? 0))}
-                          {invoice.status === "paid" ? " · Pago" : ""}
-                        </span>
-                        {invoice.status === "paid" ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={() =>
-                              void downloadInvoiceReceipt(
-                                invoice,
-                                `RC-${invoice.number.replace(/^FT-?/i, "")}`,
-                                Number(invoice.amount_paid ?? invoice.total_amount ?? 0),
-                              )
-                            }
-                          >
-                            Recibo
-                          </Button>
-                        ) : canReceivePayment ? (
-                          <QuickFormModal
-                            title={`Receber ${invoice.number}`}
-                            description="Liquida esta fatura e emite o recibo. Canais instalados aparecem no método."
-                            icon={<Wallet className="size-5" />}
-                            submitLabel="Confirmar"
-                            successDescription="Pagamento registado."
-                            fields={[
-                              {
-                                name: "valor",
-                                label: "Valor (Kz)",
-                                type: "number",
-                                defaultValue: String(openAmount || invoice.total_amount),
-                              },
-                              {
-                                name: "recibo",
-                                label: "Referência interna (opcional)",
-                                defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
-                                required: false,
-                              },
-                              {
-                                name: "metodo",
-                                label: "Método",
-                                type: "select",
-                                options: receiveMethods,
-                              },
-                              {
-                                name: "referencia",
-                                label: "Referência",
-                                required: false,
-                              },
-                            ]}
-                            onSubmit={async (values) => {
-                              const amount = Number(values["valor"]);
-                              const methodMap = {
-                                Numerário: "cash",
-                                Transferência: "transfer",
-                                "Multicaixa Express": "multicaixa_express",
-                                "Unitel Money": "unitel_money",
-                              } as const;
-                              const method =
-                                methodMap[
-                                  (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
-                                ] ?? "cash";
-                              const reference = values["referencia"] || undefined;
-                              const paid = await recordInvoicePayment({
+              <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <IconChip icon={Users} size="sm" label="Encarregados" />
+                    <h2 className="font-display text-base font-bold">Encarregados de educação</h2>
+                  </div>
+                  <QuickFormModal
+                    eyebrow={student.registration_number}
+                    title="Associar encarregado"
+                    description="Liga uma pessoa já existente no registo central a este aluno."
+                    icon={<UserPlus className="size-5" />}
+                    submitLabel="Associar"
+                    onSubmit={handleAssignGuardian}
+                    fields={[
+                      {
+                        name: "pessoa",
+                        label: "Pessoa",
+                        type: "select",
+                        options: guardianOptions,
+                        full: true,
+                      },
+                      {
+                        name: "parentesco",
+                        label: "Parentesco",
+                        type: "select",
+                        options: personRelationshipTypeOptions.flatMap((option) => {
+                          const label = relationshipLabels[option];
+                          return label ? [label] : [];
+                        }),
+                      },
+                      {
+                        name: "principal",
+                        label: "Encarregado principal",
+                        type: "select",
+                        options: ["Não", "Sim"],
+                        defaultValue: guardians.length === 0 ? "Sim" : "Não",
+                      },
+                    ]}
+                    trigger={(open) => (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                        onClick={open}
+                        disabled={!guardianOptions.length}
+                      >
+                        <UserPlus className="size-3.5" /> Associar
+                      </Button>
+                    )}
+                  />
+                </div>
+                <div className="mt-4 space-y-4 text-sm">
+                  {guardians.length > 0 ? (
+                    guardians.map((g) => (
+                      <div
+                        key={g.guardian_person_id}
+                        className="border-b border-border pb-3 last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">
+                              {g.guardian?.full_name ?? "—"}
+                              {g.is_primary ? (
+                                <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                                  (principal)
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {relationshipLabels[
+                                g.relationship as keyof typeof relationshipLabels
+                              ] ?? g.relationship}
+                            </p>
+                          </div>
+                          <ConfirmActionModal
+                            title="Remover encarregado"
+                            description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
+                            confirmLabel="Remover"
+                            onConfirm={async () => {
+                              await removeGuardian({
                                 data: {
-                                  invoiceId: invoice.id,
-                                  receiptNumber: values["recibo"],
-                                  amount,
-                                  method,
-                                  reference,
+                                  studentId,
+                                  guardianPersonId: g.guardian_person_id,
                                 },
                               });
-                              await queryClient.invalidateQueries({
-                                queryKey: ["finance", "invoices"],
-                              });
-                              // Número oficial vem do servidor (gerado atomicamente) — nunca do
-                              // valor digitado, para o PDF impresso bater sempre com a base de dados.
-                              await downloadInvoiceReceipt(invoice, paid.receipt_number, amount);
+                              await Promise.all([
+                                queryClient.invalidateQueries({
+                                  queryKey: ["students", "profile", studentId],
+                                }),
+                                queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                              ]);
                             }}
                             trigger={(open) => (
-                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={open}>
-                                Receber
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive"
+                                aria-label="Remover encarregado"
+                                onClick={open}
+                              >
+                                <Trash2 className="size-3.5" />
                               </Button>
                             )}
                           />
-                        ) : null}
-                        {resendInvoices ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(
-                                `${invoice.number} · ${student.full_name} · ${kwanza(Number(invoice.total_amount ?? 0))}`,
-                              );
-                              toast.success("Texto da fatura copiado para e-mail Resend");
-                            }}
-                          >
-                            E-mail
-                          </Button>
-                        ) : null}
-                        {whatsappOn ? (
-                          <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                        </div>
+                        <p className="mt-1 flex items-center gap-2 text-muted-foreground">
+                          <Phone className="size-3.5" /> {g.guardian?.phone_primary ?? "—"}
+                          {whatsappOn && g.guardian?.phone_primary ? (
                             <a
                               href={whatsappHref(
-                                guardians[0]?.guardian?.phone_primary ?? "",
-                                `Fatura ${invoice.number} de ${student.full_name}: ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                g.guardian.phone_primary,
+                                `SIGA · ${student.full_name} (${student.registration_number})`,
                               )}
                               target="_blank"
                               rel="noreferrer"
+                              className="font-semibold text-primary hover:underline"
                             >
                               WhatsApp
                             </a>
-                          </Button>
-                        ) : null}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-            <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-              <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.
-            </p>
-          </section>
+                          ) : null}
+                        </p>
+                        <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
+                          <Mail className="size-3.5" /> {g.guardian?.email ?? "—"}
+                          {resendOn && g.guardian?.email ? (
+                            <button
+                              type="button"
+                              className="text-[11px] font-semibold text-primary hover:underline"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(
+                                  `SIGA · encarregado de ${student.full_name}\n${g.guardian?.email}`,
+                                );
+                                toast.success("E-mail copiado para Resend");
+                              }}
+                            >
+                              E-mail Resend
+                            </button>
+                          ) : null}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground">Sem encarregados associados.</p>
+                  )}
+                  <p className="flex items-start gap-2 text-muted-foreground">
+                    <MapPin className="mt-0.5 size-4 shrink-0" />
+                    <span>
+                      {[student.address, student.commune, student.municipality, student.province]
+                        .filter(Boolean)
+                        .join(" · ") || "Morada não registada"}
+                    </span>
+                  </p>
+                </div>
+              </section>
+            </>
+          ) : null}
+
+          {show("academico") || show("financeiro") ? (
+            <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <IconChip
+                  icon={section === "financeiro" ? Wallet : GraduationCap}
+                  size="sm"
+                  label={enrollmentCardTitle}
+                />
+                <h2 className="font-display text-base font-bold">{enrollmentCardTitle}</h2>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {show("academico") ? (
+                  <>
+                    <Field label="Curso" value={student.course_name ?? "—"} />
+                    <Field
+                      label="Classe"
+                      value={student.grade_name ? `${student.grade_name} Classe` : "—"}
+                    />
+                    <Field label="Turma" value={student.class_name ?? "—"} />
+                  </>
+                ) : null}
+                {show("financeiro") ? (
+                  <Field
+                    label="Situação financeira"
+                    value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
+                  />
+                ) : null}
+                {show("financeiro") && scholarshipQuery.data?.percent ? (
+                  <Field
+                    label="Desconto do contrato"
+                    value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
+                  />
+                ) : null}
+              </div>
+              {show("financeiro") && studentInvoices.length > 0 ? (
+                <ul className="mt-4 space-y-2 text-sm">
+                  {studentInvoices.slice(0, 5).map((invoice) => {
+                    const openAmount = Math.max(
+                      Number(invoice.total_amount ?? 0) - Number(invoice.amount_paid ?? 0),
+                      0,
+                    );
+                    return (
+                      <li
+                        key={invoice.id}
+                        className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
+                      >
+                        <span>
+                          {invoice.number} · {invoice.description}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">
+                            {kwanza(Number(invoice.total_amount ?? 0))}
+                            {invoice.status === "paid" ? " · Pago" : ""}
+                          </span>
+                          {invoice.status === "paid" ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={() =>
+                                void downloadInvoiceReceipt(
+                                  invoice,
+                                  `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                  Number(invoice.amount_paid ?? invoice.total_amount ?? 0),
+                                )
+                              }
+                            >
+                              Recibo
+                            </Button>
+                          ) : canReceivePayment ? (
+                            <QuickFormModal
+                              title={`Receber ${invoice.number}`}
+                              description="Liquida esta fatura e emite o recibo. Canais instalados aparecem no método."
+                              icon={<Wallet className="size-5" />}
+                              submitLabel="Confirmar"
+                              successDescription="Pagamento registado."
+                              fields={[
+                                {
+                                  name: "valor",
+                                  label: "Valor (Kz)",
+                                  type: "number",
+                                  defaultValue: String(openAmount || invoice.total_amount),
+                                },
+                                {
+                                  name: "recibo",
+                                  label: "Referência interna (opcional)",
+                                  defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                  required: false,
+                                },
+                                {
+                                  name: "metodo",
+                                  label: "Método",
+                                  type: "select",
+                                  options: receiveMethods,
+                                },
+                                {
+                                  name: "referencia",
+                                  label: "Referência",
+                                  required: false,
+                                },
+                              ]}
+                              onSubmit={async (values) => {
+                                const amount = Number(values["valor"]);
+                                const methodMap = {
+                                  Numerário: "cash",
+                                  Transferência: "transfer",
+                                  "Multicaixa Express": "multicaixa_express",
+                                  "Unitel Money": "unitel_money",
+                                } as const;
+                                const method =
+                                  methodMap[
+                                    (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
+                                  ] ?? "cash";
+                                const reference = values["referencia"] || undefined;
+                                const paid = await recordInvoicePayment({
+                                  data: {
+                                    invoiceId: invoice.id,
+                                    receiptNumber: values["recibo"],
+                                    amount,
+                                    method,
+                                    reference,
+                                  },
+                                });
+                                await queryClient.invalidateQueries({
+                                  queryKey: ["finance", "invoices"],
+                                });
+                                // Número oficial vem do servidor (gerado atomicamente) — nunca do
+                                // valor digitado, para o PDF impresso bater sempre com a base de dados.
+                                await downloadInvoiceReceipt(invoice, paid.receipt_number, amount);
+                              }}
+                              trigger={(open) => (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2"
+                                  onClick={open}
+                                >
+                                  Receber
+                                </Button>
+                              )}
+                            />
+                          ) : null}
+                          {resendInvoices ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(
+                                  `${invoice.number} · ${student.full_name} · ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                );
+                                toast.success("Texto da fatura copiado para e-mail Resend");
+                              }}
+                            >
+                              E-mail
+                            </Button>
+                          ) : null}
+                          {whatsappOn ? (
+                            <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                              <a
+                                href={whatsappHref(
+                                  guardians[0]?.guardian?.phone_primary ?? "",
+                                  `Fatura ${invoice.number} de ${student.full_name}: ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                )}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                WhatsApp
+                              </a>
+                            </Button>
+                          ) : null}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+              <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+                <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.
+              </p>
+            </section>
+          ) : null}
         </div>
       </div>
 
