@@ -3,7 +3,7 @@ import { numberMatches } from "@/features/education-catalog/identifiers";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
-import { sendOrQueue } from "@/lib/offline/outbox";
+import { OUTBOX_UNCERTAIN_MESSAGE, sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
 import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { toast } from "@/lib/toast";
@@ -185,9 +185,16 @@ export function AttendanceCallDialog({
     },
     onSuccess: (outcome) => {
       if (outcome.queued) {
-        toast.info("Chamada guardada neste computador", {
-          description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
-        });
+        if (outcome.requiresVerification) {
+          toast.warning("Chamada sem confirmação do servidor", {
+            description: OUTBOX_UNCERTAIN_MESSAGE,
+            duration: Infinity,
+          });
+        } else {
+          toast.info("Chamada guardada neste computador", {
+            description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
+          });
+        }
         onOpenChange(false);
         return;
       }

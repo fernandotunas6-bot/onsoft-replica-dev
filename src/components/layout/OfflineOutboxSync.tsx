@@ -73,11 +73,21 @@ export function OfflineOutboxSync() {
     for (const item of failed) {
       if (shown.current.has(item.id)) continue;
       shown.current.add(item.id);
-      toast.error(`Não enviado: ${item.label}`, {
-        description: `${item.failedReason} Guardado sem rede a ${new Date(item.createdAt).toLocaleString("pt-PT")}.`,
+      const uncertain = item.deliveryState === "needs_verification";
+      const options = {
+        description: `${item.failedReason} Guardado neste posto a ${new Date(item.createdAt).toLocaleString("pt-PT")}.`,
         duration: Infinity,
-        action: { label: "Descartar", onClick: () => void discardOutboxItem(item.id) },
-      });
+      };
+      if (uncertain) {
+        // Sem botão de descarte para não perder um lançamento que pode ter
+        // sido aplicado remotamente. Exige revisão da secretaria.
+        toast.warning(`Confirmar lançamento: ${item.label}`, options);
+      } else {
+        toast.error(`Não enviado: ${item.label}`, {
+          ...options,
+          action: { label: "Descartar", onClick: () => void discardOutboxItem(item.id) },
+        });
+      }
     }
   }, [failed]);
 
