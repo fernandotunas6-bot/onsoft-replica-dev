@@ -5,6 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
 import { applyAppearance, type AppearanceState } from "@/lib/appearance";
 import type { AcademicNavBranch } from "@/lib/academic-nav";
+import {
+  EntityFocusProvider,
+  useDeclareEntityFocus,
+} from "@/features/intelligence/entity-focus-context";
+import type { EntityFocus } from "@/features/intelligence/types";
 import "./_harness";
 
 /**
@@ -638,6 +643,35 @@ describe("AppSidebar — contexto da turma e da disciplina", () => {
     view.rerenderSidebar();
     expect(view.container.querySelector("[data-context-level]")).toBeNull();
     expect(screen.queryByText(/Matemática/)).toBeNull();
+  });
+
+  it("a turma aberta num modal, sem estar na URL, não muda a sidebar", () => {
+    // O TurmaProfileModal declara a turma em foco para o painel de relações.
+    // A sidebar segue a URL: abrir e fechar o modal não a faz saltar de nível.
+    arvoreAcademica = duasTurmas();
+    currentSearch = { tab: "turmas" };
+    const foco = {
+      type: "class",
+      id: TURMA_A,
+      label: "10.ª A",
+      schoolId: "school-a",
+      data: {},
+    } as unknown as EntityFocus;
+    function ModalDaTurma() {
+      useDeclareEntityFocus(foco);
+      return null;
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    const { container } = render(
+      <QueryClientProvider client={client}>
+        <EntityFocusProvider>
+          <ModalDaTurma />
+          <AppSidebar />
+        </EntityFocusProvider>
+      </QueryClientProvider>,
+    );
+    expect(container.querySelector("[data-context-level]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
   });
 
   it("o aluno fica com a sua barra, sem o menu de gestão da turma", () => {

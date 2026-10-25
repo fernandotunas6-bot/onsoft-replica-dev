@@ -161,11 +161,15 @@ export function AppSidebar({
   ]);
   const context = getNavigationContext(visibleGroups, pathname, locationSearch);
   // SIGA Context Engine: turma e disciplina validadas no servidor abrem o seu
-  // próprio nível; cada «voltar» sobe um nível sem mudar de página.
-  const { context: resolvedContext } = useResolvedContext();
+  // próprio nível; cada «voltar» sobe um nível sem mudar de página. Só a URL
+  // abre níveis: a turma em foco num modal não faz a sidebar saltar.
+  const { context: resolvedContext, source: contextSource } = useResolvedContext();
   const contextLevels = useMemo(
-    () => getContextLevels(resolvedContext, ACADEMIC_CONTEXT_ENTRIES, activePlan),
-    [resolvedContext, activePlan],
+    () =>
+      contextSource === "route"
+        ? getContextLevels(resolvedContext, ACADEMIC_CONTEXT_ENTRIES, activePlan)
+        : [],
+    [resolvedContext, contextSource, activePlan],
   );
   const [levelsUp, setLevelsUp] = useState(0);
   const [areaPicker, setAreaPicker] = useState(false);
