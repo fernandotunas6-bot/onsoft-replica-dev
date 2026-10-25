@@ -50,7 +50,9 @@ export function useDesktopAvailableUpdate(): string | null {
       try {
         const result = await commands.desktopUpdateStatus()
         if (active && result.status === 'ok') {
-          setVersion(result.data.available ? (result.data.version ?? 'nova') : null)
+          setVersion(
+            result.data.available ? (result.data.version ?? 'nova') : null
+          )
         }
       } catch {
         // Sem rede real ou sem chave pública, a shell continua a funcionar.
