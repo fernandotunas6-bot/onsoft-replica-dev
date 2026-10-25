@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { assertSafeE2ETarget } from "../../../scripts/siga/e2e-safety.mjs";
+import { cleanupE2ETenantBySlug as cleanupTenantWithDependencies } from "../../../scripts/siga/e2e-cleanup-lib.mjs";
 import { findE2EAuthUserByEmail } from "./find-auth-user";
 
 /**
@@ -546,54 +547,46 @@ export async function getPaymentPlanStatus(planId: string) {
   return data?.status ?? null;
 }
 
-/** Remove tenant E2E de teste — só slugs e2e/web/mat e e-mail @siga-plus.test. */
+/**
+ * Limpa apenas a escola sintética que o teste criou.
+ * A rotina comum gere dependências/FKs e guarda o acesso à Management API;
+ * eliminar escolas directamente por PostgREST deixa tenants órfãos.
+ */
 export async function cleanupE2ETenantBySlug(slug: string, adminEmail?: string) {
   if (!isE2ETenantSlug(slug)) {
     throw new Error(`Refusing cleanup: slug «${slug}» não parece tenant E2E.`);
   }
-  if (adminEmail && !adminEmail.trim().toLowerCase().endsWith("@siga-plus.test")) {
-    throw new Error("Refusing cleanup: e-mail admin fora do domínio de teste.");
+  const email = adminEmail?.trim().toLowerCase();
+  if (!email || !/^[^@\\s]+@siga-plus\\.test$/.test(email)) {
+    throw new Error("Refusing cleanup: contacto @siga-plus.test é obrigatório.");
   }
 
   const admin = getLiveSupabaseAdmin();
-  const { data: tenant, error: tenantError } = await admin
+  const { data: tenant, error } = await admin
     .from("tenants")
-    .select("id")
+    .select("id, contact_email")
     .eq("slug", slug)
     .maybeSingle();
-  if (tenantError) throw new Error(tenantError.message);
-  if (!tenant?.id) return { removed: false as const };
-
-  const tenantId = tenant.id as string;
-  const { data: school } = await admin
-    .from("schools")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-
-  if (school?.id) {
-    const { error: schoolDeleteError } = await admin.from("schools").delete().eq("id", school.id);
-    if (schoolDeleteError) throw new Error(schoolDeleteError.message);
-  }
-
-  await admin.from("tenant_domains").delete().eq("tenant_id", tenantId);
-  await admin.from("subscriptions").delete().eq("tenant_id", tenantId);
-  await admin.from("tenant_usage").delete().eq("tenant_id", tenantId);
-  await admin.from("saas_audit_logs").delete().eq("tenant_id", tenantId);
-
-  const { error: tenantDeleteError } = await admin.from("tenants").delete().eq("id", tenantId);
-  if (tenantDeleteError) throw new Error(tenantDeleteError.message);
-
-  if (adminEmail) {
-    const user = await findE2EAuthUserByEmail(
+  if (error) throw new Error("Não foi possível verificar o tenant de ensaio.");
+  if (!tenant) {
+    // Um signup parcialmente falhado pode criar um Auth user antes do tenant.
+    // Não dar verde enquanto restar uma identidade sintética órfã.
+    const orphan = await findE2EAuthUserByEmail(
       admin.auth.admin.listUsers.bind(admin.auth.admin),
-      adminEmail,
+      email,
     );
-    if (user?.id) {
-      const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
-      if (deleteError) throw new Error("Falha ao eliminar conta de ensaio no staging.");
+    if (orphan) {
+      throw new Error("Limpeza incompleta: conta de ensaio sem tenant requer intervenção.");
     }
+    return { removed: false as const };
+  }
+  if (tenant.contact_email?.trim().toLowerCase() !== email) {
+    throw new Error("Refusing cleanup: e-mail não corresponde ao contacto do tenant.");
   }
 
-  return { removed: true as const, tenantId };
+  // A rotina partilhada só limpa slugs E2E, exige alvo staging e verifica
+  // pertença da conta à escola antes de executar a limpeza das dependências.
+  const result = await cleanupTenantWithDependencies(admin, slug, email);
+  if (!result.removed) throw new Error("Limpeza incompleta: tenant de ensaio não removido.");
+  return { removed: true as const, tenantId: result.tenantId as string };
 }
