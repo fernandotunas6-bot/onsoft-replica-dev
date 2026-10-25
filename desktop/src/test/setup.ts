@@ -35,7 +35,7 @@ vi.mock('@/lib/tauri-bindings', () => ({
     desktopOfflineReadiness: vi.fn().mockResolvedValue({
       status: 'ok',
       data: {
-        appVersion: '1.2.2',
+        appVersion: '1.3.0',
         bundledUiReady: true,
         schemaVersion: 1,
         sqlcipherReady: false,
