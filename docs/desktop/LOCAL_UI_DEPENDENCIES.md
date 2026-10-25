@@ -63,5 +63,8 @@ as escritas de presença/notas sob contratos de idempotência e conflito.
 primeira janela estática `offline-shell` usa um bundle separado e uma capability
 mínima (`src-tauri/capabilities/offline-shell.json`), sem autenticação nem
 persistência, e só demonstra que uma interface instalada abre sem rede.
+A cache v2 do portal escolar persiste unicamente metadados de anos e períodos
+validados para a escola activa; não é uma base local completa nem passa dados
+privados para a pré-visualização.
 **Não** foi criado bundle escolar funcional completo nem activada base SQLite. Nenhum
 contrato de produção foi alterado.
