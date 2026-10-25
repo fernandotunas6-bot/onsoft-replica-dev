@@ -3,9 +3,10 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { assertSafeE2ETarget } from "../../../scripts/siga/e2e-safety.mjs";
+import { findE2EAuthUserByEmail } from "./find-auth-user";
 
 /**
- * Senha dos admins que os testes @live criam na produção. Vem de
+ * Senha dos admins que os testes @live criam exclusivamente no staging. Vem de
  * `E2E_LIVE_ADMIN_PASSWORD` ou é gerada ao acaso em cada processo: cada teste
  * cria a conta e entra com ela no mesmo processo, por isso não precisa de ser
  * fixa. Esteve escrita aqui até 29/09 — o repositório passou a público e as
@@ -46,11 +47,11 @@ export function getLiveSupabaseAdmin(): SupabaseClient {
 
 export async function ensureE2EAdminPassword(email: string, password = E2E_LIVE_ADMIN_PASSWORD) {
   const admin = getLiveSupabaseAdmin();
-  const target = email.trim().toLowerCase();
-  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (error) throw new Error(error.message);
-  const user = data.users.find((row) => row.email?.toLowerCase() === target);
-  if (!user?.id) throw new Error(`Utilizador admin não encontrado: ${email}`);
+  const user = await findE2EAuthUserByEmail(
+    admin.auth.admin.listUsers.bind(admin.auth.admin),
+    email,
+  );
+  if (!user?.id) throw new Error("Utilizador admin de ensaio não encontrado no staging.");
   const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
     password,
     email_confirm: true,
@@ -584,11 +585,13 @@ export async function cleanupE2ETenantBySlug(slug: string, adminEmail?: string) 
   if (tenantDeleteError) throw new Error(tenantDeleteError.message);
 
   if (adminEmail) {
-    const target = adminEmail.trim().toLowerCase();
-    const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const user = users.users.find((row) => row.email?.toLowerCase() === target);
+    const user = await findE2EAuthUserByEmail(
+      admin.auth.admin.listUsers.bind(admin.auth.admin),
+      adminEmail,
+    );
     if (user?.id) {
-      await admin.auth.admin.deleteUser(user.id).catch(() => undefined);
+      const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+      if (deleteError) throw new Error("Falha ao eliminar conta de ensaio no staging.");
     }
   }
 
