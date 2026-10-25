@@ -65,3 +65,12 @@ e o segundo reúne as orientações e evidências recuperadas do outro agente.
 Não sobrescrever as alterações já publicadas das PRs #252, #259 ou #270.
 Actualizar [a matriz de execução](docs/design/VISUAL_MASTER_STATUS.md) com
 evidência por fase e módulo; não omitir requisitos nem declarar validação sem teste.
+
+## Financeiro
+
+Antes de alterar Tesouraria, Caixa, Faturas, Conciliação, Relatórios Financeiros ou
+`src/features/finance`, ler [docs/specs/finance/FINANCE_MASTER_2026.md](docs/specs/finance/FINANCE_MASTER_2026.md):
+a matriz rota → funções, a auditoria de integridade e as pendências. Regras permanentes:
+uma página, uma finalidade; estados do dinheiro por `payment-states.ts`; nada aparece como
+pago sem confirmação do fornecedor; o SIGA não é software certificado pela AGT e não o pode
+sugerir. A aceitação mede-se por [docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md](docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md).
