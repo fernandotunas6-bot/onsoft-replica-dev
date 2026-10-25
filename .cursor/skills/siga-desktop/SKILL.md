@@ -48,6 +48,7 @@ Ler `docs/desktop/TAURI_RUNTIME.md`, `docs/desktop/OFFLINE_FIRST_ROADMAP.md` e `
 - **Política da cache não cifrada (v2):** guardar somente o DTO mínimo dos anos e períodos lectivos; **nunca** serializar `school.settings`, dados bancários/AGT, calendários, listas de alunos, salas ou snapshots completos do TanStack Query em `localStorage`.
 - A origem `school_id` dos anos/períodos é fornecida pelo servidor com membership autenticado e tem de corresponder à escola activa antes de persistir. As cópias antigas `siga:offline-queries:v1:` devem ser apagadas; nunca reidratá-las. Usar `tests/tauri/offline-queries.test.ts` como teste de regressão.
 - Metadados do calendário académico em cache **não** são SQLite offline autenticado. Dados privados exigem cofre/cifragem, isolamento por utilizador e dispositivo, política de expiração e revogação.
+- O esquema de futura base local é `desktop/local-db/0001_offline_metadata.sql`; o teste SQLite real em memória corre no CI. **Não está activo no runtime**: antes de abrir no posto exigir SQLCipher comprovado, chave no cofre, esquema versionado e autorização do servidor. Nunca usar SQLite sem cifragem para dados escolares.
 
 ## Sistema de ficheiros, impressão, notificações
 
