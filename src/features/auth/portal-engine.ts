@@ -2,6 +2,7 @@ import { moduleIcons } from "@/lib/app-icons";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import type { Plan } from "@/features/saas/types";
 import { canAccessPath } from "@/features/auth/access-policy";
+import { hiddenNavPaths, resolveEnabledModules } from "@/features/auth/module-availability";
 
 export type PortalMode = "student" | "guardian" | "teacher" | "admin";
 
@@ -72,20 +73,22 @@ function filterNavGroups(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
+  hidden: ReadonlySet<string> = new Set(),
 ): NavGroup[] {
+  // Duas peneiras independentes, e ambas têm de deixar passar: o `canAccessPath`
+  // diz o que este papel **pode**, e `hidden` o que esta escola **tem ligado**
+  // (ver `module-availability.ts`). Itens e grupos que ficam vazios desaparecem.
+  const visivel = (to: string | undefined) =>
+    Boolean(to) && !hidden.has(to as string) && canAccessPath(to as string, role, grants, plan);
   return groups
     .map((group) => ({
       ...group,
       items: group.items
         .map((item) => ({
           ...item,
-          children: item.children?.filter((child) => canAccessPath(child.to, role, grants, plan)),
+          children: item.children?.filter((child) => visivel(child.to)),
         }))
-        .filter(
-          (item) =>
-            (item.to ? canAccessPath(item.to, role, grants, plan) : false) ||
-            Boolean(item.children?.length),
-        ),
+        .filter((item) => visivel(item.to) || Boolean(item.children?.length)),
     }))
     .filter((group) => group.items.length > 0);
 }
@@ -94,9 +97,13 @@ export function getPortalNavigation(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
-  options: { isAlumni?: boolean } = {},
+  options: { isAlumni?: boolean; enabledModules?: ReadonlySet<string> } = {},
 ): NavGroup[] {
   const mode = resolvePortalMode(role);
+  // Sem `enabledModules` vale a omissão do produto — nunca "tudo visível". Quem
+  // não souber dos módulos da escola vê o que o produto dá por omissão, que é o
+  // mesmo que se via antes de isto existir.
+  const hidden = hiddenNavPaths(options.enabledModules ?? resolveEnabledModules({}));
 
   if (mode === "student") {
     return filterNavGroups(
@@ -159,6 +166,7 @@ export function getPortalNavigation(
       role,
       grants,
       plan,
+      hidden,
     );
   }
 
@@ -212,6 +220,7 @@ export function getPortalNavigation(
       role,
       grants,
       plan,
+      hidden,
     );
   }
 
@@ -285,6 +294,7 @@ export function getPortalNavigation(
       role,
       grants,
       plan,
+      hidden,
     );
   }
 
@@ -402,6 +412,7 @@ export function getPortalNavigation(
               to: "/alunos",
               search: { action: "estado" },
             },
+            { label: "Alumni · Antigos Alunos", icon: moduleIcons.alumni, to: "/alumni" },
           ],
         },
         {
@@ -429,6 +440,23 @@ export function getPortalNavigation(
               icon: moduleIcons.reconciliation,
               to: "/financeiro/conciliacao",
             },
+            { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
+            { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
+            {
+              label: "Ordens de Pagamento RH",
+              icon: moduleIcons.payouts,
+              to: "/financeiro/rh/pagamentos",
+            },
+            {
+              label: "Faltas e Assiduidade",
+              icon: moduleIcons.staffAbsences,
+              to: "/financeiro/rh/faltas",
+            },
+            {
+              label: "Validação de Presença",
+              icon: moduleIcons.qrPresence,
+              to: "/financeiro/rh/presenca",
+            },
           ],
         },
       ],
@@ -451,6 +479,7 @@ export function getPortalNavigation(
     {
       title: "Gestão e Comunicação",
       items: [
+        { label: "Catracas & Cartão Virtual", icon: moduleIcons.accessCards, to: "/catracas" },
         { label: "Gestão de Acessos", icon: moduleIcons.access, to: "/acessos" },
         { label: "Comunicações", icon: moduleIcons.communications, to: "/comunicacoes" },
       ],
@@ -509,7 +538,7 @@ export function getPortalNavigation(
     },
   ];
 
-  return filterNavGroups(groups, role, grants, plan);
+  return filterNavGroups(groups, role, grants, plan, hidden);
 }
 
 export function getPortalContextualSuggestions(role: ApplicationRole) {
@@ -527,6 +556,7 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   if (mode === "student") {
     return [
+      { label: "Meu Portal Alumni", to: "/alumni/portal" },
       { label: "Notas e Boletim", to: "/pedagogica", search: { tab: "notas" } },
       { label: "Frequência", to: "/pedagogica", search: { tab: "presencas" } },
       { label: "Horário", to: "/pedagogica", search: { tab: "horarios" } },
@@ -547,11 +577,13 @@ export function getPortalContextualSuggestions(role: ApplicationRole) {
 
   return [
     { label: "Gestão de Alunos", to: "/alunos" },
+    { label: "Rede Alumni", to: "/alumni" },
     { label: "Importar Dados", to: "/importar" },
     { label: "Biblioteca de Arquivos", to: "/arquivos" },
     { label: "Caixa e Pagamentos", to: "/financeiro" },
     { label: "Relatórios Académicos", to: "/relatorios/academicos" },
     { label: "Emissão de Documentos", to: "/documentos" },
+    { label: "Catracas & Cartão", to: "/catracas" },
     { label: "Gestão de Acessos", to: "/acessos" },
   ];
 }
