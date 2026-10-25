@@ -747,6 +747,142 @@ export const listInvoices = createServerFn({ method: "GET" })
     );
   });
 
+export type ReceiptSummary = {
+  id: string;
+  receipt_number: string;
+  amount: number;
+  paid_on: string;
+  payment_method: string;
+  status: string;
+  external_id: string | null;
+  reversed_at: string | null;
+  reversal_reason: string | null;
+  invoice_id: string | null;
+  invoice_number: string | null;
+  invoice_status: string | null;
+  student_id: string | null;
+  student_name: string | null;
+  student_number: string | null;
+};
+
+/**
+ * Recibos como documentos, não como linhas de caixa.
+ *
+ * `listCashEntries` já lia `finance_receipts`, mas achatava cada recibo num
+ * movimento genérico de entrada e perdia o que faz dele um documento: o número,
+ * a factura liquidada, o pagador e o histórico de estorno. Sem isso não havia
+ * como responder «de onde vem este recibo?» a partir do ecrã — e um recibo sem
+ * origem verificável é exactamente o que a auditoria não aceita.
+ *
+ * Leitura apenas. A emissão continua a ser consequência da liquidação
+ * (`recordInvoicePayment`), nunca uma operação autónoma deste ecrã: um recibo
+ * sem liquidação real não deve poder existir.
+ */
+export const listReceipts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => financeListInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<ReceiptSummary[]> => {
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+
+    const { data: receipts, error } = await db
+      .from("finance_receipts")
+      .select(
+        "id, receipt_number, amount, paid_on, payment_method, status, external_id, reversed_at, reversal_reason, invoice_id, created_at",
+      )
+      .eq("school_id", membership.schoolId)
+      .order("paid_on", { ascending: false })
+      .limit(data.limit);
+    if (error) throw publicDatabaseError(error, "Não foi possível carregar os recibos.");
+    if (!receipts?.length) return [];
+
+    const invoiceIds = [
+      ...new Set(
+        receipts
+          .map((row: { invoice_id: string | null }) => row.invoice_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const { data: invoices } = invoiceIds.length
+      ? await db
+          .from("finance_invoices")
+          .select("id, invoice_number, status, contract_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", invoiceIds)
+      : { data: [] as Array<Record<string, unknown>> };
+
+    // Recibo → factura → contrato → matrícula → aluno: a mesma cadeia que
+    // listInvoices percorre, para que o pagador apresentado seja o mesmo nos
+    // dois ecrãs.
+    const contractIds = [
+      ...new Set(
+        (invoices ?? [])
+          .map((row) => row["contract_id"] as string | null)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const { data: contracts } = contractIds.length
+      ? await db
+          .from("finance_contracts")
+          .select("id, enrollment_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", contractIds)
+      : { data: [] as Array<{ id: string; enrollment_id: string }> };
+
+    const enrollmentIds = [
+      ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
+    ];
+    const { data: enrollments } = enrollmentIds.length
+      ? await db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", enrollmentIds)
+      : { data: [] as Array<{ id: string; student_id: string }> };
+
+    const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
+    const students = studentIds.length
+      ? await loadStudentDirectory(db, membership.schoolId, studentIds)
+      : [];
+
+    const studentById = new Map(students.map((row) => [row.student_id, row]));
+    const enrollmentById = new Map((enrollments ?? []).map((row) => [row.id, row]));
+    const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
+    const invoiceById = new Map((invoices ?? []).map((row) => [String(row["id"]), row]));
+
+    return receipts.map((receipt: Record<string, unknown>): ReceiptSummary => {
+      const invoice = receipt["invoice_id"]
+        ? invoiceById.get(String(receipt["invoice_id"]))
+        : undefined;
+      const contract = invoice?.["contract_id"]
+        ? contractById.get(String(invoice["contract_id"]))
+        : undefined;
+      const enrollment = contract ? enrollmentById.get(contract.enrollment_id) : undefined;
+      const student = enrollment ? studentById.get(enrollment.student_id) : undefined;
+      return {
+        id: String(receipt["id"] ?? ""),
+        receipt_number: String(receipt["receipt_number"] ?? ""),
+        amount: Number(receipt["amount"] ?? 0),
+        paid_on: String(receipt["paid_on"] ?? receipt["created_at"] ?? ""),
+        payment_method: String(receipt["payment_method"] ?? "cash"),
+        status: String(receipt["status"] ?? "issued"),
+        external_id: receipt["external_id"] ? String(receipt["external_id"]) : null,
+        reversed_at: receipt["reversed_at"] ? String(receipt["reversed_at"]) : null,
+        reversal_reason: receipt["reversal_reason"] ? String(receipt["reversal_reason"]) : null,
+        invoice_id: receipt["invoice_id"] ? String(receipt["invoice_id"]) : null,
+        invoice_number: invoice ? String(invoice["invoice_number"] ?? "") : null,
+        invoice_status: invoice ? String(invoice["status"] ?? "") : null,
+        student_id: student?.student_id ?? null,
+        student_name: student?.full_name ?? null,
+        student_number: student?.registration_number ?? null,
+      };
+    });
+  });
+
 export const listCashEntries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => financeListInputSchema.parse(input))
