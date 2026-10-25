@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { publicSchoolSignupInputSchema } from "@/features/saas/schemas";
-import { buildSignupPayload, uniqueE2ESlug } from "../e2e/helpers/ecosystem-urls";
+import {
+  buildSignupPayload,
+  testSchoolNifForSlug,
+  uniqueE2ESlug,
+} from "../e2e/helpers/ecosystem-urls";
 
 /**
  * Os testes @live enviam um payload real para `/api/saas/signup`. Vivem em
@@ -33,6 +37,15 @@ describe("o payload dos testes live satisfaz o contrato do servidor", () => {
     // razão, e a mensagem não diria que foi o NIF outra vez.
     const payload = buildSignupPayload(uniqueE2ESlug()) as Record<string, unknown>;
     expect(payload.nif, "sem NIF a escola não consegue gerar SAF-T para a AGT").toBeTruthy();
+  });
+
+  it("as duas escolas de isolamento não partilham o NIF sintético", () => {
+    const nifA = testSchoolNifForSlug("e2e-iso-a-abc123");
+    const nifB = testSchoolNifForSlug("e2e-iso-b-abc123");
+    expect(nifA).toMatch(/^5417\\d{6}$/);
+    expect(nifB).toMatch(/^5417\\d{6}$/);
+    expect(nifA).not.toBe(nifB);
+    expect(buildSignupPayload("e2e-iso-a-abc123").nif).toBe(nifA);
   });
 
   it("o slug gerado é aceite como subdomínio", () => {
