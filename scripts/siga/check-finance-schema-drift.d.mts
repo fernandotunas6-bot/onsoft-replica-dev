@@ -5,6 +5,16 @@ export type FinanceInventory = {
   cash_history: boolean;
   receipt_cash_trigger: boolean;
   expense_cash_trigger: boolean;
+  receipt_reversal_trigger: boolean;
+  expense_reversal_trigger: boolean;
+  cash_points_rls: boolean;
+  cash_sessions_rls: boolean;
+  cash_points_anon_select: boolean;
+  cash_points_auth_select: boolean;
+  cash_sessions_anon_select: boolean;
+  cash_sessions_auth_select: boolean;
+  cash_rpc_complete: boolean;
+  cash_rpc_anon_executable: boolean;
   idempotency_column: boolean;
   idempotency_index: boolean;
   payment_rpc_six_args: boolean;
