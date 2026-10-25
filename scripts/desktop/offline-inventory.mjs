@@ -43,19 +43,19 @@ export function inventoryOfflineReadiness(root = repositoryRoot) {
     return {
       path,
       api: path.startsWith("src/routes/api/"),
-      directServerFunction: /\\bcreateServerFn\\s*\\(/.test(source),
-      serverModuleImport: /(?:from\\s*|import\\s*\\()[\"'][^"'\\n]*\\/(?:server|server-legacy|server-secure-legacy)(?:[\"']|\\b)/.test(source),
-      serverHandler: /\\bcreateAPIFileRoute\\s*\\(|\\bserver:\\s*\\{/.test(source),
+      directServerFunction: /\bcreateServerFn\s*\(/.test(source),
+      serverModuleImport: /(?:from\s*|import\s*\()["'][^"'\n]*\/(?:server|server-legacy|server-secure-legacy)(?:["']|\b)/.test(source),
+      serverHandler: /\bcreateAPIFileRoute\s*\(|\bserver:\s*\{/.test(source),
     };
   });
   const fnModules = sources
-    .filter((absolute) => /\\bcreateServerFn\\s*\\(/.test(readFileSync(absolute, "utf8")))
+    .filter((absolute) => /\bcreateServerFn\s*\(/.test(readFileSync(absolute, "utf8")))
     .map((absolute) => relative(root, absolute).replaceAll("\\", "/"));
 
-  const schoolWindowRemote = /WebviewUrl::External\\s*\\(/.test(nativeSchool) &&
+  const schoolWindowRemote = /WebviewUrl::External\s*\(/.test(nativeSchool) &&
     nativeSchool.includes("https://portal-siga.com");
-  const schoolBundleEntry = /(?:school|escola)[\"']?\\s*:\\s*resolve\\s*\\(/.test(desktopVite);
-  const localEntryPoints = [...desktopVite.matchAll(/^[ \\t]*[\"']?([\\w-]+)[\"']?\\s*:\\s*resolve\\s*\\(/gm)]
+  const schoolBundleEntry = /(?:school|escola)["']?\s*:\s*resolve\s*\(/.test(desktopVite);
+  const localEntryPoints = [...desktopVite.matchAll(/^[ \t]*["']?([\w-]+)["']?\s*:\s*resolve\s*\(/gm)]
     .map((match) => match[1]);
   const report = {
     format: "siga-desktop-offline-inventory-v1",
