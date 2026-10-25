@@ -69,7 +69,7 @@ import {
   recordInvoicePayment,
 } from "@/features/finance/server";
 import { officialReceiptBody } from "@/features/finance/schemas";
-import { buildProformaInvoice } from "@/features/finance/proforma-receipts";
+import { buildProformaInvoice, proformaNumber } from "@/features/finance/proforma-receipts";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -728,7 +728,7 @@ function FaturasPage() {
         s.student_id === studentLabel,
     );
 
-    const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
+    const proformaNo = proformaNumber();
     const issueDate = schoolTodayIso();
     const dueDate = schoolDateInDays(15);
     const amount = Number(values["valor"]) || 0;
