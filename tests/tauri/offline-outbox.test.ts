@@ -75,9 +75,7 @@ describe("fila de envio sem rede", () => {
 
   it("cofre corrompido não pode ser silenciosamente substituído por fila vazia", async () => {
     vault.set("siga.offline-outbox", "{incompleto");
-    await expect(enableOutbox(vaultOutboxStorage(fakeVault))).rejects.toThrow(
-      /não pôde ser lida/,
-    );
+    await expect(enableOutbox(vaultOutboxStorage(fakeVault))).rejects.toThrow(/não pôde ser lida/);
     expect(vault.get("siga.offline-outbox")).toBe("{incompleto");
   });
 
