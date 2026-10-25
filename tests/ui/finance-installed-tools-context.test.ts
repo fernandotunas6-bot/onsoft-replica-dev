@@ -22,6 +22,15 @@ describe("funções instaladas por página financeira", () => {
     expect(modulosPedidos(file)).toEqual([module]);
   });
 
+  it("Relatórios não mostra funções instaladas nem a linha AGT inventada", () => {
+    expect(modulosPedidos("relatorios.financeiros.tsx")).toEqual([]);
+    const source = readFileSync(
+      join(process.cwd(), "src/routes/relatorios.financeiros.tsx"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/`AGT;/);
+  });
+
   it("Facturas não atalha para importação nem conciliação de pagamentos", () => {
     const source = readFileSync(join(process.cwd(), "src/routes/faturas.tsx"), "utf8");
     expect(source).not.toMatch(/PayflowAdminLaunchButton|getPayflowPayerUrl|to="\/importar"/);
