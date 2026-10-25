@@ -1,3 +1,4 @@
+import { WebsiteStudioEntry } from "@/features/school-website/WebsiteStudioEntry";
 import { lazy, Suspense, useMemo, useRef, useCallback, useState } from "react";
 import { useBlocker } from "@tanstack/react-router";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
@@ -218,7 +219,15 @@ function useSettingsPanels(): StackPanel[] {
       {
         id: "website",
         title: "Website escolar",
-        description: "Edite e publique os conteúdos públicos a partir do SIGA Plus.",
+        description: "Páginas, pré-visualização e publicação num estúdio dedicado.",
+        icon: Globe,
+        tone: "info",
+        render: () => <WebsiteStudioEntry />,
+      },
+      {
+        id: "website.advanced",
+        title: "Configurações completas do website",
+        description: "Temas, cursos, campanhas e todas as opções existentes.",
         icon: Globe,
         tone: "info",
         render: () => (

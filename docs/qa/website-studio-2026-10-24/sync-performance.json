@@ -1,0 +1,22 @@
+{
+  "metric": "Root route manifest preloads; uncompressed bytes",
+  "before": {
+    "files": 39,
+    "bytes": 1007640
+  },
+  "after": {
+    "files": 39,
+    "bytes": 1009205
+  },
+  "editorChunks": [
+    {
+      "asset": "/assets/WebsiteStudio-b-MWWUXu.js",
+      "bytes": 485309,
+      "preloadedByRoot": false
+    }
+  ],
+  "rootEditorReferences": [],
+  "serverEditorModules": [],
+  "qaFilesShipped": [],
+  "limits": "Build evidence only; not authenticated runtime, INP/LCP/CLS p75 or a Cloudflare deployment."
+}

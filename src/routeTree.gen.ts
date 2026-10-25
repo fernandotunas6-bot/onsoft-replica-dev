@@ -65,6 +65,7 @@ import { Route as ProfessorPresencaRouteImport } from './routes/professor.presen
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
+import { Route as WebsiteEditorRouteImport } from './routes/website_.editor'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AlumniAlumniIdPortfolioRouteImport } from './routes/alumni.$alumniId.portfolio'
 import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni.portal.portfolio'
@@ -417,6 +418,11 @@ const RelatoriosAcademicosRoute = RelatoriosAcademicosRouteImport.update({
 const RelatoriosFinanceirosRoute = RelatoriosFinanceirosRouteImport.update({
   id: '/relatorios/financeiros',
   path: '/relatorios/financeiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebsiteEditorRoute = WebsiteEditorRouteImport.update({
+  id: '/website_/editor',
+  path: '/website/editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
@@ -843,6 +849,7 @@ export interface FileRoutesByFullPath {
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
+  '/website/editor': typeof WebsiteEditorRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -970,6 +977,7 @@ export interface FileRoutesByTo {
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
+  '/website/editor': typeof WebsiteEditorRoute
   '/alunos': typeof AlunosIndexRoute
   '/pessoas': typeof PessoasIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1098,6 +1106,7 @@ export interface FileRoutesById {
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
   '/relatorios/financeiros': typeof RelatoriosFinanceirosRoute
+  '/website_/editor': typeof WebsiteEditorRoute
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1227,6 +1236,7 @@ export interface FileRouteTypes {
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
+    | '/website/editor'
     | '/alunos/'
     | '/pessoas/'
     | '/.lovable/oauth/consent'
@@ -1354,6 +1364,7 @@ export interface FileRouteTypes {
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
+    | '/website/editor'
     | '/alunos'
     | '/pessoas'
     | '/.lovable/oauth/consent'
@@ -1481,6 +1492,7 @@ export interface FileRouteTypes {
     | '/professores/$teacherId'
     | '/relatorios/academicos'
     | '/relatorios/financeiros'
+    | '/website_/editor'
     | '/alunos/'
     | '/pessoas/'
     | '/.lovable/oauth/consent'
@@ -1598,6 +1610,7 @@ export interface RootRouteChildren {
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
   RelatoriosFinanceirosRoute: typeof RelatoriosFinanceirosRoute
+  WebsiteEditorRoute: typeof WebsiteEditorRoute
   AlunosIndexRoute: typeof AlunosIndexRoute
   PessoasIndexRoute: typeof PessoasIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -2036,6 +2049,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios/financeiros'
       fullPath: '/relatorios/financeiros'
       preLoaderRoute: typeof RelatoriosFinanceirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/website_/editor': {
+      id: '/website_/editor'
+      path: '/website/editor'
+      fullPath: '/website/editor'
+      preLoaderRoute: typeof WebsiteEditorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.lovable/oauth/consent': {
@@ -2777,6 +2797,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
   RelatoriosFinanceirosRoute: RelatoriosFinanceirosRoute,
+  WebsiteEditorRoute: WebsiteEditorRoute,
   AlunosIndexRoute: AlunosIndexRoute,
   PessoasIndexRoute: PessoasIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,

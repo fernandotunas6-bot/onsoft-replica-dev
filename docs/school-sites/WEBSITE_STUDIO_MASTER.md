@@ -3,10 +3,14 @@
 Data: 24/10/2026. Repositório: `fernandotunas6-bot/onsoft-replica-dev`.
 Base observada: `main` em `42ad7eff`; correcções de publicação na PR #275.
 
-**Estado: especificação documentada; a nova página e o layout do estúdio ainda não
-foram implementados.** O nome «SIGA Website Studio» é um nome de trabalho para a
-área, não uma alteração à marca global. Este documento conserva o pedido do
-proprietário e orienta a implementação seguinte.
+**Estado: primeiro incremento implementado com Puck 0.23.0 e validado localmente
+com dados fictícios; ainda sem rollout de produção.** O nome «SIGA Website Studio»
+identifica esta área, não altera a marca global. O contrato abaixo conserva o pedido
+do proprietário; a [evidência de execução](../qa/website-studio-2026-10-24/README.md)
+distingue o que foi implementado das capacidades ainda pendentes.
+
+Actualização de 25/10: base reconciliada com `main` `50b90afe`, Zod 4 e recuperação
+de conflitos no estúdio; [evidência e limites](../qa/website-studio-2026-10-24/SYNC_2026-10-25.md).
 
 ## 1. Pedido e resultado pretendido
 
@@ -193,10 +197,10 @@ pixel-perfect, sessão real, isolamento remoto ou Worker validado com base em mo
 | Pré-visualização privada | `website-preview.ts` | Existente, isolada e não interactiva |
 | Aviso de saída | `use-draft-unload-warning.ts` | Existente; estender para navegação do estúdio |
 | Admin exacto/AAL2/URLs/domínios | PR #275 e `RECONCILIATION_200.md` | Correcções no ramo; não declarar integração em main |
-| Rota e layout dedicados | Proposta `/website/editor` | Por implementar |
-| Lista de páginas + canvas + inspector | Este contrato | Por implementar |
-| Selecção visual ligada aos campos | Exige mapeamento e modelo de isolamento | Por implementar; não habilitar scripts indiscriminadamente |
-| Dispositivos, largura e zoom do canvas | Este contrato | Por implementar |
+| Rota e layout dedicados | `/website/editor` | Implementado; rota privada e carregamento só no cliente |
+| Lista de páginas + canvas + inspector | Primeiro incremento Puck | Implementado e ensaiado localmente |
+| Selecção visual ligada aos campos | Ponte opcional com CSP por nonce, origem opaca e validação de mensagens | Implementada; testes locais de clique, origem, documento e campos |
+| Dispositivos, largura e zoom do canvas | Primeiro incremento Puck | Implementado e ensaiado localmente |
 | Criação livre de páginas/drag-and-drop | Sem contrato auditado neste incremento | Fora da primeira entrega |
 | MFA real, duas escolas e canário | Roteiro em `RECONCILIATION_200.md` | Pendente de ambiente de testes |
 
@@ -243,6 +247,12 @@ Caminhos relativos ao módulo `src/features/school-website`, salvo indicação d
 - [Contrato visual global](../design/VISUAL_MASTER_2026.md)
 - [Orientações complementares](../design/SIGA_VISUAL_MASTER_2026-10-23.md)
 
-A documentação não autoriza alterar DNS, aplicar migrações ou publicar conteúdo de
-escolas reais. Neste incremento só se documenta o estúdio; a implementação,
-comparação visual, CI do código futuro e ensaios reais continuam pendentes.
+A implementação reutiliza o contrato editorial actual: não grava JSON do Puck em
+`school_settings`. O inspector edita campos autorizados por página/secção ou por elemento seleccionado
+no modo opcional do preview. A selecção usa a [ponte restrita documentada](../qa/website-studio-2026-10-24/REFINEMENT.md).
+A alteração livre de estrutura por drag-and-drop continua fora do contrato do
+template. As opções completas anteriores continuam acessíveis pelo estúdio.
+
+Não foram alterados DNS, migrações ou publicações de escolas reais. CI remoto,
+Worker Cloudflare, sessões reais, aparelhos físicos e domínio canário continuam
+pendentes; consultar a evidência antes de qualquer promoção.
