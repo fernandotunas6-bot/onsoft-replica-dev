@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { activeSchool } = vi.hoisted(() => ({ activeSchool: { id: "school-a" } }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+vi.mock("@/features/auth/active-school", () => ({
+  readStoredActiveSchool: () => activeSchool.id,
+}));
 
 import {
   discardOutboxItem,
@@ -27,6 +31,7 @@ const setOnline = (value: boolean) =>
   Object.defineProperty(globalThis, "navigator", { value: { onLine: value }, configurable: true });
 
 beforeEach(async () => {
+  activeSchool.id = "school-a";
   vault.clear();
   attendance.mockReset();
   grades.mockReset();
@@ -149,6 +154,7 @@ describe("fila de envio sem rede", () => {
     expect(outboxItems()).toHaveLength(1);
 
     attendance.mockResolvedValueOnce({});
+    activeSchool.id = "school-b";
     await flushOutbox("prof-1", "school-b");
     expect(attendance).toHaveBeenCalledWith({
       n: 7,
