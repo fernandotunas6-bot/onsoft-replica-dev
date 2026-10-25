@@ -49,8 +49,11 @@ const adminPasswordSchema = z
   .string()
   .min(10, "A senha deve ter pelo menos 10 caracteres.")
   .max(200, "A senha é demasiado longa.")
-  .refine((value) => /[a-zA-Z]/.test(value) && /[0-9]/.test(value), {
-    message: "A senha deve combinar letras e números.",
+  // Os mesmos grupos que o Supabase Auth exige desde 25/10/2026 (minúsculas,
+  // maiúsculas e dígitos). Antes bastava `/[a-zA-Z]/`, e por isso "abcdefghij1"
+  // passava aqui e era recusada pelo Auth — com a mensagem dele, não a nossa.
+  .refine((value) => /[a-z]/.test(value) && /[A-Z]/.test(value) && /[0-9]/.test(value), {
+    message: "A senha deve combinar maiúsculas, minúsculas e números.",
   })
   .refine((value) => !/^(.)\1+$/.test(value), {
     message: "A senha não pode ser o mesmo caracter repetido.",
