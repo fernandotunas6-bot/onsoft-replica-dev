@@ -47,11 +47,7 @@ function assertContext(ctx: OfflineSyncContext, now: number): void {
 }
 
 function belongsToContext(op: OfflineSyncOperation, ctx: OfflineSyncContext): boolean {
-  return (
-    op.schoolId === ctx.schoolId &&
-    op.actorId === ctx.actorId &&
-    op.deviceId === ctx.deviceId
-  );
+  return op.schoolId === ctx.schoolId && op.actorId === ctx.actorId && op.deviceId === ctx.deviceId;
 }
 
 function assertOperation(op: OfflineSyncOperation): void {

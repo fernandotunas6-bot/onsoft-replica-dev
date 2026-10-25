@@ -85,21 +85,31 @@ describe("contrato futuro de sincronização offline", () => {
 
   it("mantém conflitos explícitos para revisão humana", () => {
     expect(
-      validateOfflineSyncReply(context, operation, {
-        ...reply,
-        status: "conflict",
-        serverRevision: 6,
-      }, now),
+      validateOfflineSyncReply(
+        context,
+        operation,
+        {
+          ...reply,
+          status: "conflict",
+          serverRevision: 6,
+        },
+        now,
+      ),
     ).toEqual({ state: "conflict", serverRevision: 6 });
   });
 
   it("aceita rejeições explicitas e falha fechado nas respostas desconhecidas", () => {
     expect(
-      validateOfflineSyncReply(context, operation, {
-        ...reply,
-        status: "rejected",
-        errorCode: "PERIOD_CLOSED",
-      }, now),
+      validateOfflineSyncReply(
+        context,
+        operation,
+        {
+          ...reply,
+          status: "rejected",
+          errorCode: "PERIOD_CLOSED",
+        },
+        now,
+      ),
     ).toEqual({ state: "rejected", errorCode: "PERIOD_CLOSED" });
     expect(() => validateOfflineSyncReply(context, operation, null, now)).toThrow(/inválida/);
     expect(() =>
