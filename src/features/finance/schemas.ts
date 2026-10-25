@@ -48,6 +48,7 @@ export const recordInvoicePaymentInputSchema = z.object({
   amount: z.number().positive().max(999_999_999_999.99),
   method: z.enum([
     "cash",
+    "tpa",
     "multicaixa",
     "transfer",
     "express",
