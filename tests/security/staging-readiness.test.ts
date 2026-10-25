@@ -53,7 +53,11 @@ describe("pré-verificação E2E @live", () => {
 
   it("valida a estrutura sem expor qualquer valor das credenciais", () => {
     expect(assertStagingReady(valid)).toEqual({ projectRef: STAGING_REF });
-    const bad = { ...valid, STAGING_SUPABASE_URL: "invalid", STAGING_SUPABASE_SECRET_KEY: "DO-NOT-LOG-ME" };
+    const bad = {
+      ...valid,
+      STAGING_SUPABASE_URL: "invalid",
+      STAGING_SUPABASE_SECRET_KEY: "DO-NOT-LOG-ME",
+    };
     try {
       assertStagingReady(bad);
       throw new Error("Deveria recusar");
