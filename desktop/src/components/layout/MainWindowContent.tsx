@@ -25,6 +25,7 @@ import { commands, unwrapResult } from '@/lib/tauri-bindings'
 import {
   shortcutKeys,
   useAppVersion,
+  useDesktopAvailableUpdate,
   useOnline,
   useQuickPaneShortcut,
 } from '@/hooks/use-desktop-status'
@@ -60,6 +61,7 @@ export function MainWindowContent({
   const { t } = useTranslation()
   const online = useOnline()
   const version = useAppVersion()
+  const availableVersion = useDesktopAvailableUpdate()
   const quickPaneShortcut = useQuickPaneShortcut()
   const [opening, setOpening] = useState(false)
   const [checking, setChecking] = useState(false)
@@ -146,7 +148,12 @@ export function MainWindowContent({
               aria-live="polite"
               className="min-h-5 text-sm text-muted-foreground"
             >
-              {status || (online ? '' : t('siga.onlineRequired'))}
+              {status ||
+                (availableVersion
+                  ? t('siga.update.available', { version: availableVersion })
+                  : online
+                    ? ''
+                    : t('siga.onlineRequired'))}
             </p>
           </section>
 

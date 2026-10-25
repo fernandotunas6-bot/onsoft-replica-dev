@@ -35,6 +35,45 @@ export function useAppVersion(): string | null {
   return version
 }
 
+/**
+ * Detecta versões assinadas a partir da shell local, mesmo sem abrir a janela
+ * escolar. Só avisa: instalar continua no portal, protegido contra envios pendentes.
+ */
+export function useDesktopAvailableUpdate(): string | null {
+  const [version, setVersion] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    let checking = false
+    const check = async () => {
+      if (navigator.onLine === false || checking) return
+      checking = true
+      try {
+        const result = await commands.desktopUpdateStatus()
+        if (active && result.status === 'ok') {
+          setVersion(result.data.available ? (result.data.version ?? 'nova') : null)
+        }
+      } catch {
+        // Sem rede real ou sem chave pública, a shell continua a funcionar.
+        // A verificação manual continua a mostrar as falhas ao utilizador.
+      } finally {
+        checking = false
+      }
+    }
+
+    const reconnect = () => void check()
+    const timer = window.setTimeout(reconnect, 15_000)
+    const interval = window.setInterval(reconnect, 6 * 60 * 60_000)
+    window.addEventListener('online', reconnect)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+      window.clearInterval(interval)
+      window.removeEventListener('online', reconnect)
+    }
+  }, [])
+  return version
+}
+
 /** Atalho global da nota rápida (o das preferências ou o de origem). */
 export function useQuickPaneShortcut(): string | null {
   const [shortcut, setShortcut] = useState<string | null>(null)
