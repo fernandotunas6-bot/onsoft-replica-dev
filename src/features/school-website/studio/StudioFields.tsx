@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { WebsiteField } from "../content-model";
 
 export function StudioFields({
@@ -7,14 +7,26 @@ export function StudioFields({
   onChange,
   disabled,
   lockedKeys = [],
+  focusSelection = false,
 }: {
   fields: readonly WebsiteField[];
   value: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
   disabled: boolean;
   lockedKeys?: readonly string[];
+  focusSelection?: boolean;
 }) {
   const id = useId();
+  const inputs = useRef<HTMLFieldSetElement>(null);
+  useEffect(() => {
+    if (!focusSelection) return;
+    const timer = requestAnimationFrame(() =>
+      inputs.current
+        ?.querySelector<HTMLElement>("input:not(:disabled),textarea:not(:disabled)")
+        ?.focus(),
+    );
+    return () => cancelAnimationFrame(timer);
+  }, [focusSelection]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const filtered = useMemo(
@@ -41,7 +53,7 @@ export function StudioFields({
           setPage(0);
         }}
       />
-      <fieldset disabled={disabled}>
+      <fieldset ref={inputs} disabled={disabled}>
         {filtered.slice(current * 20, (current + 1) * 20).map((field) => {
           const fieldId = `${id}-${field.key}`;
           const text = value[field.key] ?? field.value;

@@ -19,6 +19,8 @@ import {
   studioWidths,
   studioZooms,
 } from "./adapter";
+import { useStudioHistory } from "./use-studio-history";
+import { PublicationReview } from "./PublicationReview";
 import { StudioFields } from "./StudioFields";
 import { StudioPreview } from "./StudioPreview";
 import { StudioAppearance } from "./StudioAppearance";
@@ -144,7 +146,22 @@ export function WebsiteStudioWorkspace({
   }) => Promise<WebsiteState>;
 }) {
   const [state, setState] = useState(initial.state);
-  const [draft, setDraft] = useState(initial.state.draft);
+  const history = useStudioHistory(initial.state.draft);
+  const { draft, change: recordChange, undo: historyUndo, redo: historyRedo } = history;
+  const [inspectorVersion, setInspectorVersion] = useState(0);
+  const undo = useCallback(() => {
+    historyUndo();
+    setInspectorVersion((value) => value + 1);
+  }, [historyUndo]);
+  const redo = useCallback(() => {
+    historyRedo();
+    setInspectorVersion((value) => value + 1);
+  }, [historyRedo]);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const publishButton = useRef<HTMLButtonElement>(null);
+  const [publishedView, setPublishedView] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [message, setMessage] = useState("");
@@ -160,14 +177,21 @@ export function WebsiteStudioWorkspace({
     ? selectedGroup
     : (groups.find((name) => name.endsWith(` · ${page.url}`)) ?? groups[0]);
   const scopedFields = useMemo(
-    () => fields.filter((field) => field.group === group),
-    [fields, group],
+    () =>
+      fields.filter((field) =>
+        selectedKeys.length ? selectedKeys.includes(field.key) : field.group === group,
+      ),
+    [fields, group, selectedKeys],
   );
+  const shownDraft = publishedView && state.published ? state.published.content : draft;
   const previewDraft = useMemo(
-    () => studioPreviewDraft(draft, initial.programs),
-    [draft, initial.programs],
+    () => studioPreviewDraft(shownDraft, initial.programs),
+    [shownDraft, initial.programs],
   );
-  const lockedKeys = useMemo(() => Object.keys(draft.programBindings), [draft.programBindings]);
+  const lockedKeys = useMemo(
+    () => Object.keys(shownDraft.programBindings),
+    [shownDraft.programBindings],
+  );
   const filteredPages = useMemo(
     () =>
       studioPages.filter((item) =>
@@ -188,12 +212,23 @@ export function WebsiteStudioWorkspace({
     shouldBlockFn: ({ current, next }) =>
       current.pathname === next.pathname ? false : busyRef.current || !confirmDiscardChanges(dirty),
   });
-  const changeDraft = useCallback((next: WebsiteDraft) => {
-    if (busyRef.current) return;
-    setDraft(next);
-    setMessage("");
-    setError("");
+  const changeDraft = useCallback(
+    (next: WebsiteDraft) => {
+      if (busyRef.current || publishedView) return;
+      recordChange(next, `${page.url}:${group}:${tab}`);
+      setMessage("");
+      setError("");
+    },
+    [recordChange, publishedView, page.url, group, tab],
+  );
+  const selectFields = useCallback((keys: string[]) => {
+    setSelectedKeys(keys);
+    setTab("content");
+    setMobilePanel("properties");
   }, []);
+  useEffect(() => {
+    setSelectedKeys([]);
+  }, [page.url]);
   const config = useMemo<Config<Record<string, never>, Root>>(
     () => ({
       components: {},
@@ -207,9 +242,10 @@ export function WebsiteStudioWorkspace({
                 key={group}
                 fields={scopedFields}
                 lockedKeys={lockedKeys}
+                focusSelection={selectedKeys.length > 0}
                 value={value ?? {}}
                 onChange={onChange}
-                disabled={busy}
+                disabled={busy || publishedView}
               />
             ),
           },
@@ -223,6 +259,9 @@ export function WebsiteStudioWorkspace({
             logoUrl={initial.school.logo_url}
             width={view.largura}
             zoom={view.zoom}
+            selecting={selecting && !publishedView}
+            fields={fields}
+            onSelect={selectFields}
           />
         ),
       },
@@ -231,8 +270,13 @@ export function WebsiteStudioWorkspace({
       group,
       scopedFields,
       lockedKeys,
+      selectedKeys.length,
       previewDraft,
       busy,
+      publishedView,
+      selecting,
+      fields,
+      selectFields,
       page.url,
       initial.school.name,
       initial.school.logo_url,
@@ -246,16 +290,11 @@ export function WebsiteStudioWorkspace({
   );
   const permanent = (IDENTITY_PAGES as readonly string[]).includes(page.url);
   const included =
-    permanent || draft.adoptedPages === undefined || draft.adoptedPages.includes(page.url);
+    permanent ||
+    shownDraft.adoptedPages === undefined ||
+    shownDraft.adoptedPages.includes(page.url);
   async function act(action: Action) {
     if (busyRef.current) return;
-    if (
-      action === "publish" &&
-      !window.confirm(
-        `Publicar o conteúdo actual do website de ${initial.school.name}? As alterações por guardar também serão publicadas.`,
-      )
-    )
-      return;
     if (
       action === "unpublish" &&
       !window.confirm(
@@ -275,7 +314,11 @@ export function WebsiteStudioWorkspace({
         ...(["save", "publish"].includes(action) ? { draft } : {}),
       });
       setState(next);
-      if (action !== "unpublish") setDraft(next.draft);
+      if (action === "restore") {
+        history.reset(next.draft);
+        setInspectorVersion((value) => value + 1);
+      } else if (action !== "unpublish") history.rebase(next.draft);
+      if (action === "unpublish") setPublishedView(false);
       setMessage(
         {
           save: "Rascunho guardado. A publicação mantém-se.",
@@ -293,6 +336,33 @@ export function WebsiteStudioWorkspace({
       setBusy(false);
     }
   }
+  useEffect(() => {
+    const keydown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "s") {
+        event.preventDefault();
+        if (!reviewOpen && !busyRef.current && dirty && !publishedView) void act("save");
+        return;
+      }
+      if (reviewOpen) return;
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("input,textarea,select,[contenteditable=true]")
+      )
+        return;
+      if (key === "z" && !busyRef.current && !publishedView) {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        setMessage("");
+        setError("");
+      }
+    };
+    window.addEventListener("keydown", keydown);
+    return () => window.removeEventListener("keydown", keydown);
+  });
   return (
     <main
       className="website-studio"
@@ -364,9 +434,10 @@ export function WebsiteStudioWorkspace({
           </button>
           <button
             type="button"
+            ref={publishButton}
             className="studio-primary"
             disabled={busy}
-            onClick={() => void act("publish")}
+            onClick={() => setReviewOpen(true)}
           >
             Publicar
           </button>
@@ -388,6 +459,19 @@ export function WebsiteStudioWorkspace({
           </button>
         ))}
       </div>
+      {reviewOpen && (
+        <PublicationReview
+          draft={draft}
+          state={state}
+          schoolName={initial.school.name}
+          onReturnFocus={() => publishButton.current?.focus()}
+          onClose={() => setReviewOpen(false)}
+          onConfirm={() => {
+            setReviewOpen(false);
+            void act("publish");
+          }}
+        />
+      )}
       {error && (
         <p className="studio-notice studio-error" role="alert">
           {error}
@@ -399,7 +483,7 @@ export function WebsiteStudioWorkspace({
         </p>
       )}
       <Puck
-        key={`${page.url}:${group}`}
+        key={`${page.url}:${group}:${selectedKeys.join(",")}:${publishedView}:${inspectorVersion}`}
         config={config}
         data={puckData}
         iframe={{ enabled: false }}
@@ -410,7 +494,7 @@ export function WebsiteStudioWorkspace({
             data.root.props?.values,
             scopedFields.filter((field) => !lockedKeys.includes(field.key)),
           );
-          if (next !== draft) changeDraft(next);
+          if (!publishedView && next !== draft) changeDraft(next);
         }}
       >
         <div className="studio-workspace">
@@ -434,6 +518,7 @@ export function WebsiteStudioWorkspace({
                   disabled={busy}
                   aria-current={item.url === page.url ? "page" : undefined}
                   onClick={() => {
+                    setSelectedKeys([]);
                     onViewChange({ ...view, pagina: item.url });
                     setMobilePanel("preview");
                   }}
@@ -462,9 +547,69 @@ export function WebsiteStudioWorkspace({
             <div className="studio-canvas-caption">
               <span>{page.url === "/" ? "Página inicial" : page.title}</span>
               <span>
-                {view.largura} px · {view.zoom}% · Rascunho privado
+                {view.largura} px · {view.zoom}% ·{" "}
+                {publishedView ? "Publicação guardada" : "Rascunho privado"}
               </span>
             </div>
+            <div className="studio-edit-toolbar" aria-label="Controlos de edição">
+              <div>
+                <button
+                  type="button"
+                  disabled={busy || publishedView || !history.canUndo}
+                  onClick={() => {
+                    undo();
+                    setMessage("");
+                    setError("");
+                  }}
+                >
+                  Desfazer
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || publishedView || !history.canRedo}
+                  onClick={() => {
+                    redo();
+                    setMessage("");
+                    setError("");
+                  }}
+                >
+                  Refazer
+                </button>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  aria-pressed={selecting && !publishedView}
+                  disabled={publishedView}
+                  onClick={() => setSelecting((value) => !value)}
+                >
+                  Seleccionar elemento
+                </button>
+                {state.published && (
+                  <button
+                    type="button"
+                    aria-pressed={publishedView}
+                    onClick={() => {
+                      setPublishedView((value) => !value);
+                      setSelectedKeys([]);
+                    }}
+                  >
+                    {publishedView ? "Voltar ao rascunho" : "Ver publicação"}
+                  </button>
+                )}
+              </div>
+            </div>
+            {publishedView && (
+              <p className="studio-readonly" role="status">
+                Publicação guardada · apenas leitura. Os nomes de cursos reflectem o catálogo
+                académico actual.
+              </p>
+            )}
+            {selecting && !publishedView && (
+              <p className="studio-readonly">
+                Seleccione um elemento na prévia ou use Tab e Enter dentro da página.
+              </p>
+            )}
             <div className="studio-canvas-scroll">
               <Puck.Preview />
             </div>
@@ -491,8 +636,9 @@ export function WebsiteStudioWorkspace({
                 <label className="studio-adoption">
                   <input
                     type="checkbox"
+                    aria-label="Incluir esta página na publicação"
                     checked={included}
-                    disabled={busy}
+                    disabled={busy || publishedView}
                     onChange={(event) => {
                       const adopted = draft.adoptedPages ?? studioPages.map((item) => item.url);
                       changeDraft({
@@ -518,7 +664,10 @@ export function WebsiteStudioWorkspace({
                   <select
                     id="studio-section"
                     value={group ?? ""}
-                    onChange={(event) => setSelectedGroup(event.target.value)}
+                    onChange={(event) => {
+                      setSelectedGroup(event.target.value);
+                      setSelectedKeys([]);
+                    }}
                   >
                     {groups.map((name) => (
                       <option key={name} value={name}>
@@ -526,13 +675,21 @@ export function WebsiteStudioWorkspace({
                       </option>
                     ))}
                   </select>
+                  {selectedKeys.length > 0 && (
+                    <div className="studio-selection-status" role="status">
+                      <span>{selectedKeys.length} campo(s) do elemento seleccionado</span>
+                      <button type="button" onClick={() => setSelectedKeys([])}>
+                        Ver secção inteira
+                      </button>
+                    </div>
+                  )}
                   <Puck.Fields />
                 </>
               ) : (
                 <StudioAppearance
-                  draft={draft}
+                  draft={shownDraft}
                   path={page.url}
-                  disabled={busy}
+                  disabled={busy || publishedView}
                   onChange={changeDraft}
                 />
               )}

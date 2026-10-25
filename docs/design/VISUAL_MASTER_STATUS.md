@@ -173,6 +173,8 @@ com fixtures em seis larguras. O template público não foi redesenhado.
 [Evidência e medições](../qa/website-studio-2026-10-24/README.md).
 
 Faltam CI remoto, sessão real AAL2, duas instituições em staging, Worker canário,
-dispositivos físicos e Web Vitals p75. A selecção de elementos por clique no DOM
-isolado e a alteração livre da estrutura não estão implementadas. Não considerar
+dispositivos físicos e Web Vitals p75. A selecção de elementos por clique/teclado foi implementada com ponte opaca
+restrita e testada localmente. A alteração livre da estrutura continua fora do
+contrato. Desfazer/refazer (20 estados em memória), comparação com publicação
+e revisão explícita antes de publicar também foram acrescentados. Não considerar
 a execução integral do padrão global concluída por causa deste incremento.

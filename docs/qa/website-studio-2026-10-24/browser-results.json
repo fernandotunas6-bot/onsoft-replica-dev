@@ -1,6 +1,12 @@
 {
   "fixtureOnly": true,
   "realPuck": true,
+  "visualSelection": true,
+  "selectionBridgeIsolated": true,
+  "injectedScriptBlocked": true,
+  "undoRedo": true,
+  "publicationReview": true,
+  "publicationReadOnly": true,
   "editedAndSaved": true,
   "draftSeparatedFromPublication": true,
   "failurePreservesDraft": true,
@@ -35,6 +41,6 @@
       "content": 1920
     }
   ],
-  "feedbackSampleMs": 59,
+  "feedbackSampleMs": 54,
   "errors": []
 }

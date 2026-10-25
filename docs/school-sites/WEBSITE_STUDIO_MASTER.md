@@ -196,7 +196,7 @@ pixel-perfect, sessão real, isolamento remoto ou Worker validado com base em mo
 | Admin exacto/AAL2/URLs/domínios | PR #275 e `RECONCILIATION_200.md` | Correcções no ramo; não declarar integração em main |
 | Rota e layout dedicados | `/website/editor` | Implementado; rota privada e carregamento só no cliente |
 | Lista de páginas + canvas + inspector | Primeiro incremento Puck | Implementado e ensaiado localmente |
-| Selecção visual ligada aos campos | Exige mapeamento e modelo de isolamento | Por implementar; não habilitar scripts indiscriminadamente |
+| Selecção visual ligada aos campos | Ponte opcional com CSP por nonce, origem opaca e validação de mensagens | Implementada; testes locais de clique, origem, documento e campos |
 | Dispositivos, largura e zoom do canvas | Primeiro incremento Puck | Implementado e ensaiado localmente |
 | Criação livre de páginas/drag-and-drop | Sem contrato auditado neste incremento | Fora da primeira entrega |
 | MFA real, duas escolas e canário | Roteiro em `RECONCILIATION_200.md` | Pendente de ambiente de testes |
@@ -245,9 +245,9 @@ Caminhos relativos ao módulo `src/features/school-website`, salvo indicação d
 - [Orientações complementares](../design/SIGA_VISUAL_MASTER_2026-10-23.md)
 
 A implementação reutiliza o contrato editorial actual: não grava JSON do Puck em
-`school_settings`. O inspector edita campos autorizados por página/secção; não há
-selecção livre do DOM por clique nem alteração livre de estrutura por drag-and-drop.
-Essas capacidades continuam dependentes do modelo de isolamento e do contrato do
+`school_settings`. O inspector edita campos autorizados por página/secção ou por elemento seleccionado
+no modo opcional do preview. A selecção usa a [ponte restrita documentada](../qa/website-studio-2026-10-24/REFINEMENT.md).
+A alteração livre de estrutura por drag-and-drop continua fora do contrato do
 template. As opções completas anteriores continuam acessíveis pelo estúdio.
 
 Não foram alterados DNS, migrações ou publicações de escolas reais. CI remoto,

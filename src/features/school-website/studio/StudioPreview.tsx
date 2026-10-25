@@ -1,8 +1,11 @@
-import { memo, useEffect, useState } from "react";
-import type { WebsiteDraft } from "../content-model";
+import { memo, useEffect, useRef, useState } from "react";
+import type { WebsiteDraft, WebsiteField } from "../content-model";
+import { selectablePreview, selectedPreviewKeys } from "./selection";
 import { loadWebsitePreviewWordmark, websiteDraftPreview } from "../website-preview";
 
-/** Slow HTML work is debounced; untrusted template content stays inside a scriptless sandbox. */
+const emptyFields: readonly WebsiteField[] = [];
+
+/** Debounced HTML; selection grants only a nonce-pinned bridge in an opaque sandbox. */
 export const StudioPreview = memo(function StudioPreview({
   draft,
   path,
@@ -10,6 +13,9 @@ export const StudioPreview = memo(function StudioPreview({
   logoUrl,
   width,
   zoom,
+  selecting = false,
+  fields = emptyFields,
+  onSelect,
 }: {
   draft: WebsiteDraft;
   path: string;
@@ -17,8 +23,27 @@ export const StudioPreview = memo(function StudioPreview({
   logoUrl?: string | null;
   width: number;
   zoom: number;
+  selecting?: boolean;
+  fields?: readonly WebsiteField[];
+  onSelect?: (keys: string[]) => void;
 }) {
-  const [html, setHtml] = useState("");
+  const [document, setDocument] = useState({ html: "", channel: "" });
+  const frame = useRef<HTMLIFrameElement>(null);
+  const html = document.html;
+  useEffect(() => {
+    if (!selecting || !document.channel || !onSelect) return;
+    const receive = (event: MessageEvent) => {
+      const keys = selectedPreviewKeys(
+        event,
+        frame.current?.contentWindow ?? null,
+        document.channel,
+        fields,
+      );
+      if (keys) onSelect(keys);
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [selecting, document.channel, fields, onSelect]);
   const [error, setError] = useState("");
   const [wordmark, setWordmark] = useState<string | null>(null);
   useEffect(() => {
@@ -34,8 +59,18 @@ export const StudioPreview = memo(function StudioPreview({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        setHtml(
-          websiteDraftPreview(draft, path, schoolName, window.location.origin, logoUrl, wordmark),
+        const source = websiteDraftPreview(
+          draft,
+          path,
+          schoolName,
+          window.location.origin,
+          logoUrl,
+          wordmark,
+        );
+        setDocument(
+          selecting
+            ? selectablePreview(source, fields, window.location.origin)
+            : { html: source, channel: "" },
         );
         setError("");
       } catch (cause) {
@@ -43,7 +78,7 @@ export const StudioPreview = memo(function StudioPreview({
       }
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [draft, path, schoolName, logoUrl, wordmark]);
+  }, [draft, path, schoolName, logoUrl, wordmark, selecting, fields]);
   return (
     <div className="studio-preview-document">
       {error && (
@@ -56,7 +91,8 @@ export const StudioPreview = memo(function StudioPreview({
         <div style={{ width: (width * zoom) / 100, height: (940 * zoom) / 100 }}>
           <iframe
             title={`Pré-visualização privada · ${schoolName} · ${path}`}
-            sandbox=""
+            ref={frame}
+            sandbox={selecting ? "allow-scripts" : ""}
             referrerPolicy="no-referrer"
             srcDoc={html}
             style={{

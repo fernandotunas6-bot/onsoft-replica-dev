@@ -499,3 +499,37 @@
     scroll-behavior: auto !important;
   }
 }
+.studio-edit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 14px 10px;
+}
+.studio-edit-toolbar > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.studio-edit-toolbar button {
+  font-size: 12px;
+}
+.studio-edit-toolbar button[aria-pressed="true"] {
+  background: #edf3ff;
+  border-color: #aac0ef;
+  color: #174aaf;
+}
+.studio-readonly {
+  margin: 0;
+  padding: 0 14px 10px;
+  color: #425372;
+  font-size: 12px;
+}
+.studio-selection-status {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+}

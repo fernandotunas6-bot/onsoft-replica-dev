@@ -107,6 +107,9 @@ describe("Website Studio com o Puck real", () => {
     expect(ui.saved().published).toBeNull();
     expect(ui.persist.mock.calls[0][0]).not.toHaveProperty("content");
     fireEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(ui.saved().published).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar publicação" }));
     await screen.findByText("Conteúdo publicado.");
     expect(ui.saved().published?.content.values).toEqual(ui.saved().draft.values);
     await waitFor(() =>
@@ -189,4 +192,30 @@ it("cancela a leitura anterior e ignora uma resposta atrasada ao mudar de escola
   expect(screen.queryByText("Escola A atrasada")).toBeNull();
   ui.unmount();
   client.clear();
+});
+
+it("desfaz, refaz e conserva o histórico depois de guardar, sem publicar por atalho", async () => {
+  const ui = setup();
+  const field = ui.container.querySelector<HTMLInputElement>(".studio-field input")!;
+  const before = field.value;
+  fireEvent.change(field, { target: { value: "Alteração com histórico" } });
+  await screen.findByText("Alterações por guardar");
+  fireEvent.click(screen.getByText("Desfazer", { selector: "button" }));
+  expect(ui.container.querySelector<HTMLInputElement>(".studio-field input")!.value).toBe(before);
+  fireEvent.click(screen.getByText("Refazer", { selector: "button" }));
+  expect(ui.container.querySelector<HTMLInputElement>(".studio-field input")!.value).toBe(
+    "Alteração com histórico",
+  );
+  fireEvent.keyDown(window, { key: "s", ctrlKey: true });
+  await screen.findByText("Rascunho guardado. A publicação mantém-se.");
+  expect(ui.saved().published).toBeNull();
+  fireEvent.click(screen.getByText("Desfazer", { selector: "button" }));
+  expect(ui.container.querySelector<HTMLInputElement>(".studio-field input")!.value).toBe(before);
+  await screen.findByText("Alterações por guardar");
+});
+it("cancelar a revisão não envia comandos nem publica", async () => {
+  const ui = setup();
+  fireEvent.click(screen.getByRole("button", { name: "Publicar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Continuar a editar" }));
+  expect(ui.persist).not.toHaveBeenCalled();
 });

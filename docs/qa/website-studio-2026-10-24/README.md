@@ -25,8 +25,8 @@ PR #275. Incremento de interface ainda sem integração nem produção.
 Não há novo schema, tabela, API pública de rascunhos ou armazenamento de JSON do
 Puck. O adaptador só escreve campos do manifesto no `WebsiteDraft` existente.
 A inserção/duplicação/remoção e o arrastar livre do Puck estão desactivados para
-conservar a estrutura aprovada. A selecção directa do DOM do preview é uma fase
-posterior, dependente de um protocolo de isolamento revisto.
+conservar a estrutura aprovada. A selecção directa do DOM está agora disponível num modo opcional, com a ponte
+restrita descrita em [REFINEMENT.md](REFINEMENT.md). Continua sem arrastar livre.
 
 ## Segurança e continuidade
 
@@ -37,7 +37,9 @@ foco/religação durante a edição, GC imediato ao sair e AbortSignal no carreg
 Respostas antigas não são aplicadas na escola seguinte; respostas de escrita não
 recriam a cache do estúdio depois do seu unmount.
 
-O preview mantém `sandbox=""`, sem scripts/same-origin, e `referrerPolicy=no-referrer`.
+O preview normal mantém `sandbox=""`, sem scripts/same-origin, e `referrerPolicy=no-referrer`.
+O modo de selecção usa `allow-scripts` com CSP por nonce e sem same-origin, rede de
+dados ou comandos de escrita; ver [protocolo e ensaios](REFINEMENT.md).
 O Puck renderiza apenas componentes de confiança do SIGA; não executa componentes
 fornecidos pela escola. A geração de HTML é adiada 220 ms depois da última edição,
 conservando a última prévia válida se uma URL ainda estiver incompleta.
@@ -50,7 +52,7 @@ Puck é carregado pelo módulo dedicado. Não foram alterados `painel/escolas/**
 
 | Verificação | Evidência / limite |
 | --- | --- |
-| Testes do módulo, acesso, configuração e orçamento inicial | 41 ficheiros e 337 testes passaram; inclui Puck real, não apenas um mock de inspector |
+| Testes do módulo, acesso, configuração e orçamento inicial | 43 ficheiros e 343 testes passaram; inclui Puck real, não apenas um mock de inspector |
 | Tipos e build | Typecheck passou; build de produção Node passou; instalação com lockfile congelado passou |
 | Lint e estilo | ESLint global: 0 erros e 47 avisos; checklist de estilo passou (974 ficheiros) |
 | Cancelamento A/B | Leitura de A abortada; resposta atrasada de A não aparece em B; fixture React Query |
@@ -100,8 +102,10 @@ um aviso alto na versão transitiva anterior. Puck continua fixo em 0.23.0, com
 lockfile. [Licença upstream preservada](../../school-sites/PUCK_LICENSE.txt), também
 incluída na distribuição estática em `/licenses/puck.txt`.
 
-Os avisos altos restantes da auditoria da raiz são bloqueios anteriores relativos
-a body-parser, Undici e Zod; não foram ocultados nem tratados por upgrades major
-forçados neste incremento. [Comparativo de auditoria](dependency-audit.txt): saída idêntica na base e neste incremento.
+A auditoria inicial encontrou alertas em body-parser, Undici e Zod. O refinamento
+actualiza body-parser e Undici por overrides compatíveis, restando o Zod. A saída
+original abaixo conserva a evidência histórica; o novo relatório está em
+[dependency-audit-refinement.txt](dependency-audit-refinement.txt). Não há exclusão
+de alertas nem upgrade major forçado. [Comparativo de auditoria](dependency-audit.txt): saída idêntica na base e neste incremento.
 Manter em revisão até CI, compatibilidade de dependências e ensaio real Admin+AAL2,
 A/B e domínio canário. Não houve SQL, DNS ou deployment de produção.

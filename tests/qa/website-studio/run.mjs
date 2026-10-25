@@ -59,6 +59,7 @@ try {
     args: ["--no-sandbox"],
   });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  page.setDefaultTimeout(15000);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(base + "/tests/qa/website-studio/index.html", { waitUntil: "domcontentloaded" });
@@ -67,11 +68,47 @@ try {
   mkdirSync("docs/qa/website-studio-2026-10-24", { recursive: true });
   await page.screenshot({ path: "docs/qa/website-studio-2026-10-24/desktop.png", fullPage: true });
   console.log("Desktop rendered with real Puck");
+  await page.getByRole("button", { name: "Seleccionar elemento", exact: true }).click();
+  const selected = page
+    .frameLocator('iframe[title^="Pré-visualização privada"]')
+    .locator("h1[data-studio-fields]")
+    .first();
+  await selected.click();
+  await page.getByText(/campo\(s\) do elemento seleccionado/).waitFor();
+  assert.equal(await page.locator("iframe").getAttribute("sandbox"), "allow-scripts");
+  assert.ok(await page.getByLabel("Texto · O seu futuro", { exact: true }).isVisible());
+  const frame = page.frames().find((item) => item.parentFrame());
+  assert.ok(frame);
+  assert.equal(
+    await frame.evaluate(() => {
+      try {
+        void parent.document.body;
+        return false;
+      } catch {
+        return true;
+      }
+    }),
+    true,
+  );
+  // Browser enforces the bridge CSP: an injected non-nonce script must not execute.
+  await frame.evaluate(() => {
+    const script = document.createElement("script");
+    script.textContent = "window.__studioInjected = true";
+    document.body.append(script);
+  });
+  assert.equal(await frame.evaluate(() => window.__studioInjected), undefined);
+  await page.getByRole("button", { name: "Ver secção inteira", exact: true }).click();
+  await page.getByRole("button", { name: "Seleccionar elemento", exact: true }).click();
+  await page.waitForTimeout(300);
   const headline = page.getByLabel("Texto · O seu futuro", { exact: true });
   const start = Date.now();
   await headline.fill("Futuro na Escola");
   await page.getByText("Alterações por guardar", { exact: true }).waitFor();
   const feedbackMs = Date.now() - start;
+  await page.getByRole("button", { name: "Desfazer", exact: true }).click();
+  assert.notEqual(await headline.inputValue(), "Futuro na Escola");
+  await page.getByRole("button", { name: "Refazer", exact: true }).click();
+  assert.equal(await headline.inputValue(), "Futuro na Escola");
   await page.getByRole("button", { name: "Guardar rascunho", exact: true }).click();
   await page.getByText("Rascunho guardado. A publicação mantém-se.", { exact: true }).waitFor();
   assert.equal(await page.evaluate(() => window.studioQA.saved().published), null);
@@ -83,7 +120,11 @@ try {
   let acceptDialogs = true;
   page.on("dialog", (dialog) => (acceptDialogs ? dialog.accept() : dialog.dismiss()));
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
+  await page.getByRole("button", { name: "Confirmar publicação", exact: true }).click();
   await page.getByText("Conteúdo publicado.", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Ver publicação", exact: true }).click();
+  assert.equal(await page.getByLabel("Texto · O seu futuro", { exact: true }).isDisabled(), true);
+  await page.getByRole("button", { name: "Voltar ao rascunho", exact: true }).click();
   const revision = await page.evaluate(() => window.studioQA.saved().revision);
   await headline.fill("Edição que não se pode perder");
   await page.evaluate(() => window.studioQA.fail());
@@ -130,6 +171,12 @@ try {
   const result = {
     fixtureOnly: true,
     realPuck: true,
+    visualSelection: true,
+    selectionBridgeIsolated: true,
+    injectedScriptBlocked: true,
+    undoRedo: true,
+    publicationReview: true,
+    publicationReadOnly: true,
     editedAndSaved: true,
     draftSeparatedFromPublication: true,
     failurePreservesDraft: true,
