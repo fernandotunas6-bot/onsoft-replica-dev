@@ -83,6 +83,7 @@ import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 import { openSettingsPanel } from "@/lib/settings-deep-link";
+import { paymentMethodLabel } from "@/features/finance/payment-method";
 
 const financeiroFilterDefaults = {
   q: "",
@@ -185,7 +186,7 @@ function FinanceiroPage() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const reportingQuery = useQuery({
     queryKey: ["finance", "reporting"],
@@ -213,7 +214,7 @@ function FinanceiroPage() {
         data: entry.occurred_at,
         descricao: entry.description,
         categoria: entry.category,
-        metodo: entry.method,
+        metodo: paymentMethodLabel(entry.method),
         status: entry.status,
         tipo: entry.direction === "in" ? ("Entrada" as const) : ("Saída" as const),
         valor: Number(entry.amount),
@@ -364,9 +365,11 @@ function FinanceiroPage() {
     (invoice) =>
       `${invoice.number} · ${invoice.student_name} · ${Number(invoice.total_amount).toLocaleString("pt-PT")} Kz`,
   );
-  // SGA finance_receipts.payment_method only accepts `cash` (confirmed in live smoke).
+  // Recebimento ao balcão: numerário na gaveta ou cartão no TPA do banco. O TPA fica
+  // gravado como `card` e não entra na gaveta (vai para o banco).
   const paymentMethods = {
     Numerário: "cash",
+    "TPA (cartão)": "tpa",
   } as const;
   const reversibleEntries = movimentos.filter((movimento) => movimento.status === "posted");
   const cashEntryOptions = reversibleEntries.map(

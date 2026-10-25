@@ -69,7 +69,7 @@ import {
   recordInvoicePayment,
 } from "@/features/finance/server";
 import { officialReceiptBody } from "@/features/finance/schemas";
-import { buildProformaInvoice } from "@/features/finance/proforma-receipts";
+import { buildProformaInvoice, proformaNumber } from "@/features/finance/proforma-receipts";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { whatsappHref } from "@/features/integrations/actions";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -150,7 +150,7 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
     return `Em atraso: registar hoje aplica a multa de ${kz(multa.counter)}, já somada ao valor.`;
   }
   if (multa.electronic > 0) {
-    return `Em atraso: Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
+    return `Em atraso: TPA, Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
   }
   return "Liquida esta fatura e lança o recibo no caixa.";
 }
@@ -168,6 +168,7 @@ function FaturasPage() {
   const [emisInvoice, setEmisInvoice] = useState<{ id: string; numero: string } | null>(null);
   const receiveMethods = [
     "Numerário",
+    "TPA (cartão)",
     "Transferência",
     ...(installed.isInstalled("multicaixa_express") ? ["Multicaixa Express"] : []),
     ...(installed.isInstalled("unitel_money") ? ["Unitel Money"] : []),
@@ -183,7 +184,7 @@ function FaturasPage() {
 
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const financeStudentsQuery = useQuery({
     queryKey: ["finance", "students"],
@@ -386,6 +387,7 @@ function FaturasPage() {
               const amount = Number(values["valor"]);
               const methodMap = {
                 Numerário: "cash",
+                "TPA (cartão)": "tpa",
                 Transferência: "transfer",
                 "Multicaixa Express": "multicaixa_express",
                 "Unitel Money": "unitel_money",
@@ -728,7 +730,7 @@ function FaturasPage() {
         s.student_id === studentLabel,
     );
 
-    const proformaNo = `FP-${new Date().getFullYear()}/${String(invoiceCount + 1).padStart(4, "0")}`;
+    const proformaNo = proformaNumber();
     const issueDate = schoolTodayIso();
     const dueDate = schoolDateInDays(15);
     const amount = Number(values["valor"]) || 0;
@@ -795,7 +797,7 @@ function FaturasPage() {
         <PageHeader
           group="Financeiro"
           title="Faturas"
-          description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação."
+          description="Documentos de cobrança emitidos, com vencimento, valor e estado de liquidação. Mostra as 250 mais recentes e todas as que estão por pagar."
           actions={
             <>
               <DocHelpButton title="Navegação — Faturas e tesouraria" />

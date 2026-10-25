@@ -55,10 +55,15 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     console.log("A carimbar o ficheiro existente (sem regenerar)…");
   } else {
     console.log("A gerar a partir do projecto ligado…");
-    gerado = execFileSync("npx", ["supabase", "gen", "types", "typescript", "--linked"], {
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    const cli = process.env.SIGA_SUPABASE_CLI;
+    gerado = execFileSync(
+      cli || "npx",
+      [...(cli ? [] : ["supabase"]), "gen", "types", "typescript", "--linked"],
+      {
+        encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
+      },
+    );
   }
 
   writeFileSync(DESTINO, carimbar(gerado));
