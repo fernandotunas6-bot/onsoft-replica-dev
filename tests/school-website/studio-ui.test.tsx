@@ -117,6 +117,32 @@ describe("Website Studio com o Puck real", () => {
       expect(ui.container.querySelector("iframe")?.getAttribute("sandbox")).toBe(""),
     );
   });
+  it("a vista da publicação é apenas de leitura e não grava rascunhos ocultos", async () => {
+    const ui = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar publicação" }));
+    await screen.findByText("Conteúdo publicado.");
+    expect(ui.persist).toHaveBeenCalledTimes(1);
+
+    const field = ui.container.querySelector<HTMLInputElement>(".studio-field input")!;
+    fireEvent.change(field, { target: { value: "Alteração apenas no rascunho" } });
+    await screen.findByText("Alterações por guardar");
+    fireEvent.click(screen.getByRole("button", { name: "Ver publicação" }));
+
+    expect((screen.getByRole("button", { name: "Guardar rascunho" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+    expect((screen.getByRole("button", { name: "Publicar" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+    fireEvent.keyDown(window, { key: "s", ctrlKey: true });
+    expect(ui.persist).toHaveBeenCalledTimes(1);
+    expect(ui.saved().draft.values).not.toContain("Alteração apenas no rascunho");
+
+    fireEvent.click(screen.getByRole("button", { name: "Voltar ao rascunho" }));
+    expect((screen.getByRole("button", { name: "Guardar rascunho" }) as HTMLButtonElement).disabled)
+      .toBe(false);
+    expect(ui.persist).toHaveBeenCalledTimes(1);
+  });
+
   it("uma falha conserva a edição e mudar dispositivo não grava nem publica", async () => {
     const ui = setup();
     ui.persist.mockRejectedValueOnce(Error("Conflito de revisão; recarregue."));
