@@ -110,6 +110,8 @@ export function AppyPayPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chargesKey });
       qc.invalidateQueries({ queryKey: ["tesouraria"] });
+      // Os créditos da reconciliação mudam facturas, recibos e totais de Facturas, Caixa e Tesouraria.
+      qc.invalidateQueries({ queryKey: ["finance"] });
     },
   });
   const cfg = status.data;

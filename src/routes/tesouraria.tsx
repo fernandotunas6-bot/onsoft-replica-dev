@@ -63,17 +63,17 @@ const monthLabel = (iso: string) =>
 
 function TreasuryPage() {
   const reporting = useQuery({
-    queryKey: ["tesouraria", "reporting"],
+    queryKey: ["finance", "reporting"],
     queryFn: () => getFinanceReporting(),
     retry: false,
   });
   const invoices = useQuery({
-    queryKey: ["tesouraria", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250 } }),
+    queryKey: ["finance", "invoices"],
+    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
     retry: false,
   });
   const cash = useQuery({
-    queryKey: ["tesouraria", "cash"],
+    queryKey: ["finance", "cash-entries"],
     queryFn: () => listCashEntries({ data: { limit: 250 } }),
     retry: false,
   });

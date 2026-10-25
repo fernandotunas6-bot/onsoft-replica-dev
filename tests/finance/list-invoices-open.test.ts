@@ -21,12 +21,25 @@ describe("faturas por pagar na lista", () => {
     expect(lista).toMatch(/\.range\(from, from \+ OPEN_INVOICES_PAGE - 1\)/);
   });
 
-  it("Faturas e Caixa pedem-nas", () => {
-    for (const rota of ["faturas.tsx", "financeiro.tsx"]) {
+  it("Faturas, Caixa e Tesouraria pedem-nas", () => {
+    for (const rota of ["faturas.tsx", "financeiro.tsx", "tesouraria.tsx"]) {
       const fonte = readFileSync(join(process.cwd(), "src/routes", rota), "utf8");
       expect(fonte, rota).toMatch(
         /listInvoices\(\{ data: \{ limit: 250, includeOpen: true \} \}\)/,
       );
+    }
+  });
+
+  it("Faturas, Caixa, Tesouraria e Relatórios partilham a cache do resumo e das listas", () => {
+    for (const rota of [
+      "faturas.tsx",
+      "financeiro.tsx",
+      "tesouraria.tsx",
+      "relatorios.financeiros.tsx",
+    ]) {
+      const fonte = readFileSync(join(process.cwd(), "src/routes", rota), "utf8");
+      expect(fonte, rota).toMatch(/queryKey: \["finance", "reporting"\]/);
+      expect(fonte, rota).not.toMatch(/queryKey: \["tesouraria", "(reporting|invoices|cash)"\]/);
     }
   });
 
