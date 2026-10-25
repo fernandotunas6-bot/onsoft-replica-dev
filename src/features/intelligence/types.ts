@@ -1,7 +1,13 @@
 import type { ModuleGrantMap } from "@/features/auth/access-policy";
 
 export type EntityType =
-  "student" | "teacher" | "class" | "finance-overview" | "dashboard-overview";
+  | "student"
+  | "teacher"
+  | "class"
+  | "finance-overview"
+  | "dashboard-overview"
+  /** Uma disciplina dentro de uma turma: o id é `<turma>:<disciplina>`. */
+  | "subject-offering";
 
 export interface EntityFocus<T = unknown> {
   type: EntityType;
@@ -17,6 +23,30 @@ export interface AppContext {
   grants: ModuleGrantMap;
   pathname: string;
   focusedEntity: EntityFocus | null;
+}
+
+/** Um passo do caminho do contexto (Turma A → Matemática). */
+export interface ContextFrame {
+  type: EntityType;
+  id: string;
+  /** Vem sempre de uma leitura validada no servidor, nunca da URL. */
+  label: string;
+}
+
+/**
+ * O contexto activo resolvido uma vez e lido por sidebar, breadcrumb, conteúdo
+ * e painel de relações. Estende o AppContext: utilizador, papel e permissões
+ * continuam a vir de lá.
+ */
+export interface ResolvedContext extends AppContext {
+  schoolId: string;
+  academicYearId: string | null;
+  /** Do mais geral para o mais específico. Vazio = só a área. */
+  trail: ContextFrame[];
+  /** Id da entrada do registo seleccionada; null quando nenhuma corresponde. */
+  activeView: string | null;
+  /** Escola, papel, ano e ids do caminho: prefixo das chaves de cache do contexto. */
+  key: string;
 }
 
 export type RelationStatus = "ok" | "attention" | "critical" | "empty";
