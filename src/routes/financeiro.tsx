@@ -34,6 +34,7 @@ const FinanceiroCashChart = lazy(() =>
   })),
 );
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
+import { CashSessionBar } from "@/features/finance/components/CashSession";
 import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
 import { paymentPlanState } from "@/features/finance/payment-states";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
@@ -831,6 +832,8 @@ function FinanceiroPage() {
             </>
           }
         />
+
+        <CashSessionBar />
 
         <InstalledModuleTools module="financeiro" />
 

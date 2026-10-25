@@ -11,6 +11,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getFinanceReporting, listCashEntries, listInvoices } from "@/features/finance/server";
 import { cn } from "@/lib/utils";
 import { ChargeInvoiceButton, useAppyPayStatus } from "@/features/finance/AppyPayPanel";
+import {
+  CashClosingsPanel,
+  CashDepositsPanel,
+  CashDifferencesPanel,
+} from "@/features/finance/components/CashSession";
 import { schoolTodayIso } from "@/lib/school-date";
 
 export const Route = createFileRoute("/tesouraria")({
@@ -126,6 +131,10 @@ function TreasuryPage() {
             </div>
           ))}
         </div>
+
+        <CashDifferencesPanel />
+        <CashDepositsPanel />
+        <CashClosingsPanel />
 
         <Panel
           title="Fluxo de caixa mensal"
