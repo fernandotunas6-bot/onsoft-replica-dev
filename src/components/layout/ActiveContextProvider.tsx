@@ -7,9 +7,9 @@ import { useEntityNavigation } from "./ContextEntityNav";
 const NO_SEARCH: Record<string, unknown> = {};
 
 /**
- * Resolve o contexto da URL para o cabeçalho e o conteúdo, com a mesma regra do
- * menu da entidade na sidebar (as consultas são as mesmas e o React Query faz
- * um só pedido).
+ * Resolve o contexto da URL para o cabeçalho, o hub «Mais» do telemóvel e o
+ * conteúdo, com a mesma regra do menu da entidade na sidebar (as consultas são
+ * as mesmas e o React Query faz um só pedido).
  */
 export function ActiveContextProvider({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -19,7 +19,11 @@ export function ActiveContextProvider({ children }: { children: ReactNode }) {
   const navigation = useEntityNavigation(pathname, search ?? NO_SEARCH);
   const value = useMemo<ActiveContextValue>(() => {
     const context = navigation?.context ?? null;
-    return { context, crumbs: contextCrumbs(context?.trail, pathname, search ?? NO_SEARCH) };
+    return {
+      context,
+      navigation,
+      crumbs: contextCrumbs(context?.trail, pathname, search ?? NO_SEARCH),
+    };
   }, [navigation, pathname, search]);
   return <ActiveContext.Provider value={value}>{children}</ActiveContext.Provider>;
 }

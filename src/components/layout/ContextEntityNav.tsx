@@ -12,7 +12,6 @@ import {
   contextEntryLink,
   findActiveContextEntry,
   getContextEntries,
-  type ContextNavEntry,
 } from "@/features/intelligence/context-registry";
 import {
   combineContextLookups,
@@ -20,7 +19,12 @@ import {
   resolveContext,
   routeContextCandidates,
 } from "@/features/intelligence/context-resolver";
-import type { ContextFrame, EntityType, ResolvedContext } from "@/features/intelligence/types";
+import {
+  entityKindLabel,
+  groupContextEntries,
+  type EntityNavigation,
+} from "@/features/intelligence/entity-navigation";
+import type { ContextFrame, ResolvedContext } from "@/features/intelligence/types";
 import { cn } from "@/lib/utils";
 import { NavLinkRow, NavSubheader } from "./NavItem";
 
@@ -30,13 +34,6 @@ import { NavLinkRow, NavSubheader } from "./NavItem";
  * servidor devolveu à conta, a sidebar mostra «Voltar», o nome da entidade e só
  * as funções dessa entidade. A URL que o servidor não confirma não muda o menu.
  */
-
-const ENTITY_KIND: Partial<Record<EntityType, string>> = {
-  class: "Turma",
-  "subject-offering": "Disciplina",
-  student: "Aluno",
-  teacher: "Professor",
-};
 
 /**
  * O menu da entidade é de gestão (pauta, chamada, planos, ficha do aluno). Aluno e
@@ -59,13 +56,6 @@ function backLink(
   const tab = typeof search.tab === "string" ? search.tab : undefined;
   return { to: pathname, ...(tab ? { search: { tab } } : {}) };
 }
-
-export type EntityNavigation = {
-  context: ResolvedContext;
-  entries: ContextNavEntry[];
-  activeId: string | null;
-  back: { to: string; search?: Record<string, string | undefined> };
-};
 
 /** Resolve o contexto da URL. Devolve null quando não há entidade confirmada. */
 export function useEntityNavigation(
@@ -134,7 +124,7 @@ export function useEntityNavigation(
 
 function EntityHeader({ trail, collapsed }: { trail: ContextFrame[]; collapsed: boolean }) {
   const inner = trail.at(-1)!;
-  const kind = ENTITY_KIND[inner.type] ?? "Contexto";
+  const kind = entityKindLabel(inner.type);
   const parents = trail.slice(0, -1).map((frame) => frame.label);
   if (collapsed) return <span className="sr-only">{`${kind} · ${inner.label}`}</span>;
   return (
@@ -160,19 +150,12 @@ export function ContextEntityNav({
   collapsed?: boolean;
 }) {
   const { context, entries, activeId, back } = navigation;
-  const groups = entries.reduce<Array<{ title: string; items: ContextNavEntry[] }>>(
-    (result, entry) => {
-      const group = result.find((item) => item.title === entry.group);
-      if (group) group.items.push(entry);
-      else result.push({ title: entry.group, items: [entry] });
-      return result;
-    },
-    [],
-  );
+  const groups = groupContextEntries(entries);
+  const inner = context.trail.at(-1)!;
 
   return (
     <section
-      aria-label={`${ENTITY_KIND[context.trail.at(-1)!.type] ?? "Contexto"}: ${context.trail.at(-1)!.label}`}
+      aria-label={`${entityKindLabel(inner.type)}: ${inner.label}`}
       data-context-nav=""
       className={cn(!collapsed && "border-b border-sidebar-border/40 pb-2")}
     >

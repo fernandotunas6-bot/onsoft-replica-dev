@@ -75,6 +75,7 @@ describe("PageHeader — hierarquia e orientação", () => {
 /** Contexto que a AppShell daria para a pauta de Matemática da 10.ª A. */
 const pautaDeMatematica = {
   context: null,
+  navigation: null,
   crumbs: {
     page: { to: "/pedagogica", search: { tab: "notas" } },
     frames: [
@@ -142,6 +143,7 @@ describe("PageHeader — contexto da URL", () => {
   it("na página da própria entidade não repete o título", () => {
     const professora = {
       context: null,
+      navigation: null,
       crumbs: { page: null, frames: [{ label: "Maria Domingos" }] },
     } satisfies ActiveContextValue;
     headerInContext(professora, { title: "Maria Domingos" });

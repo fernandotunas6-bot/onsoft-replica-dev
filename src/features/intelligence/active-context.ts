@@ -1,10 +1,13 @@
 import { createContext, useContext } from "react";
 import type { ContextCrumb, ContextCrumbs } from "./context-breadcrumb";
+import type { EntityNavigation } from "./entity-navigation";
 import type { ResolvedContext } from "./types";
 
 export type ActiveContextValue = {
   /** O contexto da URL confirmado pelo servidor (o do menu da entidade). */
   context: ResolvedContext | null;
+  /** O menu da entidade aberta, para o hub «Mais» do telemóvel; null sem entidade. */
+  navigation: EntityNavigation | null;
   crumbs: ContextCrumbs;
 };
 

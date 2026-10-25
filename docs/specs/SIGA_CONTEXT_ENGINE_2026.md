@@ -41,6 +41,8 @@ PR #332 (`context-resolver.ts`, `context-registry.ts`, `academic-context-entries
 | `academic/use-academic-nav-tree.ts`                                                           | Turmas/disciplinas que o servidor devolve à conta; mesmas chaves de query da árvore                                                           | fase 3                         |
 | `intelligence/academic-context-lookup.ts`                                                     | `ContextLookup` a partir dessa árvore; rótulos do servidor                                                                                    | fase 3                         |
 | `layout/ContextEntityNav.tsx`                                                                 | `useEntityNavigation` + menu da entidade (turma, disciplina, aluno) na sidebar                                                                | fase 3 e 5                     |
+| `intelligence/entity-navigation.ts`                                                           | Tipo `EntityNavigation` e ajudas partilhadas pela sidebar e pelo telemóvel                                                                    | fase 8                         |
+| `mobile/MoreHub.tsx`, `mobile/MobileEntityNav.tsx`                                            | Hub «Mais» do telemóvel; mostra o menu da entidade aberta                                                                                     | existente + fase 8             |
 | `students/student-sections.ts`                                                                | Secções da ficha do aluno (`?secao=`) e quem lê cada uma                                                                                      | fase 5                         |
 | `intelligence/student-context-entries.ts`                                                     | Entradas do aluno: Ficha completa e as secções que a conta lê                                                                                 | fase 5                         |
 | `intelligence/context-breadcrumb.ts`, `active-context.ts`, `layout/ActiveContextProvider.tsx` | Breadcrumb do contexto no `PageHeader`, a partir do mesmo contexto do menu                                                                    | fase 3                         |
@@ -57,6 +59,7 @@ Matemática». **Opção A aprovada:** sem coluna nova nem disposição em duas 
 | Barra global       | Sem coluna nova. Escola no cabeçalho da sidebar; «Todas as áreas» mantém o catálogo.                                                                                                                                                                                                                                                                                                                                                        |
 | Sidebar contextual | Com turma/disciplina confirmada: «← Voltar a ‹módulo›», cabeçalho `Disciplina · Matemática` / `Turma A`, grupos do registo (Ensino, Avaliação, Acompanhamento), entrada actual com `aria-current="page"`. A árvore académica continua por baixo para mudar de turma. O catálogo do módulo volta com «Voltar» ou «Todas as áreas». Com um aluno aberto: «← Voltar» à lista de alunos, `Aluno · ‹nome›` e as secções da ficha que a conta lê. |
 | Recolhida (64 px)  | Mesmas entradas só com ícone e nome acessível (`sr-only` + `title`).                                                                                                                                                                                                                                                                                                                                                                        |
+| Telemóvel          | Sem sidebar. O hub «Mais» da barra inferior mostra o mesmo menu da entidade («Voltar», cabeçalho, grupos e entrada actual), com as linhas de 56 px do hub. «Todas as áreas» e a pesquisa continuam a levar a todo o lado.                                                                                                                                                                                                                   |
 | Conteúdo principal | A página da função. O `PageHeader` acrescenta ao breadcrumb a turma e a disciplina da URL («Área Pedagógica / 10.ª A / Matemática»); cada passo leva à mesma página nesse nível, e um breadcrumb explícito da página manda. A ficha do aluno com `?secao=` mostra só essa secção, com «Ver ficha completa».                                                                                                                                 |
 | Painel direito     | `RightRail` existente; nunca um segundo painel.                                                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -150,14 +153,16 @@ da URL é recusada.
 | RH                                                  | Parcial (só por cargo)                                                    |
 | Biblioteca, Transporte                              | Ausente — sem rotas no `main`                                             |
 | Comunicações, Calendário, Relatórios, Configurações | Parcial — sem entidade                                                    |
-| Mobile (gaveta/navegação inferior)                  | Ausente — o menu da entidade é só da `AppSidebar` (desktop); fase 8       |
+| Mobile (gaveta/navegação inferior)                  | Implementado no hub «Mais» (fase 8); falta validar em aparelhos           |
 
 ## 6. Comportamento de menus
 
 - Clique em qualquer entrada; nada depende de hover.
 - Recolhida: ícones com nome acessível; o popover da árvore académica mantém-se.
 - Destino activo: `aria-current="page"`; «Voltar» nunca fica activo.
-- Mobile: gaveta e navegação inferior existentes, com alvos ≥44 px (fase 8).
+- Mobile: o hub «Mais» da barra inferior mostra o menu da entidade, com linhas de 56 px e
+  «Voltar» de 44 px; escolher uma entrada fecha o hub (mudar de secção do aluno só muda a
+  pesquisa da URL).
 
 ## 7. Memória, cache e desempenho
 
@@ -178,17 +183,17 @@ da URL é recusada.
 
 ## 9. Estado das fases
 
-| Fase                | Estado                                             | Evidência                                                                                                                                   |
-| ------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 Auditoria         | Parcial                                            | Inventário §5; falta auditoria em sessão autenticada                                                                                        |
-| 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                         |
-| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 11 testes de sidebar + 7 de lookup; breadcrumb com 7 testes                                                             |
-| 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                               |
-| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 6 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada |
-| 6–7 Restantes       | Ausente                                            |                                                                                                                                             |
-| 8 Desktop/mobile    | Parcial                                            | Desktop expandido e recolhido testados em jsdom; capturas e mobile por fazer                                                                |
-| 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                         |
-| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (693 ficheiros); Playwright pendente                                                               |
+| Fase                | Estado                                             | Evidência                                                                                                                                                                                      |
+| ------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 Auditoria         | Parcial                                            | Inventário §5; falta auditoria em sessão autenticada                                                                                                                                           |
+| 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                                                                            |
+| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 11 testes de sidebar + 7 de lookup; breadcrumb com 7 testes                                                                                                                |
+| 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
+| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 6 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                    |
+| 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
+| 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
+| 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
+| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (693 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
@@ -200,7 +205,7 @@ da URL é recusada.
 | D Multi-escola                 | Entidade de outra escola descartada; queries repostas                                                  | E2E com duas escolas |
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
-| G Dispositivos                 | Recolhida                                                                                              | Fase 8               |
+| G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
 | H Regressão                    | Suite completa passa (693 ficheiros, 4783 testes)                                                      | Playwright           |
 
 ## 11. Como estender
@@ -224,7 +229,8 @@ abrir a entrada perde o contexto).
 
 ## 13. Limitações conhecidas
 
-- Mobile ainda sem menu da entidade.
+- No telemóvel, o menu da entidade só aparece ao abrir o hub «Mais»; falta validar em
+  aparelhos.
 - Presenças, Materiais e Chamada precisam de confirmação ou de entrar no resolvedor.
 - A memória de contexto não está ligada.
 - Na ficha do aluno, o Encarregado vê botões de gestão (Editar ficha, Estado, Anular); o
