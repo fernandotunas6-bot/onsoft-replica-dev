@@ -13,8 +13,8 @@ import {
   FileBadge,
   FileDown,
   FileText,
+  Hash,
   Plus,
-  QrCode,
   Wallet,
   X,
 } from "lucide-react";
@@ -327,7 +327,7 @@ function FaturasPage() {
             variant="ghost"
             onClick={() => setEmisInvoice({ id: f.id, numero: f.numero })}
           >
-            <QrCode className="size-3.5" /> Referência EMIS
+            <Hash className="size-3.5" /> Referência EMIS
           </Button>
         ) : null}
         {f.estado !== "Paga" ? (
