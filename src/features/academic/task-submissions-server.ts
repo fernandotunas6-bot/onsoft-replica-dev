@@ -6,18 +6,30 @@
  *   entregas da turma, regista a entrega em papel e devolve com nota e comentário.
  * - Aluno: entrega na sua matrícula activa da turma da tarefa.
  * - Encarregado: vê a entrega do educando, não entrega por ele.
+ *
+ * Uma tarefa ligada a uma avaliação (`assessment_item_id`) leva a nota devolvida
+ * à pauta pelo mesmo caminho do lançamento (`writeAssessmentScores`): cotação,
+ * período aberto e pauta homologada valem aqui como lá.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { loadSgaAdminClient, resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
+import {
+  assertTenantAllowsWrites,
+  loadSgaAdminClient,
+  requireSgaWriterForWrite,
+  resolveSgaMembershipAdmin,
+} from "@/integrations/supabase/sga-admin";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
+import { writeAssessmentScores } from "./assessment-score-write";
+import { TASK_KINDS } from "./lesson-messages";
 import { ownTeacherId } from "./own-teacher";
 import {
   decideSubmission,
   latestByEnrollment,
   studentView,
+  summarizeWork,
   type SubmissionRow,
 } from "./task-submissions";
 
@@ -25,7 +37,7 @@ type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
 const str = (value: unknown) => (value == null ? "" : String(value));
 
-const MANAGER_ROLES = ["Administrador", "Secretaria"];
+const MANAGER_ROLES = ["Administrador", "Secretaria"] as const;
 const SUBMISSION_COLUMNS =
   "id, enrollment_id, attempt, status, submitted_at, is_late, on_paper, body, grade, feedback, returned_at";
 
@@ -34,7 +46,9 @@ const taskInput = z.object({ taskId: z.string().guid(), studentId: z.string().gu
 async function loadTask(db: Db, schoolId: string, taskId: string) {
   const { data: task, error } = await db
     .from("siga_class_tasks")
-    .select("id, class_subject_id, status, due_on, accepts_late, title")
+    .select(
+      "id, class_subject_id, status, due_on, accepts_late, title, kind, description, assessment_item_id",
+    )
     .eq("school_id", schoolId)
     .eq("id", taskId)
     .maybeSingle();
@@ -42,7 +56,7 @@ async function loadTask(db: Db, schoolId: string, taskId: string) {
   if (!task) throw new Error("Tarefa não encontrada.");
   const { data: classSubject, error: csError } = await db
     .from("class_subjects")
-    .select("id, class_group_id, teacher_id")
+    .select("id, class_group_id, subject_id, teacher_id")
     .eq("school_id", schoolId)
     .eq("id", task.class_subject_id)
     .maybeSingle();
@@ -51,14 +65,20 @@ async function loadTask(db: Db, schoolId: string, taskId: string) {
   return { task, classSubject };
 }
 
-/** Administrador/Secretaria sempre; Professor só na disciplina que lecciona. */
-async function requireTaskManager(userId: string, taskId: string) {
-  const membership = await resolveSgaMembershipAdmin(userId);
+/**
+ * Administrador/Secretaria sempre; Professor só na disciplina que lecciona. Em
+ * escrita, o guarda da pauta: módulo não retirado e escola que pode gravar.
+ */
+async function requireTaskManager(userId: string, taskId: string, mode: "read" | "write") {
+  const membership =
+    mode === "write"
+      ? await requireSgaWriterForWrite("pedagogica", userId, [...MANAGER_ROLES, "Professor"])
+      : await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   const db = await loadSgaAdminClient();
   const loaded = await loadTask(db, membership.schoolId, taskId);
   const roles: string[] = membership.allAppRoles ?? [membership.appRole];
-  if (!roles.some((role) => MANAGER_ROLES.includes(role))) {
+  if (!roles.some((role) => (MANAGER_ROLES as readonly string[]).includes(role))) {
     const own = await ownTeacherId(db, membership.schoolId, userId);
     if (!own || own !== str(loaded.classSubject.teacher_id)) {
       throw new Error("Só o professor desta disciplina (ou a direcção) pode ver estas entregas.");
@@ -84,7 +104,41 @@ export type TaskSubmissionLine = {
   studentName: string;
   submission: SubmissionRow | null;
   attempts: number;
+  /** Todas as tentativas, da mais recente para a mais antiga. */
+  history: SubmissionRow[];
+  /** A nota desta tarefa já na pauta, quando a tarefa conta para uma avaliação. */
+  pautaScore: number | null;
 };
+
+export type TaskAssessmentOption = {
+  id: string;
+  name: string;
+  term: number;
+  maxScore: number | null;
+};
+
+/** As avaliações da mesma turma e disciplina: as únicas a que a tarefa pode contar. */
+async function loadAssessmentOptions(
+  db: Db,
+  schoolId: string,
+  classSubject: { class_group_id: unknown; subject_id: unknown },
+): Promise<TaskAssessmentOption[]> {
+  const { data, error } = await db
+    .from("siga_assessment_items")
+    .select("id, name, term, max_score")
+    .eq("school_id", schoolId)
+    .eq("class_group_id", str(classSubject.class_group_id))
+    .eq("subject_id", str(classSubject.subject_id))
+    .order("term")
+    .limit(100);
+  if (error) throw publicDatabaseError(error, "Não foi possível ler as avaliações da disciplina.");
+  return ((data ?? []) as Row[]).map((row) => ({
+    id: str(row.id),
+    name: str(row.name),
+    term: Number(row.term),
+    maxScore: row.max_score == null ? null : Number(row.max_score),
+  }));
+}
 
 /** Professor/direcção: a turma inteira, com a última tentativa de cada aluno. */
 export const listTaskSubmissions = createServerFn({ method: "GET" })
@@ -94,6 +148,7 @@ export const listTaskSubmissions = createServerFn({ method: "GET" })
     const { db, schoolId, task, classSubject } = await requireTaskManager(
       context.userId,
       data.taskId,
+      "read",
     );
     const { data: enrollments, error } = await db
       .from("enrollments")
@@ -129,20 +184,112 @@ export const listTaskSubmissions = createServerFn({ method: "GET" })
     for (const row of rows)
       attempts.set(row.enrollment_id, (attempts.get(row.enrollment_id) ?? 0) + 1);
 
+    const assessmentOptions = await loadAssessmentOptions(db, schoolId, classSubject);
+    const assessmentItemId = str(task.assessment_item_id);
+    const pautaScores = new Map<string, number | null>();
+    if (assessmentItemId) {
+      const { data: scores, error: scoresError } = await db
+        .from("siga_assessment_scores")
+        .select("enrollment_id, score")
+        .eq("school_id", schoolId)
+        .eq("item_id", assessmentItemId);
+      if (scoresError) throw publicDatabaseError(scoresError, "Não foi possível ler a pauta.");
+      for (const row of (scores ?? []) as Row[])
+        pautaScores.set(str(row.enrollment_id), row.score == null ? null : Number(row.score));
+    }
+
     const lines = ((enrollments ?? []) as Row[])
       .map((row): TaskSubmissionLine => ({
         enrollmentId: str(row.id),
         studentName: nameOfPerson.get(personOf.get(str(row.student_id)) ?? "") || "—",
         submission: latest.get(str(row.id)) ?? null,
         attempts: attempts.get(str(row.id)) ?? 0,
+        history: rows
+          .filter((sub) => sub.enrollment_id === str(row.id))
+          .sort((a, b) => b.attempt - a.attempt),
+        pautaScore: pautaScores.get(str(row.id)) ?? null,
       }))
       .sort((a, b) => a.studentName.localeCompare(b.studentName, "pt"));
     return {
       title: str(task.title),
+      kind: str(task.kind) || "outra",
+      description: task.description ? str(task.description) : null,
+      archived: str(task.status) !== "published",
       dueOn: task.due_on ? str(task.due_on) : null,
       acceptsLate: task.accepts_late !== false,
+      summary: summarizeWork(
+        lines.length,
+        lines.map((line) => line.submission),
+      ),
+      assessment: assessmentOptions.find((option) => option.id === assessmentItemId) ?? null,
+      assessmentOptions,
       lines,
     };
+  });
+
+/** Professor/direcção: a tarefa passa a contar (ou deixa de contar) para uma avaliação. */
+export const linkTaskAssessment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ taskId: z.string().guid(), itemId: z.string().guid().nullable() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { db, schoolId, classSubject } = await requireTaskManager(
+      context.userId,
+      data.taskId,
+      "write",
+    );
+    if (data.itemId) {
+      const options = await loadAssessmentOptions(db, schoolId, classSubject);
+      if (!options.some((option) => option.id === data.itemId)) {
+        throw new Error("Essa avaliação não é desta turma e disciplina.");
+      }
+    }
+    const { error } = await db
+      .from("siga_class_tasks")
+      .update({ assessment_item_id: data.itemId, updated_by: context.userId })
+      .eq("school_id", schoolId)
+      .eq("id", data.taskId);
+    if (error) throw publicDatabaseError(error, "Não foi possível ligar a tarefa à avaliação.");
+    return { ok: true };
+  });
+
+/** Professor/direcção: título, tipo, descrição, prazo, atrasos e arquivar/reabrir. */
+export const updateTaskSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        taskId: z.string().guid(),
+        title: z.string().trim().min(2).max(160),
+        kind: z.enum(TASK_KINDS),
+        description: z.string().trim().max(2000).nullable(),
+        dueOn: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable(),
+        acceptsLate: z.boolean(),
+        archived: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { db, schoolId } = await requireTaskManager(context.userId, data.taskId, "write");
+    const { error } = await db
+      .from("siga_class_tasks")
+      .update({
+        title: data.title,
+        kind: data.kind,
+        description: data.description || null,
+        due_on: data.dueOn,
+        accepts_late: data.acceptsLate,
+        status: data.archived ? "archived" : "published",
+        updated_by: context.userId,
+      })
+      .eq("school_id", schoolId)
+      .eq("id", data.taskId);
+    if (error) throw publicDatabaseError(error, "Não foi possível guardar o trabalho.");
+    return { ok: true };
   });
 
 /** Professor: o aluno entregou em papel (primário, sem plataforma em casa). */
@@ -155,6 +302,7 @@ export const recordPaperSubmission = createServerFn({ method: "POST" })
     const { db, schoolId, task, classSubject } = await requireTaskManager(
       context.userId,
       data.taskId,
+      "write",
     );
     const { data: enrollment } = await db
       .from("enrollments")
@@ -208,7 +356,30 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { db, schoolId } = await requireTaskManager(context.userId, data.taskId);
+    const { db, schoolId, task } = await requireTaskManager(context.userId, data.taskId, "write");
+    const { data: current, error: currentError } = await db
+      .from("siga_class_task_submissions")
+      .select("id, enrollment_id, status")
+      .eq("school_id", schoolId)
+      .eq("task_id", data.taskId)
+      .eq("id", data.submissionId)
+      .maybeSingle();
+    if (currentError) throw publicDatabaseError(currentError, "Não foi possível ler a entrega.");
+    if (!current || current.status !== "submitted") {
+      throw new Error("Esta entrega já foi devolvida ou não existe.");
+    }
+    // Primeiro a pauta: se a pauta recusa (período fechado, cotação), a entrega
+    // não fica devolvida com uma nota que não chegou à pauta. Repetir é seguro.
+    const itemId = str(task.assessment_item_id);
+    const toPauta = Boolean(itemId) && data.grade != null;
+    if (toPauta) {
+      await writeAssessmentScores(db, {
+        schoolId,
+        userId: context.userId,
+        itemId,
+        rows: [{ enrollmentId: str(current.enrollment_id), score: data.grade ?? null }],
+      });
+    }
     const { data: updated, error } = await db
       .from("siga_class_task_submissions")
       .update({
@@ -227,7 +398,7 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível devolver a entrega.");
     if (!updated) throw new Error("Esta entrega já foi devolvida ou não existe.");
-    return { ok: true };
+    return { ok: true, pauta: toPauta };
   });
 
 /** A matrícula activa do aluno na turma da tarefa, vista pelo aluno ou pelo encarregado. */
@@ -286,6 +457,8 @@ export const submitTaskWork = createServerFn({ method: "POST" })
       context.userId,
       data.taskId,
     );
+    // Escola suspensa ou arquivada: consulta-se, não se grava.
+    await assertTenantAllowsWrites(schoolId);
     const latest =
       latestByEnrollment(await readSubmissions(db, schoolId, data.taskId, enrollmentId)).get(
         enrollmentId,

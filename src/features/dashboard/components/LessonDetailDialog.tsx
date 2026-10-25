@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Mail, Phone, Trash2 } from "lucide-react";
+import { ExternalLink, History, Mail, Phone, Trash2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import {
   Dialog,
@@ -178,7 +178,20 @@ function LessonDetailBody({
       </dl>
 
       <section className="space-y-2 border-t border-border pt-3">
-        <h3 className="text-sm font-medium">Tarefas</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-medium">Tarefas</h3>
+          {/* Aqui só as que estão por fazer; as passadas vivem na página da disciplina. */}
+          {!detail.canEdit && detail.subjectId ? (
+            <Link
+              to="/pedagogica/disciplinas/$subjectId"
+              params={{ subjectId: detail.subjectId }}
+              search={studentId ? { aluno: studentId } : {}}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              <History className="size-3.5" aria-hidden /> Histórico de trabalhos
+            </Link>
+          ) : null}
+        </div>
         {detail.tasks.length === 0 ? (
           <p className="text-xs text-muted-foreground">Sem tarefas por fazer.</p>
         ) : (

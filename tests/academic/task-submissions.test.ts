@@ -4,6 +4,8 @@ import {
   isLate,
   latestByEnrollment,
   studentView,
+  summarizeWork,
+  taskState,
   type SubmissionRow,
 } from "@/features/academic/task-submissions";
 
@@ -90,5 +92,48 @@ describe("o que se mostra", () => {
       studentView(row({ status: "returned", returned_at: "2026-11-02T10:00:00Z" })),
     ).toMatchObject({ grade: 14, feedback: "Bom" });
     expect(studentView(null)).toBeNull();
+  });
+});
+
+describe("estado de um trabalho para o aluno", () => {
+  const base = {
+    taskStatus: "published",
+    dueOn: "2026-11-01",
+    acceptsLate: true,
+    today: "2026-10-30",
+  };
+
+  it("por entregar dentro do prazo, atrasado depois, perdido quando já não aceita", () => {
+    expect(taskState({ ...base, latest: null })).toBe("open");
+    expect(taskState({ ...base, latest: null, today: "2026-11-01" })).toBe("open");
+    expect(taskState({ ...base, latest: null, today: "2026-11-02" })).toBe("overdue");
+    expect(taskState({ ...base, acceptsLate: false, latest: null, today: "2026-11-02" })).toBe(
+      "missed",
+    );
+    expect(taskState({ ...base, taskStatus: "archived", latest: null })).toBe("missed");
+    expect(taskState({ ...base, dueOn: null, latest: null, today: "2099-01-01" })).toBe("open");
+  });
+
+  it("a entrega manda: entregue ou devolvido, mesmo arquivado ou fora do prazo", () => {
+    expect(taskState({ ...base, latest: { status: "submitted" }, today: "2026-12-01" })).toBe(
+      "submitted",
+    );
+    expect(taskState({ ...base, taskStatus: "archived", latest: { status: "returned" } })).toBe(
+      "returned",
+    );
+  });
+});
+
+describe("resumo das entregas", () => {
+  it("conta entregues, devolvidas e atrasos; a média só com notas devolvidas", () => {
+    expect(
+      summarizeWork(4, [
+        { status: "returned", is_late: false, grade: 14 },
+        { status: "returned", is_late: true, grade: 9.5 },
+        { status: "submitted", is_late: false, grade: 18 },
+        null,
+      ]),
+    ).toEqual({ total: 4, delivered: 3, returned: 2, late: 1, average: 11.8 });
+    expect(summarizeWork(2, [null, null]).average).toBeNull();
   });
 });

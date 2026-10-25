@@ -5,6 +5,8 @@ let tables: Record<string, Row[]> = {};
 let membership: { schoolId: string; appRole: string } | null = null;
 let ownTeacher: string | null = null;
 let visibleStudent: string | null = null;
+let tenantBlocked = false;
+const writeAssessmentScores = vi.fn();
 
 /** Base em memória com o que este módulo usa: leituras, insert e update. */
 function memoryDb() {
@@ -68,9 +70,23 @@ function memoryDb() {
   };
 }
 
+const assertTenant = async () => {
+  if (tenantBlocked) throw new Error("A assinatura desta escola está suspensa.");
+};
 vi.mock("@/integrations/supabase/sga-admin", () => ({
   loadSgaAdminClient: async () => memoryDb(),
   resolveSgaMembershipAdmin: async () => membership,
+  assertTenantAllowsWrites: assertTenant,
+  requireSgaWriterForWrite: async (_module: string, _userId: string, roles: string[]) => {
+    if (!membership || !roles.includes(membership.appRole)) {
+      throw new Error("Sem permissão para esta operação na escola.");
+    }
+    await assertTenant();
+    return membership;
+  },
+}));
+vi.mock("@/features/academic/assessment-score-write", () => ({
+  writeAssessmentScores: (...args: unknown[]) => writeAssessmentScores(...args),
 }));
 vi.mock("./own-teacher", () => ({ ownTeacherId: async () => ownTeacher }));
 vi.mock("@/features/academic/own-teacher", () => ({ ownTeacherId: async () => ownTeacher }));
@@ -105,11 +121,16 @@ const S = "00000000-0000-0000-0000-00000000000a";
 const TASK = "00000000-0000-0000-0000-0000000000f1";
 const E1 = "00000000-0000-0000-0000-0000000000e1";
 const E2 = "00000000-0000-0000-0000-0000000000e2";
+const ITEM = "00000000-0000-0000-0000-0000000000a1";
+const OTHER_ITEM = "00000000-0000-0000-0000-0000000000a2";
 
 beforeEach(() => {
   membership = { schoolId: S, appRole: "Aluno" };
   ownTeacher = null;
   visibleStudent = "st1";
+  tenantBlocked = false;
+  writeAssessmentScores.mockReset();
+  writeAssessmentScores.mockResolvedValue({ saved: 1 });
   tables = {
     siga_class_tasks: [
       {
@@ -122,7 +143,30 @@ beforeEach(() => {
         title: "Resumo",
       },
     ],
-    class_subjects: [{ id: "cs1", school_id: S, class_group_id: "cg1", teacher_id: "t1" }],
+    class_subjects: [
+      { id: "cs1", school_id: S, class_group_id: "cg1", subject_id: "mat", teacher_id: "t1" },
+    ],
+    siga_assessment_items: [
+      {
+        id: ITEM,
+        school_id: S,
+        class_group_id: "cg1",
+        subject_id: "mat",
+        term: 1,
+        name: "Trabalho 1",
+        max_score: 20,
+      },
+      {
+        id: OTHER_ITEM,
+        school_id: S,
+        class_group_id: "cg1",
+        subject_id: "por",
+        term: 1,
+        name: "Redacção",
+        max_score: 20,
+      },
+    ],
+    siga_assessment_scores: [],
     enrollments: [
       { id: E1, school_id: S, student_id: "st1", class_group_id: "cg1", status: "active" },
       { id: E2, school_id: S, student_id: "st2", class_group_id: "cg2", status: "active" },
@@ -206,5 +250,130 @@ describe("entregas no servidor", () => {
     await expect(
       server.recordPaperSubmission({ data: { taskId: TASK, enrollmentId: E2 } }),
     ).rejects.toThrow("não está matriculado nesta turma");
+  });
+
+  it("escola suspensa: o aluno não entrega e o professor não devolve", async () => {
+    tenantBlocked = true;
+    await expect(server.submitTaskWork({ data: { taskId: TASK, body: "x" } })).rejects.toThrow(
+      "suspensa",
+    );
+    membership = { schoolId: S, appRole: "Secretaria" };
+    await expect(
+      server.recordPaperSubmission({ data: { taskId: TASK, enrollmentId: E1 } }),
+    ).rejects.toThrow("suspensa");
+    expect(tables.siga_class_task_submissions).toHaveLength(0);
+  });
+
+  it("a tarefa só conta para avaliações da mesma turma e disciplina", async () => {
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t1";
+    await expect(
+      server.linkTaskAssessment({ data: { taskId: TASK, itemId: OTHER_ITEM } }),
+    ).rejects.toThrow("não é desta turma e disciplina");
+    await server.linkTaskAssessment({ data: { taskId: TASK, itemId: ITEM } });
+    expect(tables.siga_class_tasks![0]!.assessment_item_id).toBe(ITEM);
+    const listed = await server.listTaskSubmissions({ data: { taskId: TASK } });
+    expect(listed.assessment).toMatchObject({ id: ITEM, name: "Trabalho 1" });
+    expect(listed.assessmentOptions.map((option) => option.id)).toEqual([ITEM]);
+
+    ownTeacher = "t9";
+    await expect(
+      server.linkTaskAssessment({ data: { taskId: TASK, itemId: null } }),
+    ).rejects.toThrow("Só o professor desta disciplina");
+  });
+
+  it("devolver com nota numa tarefa ligada lança a nota na pauta, antes de marcar devolvida", async () => {
+    await server.submitTaskWork({ data: { taskId: TASK, body: "v1" } });
+    tables.siga_class_tasks![0]!.assessment_item_id = ITEM;
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t1";
+    const submissionId = String(tables.siga_class_task_submissions![0]!.id);
+
+    // A pauta recusa (ex.: período fechado): a entrega fica por devolver.
+    writeAssessmentScores.mockRejectedValueOnce(new Error("O 1º trimestre está fechado."));
+    await expect(
+      server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
+    ).rejects.toThrow("fechado");
+    expect(tables.siga_class_task_submissions![0]!.status).toBe("submitted");
+
+    expect(
+      await server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
+    ).toEqual({ ok: true, pauta: true });
+    expect(writeAssessmentScores).toHaveBeenLastCalledWith(expect.anything(), {
+      schoolId: S,
+      userId: "u1",
+      itemId: ITEM,
+      rows: [{ enrollmentId: E1, score: 15 }],
+    });
+    expect(tables.siga_class_task_submissions![0]!.status).toBe("returned");
+  });
+
+  it("sem nota, ou sem avaliação ligada, a pauta não é tocada", async () => {
+    await server.submitTaskWork({ data: { taskId: TASK, body: "v1" } });
+    membership = { schoolId: S, appRole: "Administrador" };
+    const submissionId = String(tables.siga_class_task_submissions![0]!.id);
+    expect(
+      await server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 12 } }),
+    ).toEqual({ ok: true, pauta: false });
+    expect(writeAssessmentScores).not.toHaveBeenCalled();
+  });
+
+  it("configuração: o professor da disciplina edita, arquiva e reabre", async () => {
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t1";
+    const settings = {
+      taskId: TASK,
+      title: "Resumo do cap. 4",
+      kind: "pesquisa" as const,
+      description: "Duas páginas",
+      dueOn: "2099-06-30",
+      acceptsLate: true,
+      archived: false,
+    };
+    await server.updateTaskSettings({ data: settings });
+    expect(tables.siga_class_tasks![0]).toMatchObject({
+      title: "Resumo do cap. 4",
+      kind: "pesquisa",
+      description: "Duas páginas",
+      due_on: "2099-06-30",
+      accepts_late: true,
+      status: "published",
+    });
+    const listed = await server.listTaskSubmissions({ data: { taskId: TASK } });
+    expect(listed).toMatchObject({
+      kind: "pesquisa",
+      description: "Duas páginas",
+      archived: false,
+    });
+
+    await server.updateTaskSettings({ data: { ...settings, archived: true } });
+    expect(tables.siga_class_tasks![0]!.status).toBe("archived");
+    // Arquivado: o aluno já não entrega.
+    membership = { schoolId: S, appRole: "Aluno" };
+    await expect(server.submitTaskWork({ data: { taskId: TASK, body: "x" } })).rejects.toThrow(
+      "já não aceita entregas",
+    );
+
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t9";
+    await expect(server.updateTaskSettings({ data: settings })).rejects.toThrow(
+      "Só o professor desta disciplina",
+    );
+    // O validador lança antes de haver promessa: envolvê-lo numa.
+    await expect(
+      Promise.resolve().then(() =>
+        server.updateTaskSettings({ data: { ...settings, kind: "exame" as never } }),
+      ),
+    ).rejects.toThrow("Invalid option");
+  });
+
+  it("a lista leva todas as tentativas de cada aluno e o resumo da turma", async () => {
+    await server.submitTaskWork({ data: { taskId: TASK, body: "v1" } });
+    await server.submitTaskWork({ data: { taskId: TASK, body: "v2" } });
+    membership = { schoolId: S, appRole: "Secretaria" };
+    const listed = await server.listTaskSubmissions({ data: { taskId: TASK } });
+    const [line] = listed.lines;
+    expect(line!.history.map((sub) => sub.body)).toEqual(["v2", "v1"]);
+    expect(listed.summary).toMatchObject({ total: 1, delivered: 1, returned: 0 });
   });
 });

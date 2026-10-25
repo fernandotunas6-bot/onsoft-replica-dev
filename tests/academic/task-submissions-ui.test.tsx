@@ -5,9 +5,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 vi.setConfig({ testTimeout: 20_000 });
+// O Switch do Radix mede-se com ResizeObserver, que o jsdom não tem.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
 
 const server = {
   listTaskSubmissions: vi.fn(),
+  linkTaskAssessment: vi.fn(),
+  updateTaskSettings: vi.fn(),
   recordPaperSubmission: vi.fn(),
   returnTaskSubmission: vi.fn(),
   getMyTaskSubmission: vi.fn(),
@@ -15,6 +23,8 @@ const server = {
 };
 vi.mock("@/features/academic/task-submissions-server", () => ({
   listTaskSubmissions: (a: unknown) => server.listTaskSubmissions(a),
+  linkTaskAssessment: (a: unknown) => server.linkTaskAssessment(a),
+  updateTaskSettings: (a: unknown) => server.updateTaskSettings(a),
   recordPaperSubmission: (a: unknown) => server.recordPaperSubmission(a),
   returnTaskSubmission: (a: unknown) => server.returnTaskSubmission(a),
   getMyTaskSubmission: (a: unknown) => server.getMyTaskSubmission(a),
@@ -25,6 +35,13 @@ const { TaskSubmissionsPanel, MyTaskSubmission } =
   await import("@/features/academic/components/TaskSubmissions");
 
 const TASK = "00000000-0000-0000-0000-0000000000f1";
+const TASK_META = {
+  title: "Resumo",
+  kind: "trabalho",
+  description: null,
+  archived: false,
+  summary: { total: 2, delivered: 1, returned: 0, late: 1, average: null },
+};
 const wrap = (node: ReactNode) =>
   render(
     <QueryClientProvider
@@ -57,12 +74,20 @@ describe("entregas: professor", () => {
 
   it("vê quem entregou, devolve com nota e regista a entrega em papel", async () => {
     server.listTaskSubmissions.mockResolvedValue({
-      title: "Resumo",
+      ...TASK_META,
       dueOn: "2026-11-01",
       acceptsLate: true,
+      assessment: null,
+      assessmentOptions: [],
       lines: [
-        { enrollmentId: "e1", studentName: "Ana", submission: submission(), attempts: 2 },
-        { enrollmentId: "e2", studentName: "Bia", submission: null, attempts: 0 },
+        {
+          enrollmentId: "e1",
+          studentName: "Ana",
+          submission: submission(),
+          attempts: 2,
+          pautaScore: null,
+        },
+        { enrollmentId: "e2", studentName: "Bia", submission: null, attempts: 0, pautaScore: null },
       ],
     });
     server.returnTaskSubmission.mockResolvedValue({ ok: true });
@@ -95,6 +120,177 @@ describe("entregas: professor", () => {
         data: { taskId: TASK, enrollmentId: "e2" },
       }),
     );
+  });
+
+  it("liga a tarefa a uma avaliação da pauta e mostra a nota que lá está", async () => {
+    const item = {
+      id: "00000000-0000-0000-0000-0000000000a1",
+      name: "Trabalho 1",
+      term: 1,
+      maxScore: 10,
+    };
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: null,
+      acceptsLate: true,
+      assessment: null,
+      assessmentOptions: [item],
+      lines: [
+        {
+          enrollmentId: "e1",
+          studentName: "Ana",
+          submission: submission({ status: "returned", grade: 8 }),
+          attempts: 1,
+          pautaScore: 8,
+        },
+      ],
+    });
+    server.linkTaskAssessment.mockResolvedValue({ ok: true });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+
+    const select = await screen.findByLabelText("Conta para a pauta");
+    expect(select.textContent).toContain("Trabalho 1 · 1.º trimestre · 10 valores");
+    // Sem avaliação ligada, a nota da pauta não aparece na linha.
+    expect(screen.getByRole("list", { name: "Entregas da turma" }).textContent).not.toContain(
+      "na pauta",
+    );
+    fireEvent.change(select, { target: { value: item.id } });
+    await waitFor(() =>
+      expect(server.linkTaskAssessment).toHaveBeenCalledWith({
+        data: { taskId: TASK, itemId: item.id },
+      }),
+    );
+  });
+
+  it("tarefa ligada: a linha mostra a nota na pauta e a nota máxima da avaliação", async () => {
+    const item = {
+      id: "00000000-0000-0000-0000-0000000000a1",
+      name: "Trabalho 1",
+      term: 1,
+      maxScore: 10,
+    };
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: null,
+      acceptsLate: true,
+      assessment: item,
+      assessmentOptions: [item],
+      lines: [
+        {
+          enrollmentId: "e1",
+          studentName: "Ana",
+          submission: submission(),
+          attempts: 1,
+          pautaScore: 7,
+        },
+      ],
+    });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+    const list = await screen.findByRole("list", { name: "Entregas da turma" });
+    expect(list.textContent).toContain("na pauta: 7");
+    expect(screen.getByText(/fica em «Trabalho 1»/)).toBeTruthy();
+    fireEvent.click(within(list).getByRole("button", { name: "Devolver" }));
+    expect(screen.getByLabelText("Nota de Ana").getAttribute("placeholder")).toBe("0–10");
+  });
+
+  it("sem avaliações na disciplina: explica onde as criar", async () => {
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: null,
+      acceptsLate: true,
+      assessment: null,
+      assessmentOptions: [],
+      lines: [],
+    });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+    expect(await screen.findByText(/ainda não tem avaliações nesta turma/)).toBeTruthy();
+  });
+
+  it("configuração: edita o prazo e os atrasos, e arquiva", async () => {
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: "2026-11-01",
+      acceptsLate: true,
+      assessment: null,
+      assessmentOptions: [],
+      lines: [],
+    });
+    server.updateTaskSettings.mockResolvedValue({ ok: true });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+
+    const config = await screen.findByRole("region", { name: /Configuração do trabalho/ });
+    expect(config.textContent).toContain("Trabalho · prazo");
+    expect(config.textContent).toContain("aceita atrasos");
+    fireEvent.click(within(config).getByRole("button", { name: "Editar" }));
+    fireEvent.change(within(config).getByLabelText("Prazo"), { target: { value: "2026-11-10" } });
+    fireEvent.click(within(config).getByRole("switch"));
+    fireEvent.click(within(config).getByRole("button", { name: "Guardar" }));
+    await waitFor(() =>
+      expect(server.updateTaskSettings).toHaveBeenCalledWith({
+        data: {
+          taskId: TASK,
+          title: "Resumo",
+          kind: "trabalho",
+          description: null,
+          dueOn: "2026-11-10",
+          acceptsLate: false,
+          archived: false,
+        },
+      }),
+    );
+
+    fireEvent.click(within(config).getByRole("button", { name: "Arquivar" }));
+    await waitFor(() =>
+      expect(server.updateTaskSettings).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({ archived: true, dueOn: "2026-11-01" }),
+      }),
+    );
+  });
+
+  it("resumo da turma, filtro e histórico de tentativas de um aluno", async () => {
+    const v1 = submission({ id: "sub-0", attempt: 1, body: "Primeira versão", is_late: false });
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: null,
+      acceptsLate: true,
+      assessment: null,
+      assessmentOptions: [],
+      lines: [
+        {
+          enrollmentId: "e1",
+          studentName: "Ana Silva",
+          submission: submission(),
+          attempts: 2,
+          history: [submission(), v1],
+          pautaScore: null,
+        },
+        {
+          enrollmentId: "e2",
+          studentName: "Bia",
+          submission: null,
+          attempts: 0,
+          history: [],
+          pautaScore: null,
+        },
+      ],
+    });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+
+    const list = await screen.findByRole("list", { name: "Entregas da turma" });
+    expect(screen.getByText("1/2")).toBeTruthy();
+    expect(screen.getByText("Por devolver", { selector: "p" })).toBeTruthy();
+    // Iniciais no avatar.
+    expect(list.textContent).toContain("AS");
+
+    fireEvent.click(screen.getByRole("button", { name: /Por entregar/ }));
+    expect(within(list).queryByText("Ana Silva")).toBeNull();
+    expect(within(list).getByText("Bia")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Todos/ }));
+
+    fireEvent.click(within(list).getByRole("button", { name: "Ver as 2 tentativas" }));
+    const attempts = screen.getByRole("list", { name: "Tentativas de Ana Silva" });
+    expect(attempts.textContent).toContain("1.ª tentativa");
+    expect(attempts.textContent).toContain("Primeira versão");
   });
 
   it("sem permissão: mostra o motivo do servidor", async () => {

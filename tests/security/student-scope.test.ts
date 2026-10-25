@@ -120,7 +120,8 @@ describe("leituras da escola inteira só para o pessoal", () => {
     [
       "src/features/academic/server-legacy.ts",
       ["upsertAssessmentScores"],
-      /"grades\.assessment_score_changed"/,
+      // A gravação (com o rasto de auditoria) é partilhada com a devolução de trabalhos.
+      /writeAssessmentScores\(db/,
     ],
   ];
   for (const [path, names, guard] of cases) {
@@ -129,4 +130,10 @@ describe("leituras da escola inteira só para o pessoal", () => {
       it(name, () => expect(body(source, name)).toMatch(guard));
     }
   }
+  it("writeAssessmentScores deixa rasto de cada nota mudada", () => {
+    const write = read("src/features/academic/assessment-score-write.ts");
+    expect(write.slice(write.indexOf("export async function writeAssessmentScores"))).toMatch(
+      /"grades\.assessment_score_changed"/,
+    );
+  });
 });

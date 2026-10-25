@@ -82,3 +82,59 @@ export function studentView(row: SubmissionRow | null) {
     returnedAt: returned ? row.returned_at : null,
   };
 }
+
+/**
+ * Estado de um trabalho do ponto de vista do aluno:
+ * - `returned`: o professor devolveu (com ou sem nota);
+ * - `submitted`: entregue, à espera de devolução;
+ * - `overdue`: por entregar e o prazo passou (ainda aceita, se a tarefa deixar);
+ * - `open`: por entregar, dentro do prazo ou sem prazo;
+ * - `missed`: por entregar e já não aceita (arquivada, ou prazo sem atrasos).
+ */
+export type TaskState = "returned" | "submitted" | "overdue" | "open" | "missed";
+
+export function taskState(input: {
+  taskStatus: string;
+  dueOn: string | null;
+  acceptsLate: boolean;
+  latest: Pick<SubmissionRow, "status"> | null;
+  today: string;
+}): TaskState {
+  if (input.latest?.status === "returned") return "returned";
+  if (input.latest?.status === "submitted") return "submitted";
+  const pastDue = Boolean(input.dueOn) && input.today > input.dueOn!;
+  if (input.taskStatus !== "published") return "missed";
+  if (pastDue) return input.acceptsLate ? "overdue" : "missed";
+  return "open";
+}
+
+export type WorkSummary = {
+  total: number;
+  delivered: number;
+  returned: number;
+  late: number;
+  /** Média das notas devolvidas (0–20), arredondada a uma casa. */
+  average: number | null;
+};
+
+/** Resumo de um conjunto de entregas (a última tentativa de cada trabalho ou aluno). */
+export function summarizeWork(
+  total: number,
+  latest: ReadonlyArray<Pick<SubmissionRow, "status" | "is_late" | "grade"> | null>,
+): WorkSummary {
+  const delivered = latest.filter(Boolean) as Array<
+    Pick<SubmissionRow, "status" | "is_late" | "grade">
+  >;
+  const grades = delivered
+    .filter((row) => row.status === "returned" && row.grade != null)
+    .map((row) => Number(row.grade));
+  return {
+    total,
+    delivered: delivered.length,
+    returned: delivered.filter((row) => row.status === "returned").length,
+    late: delivered.filter((row) => row.is_late).length,
+    average: grades.length
+      ? Math.round((grades.reduce((sum, grade) => sum + grade, 0) / grades.length) * 10) / 10
+      : null,
+  };
+}
