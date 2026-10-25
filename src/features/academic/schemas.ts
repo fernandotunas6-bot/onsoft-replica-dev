@@ -192,6 +192,9 @@ export const upsertTermGradesBatchInputSchema = z.object({
   /** Defesa do servidor contra replay offline noutra escola/conta. */
   offlineSchoolId: z.string().guid().optional(),
   offlineActorId: z.string().guid().optional(),
+  /** Chave do envio na fila offline: repetir o mesmo devolve o mesmo resultado. */
+  offlineOpId: z.string().uuid().optional(),
+  offlineDeviceId: z.string().trim().min(1).max(128).optional(),
   subjectId: z.string().guid(),
   term: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   rows: z

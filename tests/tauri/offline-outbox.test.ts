@@ -43,6 +43,7 @@ beforeEach(async () => {
 afterEach(() => setOnline(true));
 
 const meta = { label: "Chamada 7ª A", userId: "prof-1", schoolId: "school-a" };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 describe("fila de envio sem rede", () => {
   it("com rede grava sending no cofre antes do HTTP e remove só com ACK", async () => {
@@ -150,6 +151,7 @@ describe("fila de envio sem rede", () => {
       n: 1,
       offlineSchoolId: "school-a",
       offlineActorId: "prof-1",
+      offlineOpId: expect.stringMatching(UUID_RE),
     });
     expect(outboxItems()).toMatchObject([
       {
@@ -159,11 +161,14 @@ describe("fila de envio sem rede", () => {
       },
     ]);
 
+    // Incerta mas com op_id: volta a sair com o mesmo, e o servidor confirma.
     grades.mockResolvedValueOnce({});
     await flushOutbox("prof-1", "school-a");
-    expect(grades).toHaveBeenCalledTimes(1);
-    expect(outboxItems()).toHaveLength(1);
-    expect(vault.has("siga.offline-outbox")).toBe(true);
+    expect(grades).toHaveBeenCalledTimes(2);
+    expect((grades.mock.calls[1]?.[0] as { offlineOpId?: string }).offlineOpId).toBe(
+      (grades.mock.calls[0]?.[0] as { offlineOpId?: string }).offlineOpId,
+    );
+    expect(outboxItems()).toHaveLength(0);
   });
 
   it("só envia com a sessão de quem fez o lançamento", async () => {
@@ -190,6 +195,7 @@ describe("fila de envio sem rede", () => {
       n: 7,
       offlineSchoolId: "school-b",
       offlineActorId: "prof-1",
+      offlineOpId: expect.stringMatching(UUID_RE),
     });
     expect(outboxItems()).toHaveLength(0);
   });
@@ -243,19 +249,50 @@ describe("fila de envio sem rede", () => {
     expect(vault.get("siga.offline-outbox")).toBe(JSON.stringify(legacy));
   });
 
-  it("não reenfileira automaticamente operação online cujo ACK se perdeu", async () => {
+  it("ACK perdido com op_id: volta a enviar com o MESMO op_id (o servidor responde pelo recibo)", async () => {
     attendance.mockRejectedValueOnce(offline());
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
       queued: true,
       requiresVerification: true,
     });
     expect(outboxItems()).toMatchObject([
-      { deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
+      {
+        deliveryState: "needs_verification",
+        failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+        receiptProtected: true,
+      },
     ]);
+    const firstOpId = (attendance.mock.calls[0]?.[0] as { offlineOpId?: string }).offlineOpId;
+    expect(firstOpId).toMatch(UUID_RE);
     attendance.mockResolvedValueOnce({});
     await flushOutbox("prof-1", "school-a");
-    expect(attendance).toHaveBeenCalledTimes(1);
-    expect(outboxItems()).toHaveLength(1);
+    expect(attendance).toHaveBeenCalledTimes(2);
+    expect((attendance.mock.calls[1]?.[0] as { offlineOpId?: string }).offlineOpId).toBe(firstOpId);
+    expect(outboxItems()).toHaveLength(0);
+  });
+
+  it("servidor ainda a gravar o mesmo op_id: fica por verificar, não recusado", async () => {
+    attendance.mockRejectedValueOnce(offline());
+    await sendOrQueue("attendance.submit", { sessionId: "s1" }, meta);
+    attendance.mockRejectedValueOnce(
+      new Error(
+        "Este envio ainda está a ser gravado no servidor. Volte a tentar dentro de um minuto.",
+      ),
+    );
+    await flushOutbox("prof-1", "school-a");
+    expect(outboxItems()).toMatchObject([
+      { deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
+    ]);
+  });
+
+  it("uma recusa do servidor não volta a ser enviada sozinha", async () => {
+    attendance.mockRejectedValueOnce(offline());
+    await sendOrQueue("attendance.submit", { sessionId: "s1" }, meta);
+    attendance.mockRejectedValueOnce(new Error("Esta chamada já foi fechada."));
+    await flushOutbox("prof-1", "school-a");
+    await flushOutbox("prof-1", "school-a");
+    expect(attendance).toHaveBeenCalledTimes(2);
+    expect(outboxItems()).toMatchObject([{ failedReason: "Esta chamada já foi fechada." }]);
   });
 
   it("usa o mesmo ID ao perder a resposta online, sem criar nova operação", async () => {
