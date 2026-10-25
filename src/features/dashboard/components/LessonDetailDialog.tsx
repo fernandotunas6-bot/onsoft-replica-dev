@@ -31,6 +31,10 @@ import {
 } from "@/features/academic/lesson-messages";
 import { publicErrorMessage } from "@/lib/public-error";
 import { safeHref } from "@/lib/safe-url";
+import {
+  MyTaskSubmission,
+  TaskSubmissionsPanel,
+} from "@/features/academic/components/TaskSubmissions";
 
 const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const selectClass = "h-9 w-full rounded-md border border-border bg-background px-2 text-sm";
@@ -83,14 +87,22 @@ export function LessonDetailDialog({
             )}
           </>
         ) : (
-          <LessonDetailBody detail={detail} queryKey={queryKey} />
+          <LessonDetailBody detail={detail} queryKey={queryKey} studentId={studentId} />
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function LessonDetailBody({ detail, queryKey }: { detail: LessonDetail; queryKey: unknown[] }) {
+function LessonDetailBody({
+  detail,
+  queryKey,
+  studentId,
+}: {
+  detail: LessonDetail;
+  queryKey: unknown[];
+  studentId?: string | null;
+}) {
   const [editing, setEditing] = useState(false);
   const online = detail.deliveryMode !== "presencial";
 
@@ -174,7 +186,13 @@ function LessonDetailBody({ detail, queryKey }: { detail: LessonDetail; queryKey
         ) : (
           <ul className="divide-y divide-border">
             {detail.tasks.map((task) => (
-              <TaskRow key={task.id} task={task} canEdit={detail.canEdit} queryKey={queryKey} />
+              <TaskRow
+                key={task.id}
+                task={task}
+                canEdit={detail.canEdit}
+                queryKey={queryKey}
+                studentId={studentId}
+              />
             ))}
           </ul>
         )}
@@ -211,12 +229,15 @@ function TaskRow({
   task,
   canEdit,
   queryKey,
+  studentId,
 }: {
   task: LessonDetail["tasks"][number];
   canEdit: boolean;
   queryKey: unknown[];
+  studentId?: string | null;
 }) {
   const queryClient = useQueryClient();
+  const [showSubmissions, setShowSubmissions] = useState(false);
   const archive = useMutation({
     mutationFn: () => archiveClassTask({ data: { taskId: task.id } }),
     onSuccess: () => {
@@ -238,6 +259,21 @@ function TaskRow({
           <p className="whitespace-pre-line text-xs text-muted-foreground">{task.description}</p>
         ) : null}
         <p className="text-xs text-muted-foreground">{formatDue(task.dueOn)}</p>
+        {canEdit ? (
+          <>
+            <button
+              type="button"
+              className="mt-1 text-xs font-semibold text-primary hover:underline"
+              aria-expanded={showSubmissions}
+              onClick={() => setShowSubmissions((value) => !value)}
+            >
+              {showSubmissions ? "Fechar entregas" : "Entregas"}
+            </button>
+            {showSubmissions ? <TaskSubmissionsPanel taskId={task.id} /> : null}
+          </>
+        ) : (
+          <MyTaskSubmission taskId={task.id} studentId={studentId} />
+        )}
       </div>
       {canEdit ? (
         <Button
