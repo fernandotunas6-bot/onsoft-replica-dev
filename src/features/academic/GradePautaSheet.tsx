@@ -131,7 +131,7 @@ export function GradePautaSheet({
   academicYear: string;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
-  /** Disciplinas de cada turma; sem nenhuma para a turma, mostra o catálogo da escola. */
+  /** Disciplinas atribuídas a cada turma (`class_subjects`): só essas são oferecidas. */
   classSubjects?: Array<{ class_group_id: string; subject_id: string }>;
   enrollments: EnrollmentRow[];
   termGrades: TermGradeRow[];
@@ -172,8 +172,9 @@ export function GradePautaSheet({
 
   useEffect(() => {
     // Ao mudar de turma, a disciplina escolhida pode não ser dela.
+    // Sem nenhuma, fica vazia: nunca lançar na disciplina da turma anterior.
     if (subjects.some((subject) => subject.id === subjectId)) return;
-    if (subjects[0]?.id) setSubjectId(subjects[0].id);
+    setSubjectId(subjects[0]?.id ?? "");
   }, [subjectId, subjects]);
 
   const selectedGroup = classGroups.find((group) => group.id === classGroupId);
@@ -738,6 +739,7 @@ export function GradePautaSheet({
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
             >
+              {subjects.length === 0 ? <option value="">Sem disciplinas atribuídas</option> : null}
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}

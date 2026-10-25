@@ -261,7 +261,7 @@ export function AssessmentCenter({
     if (match && match.id !== globalTerm?.id) setSelectedTermId(match.id);
   };
 
-  // Disciplinas da turma em causa; turma sem nenhuma configurada fica com o catálogo.
+  // Só as disciplinas atribuídas à turma em causa.
   const groupSubjects = useMemo(
     () => subjectsOfClass(subjects, classSubjects ?? [], selectedGroup?.id ?? ""),
     [subjects, classSubjects, selectedGroup?.id],

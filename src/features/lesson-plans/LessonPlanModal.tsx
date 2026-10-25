@@ -53,7 +53,7 @@ export function LessonPlanModal({
   onOpenChange: (open: boolean) => void;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
-  /** Disciplinas de cada turma; sem nenhuma para a turma, mostra o catálogo da escola. */
+  /** Disciplinas atribuídas a cada turma (`class_subjects`): só essas são oferecidas. */
   classSubjects?: ClassSubjectLink[];
   initial?: LessonPlanFormInitial | null;
   defaultClassGroupId?: string;
@@ -223,6 +223,9 @@ export function LessonPlanModal({
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
             >
+              {groupSubjects.length === 0 ? (
+                <option value="">Sem disciplinas atribuídas</option>
+              ) : null}
               {groupSubjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
