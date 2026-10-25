@@ -528,7 +528,8 @@ export function AppSidebar({
                   <User className="size-4" /> Perfil
                 </Link>
               </DropdownMenuItem>
-              {!hasSchool && canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
+              {!hasSchool &&
+              canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
                 <DropdownMenuItem onClick={() => onOpenSettings?.()}>
                   <Settings className="size-4" /> Configurações
                 </DropdownMenuItem>
