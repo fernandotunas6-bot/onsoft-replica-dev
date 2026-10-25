@@ -10,13 +10,13 @@ import { readStoredActiveSchool } from "@/features/auth/active-school";
  * do TanStack Query, que vivem só em memória:
  *  - sobrevive a fechar a app e ao fim de sessão por inactividade;
  *  - cada envio guarda quem o fez e só sai com a sessão dessa pessoa;
- *  - só sai da fila quando o servidor confirma; um erro de rede deixa-o à espera e um
- *    erro de sessão espera pelo próximo início de sessão. Uma recusa do servidor fica
- *    visível («Descartar») em vez de desaparecer.
+ *  - só sai da fila quando o servidor confirma. Após perder uma resposta de rede
+ *    ou fechar a app durante um envio, o resultado fica INCERTO e bloqueado para
+ *    reconciliação humana, nunca reenviado automaticamente sem recibo idempotente.
+ *    Um erro de sessão anterior ao envio confirmado mantém a entrada pendente.
  *
- * Só para escritas que o servidor aceita repetir sem duplicar (chamada: upsert por
- * sessão e aluno; notas: actualiza a nota que já existe). Pagamentos não: o registo
- * não tem ainda chave contra repetições.
+ * O servidor ainda não oferece recibos transaccionais por op_id; upserts não
+ * garantem idempotência de todo o workflow. Pagamentos ficam excluídos.
  *
  * Fora da app desktop (navegador, PWA), a fila fica desligada e tudo funciona como
  * antes: grava com rede, falha sem ela.
@@ -34,7 +34,9 @@ export type OutboxItem = {
   label: string;
   variables: unknown;
   createdAt: string;
-  /** Mensagem do servidor quando recusou; o envio fica parado até ser descartado. */
+  /** Estado de entrega persistido antes de iniciar o HTTP; ausência = pendente legado. */
+  deliveryState?: "pending" | "sending" | "needs_verification";
+  /** Recusa explícita ou confirmação ambígua, preservada até revisão. */
   failedReason?: string;
 };
 
@@ -60,6 +62,10 @@ const SENDERS: Record<OutboxKind, Sender> = {
 export const OUTBOX_MAX_BYTES = 60 * 1024;
 const VAULT_KEY = "siga.offline-outbox";
 
+/** A resposta pode ter-se perdido depois de o servidor concluir o lançamento. */
+export const OUTBOX_UNCERTAIN_MESSAGE =
+  "Não foi possível confirmar se o servidor já guardou esta operação. Não reenvie nem descarte antes de a secretaria confirmar o estado no SIGA.";
+
 let storage: OutboxStorage | null = null;
 let items: OutboxItem[] = [];
 let flushing: Promise<void> | null = null;
@@ -76,10 +82,20 @@ function emit() {
 export async function enableOutbox(next: OutboxStorage) {
   // Só activar depois de ler o cofre: nunca sobrescrever uma fila persistida
   // com uma fila vazia quando o carregamento falha.
-  const loaded = await next.load();
   await persistenceQueue;
+  const loaded = await next.load();
+  // Se a aplicação fechou durante o envio, a última gravação confirmada no
+  // cofre era "sending". Tratar o resultado como incerto, nunca fazer replay.
+  const recovered = loaded.map((item) =>
+    item.deliveryState === "sending"
+      ? { ...item, deliveryState: "needs_verification" as const, failedReason: OUTBOX_UNCERTAIN_MESSAGE }
+      : item,
+  );
+  if (recovered.some((item, i) => item !== loaded[i])) {
+    await next.save(recovered);
+  }
   storage = next;
-  items = loaded;
+  items = recovered;
   emit();
 }
 
@@ -106,6 +122,10 @@ export function vaultOutboxStorage(vault: {
               (item.schoolId === undefined ||
                 (typeof item.schoolId === "string" && item.schoolId.length > 0)) &&
               typeof item.label === "string" &&
+              (item.deliveryState === undefined ||
+                item.deliveryState === "pending" ||
+                item.deliveryState === "sending" ||
+                item.deliveryState === "needs_verification") &&
               (item.kind === "attendance.submit" || item.kind === "grades.term"),
           )
         ) {
@@ -174,7 +194,7 @@ export async function sendOrQueue(
   variables: unknown,
   meta: { label: string; userId: string | null; schoolId: string | null },
 ): Promise<{ queued: false; result: unknown } | { queued: true }> {
-  const queueIt = async () => {
+  const queueIt = async (deliveryUncertain = false) => {
     const userId = meta.userId;
     const schoolId = meta.schoolId;
     if (!userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
@@ -193,6 +213,8 @@ export async function sendOrQueue(
         label: meta.label,
         variables,
         createdAt: new Date().toISOString(),
+        deliveryState: deliveryUncertain ? "needs_verification" : "pending",
+        ...(deliveryUncertain ? { failedReason: OUTBOX_UNCERTAIN_MESSAGE } : {}),
       },
     ]);
     return { queued: true } as const;
@@ -203,7 +225,7 @@ export async function sendOrQueue(
   try {
     return { queued: false, result: await senders[kind](variables) };
   } catch (error) {
-    if (storage && isNetworkError(error)) return queueIt();
+    if (storage && isNetworkError(error)) return queueIt(true);
     throw error;
   }
 }
@@ -220,31 +242,71 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
   const run = async () => {
     // Entradas legadas sem escola nunca são transmitidas automaticamente.
     for (const item of items.filter(
-      (entry) => entry.userId === userId && entry.schoolId === schoolId && !entry.failedReason,
+      (entry) =>
+        entry.userId === userId &&
+        entry.schoolId === schoolId &&
+        !entry.failedReason &&
+        (entry.deliveryState === undefined || entry.deliveryState === "pending"),
     )) {
+      if (!items.some((entry) => entry.id === item.id)) continue;
+      // A escola pode mudar enquanto a tentativa anterior estava em curso.
+      if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
+      if (
+        !item.variables ||
+        typeof item.variables !== "object" ||
+        Array.isArray(item.variables)
+      ) {
+        await mutateItems((current) =>
+          current.map((entry) =>
+            entry.id === item.id ? { ...entry, failedReason: "Os dados guardados são inválidos." } : entry,
+          ),
+        );
+        continue;
+      }
+      // Commit local ANTES do HTTP. Se a app fechar no meio, o cofre conserva
+      // "sending" e o próximo arranque exige verificação manual do recibo.
+      await mutateItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id ? { ...entry, deliveryState: "sending" } : entry,
+        ),
+      );
       try {
-        if (!items.some((entry) => entry.id === item.id)) continue;
-        // A escola pode mudar enquanto a tentativa anterior estava em curso.
-        if (typeof window !== "undefined" && readStoredActiveSchool() !== schoolId) return;
-        if (
-          !item.variables ||
-          typeof item.variables !== "object" ||
-          Array.isArray(item.variables)
-        ) {
-          throw new Error("Os dados da operação guardada são inválidos.");
-        }
         await senders[item.kind]({
           ...item.variables,
           offlineSchoolId: item.schoolId,
           offlineActorId: item.userId,
         });
+        // Só apaga após ACK e persistência bem-sucedida no cofre.
         await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
       } catch (error) {
-        if (isNetworkError(error) || isSessionError(error)) return;
+        if (isSessionError(error)) {
+          await mutateItems((current) =>
+            current.map((entry) =>
+              entry.id === item.id ? { ...entry, deliveryState: "pending" } : entry,
+            ),
+          );
+          return;
+        }
+        if (isNetworkError(error)) {
+          await mutateItems((current) =>
+            current.map((entry) =>
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    deliveryState: "needs_verification",
+                    failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+                  }
+                : entry,
+            ),
+          );
+          return;
+        }
         const reason = error instanceof Error ? error.message : "O servidor recusou o envio.";
         await mutateItems((current) =>
           current.map((entry) =>
-            entry.id === item.id ? { ...entry, failedReason: reason } : entry,
+            entry.id === item.id
+              ? { ...entry, deliveryState: "needs_verification", failedReason: reason }
+              : entry,
           ),
         );
       }
@@ -288,7 +350,9 @@ export function useOutbox() {
   );
   return {
     items: snapshot,
-    waiting: snapshot.filter((entry) => !entry.failedReason).length,
+    waiting: snapshot.filter(
+      (entry) => !entry.failedReason && entry.deliveryState !== "needs_verification",
+    ).length,
     failed: snapshot.filter((entry) => entry.failedReason),
     legacy: snapshot.filter((entry) => !entry.schoolId),
   };
