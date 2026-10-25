@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "school-offline-shell",
+  "description": "Read-only bundled school preview, with no privileged native APIs or private data",
+  "windows": [
+    "offline-shell"
+  ],
+  "local": true,
+  "permissions": [
+    "core:default",
+    "core:window:allow-close"
+  ]
+}

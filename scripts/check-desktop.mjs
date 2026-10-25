@@ -12,6 +12,8 @@ assert.equal(config.build.frontendDist, "../desktop/dist");
 for (const file of [
   "index.html",
   "src/main.tsx",
+  "src/shell/offline-shell-main.tsx",
+  "offline-shell.html",
   "src/quick-pane-main.tsx",
   "package-lock.json",
   "UPSTREAM.json",
@@ -35,6 +37,15 @@ assert.equal(config.app.withGlobalTauri, true);
 const local = readJson("src-tauri/capabilities/default.json");
 assert.deepEqual(local.windows, ["main"]);
 assert.deepEqual(remote.windows, ["school"]);
+const offlinePreview = readJson("src-tauri/capabilities/offline-shell.json");
+assert.equal(offlinePreview.local, true);
+assert.deepEqual(offlinePreview.windows, ["offline-shell"]);
+assert.deepEqual(offlinePreview.permissions, ["core:default", "core:window:allow-close"]);
+assert(!offlinePreview.remote, "A interface local não pode receber origens remotas");
+assert(local.permissions.includes("allow-open-offline-shell"));
+const rust = readFileSync("src-tauri/src/school/mod.rs", "utf8");
+assert(rust.includes('tauri::WebviewUrl::App("offline-shell.html".into())'));
+assert(rust.includes("tauri::WebviewUrl::External("));
 assert(local.permissions.includes("allow-open-siga-portal"));
 assert.equal(readJson("desktop/UPSTREAM.json").commit, "437a18b9b63924833857f299217a5270f009d120");
 // Updater registado sem `plugins.updater` (chave pública) faz a app terminar ao abrir.

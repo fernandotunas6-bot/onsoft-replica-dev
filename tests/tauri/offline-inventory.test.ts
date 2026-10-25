@@ -8,7 +8,7 @@ describe("inventário de autonomia local Tauri", () => {
   it("detecta a separação actual entre shell local e portal escolar remoto", () => {
     const result = inventoryOfflineReadiness();
     expect(result.schoolRuntime.remoteWindow).toBe(true);
-    expect(result.schoolRuntime.localEntrypoints).toEqual(["main", "quick-pane"]);
+    expect(result.schoolRuntime.localEntrypoints).toEqual(["main", "quick-pane", "offline-shell"]);
     expect(result.schoolRuntime.schoolBundleEntry).toBe(false);
     expect(result.schoolRuntime.frontendDistribution).toBe("../desktop/dist");
     expect(result.schoolRuntime.allowedRemoteOrigins).toEqual(["https://portal-siga.com/*"]);
