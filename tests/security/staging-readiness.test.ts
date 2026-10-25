@@ -13,7 +13,12 @@ const valid = {
 
 describe("pré-verificação E2E @live", () => {
   it("não permite conclusão verde sem os quatro secrets de staging", () => {
-    for (const key of Object.keys(valid)) {
+    for (const key of [
+      "STAGING_SUPABASE_PROJECT_ID",
+      "STAGING_SUPABASE_URL",
+      "STAGING_SUPABASE_PUBLISHABLE_KEY",
+      "STAGING_SUPABASE_SECRET_KEY",
+    ]) {
       expect(() => assertStagingReady({ ...valid, [key]: "" })).toThrow(/Staging não configurado/);
     }
     expect(() => assertStagingReady({})).toThrow(/E2E não foi executado/);
