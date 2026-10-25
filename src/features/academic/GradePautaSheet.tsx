@@ -18,8 +18,9 @@ import {
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
-import { sendOrQueue } from "@/lib/offline/outbox";
+import { OUTBOX_UNCERTAIN_MESSAGE, sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
@@ -293,12 +294,20 @@ export function GradePautaSheet({
             .filter(Boolean)
             .join(" · "),
           userId: await currentUserId(),
+          schoolId: readStoredActiveSchool(),
         },
       );
       if (outcome.queued) {
-        toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
-          description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
-        });
+        if (outcome.requiresVerification) {
+          toast.warning("Notas sem confirmação do servidor", {
+            description: OUTBOX_UNCERTAIN_MESSAGE,
+            duration: Infinity,
+          });
+        } else {
+          toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
+            description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
+          });
+        }
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] });
