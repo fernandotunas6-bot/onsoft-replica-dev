@@ -618,6 +618,9 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     };
   });
 
+/** O PostgREST devolve no máximo 1000 linhas por pedido. */
+const OPEN_INVOICES_PAGE = 1000;
+
 export const listInvoices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listInvoicesInputSchema.parse(input))
@@ -661,10 +664,41 @@ export const listInvoices = createServerFn({ method: "GET" })
       .eq("school_id", membership.schoolId)
       .neq("status", "cancelled");
     if (studentContractIds) invoicesQuery = invoicesQuery.in("contract_id", studentContractIds);
-    const { data: invoices, error } = await invoicesQuery
-      .order("created_at", { ascending: false })
-      .limit(data.limit);
-    if (error) throw publicDatabaseError(error, "Não foi possível carregar as faturas.");
+    const recent = await invoicesQuery.order("created_at", { ascending: false }).limit(data.limit);
+    if (recent.error)
+      throw publicDatabaseError(recent.error, "Não foi possível carregar as faturas.");
+    let invoices = recent.data ?? [];
+
+    // As mais recentes não chegam: numa escola com mais de 250 faturas, as vencidas
+    // antigas — as que mais importa cobrar — ficavam fora da lista, do filtro e do
+    // «Receber». Com `includeOpen`, todas as por pagar entram, por mais antigas que sejam.
+    if (data.includeOpen && !studentContractIds) {
+      const seen = new Set(invoices.map((row: { id: string }) => row.id));
+      for (let from = 0; ; from += OPEN_INVOICES_PAGE) {
+        const page = await db
+          .from("finance_invoices")
+          .select(
+            "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
+          )
+          .eq("school_id", membership.schoolId)
+          .in("status", ["open", "partially_paid"])
+          .order("created_at", { ascending: false })
+          .range(from, from + OPEN_INVOICES_PAGE - 1);
+        if (page.error) {
+          throw publicDatabaseError(page.error, "Não foi possível carregar as faturas por pagar.");
+        }
+        for (const row of page.data ?? []) {
+          if (!seen.has(row.id)) {
+            seen.add(row.id);
+            invoices.push(row);
+          }
+        }
+        if (!page.data || page.data.length < OPEN_INVOICES_PAGE) break;
+      }
+      invoices = invoices.sort((a: { created_at: string }, b: { created_at: string }) =>
+        String(b.created_at).localeCompare(String(a.created_at)),
+      );
+    }
 
     const invoiceIds = (invoices ?? []).map((row: { id: string }) => row.id);
     const contractIds = [
