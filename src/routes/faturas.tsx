@@ -150,7 +150,7 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
     return `Em atraso: registar hoje aplica a multa de ${kz(multa.counter)}, já somada ao valor.`;
   }
   if (multa.electronic > 0) {
-    return `Em atraso: Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
+    return `Em atraso: TPA, Multicaixa Express e Unitel Money levam a multa de ${kz(multa.electronic)}; numerário e transferência não.`;
   }
   return "Liquida esta fatura e lança o recibo no caixa.";
 }
@@ -168,6 +168,7 @@ function FaturasPage() {
   const [emisInvoice, setEmisInvoice] = useState<{ id: string; numero: string } | null>(null);
   const receiveMethods = [
     "Numerário",
+    "TPA (cartão)",
     "Transferência",
     ...(installed.isInstalled("multicaixa_express") ? ["Multicaixa Express"] : []),
     ...(installed.isInstalled("unitel_money") ? ["Unitel Money"] : []),
@@ -386,6 +387,7 @@ function FaturasPage() {
               const amount = Number(values["valor"]);
               const methodMap = {
                 Numerário: "cash",
+                "TPA (cartão)": "tpa",
                 Transferência: "transfer",
                 "Multicaixa Express": "multicaixa_express",
                 "Unitel Money": "unitel_money",
