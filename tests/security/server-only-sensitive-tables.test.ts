@@ -9,6 +9,11 @@ import { describe, expect, it } from "vitest";
  * qualquer aluno leria ou apagaria os dados de toda a escola.
  */
 const MIGRATIONS = {
+  "supabase/migrations/20261025070215_academic_agenda_backend.sql": ["siga_calendar_events"],
+  "supabase/migrations/20261025070713_capture_existing_cash_tables.sql": [
+    "finance_cash_points",
+    "finance_cash_sessions",
+  ],
   "supabase/migrations/20260925160000_academic_guards_risk_followup_appypay.sql": [
     "student_risk_cases",
     "student_risk_interventions",
@@ -50,9 +55,9 @@ const MIGRATIONS = {
     "web_school_showcase",
   ],
   // Registo das acções do ADMIN: nem os administradores da plataforma o alteram.
-  "supabase/migrations/20261017100000_saas_audit_logs_server_only.sql": ["saas_audit_logs"],
+  "supabase/migrations/20261025070203_saas_audit_logs_server_only.sql": ["saas_audit_logs"],
   // Links das aulas online: alunos liam os de todas as turmas; professores mudavam os alheios.
-  "supabase/migrations/20261018120001_lesson_meetings_server_only.sql": ["siga_lesson_meetings"],
+  "supabase/migrations/20261025070212_lesson_meetings_server_only.sql": ["siga_lesson_meetings"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",
