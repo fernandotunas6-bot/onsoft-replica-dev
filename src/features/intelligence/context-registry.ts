@@ -1,5 +1,10 @@
 import type { ElementType } from "react";
-import { canAccessPath, canReadModule, type accessModules } from "@/features/auth/access-policy";
+import {
+  canAccessPath,
+  canReadModule,
+  type accessModules,
+  type ApplicationRole,
+} from "@/features/auth/access-policy";
 import type { Plan } from "@/features/saas/types";
 import { contextKey } from "./context-resolver";
 import type { ContextFrame, EntityType, ResolvedContext } from "./types";
@@ -29,6 +34,11 @@ export interface ContextNavEntry {
   search?: (trail: ContextFrame[]) => ContextSearch;
   module: AccessModuleKey;
   order: number;
+  /**
+   * Só estes cargos vêem a entrada. Estreita o catálogo, nunca o alarga: a
+   * rota continua a precisar de `canAccessPath` e `canReadModule`.
+   */
+  roles?: readonly ApplicationRole[];
 }
 
 export type ContextLink = { to: string; search: ContextSearch };
@@ -66,6 +76,7 @@ export function getContextEntries(
     .filter(
       (entry) =>
         entry.contexts.includes(inner.type) &&
+        (!entry.roles || (entry.roles as readonly string[]).includes(context.role)) &&
         canAccessPath(entry.to, context.role, context.grants, plan) &&
         canReadModule(context.role, entry.module, context.grants),
     )

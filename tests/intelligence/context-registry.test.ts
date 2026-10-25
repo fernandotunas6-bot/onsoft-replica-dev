@@ -81,6 +81,20 @@ describe("getContextEntries", () => {
       ),
     ).toEqual([]);
   });
+
+  it("deixa o menu da turma só a Administrador, Secretaria e Professor", () => {
+    // As regras de rota deixam aluno e encarregado abrir /pedagogica e
+    // /planos-aula para o que é seu; a pauta e os planos da turma não são deles.
+    const comMenu = applicationRoles.filter(
+      (role) =>
+        getContextEntries(context(role, [classFrame, subjectFrame]), ACADEMIC_CONTEXT_ENTRIES)
+          .length > 0,
+    );
+    expect(comMenu).toEqual(["Administrador", "Secretaria", "Professor"]);
+    expect(
+      getContextLevels(context("Aluno", [classFrame, subjectFrame]), ACADEMIC_CONTEXT_ENTRIES),
+    ).toEqual([]);
+  });
 });
 
 describe("links e entrada activa", () => {

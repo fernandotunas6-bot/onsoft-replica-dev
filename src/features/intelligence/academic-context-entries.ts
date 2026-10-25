@@ -1,3 +1,4 @@
+import type { ApplicationRole } from "@/features/auth/access-policy";
 import { moduleIcons } from "@/lib/app-icons";
 import type { ContextNavEntry } from "./context-registry";
 import { parseSubjectOfferingId } from "./context-resolver";
@@ -30,6 +31,17 @@ export function academicIdsFromTrail(trail: ContextFrame[]): {
   return { turma, disciplina };
 }
 
+/**
+ * As entradas académicas são de gestão da turma (pauta, chamada, planos). As
+ * regras de rota deixam o aluno e o encarregado abrir `/pedagogica` e
+ * `/planos-aula` para o que é seu, por isso o menu da turma fica para a equipa.
+ */
+export const ACADEMIC_STAFF_ROLES: readonly ApplicationRole[] = [
+  "Administrador",
+  "Secretaria",
+  "Professor",
+];
+
 export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
   {
     id: "subject.grades",
@@ -40,6 +52,7 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     to: "/pedagogica",
     search: (trail) => ({ tab: "notas", ...academicIdsFromTrail(trail), pauta: "1" }),
     module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
     order: 10,
   },
   {
@@ -51,6 +64,7 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     to: "/pedagogica",
     search: (trail) => ({ tab: "notas", turma: academicIdsFromTrail(trail).turma, pauta: "1" }),
     module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
     order: 10,
   },
   {
@@ -62,6 +76,7 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     to: "/pedagogica",
     search: (trail) => ({ tab: "presencas", ...academicIdsFromTrail(trail) }),
     module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
     order: 20,
   },
   {
@@ -73,6 +88,7 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     to: "/planos-aula",
     search: (trail) => academicIdsFromTrail(trail),
     module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
     order: 30,
   },
 ];

@@ -640,6 +640,16 @@ describe("AppSidebar — contexto da turma e da disciplina", () => {
     expect(screen.queryByText(/Matemática/)).toBeNull();
   });
 
+  it("o aluno fica com a sua barra, sem o menu de gestão da turma", () => {
+    papel = "Aluno";
+    arvoreAcademica = duasTurmas();
+    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
+    const { container } = renderSidebar();
+    expect(container.querySelector("[data-context-level]")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Voltar para / })).toBeNull();
+    expect(screen.queryByText(/Disciplina · /)).toBeNull();
+  });
+
   it("na barra recolhida mostra ícones com nome acessível e sem cabeçalho", () => {
     arvoreAcademica = duasTurmas();
     currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
