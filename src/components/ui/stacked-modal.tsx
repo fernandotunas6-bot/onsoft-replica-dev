@@ -134,6 +134,10 @@ export function StackedModal({
   );
 
   const [activeId, setActiveId] = useState(() => resolveTopId(initialPanelId));
+  const activeIdRef = useRef(activeId);
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
   const [dirty, setDirty] = useState(false);
   const dirtyPanels = useRef(new Map<string, boolean>());
   const reportPanelDirty = useCallback((id: string, value: boolean) => {
@@ -149,7 +153,14 @@ export function StackedModal({
   useEffect(() => {
     if (!open) return undefined;
     const topId = resolveTopId(initialPanelId);
-    setActiveId(topId);
+    // Deep links may change while a form is being edited. Apply the same
+    // unsaved-changes guard as a click in the categories sidebar.
+    if (activeIdRef.current !== topId) {
+      if (!confirmDiscardChanges(dirtyPanels.current.size > 0)) return undefined;
+      dirtyPanels.current.clear();
+      setDirty(false);
+      setActiveId(topId);
+    }
     if (!initialPanelId || initialPanelId === topId) return undefined;
     const id = initialPanelId;
     const timer = window.setTimeout(() => {

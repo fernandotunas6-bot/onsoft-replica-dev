@@ -64,3 +64,37 @@ publicação em Cloudflare. Não sobrescrever contribuições independentes.
 Claude deve deixar comentários com achados verificáveis na PR e preparar
 commits adicionais pequenos em ramo próprio caso o escopo cresça. Esta nota é
 um **handoff documental**, não inicia uma sessão do Claude automaticamente.
+
+## Continuação após o merge da PR #286 — protecção de rascunhos (25/10/2026)
+
+A PR #286 foi integrada no `main` no commit `50b90afe`. O trabalho de
+Identidade Digital e Pedagógico está entregue; não voltar a abrir o mesmo PR.
+
+Ramo deste incremento: `fix/settings-external-deeplink-dirty-20261025`.
+
+**Problema encontrado:** `StackedModal` confirmava a perda de alterações
+quando o utilizador clicava noutra categoria, mas o `useEffect` de
+`initialPanelId` mudava o painel sem a mesma confirmação. Um deep link
+externo podia, portanto, trocar o formulário activo e perder edições.
+
+**Correcção:** a mudança externa compara o painel de topo resolvido com o
+painel actualmente visível, consulta a mesma guarda `confirmDiscardChanges`
+se houver secções dirty e só troca e limpa o estado após consentimento.
+Uma recusa deixa o formulário original aberto. O efeito não depende
+directamente de `activeId` para não desfazer a navegação manual; o ref
+é sincronizado em `useEffect` e não durante o render.
+
+**Regressão:** `tests/ui/stacked-settings.test.tsx` exercita recusa
+e aceitação numa mudança de `initialPanelId`, preservando o teste original
+de cliques nas categorias.
+
+**Claude Code, próximo passo:** rever o diff e executar lint, typecheck,
+Vitest, build, auditoria de dependências e ensaio de browser autorizado.
+Validar a combinação de rascunhos, clique, `?painel=`, histórico do router
+e alternância entre escolas. Atenção particular a links para subpainéis
+(`conta.perfil` e `conta.senha`) e a regressões com React StrictMode.
+Não alterar RLS, SQL nem publicação de produção.
+
+A issue #273 foi encerrada depois de a auditoria da PR #286 passar e
+de as versões corrigidas constarem do lockfile. Reabrir apenas perante
+nova evidência. Os testes DOM/CI não substituem homologação autenticada.
