@@ -44,7 +44,10 @@ export function inventoryOfflineReadiness(root = repositoryRoot) {
       path,
       api: path.startsWith("src/routes/api/"),
       directServerFunction: /\bcreateServerFn\s*\(/.test(source),
-      serverModuleImport: /(?:from\s*|import\s*\()["'][^"'\n]*\/(?:server|server-legacy|server-secure-legacy)(?:["']|\b)/.test(source),
+      serverModuleImport:
+        /(?:from\s*|import\s*\()["'][^"'\n]*\/(?:server|server-legacy|server-secure-legacy)(?:["']|\b)/.test(
+          source,
+        ),
       serverHandler: /\bcreateAPIFileRoute\s*\(|\bserver:\s*\{/.test(source),
     };
   });
@@ -52,11 +55,13 @@ export function inventoryOfflineReadiness(root = repositoryRoot) {
     .filter((absolute) => /\bcreateServerFn\s*\(/.test(readFileSync(absolute, "utf8")))
     .map((absolute) => relative(root, absolute).replaceAll("\\", "/"));
 
-  const schoolWindowRemote = /WebviewUrl::External\s*\(/.test(nativeSchool) &&
+  const schoolWindowRemote =
+    /WebviewUrl::External\s*\(/.test(nativeSchool) &&
     nativeSchool.includes("https://portal-siga.com");
   const schoolBundleEntry = /(?:school|escola)["']?\s*:\s*resolve\s*\(/.test(desktopVite);
-  const localEntryPoints = [...desktopVite.matchAll(/^[ \t]*["']?([\w-]+)["']?\s*:\s*resolve\s*\(/gm)]
-    .map((match) => match[1]);
+  const localEntryPoints = [
+    ...desktopVite.matchAll(/^[ \t]*["']?([\w-]+)["']?\s*:\s*resolve\s*\(/gm),
+  ].map((match) => match[1]);
   const report = {
     format: "siga-desktop-offline-inventory-v1",
     schoolRuntime: {
@@ -89,15 +94,21 @@ export function verifyOfflineInventory(report) {
   const failures = [];
   if (report.counts.routeFiles < 1) failures.push("As rotas escolares não foram encontradas.");
   if (!report.schoolRuntime.remoteWindow) {
-    failures.push("O modo de janela escolar divergiu do inventário remoto existente: rever a migração.");
+    failures.push(
+      "O modo de janela escolar divergiu do inventário remoto existente: rever a migração.",
+    );
   }
   if (report.schoolRuntime.schoolBundleEntry) {
-    failures.push("Entrada de bundle escolar local detectada; rever paridade de autenticação, dados e capabilities.");
+    failures.push(
+      "Entrada de bundle escolar local detectada; rever paridade de autenticação, dados e capabilities.",
+    );
   }
   if (
     JSON.stringify(report.schoolRuntime.allowedRemoteOrigins) !==
     JSON.stringify(["https://portal-siga.com/*"])
-  ) failures.push("A capability do portal remoto deixou de ser de origem única.");
+  ) {
+    failures.push("A capability do portal remoto deixou de ser de origem única.");
+  }
   return failures;
 }
 
