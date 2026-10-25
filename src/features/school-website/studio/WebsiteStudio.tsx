@@ -474,7 +474,11 @@ export function WebsiteStudioWorkspace({
                   ? "Publicado · sem alterações"
                   : "Rascunho"}
           </span>
-          <button type="button" disabled={busy || publishedView || !dirty} onClick={() => void act("save")}>
+          <button
+            type="button"
+            disabled={busy || publishedView || !dirty}
+            onClick={() => void act("save")}
+          >
             Guardar rascunho
           </button>
           <button
