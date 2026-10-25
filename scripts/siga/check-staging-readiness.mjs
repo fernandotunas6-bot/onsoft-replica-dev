@@ -18,7 +18,9 @@ const REQUIRED = [
 export function assertStagingReady(env = process.env) {
   const missing = REQUIRED.filter((key) => !String(env[key] ?? "").trim());
   if (missing.length) {
-    throw new Error(`Staging não configurado: faltam ${missing.join(", ")}. E2E não foi executado.`);
+    throw new Error(
+      `Staging não configurado: faltam ${missing.join(", ")}. E2E não foi executado.`,
+    );
   }
 
   const projectRef = String(env.STAGING_SUPABASE_PROJECT_ID).trim();
@@ -52,7 +54,9 @@ export function assertStagingReady(env = process.env) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     assertStagingReady();
-    console.log("Staging: configuração estrutural válida; ainda requer validação remota e E2E real.");
+    console.log(
+      "Staging: configuração estrutural válida; ainda requer validação remota e E2E real.",
+    );
   } catch (error) {
     console.error(error instanceof Error ? error.message : "Staging não configurado.");
     process.exitCode = 1;
