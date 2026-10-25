@@ -1,7 +1,8 @@
 # SIGA Context Engine 2026 — especificação de implementação
 
 Navegação contextual inteligente · Sidebar 360° · Workspace dinâmico.
-Versão de 25/10/2026, sobre `main` em `a6d8f53` + PR #332.
+Versão de 25/10/2026, sobre `main` em `a6d8f53` + PR #332 (com a #333 integrada no
+`049642b`, a pedido do proprietário).
 
 Este documento transforma o «Prompt Master — SIGA Plus Context Engine» numa
 especificação ligada ao código que existe. Não substitui o contrato visual
@@ -25,22 +26,25 @@ RLS). Um ID na URL nunca cria um destino no menu: só entidades que o servidor d
 Nada é substituído. Cada peça é estendida no seu lugar. Há **um só motor**: o da
 PR #332 (`context-resolver.ts`, `context-registry.ts`, `academic-context-entries.ts`).
 
-| Peça                                                                    | Papel                                                                                          | Origem                         |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------ |
-| `AppShell.tsx`                                                          | Sidebar, header, main, RightRail; mobile com header e navegação inferior                       | existente                      |
-| `AppSidebar.tsx`                                                        | Sidebar 240/64 px; catálogo; escola activa; mostra o menu da entidade                          | existente + fase 3             |
-| `AcademicNavTree.tsx`                                                   | Curso/classe → turma → disciplina (mudança explícita de turma)                                 | existente; consultas extraídas |
-| `NavItem.tsx`                                                           | `NavLinkRow`, `NavSubheader`                                                                   | reutilizado                    |
-| `RightRail.tsx`                                                         | Único painel contextual (Relacionado / Mensagens)                                              | existente                      |
-| `portal-engine.ts`, `navigation-catalog.ts`, `contextual-navigation.ts` | Catálogo autorizado e módulo activo (nível 1)                                                  | existente                      |
-| `access-policy.ts`                                                      | `canAccessPath`, `canReadModule`, plano                                                        | existente                      |
-| `intelligence/context-resolver.ts`                                      | `routeContextCandidates`, `resolveContext` (rota → foco → pais → memória → área), `contextKey` | PR #332                        |
-| `intelligence/context-registry.ts`                                      | `ContextNavEntry`, `getContextEntries`, `findActiveContextEntry`, `contextBreadcrumb`          | PR #332                        |
-| `intelligence/academic-context-entries.ts`                              | Entradas de turma e disciplina                                                                 | PR #332                        |
-| `academic/use-academic-nav-tree.ts`                                     | Turmas/disciplinas que o servidor devolve à conta; mesmas chaves de query da árvore            | fase 3                         |
-| `intelligence/academic-context-lookup.ts`                               | `ContextLookup` a partir dessa árvore; rótulos do servidor                                     | fase 3                         |
-| `layout/ContextEntityNav.tsx`                                           | `useEntityNavigation` + menu da entidade na sidebar                                            | fase 3                         |
-| `intelligence/context-engine.ts`                                        | `buildAppContext` descarta entidade declarada por outra escola                                 | este ramo                      |
+| Peça                                                                                          | Papel                                                                                                                                         | Origem                         |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `AppShell.tsx`                                                                                | Sidebar, header, main, RightRail; mobile com header e navegação inferior; partilha o contexto resolvido (`ActiveContextProvider`)             | existente + fase 3             |
+| `AppSidebar.tsx`                                                                              | Sidebar 240/64 px; catálogo; escola activa; mostra o menu da entidade                                                                         | existente + fase 3             |
+| `AcademicNavTree.tsx`                                                                         | Curso/classe → turma → disciplina (mudança explícita de turma)                                                                                | existente; consultas extraídas |
+| `NavItem.tsx`                                                                                 | `NavLinkRow`, `NavSubheader`                                                                                                                  | reutilizado                    |
+| `RightRail.tsx`                                                                               | Único painel contextual (Relacionado / Mensagens)                                                                                             | existente                      |
+| `portal-engine.ts`, `navigation-catalog.ts`, `contextual-navigation.ts`                       | Catálogo autorizado e módulo activo (nível 1)                                                                                                 | existente                      |
+| `access-policy.ts`                                                                            | `canAccessPath`, `canReadModule`, plano                                                                                                       | existente                      |
+| `intelligence/context-resolver.ts`                                                            | `routeContextCandidates`, `resolveContext` (rota → foco → pais → memória → área), `contextKey`, `focusContextLookup`, `combineContextLookups` | PR #332                        |
+| `intelligence/context-registry.ts`                                                            | `ContextNavEntry`, `getContextEntries`, `findActiveContextEntry`, `contextBreadcrumb`                                                         | PR #332                        |
+| `intelligence/academic-context-entries.ts`                                                    | Entradas de turma e disciplina                                                                                                                | PR #332                        |
+| `academic/use-academic-nav-tree.ts`                                                           | Turmas/disciplinas que o servidor devolve à conta; mesmas chaves de query da árvore                                                           | fase 3                         |
+| `intelligence/academic-context-lookup.ts`                                                     | `ContextLookup` a partir dessa árvore; rótulos do servidor                                                                                    | fase 3                         |
+| `layout/ContextEntityNav.tsx`                                                                 | `useEntityNavigation` + menu da entidade (turma, disciplina, aluno) na sidebar                                                                | fase 3 e 5                     |
+| `students/student-sections.ts`                                                                | Secções da ficha do aluno (`?secao=`) e quem lê cada uma                                                                                      | fase 5                         |
+| `intelligence/student-context-entries.ts`                                                     | Entradas do aluno: Ficha completa e as secções que a conta lê                                                                                 | fase 5                         |
+| `intelligence/context-breadcrumb.ts`, `active-context.ts`, `layout/ActiveContextProvider.tsx` | Breadcrumb do contexto no `PageHeader`, a partir do mesmo contexto do menu                                                                    | fase 3                         |
+| `intelligence/context-engine.ts`                                                              | `buildAppContext` descarta entidade declarada por outra escola                                                                                | este ramo                      |
 
 ## 2. Organização visual — opção A (decisão do proprietário, 25/10)
 
@@ -48,13 +52,13 @@ Esquema conceptual de referência: barra global, sidebar contextual («Disciplin
 Matemática» com as suas funções) e conteúdo principal com breadcrumb «Pedagógica / Turma A /
 Matemática». **Opção A aprovada:** sem coluna nova nem disposição em duas colunas.
 
-| Região             | Implementação                                                                                                                                                                                                                                                                                                                     |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Barra global       | Sem coluna nova. Escola no cabeçalho da sidebar; «Todas as áreas» mantém o catálogo.                                                                                                                                                                                                                                              |
-| Sidebar contextual | Com turma/disciplina confirmada: «← Voltar a ‹módulo›», cabeçalho `Disciplina · Matemática` / `Turma A`, grupos do registo (Ensino, Avaliação, Acompanhamento), entrada actual com `aria-current="page"`. A árvore académica continua por baixo para mudar de turma. O catálogo do módulo volta com «Voltar» ou «Todas as áreas». |
-| Recolhida (64 px)  | Mesmas entradas só com ícone e nome acessível (`sr-only` + `title`).                                                                                                                                                                                                                                                              |
-| Conteúdo principal | A página da função (sem alteração nesta fase).                                                                                                                                                                                                                                                                                    |
-| Painel direito     | `RightRail` existente; nunca um segundo painel.                                                                                                                                                                                                                                                                                   |
+| Região             | Implementação                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Barra global       | Sem coluna nova. Escola no cabeçalho da sidebar; «Todas as áreas» mantém o catálogo.                                                                                                                                                                                                                                                                                                                                                        |
+| Sidebar contextual | Com turma/disciplina confirmada: «← Voltar a ‹módulo›», cabeçalho `Disciplina · Matemática` / `Turma A`, grupos do registo (Ensino, Avaliação, Acompanhamento), entrada actual com `aria-current="page"`. A árvore académica continua por baixo para mudar de turma. O catálogo do módulo volta com «Voltar» ou «Todas as áreas». Com um aluno aberto: «← Voltar» à lista de alunos, `Aluno · ‹nome›` e as secções da ficha que a conta lê. |
+| Recolhida (64 px)  | Mesmas entradas só com ícone e nome acessível (`sr-only` + `title`).                                                                                                                                                                                                                                                                                                                                                                        |
+| Conteúdo principal | A página da função. O `PageHeader` acrescenta ao breadcrumb a turma e a disciplina da URL («Área Pedagógica / 10.ª A / Matemática»); cada passo leva à mesma página nesse nível, e um breadcrumb explícito da página manda. A ficha do aluno com `?secao=` mostra só essa secção, com «Ver ficha completa».                                                                                                                                 |
+| Painel direito     | `RightRail` existente; nunca um segundo painel.                                                                                                                                                                                                                                                                                                                                                                                             |
 
 Acabamento só com `NavItem` e tokens `--sidebar-*`; nenhum estilo novo.
 
@@ -77,7 +81,7 @@ memória revalidada → área geral. Um ID recusado deixa o contexto no nível a
 `subject-offering` tem id `<turma>:<disciplina>`; uma disciplina que não pertence à turma
 da URL é recusada.
 
-## 4. Fase 3 — como funciona
+## 4. Fases 3 e 5 — como funciona
 
 1. `useEntityNavigation(pathname, search)` só actua para **Administrador, Secretaria e
    Professor** (as entradas são de gestão da turma; aluno e encarregado vêem o que é seu
@@ -91,6 +95,17 @@ da URL é recusada.
    `findActiveContextEntry`.
 6. `AppSidebar` mostra `ContextEntityNav` e esconde o catálogo do módulo enquanto a
    entidade está aberta.
+7. Aluno: em `/alunos/<id>` o aluno só entra no caminho depois de a ficha o ler do
+   servidor na escola activa. A página declara o foco (`EntityFocus`) e
+   `focusContextLookup` só o aceita se for o aluno da URL; outro aluno, outra escola ou a
+   ficha ainda a carregar deixam a sidebar como estava. `combineContextLookups` junta este
+   lookup ao académico.
+8. As entradas do aluno (`student-context-entries.ts`) levam a `/alunos/<id>?secao=…`.
+   `allow` tira as secções que a conta não lê; o Financeiro segue o servidor
+   (`listInvoices`, `getStudentScholarship`): Administração, Secretaria e Tesouraria, salvo
+   «Nenhum» no módulo, ou cargo elevável com permissão. Sem `?secao=`, a ficha completa.
+9. `ActiveContextProvider`, na `AppShell`, resolve o contexto uma vez e partilha-o com o
+   `PageHeader` (`useActiveContext`), que acrescenta os passos depois do título.
 
 ## 5. Inventário (Implementado · Parcial · Ausente · Bloqueado)
 
@@ -98,29 +113,31 @@ da URL é recusada.
 
 ### 5.1 Disciplina e turma (prioridade 1)
 
-| Função                                 | Destino                                          | Estado                                                                                        |
-| -------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Menu da entidade na sidebar            | `ContextEntityNav`                               | Implementado (fase 3)                                                                         |
-| Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1` | Implementado                                                                                  |
-| Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`            | Implementado                                                                                  |
-| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`     | Parcial — confirmar em sessão que o separador filtra pela turma                               |
-| Planos de aula                         | `/planos-aula?turma&disciplina`                  | Implementado                                                                                  |
-| Materiais e ficheiros                  | `/arquivos?turma`                                | Parcial — `/arquivos` não está em `routeContextCandidates`; abrir perderia o contexto         |
-| Chamada do professor                   | `/professor/presenca?turma&disciplina`           | Parcial — mesma razão                                                                         |
-| Trabalhos, entregas, correcção         | —                                                | Parcial — `siga_class_tasks` e `siga_class_task_submissions` (#331) sem ecrã; SPEC na PR #329 |
-| Alunos da turma, horário da turma      | `/pedagogica?tab=turmas` / `horarios`            | Parcial — filtro por `turma` por confirmar                                                    |
-| Visão geral da disciplina, reclamações | —                                                | Ausente; não se criam páginas para encher o menu                                              |
-| Breadcrumb contextual no `PageHeader`  | `contextBreadcrumb`                              | Ausente                                                                                       |
+| Função                                 | Destino                                             | Estado                                                                                        |
+| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                         |
+| Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                  |
+| Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                  |
+| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`        | Parcial — confirmar em sessão que o separador filtra pela turma                               |
+| Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                  |
+| Materiais e ficheiros                  | `/arquivos?turma`                                   | Parcial — `/arquivos` não está em `routeContextCandidates`; abrir perderia o contexto         |
+| Chamada do professor                   | `/professor/presenca?turma&disciplina`              | Parcial — mesma razão                                                                         |
+| Trabalhos, entregas, correcção         | —                                                   | Parcial — `siga_class_tasks` e `siga_class_task_submissions` (#331) sem ecrã; SPEC na PR #329 |
+| Alunos da turma, horário da turma      | `/pedagogica?tab=turmas` / `horarios`               | Parcial — filtro por `turma` por confirmar                                                    |
+| Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                              |
+| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica` e `/planos-aula`                                                 |
 
 ### 5.2 Aluno (prioridade 2)
 
-| Função                           | Destino                         | Estado                                |
-| -------------------------------- | ------------------------------- | ------------------------------------- |
-| Rota reconhecida pelo resolvedor | `/alunos/$studentId`            | Implementado (#332)                   |
-| Lookup e entradas do aluno       | —                               | Ausente                               |
-| Ficha, académico, financeiro     | `/alunos/$studentId` (secções)  | Parcial — sem URL por secção          |
-| Faturas e documentos do aluno    | `/faturas`, `/documentos`       | Parcial — sem filtro por aluno na URL |
-| Relações no painel direito       | `students/student-relation-map` | Implementado                          |
+| Função                           | Destino                                                                     | Estado                                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Rota reconhecida pelo resolvedor | `/alunos/$studentId`                                                        | Implementado (#332)                                                                       |
+| Lookup e entradas do aluno       | foco da ficha + `student-context-entries.ts`                                | Implementado (fase 5)                                                                     |
+| Menu do aluno na sidebar         | `ContextEntityNav`                                                          | Implementado (desktop; só a equipa)                                                       |
+| Ficha por secção                 | `/alunos/$studentId?secao=identificacao\|academico\|financeiro\|documentos` | Implementado                                                                              |
+| Comunicação, Histórico           | —                                                                           | Ausente — a ficha não mostra esse conteúdo (o histórico só alimenta documentos impressos) |
+| Faturas e documentos do aluno    | `/faturas`, `/documentos`                                                   | Parcial — sem filtro por aluno na URL; na ficha, secções Financeiro e Documentos          |
+| Relações no painel direito       | `students/student-relation-map`                                             | Implementado                                                                              |
 
 ### 5.3 Restantes contextos
 
@@ -156,34 +173,35 @@ da URL é recusada.
 - Cada entrada passa por `canAccessPath` e `canReadModule`; o menu da entidade só para
   a equipa.
 - Uma entidade declarada por outra escola é descartada.
+- O aluno da URL só entra no caminho depois de a ficha o ler do servidor na escola activa.
 - Nenhuma alteração a SQL, RLS ou permissões.
 
 ## 9. Estado das fases
 
-| Fase                | Estado                                       | Evidência                                                                    |
-| ------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| 1 Auditoria         | Parcial                                      | Inventário §5; falta auditoria em sessão autenticada                         |
-| 2 Motor de contexto | Implementado                                 | PR #332 (24 testes)                                                          |
-| 3 Sidebar           | **Implementado (desktop, turma/disciplina)** | `ContextEntityNav`; 6 testes de sidebar + 7 de lookup                        |
-| 4 Disciplina piloto | Parcial                                      | Falta Trabalhos (#329) e validação em staging                                |
-| 5 Aluno piloto      | Ausente                                      | Proposto ao agente da #332                                                   |
-| 6–7 Restantes       | Ausente                                      |                                                                              |
-| 8 Desktop/mobile    | Parcial                                      | Desktop expandido e recolhido testados em jsdom; capturas e mobile por fazer |
-| 9 Optimização       | Parcial                                      | Sem pedidos novos (mesma chave); medições por fazer                          |
-| 10 Revisão          | Parcial                                      | Lint, TypeScript e testes passam; Playwright pendente                        |
+| Fase                | Estado                                             | Evidência                                                                                                                                   |
+| ------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 Auditoria         | Parcial                                            | Inventário §5; falta auditoria em sessão autenticada                                                                                        |
+| 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                         |
+| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 11 testes de sidebar + 7 de lookup; breadcrumb com 7 testes                                                             |
+| 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                               |
+| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (21 testes de regras e entradas, 6 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada |
+| 6–7 Restantes       | Ausente                                            |                                                                                                                                             |
+| 8 Desktop/mobile    | Parcial                                            | Desktop expandido e recolhido testados em jsdom; capturas e mobile por fazer                                                                |
+| 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                         |
+| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (693 ficheiros); Playwright pendente                                                               |
 
 ## 10. Testes de aceitação
 
-| Cenário                        | Coberto                                                            | Falta                       |
-| ------------------------------ | ------------------------------------------------------------------ | --------------------------- |
-| A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada       | Trabalhos; E2E              |
-| B Aluno                        | Aluno não recebe o menu de gestão                                  | E2E                         |
-| C Secretaria → aluno           | —                                                                  | Fase 5                      |
-| D Multi-escola                 | Entidade de outra escola descartada; queries repostas              | E2E com duas escolas        |
-| E URL directa                  | Menu restaurado a partir da URL                                    | Breadcrumb                  |
-| F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada | Testes de servidor          |
-| G Dispositivos                 | Recolhida                                                          | Fase 8                      |
-| H Regressão                    | Suites de navegação, inteligência, académico e sidebar passam      | Suite completa e Playwright |
+| Cenário                        | Coberto                                                                                                | Falta                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------- |
+| A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada                                           | Trabalhos; E2E       |
+| B Aluno                        | Aluno não recebe o menu de gestão                                                                      | E2E                  |
+| C Secretaria → aluno           | Menu com as secções que a conta lê; Financeiro segue o servidor; secção recusada abre a ficha completa | E2E                  |
+| D Multi-escola                 | Entidade de outra escola descartada; queries repostas                                                  | E2E com duas escolas |
+| E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
+| F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
+| G Dispositivos                 | Recolhida                                                                                              | Fase 8               |
+| H Regressão                    | Suite completa passa (693 ficheiros, 4783 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 
@@ -200,12 +218,16 @@ abrir a entrada perde o contexto).
   este ramo faz a fase 3 (opção A); a #332 segue com o contexto do aluno e o breadcrumb.
 - Ficheiros deste ramo: `AppSidebar.tsx`, `AcademicNavTree.tsx`, `ContextEntityNav.tsx`,
   `use-academic-nav-tree.ts`, `academic-context-lookup.ts`.
+- A #333 entrou no ramo da #332 no `049642b`, a pedido do proprietário; daqui em diante há
+  um só ramo. O menu do aluno e o breadcrumb seguiram por cima.
 - #329 (Trabalhos) e #327 (disciplinas da turma) não tocam nestes ficheiros.
 
 ## 13. Limitações conhecidas
 
 - Mobile ainda sem menu da entidade.
 - Presenças, Materiais e Chamada precisam de confirmação ou de entrar no resolvedor.
-- A memória de contexto e o breadcrumb não estão ligados.
+- A memória de contexto não está ligada.
+- Na ficha do aluno, o Encarregado vê botões de gestão (Editar ficha, Estado, Anular); o
+  servidor recusa essas acções, mas os botões não deviam aparecer.
 - Referências externas (Moodle, Canvas, Linear, Jira, Salesforce, Notion, VS Code, Odoo,
   ClickUp) inspiram os princípios; nada foi copiado.

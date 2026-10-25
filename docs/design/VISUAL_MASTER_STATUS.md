@@ -14,6 +14,14 @@ a sidebar existente (240/64 px) mostra «Voltar», o cabeçalho da entidade e s�
 dessa entidade; sem coluna nova nem estilos novos. Motor da PR #332. Desktop testado em
 jsdom; mobile e capturas por fazer. [Especificação, inventário e estado](../specs/SIGA_CONTEXT_ENGINE_2026.md).
 
+**25/10/2026 — SIGA Context Engine (fase 5, aluno, e breadcrumb):** a ficha
+`/alunos/$studentId` abre por secção (`?secao=identificacao|academico|financeiro|documentos`),
+com «Ver ficha completa»; sem secção fica como estava. Com a ficha aberta, a equipa vê na
+sidebar «Voltar», o aluno e as secções que a conta lê. Em `/pedagogica` e `/planos-aula` o
+`PageHeader` acrescenta ao breadcrumb a turma e a disciplina da URL. Sem estilos novos.
+Testado em jsdom e em capturas com dados fictícios a 1440/390 px; o módulo Alunos continua
+`por auditar` (falta sessão autenticada) e o menu da entidade continua sem versão mobile.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
