@@ -1,6 +1,7 @@
+import { schoolWebsiteDomainVerified } from "@/features/school-website/domain-access";
 import { createFileRoute } from "@tanstack/react-router";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { getTenantAccessBlock } from "@/features/saas/tenant-access";
+import { getPublicSiteBlock } from "@/features/saas/tenant-access";
 import { readWebsiteState, WEBSITE_DOMAIN } from "@/features/school-website/content-model";
 import { createWebsiteContentHandler } from "@/features/school-website/content-http";
 import { schoolWebStorageReady } from "@/features/school-website/storage-guard";
@@ -15,7 +16,7 @@ const handle = createWebsiteContentHandler(async (code) => {
     .eq("public_code", code)
     .maybeSingle();
   if (error) throw new Error("School lookup failed");
-  if (!school || school.status === "archived") return null;
+  if (!school || school.status !== "active") return null;
   if (school.tenant_id) {
     const tenant = await db
       .from("tenants")
@@ -25,7 +26,7 @@ const handle = createWebsiteContentHandler(async (code) => {
     if (tenant.error) throw new Error("Tenant lookup failed");
     if (
       !tenant.data ||
-      getTenantAccessBlock(tenant.data as Parameters<typeof getTenantAccessBlock>[0]).blocked
+      getPublicSiteBlock(tenant.data as Parameters<typeof getPublicSiteBlock>[0]).blocked
     )
       return null;
   }
@@ -72,7 +73,7 @@ const handle = createWebsiteContentHandler(async (code) => {
       .eq("status", "active");
     if (domains.error) throw new Error("Domain lookup failed");
     allowedOrigins = domains.data
-      .filter((domain) => domain.type === "siga_subdomain" || domain.verified_at)
+      .filter(schoolWebsiteDomainVerified)
       .map((domain) => `https://${domain.hostname}`);
   }
   return { state, programNames, campaignOpen, allowedOrigins };

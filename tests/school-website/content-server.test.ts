@@ -32,7 +32,7 @@ import {
 } from "@/features/school-website/content-server";
 import { websiteTemplate } from "@/features/school-website/content-model";
 const invoke = (fn: unknown, input: unknown) => (fn as (input: unknown) => Promise<unknown>)(input);
-const context = { supabase: {}, userId: "admin-a" };
+const context = { supabase: {}, userId: "admin-a", claims: { aal: "aal2" } };
 const draft = {
   templateVersion: websiteTemplate.version,
   websiteUrl: "https://school.example",
@@ -43,8 +43,8 @@ const draft = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.programs = [];
-  mocks.read.mockResolvedValue({ schoolId: "school-a" });
-  mocks.write.mockResolvedValue({ schoolId: "school-a" });
+  mocks.read.mockResolvedValue({ schoolId: "school-a", appRole: "Administrador" });
+  mocks.write.mockResolvedValue({ schoolId: "school-a", appRole: "Administrador" });
   const chain = {
     select: () => chain,
     eq: (...args: unknown[]) => {
@@ -119,4 +119,38 @@ describe("autorização e âmbito do editor", () => {
     ).rejects.toThrow(/auditoria/);
     expect(mocks.update).not.toHaveBeenCalled();
   });
+});
+
+describe("identidade institucional reservada ao administrador com MFA", () => {
+  it.each(["Secretaria", "Professor", "Tesouraria", "Aluno", "Encarregado", ""])(
+    "recusa %s mesmo quando o guarda de módulo concedeu acesso extraordinário",
+    async (appRole) => {
+      mocks.read.mockResolvedValue({ schoolId: "school-a", appRole });
+      mocks.write.mockResolvedValue({ schoolId: "school-a", appRole });
+      await expect(invoke(getSchoolWebsiteEditor, { context, data: {} })).rejects.toThrow(
+        /Administrador/,
+      );
+      await expect(
+        invoke(changeSchoolWebsite, {
+          context,
+          data: { action: "save", expectedRevision: 0, draft },
+        }),
+      ).rejects.toThrow(/Administrador/);
+      expect(mocks.admin).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["aal1", undefined, "aal3"])(
+    "recusa alterações com aal=%s antes do cliente privilegiado",
+    async (aal) => {
+      await expect(
+        invoke(changeSchoolWebsite, {
+          context: { ...context, claims: { aal } },
+          data: { action: "save", expectedRevision: 0, draft },
+        }),
+      ).rejects.toThrow(/2FA/);
+      expect(mocks.admin).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -15,12 +15,16 @@ import {
 import { schoolSiteLinks } from "./school-sites";
 import { requireSchoolWebStorage } from "./storage-guard";
 
+import { requireAal2 } from "@/features/hr/require-aal2";
+import { requireSchoolWebsiteAdministrator } from "./editor-access";
+
 export const getSchoolWebsiteEditor = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const member = await requireSgaWriterFor("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
+    requireSchoolWebsiteAdministrator(member.appRole);
     const db = await loadSgaAdminClient();
     await requireSchoolWebStorage(db);
     const [settings, school, programs, campaigns] = await Promise.all([
@@ -57,6 +61,8 @@ export const changeSchoolWebsite = createServerFn({ method: "POST" })
     const member = await requireSgaWriterForWrite("gestao", context.supabase, context.userId, [
       "Administrador",
     ]);
+    requireSchoolWebsiteAdministrator(member.appRole);
+    requireAal2(context.claims, "Alterar website institucional");
     const db = await loadSgaAdminClient();
     await requireSchoolWebStorage(db);
     if (data.draft && data.action === "publish" && !data.draft.websiteUrl) {
