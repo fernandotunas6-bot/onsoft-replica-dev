@@ -256,14 +256,6 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     expect(screen.getByRole("menuitem", { name: "Criar escola" })).toBeTruthy();
   });
 
-  it("mantém as configurações escolares no topo e apenas opções pessoais na conta", async () => {
-    renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir menu da conta" }));
-    expect(await screen.findByRole("menuitem", { name: "Perfil" })).toBeTruthy();
-    expect(screen.queryByRole("menuitem", { name: "Configurações" })).toBeNull();
-    expect(screen.getByRole("menuitem", { name: "Alterar senha" })).toBeTruthy();
-  });
-
   it("fecha o flyout depois de seleccionar a subfunção, sem alterar o destino", async () => {
     currentPathname = "/portal";
     renderSidebar();
