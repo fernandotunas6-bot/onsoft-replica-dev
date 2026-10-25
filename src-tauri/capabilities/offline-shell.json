@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "school-offline-shell",
-  "description": "Read-only bundled school status, with only a non-sensitive native readiness report",
+  "description": "Read-only bundled school preview with readiness report and fixed SIGA portal opening",
   "windows": [
     "offline-shell"
   ],
@@ -9,6 +9,7 @@
   "permissions": [
     "core:default",
     "core:window:allow-close",
-    "allow-desktop-offline-readiness"
+    "allow-desktop-offline-readiness",
+    "allow-open-siga-portal"
   ]
 }
