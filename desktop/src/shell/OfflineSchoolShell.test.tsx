@@ -7,7 +7,9 @@ describe('SIGA offline school shell', () => {
 
   it('renders bundled UI without claiming that school data are available', () => {
     render(<OfflineSchoolShell />)
-    expect(screen.getByRole('heading', { name: 'Base escolar local' })).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: 'Base escolar local' })
+    ).toBeVisible()
     expect(screen.getByText(/Ainda indisponíveis/)).toBeVisible()
     expect(screen.getByText(/sem dados escolares/i)).toBeVisible()
   })

@@ -151,7 +151,9 @@ export function MainWindowContent({
                 onClick={openLocalPreview}
               >
                 <Monitor className="me-2 size-4" aria-hidden="true" />
-                {openingLocal ? 'A abrir base local…' : 'Pré-visualização local'}
+                {openingLocal
+                  ? 'A abrir base local…'
+                  : 'Pré-visualização local'}
               </Button>
               <Button
                 size="lg"

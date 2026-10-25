@@ -45,7 +45,7 @@ assert(!offlinePreview.remote, "A interface local não pode receber origens remo
 assert(local.permissions.includes("allow-open-offline-shell"));
 const rust = readFileSync("src-tauri/src/school/mod.rs", "utf8");
 assert(rust.includes('tauri::WebviewUrl::App("offline-shell.html".into())'));
-assert(rust.includes('tauri::WebviewUrl::External('));
+assert(rust.includes("tauri::WebviewUrl::External("));
 assert(local.permissions.includes("allow-open-siga-portal"));
 assert.equal(readJson("desktop/UPSTREAM.json").commit, "437a18b9b63924833857f299217a5270f009d120");
 // Updater registado sem `plugins.updater` (chave pública) faz a app terminar ao abrir.

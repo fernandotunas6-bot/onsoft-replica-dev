@@ -49,7 +49,9 @@ describe('SIGA desktop actions', () => {
       expect(commands.openOfflineShell).toHaveBeenCalledOnce()
     )
     expect(commands.openSigaPortal).not.toHaveBeenCalled()
-    expect(screen.getByText(/não contém notas, presenças nem alunos/)).toBeVisible()
+    expect(
+      screen.getByText(/não contém notas, presenças nem alunos/)
+    ).toBeVisible()
   })
 
   it('does not report an unsigned installation as up to date', async () => {

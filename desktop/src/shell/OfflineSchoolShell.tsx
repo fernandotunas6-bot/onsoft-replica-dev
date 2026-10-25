@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { BookOpen, Database, LockKeyhole, Monitor, Wifi, WifiOff } from 'lucide-react'
+import {
+  BookOpen,
+  Database,
+  LockKeyhole,
+  Monitor,
+  Wifi,
+  WifiOff,
+} from 'lucide-react'
 
 /**
  * Primeira entrada HTML escolar empacotada. Não faz pedidos à rede, não lê
@@ -59,7 +66,10 @@ export function OfflineSchoolShell() {
           </p>
         </section>
 
-        <section aria-label="Preparação da aplicação escolar" className="grid gap-4 sm:grid-cols-3">
+        <section
+          aria-label="Preparação da aplicação escolar"
+          className="grid gap-4 sm:grid-cols-3"
+        >
           <article className="rounded-xl border border-border bg-card p-5">
             <Monitor aria-hidden="true" className="mb-4 size-6" />
             <h3 className="font-medium">Interface instalada</h3>
