@@ -131,8 +131,20 @@ describe("contextual navigation", () => {
   });
   it("keeps the parent destination selected on detail pages", () => {
     expect(isContextDestinationActive({ to: "/alunos" }, groups, "/alunos/123", {})).toBe(true);
+    // A entrada mais específica ganha ao pai: estando no catálogo, não é a
+    // Pedagógica que se acende.
+    expect(
+      isContextDestinationActive({ to: "/pedagogica" }, groups, "/pedagogica/catalogo", {}),
+    ).toBe(false);
+  });
+
+  it("acende o pai quando o módulo adormecido já não tem entrada própria", () => {
+    // O RH saiu do menu (módulo adormecido). Sem entrada própria para
+    // /financeiro/rh, quem lá chegar por URL vê o Financeiro assinalado — que é
+    // o pai mais próximo que existe. Antes esta asserção era `false`, porque o
+    // RH tinha as suas cinco entradas.
     expect(
       isContextDestinationActive({ to: "/financeiro" }, groups, "/financeiro/rh/folha", {}),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
