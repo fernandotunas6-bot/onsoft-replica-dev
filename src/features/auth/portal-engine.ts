@@ -424,6 +424,11 @@ export function getPortalNavigation(
               to: "/financeiro/rh/pagamentos",
             },
             {
+              label: "Assiduidade Docente",
+              icon: moduleIcons.qrPresence,
+              to: "/financeiro/rh/aulas",
+            },
+            {
               label: "Faltas e Assiduidade",
               icon: moduleIcons.staffAbsences,
               to: "/financeiro/rh/faltas",

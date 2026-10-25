@@ -88,6 +88,7 @@ import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subs
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
 import { Route as ApiWebhooksTwilioSmsRouteImport } from './routes/api/webhooks/twilio-sms'
 import { Route as ApiWebhooksWhatsappStatusRouteImport } from './routes/api/webhooks/whatsapp-status'
+import { Route as FinanceiroRhAulasRouteImport } from './routes/financeiro.rh.aulas'
 import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro.rh.faltas'
 import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.folha'
 import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
@@ -535,6 +536,11 @@ const ApiWebhooksWhatsappStatusRoute =
     path: '/api/webhooks/whatsapp-status',
     getParentRoute: () => rootRouteImport,
   } as any)
+const FinanceiroRhAulasRoute = FinanceiroRhAulasRouteImport.update({
+  id: '/aulas',
+  path: '/aulas',
+  getParentRoute: () => FinanceiroRhRoute,
+} as any)
 const FinanceiroRhFaltasRoute = FinanceiroRhFaltasRouteImport.update({
   id: '/faltas',
   path: '/faltas',
@@ -868,6 +874,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
+  '/financeiro/rh/aulas': typeof FinanceiroRhAulasRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
@@ -995,6 +1002,7 @@ export interface FileRoutesByTo {
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
+  '/financeiro/rh/aulas': typeof FinanceiroRhAulasRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
@@ -1123,6 +1131,7 @@ export interface FileRoutesById {
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
+  '/financeiro/rh/aulas': typeof FinanceiroRhAulasRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
@@ -1252,6 +1261,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
+    | '/financeiro/rh/aulas'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
@@ -1379,6 +1389,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
+    | '/financeiro/rh/aulas'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
@@ -1506,6 +1517,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
+    | '/financeiro/rh/aulas'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
     | '/financeiro/rh/pagamentos'
@@ -2199,6 +2211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksWhatsappStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro/rh/aulas': {
+      id: '/financeiro/rh/aulas'
+      path: '/aulas'
+      fullPath: '/financeiro/rh/aulas'
+      preLoaderRoute: typeof FinanceiroRhAulasRouteImport
+      parentRoute: typeof FinanceiroRhRoute
+    }
     '/financeiro/rh/faltas': {
       id: '/financeiro/rh/faltas'
       path: '/faltas'
@@ -2605,6 +2624,7 @@ const CalendarioRouteWithChildren = CalendarioRoute._addFileChildren(
 )
 
 interface FinanceiroRhRouteChildren {
+  FinanceiroRhAulasRoute: typeof FinanceiroRhAulasRoute
   FinanceiroRhFaltasRoute: typeof FinanceiroRhFaltasRoute
   FinanceiroRhFolhaRoute: typeof FinanceiroRhFolhaRoute
   FinanceiroRhPagamentosRoute: typeof FinanceiroRhPagamentosRoute
@@ -2613,6 +2633,7 @@ interface FinanceiroRhRouteChildren {
 }
 
 const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
+  FinanceiroRhAulasRoute: FinanceiroRhAulasRoute,
   FinanceiroRhFaltasRoute: FinanceiroRhFaltasRoute,
   FinanceiroRhFolhaRoute: FinanceiroRhFolhaRoute,
   FinanceiroRhPagamentosRoute: FinanceiroRhPagamentosRoute,

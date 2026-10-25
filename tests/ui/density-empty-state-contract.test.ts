@@ -51,6 +51,7 @@ describe("EmptyState rollout", () => {
       "src/routes/planos-aula.tsx",
       "src/routes/acessos.tsx",
       "src/routes/financeiro.rh.tsx",
+      "src/routes/financeiro.rh.aulas.tsx",
       "src/routes/financeiro.rh.folha.tsx",
       "src/routes/financeiro.rh.faltas.tsx",
       "src/routes/financeiro.rh.pagamentos.tsx",

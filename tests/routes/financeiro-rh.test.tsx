@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
 import { renderRoute, routeComponentOf } from "./_harness";
 import type { HrDashboardData } from "@/features/hr/server";
-import type { HrTeacherLessonOccurrence } from "@/features/hr/teacher-lessons";
 
 /**
  * Testes de montagem e render de `/financeiro/rh`.
@@ -14,10 +13,12 @@ import type { HrTeacherLessonOccurrence } from "@/features/hr/teacher-lessons";
  * 2. Contingência de esquema em falta (`ready: false`) a substituir os
  *    indicadores por um aviso de migração — os totais a zero seriam lidos
  *    como resultado real da escola.
- * 3. Estado vazio de ocorrências de aula (QR de presença docente).
- * 4. Geração de QR de check-in a partir de uma ocorrência agendada.
- * 5. Ramo de erro do dashboard — colapsa a página inteira num único painel.
- * 6. Estado vazio de folhas salariais quando o dashboard carrega sem erro.
+ * 3. Ramo de erro do dashboard — colapsa a página inteira num único painel.
+ * 4. Estado vazio de folhas salariais quando o dashboard carrega sem erro.
+ * 5. A emissão do QR de presença docente não pertence a esta página.
+ *
+ * A emissão do QR de presença mudou para `/financeiro/rh/aulas` — os testes
+ * dessa finalidade vivem em `financeiro-rh-aulas.test.tsx`.
  */
 
 type Payroll = Awaited<ReturnType<typeof import("@/features/hr/server").listHrPayrollRuns>>[number];
@@ -32,17 +33,10 @@ vi.mock("@/components/layout/AppShell", async () => (await import("./_harness"))
 
 const getHrDashboardMock = vi.fn();
 const listHrPayrollRunsMock = vi.fn();
-const listHrTeacherLessonOccurrencesMock = vi.fn();
-const createTeacherLessonQrMock = vi.fn();
 
 vi.mock("@/features/hr/server", () => ({
   getHrDashboard: () => getHrDashboardMock(),
   listHrPayrollRuns: () => listHrPayrollRunsMock(),
-}));
-
-vi.mock("@/features/hr/teacher-lessons", () => ({
-  listHrTeacherLessonOccurrences: () => listHrTeacherLessonOccurrencesMock(),
-  createTeacherLessonQr: (input: unknown) => createTeacherLessonQrMock(input),
 }));
 
 const readyDashboard: HrDashboardData = {
@@ -59,28 +53,6 @@ const readyDashboard: HrDashboardData = {
     total_deductions_kz: 150000,
     total_net_kz: 1050000,
   },
-};
-
-const scheduledOccurrence: HrTeacherLessonOccurrence = {
-  id: "occ-1",
-  teacher_id: "teacher-1",
-  employment_id: "emp-1",
-  lesson_date: "2026-09-10",
-  scheduled_starts_at: "08:00:00",
-  scheduled_ends_at: "09:00:00",
-  actual_started_at: null,
-  actual_ended_at: null,
-  quantity: 1,
-  status: "scheduled",
-  evidence_method: null,
-  evidence_ref: null,
-  compensation_event_id: null,
-  class_subject_id: "cs-1",
-  class_group_id: "cg-1",
-  class_group_name: "10ª A",
-  subject_id: "sub-1",
-  subject_name: "Matemática",
-  attendance_session_id: null,
 };
 
 const samplePayroll: Payroll = {
@@ -111,12 +83,11 @@ describe("/financeiro/rh", () => {
   it("mostra loading e depois os indicadores carregados", async () => {
     getHrDashboardMock.mockResolvedValue(readyDashboard);
     listHrPayrollRunsMock.mockResolvedValue([samplePayroll]);
-    listHrTeacherLessonOccurrencesMock.mockResolvedValue([]);
 
     const Page = await loadPage();
     renderRoute(Page);
 
-    expect(screen.getByText(/A carregar ocorrências de aulas/)).toBeDefined();
+    expect(screen.getByText(/A carregar folhas salariais/)).toBeDefined();
 
     await waitFor(() => {
       expect(screen.getByText("12")).toBeDefined();
@@ -139,7 +110,6 @@ describe("/financeiro/rh", () => {
       latestPayroll: null,
     } satisfies HrDashboardData);
     listHrPayrollRunsMock.mockResolvedValue([]);
-    listHrTeacherLessonOccurrencesMock.mockResolvedValue([]);
 
     const Page = await loadPage();
     renderRoute(Page);
@@ -151,49 +121,6 @@ describe("/financeiro/rh", () => {
     expect(screen.queryByText("Funcionários activos")).toBeNull();
   });
 
-  it("mostra o estado vazio de ocorrências de aula quando não há nenhuma", async () => {
-    getHrDashboardMock.mockResolvedValue(readyDashboard);
-    listHrPayrollRunsMock.mockResolvedValue([samplePayroll]);
-    listHrTeacherLessonOccurrencesMock.mockResolvedValue([]);
-
-    const Page = await loadPage();
-    renderRoute(Page);
-
-    await waitFor(() => {
-      expect(screen.getByText("Ainda não existem ocorrências de aula")).toBeDefined();
-    });
-  });
-
-  it("gera o QR de check-in ao clicar em 'QR entrada' para uma aula agendada", async () => {
-    getHrDashboardMock.mockResolvedValue(readyDashboard);
-    listHrPayrollRunsMock.mockResolvedValue([samplePayroll]);
-    listHrTeacherLessonOccurrencesMock.mockResolvedValue([scheduledOccurrence]);
-    createTeacherLessonQrMock.mockResolvedValue({
-      token: "opaque-qr-token",
-      purpose: "check_in",
-      expiresAt: "2026-09-10T08:05:00Z",
-    });
-
-    const Page = await loadPage();
-    renderRoute(Page);
-
-    const button = await screen.findByRole("button", { name: /QR entrada/ });
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(createTeacherLessonQrMock).toHaveBeenCalledWith({
-        data: { occurrenceId: "occ-1", purpose: "check_in" },
-      });
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Check-in da aula")).toBeDefined();
-    });
-    // A imagem do QR vem de QRCode.toDataURL — real, sem mock — asseverar que
-    // gerou uma data URL válida em vez de ficar em branco.
-    const img = screen.getByRole("img", { name: /QR temporário de check-in/ });
-    expect(img.getAttribute("style")).toMatch(/data:image\/png;base64,/);
-  });
-
   it("substitui toda a página por um único painel de erro quando o dashboard falha", async () => {
     // O componente é um if/else-if/else único: um erro no `dashboard` não
     // deixa as secções de aulas/folhas por baixo — a página inteira colapsa
@@ -201,7 +128,6 @@ describe("/financeiro/rh", () => {
     // para painéis independentes é uma escolha visível para quem usa RH.
     getHrDashboardMock.mockRejectedValue(new Error("Sem permissão para consultar dados de RH."));
     listHrPayrollRunsMock.mockResolvedValue([samplePayroll]);
-    listHrTeacherLessonOccurrencesMock.mockResolvedValue([scheduledOccurrence]);
 
     const Page = await loadPage();
     renderRoute(Page);
@@ -213,10 +139,26 @@ describe("/financeiro/rh", () => {
     expect(screen.queryByText(String(samplePayroll.status))).toBeNull();
   });
 
+  // UMA PÁGINA = UMA FINALIDADE: a folha salarial não emite QR de presença.
+  // Se o painel voltar a esta página, este teste falha antes da revisão.
+  it("não apresenta a emissão de QR de presença docente", async () => {
+    getHrDashboardMock.mockResolvedValue(readyDashboard);
+    listHrPayrollRunsMock.mockResolvedValue([samplePayroll]);
+
+    const Page = await loadPage();
+    renderRoute(Page);
+
+    await waitFor(() => {
+      expect(screen.getByText("Folhas salariais")).toBeDefined();
+    });
+    expect(screen.queryByText("Presença docente por QR")).toBeNull();
+    expect(screen.queryByRole("button", { name: /QR entrada/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /QR saída/ })).toBeNull();
+  });
+
   it("mostra o estado vazio de folhas salariais quando o dashboard carrega mas não há folhas", async () => {
     getHrDashboardMock.mockResolvedValue(readyDashboard);
     listHrPayrollRunsMock.mockResolvedValue([]);
-    listHrTeacherLessonOccurrencesMock.mockResolvedValue([]);
 
     const Page = await loadPage();
     renderRoute(Page);
