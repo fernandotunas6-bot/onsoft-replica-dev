@@ -20,6 +20,16 @@ SELECT
   EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='20261024110000') AS cash_history,
   EXISTS (SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='finance_receipts_cash_session' AND NOT tgisinternal) AS receipt_cash_trigger,
   EXISTS (SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='siga_cash_expenses_cash_session' AND NOT tgisinternal) AS expense_cash_trigger,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='finance_receipts_cash_reversal' AND NOT tgisinternal) AS receipt_reversal_trigger,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_trigger WHERE tgname='siga_cash_expenses_cash_reversal' AND NOT tgisinternal) AS expense_reversal_trigger,
+  COALESCE((SELECT c.relrowsecurity FROM pg_catalog.pg_class c WHERE c.oid=pg_catalog.to_regclass('public.finance_cash_points')),false) AS cash_points_rls,
+  COALESCE((SELECT c.relrowsecurity FROM pg_catalog.pg_class c WHERE c.oid=pg_catalog.to_regclass('public.finance_cash_sessions')),false) AS cash_sessions_rls,
+  COALESCE((SELECT pg_catalog.has_table_privilege('anon',c.oid,'SELECT') FROM pg_catalog.pg_class c WHERE c.oid=pg_catalog.to_regclass('public.finance_cash_points')),false) AS cash_points_anon_select,
+  COALESCE((SELECT pg_catalog.has_table_privilege('authenticated',c.oid,'SELECT') FROM pg_catalog.pg_class c WHERE c.oid=pg_catalog.to_regclass('public.finance_cash_points')),false) AS cash_points_auth_select,
+  COALESCE((SELECT pg_catalog.has_table_privilege('anon',c.oid,'SELECT') FROM pg_catalog.pg_class c WHERE c.oid=pg_catalog.to_regclass('public.finance_cash_sessions')),false) AS cash_sessions_anon_select,
+  COALESCE((SELECT pg_catalog.has_table_privilege('authenticated',c.oid,'SELECT') FROM pg_catalog.pg_class c WHERE c.oid=pg_catalog.to_regclass('public.finance_cash_sessions')),false) AS cash_sessions_auth_select,
+  (SELECT count(DISTINCT p.proname)=4 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('open_cash_session','close_cash_session','approve_cash_difference','cash_session_expected')) AS cash_rpc_complete,
+  EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('open_cash_session','close_cash_session','approve_cash_difference','cash_session_expected') AND pg_catalog.has_function_privilege('anon',p.oid,'EXECUTE')) AS cash_rpc_anon_executable,
   EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='finance_receipts' AND column_name='idempotency_key') AS idempotency_column,
   pg_catalog.to_regclass('public.finance_receipts_school_idempotency_key') IS NOT NULL AS idempotency_index,
   EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='register_payment' AND p.pronargs=6) AS payment_rpc_six_args,
@@ -32,6 +42,16 @@ const KEYS = [
   "cash_history",
   "receipt_cash_trigger",
   "expense_cash_trigger",
+  "receipt_reversal_trigger",
+  "expense_reversal_trigger",
+  "cash_points_rls",
+  "cash_sessions_rls",
+  "cash_points_anon_select",
+  "cash_points_auth_select",
+  "cash_sessions_anon_select",
+  "cash_sessions_auth_select",
+  "cash_rpc_complete",
+  "cash_rpc_anon_executable",
   "idempotency_column",
   "idempotency_index",
   "payment_rpc_six_args",
@@ -61,11 +81,34 @@ export function evaluateFinanceInventory(row) {
   if (row.cash_history && !row.cash_points) {
     blockers.push("Histórico declara a migração de caixa, mas as tabelas não existem.");
   }
-  if (row.cash_points && (!row.receipt_cash_trigger || !row.expense_cash_trigger)) {
-    blockers.push("Caixa instalado com gatilhos de movimentos incompletos.");
+  const triggers = [
+    row.receipt_cash_trigger,
+    row.expense_cash_trigger,
+    row.receipt_reversal_trigger,
+    row.expense_reversal_trigger,
+  ];
+  if (row.cash_points && !triggers.every(Boolean)) {
+    blockers.push("Caixa instalado com gatilhos de movimentos ou estorno incompletos.");
   }
-  if (!row.cash_points && (row.receipt_cash_trigger || row.expense_cash_trigger)) {
+  if (!row.cash_points && triggers.some(Boolean)) {
     blockers.push("Gatilhos de caixa presentes sem as tabelas correspondentes.");
+  }
+  if (row.cash_points && (!row.cash_points_rls || !row.cash_sessions_rls)) {
+    blockers.push("RLS desactivado numa das tabelas financeiras de caixa.");
+  }
+  if (
+    row.cash_points_anon_select ||
+    row.cash_points_auth_select ||
+    row.cash_sessions_anon_select ||
+    row.cash_sessions_auth_select
+  ) {
+    blockers.push("Leitura directa das tabelas de caixa concedida a anon/authenticated.");
+  }
+  if (row.cash_points && !row.cash_rpc_complete) {
+    blockers.push("O conjunto das quatro RPC públicas de caixa está incompleto.");
+  }
+  if (row.cash_rpc_anon_executable) {
+    blockers.push("Uma RPC pública de caixa permite EXECUTE ao papel anon.");
   }
 
   const paymentParts = [row.idempotency_column, row.idempotency_index, row.payment_rpc_six_args];
