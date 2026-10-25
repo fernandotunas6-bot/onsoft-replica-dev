@@ -197,9 +197,7 @@ export async function sendOrQueue(
   kind: OutboxKind,
   variables: unknown,
   meta: { label: string; userId: string | null; schoolId: string | null },
-): Promise<
-  { queued: false; result: unknown } | { queued: true; requiresVerification: boolean }
-> {
+): Promise<{ queued: false; result: unknown } | { queued: true; requiresVerification: boolean }> {
   const queueIt = async (deliveryUncertain = false) => {
     const userId = meta.userId;
     const schoolId = meta.schoolId;
