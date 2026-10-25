@@ -79,6 +79,7 @@ import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-cont
 import { mapInvoicesToFinanceOverviewSnapshot } from "@/features/intelligence/finance/finance-overview-adapter";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
+import { invoiceState, type PaymentStateView } from "@/features/finance/payment-states";
 import { AppMark } from "@/features/integrations/app-marks";
 import { kwanza } from "@/lib/currency";
 import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
@@ -111,6 +112,8 @@ type InvoiceExportRow = {
   valor: number;
   recebido: number;
   estado: "Paga" | "Pendente" | "Vencida";
+  /** O que aconteceu ao dinheiro: distingue «Paga em parte» de «Por pagar». */
+  situacao: PaymentStateView;
 };
 
 export const Route = createFileRoute("/faturas")({
@@ -223,6 +226,15 @@ function FaturasPage() {
             : invoice.due_on < schoolTodayIso()
               ? ("Vencida" as const)
               : ("Pendente" as const),
+        situacao: invoiceState(
+          {
+            status: invoice.status,
+            total: Number(invoice.total_amount),
+            paid: Number(invoice.amount_paid),
+            dueOn: invoice.due_on,
+          },
+          schoolTodayIso(),
+        ),
       })),
     [invoicesQuery.data],
   );
@@ -504,7 +516,7 @@ function FaturasPage() {
     { label: "Emissão", value: (row: InvoiceExportRow) => row.emitida },
     { label: "Vencimento", value: (row: InvoiceExportRow) => row.vencimento },
     { label: "Valor (Kz)", value: (row: InvoiceExportRow) => row.valor },
-    { label: "Estado", value: (row: InvoiceExportRow) => row.estado },
+    { label: "Estado", value: (row: InvoiceExportRow) => row.situacao.label },
   ];
   const exportRows: InvoiceExportRow[] = filtered.map((fatura) => ({
     ...fatura,
@@ -1149,14 +1161,8 @@ function FaturasPage() {
                             </p>
                           </div>
                           <StatusBadge
-                            status={
-                              f.estado === "Paga"
-                                ? "paid"
-                                : f.estado === "Vencida"
-                                  ? "overdue"
-                                  : "pending"
-                            }
-                            label={f.estado}
+                            status={f.situacao.status}
+                            label={f.situacao.label}
                             size="sm"
                           />
                         </div>
@@ -1213,16 +1219,7 @@ function FaturasPage() {
                         <TableCell>{new Date(f.vencimento).toLocaleDateString("pt-PT")}</TableCell>
                         <TableCell className="text-right font-bold">{kwanza(f.valor)}</TableCell>
                         <TableCell className="text-right">
-                          <StatusBadge
-                            status={
-                              f.estado === "Paga"
-                                ? "paid"
-                                : f.estado === "Vencida"
-                                  ? "overdue"
-                                  : "pending"
-                            }
-                            label={f.estado}
-                          />
+                          <StatusBadge status={f.situacao.status} label={f.situacao.label} />
                         </TableCell>
                         <TableCell className="text-right">
                           <FaturaActions f={f} />

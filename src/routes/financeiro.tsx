@@ -33,6 +33,7 @@ const FinanceiroCashChart = lazy(() =>
 );
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
+import { paymentPlanState } from "@/features/finance/payment-states";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { AppShell } from "@/components/layout/AppShell";
 import { DOC_PATHS } from "@/lib/ecosystem-urls";
@@ -298,14 +299,7 @@ function FinanceiroPage() {
       overlay: overlayServico({
         name: "Plano de pagamento",
         reference: libraryCode || plan.reference || String(plan.id).slice(0, 8),
-        status:
-          plan.status === "pending_gateway"
-            ? "Pendente"
-            : plan.status === "cancelled"
-              ? "Cancelado"
-              : plan.status === "settled"
-                ? "Liquidado"
-                : String(plan.status),
+        status: paymentPlanState(plan.status).label,
         parties: [{ label: "Canal", value: channelLabel }],
         sections: [
           {
