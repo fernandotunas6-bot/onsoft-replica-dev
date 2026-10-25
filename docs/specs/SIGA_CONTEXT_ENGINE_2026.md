@@ -175,6 +175,13 @@ da URL é recusada.
 
 - Sem turma na URL nenhum pedido é feito; com turma, o pedido é o mesmo da árvore.
 - Troca de escola: `resetQueries` em tudo excepto `["auth"]` (`use-current-account`).
+- Memória de navegação (recentes e favoritos, `lib/navigation-memory.ts`): por utilizador e
+  escola (`siga:nav-recent:<utilizador>:<escola>`), só caminho, parâmetros e rótulo do
+  caminho. A memória antiga, só por utilizador, sai na primeira leitura: os recentes apagam-se
+  e os favoritos sem id de entidade passam para a escola actual. Terminar sessão apaga os
+  recentes do dispositivo; os favoritos ficam. Um destino que a conta deixou de poder abrir
+  (`canAccessPath` com papel, permissões e plano) não se oferece, e abrir um destino passa
+  sempre pela página, que valida no servidor.
 - Memória de contexto: por utilizador e escola, só ids de entrada, revalidada pelo lookup
   (`resolveContext` já aceita `memory`). Ainda não ligada.
 
@@ -186,6 +193,8 @@ da URL é recusada.
   a equipa.
 - Uma entidade declarada por outra escola é descartada.
 - O aluno da URL só entra no caminho depois de a ficha o ler do servidor na escola activa.
+- Recentes e favoritos são por escola: uma conta com duas escolas não vê na segunda os
+  destinos (com ids de alunos ou turmas) da primeira.
 - Nenhuma alteração a SQL, RLS ou permissões.
 
 ## 9. Estado das fases
@@ -200,7 +209,7 @@ da URL é recusada.
 | 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
-| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (695 ficheiros); Playwright pendente                                                                                                                  |
+| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (696 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
@@ -209,11 +218,11 @@ da URL é recusada.
 | A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada                                           | Trabalhos; E2E       |
 | B Aluno                        | Aluno não recebe o menu de gestão                                                                      | E2E                  |
 | C Secretaria → aluno           | Menu com as secções que a conta lê; Financeiro segue o servidor; secção recusada abre a ficha completa | E2E                  |
-| D Multi-escola                 | Entidade de outra escola descartada; queries repostas                                                  | E2E com duas escolas |
+| D Multi-escola                 | Entidade de outra escola descartada; queries repostas; recentes e favoritos por escola                 | E2E com duas escolas |
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (695 ficheiros, 4809 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (696 ficheiros, 4818 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 
