@@ -100,8 +100,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const currentUser = useCurrentAccount();
   const { activePlan, activeTenant } = useTenant();
   const navigationGroups = useMemo(
-    () => getPortalNavigation(currentUser.role, currentUser.grants, activePlan),
-    [currentUser.role, currentUser.grants, activePlan],
+    () =>
+      getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
+        enabledModules: currentUser.enabledModules,
+      }),
+    [currentUser.role, currentUser.grants, activePlan, currentUser.enabledModules],
   );
   const navigationContext = getNavigationContext(navigationGroups, pathname, locationSearch);
   const trialDaysLeft = trialDaysRemaining(activeTenant?.trial_ends_at);
