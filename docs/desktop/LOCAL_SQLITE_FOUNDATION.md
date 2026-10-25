@@ -72,3 +72,16 @@ Os campos `sqlcipherReady`, `authorizedBootstrapReady`,
 até cada implementação ser verificável. Se o comando falhar, a interface
 não anuncia capacidades offline adicionais. Isto é um **diagnóstico real
 de bloqueios**, não um motor SQLite ou um sistema de sincronização.
+
+## Regressar ao portal sem trocar de aplicação
+
+A janela estática `offline-shell` recebe apenas o comando adicional
+`allow-open-siga-portal`, já existente no Tauri. Ele abre a janela remota
+`school` unicamente em `https://portal-siga.com`, sem URLs enviadas pelo
+utilizador, e sem conceder acesso a ficheiros, base de dados, Stronghold, SQL
+ou outras funções administrativas.
+
+O botão está desactivado enquanto `navigator.onLine` indicar ausência de
+rede; o evento `online` torna-o disponível. Este indicador de rede não é
+prova de acessibilidade do portal, por isso falhas ao abrir mostram um erro
+repetível, sem apagar a janela offline ou os lançamentos guardados.
