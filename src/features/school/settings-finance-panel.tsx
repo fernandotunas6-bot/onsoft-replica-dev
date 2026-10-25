@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -33,7 +34,14 @@ export function FinancePanel() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <h5 className="text-xs font-bold text-muted-foreground">Propinas e taxas</h5>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h5 className="text-xs font-bold text-muted-foreground">Propinas e taxas</h5>
+          {/* O plano de propinas é operação financeira e tem página própria;
+              aqui fica o mesmo formulário para quem já está nas configurações. */}
+          <Button asChild variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs">
+            <Link to="/financeiro/propinas">Abrir em Finanças</Link>
+          </Button>
+        </div>
         <FeePlanSettingsForm />
       </div>
       <Separator />
