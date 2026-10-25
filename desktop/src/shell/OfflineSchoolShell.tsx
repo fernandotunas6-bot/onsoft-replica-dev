@@ -102,8 +102,8 @@ export function OfflineSchoolShell() {
         <footer className="flex items-start gap-3 text-sm text-muted-foreground">
           <BookOpen aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
           <p>
-            Para trabalhar com turmas, continue a utilizar o portal escolar.
-            A base local será ampliada após testes de segurança e sincronização.
+            Para trabalhar com turmas, continue a utilizar o portal escolar. A
+            base local será ampliada após testes de segurança e sincronização.
           </p>
         </footer>
       </div>
