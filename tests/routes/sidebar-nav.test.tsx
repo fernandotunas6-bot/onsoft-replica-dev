@@ -678,6 +678,23 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     expect(within(section).queryByRole("link", { name: /Presenças/ })).toBeNull();
   });
 
+  it("nos trabalhos da disciplina: «Trabalhos» marcado e voltar à lista de turmas", () => {
+    academic.tree = tree();
+    currentPathname = "/pedagogica/trabalhos";
+    currentSearch = { turma: TURMA_A, disciplina: MATEMATICA };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Disciplina: Matemática" });
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Trabalhos");
+    expect(linksTo("/pedagogica/trabalhos")).toEqual([
+      { label: "Trabalhos", search: { turma: TURMA_A, disciplina: MATEMATICA } },
+    ]);
+    const back = linksTo("/pedagogica").find((link) => link.label.startsWith("Voltar"));
+    expect(back?.search).toEqual({ tab: "turmas" });
+  });
+
   it("recolhida, mantém os destinos com nome acessível", () => {
     academic.tree = tree();
     currentPathname = "/pedagogica";

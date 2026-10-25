@@ -7,8 +7,7 @@ import type { ContextFrame } from "./types";
 /**
  * Entradas do contexto académico (turma e disciplina numa turma), primeiro
  * piloto do SIGA Context Engine. Só rotas e separadores que já existem e já
- * filtram por `turma` e `disciplina`, e a ficha da turma; Trabalhos entra quando
- * tiver ecrã próprio.
+ * filtram por `turma` e `disciplina`, a ficha da turma e os trabalhos.
  */
 
 /** Turma e disciplina do caminho; a disciplina nunca vem sem a sua turma. */
@@ -137,6 +136,19 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     module: "pedagogica",
     roles: ACADEMIC_STAFF_ROLES,
     order: 30,
+  },
+  {
+    // As tarefas criam-se no detalhe da aula; aqui juntam-se por turma ou disciplina.
+    id: "academic.tasks",
+    label: "Trabalhos",
+    icon: moduleIcons.classTasks,
+    group: "Ensino",
+    contexts: ["class", "subject-offering"],
+    to: "/pedagogica/trabalhos",
+    search: (trail) => academicIdsFromTrail(trail),
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 35,
   },
   {
     id: "academic.files",

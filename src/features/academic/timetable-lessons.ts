@@ -12,6 +12,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
   loadSgaAdminClient,
+  requireSgaWriterFor,
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
@@ -27,6 +28,7 @@ import {
   buildPublishedMessage,
   type ReminderSettings,
 } from "./lesson-messages";
+import { buildClassTaskList, type ClassTaskList, type ClassTaskRow } from "./class-tasks";
 import { insertInAppNotifications, resolveClassAudience } from "./lesson-delivery";
 import { ownTeacherId } from "./own-teacher";
 
@@ -388,6 +390,84 @@ export const archiveClassTask = createServerFn({ method: "POST" })
       .eq("id", data.taskId);
     if (error) throw publicDatabaseError(error, "Não foi possível arquivar a tarefa.");
     return { ok: true };
+  });
+
+/**
+ * Trabalhos da turma ou de uma disciplina da turma, para o menu da turma (SIGA
+ * Context Engine). Administrador e Secretaria vêem os de todas as disciplinas;
+ * o professor, só os das disciplinas que lecciona nessa turma, como no detalhe
+ * da aula. «Nenhum» no Pedagógico fecha.
+ */
+export const listClassTasks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({ classGroupId: z.string().guid(), subjectId: z.string().guid().optional() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<ClassTaskList> => {
+    const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+      "Professor",
+    ]);
+    const schoolId = membership.schoolId;
+    const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    const db = await loadSgaAdminClient();
+    let classSubjectQuery = db
+      .from("class_subjects")
+      .select("id, subject_id")
+      .eq("school_id", schoolId)
+      .eq("class_group_id", data.classGroupId);
+    if (data.subjectId) classSubjectQuery = classSubjectQuery.eq("subject_id", data.subjectId);
+    if (!roles.some((r) => MANAGER_ROLES.includes(r))) {
+      const own = await ownTeacherId(db, schoolId, context.userId);
+      if (!own) return { available: true, open: [], closed: [] };
+      classSubjectQuery = classSubjectQuery.eq("teacher_id", own);
+    }
+    const { data: classSubjects, error: csError } = await classSubjectQuery;
+    if (csError)
+      throw publicDatabaseError(csError, "Não foi possível ler as disciplinas da turma.");
+    const csIds = (classSubjects ?? []).map((cs) => String(cs.id));
+    if (!csIds.length) return { available: true, open: [], closed: [] };
+    const subjectIds = [...new Set((classSubjects ?? []).map((cs) => String(cs.subject_id)))];
+    const [tasksRes, subjectsRes] = await Promise.all([
+      db
+        .from("siga_class_tasks")
+        .select("id, class_subject_id, kind, title, description, due_on, created_at")
+        .eq("school_id", schoolId)
+        .in("class_subject_id", csIds)
+        .eq("status", "published")
+        .order("due_on", { ascending: false, nullsFirst: true })
+        .limit(200),
+      db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds),
+    ]);
+    if (tasksRes.error) {
+      if (isMissingTable(tasksRes.error.message)) return { available: false, open: [], closed: [] };
+      throw publicDatabaseError(tasksRes.error, "Não foi possível ler os trabalhos da turma.");
+    }
+    const subjectName = new Map(
+      (subjectsRes.data ?? []).map((s) => [String(s.id), String(s.name)]),
+    );
+    const offerings = new Map(
+      (classSubjects ?? []).map((cs) => [
+        String(cs.id),
+        {
+          subjectId: String(cs.subject_id),
+          subjectName: subjectName.get(String(cs.subject_id)) ?? "Disciplina",
+        },
+      ]),
+    );
+    const rows: ClassTaskRow[] = (tasksRes.data ?? []).map((t) => ({
+      id: String(t.id),
+      class_subject_id: String(t.class_subject_id),
+      kind: String(t.kind),
+      title: String(t.title),
+      description: t.description ? String(t.description) : null,
+      due_on: t.due_on ? String(t.due_on) : null,
+      created_at: t.created_at ? String(t.created_at) : null,
+    }));
+    return buildClassTaskList(rows, offerings, todayInLuanda());
   });
 
 /** Horário semanal do próprio professor: todas as suas turmas. */

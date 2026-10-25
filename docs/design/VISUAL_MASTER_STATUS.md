@@ -62,6 +62,14 @@ página; o nome passa a ser o título). O separador Turmas abre a página, e o m
 390 px, sem scroll horizontal. No telemóvel a tira de secções da ficha (`ModalSidebar`, como em
 todos os modais) só mostra uma de cada vez; o hub «Mais» leva às secções do menu.
 
+**25/10/2026 — SIGA Context Engine (trabalhos da turma):** «Trabalhos» entra no grupo Ensino do
+menu da turma e da disciplina e abre `/pedagogica/trabalhos?turma&disciplina`: os TPC, trabalhos
+e projectos que os professores publicam no detalhe da aula, numa lista «Em curso» (prazo mais
+próximo primeiro) e outra «Prazo terminado», com o tipo, a disciplina (na turma) e o prazo. O
+professor só vê os das disciplinas que lecciona. Criar e arquivar continuam no detalhe da aula,
+para onde a página leva. Sem estilos novos; capturas com dados fictícios a 1440 e 390 px, sem
+scroll horizontal.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

@@ -61,6 +61,7 @@ import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogic
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PedagogicaSuperiorRouteImport } from './routes/pedagogica_.superior'
+import { Route as PedagogicaTrabalhosRouteImport } from './routes/pedagogica_.trabalhos'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
@@ -399,6 +400,11 @@ const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
 const PedagogicaSuperiorRoute = PedagogicaSuperiorRouteImport.update({
   id: '/pedagogica_/superior',
   path: '/pedagogica/superior',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaTrabalhosRoute = PedagogicaTrabalhosRouteImport.update({
+  id: '/pedagogica_/trabalhos',
+  path: '/pedagogica/trabalhos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
@@ -853,6 +859,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica/trabalhos': typeof PedagogicaTrabalhosRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -982,6 +989,7 @@ export interface FileRoutesByTo {
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica/trabalhos': typeof PedagogicaTrabalhosRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -1112,6 +1120,7 @@ export interface FileRoutesById {
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/pedagogica_/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica_/trabalhos': typeof PedagogicaTrabalhosRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -1243,6 +1252,7 @@ export interface FileRouteTypes {
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pedagogica/trabalhos'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1372,6 +1382,7 @@ export interface FileRouteTypes {
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pedagogica/trabalhos'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1501,6 +1512,7 @@ export interface FileRouteTypes {
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
     | '/pedagogica_/superior'
+    | '/pedagogica_/trabalhos'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1620,6 +1632,7 @@ export interface RootRouteChildren {
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   PedagogicaSuperiorRoute: typeof PedagogicaSuperiorRoute
+  PedagogicaTrabalhosRoute: typeof PedagogicaTrabalhosRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
@@ -2035,6 +2048,13 @@ declare module '@tanstack/react-router' {
       path: '/pedagogica/superior'
       fullPath: '/pedagogica/superior'
       preLoaderRoute: typeof PedagogicaSuperiorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/trabalhos': {
+      id: '/pedagogica_/trabalhos'
+      path: '/pedagogica/trabalhos'
+      fullPath: '/pedagogica/trabalhos'
+      preLoaderRoute: typeof PedagogicaTrabalhosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/': {
@@ -2815,6 +2835,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   PedagogicaSuperiorRoute: PedagogicaSuperiorRoute,
+  PedagogicaTrabalhosRoute: PedagogicaTrabalhosRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,

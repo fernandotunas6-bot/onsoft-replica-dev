@@ -129,11 +129,11 @@ da URL é recusada.
 | Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                                                      |
 | Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)                                         |
 | Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora                                          |
-| Trabalhos, entregas, correcção         | —                                                   | Parcial — `siga_class_tasks` e `siga_class_task_submissions` (#331) sem ecrã; SPEC na PR #329                                     |
+| Trabalhos                              | `/pedagogica/trabalhos?turma&disciplina`            | Implementado — lista da turma ou da disciplina (em curso e prazo terminado); criam-se no detalhe da aula; entregas na #335        |
 | Horário da turma                       | `/pedagogica?tab=horarios&turma`                    | Implementado — turma e disciplina abrem o horário da turma (`ScheduleWorkspace`)                                                  |
 | Alunos da turma                        | `/pedagogica/turmas/$classGroupId?secao=alunos`     | Implementado — a turma tem página própria (decisão do proprietário, 25/10/2026), com «Ficha da turma» e «Alunos da turma» no menu |
 | Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                                                                  |
-| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula` e `/arquivos`                                                                        |
+| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula`, `/pedagogica/trabalhos`, `/arquivos`                                                |
 
 ### 5.2 Aluno (prioridade 2)
 
@@ -204,25 +204,25 @@ da URL é recusada.
 | 1 Auditoria         | Parcial                                                      | Inventário §5; falta auditoria em sessão autenticada                                                                                                                                           |
 | 2 Motor de contexto | Implementado                                                 | PR #332 (24 testes)                                                                                                                                                                            |
 | 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno/professor)** | `ContextEntityNav`; 17 testes de sidebar + 7 de lookup + 15 do professor; breadcrumb com 9 testes                                                                                              |
-| 4 Disciplina piloto | Parcial                                                      | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
+| 4 Disciplina piloto | Parcial                                                      | Trabalhos da turma e da disciplina (`/pedagogica/trabalhos`); faltam as entregas (#335) e validação em staging                                                                                 |
 | 5 Aluno piloto      | **Implementado (desktop)**                                   | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
 | 6–7 Restantes       | Ausente                                                      |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                                      | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                                      | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
-| 10 Revisão          | Parcial                                                      | Lint, TypeScript e suite completa passam (700 ficheiros); Playwright pendente                                                                                                                  |
+| 10 Revisão          | Parcial                                                      | Lint, TypeScript e suite completa passam (702 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
 | Cenário                        | Coberto                                                                                                | Falta                |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------- |
-| A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada                                           | Trabalhos; E2E       |
+| A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada                                           | Entregas (#335); E2E |
 | B Aluno                        | Aluno não recebe o menu de gestão                                                                      | E2E                  |
 | C Secretaria → aluno           | Menu com as secções que a conta lê; Financeiro segue o servidor; secção recusada abre a ficha completa | E2E                  |
 | D Multi-escola                 | Entidade de outra escola descartada; queries repostas; recentes e favoritos por escola                 | E2E com duas escolas |
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma ou professor não devolvidos pelo servidor ignorados                      | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (700 ficheiros, 4873 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (702 ficheiros, 4889 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 
@@ -241,7 +241,8 @@ abrir a entrada perde o contexto).
   `use-academic-nav-tree.ts`, `academic-context-lookup.ts`.
 - A #333 entrou no ramo da #332 no `049642b`, a pedido do proprietário; daqui em diante há
   um só ramo. O menu do aluno e o breadcrumb seguiram por cima.
-- #329 (Trabalhos) e #327 (disciplinas da turma) não tocam nestes ficheiros.
+- #329 (Trabalhos) e #327 (disciplinas da turma) não tocam nestes ficheiros. A #335 (entregas)
+  traz `/pedagogica/tarefas/$taskId`; a lista de trabalhos da #332 liga-se a ela quando entrar.
 
 ## 13. Limitações conhecidas
 

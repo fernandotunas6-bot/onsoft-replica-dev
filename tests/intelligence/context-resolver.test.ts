@@ -125,6 +125,20 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/arquivos", { pessoa: ALUNO })).toEqual([]);
   });
 
+  it("nos trabalhos, a turma e a disciplina abrem o contexto, como nos planos", () => {
+    expect(routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(
+      routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A, disciplina: MATEMATICA }),
+    ).toEqual([
+      { type: "class", id: TURMA_A },
+      { type: "subject-offering", id: subjectOfferingId(TURMA_A, MATEMATICA) },
+    ]);
+    expect(routeContextCandidates("/pedagogica/trabalhos", { professor: ALUNO })).toEqual([]);
+    expect(routeContextCandidates("/pedagogica/trabalhos", { turma: "x" })).toEqual([]);
+  });
+
   it("reconhece os perfis de aluno e professor, sem sub-rotas", () => {
     expect(routeContextCandidates(`/alunos/${ALUNO}`)).toEqual([{ type: "student", id: ALUNO }]);
     expect(routeContextCandidates(`/professores/${ALUNO}`)).toEqual([

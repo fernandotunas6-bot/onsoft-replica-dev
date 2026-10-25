@@ -56,8 +56,8 @@ const ENTITY_ENTRIES = [
 ];
 
 /**
- * «Voltar» leva de onde a entidade se abre: o separador da área, a lista de alunos
- * ou, do perfil do professor, Pessoas.
+ * «Voltar» leva de onde a entidade se abre: o separador da área, a lista de alunos,
+ * a lista de turmas ou, do perfil do professor, Pessoas.
  */
 function backLink(
   context: ResolvedContext,
@@ -66,7 +66,8 @@ function backLink(
 ): EntityNavigation["back"] {
   if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
   if (pathname.startsWith("/professores/")) return { to: "/pessoas" };
-  if (pathname.startsWith("/pedagogica/turmas/")) {
+  // A ficha e os trabalhos da turma abrem-se da lista de turmas.
+  if (pathname.startsWith("/pedagogica/turmas/") || pathname === "/pedagogica/trabalhos") {
     return { to: "/pedagogica", search: { tab: "turmas" } };
   }
   const tab = typeof search.tab === "string" ? search.tab : undefined;

@@ -69,6 +69,21 @@ describe("contextCrumbs", () => {
     ]);
   });
 
+  it("nos trabalhos, a turma e a disciplina seguem o título", () => {
+    const crumbs = contextCrumbs([turma, disciplina], "/pedagogica/trabalhos", {
+      turma: TURMA_A,
+      disciplina: MATEMATICA,
+    });
+    expect(crumbs.frames).toEqual([
+      { label: "10.ª A", to: "/pedagogica/trabalhos", search: { turma: TURMA_A } },
+      {
+        label: "Matemática",
+        to: "/pedagogica/trabalhos",
+        search: { turma: TURMA_A, disciplina: MATEMATICA },
+      },
+    ]);
+  });
+
   it("no horário de um professor, o professor segue o título, que leva ao horário da escola", () => {
     const PROF = "66666666-6666-4666-8666-666666666666";
     const professor: ContextFrame = { type: "teacher", id: PROF, label: "João Mendes" };

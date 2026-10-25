@@ -68,10 +68,15 @@ export function parseSubjectOfferingId(id: string): { classId: string; subjectId
 export const CLASS_SEARCH_ROUTES: ReadonlySet<string> = new Set([
   "/pedagogica",
   "/planos-aula",
+  "/pedagogica/trabalhos",
   // Os ficheiros estão por turma: `/arquivos` não aceita disciplina.
   "/arquivos",
 ]);
-const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set(["/pedagogica", "/planos-aula"]);
+const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set([
+  "/pedagogica",
+  "/planos-aula",
+  "/pedagogica/trabalhos",
+]);
 /**
  * Páginas que filtram por professor (`?professor=`, sem turma): o horário e as
  * aulas do dia da escola (só nos separadores Horários e Presenças) e os planos de aula.

@@ -52,6 +52,7 @@ describe("getContextEntries", () => {
       "academic.attendance",
       "class.timetable",
       "academic.lesson-plans",
+      "academic.tasks",
       "academic.files",
     ]);
   });
@@ -66,6 +67,7 @@ describe("getContextEntries", () => {
       "class.grades",
       "class.timetable",
       "academic.lesson-plans",
+      "academic.tasks",
       "academic.files",
     ]);
   });
@@ -82,6 +84,7 @@ describe("getContextEntries", () => {
       "academic.attendance",
       "class.timetable",
       "academic.lesson-plans",
+      "academic.tasks",
     ]);
   });
 
@@ -147,6 +150,16 @@ describe("links e entrada activa", () => {
       to: `/pedagogica/turmas/${TURMA_A}`,
       search: { secao: "alunos" },
     });
+    // Os trabalhos juntam-se por turma ou por disciplina.
+    const tasks = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "academic.tasks")!;
+    expect(contextEntryLink(tasks, ctx)).toEqual({
+      to: "/pedagogica/trabalhos",
+      search: { turma: TURMA_A, disciplina: MATEMATICA },
+    });
+    expect(contextEntryLink(tasks, context("Professor", [classFrame]))).toEqual({
+      to: "/pedagogica/trabalhos",
+      search: { turma: TURMA_A },
+    });
     // O horário também é da turma.
     const timetable = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.timetable")!;
     expect(contextEntryLink(timetable, ctx)).toEqual({
@@ -174,6 +187,12 @@ describe("links e entrada activa", () => {
     expect(
       findActiveContextEntry(entries, ctx, `/pedagogica/turmas/${TURMA_A}`, { secao: "alunos" }),
     ).toBe("class.students");
+    expect(
+      findActiveContextEntry(entries, ctx, "/pedagogica/trabalhos", {
+        turma: TURMA_A,
+        disciplina: MATEMATICA,
+      }),
+    ).toBe("academic.tasks");
     expect(
       withActiveView(ctx, entries, "/planos-aula", { turma: TURMA_A, disciplina: MATEMATICA })
         .activeView,
