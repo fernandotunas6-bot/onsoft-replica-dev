@@ -59,6 +59,7 @@ describe("fila de envio sem rede", () => {
     setOnline(false);
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
       queued: true,
+      requiresVerification: false,
     });
     expect(attendance).not.toHaveBeenCalled();
     const saved = JSON.parse(vault.get("siga.offline-outbox")!) as OutboxItem[];
@@ -94,6 +95,7 @@ describe("fila de envio sem rede", () => {
     attendance.mockRejectedValueOnce(offline());
     await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
       queued: true,
+      requiresVerification: true,
     });
     expect(outboxItems()).toMatchObject([
       { deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
@@ -225,7 +227,10 @@ describe("fila de envio sem rede", () => {
 
   it("não reenfileira automaticamente operação online cujo ACK se perdeu", async () => {
     attendance.mockRejectedValueOnce(offline());
-    await sendOrQueue("attendance.submit", { sessionId: "s1" }, meta);
+    await expect(sendOrQueue("attendance.submit", { sessionId: "s1" }, meta)).resolves.toEqual({
+      queued: true,
+      requiresVerification: true,
+    });
     expect(outboxItems()).toMatchObject([
       { deliveryState: "needs_verification", failedReason: OUTBOX_UNCERTAIN_MESSAGE },
     ]);

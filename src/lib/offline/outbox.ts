@@ -197,7 +197,9 @@ export async function sendOrQueue(
   kind: OutboxKind,
   variables: unknown,
   meta: { label: string; userId: string | null; schoolId: string | null },
-): Promise<{ queued: false; result: unknown } | { queued: true }> {
+): Promise<
+  { queued: false; result: unknown } | { queued: true; requiresVerification: boolean }
+> {
   const queueIt = async (deliveryUncertain = false) => {
     const userId = meta.userId;
     const schoolId = meta.schoolId;
@@ -221,7 +223,7 @@ export async function sendOrQueue(
         ...(deliveryUncertain ? { failedReason: OUTBOX_UNCERTAIN_MESSAGE } : {}),
       },
     ]);
-    return { queued: true } as const;
+    return { queued: true, requiresVerification: deliveryUncertain } as const;
   };
   if (storage && typeof navigator !== "undefined" && navigator.onLine === false) {
     return queueIt();
