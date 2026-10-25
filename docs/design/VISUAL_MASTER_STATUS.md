@@ -14,6 +14,20 @@ publicação de horários ganhou uma transacção única, MFA e repetição inde
 das presenças. [Ensaio e limites](../architecture/ACADEMIC_AGENDA.md#continuação-publicação-atómica-e-consulta-diária--25102026).
 Continua a ser trabalho apenas de backend, sem nova validação visual.
 
+**26/10/2026 — horário semanal (Fase 6, Professores/Académico): `implementado`.**
+`StudentTimetableCard` (portais do aluno, encarregado e professor; Pedagógica) ganha
+cor por disciplina (`subject-tone.ts`, matiz oklch com luminosidade fixa, sem
+gradientes nem sombras fortes), um dia de cada vez abaixo de `lg` com selector de
+44 px, aula em curso, aulas passadas e intervalos. Evidência: Vitest
+`tests/dashboard/student-timetable-card.test.tsx` e `tests/calendar/subject-tone.test.ts`;
+capturas do componente real com o servidor simulado (dados da turma DH26-10A) a
+[390 claro](evidence/2026-10-26/horario/390-claro.png),
+[390 escuro](evidence/2026-10-26/horario/390-escuro.png),
+[1024](evidence/2026-10-26/horario/1024-claro.png) e
+[1440](evidence/2026-10-26/horario/1440-claro.png), sem scroll horizontal em 390/768/1024/1440.
+Falta: validar em dispositivo físico e dentro do portal autenticado, depois de
+correr `supabase/SEED_DEMO_HORARIOS_2026.sql`.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
