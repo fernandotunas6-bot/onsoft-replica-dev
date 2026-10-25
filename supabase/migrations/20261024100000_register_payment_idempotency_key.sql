@@ -28,6 +28,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS finance_receipts_school_idempotency_key
 
 DROP FUNCTION IF EXISTS public.register_payment(uuid, uuid, numeric, text, date);
 DROP FUNCTION IF EXISTS private.register_payment(uuid, uuid, numeric, text, date);
+-- E a desta migração, para poder correr outra vez sem falhar no CREATE.
+DROP FUNCTION IF EXISTS public.register_payment(uuid, uuid, numeric, text, date, uuid);
+DROP FUNCTION IF EXISTS private.register_payment(uuid, uuid, numeric, text, date, uuid);
 
 CREATE FUNCTION private.register_payment(target_school_id uuid, target_invoice_id uuid, target_amount numeric, target_payment_method text, target_paid_on date DEFAULT CURRENT_DATE, target_idempotency_key uuid DEFAULT NULL)
  RETURNS jsonb
