@@ -53,7 +53,9 @@ export function evaluateFinanceInventory(row) {
     blockers.push("Esquema de caixa parcial: as duas tabelas devem estar presentes em conjunto.");
   }
   if (row.cash_points && !row.cash_history) {
-    blockers.push("Caixa existe sem versão 20261024110000 no histórico: reconciliar DDL e migrações.");
+    blockers.push(
+      "Caixa existe sem versão 20261024110000 no histórico: reconciliar DDL e migrações.",
+    );
   }
   if (row.cash_history && !row.cash_points) {
     blockers.push("Histórico declara a migração de caixa, mas as tabelas não existem.");
@@ -65,11 +67,7 @@ export function evaluateFinanceInventory(row) {
     blockers.push("Gatilhos de caixa presentes sem as tabelas correspondentes.");
   }
 
-  const paymentParts = [
-    row.idempotency_column,
-    row.idempotency_index,
-    row.payment_rpc_six_args,
-  ];
+  const paymentParts = [row.idempotency_column, row.idempotency_index, row.payment_rpc_six_args];
   if (paymentParts.some(Boolean) && !paymentParts.every(Boolean)) {
     blockers.push("Migração de idempotência aplicada parcialmente: coluna, índice e RPC divergem.");
   } else if (!paymentParts.every(Boolean)) {
@@ -86,7 +84,8 @@ export function evaluateFinanceInventory(row) {
     blocked: blockers.length > 0 || pending.length > 0,
     blockers,
     pending,
-    caveat: "Inventário indicativo; conferir DDL, permissões, histórico e E2E em staging antes de publicar.",
+    caveat:
+      "Inventário indicativo; conferir DDL, permissões, histórico e E2E em staging antes de publicar.",
   };
 }
 
@@ -105,14 +104,11 @@ export async function readFinanceInventory(projectRef, token, send = fetch) {
   if (!/^[a-z0-9]{20}$/.test(projectRef) || !String(token ?? "").trim()) {
     throw new Error("Projecto e token Supabase explícitos são obrigatórios.");
   }
-  const result = await send(
-    `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(financeReadOnlyRequest()),
-    },
-  );
+  const result = await send(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(financeReadOnlyRequest()),
+  });
   if (!result.ok) {
     // A resposta do fornecedor pode conter dados sensíveis: não a imprimir.
     throw new Error(`Consulta de inventário recusada (HTTP ${result.status}).`);
