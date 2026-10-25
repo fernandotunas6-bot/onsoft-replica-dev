@@ -181,10 +181,7 @@ describe("fila de envio sem rede", () => {
     await sendOrQueue("attendance.submit", { n: 9 }, meta);
     setOnline(true);
     attendance.mockResolvedValueOnce({});
-    await Promise.all([
-      flushOutbox("prof-1", "school-a"),
-      flushOutbox("prof-1", "school-a"),
-    ]);
+    await Promise.all([flushOutbox("prof-1", "school-a"), flushOutbox("prof-1", "school-a")]);
     expect(attendance).toHaveBeenCalledTimes(1);
     expect(outboxItems()).toHaveLength(0);
   });
