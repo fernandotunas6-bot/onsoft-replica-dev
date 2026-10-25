@@ -68,7 +68,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
-function setup() {
+function setup(onReload?: () => Promise<Parameters<typeof WebsiteStudioWorkspace>[0]["initial"]>) {
   let saved = readWebsiteState(null);
   saved.draft.websiteUrl = "https://school.example";
   const persist = vi.fn(async (data) => {
@@ -90,6 +90,7 @@ function setup() {
       view={view}
       onViewChange={onViewChange}
       onPersist={persist}
+      onReload={onReload}
     />,
   );
   return { ...result, initial, view, persist, onViewChange, saved: () => saved };
@@ -218,4 +219,69 @@ it("cancelar a revisão não envia comandos nem publica", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Publicar" }));
   fireEvent.click(screen.getByRole("button", { name: "Continuar a editar" }));
   expect(ui.persist).not.toHaveBeenCalled();
+});
+
+it("recarrega após conflito só com descarte explícito, conservando a edição se cancelar ou falhar", async () => {
+  const reload = vi.fn<() => Promise<Parameters<typeof WebsiteStudioWorkspace>[0]["initial"]>>();
+  const ui = setup(reload);
+  const field = ui.container.querySelector<HTMLInputElement>(".studio-field input")!;
+  const original = field.value;
+  fireEvent.change(field, { target: { value: "Edição local em conflito" } });
+  await screen.findByText("Alterações por guardar");
+  ui.persist.mockRejectedValueOnce(Error("Conflito de revisão"));
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await screen.findByText("Conflito de revisão");
+  vi.mocked(window.confirm).mockReturnValueOnce(false);
+  fireEvent.click(screen.getByRole("button", { name: "Recarregar versão guardada" }));
+  expect(reload).not.toHaveBeenCalled();
+  expect(field.value).toBe("Edição local em conflito");
+  reload.mockRejectedValueOnce(Error("Rede indisponível"));
+  fireEvent.click(screen.getByRole("button", { name: "Recarregar versão guardada" }));
+  await screen.findByText("Rede indisponível");
+  expect(field.value).toBe("Edição local em conflito");
+  reload.mockResolvedValueOnce({ ...ui.initial, state: { ...ui.initial.state, revision: 5 } });
+  fireEvent.click(screen.getByRole("button", { name: "Recarregar versão guardada" }));
+  await screen.findByText("Versão guardada carregada. Pode continuar a editar.");
+  expect(ui.container.querySelector<HTMLInputElement>(".studio-field input")!.value).toBe(original);
+  expect(ui.container.querySelector(".studio-edit-toolbar button")?.hasAttribute("disabled")).toBe(
+    true,
+  );
+});
+
+it("não aplica na cache de A uma resposta de recarregamento identificada como outra escola", async () => {
+  const state = readWebsiteState(null);
+  state.draft.websiteUrl = "https://school-a.example";
+  const initial = {
+    state,
+    school: { public_code: "QA-A", name: "Escola A", logo_url: null },
+    programs: [],
+    campaigns: [],
+    links: null,
+  };
+  mocked.load.mockResolvedValueOnce(initial).mockResolvedValueOnce({
+    ...initial,
+    school: { ...initial.school, public_code: "QA-B", name: "Escola B" },
+  });
+  mocked.change.mockRejectedValueOnce(Error("Conflito de revisão"));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const ui = render(
+    <QueryClientProvider client={client}>
+      <WebsiteStudio view={{ pagina: "/", largura: 1440, zoom: 50 }} onViewChange={vi.fn()} />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(ui.container.querySelector(".studio-field input")).not.toBeNull());
+  const field = ui.container.querySelector<HTMLInputElement>(".studio-field input")!;
+  fireEvent.change(field, { target: { value: "Rascunho privado de A" } });
+  await screen.findByText("Alterações por guardar");
+  fireEvent.click(screen.getByRole("button", { name: "Guardar rascunho" }));
+  await screen.findByText("Conflito de revisão");
+  fireEvent.click(screen.getByRole("button", { name: "Recarregar versão guardada" }));
+  await screen.findByText("A escola activa mudou. Abra novamente o estúdio antes de continuar.");
+  expect(
+    client.getQueryData<typeof initial>(["school-website-studio", "admin-a", "school-a"])?.school
+      .public_code,
+  ).toBe("QA-A");
+  expect(field.value).toBe("Rascunho privado de A");
+  expect(screen.queryByText("Escola B")).toBeNull();
+  client.clear();
 });

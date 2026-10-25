@@ -18,5 +18,10 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
  * mensagem que diga o que falta, em vez de falhar calado. `colunas-inexistentes.test.ts`
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
-// O retrato de 2026-10-21 inclui também a sonda service-only do website/blog.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
+// O retrato de 2026-10-21 inclui também a sonda service-only do website/blog, e já tem
+// `merge_school_subjects`.
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  // 20261010110000 (auditoria 14, P4): fundir pessoas numa transacção. Sem ela,
+  // mergePeople segue os passos soltos de antes (mergePeopleInSteps, por isMissingFunction).
+  "siga_merge_people",
+]);

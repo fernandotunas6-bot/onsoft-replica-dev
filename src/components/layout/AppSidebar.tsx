@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 
 import { canPrefetchResources, onIdle } from "@/lib/preload";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -7,6 +7,7 @@ import {
   Building2,
   LayoutGrid,
   ChevronDown,
+  ChevronRight,
   CircleHelp,
   CreditCard,
   Lock,
@@ -24,6 +25,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -37,7 +42,7 @@ import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosy
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
 import {
-  NAV_SUB_LIST,
+  NAV_DEPTH_CLASS,
   NAV_ROW_BASE,
   NAV_ROW_ACTIVE,
   NAV_ROW_IDLE,
@@ -47,6 +52,7 @@ import {
   NavSubheader,
 } from "./NavItem";
 import type { NavItem, NavGroup } from "@/features/auth/portal-engine";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import {
   getNavigationContext,
@@ -87,6 +93,23 @@ export function AppSidebar({
   const { school, activeYearLabel } = useSchoolSettings();
   const { signOut, signingOut } = useSignOut();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
+  const schoolMenuCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelSchoolMenuClose = () => {
+    if (schoolMenuCloseTimer.current !== null) clearTimeout(schoolMenuCloseTimer.current);
+    schoolMenuCloseTimer.current = null;
+  };
+  const closeSchoolMenuAfterPointerLeave = (pointerType: string) => {
+    if (pointerType !== "mouse") return;
+    cancelSchoolMenuClose();
+    schoolMenuCloseTimer.current = setTimeout(() => setSchoolMenuOpen(false), 180);
+  };
+  useEffect(
+    () => () => {
+      if (schoolMenuCloseTimer.current !== null) clearTimeout(schoolMenuCloseTimer.current);
+    },
+    [],
+  );
   // Monta à primeira abertura e fica: desmontar cortava a animação de fecho.
   const [profileModalMounted, setProfileModalMounted] = useState(false);
   useEffect(() => {
@@ -114,12 +137,14 @@ export function AppSidebar({
   // Instituição só de Ensino Superior: «Estudantes» em vez de «Alunos».
   const higherEdOnly = isHigherEdOnly(school?.pedagogy?.teachingLevels ?? []);
   const visibleGroups = useMemo(() => {
-    const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan);
+    const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
+      isAlumni: currentUser.isAlumni,
+    });
     return higherEdOnly ? withHigherEdVocabulary(groups) : groups;
-  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly]);
+  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly, currentUser.isAlumni]);
   const context = getNavigationContext(visibleGroups, pathname, locationSearch);
   const [areaPicker, setAreaPicker] = useState(false);
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const navigationKey = JSON.stringify([
     pathname,
     locationSearch,
@@ -128,7 +153,8 @@ export function AppSidebar({
   ]);
   useEffect(() => {
     setAreaPicker(false);
-    setOpenMenus((prev) => (prev.length ? [] : prev));
+    setSchoolMenuOpen(false);
+    setExpandedMenu(null);
   }, [navigationKey]);
   const contextual = Boolean(context && !areaPicker);
   const areas = getNavigationAreas(visibleGroups);
@@ -146,7 +172,6 @@ export function AppSidebar({
     },
   ];
   const displayedGroups = contextual && context ? [context] : generalGroups;
-  const toggle = (label: string) => setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
 
   return (
     <>
@@ -166,15 +191,22 @@ export function AppSidebar({
           )}
         >
           {hasSchool ? (
-            <DropdownMenu>
+            <DropdownMenu modal={false} open={schoolMenuOpen} onOpenChange={setSchoolMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   data-sidebar-header-account=""
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === "mouse") {
+                      cancelSchoolMenuClose();
+                      setSchoolMenuOpen(true);
+                    }
+                  }}
+                  onPointerLeave={(event) => closeSchoolMenuAfterPointerLeave(event.pointerType)}
                   aria-label={`Abrir menu da escola: ${school?.name ?? currentUser.schoolName ?? "Escola"}`}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
-                    collapsed ? "justify-center px-1" : "px-2",
+                    "flex min-h-11 w-full items-center gap-2 rounded-lg text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60 lg:min-h-10",
+                    collapsed ? "justify-center px-1" : "px-1.5",
                   )}
                   title={school?.name ? `${school.name} • ${currentUser.name}` : currentUser.name}
                 >
@@ -198,9 +230,9 @@ export function AppSidebar({
                         <span className="block truncate text-sm font-bold text-sidebar-foreground">
                           {school?.name}
                         </span>
-                        {schoolMotto ? (
+                        {schoolMotto || activeYearLabel ? (
                           <span className="block truncate text-[11px] font-medium text-sidebar-muted">
-                            {schoolMotto}
+                            {schoolMotto || activeYearLabel}
                           </span>
                         ) : null}
                       </span>
@@ -210,9 +242,17 @@ export function AppSidebar({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
+                data-school-flyout=""
                 align="start"
-                side="bottom"
-                className="w-64 max-w-[calc(100vw-2rem)] z-50"
+                side="right"
+                sideOffset={8}
+                collisionPadding={12}
+                onPointerEnter={(event) => {
+                  if (event.pointerType === "mouse") cancelSchoolMenuClose();
+                }}
+                onPointerLeave={(event) => closeSchoolMenuAfterPointerLeave(event.pointerType)}
+                onCloseAutoFocus={cancelSchoolMenuClose}
+                className="z-50 max-h-[min(75vh,var(--radix-dropdown-menu-content-available-height))] w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto border-border/70 p-1 shadow-sm [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:px-2 [&_[role=menuitem]]:lg:py-1"
               >
                 <DropdownMenuLabel className="font-normal">
                   <span className="block break-words text-sm font-semibold text-foreground">
@@ -221,76 +261,98 @@ export function AppSidebar({
                   <span className="block break-words text-sm text-muted-foreground">
                     {currentUser.name} ({currentUser.role})
                   </span>
+                  {activeYearLabel ? (
+                    <span className="block text-xs text-muted-foreground">{activeYearLabel}</span>
+                  ) : null}
                 </DropdownMenuLabel>
 
-                {currentUser.schools.length > 1 ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground py-1">
-                      Alternar Instituição
-                    </DropdownMenuLabel>
-                    {currentUser.schools.map((item) => {
-                      const isCurrent = item.schoolId === currentUser.schoolId;
-                      return (
-                        <DropdownMenuItem
-                          key={item.membershipId}
-                          onClick={() => {
-                            if (!isCurrent) {
-                              currentUser.setActiveSchoolId(item.schoolId);
-                            }
-                          }}
-                          className={cn(
-                            "flex min-h-[44px] items-center justify-between gap-2 text-sm cursor-pointer",
-                            isCurrent && "font-bold text-primary bg-primary/10",
-                          )}
-                        >
-                          <span className="min-w-0 flex-1 break-words">{item.schoolName}</span>
-                          <span className="text-[11px] text-muted-foreground ml-2 shrink-0">
-                            {item.roleName || item.appRole}
-                          </span>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </>
-                ) : null}
-
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    setProfileModalTab("perfil");
-                    setProfileModalOpen(true);
-                  }}
-                >
-                  <User className="size-4 text-primary" /> Meu perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setProfileModalTab("instituicoes");
-                    setProfileModalOpen(true);
-                  }}
-                >
-                  <Building2 className="size-4 text-primary" /> Instituições
-                  {currentUser.schools.length > 1 ? (
-                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
-                      {currentUser.schools.length}
-                    </span>
-                  ) : null}
-                </DropdownMenuItem>
                 {canAccessPath(
                   "/configuracoes",
                   currentUser.role,
                   currentUser.grants,
                   activePlan,
                 ) ? (
-                  <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
-                    <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSchoolMenuOpen(false);
+                      onOpenSettings?.("escola");
+                    }}
+                  >
+                    <Settings className="size-4 text-muted-foreground" />
+                    Configurações da Escola
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem asChild>
-                  <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-primary" /> Criar escola
-                  </a>
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="lg:min-h-9 lg:px-2 lg:py-1">
+                    <Building2 className="size-4 text-muted-foreground" />
+                    Instituições
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent
+                      data-school-submenu=""
+                      sideOffset={6}
+                      collisionPadding={12}
+                      onPointerEnter={(event) => {
+                        if (event.pointerType === "mouse") cancelSchoolMenuClose();
+                      }}
+                      onPointerLeave={(event) =>
+                        closeSchoolMenuAfterPointerLeave(event.pointerType)
+                      }
+                      className="w-64 max-w-[calc(100vw-1.5rem)] border-border/70 p-1 shadow-sm [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:px-2 [&_[role=menuitem]]:lg:py-1"
+                    >
+                      {currentUser.schools.length > 1 ? (
+                        <>
+                          <DropdownMenuLabel className="px-2 py-1 text-[11px]">
+                            Alternar escola
+                          </DropdownMenuLabel>
+                          {currentUser.schools.map((item) => {
+                            const isCurrent = item.schoolId === currentUser.schoolId;
+                            return (
+                              <DropdownMenuItem
+                                key={item.membershipId}
+                                onClick={() => {
+                                  if (!isCurrent) {
+                                    currentUser.setActiveSchoolId(item.schoolId);
+                                    setSchoolMenuOpen(false);
+                                  }
+                                }}
+                                className={cn(
+                                  "flex items-center justify-between gap-2 text-sm",
+                                  isCurrent && "bg-primary/10 font-semibold text-primary",
+                                )}
+                              >
+                                <span className="min-w-0 flex-1 break-words">
+                                  {item.schoolName}
+                                </span>
+                                <span className="ml-2 shrink-0 text-[11px] text-muted-foreground">
+                                  {isCurrent ? "Actual" : item.roleName || item.appRole}
+                                </span>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                          <DropdownMenuSeparator />
+                        </>
+                      ) : null}
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setProfileModalTab("instituicoes");
+                          setProfileModalOpen(true);
+                          setSchoolMenuOpen(false);
+                        }}
+                      >
+                        <Building2 className="size-4 text-muted-foreground" />
+                        Gerir instituições
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
+                          <PlusCircle className="size-4 text-muted-foreground" />
+                          Criar escola
+                        </a>
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -317,10 +379,10 @@ export function AppSidebar({
           aria-label="Navegação principal"
           className={cn(
             "flex-1 pb-4",
-            collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
+            collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-2.5",
           )}
         >
-          <div className="pt-3 pb-1">
+          <div className="pt-2 pb-0.5">
             <NavButtonRow
               label={
                 contextual ? "Todas as áreas" : context ? "Voltar ao módulo" : "Áreas de trabalho"
@@ -342,7 +404,6 @@ export function AppSidebar({
               <NavSubheader title={group.title} collapsed={collapsed} />
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isOpen = openMenus.includes(item.label);
                   const childActive =
                     item.children?.some((child) =>
                       isContextDestinationActive(child, displayedGroups, pathname, locationSearch),
@@ -365,49 +426,20 @@ export function AppSidebar({
 
                   if (item.children) {
                     return (
-                      <li key={item.label} className="group/fly relative">
-                        <NavButtonRow
-                          label={item.label}
-                          icon={item.icon}
-                          collapsed={collapsed}
-                          active={childActive}
-                          expanded={isOpen}
-                          onClick={() => toggle(item.label)}
-                          trailing={
-                            <ChevronDown
-                              aria-hidden
-                              className={cn(
-                                "size-4 shrink-0 opacity-50 transition-transform duration-200",
-                                isOpen && "rotate-180",
-                              )}
-                            />
+                      <li key={item.label}>
+                        <ExpandedNavFlyout
+                          open={expandedMenu === item.label}
+                          onOpenChange={(next) =>
+                            setExpandedMenu((current) =>
+                              next ? item.label : current === item.label ? null : current,
+                            )
                           }
+                          item={item}
+                          groups={displayedGroups}
+                          pathname={pathname}
+                          search={locationSearch}
+                          active={childActive}
                         />
-
-                        {isOpen && !collapsed ? (
-                          <ul className={NAV_SUB_LIST}>
-                            {item.children.map((child) => (
-                              <li key={child.label}>
-                                {child.to ? (
-                                  <NavLinkRow
-                                    to={child.to}
-                                    {...(child.search ? { search: child.search } : {})}
-                                    label={child.label}
-                                    depth="sub"
-                                    active={isContextDestinationActive(
-                                      child,
-                                      displayedGroups,
-                                      pathname,
-                                      locationSearch,
-                                    )}
-                                  />
-                                ) : (
-                                  <NavButtonRow label={child.label} depth="sub" />
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
                       </li>
                     );
                   }
@@ -441,7 +473,7 @@ export function AppSidebar({
         <div
           className={cn(
             "mt-auto border-t border-sidebar-border",
-            collapsed ? "px-2 py-3" : "px-3 py-3",
+            collapsed ? "px-2 py-2" : "px-2.5 py-2",
           )}
         >
           <DropdownMenu>
@@ -451,7 +483,7 @@ export function AppSidebar({
                 data-account-trigger=""
                 aria-label="Abrir menu da conta"
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
+                  "flex w-full items-center gap-2 rounded-lg text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
                   collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
                 )}
               >
@@ -475,7 +507,13 @@ export function AppSidebar({
                 ) : null}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-64 max-w-[calc(100vw-2rem)]">
+            <DropdownMenuContent
+              align="end"
+              side="right"
+              sideOffset={8}
+              collisionPadding={12}
+              className="w-64 max-w-[calc(100vw-1.5rem)] border-border/70 p-1 shadow-sm [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:py-1"
+            >
               <DropdownMenuLabel className="font-normal">
                 <span className="block break-words text-sm font-semibold text-foreground">
                   {currentUser.name}
@@ -490,7 +528,8 @@ export function AppSidebar({
                   <User className="size-4" /> Perfil
                 </Link>
               </DropdownMenuItem>
-              {canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
+              {!hasSchool &&
+              canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
                 <DropdownMenuItem onClick={() => onOpenSettings?.()}>
                   <Settings className="size-4" /> Configurações
                 </DropdownMenuItem>
@@ -544,9 +583,6 @@ export function AppSidebar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {!collapsed ? (
-            <p className="px-2 pt-2 text-[11px] text-sidebar-muted">{activeYearLabel}</p>
-          ) : null}
         </div>
       </aside>
 
@@ -560,6 +596,103 @@ export function AppSidebar({
         </Suspense>
       ) : null}
     </>
+  );
+}
+
+/** Subfunções compactas: aparecem à direita, fora do scroll da sidebar. */
+function ExpandedNavFlyout({
+  open,
+  onOpenChange,
+  item,
+  groups,
+  pathname,
+  search,
+  active,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  item: NavItem;
+  groups: NavGroup[];
+  pathname: string;
+  search: Record<string, unknown>;
+  active: boolean;
+}) {
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelClose = () => {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  const scheduleClose = (pointerType: string) => {
+    if (pointerType !== "mouse") return;
+    cancelClose();
+    closeTimer.current = setTimeout(() => onOpenChange(false), 180);
+  };
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title={item.label}
+          aria-label={item.label}
+          onPointerEnter={(event) => {
+            if (event.pointerType === "mouse") {
+              cancelClose();
+              onOpenChange(true);
+            }
+          }}
+          onPointerLeave={(event) => scheduleClose(event.pointerType)}
+          className={cn(NAV_ROW_BASE, NAV_DEPTH_CLASS.root, active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE)}
+          data-nav-row=""
+          data-nav-depth="root"
+          data-active={active ? "true" : "false"}
+        >
+          <NavIcon icon={item.icon} active={active} />
+          <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse") cancelClose();
+        }}
+        onPointerLeave={(event) => scheduleClose(event.pointerType)}
+        onClick={(event) => {
+          if ((event.target as Element).closest("a[data-nav-row]")) onOpenChange(false);
+        }}
+        className="w-64 max-w-[calc(100vw-1.5rem)] max-h-[min(75vh,var(--radix-popover-content-available-height))] overflow-y-auto p-1 shadow-sm"
+        data-nav-flyout=""
+      >
+        <p className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground">{item.label}</p>
+        <nav aria-label={`Subfunções de ${item.label}`} className="space-y-0.5">
+          {item.children?.map((child) =>
+            child.to ? (
+              <NavLinkRow
+                key={child.label}
+                to={child.to}
+                {...(child.search ? { search: child.search } : {})}
+                label={child.label}
+                depth="sub"
+                active={isContextDestinationActive(child, groups, pathname, search)}
+                className="lg:min-h-9"
+              />
+            ) : (
+              <NavButtonRow key={child.label} label={child.label} depth="sub" />
+            ),
+          )}
+        </nav>
+      </PopoverContent>
+    </Popover>
   );
 }
 

@@ -133,6 +133,17 @@ try {
   assert.equal(await headline.inputValue(), "Edição que não se pode perder");
   assert.equal(await page.evaluate(() => window.studioQA.saved().revision), revision);
   acceptDialogs = false;
+  await page.getByRole("button", { name: "Recarregar versão guardada", exact: true }).click();
+  assert.equal(await headline.inputValue(), "Edição que não se pode perder");
+  acceptDialogs = true;
+  await page.getByRole("button", { name: "Recarregar versão guardada", exact: true }).click();
+  await page
+    .getByText("Versão guardada carregada. Pode continuar a editar.", { exact: true })
+    .waitFor();
+  assert.equal(await headline.inputValue(), "Futuro na Escola");
+  assert.equal(await page.evaluate(() => window.studioQA.saved().revision), revision);
+  await headline.fill("Edição que não se pode perder");
+  acceptDialogs = false;
   await page.getByRole("link", { name: "← SIGA", exact: true }).click();
   assert.ok(await page.getByRole("main", { name: "SIGA Website Studio" }).isVisible());
   acceptDialogs = true;
@@ -180,6 +191,7 @@ try {
     editedAndSaved: true,
     draftSeparatedFromPublication: true,
     failurePreservesDraft: true,
+    revisionRecovery: true,
     cancelledNavigationPreservesDraft: true,
     pageSelection: true,
     widthsDoNotPublish: true,

@@ -79,6 +79,7 @@ const contas: Record<string, unknown> = {
   },
   Aluno: {
     role: "Aluno",
+    isAlumni: false,
     grants: {},
     name: "Aluno Teste",
     email: "aluno@escola.ao",
@@ -153,6 +154,7 @@ afterEach(() => {
   cleanup();
   papel = "Administrador";
   (contas.Administrador as { schoolId: string }).schoolId = "school-a";
+  (contas.Aluno as { isAlumni: boolean }).isAlumni = false;
   currentPathname = "/pedagogica";
   currentSearch = {};
   localStorage.clear();
@@ -165,9 +167,6 @@ afterEach(() => {
 
 describe("AppSidebar — parâmetros de pesquisa nos links", () => {
   it("leva o ?tab= de cada sub-item de Área Pedagógica para o link", () => {
-    // O menu guarda os abertos em localStorage; abrir "Área Pedagógica" à mão.
-    localStorage.setItem("siga:sidebar-open-menus", JSON.stringify(["Área Pedagógica"]));
-
     renderSidebar();
 
     const tabs = linksTo("/pedagogica").map((link) => link.search?.["tab"]);
@@ -193,6 +192,107 @@ describe("AppSidebar — parâmetros de pesquisa nos links", () => {
 
     const semTab = linksTo("/pedagogica").filter((link) => !link.search?.["tab"]);
     expect(semTab).toEqual([]);
+  });
+});
+
+/** React sintetiza onPointerEnter a partir de pointerover, não de pointerenter
+ * no DOM do jsdom. Forçar pointerType distingue rato de touch no teste.
+ */
+function hoverWithMouse(element: Element) {
+  const event = new window.Event("pointerover", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "pointerType", { value: "mouse" });
+  fireEvent(element, event);
+}
+
+describe("AppSidebar — flyouts contextuais à direita", () => {
+  it("apresenta subfunções sem expandir verticalmente a sidebar", async () => {
+    currentPathname = "/portal";
+    renderSidebar();
+    const secretaria = screen.getByRole("button", { name: "Secretaria" });
+    fireEvent.click(secretaria);
+    const flyout = await screen.findByRole("dialog");
+    expect(flyout.hasAttribute("data-nav-flyout")).toBe(true);
+    expect(flyout.querySelector("a[data-to='/alunos']")).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("navigation", { name: "Navegação principal" })
+        .querySelector(".nav-sub-list"),
+    ).toBeNull();
+    fireEvent.click(secretaria);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("abre subfunções com hover do rato, sem depender do clique", async () => {
+    currentPathname = "/portal";
+    renderSidebar();
+    const secretaria = screen.getByRole("button", { name: "Secretaria" });
+    hoverWithMouse(secretaria);
+    const flyout = await screen.findByRole("dialog");
+    expect(flyout.getAttribute("data-nav-flyout")).toBe("");
+    expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
+  });
+
+  it("hover da escola abre um menu não-modal que preserva o resto da sidebar", async () => {
+    renderSidebar();
+    const school = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
+    hoverWithMouse(school);
+    const menu = await screen.findByRole("menu");
+    expect(menu.hasAttribute("data-school-flyout")).toBe(true);
+    expect(screen.getByRole("navigation", { name: "Navegação principal" })).toBeTruthy();
+    expect(document.body.style.pointerEvents).not.toBe("none");
+  });
+
+  it("organiza as opções institucionais num submenu à direita, acessível por teclado", async () => {
+    renderSidebar();
+    const schoolTrigger = screen.getByRole("button", {
+      name: "Abrir menu da escola: Escola Teste",
+    });
+    fireEvent.keyDown(schoolTrigger, { key: "Enter" });
+    const institutions = await screen.findByRole("menuitem", { name: /Instituições/ });
+    fireEvent.keyDown(institutions, { key: "ArrowRight" });
+    const management = await screen.findByRole("menuitem", { name: "Gerir instituições" });
+    expect(management.closest("[data-school-submenu]")).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Criar escola" })).toBeTruthy();
+  });
+
+  it("fecha o flyout depois de seleccionar a subfunção, sem alterar o destino", async () => {
+    currentPathname = "/portal";
+    renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    const flyout = await screen.findByRole("dialog");
+    const matricular = screen.getByRole("link", { name: "Matricular Aluno" });
+    expect(matricular.getAttribute("data-to")).toBe("/alunos");
+    expect(matricular.getAttribute("data-search")).toContain("matricular");
+    fireEvent.click(matricular);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("mostra configurações e instituições no flyout da escola, mantendo acesso por teclado", async () => {
+    renderSidebar();
+    const trigger = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    const menu = await screen.findByRole("menu");
+    expect(menu.hasAttribute("data-school-flyout")).toBe(true);
+    expect(menu.textContent).toContain("2026/2027");
+    expect(screen.getByRole("menuitem", { name: /Instituições/ })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /Configurações da Escola/ })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Meu perfil" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Criar escola" })).toBeNull();
+    fireEvent.keyDown(menu, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
+});
+
+describe("AppSidebar — escola e perfil activos", () => {
+  it("conserva o portal Alumni apenas quando o aluno pertence ao programa", () => {
+    papel = "Aluno";
+    currentPathname = "/portal";
+    (contas.Aluno as { isAlumni: boolean }).isAlumni = true;
+    renderSidebar();
+    expect(screen.getByRole("link", { name: "Meu Portal Alumni" }).getAttribute("data-to")).toBe(
+      "/alumni/portal",
+    );
   });
 });
 

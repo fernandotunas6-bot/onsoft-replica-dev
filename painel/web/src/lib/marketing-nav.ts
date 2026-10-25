@@ -35,6 +35,7 @@ export const MARKETING_FOOTER_LINKS = {
   resources: [
     { name: "Primeiros passos", href: getDocsUrl("/siga/primeiros-passos.html") },
     { name: "Criar a escola", href: getDocsUrl("/web/criar-escola.html") },
+    { name: "Ensino público angolano", href: "/ensino-publico" },
     { name: "FAQ", href: "/faqs" },
     { name: "Financeiro escolar", href: getDocsUrl("/siga/financeiro-escolar.html") },
   ],

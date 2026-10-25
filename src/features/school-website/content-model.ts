@@ -93,7 +93,7 @@ export const websiteDraftSchema = z
         "Use o endereço HTTPS da página inicial do site.",
       ),
     values: z.record(z.string().max(120), z.string().max(12000)),
-    programBindings: z.record(z.string().max(120), z.string().uuid()).default({}),
+    programBindings: z.record(z.string().max(120), z.string().guid()).default({}),
     campaignSlug: z
       .string()
       .regex(/^(?:[a-z0-9-]{2,80})?$/)

@@ -7,6 +7,7 @@ function fakeDb(rows: Rows) {
   return {
     from(table: string) {
       const filters: Array<(row: Record<string, unknown>) => boolean> = [];
+      let range: [number, number] | null = null;
       const chain = {
         select: () => chain,
         eq(column: string, value: unknown) {
@@ -17,11 +18,15 @@ function fakeDb(rows: Rows) {
           filters.push((row) => values.includes(row[column]));
           return chain;
         },
+        // O âmbito lê por páginas (pagedReadClient).
+        order: () => chain,
+        range(from: number, to: number) {
+          range = [from, to];
+          return chain;
+        },
         then(resolve: (value: { data: unknown; error: null }) => unknown) {
-          return resolve({
-            data: (rows[table] ?? []).filter((row) => filters.every((f) => f(row))),
-            error: null,
-          });
+          const data = (rows[table] ?? []).filter((row) => filters.every((f) => f(row)));
+          return resolve({ data: range ? data.slice(range[0], range[1] + 1) : data, error: null });
         },
       };
       return chain;

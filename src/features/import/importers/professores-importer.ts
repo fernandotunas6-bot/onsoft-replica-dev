@@ -3,6 +3,7 @@ import { normalizeText } from "../engine/normalize";
 import type { ImportRefCache, RowImporter } from "../engine/types";
 import { loadExistingPeople, personCandidateFromRow, resolveOrCreatePerson } from "./people-core";
 import { schoolTodayIso } from "@/lib/school-date";
+import { insertTeacherWithNextNumber } from "@/features/people/teacher-number";
 
 type ProfessorCache = ImportRefCache & {
   teacherByPersonId: Map<string, { id: string; employee_number: string; status: string }>;
@@ -141,22 +142,27 @@ export const professoresImporter: RowImporter = {
       };
     }
 
-    const employeeNumber = `DOC-${personResult.personId.replace(/-/g, "").slice(0, 10).toUpperCase()}`;
-    const { data: teacher, error } = await ctx.db
-      .from("teachers")
-      .insert({
-        school_id: ctx.schoolId,
-        person_id: personResult.personId,
-        employee_number: employeeNumber,
-        hired_on: schoolTodayIso(),
-        employment_type: "permanent",
-        highest_qualification: "bachelor",
-        status: "active",
-        created_by: ctx.userId,
-        updated_by: ctx.userId,
-      })
-      .select("id, employee_number, status")
-      .single();
+    // A mesma numeração que «Novo professor» (DOC-000123), e não um pedaço do id.
+    const { data: teacher, error } = await insertTeacherWithNextNumber(
+      ctx.db,
+      ctx.schoolId,
+      (employeeNumber) =>
+        ctx.db
+          .from("teachers")
+          .insert({
+            school_id: ctx.schoolId,
+            person_id: personResult.personId,
+            employee_number: employeeNumber,
+            hired_on: schoolTodayIso(),
+            employment_type: "permanent",
+            highest_qualification: "bachelor",
+            status: "active",
+            created_by: ctx.userId,
+            updated_by: ctx.userId,
+          })
+          .select("id, employee_number, status")
+          .single(),
+    );
     if (error || !teacher) {
       return {
         status: "error",
@@ -168,7 +174,7 @@ export const professoresImporter: RowImporter = {
 
     cache.teacherByPersonId.set(personResult.personId, {
       id: String(teacher.id),
-      employee_number: String(teacher.employee_number ?? employeeNumber),
+      employee_number: String(teacher.employee_number ?? ""),
       status: String(teacher.status ?? "active"),
     });
     const specialty = normalizeText(normalized["specialty"] ?? normalized["especialidade"]);

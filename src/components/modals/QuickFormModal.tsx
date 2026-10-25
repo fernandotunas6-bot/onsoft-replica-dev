@@ -91,6 +91,10 @@ export function QuickFormModal({
   const [values, setValues] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
   const didAutoOpen = useRef(false);
+  // Guarda síncrona: o botão só fica desactivado depois de o React voltar a desenhar,
+  // e dois cliques no mesmo instante enviavam duas vezes (dois recibos do mesmo
+  // pagamento parcial, por exemplo).
+  const inFlight = useRef(false);
 
   useEffect(() => {
     if (!autoOpen || didAutoOpen.current) return;
@@ -122,6 +126,8 @@ export function QuickFormModal({
     if (!formRef.current) return;
     if (!formRef.current.reportValidity()) return;
 
+    if (inFlight.current) return;
+    inFlight.current = true;
     const values = readValues();
 
     setSaving(true);
@@ -136,6 +142,7 @@ export function QuickFormModal({
         description: err instanceof Error ? err.message : "Ocorreu uma falha ao guardar.",
       });
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }

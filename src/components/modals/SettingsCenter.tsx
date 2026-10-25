@@ -49,8 +49,8 @@ const BlogSettingsPanel = lazy(() =>
 );
 
 /**
- * Centro único de configurações do SIGA: tudo o que antes vivia espalhado
- * (página /configuracoes, atalhos no cabeçalho) fica aqui, num só modal.
+ * Centro de configurações do SIGA: reúne os painéis já existentes numa
+ * página por omissão, preservando a alternativa modal definida pela escola.
  */
 
 function useSettingsPanels(): StackPanel[] {
@@ -76,6 +76,20 @@ function useSettingsPanels(): StackPanel[] {
             icon: Building2,
             tone: "info",
             to: "escola",
+          },
+          {
+            label: "Identidade Digital",
+            description: "Domínio e e-mail institucional",
+            icon: Globe,
+            tone: "primary",
+            to: "identidade",
+          },
+          {
+            label: "Pedagógico",
+            description: "Níveis, cursos e disciplinas",
+            icon: GraduationCap,
+            tone: "primary",
+            to: "pedagogico",
           },
           {
             label: "Financeiro",

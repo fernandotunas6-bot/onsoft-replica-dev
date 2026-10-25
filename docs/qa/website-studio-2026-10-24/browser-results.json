@@ -10,6 +10,7 @@
   "editedAndSaved": true,
   "draftSeparatedFromPublication": true,
   "failurePreservesDraft": true,
+  "revisionRecovery": true,
   "cancelledNavigationPreservesDraft": true,
   "pageSelection": true,
   "widthsDoNotPublish": true,
@@ -41,6 +42,6 @@
       "content": 1920
     }
   ],
-  "feedbackSampleMs": 54,
+  "feedbackSampleMs": 128,
   "errors": []
 }

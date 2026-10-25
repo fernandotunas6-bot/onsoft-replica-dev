@@ -70,6 +70,11 @@ export function GuidesSection() {
             </a>
           ))}
         </div>
+        <div className="bg-card mx-auto mt-8 max-w-3xl rounded-2xl border p-5 text-center">
+          <h3 className="font-semibold">SIGA Plus para o ensino público angolano</h3>
+          <p className="text-muted-foreground mt-2 text-sm">Conheça a proposta de modernização das secretarias, gestão académica e acompanhamento dos alunos.</p>
+          <a href="/ensino-publico" className="text-primary mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold hover:underline">Ler proposta e descarregar PDF/Word <ArrowUpRight className="size-4" aria-hidden="true" /></a>
+        </div>
       </div>
     </section>
   )

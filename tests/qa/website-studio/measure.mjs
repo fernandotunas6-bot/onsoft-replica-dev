@@ -36,7 +36,7 @@ if (
 )
   throw Error("The editor escaped its client-only route boundary: " + JSON.stringify(result));
 writeFileSync(
-  "docs/qa/website-studio-2026-10-24/performance.json",
+  process.argv[3] ?? "docs/qa/website-studio-2026-10-24/performance.json",
   JSON.stringify(result, null, 2),
 );
 console.log(JSON.stringify(result));

@@ -80,10 +80,12 @@ function SchoolStudio({
     gcTime: 0,
   });
   const active = useRef(true);
+  const reloadController = useRef<AbortController | null>(null);
   useEffect(() => {
     active.current = true;
     return () => {
       active.current = false;
+      reloadController.current?.abort();
     };
   }, []);
   if (!allowed)
@@ -115,6 +117,17 @@ function SchoolStudio({
       initial={query.data}
       view={view}
       onViewChange={onViewChange}
+      onReload={async () => {
+        reloadController.current?.abort();
+        const controller = new AbortController();
+        reloadController.current = controller;
+        const latest = await getSchoolWebsiteEditor({ signal: controller.signal });
+        if (!active.current) throw Error("O contexto do estúdio mudou. Abra-o novamente.");
+        if (latest.school.public_code !== query.data?.school.public_code)
+          throw Error("A escola activa mudou. Abra novamente o estúdio antes de continuar.");
+        client.setQueryData<EditorData>(queryKey, latest);
+        return latest;
+      }}
       onPersist={async (data) => {
         const next = await changeSchoolWebsite({ data });
         if (active.current)
@@ -135,10 +148,12 @@ export function WebsiteStudioWorkspace({
   view,
   onViewChange,
   onPersist,
+  onReload,
 }: {
   initial: EditorData;
   view: StudioView;
   onViewChange: (view: StudioView) => void;
+  onReload?: () => Promise<EditorData>;
   onPersist: (data: {
     action: Action;
     expectedRevision: number;
@@ -163,6 +178,7 @@ export function WebsiteStudioWorkspace({
   const [selecting, setSelecting] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const busyRef = useRef(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -336,6 +352,33 @@ export function WebsiteStudioWorkspace({
       setBusy(false);
     }
   }
+  async function reloadSavedDraft() {
+    if (!onReload || busyRef.current || !confirmDiscardChanges(dirty)) return;
+    busyRef.current = true;
+    setBusy(true);
+    setReloading(true);
+    try {
+      const latest = await onReload();
+      setState(latest.state);
+      history.reset(latest.state.draft);
+      setInspectorVersion((value) => value + 1);
+      setSelectedKeys([]);
+      setPublishedView(false);
+      setReviewOpen(false);
+      setError("");
+      setMessage("Versão guardada carregada. Pode continuar a editar.");
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Não foi possível recarregar. O rascunho foi conservado.",
+      );
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+      setReloading(false);
+    }
+  }
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
@@ -422,7 +465,9 @@ export function WebsiteStudioWorkspace({
         <div className="studio-actions">
           <span className="studio-save-state" role="status">
             {busy
-              ? "A guardar…"
+              ? reloading
+                ? "A recarregar…"
+                : "A guardar…"
               : dirty
                 ? "Alterações por guardar"
                 : state.published
@@ -475,6 +520,11 @@ export function WebsiteStudioWorkspace({
       {error && (
         <p className="studio-notice studio-error" role="alert">
           {error}
+          {onReload && (
+            <button type="button" disabled={busy} onClick={() => void reloadSavedDraft()}>
+              Recarregar versão guardada
+            </button>
+          )}
         </p>
       )}
       {message && (

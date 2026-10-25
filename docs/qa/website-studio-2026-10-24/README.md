@@ -3,6 +3,10 @@
 Data: 24/10/2026. Base: `main` em `42ad7eff`, com as correcções e documentação da
 PR #275. Incremento de interface ainda sem integração nem produção.
 
+Estado actualizado: ver [sincronização com main e recuperação de conflitos](SYNC_2026-10-25.md).
+As auditorias anteriores conservam o registo histórico; a base reconciliada já usa
+Zod 4 e não tem alertas altos/críticos na verificação executada.
+
 ## Implementação
 
 - Rota privada `/website/editor`, layout próprio sem AppShell académico; mantém
@@ -52,9 +56,9 @@ Puck é carregado pelo módulo dedicado. Não foram alterados `painel/escolas/**
 
 | Verificação | Evidência / limite |
 | --- | --- |
-| Testes do módulo, acesso, configuração e orçamento inicial | 43 ficheiros e 343 testes passaram; inclui Puck real, não apenas um mock de inspector |
+| Testes do módulo, acesso, configuração e orçamento inicial | 44 ficheiros e 349 testes passaram; inclui Puck real, não apenas um mock de inspector |
 | Tipos e build | Typecheck passou; build de produção Node passou; instalação com lockfile congelado passou |
-| Lint e estilo | ESLint global: 0 erros e 47 avisos; checklist de estilo passou (974 ficheiros) |
+| Lint e estilo | ESLint do escopo afectado: 0 erros/avisos; checklist incremental de estilo passou sobre a base reconciliada |
 | Cancelamento A/B | Leitura de A abortada; resposta atrasada de A não aparece em B; fixture React Query |
 | Browser com biblioteca real | [browser-results.json](browser-results.json): editar/guardar/publicar, falha que conserva rascunho, saída cancelada, página, zoom e aparência |
 | Responsividade | Seis larguras sem overflow horizontal e sem erros JavaScript no ensaio |

@@ -1151,6 +1151,12 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Secretaria", "Professor"],
     );
+    if (data.offlineSchoolId && data.offlineSchoolId !== membership.schoolId) {
+      throw new Error("A escola activa é diferente da escola de origem do lançamento offline.");
+    }
+    if (data.offlineActorId && data.offlineActorId !== context.userId) {
+      throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
+    }
     const db = await loadSgaAdminClient();
     await assertTermOpen(db, membership.schoolId, data.term);
     // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).
@@ -1929,63 +1935,6 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
       throw publicDatabaseError(error, "Não foi possível atualizar a avaliação.");
     }
     return { success: true, item: updated };
-  });
-
-export const deleteAssessmentItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterForWrite(
-      "pedagogica",
-      context.supabase,
-      context.userId,
-      ["Administrador", "Secretaria", "Professor"],
-    );
-    const db = await loadSgaAdminClient();
-
-    // Check if assessment scores exist
-    const { count, error: countErr } = await db
-      .from("siga_assessment_scores")
-      .select("*", { count: "exact", head: true })
-      .eq("item_id", data.itemId)
-      .eq("school_id", membership.schoolId);
-
-    if (countErr && !isMissingRelation(countErr)) {
-      throw publicDatabaseError(countErr, "Não foi possível verificar as notas da avaliação.");
-    }
-
-    if ((count ?? 0) > 0 && !data.force) {
-      throw new Error(
-        `Esta avaliação possui ${count} nota(s) lançada(s). Confirme que pretende eliminar todas as notas associadas.`,
-      );
-    }
-
-    // Delete scores first if any exist
-    if ((count ?? 0) > 0) {
-      const { error: delScoresErr } = await db
-        .from("siga_assessment_scores")
-        .delete()
-        .eq("item_id", data.itemId)
-        .eq("school_id", membership.schoolId);
-
-      if (delScoresErr) {
-        throw publicDatabaseError(delScoresErr, "Não foi possível eliminar as notas associadas.");
-      }
-    }
-
-    // Delete item
-    const { error: delItemErr } = await db
-      .from("siga_assessment_items")
-      .delete()
-      .eq("id", data.itemId)
-      .eq("school_id", membership.schoolId);
-
-    if (delItemErr) {
-      throw publicDatabaseError(delItemErr, "Não foi possível eliminar a avaliação.");
-    }
-
-    return { success: true, deletedScoresCount: count ?? 0 };
   });
 
 export type StudentAcademicHistoryYear = {

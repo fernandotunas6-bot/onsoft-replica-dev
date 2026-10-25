@@ -110,8 +110,14 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/pedagogica/catalogo"],
     roles: ["Administrador", "Secretaria", "Professor"],
   },
+  // Ecrãs de gestão: o aluno não tem ligação para eles no menu e vê o que é seu no
+  // portal. O encarregado mantém-nos: o chat abre a ficha do educando.
   {
-    prefixes: ["/pessoas", "/alunos", "/documentos"],
+    prefixes: ["/pessoas", "/alunos"],
+    roles: ["Administrador", "Secretaria", "Encarregado"],
+  },
+  {
+    prefixes: ["/documentos"],
     roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],
   },
   {
@@ -128,9 +134,10 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     ],
     roles: ["Administrador", "Secretaria", "Professor", "Encarregado", "Aluno"],
   },
+  // O aluno não lê nenhuma área dos Arquivos (`canReadFileArea`): a página abria vazia.
   {
     prefixes: ["/arquivos"],
-    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Aluno"],
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"],
   },
   {
     prefixes: ["/importar"],

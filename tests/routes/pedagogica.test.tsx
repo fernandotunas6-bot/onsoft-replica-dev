@@ -38,6 +38,15 @@ vi.mock("@tanstack/react-router", async () => ({
   }) => <a href={`${to}${search?.ano ? `?ano=${search.ano}` : ""}`}>{children}</a>,
 }));
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
+vi.mock("@/features/dashboard/components/StudentGradesCard", () => ({
+  StudentGradesCard: () => <div data-testid="student-grades-card" />,
+}));
+vi.mock("@/features/dashboard/components/StudentAttendanceCard", () => ({
+  StudentAttendanceCard: () => <div data-testid="student-attendance-card" />,
+}));
+vi.mock("@/features/dashboard/components/StudentTimetableCard", () => ({
+  StudentTimetableCard: () => <div data-testid="student-timetable-card" />,
+}));
 vi.mock("@/features/auth/use-current-account", async () =>
   (await import("./_harness")).currentAccountMock(),
 );
@@ -375,6 +384,15 @@ describe("/pedagogica — render", () => {
       expect(screen.queryByRole("link", { name: "Configurar trimestres" })).toBeNull();
     },
   );
+
+  it("o aluno vê o próprio boletim e só os separadores com os seus dados", async () => {
+    seed();
+    setCurrentAccount({ role: "Aluno", roles: ["Aluno"] });
+    renderRoute(Pedagogica);
+    await waitFor(() => expect(screen.getByTestId("student-grades-card")).toBeDefined());
+    const tabs = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(tabs).toEqual(["Horários", "Presenças / Chamada", "Notas"]);
+  });
 
   it("mostra falha de carregamento sem a confundir com calendário completo", async () => {
     seed();

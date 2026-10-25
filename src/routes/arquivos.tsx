@@ -7,8 +7,8 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { FileBrowser } from "@/features/arquivos/FileBrowser";
 
 const arquivosSearchSchema = z.object({
-  turma: z.string().uuid().optional(),
-  pessoa: z.string().uuid().optional(),
+  turma: z.string().guid().optional(),
+  pessoa: z.string().guid().optional(),
 });
 
 export const Route = createFileRoute("/arquivos")({

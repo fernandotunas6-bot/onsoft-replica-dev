@@ -46,14 +46,14 @@ export function workflowRpcClient(client: SupabaseClient) {
 }
 
 export const atomicStudentResultSchema = z.object({
-  id: z.string().uuid(),
-  person_id: z.string().uuid(),
+  id: z.string().guid(),
+  person_id: z.string().guid(),
   student_number: z.string().min(1),
   status: z.enum(["applicant", "active"]),
   enrollment_number: z.string().nullable(),
 });
 export const activeYearResultSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   name: z.string().min(1),
   created: z.boolean(),
 });

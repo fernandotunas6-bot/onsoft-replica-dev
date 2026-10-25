@@ -534,12 +534,19 @@ export function describeTenantBilling(
   plan: PlanPrices | null,
   activeStudents: number,
   now: Date = new Date(),
+  periodDiscounts?: Partial<Record<BillingPeriod, number>>,
 ) {
   const effective = profile ?? defaultBillingProfile("");
   const state = billingStateOf(effective, now);
   const custom = state.charging && effective.pricingModel !== "plan";
   const chargeFor = (billingPeriod: BillingPeriod) =>
-    computeTenantCharge({ profile: { ...effective, billingPeriod }, plan, activeStudents, state });
+    computeTenantCharge({
+      profile: { ...effective, billingPeriod },
+      plan,
+      activeStudents,
+      state,
+      ...(periodDiscounts ? { periodDiscounts } : {}),
+    });
   const charge = custom ? chargeFor(effective.billingPeriod) : null;
   return {
     mode: state.mode,

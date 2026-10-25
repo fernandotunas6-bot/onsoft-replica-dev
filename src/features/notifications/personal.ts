@@ -60,7 +60,7 @@ export const listMyNotifications = createServerFn({ method: "GET" })
 export const markMyNotificationsRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ ids: z.array(z.string().uuid()).max(50).optional() }).parse(input ?? {}),
+    z.object({ ids: z.array(z.string().guid()).max(50).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     const db = sgaClient(context.supabase);

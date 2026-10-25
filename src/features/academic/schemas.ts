@@ -75,16 +75,16 @@ export const classShiftOptions = ["morning", "afternoon", "evening"] as const;
 export type ClassShift = (typeof classShiftOptions)[number];
 
 export const listPedagogicalWorkspaceInputSchema = z.object({
-  academicYearId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
 });
 export type ListPedagogicalWorkspaceInput = z.infer<typeof listPedagogicalWorkspaceInputSchema>;
 
 export const createClassGroupInputSchema = z.object({
-  academicYearId: z.string().uuid(),
+  academicYearId: z.string().guid(),
   // Curso/Programa liga-se pela classe (grade_levels.program_id), não pela
   // turma directamente — ver comentário em createClassGroup() no server.ts.
-  gradeLevelId: z.string().uuid(),
-  roomId: z.string().uuid().optional(),
+  gradeLevelId: z.string().guid(),
+  roomId: z.string().guid().optional(),
   code: classGroupCode,
   name: classGroupName,
   shift: z.enum(classShiftOptions),
@@ -95,14 +95,14 @@ export const createClassGroupInputSchema = z.object({
 export type CreateClassGroupInput = z.infer<typeof createClassGroupInputSchema>;
 
 export const updateClassGroupInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   code: classGroupCode,
   name: classGroupName,
   // Ausente = não mexe. «Reactivar» só muda o estado: antes repunha o turno
   // (dia inteiro virava manhã), a lotação (30) e apagava o grupo de WhatsApp.
   shift: z.enum(classShiftOptions).optional(),
   capacity: z.number().int().positive().max(200).optional(),
-  roomId: z.string().uuid().optional().nullable(),
+  roomId: z.string().guid().optional().nullable(),
   // Ausente = não mexe no estado. O antigo `.default("active")` reactivava sem
   // aviso uma turma arquivada sempre que alguém lhe editava o nome.
   status: z.enum(["active", "inactive"]).optional(),
@@ -113,7 +113,7 @@ export const updateClassGroupInputSchema = z.object({
 export type UpdateClassGroupInput = z.infer<typeof updateClassGroupInputSchema>;
 
 export const deleteClassGroupInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
 });
 export type DeleteClassGroupInput = z.infer<typeof deleteClassGroupInputSchema>;
 
@@ -130,8 +130,8 @@ export const createSubjectInputSchema = z.object({
   weeklyHours: z.number().int().min(1).max(20).default(4),
   gradeFrom: z.number().int().min(1).max(99).optional(),
   gradeTo: z.number().int().min(1).max(99).optional(),
-  subjectTypeId: z.string().uuid().optional().nullable(),
-  curriculumAreaId: z.string().uuid().optional().nullable(),
+  subjectTypeId: z.string().guid().optional().nullable(),
+  curriculumAreaId: z.string().guid().optional().nullable(),
   shortName: optionalText,
   description: optionalText,
   department: optionalText,
@@ -149,14 +149,14 @@ export const createSubjectInputSchema = z.object({
 export type CreateSubjectInput = z.infer<typeof createSubjectInputSchema>;
 
 export const updateSubjectInputSchema = z.object({
-  subjectId: z.string().uuid(),
+  subjectId: z.string().guid(),
   code: subjectCode,
   name: z.string().trim().min(2).max(120),
   weeklyHours: z.number().int().min(1).max(20).optional(),
   gradeFrom: z.number().int().min(1).max(99).optional().nullable(),
   gradeTo: z.number().int().min(1).max(99).optional().nullable(),
-  subjectTypeId: z.string().uuid().optional().nullable(),
-  curriculumAreaId: z.string().uuid().optional().nullable(),
+  subjectTypeId: z.string().guid().optional().nullable(),
+  curriculumAreaId: z.string().guid().optional().nullable(),
   shortName: optionalText,
   description: optionalText,
   department: optionalText,
@@ -174,13 +174,13 @@ export const updateSubjectInputSchema = z.object({
 export type UpdateSubjectInput = z.infer<typeof updateSubjectInputSchema>;
 
 export const deactivateSubjectInputSchema = z.object({
-  subjectId: z.string().uuid(),
+  subjectId: z.string().guid(),
 });
 export type DeactivateSubjectInput = z.infer<typeof deactivateSubjectInputSchema>;
 
 export const upsertTermGradeInputSchema = z.object({
-  enrollmentId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  enrollmentId: z.string().guid(),
+  subjectId: z.string().guid(),
   term: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   mac: z.number().min(0).max(20),
   npp: z.number().min(0).max(20),
@@ -189,12 +189,15 @@ export const upsertTermGradeInputSchema = z.object({
 export type UpsertTermGradeInput = z.infer<typeof upsertTermGradeInputSchema>;
 
 export const upsertTermGradesBatchInputSchema = z.object({
-  subjectId: z.string().uuid(),
+  /** Defesa do servidor contra replay offline noutra escola/conta. */
+  offlineSchoolId: z.string().guid().optional(),
+  offlineActorId: z.string().guid().optional(),
+  subjectId: z.string().guid(),
   term: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   rows: z
     .array(
       z.object({
-        enrollmentId: z.string().uuid(),
+        enrollmentId: z.string().guid(),
         mac: z.number().min(0).max(20),
         npp: z.number().min(0).max(20),
         npt: z.number().min(0).max(20),
@@ -230,8 +233,8 @@ export const assessmentComponentSchema = z.enum([
 ]);
 
 export const createAssessmentInputSchema = z.object({
-  classGroupId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  classGroupId: z.string().guid(),
+  subjectId: z.string().guid(),
   term: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   name: z.string().trim().min(2).max(160),
   kind: assessmentKindSchema.default("teste"),
@@ -256,7 +259,7 @@ export const createAssessmentInputSchema = z.object({
 export type CreateAssessmentInput = z.infer<typeof createAssessmentInputSchema>;
 
 export const updateAssessmentInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   name: z.string().trim().min(2).max(160),
   kind: assessmentKindSchema,
   component: assessmentComponentSchema,
@@ -280,24 +283,24 @@ export const updateAssessmentInputSchema = z.object({
 export type UpdateAssessmentInput = z.infer<typeof updateAssessmentInputSchema>;
 
 export const deleteAssessmentInputSchema = z.object({
-  itemId: z.string().uuid(),
+  itemId: z.string().guid(),
   force: z.boolean().optional().default(false),
 });
 export type DeleteAssessmentInput = z.infer<typeof deleteAssessmentInputSchema>;
 
 export const listAssessmentsInputSchema = z.object({
-  classGroupId: z.string().uuid().optional(),
-  subjectId: z.string().uuid().optional(),
+  classGroupId: z.string().guid().optional(),
+  subjectId: z.string().guid().optional(),
   term: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
 });
 export type ListAssessmentsInput = z.infer<typeof listAssessmentsInputSchema>;
 
 export const upsertAssessmentScoresInputSchema = z.object({
-  itemId: z.string().uuid(),
+  itemId: z.string().guid(),
   rows: z
     .array(
       z.object({
-        enrollmentId: z.string().uuid(),
+        enrollmentId: z.string().guid(),
         score: z.number().min(0).max(20).nullable(),
       }),
     )
@@ -314,7 +317,7 @@ export type ListTermGradesInput = z.infer<typeof listTermGradesInputSchema>;
 
 export const createScheduleSlotInputSchema = z
   .object({
-    classGroupId: z.string().uuid(),
+    classGroupId: z.string().guid(),
     weekday: z.number().int().min(1).max(7),
     startsAt: z
       .string()
@@ -324,11 +327,11 @@ export const createScheduleSlotInputSchema = z
       .string()
       .trim()
       .regex(/^\d{2}:\d{2}(:\d{2})?$/),
-    subjectId: z.string().uuid(),
-    teacherId: z.string().uuid().optional().nullable(),
-    roomId: z.string().uuid().optional().nullable(),
-    shiftId: z.string().uuid().optional().nullable(),
-    scheduleId: z.string().uuid().optional().nullable(),
+    subjectId: z.string().guid(),
+    teacherId: z.string().guid().optional().nullable(),
+    roomId: z.string().guid().optional().nullable(),
+    shiftId: z.string().guid().optional().nullable(),
+    scheduleId: z.string().guid().optional().nullable(),
     dayPeriodNumber: z.number().int().positive().optional().nullable(),
     label: optionalText,
     notes: optionalText,
@@ -345,13 +348,13 @@ export const createScheduleSlotInputSchema = z
 export type CreateScheduleSlotInput = z.infer<typeof createScheduleSlotInputSchema>;
 
 export const deleteScheduleSlotInputSchema = z.object({
-  slotId: z.string().uuid(),
+  slotId: z.string().guid(),
 });
 export type DeleteScheduleSlotInput = z.infer<typeof deleteScheduleSlotInputSchema>;
 
 export const updateScheduleSlotInputSchema = z
   .object({
-    slotId: z.string().uuid(),
+    slotId: z.string().guid(),
     weekday: z.number().int().min(1).max(7),
     startsAt: z
       .string()
@@ -361,11 +364,11 @@ export const updateScheduleSlotInputSchema = z
       .string()
       .trim()
       .regex(/^\d{2}:\d{2}(:\d{2})?$/),
-    subjectId: z.string().uuid().optional(),
-    teacherId: z.string().uuid().optional().nullable(),
-    roomId: z.string().uuid().optional().nullable(),
-    shiftId: z.string().uuid().optional().nullable(),
-    scheduleId: z.string().uuid().optional().nullable(),
+    subjectId: z.string().guid().optional(),
+    teacherId: z.string().guid().optional().nullable(),
+    roomId: z.string().guid().optional().nullable(),
+    shiftId: z.string().guid().optional().nullable(),
+    scheduleId: z.string().guid().optional().nullable(),
     dayPeriodNumber: z.number().int().positive().optional().nullable(),
     label: optionalText,
     notes: optionalText,
@@ -382,53 +385,53 @@ export const updateScheduleSlotInputSchema = z
 export type UpdateScheduleSlotInput = z.infer<typeof updateScheduleSlotInputSchema>;
 
 export const getTeacherWorkspaceInputSchema = z.object({
-  teacherId: z.string().uuid().optional(),
-  academicYearId: z.string().uuid().optional(),
+  teacherId: z.string().guid().optional(),
+  academicYearId: z.string().guid().optional(),
 });
 export type GetTeacherWorkspaceInput = z.infer<typeof getTeacherWorkspaceInputSchema>;
 
 export const assignClassSubjectTeacherInputSchema = z.object({
-  classGroupId: z.string().uuid(),
-  subjectId: z.string().uuid(),
-  teacherId: z.string().uuid(),
+  classGroupId: z.string().guid(),
+  subjectId: z.string().guid(),
+  teacherId: z.string().guid(),
 });
 export type AssignClassSubjectTeacherInput = z.infer<typeof assignClassSubjectTeacherInputSchema>;
 
 export const unassignClassSubjectTeacherInputSchema = z.object({
-  classGroupId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  classGroupId: z.string().guid(),
+  subjectId: z.string().guid(),
 });
 export type UnassignClassSubjectTeacherInput = z.infer<
   typeof unassignClassSubjectTeacherInputSchema
 >;
 
 export const getStudentAcademicHistoryInputSchema = z.object({
-  studentId: z.string().uuid(),
+  studentId: z.string().guid(),
 });
 export type GetStudentAcademicHistoryInput = z.infer<typeof getStudentAcademicHistoryInputSchema>;
 
 // Currículo do Curso (Ensino Superior) — program_subjects, ver
 // supabase/migrations/20260811151500_program_subjects_curriculum.sql
 export const listProgramCurriculumInputSchema = z.object({
-  programId: z.string().uuid(),
+  programId: z.string().guid(),
 });
 export type ListProgramCurriculumInput = z.infer<typeof listProgramCurriculumInputSchema>;
 
 export const addProgramSubjectInputSchema = z.object({
-  programId: z.string().uuid(),
-  subjectId: z.string().uuid(),
+  programId: z.string().guid(),
+  subjectId: z.string().guid(),
   semester: z.number().int().min(1).max(12),
   credits: z.number().positive().max(60).default(6),
 });
 export type AddProgramSubjectInput = z.infer<typeof addProgramSubjectInputSchema>;
 
 export const removeProgramSubjectInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
 });
 export type RemoveProgramSubjectInput = z.infer<typeof removeProgramSubjectInputSchema>;
 
 export const updateProgramGradingProfileInputSchema = z.object({
-  programId: z.string().uuid(),
+  programId: z.string().guid(),
   gradingProfile: gradingProfileSchema.nullable(),
 });
 export type UpdateProgramGradingProfileInput = z.infer<
@@ -436,8 +439,8 @@ export type UpdateProgramGradingProfileInput = z.infer<
 >;
 
 export const applyCurriculumToClassGroupInputSchema = z.object({
-  classGroupId: z.string().uuid(),
-  programId: z.string().uuid(),
+  classGroupId: z.string().guid(),
+  programId: z.string().guid(),
 });
 export type ApplyCurriculumToClassGroupInput = z.infer<
   typeof applyCurriculumToClassGroupInputSchema
@@ -465,7 +468,7 @@ export const createSubjectTypeInputSchema = z.object({
 export type CreateSubjectTypeInput = z.infer<typeof createSubjectTypeInputSchema>;
 
 export const updateSubjectTypeInputSchema = createSubjectTypeInputSchema.partial().extend({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   status: z.enum(["active", "inactive"]).optional(),
 });
 export type UpdateSubjectTypeInput = z.infer<typeof updateSubjectTypeInputSchema>;
@@ -480,7 +483,7 @@ export const createCurriculumAreaInputSchema = z.object({
 export type CreateCurriculumAreaInput = z.infer<typeof createCurriculumAreaInputSchema>;
 
 export const updateCurriculumAreaInputSchema = createCurriculumAreaInputSchema.partial().extend({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   status: z.enum(["active", "inactive"]).optional(),
 });
 export type UpdateCurriculumAreaInput = z.infer<typeof updateCurriculumAreaInputSchema>;
@@ -516,7 +519,7 @@ export const createRoomInputSchema = z.object({
 export type CreateRoomInput = z.infer<typeof createRoomInputSchema>;
 
 export const updateRoomInputSchema = createRoomInputSchema.partial().extend({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   building: clearableText,
   block: clearableText,
   floor: clearableText,
@@ -544,16 +547,16 @@ export const createSchoolShiftInputSchema = z.object({
 export type CreateSchoolShiftInput = z.infer<typeof createSchoolShiftInputSchema>;
 
 export const saveCurriculumMatrixInputSchema = z.object({
-  academicYearId: z.string().uuid(),
-  courseId: z.string().uuid(),
-  gradeLevelId: z.string().uuid(),
+  academicYearId: z.string().guid(),
+  courseId: z.string().guid(),
+  gradeLevelId: z.string().guid(),
   name: z.string().trim().min(2).max(120),
   description: optionalText,
   subjects: z
     .array(
       z.object({
-        subjectId: z.string().uuid(),
-        subjectTypeId: z.string().uuid().optional().nullable(),
+        subjectId: z.string().guid(),
+        subjectTypeId: z.string().guid().optional().nullable(),
         weeklyPeriods: z.number().int().min(1).max(25).default(4),
         periodDurationMinutes: z.number().int().min(15).max(180).default(45),
         isMandatory: z.boolean().default(true),
@@ -565,8 +568,8 @@ export const saveCurriculumMatrixInputSchema = z.object({
 export type SaveCurriculumMatrixInput = z.infer<typeof saveCurriculumMatrixInputSchema>;
 
 export const saveTeacherAvailabilityInputSchema = z.object({
-  teacherId: z.string().uuid(),
-  academicYearId: z.string().uuid().optional(),
+  teacherId: z.string().guid(),
+  academicYearId: z.string().guid().optional(),
   slots: z.array(
     z.object({
       weekday: z.number().int().min(1).max(7),
@@ -587,8 +590,8 @@ export const saveTeacherAvailabilityInputSchema = z.object({
 export type SaveTeacherAvailabilityInput = z.infer<typeof saveTeacherAvailabilityInputSchema>;
 
 export const publishAcademicScheduleInputSchema = z.object({
-  classGroupId: z.string().uuid(),
-  academicYearId: z.string().uuid(),
+  classGroupId: z.string().guid(),
+  academicYearId: z.string().guid(),
   name: optionalText,
   validFrom: z
     .string()

@@ -24,7 +24,7 @@ import {
 
 export const SCHOLARSHIP_ACTION = "finance.scholarship.set";
 
-const studentInput = z.object({ studentId: z.string().uuid() });
+const studentInput = z.object({ studentId: z.string().guid() });
 
 export const setScholarshipInputSchema = studentInput.extend({
   /** Percentagem do desconto (0 = sem bolsa), com cêntimos de ponto percentual. */

@@ -109,3 +109,7 @@ it("a prévia respeita nomes académicos ligados sem alterar o rascunho editoria
   expect(preview.values["data.courses.1.name"]).toBe("Curso indisponível");
   expect(draft.values["data.courses.0.name"]).toBe("Nome editorial");
 });
+
+it("abre o estúdio sem query string com valores por omissão em Zod 4", () => {
+  expect(studioSearchSchema.parse({})).toEqual({ pagina: "/", largura: 1440, zoom: 50 });
+});

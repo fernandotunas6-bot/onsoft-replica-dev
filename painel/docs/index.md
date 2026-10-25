@@ -13,6 +13,9 @@ hero:
       text: Começar
       link: /guide/
     - theme: alt
+      text: Ensino público (PDF/Word)
+      link: /institucional/ensino-publico
+    - theme: alt
       text: Navegação SIGA
       link: /siga/navegacao
     - theme: alt

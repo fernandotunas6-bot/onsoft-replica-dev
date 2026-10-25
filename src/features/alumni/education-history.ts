@@ -7,7 +7,7 @@ import { alumniPortfolioEducationLevels } from "@/features/alumni/portfolio";
 
 export const alumniEducationStageSchema = z
   .object({
-    stageId: z.string().uuid().optional(),
+    stageId: z.string().guid().optional(),
     educationLevel: z.enum(alumniPortfolioEducationLevels),
     institutionName: z.string().trim().min(2).max(220),
     courseName: z.string().trim().max(180).nullable().optional(),
@@ -28,7 +28,7 @@ export const alumniEducationStageSchema = z
     },
   );
 
-const deleteStageSchema = z.object({ stageId: z.string().uuid() });
+const deleteStageSchema = z.object({ stageId: z.string().guid() });
 
 async function resolveOwnProfile(userId: string) {
   const membership = await resolveSgaMembershipAdmin(userId);

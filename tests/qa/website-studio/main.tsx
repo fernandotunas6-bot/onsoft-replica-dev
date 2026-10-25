@@ -41,6 +41,13 @@ function Editor() {
       }}
       view={view}
       onViewChange={setView}
+      onReload={async () => ({
+        state: saved,
+        school: { public_code: "QA-STUDIO", name: "Colégio de Ensaio", logo_url: null },
+        programs: [],
+        campaigns: [],
+        links: null,
+      })}
       onPersist={async (data) => {
         commands.push(data);
         await new Promise((resolve) => setTimeout(resolve, 250));

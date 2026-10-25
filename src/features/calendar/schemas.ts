@@ -19,7 +19,7 @@ export const createCalendarEventInputSchema = z.object({
   description: optionalText,
   eventDate: z.string().trim().min(10).max(10),
   endsOn: z.string().trim().min(10).max(10),
-  academicYearId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
   sequence: z.number().int().min(1).max(20).optional(),
   category: z.enum(calendarCategoryOptions).default("academic"),
 });
@@ -45,7 +45,7 @@ export type CreateAcademicYearInput = z.infer<typeof createAcademicYearInputSche
 export const listCalendarEventsInputSchema = z.object({
   limit: z.number().int().min(1).max(80).default(50),
   fromDate: optionalText,
-  academicYearId: z.string().uuid().optional(),
+  academicYearId: z.string().guid().optional(),
   includePast: z.boolean().optional(),
 });
 export type ListCalendarEventsInput = z.infer<typeof listCalendarEventsInputSchema>;
@@ -61,7 +61,7 @@ export const listDayAgendaLessonsInputSchema = z.object({
 export type ListDayAgendaLessonsInput = z.infer<typeof listDayAgendaLessonsInputSchema>;
 
 export const updateCalendarEventInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   title: z.string().trim().min(2).max(160),
   eventDate: z.string().trim().min(10).max(10),
   endsOn: z.string().trim().min(10).max(10),
@@ -69,10 +69,10 @@ export const updateCalendarEventInputSchema = z.object({
 export type UpdateCalendarEventInput = z.infer<typeof updateCalendarEventInputSchema>;
 
 export const deleteCalendarEventInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
 });
 export type DeleteCalendarEventInput = z.infer<typeof deleteCalendarEventInputSchema>;
 
 export const setActiveAcademicYearInputSchema = z.object({
-  yearId: z.string().uuid(),
+  yearId: z.string().guid(),
 });

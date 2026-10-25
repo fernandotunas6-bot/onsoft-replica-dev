@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ImportModule } from "./schemas";
 import { FIELD_CATALOG } from "./engine/field-catalog";
 import { schoolTodayIso } from "@/lib/school-date";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 
 export type ExportMode = "human" | "siga_exchange";
 
@@ -81,9 +82,12 @@ function settlementOfInvoice(invoice: { finance_receipts?: unknown }) {
  * Suporta modo Humano (formatado para leitura) e SIGA Exchange (reimportável com 00_MANIFESTO).
  */
 export async function exportSchoolData(
-  db: SupabaseClient,
+  client: SupabaseClient,
   options: ExportFilterOptions,
 ): Promise<ExportResult> {
+  // Todas as linhas de cada leitura (por páginas, `.in` em lotes) e um erro pára a
+  // exportação: cortada nas 1000 linhas, uma escola maior recebia um ficheiro parcial.
+  const db = pagedReadClient(client, { strict: true });
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "SIGA — Sistema Integrado de Gestão Académica";
   workbook.lastModifiedBy = "SIGA Data Exchange Engine";

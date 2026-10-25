@@ -9,6 +9,9 @@ identifica esta área, não altera a marca global. O contrato abaixo conserva o 
 do proprietário; a [evidência de execução](../qa/website-studio-2026-10-24/README.md)
 distingue o que foi implementado das capacidades ainda pendentes.
 
+Actualização de 25/10: base reconciliada com `main` `50b90afe`, Zod 4 e recuperação
+de conflitos no estúdio; [evidência e limites](../qa/website-studio-2026-10-24/SYNC_2026-10-25.md).
+
 ## 1. Pedido e resultado pretendido
 
 O editor deve ter uma página própria dentro do SIGA Plus, com visual premium,
