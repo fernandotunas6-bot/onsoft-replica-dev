@@ -15,8 +15,11 @@ import { readStoredActiveSchool } from "@/features/auth/active-school";
  *    reconciliação humana, nunca reenviado automaticamente sem recibo idempotente.
  *    Um erro de sessão anterior ao envio confirmado mantém a entrada pendente.
  *
- * O servidor ainda não oferece recibos transaccionais por op_id; upserts não
- * garantem idempotência de todo o workflow. Pagamentos ficam excluídos.
+ * Cada envio leva o seu id como op_id (20261025130000_offline_sync_receipts): o servidor
+ * guarda um recibo e, se o mesmo op_id voltar, devolve o resultado em vez de gravar de
+ * novo. Por isso um envio incerto que saiu com op_id (`receiptProtected`) volta a ser
+ * tentado quando a rede volta; os antigos, sem op_id, continuam à espera da secretaria.
+ * Pagamentos ficam excluídos.
  *
  * Fora da app desktop (navegador, PWA), a fila fica desligada e tudo funciona como
  * antes: grava com rede, falha sem ela.
@@ -38,6 +41,8 @@ export type OutboxItem = {
   deliveryState?: "pending" | "sending" | "needs_verification";
   /** Recusa explícita ou confirmação ambígua, preservada até revisão. */
   failedReason?: string;
+  /** Saiu com op_id: repetir é seguro, o servidor devolve o recibo. */
+  receiptProtected?: boolean;
 };
 
 export type OutboxStorage = {
@@ -62,6 +67,15 @@ const SENDERS: Record<OutboxKind, Sender> = {
 export const OUTBOX_MAX_BYTES = 60 * 1024;
 const VAULT_KEY = "siga.offline-outbox";
 
+/** O servidor já está a gravar o mesmo op_id (ver features/offline-sync/receipts.ts). */
+const RECEIPT_IN_PROGRESS = /ainda está a ser gravado no servidor/;
+
+/** O op_id é o id do envio, se for um UUID (o servidor só aceita esses). */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function receiptFields(item: OutboxItem) {
+  return UUID.test(item.id) ? { offlineOpId: item.id } : {};
+}
+
 /** A resposta pode ter-se perdido depois de o servidor concluir o lançamento. */
 export const OUTBOX_UNCERTAIN_MESSAGE =
   "Não foi possível confirmar se o servidor já guardou esta operação. Não reenvie nem descarte antes de a secretaria confirmar o estado no SIGA.";
@@ -85,7 +99,8 @@ export async function enableOutbox(next: OutboxStorage) {
   await persistenceQueue;
   const loaded = await next.load();
   // Se a aplicação fechou durante o envio, a última gravação confirmada no
-  // cofre era "sending". Tratar o resultado como incerto, nunca fazer replay.
+  // cofre era "sending". Tratar o resultado como incerto; só os que saíram com
+  // op_id voltam a ser tentados (o servidor responde pelo recibo).
   const recovered = loaded.map((item) =>
     item.deliveryState === "sending"
       ? {
@@ -183,6 +198,24 @@ export function isNetworkError(error: unknown) {
   );
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+/**
+ * Incerto (ACK perdido, app fechada a meio) mas com op_id: o servidor responde pelo
+ * recibo, por isso volta a tentar. Uma recusa do servidor não volta.
+ */
+function retryableUncertain(entry: OutboxItem) {
+  return (
+    entry.receiptProtected === true &&
+    UUID.test(entry.id) &&
+    // Só os já dados como incertos: um "sending" desta sessão está a sair agora.
+    entry.deliveryState === "needs_verification" &&
+    (entry.failedReason === undefined || entry.failedReason === OUTBOX_UNCERTAIN_MESSAGE)
+  );
+}
+
 function newId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -221,6 +254,7 @@ export async function sendOrQueue(
     deliveryState:
       typeof navigator !== "undefined" && navigator.onLine === false ? "pending" : "sending",
   };
+  staged.receiptProtected = UUID.test(staged.id);
   // Write-ahead: nenhuma requisição sai antes do cofre confirmar o lançamento.
   // Se falhar a escrita, o servidor NÃO é chamado.
   await mutateItems((current) => [...current, staged]);
@@ -229,12 +263,15 @@ export async function sendOrQueue(
   }
 
   try {
-    const result = await senders[kind](variables);
+    const result = await senders[kind]({
+      ...(variables as Record<string, unknown>),
+      ...receiptFields(staged),
+    });
     // ACK recebido: só concluir após remover persistentemente do cofre.
     await mutateItems((current) => current.filter((entry) => entry.id !== staged.id));
     return { queued: false, result };
   } catch (error) {
-    if (isNetworkError(error)) {
+    if (isNetworkError(error) || RECEIPT_IN_PROGRESS.test(errorMessage(error))) {
       await mutateItems((current) =>
         current.map((entry) =>
           entry.id === staged.id
@@ -270,8 +307,9 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
       (entry) =>
         entry.userId === userId &&
         entry.schoolId === schoolId &&
-        !entry.failedReason &&
-        (entry.deliveryState === undefined || entry.deliveryState === "pending"),
+        (retryableUncertain(entry) ||
+          (!entry.failedReason &&
+            (entry.deliveryState === undefined || entry.deliveryState === "pending"))),
     )) {
       if (!items.some((entry) => entry.id === item.id)) continue;
       // A escola pode mudar enquanto a tentativa anterior estava em curso.
@@ -298,6 +336,7 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
           ...item.variables,
           offlineSchoolId: item.schoolId,
           offlineActorId: item.userId,
+          ...receiptFields(item),
         });
         // Só apaga após ACK e persistência bem-sucedida no cofre.
         await mutateItems((current) => current.filter((entry) => entry.id !== item.id));
@@ -310,7 +349,7 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
           );
           return;
         }
-        if (isNetworkError(error)) {
+        if (isNetworkError(error) || RECEIPT_IN_PROGRESS.test(errorMessage(error))) {
           await mutateItems((current) =>
             current.map((entry) =>
               entry.id === item.id

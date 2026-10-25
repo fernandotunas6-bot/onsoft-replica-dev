@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withOfflineReceipt } from "@/features/offline-sync/receipts";
 import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import {
   assertCanSeeStudent,
@@ -47,6 +48,9 @@ export const submitAttendanceCallBatchInputSchema = z.object({
   /** Defesa do servidor contra replay offline noutra escola/conta. */
   offlineSchoolId: z.string().guid().optional(),
   offlineActorId: z.string().guid().optional(),
+  /** Chave do envio na fila offline: repetir o mesmo devolve o mesmo resultado. */
+  offlineOpId: z.string().uuid().optional(),
+  offlineDeviceId: z.string().trim().min(1).max(128).optional(),
   markAllPresent: z.boolean().optional(),
   records: z.array(
     z.object({
@@ -601,83 +605,147 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
     }
     const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const {
+      offlineSchoolId: _school,
+      offlineActorId: _actor,
+      offlineOpId,
+      offlineDeviceId,
+      ...payload
+    } = data;
+    return withOfflineReceipt(
+      {
+        db,
+        schoolId,
+        actorId: context.userId,
+        opId: offlineOpId,
+        deviceId: offlineDeviceId,
+        kind: "attendance.submit",
+        payload,
+        alreadyApplied: () => attendanceCallAlreadyApplied(db, schoolId, data),
+      },
+      async () => {
+        const { data: session, error: sErr } = await db
+          .from("siga_attendance_sessions")
+          .select("id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date")
+          .eq("id", data.sessionId)
+          .eq("school_id", membership.schoolId)
+          .single();
 
-    const { data: session, error: sErr } = await db
-      .from("siga_attendance_sessions")
-      .select("id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date")
-      .eq("id", data.sessionId)
-      .eq("school_id", membership.schoolId)
-      .single();
+        if (sErr || !session) throw new Error("Sessão de chamada não encontrada.");
+        await assertAttendanceNotLocked(db, membership.schoolId, session);
+        // Chamada já fechada: mudar presenças é uma correcção, com motivo e
+        // auditoria (editFinalizedAttendanceCall). Antes, reenviar a chamada
+        // reescrevia-a sem rasto.
+        if (session.status === "completed") {
+          throw new Error(
+            "Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.",
+          );
+        }
 
-    if (sErr || !session) throw new Error("Sessão de chamada não encontrada.");
-    await assertAttendanceNotLocked(db, membership.schoolId, session);
-    // Chamada já fechada: mudar presenças é uma correcção, com motivo e
-    // auditoria (editFinalizedAttendanceCall). Antes, reenviar a chamada
-    // reescrevia-a sem rasto.
-    if (session.status === "completed") {
-      throw new Error("Esta chamada já foi fechada. Use «Corrigir chamada» e indique o motivo.");
-    }
+        if (membership.appRole === "Professor") {
+          const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
+          if (!teacherOwnsAttendanceSession(linked.teacher_id, session.teacher_id)) {
+            throw new Error("Não tem permissão para realizar a chamada de outro professor.");
+          }
+        }
 
-    if (membership.appRole === "Professor") {
-      const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (!teacherOwnsAttendanceSession(linked.teacher_id, session.teacher_id)) {
-        throw new Error("Não tem permissão para realizar a chamada de outro professor.");
-      }
-    }
+        // Só alunos matriculados nesta turma entram na chamada.
+        const { data: classEnrollments } = await db
+          .from("enrollments")
+          .select("student_id")
+          .eq("school_id", membership.schoolId)
+          .eq("class_group_id", session.class_group_id)
+          .in("status", ["active", "pending"]);
+        const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
+        const outsiders = data.records.filter((item) => !enrolled.has(item.studentId));
+        if (outsiders.length) {
+          throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
+        }
 
-    // Só alunos matriculados nesta turma entram na chamada.
-    const { data: classEnrollments } = await db
-      .from("enrollments")
-      .select("student_id")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", session.class_group_id)
-      .in("status", ["active", "pending"]);
-    const enrolled = new Set((classEnrollments ?? []).map((row) => String(row.student_id)));
-    const outsiders = data.records.filter((item) => !enrolled.has(item.studentId));
-    if (outsiders.length) {
-      throw new Error("A chamada inclui alunos que não estão matriculados nesta turma.");
-    }
+        // Uma só escrita para a turma inteira. Antes era um upsert por aluno, com o
+        // erro ignorado: uma linha recusada pela base não impedia o "ok".
+        const now = new Date().toISOString();
+        if (data.records.length) {
+          const { error: upsertError } = await db.from("siga_attendance_records").upsert(
+            data.records.map((item) => ({
+              school_id: membership.schoolId,
+              session_id: session.id,
+              student_id: item.studentId,
+              status:
+                data.markAllPresent && item.status === "not_registered" ? "present" : item.status,
+              notes: item.notes ?? null,
+              recorded_by: context.userId,
+              updated_at: now,
+            })),
+            { onConflict: "session_id,student_id" },
+          );
+          if (upsertError)
+            throw publicDatabaseError(upsertError, "Não foi possível gravar a chamada.");
+        }
+        await recomputeAttendanceRates(
+          db,
+          membership.schoolId,
+          data.records.map((item) => item.studentId),
+        );
 
-    // Uma só escrita para a turma inteira. Antes era um upsert por aluno, com o
-    // erro ignorado: uma linha recusada pela base não impedia o "ok".
-    const now = new Date().toISOString();
-    if (data.records.length) {
-      const { error: upsertError } = await db.from("siga_attendance_records").upsert(
-        data.records.map((item) => ({
-          school_id: membership.schoolId,
-          session_id: session.id,
-          student_id: item.studentId,
-          status: data.markAllPresent && item.status === "not_registered" ? "present" : item.status,
-          notes: item.notes ?? null,
-          recorded_by: context.userId,
-          updated_at: now,
-        })),
-        { onConflict: "session_id,student_id" },
-      );
-      if (upsertError) throw publicDatabaseError(upsertError, "Não foi possível gravar a chamada.");
-    }
-    await recomputeAttendanceRates(
-      db,
-      membership.schoolId,
-      data.records.map((item) => item.studentId),
+        // Sem isto a chamada ficava "pendente" com as presenças gravadas; repetir é
+        // seguro (o upsert acima é idempotente), por isso o erro sobe.
+        const { error: completeError } = await db
+          .from("siga_attendance_sessions")
+          .update({
+            status: "completed",
+            updated_at: new Date().toISOString(),
+            updated_by: context.userId,
+          })
+          .eq("id", session.id);
+        if (completeError) {
+          throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
+        }
+
+        return { ok: true, sessionId: session.id, count: data.records.length };
+      },
     );
-
-    // Sem isto a chamada ficava "pendente" com as presenças gravadas; repetir é
-    // seguro (o upsert acima é idempotente), por isso o erro sobe.
-    const { error: completeError } = await db
-      .from("siga_attendance_sessions")
-      .update({
-        status: "completed",
-        updated_at: new Date().toISOString(),
-        updated_by: context.userId,
-      })
-      .eq("id", session.id);
-    if (completeError) {
-      throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
-    }
-
-    return { ok: true, sessionId: session.id, count: data.records.length };
   });
+
+/**
+ * Depois de um envio offline que caiu a meio: a chamada já está fechada com estas
+ * presenças? Então o envio entrou. Se alguém a corrigiu entretanto, não está, e o
+ * reenvio é recusado («já foi fechada») em vez de reescrever a correcção.
+ */
+async function attendanceCallAlreadyApplied(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  data: z.infer<typeof submitAttendanceCallBatchInputSchema>,
+) {
+  const { data: session } = await db
+    .from("siga_attendance_sessions")
+    .select("id, status")
+    .eq("id", data.sessionId)
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  if (!session || session.status !== "completed") return null;
+  if (data.records.length) {
+    const { data: rows, error } = await db
+      .from("siga_attendance_records")
+      .select("student_id, status")
+      .eq("school_id", schoolId)
+      .eq("session_id", session.id)
+      .in(
+        "student_id",
+        data.records.map((item) => item.studentId),
+      );
+    if (error) return null;
+    const stored = new Map((rows ?? []).map((row) => [String(row.student_id), String(row.status)]));
+    const same = data.records.every(
+      (item) =>
+        stored.get(item.studentId) ===
+        (data.markAllPresent && item.status === "not_registered" ? "present" : item.status),
+    );
+    if (!same) return null;
+  }
+  return { ok: true as const, sessionId: String(session.id), count: data.records.length };
+}
 
 export const editFinalizedAttendanceCall = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

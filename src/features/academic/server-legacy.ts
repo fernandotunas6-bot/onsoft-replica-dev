@@ -24,6 +24,7 @@ import {
   upsertSgaTermGradesBatch,
 } from "./sga-grades";
 import { reportSigaError } from "@/lib/ops-report";
+import { withOfflineReceipt } from "@/features/offline-sync/receipts";
 import {
   createClassGroupInputSchema,
   createSubjectInputSchema,
@@ -37,6 +38,7 @@ import {
   updateClassGroupInputSchema,
   upsertTermGradeInputSchema,
   upsertTermGradesBatchInputSchema,
+  type UpsertTermGradesBatchInput,
   createAssessmentInputSchema,
   updateAssessmentInputSchema,
   deleteAssessmentInputSchema,
@@ -1158,43 +1160,97 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
       throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
     }
     const db = await loadSgaAdminClient();
-    await assertTermOpen(db, membership.schoolId, data.term);
-    // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).
-    const { data: rule } = await db
-      .from("assessment_rule_sets")
-      .select("grading_scale_id")
-      .eq("school_id", membership.schoolId)
-      .eq("code", "DEFAULT")
-      .eq("status", "active")
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (rule?.grading_scale_id) {
-      const { data: scale } = await db
-        .from("grading_scales")
-        .select("minimum_value, maximum_value")
-        .eq("school_id", membership.schoolId)
-        .eq("id", rule.grading_scale_id)
-        .maybeSingle();
-      if (scale) {
-        const min = Number(scale.minimum_value);
-        const max = Number(scale.maximum_value);
-        const outside = data.rows.some((row) =>
-          [row.mac, row.npp, row.npt].some((value) => value < min || value > max),
-        );
-        if (outside)
-          throw new Error(`As notas têm de estar entre ${min} e ${max} (escala do modelo).`);
-      }
-    }
-    return upsertSgaTermGradesBatch({
-      db,
-      schoolId: membership.schoolId,
-      userId: context.userId,
-      subjectId: data.subjectId,
-      term: data.term,
-      rows: data.rows,
-    });
+    const schoolId = membership.schoolId;
+    const {
+      offlineSchoolId: _school,
+      offlineActorId: _actor,
+      offlineOpId,
+      offlineDeviceId,
+      ...payload
+    } = data;
+    return withOfflineReceipt(
+      {
+        db,
+        schoolId,
+        actorId: context.userId,
+        opId: offlineOpId,
+        deviceId: offlineDeviceId,
+        kind: "grades.term",
+        payload,
+        alreadyApplied: () => termGradesAlreadyApplied(db, schoolId, data),
+      },
+      async () => {
+        await assertTermOpen(db, membership.schoolId, data.term);
+        // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).
+        const { data: rule } = await db
+          .from("assessment_rule_sets")
+          .select("grading_scale_id")
+          .eq("school_id", membership.schoolId)
+          .eq("code", "DEFAULT")
+          .eq("status", "active")
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (rule?.grading_scale_id) {
+          const { data: scale } = await db
+            .from("grading_scales")
+            .select("minimum_value, maximum_value")
+            .eq("school_id", membership.schoolId)
+            .eq("id", rule.grading_scale_id)
+            .maybeSingle();
+          if (scale) {
+            const min = Number(scale.minimum_value);
+            const max = Number(scale.maximum_value);
+            const outside = data.rows.some((row) =>
+              [row.mac, row.npp, row.npt].some((value) => value < min || value > max),
+            );
+            if (outside)
+              throw new Error(`As notas têm de estar entre ${min} e ${max} (escala do modelo).`);
+          }
+        }
+        return upsertSgaTermGradesBatch({
+          db,
+          schoolId: membership.schoolId,
+          userId: context.userId,
+          subjectId: data.subjectId,
+          term: data.term,
+          rows: data.rows,
+        });
+      },
+    );
   });
+
+/**
+ * Depois de um envio offline que caiu a meio: estas notas já estão gravadas? Então o
+ * envio entrou. Senão, repetir é seguro (só se regravam as notas que mudaram).
+ */
+async function termGradesAlreadyApplied(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  data: UpsertTermGradesBatchInput,
+) {
+  const stored = await listSgaTermGrades({
+    db,
+    schoolId,
+    enrollmentIds: data.rows.map((row) => row.enrollmentId),
+    limit: data.rows.length * 40,
+  });
+  const byEnrollment = new Map(
+    stored
+      .filter((row) => row.subject_id === data.subjectId && row.term === data.term)
+      .map((row) => [row.enrollment_id, row]),
+  );
+  const same = data.rows.every((row) => {
+    const current = byEnrollment.get(row.enrollmentId);
+    return (
+      current !== undefined &&
+      current.mac === row.mac &&
+      current.npp === row.npp &&
+      current.npt === row.npt
+    );
+  });
+  return same ? { saved: data.rows.length } : null;
+}
 
 export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

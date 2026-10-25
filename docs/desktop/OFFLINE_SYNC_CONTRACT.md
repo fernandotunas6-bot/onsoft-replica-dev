@@ -37,3 +37,29 @@ autenticados de idempotência.
 **Nota:** a validade temporal local não concede autorização por si só.
 O servidor é sempre a autoridade; o contrato é uma barreira adicional, não
 um substituto do RBAC/RLS.
+
+## Recibos no servidor (25/10/2026)
+
+Feito o passo 4 para as duas operações que a fila envia (`attendance.submit`, `grades.term`):
+`20261025130000_offline_sync_receipts.sql` e `src/features/offline-sync/receipts.ts`.
+
+- Cada envio leva `offlineOpId` (o id do item da fila). O servidor abre o recibo
+  `(school_id, op_id)` com a conta, o tipo e o SHA-256 dos dados, grava, e fecha-o com o
+  resultado. O mesmo op_id devolve o resultado guardado; com outros dados, conta ou tipo é
+  recusado; em curso há menos de 2 minutos responde «ainda está a ser gravado».
+- Envio que caiu a meio (recibo aberto há mais de 2 minutos): o servidor verifica se os
+  dados já estão gravados (chamada fechada com estas presenças; estas notas) e só repete se
+  não estiverem. Uma chamada corrigida entretanto é recusada, não reescrita.
+- Uma recusa de negócio liberta o op_id: o professor corrige e reenvia.
+- Não é a mesma transacção da mutação: a gravação é em vários passos pelo cliente do
+  servidor. O efeito é o mesmo porque as duas gravações são idempotentes e o recibo só fecha
+  depois de elas acabarem.
+- Na fila, um envio incerto que saiu com op_id (`receiptProtected`) volta a ser tentado
+  quando a rede volta, com o mesmo op_id. Os antigos, sem op_id, continuam à espera da
+  secretaria. Uma recusa nunca volta sozinha.
+
+**Ordem de publicação:** aplicar a migração antes de publicar o código. Sem ela o servidor
+grava sem recibo, e um incerto protegido seria repetido sem protecção.
+
+Ainda por fazer neste contrato: `device_id` real (a app não o envia), o bootstrap de dados
+por escola/actor/dispositivo, e outros tipos de operação.
