@@ -63,7 +63,7 @@
     "siga:wait-ecosystem": "node scripts/siga/wait-ecosystem.mjs",
     "siga:e2e-playwright": "node scripts/siga/e2e-ecosystem-playwright.mjs",
     "siga:e2e-playwright-ts": "playwright test tests/e2e/ecosystem-routes.spec.ts tests/e2e/commercial-wizard.spec.ts",
-    "siga:e2e-playwright-live": "SIGA_E2E_LIVE=1 playwright test tests/e2e/commercial-live.spec.ts tests/e2e/enrollment-live.spec.ts tests/e2e/gateway-live.spec.ts",
+    "siga:e2e-playwright-live": "SIGA_E2E_LIVE=1 playwright test tests/e2e/commercial-live.spec.ts tests/e2e/enrollment-live.spec.ts tests/e2e/gateway-live.spec.ts tests/e2e/tenant-isolation-live.spec.ts",
     "siga:e2e-playwright-report": "playwright show-report playwright-report",
     "siga:capture-web-screenshots": "python3 scripts/siga/capture-web-marketing-screenshots.py",
     "siga:clean-cache": "rm -rf node_modules/.vite .vite .output .tanstack .nitro",
