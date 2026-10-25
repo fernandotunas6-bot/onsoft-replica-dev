@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
 import { sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { toast } from "@/lib/toast";
 import {
   Check,
@@ -179,6 +180,7 @@ export function AttendanceCallDialog({
       return sendOrQueue("attendance.submit", input.data, {
         label,
         userId: await currentUserId(),
+        schoolId: readStoredActiveSchool(),
       });
     },
     onSuccess: (outcome) => {
