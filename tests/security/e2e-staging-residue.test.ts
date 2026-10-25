@@ -24,9 +24,7 @@ describe("auditoria E2E final — sem eliminações nem falso sucesso", () => {
         [{ email: "e2e+mat-456@siga-plus.test" }],
       ),
     ).toEqual({ schoolCount: 1, userCount: 1, clean: false });
-    expect(summarizeE2EResidue([], [{ email: "e2e+orphan@siga-plus.test" }]).clean).toBe(
-      false,
-    );
+    expect(summarizeE2EResidue([], [{ email: "e2e+orphan@siga-plus.test" }]).clean).toBe(false);
     expect(summarizeE2EResidue([{ slug: "escola-real" }], []).clean).toBe(true);
   });
 
