@@ -198,38 +198,59 @@ export async function sendOrQueue(
   variables: unknown,
   meta: { label: string; userId: string | null; schoolId: string | null },
 ): Promise<{ queued: false; result: unknown } | { queued: true; requiresVerification: boolean }> {
-  const queueIt = async (deliveryUncertain = false) => {
-    const userId = meta.userId;
-    const schoolId = meta.schoolId;
-    if (!userId) throw new Error("Sem sessão: não é possível guardar para enviar depois.");
-    if (!schoolId) {
-      throw new Error(
-        "Seleccione uma escola antes de guardar sem rede. A operação não pode ficar sem instituição.",
-      );
-    }
-    await mutateItems((current) => [
-      ...current,
-      {
-        id: newId(),
-        kind,
-        userId,
-        schoolId,
-        label: meta.label,
-        variables,
-        createdAt: new Date().toISOString(),
-        deliveryState: deliveryUncertain ? "needs_verification" : "pending",
-        ...(deliveryUncertain ? { failedReason: OUTBOX_UNCERTAIN_MESSAGE } : {}),
-      },
-    ]);
-    return { queued: true, requiresVerification: deliveryUncertain } as const;
-  };
-  if (storage && typeof navigator !== "undefined" && navigator.onLine === false) {
-    return queueIt();
-  }
-  try {
+  // Fora do Tauri (navegador/PWA), manter o contrato do servidor sem cofre.
+  if (!storage) {
     return { queued: false, result: await senders[kind](variables) };
+  }
+
+  if (!meta.userId) throw new Error("Sem sessão: não é possível guardar um lançamento.");
+  if (!meta.schoolId) {
+    throw new Error(
+      "Seleccione uma escola antes de guardar. A operação não pode ficar sem instituição.",
+    );
+  }
+
+  const staged: OutboxItem = {
+    id: newId(),
+    kind,
+    userId: meta.userId,
+    schoolId: meta.schoolId,
+    label: meta.label,
+    variables,
+    createdAt: new Date().toISOString(),
+    deliveryState:
+      typeof navigator !== "undefined" && navigator.onLine === false ? "pending" : "sending",
+  };
+  // Write-ahead: nenhuma requisição sai antes do cofre confirmar o lançamento.
+  // Se falhar a escrita, o servidor NÃO é chamado.
+  await mutateItems((current) => [...current, staged]);
+  if (staged.deliveryState === "pending") {
+    return { queued: true, requiresVerification: false };
+  }
+
+  try {
+    const result = await senders[kind](variables);
+    // ACK recebido: só concluir após remover persistentemente do cofre.
+    await mutateItems((current) => current.filter((entry) => entry.id !== staged.id));
+    return { queued: false, result };
   } catch (error) {
-    if (storage && isNetworkError(error)) return queueIt(true);
+    if (isNetworkError(error)) {
+      await mutateItems((current) =>
+        current.map((entry) =>
+          entry.id === staged.id
+            ? {
+                ...entry,
+                deliveryState: "needs_verification",
+                failedReason: OUTBOX_UNCERTAIN_MESSAGE,
+              }
+            : entry,
+        ),
+      );
+      return { queued: true, requiresVerification: true };
+    }
+    // Recusa explícita do servidor: preservar a semântica anterior de erro
+    // para o formulário; o registo no cofre só é retirado após a resposta.
+    await mutateItems((current) => current.filter((entry) => entry.id !== staged.id));
     throw error;
   }
 }
@@ -329,9 +350,19 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
   return task;
 }
 
-/** Retira da fila um envio recusado pelo servidor (depois de o ler). */
+/**
+ * Nunca descartar um lançamento "sending" ou cuja confirmação é incerta:
+ * mesmo um erro remoto pode ter sido recebido depois de uma escrita concluída.
+ * Só a futura reconciliação idempotente do servidor poderá limpar esse estado.
+ */
 export async function discardOutboxItem(id: string) {
-  await mutateItems((current) => current.filter((entry) => entry.id !== id));
+  const current = items.find((entry) => entry.id === id);
+  if (current?.deliveryState === "sending" || current?.deliveryState === "needs_verification") {
+    throw new Error(
+      "O lançamento precisa de confirmação no servidor antes de ser retirado do cofre.",
+    );
+  }
+  await mutateItems((entries) => entries.filter((entry) => entry.id !== id));
 }
 
 export function outboxItems(): readonly OutboxItem[] {
