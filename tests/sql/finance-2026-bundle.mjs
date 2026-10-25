@@ -2,8 +2,8 @@
 // SIGA_verificar_financeiro_2026.sql. Sem produção.
 //   SIGA_SQL_TEST_MODULE_PATH=<.../pglite/dist/index.js> node tests/sql/finance-2026-bundle.mjs
 //
-// O pacote junta as cinco migrações financeiras de 24–25/10 numa transacção, para o
-// SQL Editor. Aqui: a verificação dá false antes, o pacote aplica, a verificação dá
+// O pacote junta as quatro migrações financeiras por aplicar e a actualização das sessões
+// de caixa (a produção tem a primeira versão delas) numa transacção, para o SQL Editor. Aqui: a verificação dá false antes, o pacote aplica, a verificação dá
 // true, o histórico regista as cinco versões, e uma segunda corrida é recusada sem mudar
 // nada. As regras de cada migração têm o seu ensaio (payment-integrity, cash-sessions,
 // one-tuition-per-month, cash-expenses-approval).
@@ -50,6 +50,8 @@ CREATE FUNCTION public.register_payment(school_id uuid, invoice_id uuid, amount 
 CREATE FUNCTION private.reverse_finance_receipt(p_school_id uuid, p_receipt_id uuid, p_reason text) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 `);
 await db.exec(auditoria);
+// Como na produção a 25/10: a primeira versão das sessões de caixa, sem registo no histórico.
+await db.exec(read("./fixtures/20261024110000_finance_cash_sessions_v1_8154da88.sql"));
 
 const verificar = read("../../docs/agents/SIGA_verificar_financeiro_2026.sql");
 const pacote = read("../../docs/agents/SIGA_aplicar_financeiro_2026.sql");
@@ -58,7 +60,7 @@ const estado = async () =>
 const VERSOES = [
   "20261024090000",
   "20261024100000",
-  "20261024110000",
+  "20261025110000",
   "20261025090000",
   "20261025100000",
 ];
@@ -100,7 +102,8 @@ const historico = await db.query(
 );
 assert.deepEqual(
   historico.rows.map((r) => r.version),
-  VERSOES,
+  [...VERSOES, "20261024110000"].sort(),
+  "as cinco e a 20261024110000, cujos objectos já lá estavam",
 );
 const [, depois] = await db.exec(verificar);
 assert.deepEqual(
