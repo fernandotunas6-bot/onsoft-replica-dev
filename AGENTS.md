@@ -21,6 +21,8 @@ WEB vende (`painel/web`). ADMIN controla (`painel/admin`). SIGA trabalha (raiz).
 
 Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
 
+**Continuação coordenada com Claude Code (25/10/2026):** [correcção das categorias existentes de Definições, validações e pendências](docs/agents/HANDOFF_SETTINGS_2026-10-25.md). Ler antes de voltar a alterar SettingsCenter, sidebar ou modais.
+
 Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `siga-saas`, `siga-identity`, e `.cursor/skills/siga-*/SKILL.md` por módulo escolar.
 
 **Velocidade e refinamento:** `.cursor/skills/siga-performance/SKILL.md` — optimizar o
