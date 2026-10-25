@@ -10,6 +10,9 @@
 | `public.finance_cash_sessions` | Existe; RLS activo | Não tentar recriar cegamente a tabela |
 | Gatilhos de recibos/despesas do caixa | Existem | O comportamento de escrita já pode ser afectado por triggers |
 | EXECUTE anónimo nas RPC de caixa | Não concedido | Protecção observada; não comprova autorização end-to-end |
+| SELECT directo de anon/authenticated no caixa | Não concedido | Leitura apenas pelo servidor com guardas de escola |
+| Quatro triggers de caixa (movimento e estorno) | Presentes | Confirma nomes, não equivale a uma comparação de corpos SQL |
+| RPC públicas de caixa exigidas | Conjunto presente | As assinaturas e a lógica de autorização devem ser ensaiadas em staging |
 | Histórico `20261024110000` | Ausente em `supabase_migrations.schema_migrations` | **Drift**: objectos presentes e versão não registada |
 | `finance_receipts.idempotency_key` | Ausente | Migração #276 de idempotência não reflectida |
 | Índice `finance_receipts_school_idempotency_key` | Ausente | Necessário antes de adoptar o novo contrato de pagamentos |
@@ -28,7 +31,7 @@ node scripts/siga/check-finance-schema-drift.mjs --project-ref=<REF_DO_PROJECTO>
 
 Definir previamente `SUPABASE_ACCESS_TOKEN` como variável de ambiente apenas no processo seguro. A script usa **SQL de SELECT constante** através do endpoint dedicado **`POST /v1/projects/{ref}/database/query/read-only`**, que executa a consulta como `supabase_read_only_user` (Beta). **Não** usa `POST /database/query` nem depende da opção `read_only` nesse endpoint de escrita. Não aceita texto SQL arbitrário e falha com código diferente de zero se encontrar drift, pendências ou resposta malformada. A API requer monitorização de alterações do fornecedor.
 
-Uma saída sem divergência **não** prova que o sistema está pronto: o teste cobre nove indicadores de inventário, não o DDL integral, os constrangimentos, a semântica das RPCs, as permissões por escola nem a funcionalidade autenticada.
+Uma saída sem divergência **não** prova que o sistema está pronto: o teste cobre 19 indicadores de inventário (incluindo RLS, privilégios directos de leitura, EXECUTE anónimo em RPCs e os quatro gatilhos de movimentos/estorno), não o DDL integral, os constrangimentos, a semântica das RPCs, as permissões por escola nem a funcionalidade autenticada.
 
 ## Segunda sondagem estrutural — 25/10 (consulta SELECT)
 
