@@ -42,8 +42,8 @@ describe("o payload dos testes live satisfaz o contrato do servidor", () => {
   it("as duas escolas de isolamento não partilham o NIF sintético", () => {
     const nifA = testSchoolNifForSlug("e2e-iso-a-abc123");
     const nifB = testSchoolNifForSlug("e2e-iso-b-abc123");
-    expect(nifA).toMatch(/^5417\\d{6}$/);
-    expect(nifB).toMatch(/^5417\\d{6}$/);
+    expect(nifA).toMatch(/^5417[0-9]{6}$/);
+    expect(nifB).toMatch(/^5417[0-9]{6}$/);
     expect(nifA).not.toBe(nifB);
     expect(buildSignupPayload("e2e-iso-a-abc123").nif).toBe(nifA);
   });
