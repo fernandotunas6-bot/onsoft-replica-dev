@@ -3,6 +3,7 @@ import { commands, type DesktopOfflineReadiness } from '@/lib/tauri-bindings'
 import {
   BookOpen,
   Database,
+  ExternalLink,
   LockKeyhole,
   Monitor,
   Wifi,
@@ -19,6 +20,8 @@ export function OfflineSchoolShell() {
     null
   )
   const [readinessError, setReadinessError] = useState(false)
+  const [openingPortal, setOpeningPortal] = useState(false)
+  const [portalError, setPortalError] = useState(false)
 
   useEffect(() => {
     const refresh = () => setOnline(navigator.onLine !== false)
@@ -49,6 +52,20 @@ export function OfflineSchoolShell() {
       active = false
     }
   }, [])
+
+  async function openRemotePortal() {
+    if (!online || openingPortal) return
+    setOpeningPortal(true)
+    setPortalError(false)
+    try {
+      const result = await commands.openSigaPortal()
+      if (result.status === 'error') setPortalError(true)
+    } catch {
+      setPortalError(true)
+    } finally {
+      setOpeningPortal(false)
+    }
+  }
 
   return (
     <main className="min-h-screen overflow-y-auto bg-background px-5 py-10 text-foreground sm:px-10">
@@ -164,6 +181,37 @@ export function OfflineSchoolShell() {
               {readinessError
                 ? 'Não foi possível consultar o estado nativo. Nenhum acesso offline adicional foi activado.'
                 : 'A consultar as capacidades instaladas…'}
+            </p>
+          )}
+        </section>
+
+        <section
+          aria-label="Regressar ao portal escolar"
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <h2 className="text-base font-semibold">Continuar no portal escolar</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Quando a ligação regressar, abra o portal completo para consultar
+            dados e trabalhar com a sua escola. Esta janela local permanece
+            disponível sem Internet.
+          </p>
+          <button
+            type="button"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!online || openingPortal}
+            onClick={() => void openRemotePortal()}
+          >
+            <ExternalLink className="size-4" aria-hidden="true" />
+            {openingPortal ? 'A abrir portal…' : 'Abrir portal escolar'}
+          </button>
+          {!online && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Sem ligação. O botão ficará disponível quando a rede regressar.
+            </p>
+          )}
+          {portalError && (
+            <p role="alert" className="mt-2 text-sm text-destructive">
+              O portal não pôde ser aberto. Verifique a Internet e tente novamente.
             </p>
           )}
         </section>
