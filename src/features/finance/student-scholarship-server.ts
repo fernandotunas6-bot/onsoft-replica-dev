@@ -9,7 +9,7 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { schoolTodayIso } from "@/lib/school-date";
-import { scholarshipInForce, type ScholarshipRow } from "./scholarships";
+import { assertDiscountWithinRole, scholarshipInForce, type ScholarshipRow } from "./scholarships";
 
 /**
  * Bolsas de estudo (`student_scholarships`): só o servidor lhes toca. A Secretaria lê;
@@ -114,6 +114,7 @@ export const grantScholarship = createServerFn({ method: "POST" })
       context.userId,
       [...WRITERS],
     );
+    assertDiscountWithinRole(membership.allAppRoles ?? [membership.appRole], data.percent);
     const db = await loadSgaAdminClient();
     const { data: student } = await db
       .from("students")
@@ -184,6 +185,22 @@ export const revokeScholarship = createServerFn({ method: "POST" })
       [...WRITERS],
     );
     const db = await loadSgaAdminClient();
+    // Retirar uma bolsa acima do limite é decisão do Administrador, como dá-la.
+    const { data: current, error: currentError } = await db
+      .from("student_scholarships")
+      .select("percent")
+      .eq("school_id", membership.schoolId)
+      .eq("id", data.scholarshipId)
+      .maybeSingle();
+    if (currentError && !missingTable(currentError)) {
+      throw publicDatabaseError(currentError, "Não foi possível ler a bolsa.");
+    }
+    if (current) {
+      assertDiscountWithinRole(
+        membership.allAppRoles ?? [membership.appRole],
+        Number(current.percent ?? 0),
+      );
+    }
     const { data: row, error } = await db
       .from("student_scholarships")
       .update({

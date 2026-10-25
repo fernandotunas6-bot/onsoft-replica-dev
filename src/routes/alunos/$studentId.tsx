@@ -1256,7 +1256,7 @@ function StudentDetail() {
                   <QuickFormModal
                     eyebrow={student.registration_number}
                     title="Desconto do contrato"
-                    description="Percentagem descontada nas faturas emitidas a partir de agora (irmãos, funcionário, acordo…). As já emitidas não mudam. As bolsas de estudo ficam no painel «Bolsa de estudo»: vale o maior dos dois. Pede a verificação em duas etapas."
+                    description="Percentagem descontada nas faturas emitidas a partir de agora (irmãos, funcionário, acordo…). As já emitidas não mudam. As bolsas de estudo ficam no painel «Bolsa de estudo»: vale o maior dos dois. A Tesouraria dá até 25 %; acima disso, só um Administrador. Pede a verificação em duas etapas."
                     icon={<Wallet className="size-5" />}
                     submitLabel="Gravar"
                     successDescription="Desconto do contrato gravado."
