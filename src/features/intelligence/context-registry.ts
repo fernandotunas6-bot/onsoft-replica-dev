@@ -6,7 +6,6 @@ import {
   type ApplicationRole,
 } from "@/features/auth/access-policy";
 import type { Plan } from "@/features/saas/types";
-import { contextKey } from "./context-resolver";
 import type { ContextFrame, EntityType, ResolvedContext } from "./types";
 
 /**
@@ -43,23 +42,6 @@ export interface ContextNavEntry {
 
 export type ContextLink = { to: string; search: ContextSearch };
 
-/** Nome do tipo de entidade no cabeçalho da sidebar («Disciplina · Matemática»). */
-export const CONTEXT_TYPE_LABELS: Record<EntityType, string> = {
-  student: "Aluno",
-  teacher: "Professor",
-  class: "Turma",
-  "subject-offering": "Disciplina",
-  "finance-overview": "Financeiro",
-  "dashboard-overview": "Painel",
-};
-
-/** Um passo do caminho com as suas entradas e o contexto truncado nesse passo. */
-export type ContextLevel = {
-  frame: ContextFrame;
-  context: ResolvedContext;
-  entries: ContextNavEntry[];
-};
-
 export function innermostFrame(context: Pick<ResolvedContext, "trail">): ContextFrame | null {
   return context.trail.at(-1) ?? null;
 }
@@ -81,32 +63,6 @@ export function getContextEntries(
         canReadModule(context.role, entry.module, context.grants),
     )
     .sort((a, b) => a.order - b.order);
-}
-
-/**
- * Um nível por passo do caminho que tem entradas autorizadas, do mais geral
- * para o mais específico: Turma A, depois Matemática. O último é o actual; os
- * anteriores são o regresso ao nível superior.
- */
-export function getContextLevels(
-  context: ResolvedContext,
-  entries: readonly ContextNavEntry[],
-  plan?: Plan | null,
-): ContextLevel[] {
-  return context.trail.flatMap((frame, index) => {
-    const trail = context.trail.slice(0, index + 1);
-    const level: ResolvedContext =
-      trail.length === context.trail.length
-        ? context
-        : {
-            ...context,
-            trail,
-            activeView: null,
-            key: contextKey(context.schoolId, context.role, context.academicYearId, trail),
-          };
-    const levelEntries = getContextEntries(level, entries, plan);
-    return levelEntries.length > 0 ? [{ frame, context: level, entries: levelEntries }] : [];
-  });
 }
 
 export function contextEntryLink(entry: ContextNavEntry, context: ResolvedContext): ContextLink {

@@ -4,12 +4,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
 import { applyAppearance, type AppearanceState } from "@/lib/appearance";
-import type { AcademicNavBranch } from "@/lib/academic-nav";
-import {
-  EntityFocusProvider,
-  useDeclareEntityFocus,
-} from "@/features/intelligence/entity-focus-context";
-import type { EntityFocus } from "@/features/intelligence/types";
 import "./_harness";
 
 /**
@@ -109,13 +103,6 @@ vi.mock("@/features/auth/use-current-account", () => ({
 vi.mock("@/components/auth/UserProfileModal", () => ({ UserProfileModal: () => null }));
 vi.mock("@/components/layout/AcademicNavTree", () => ({ AcademicNavTree: () => null }));
 
-// Turmas e disciplinas autorizadas que validam o contexto da sidebar; vazias por
-// omissão. A árvore pertence sempre à escola A, como a leitura do servidor.
-let arvoreAcademica: AcademicNavBranch[] = [];
-vi.mock("@/features/academic/use-academic-nav-tree", () => ({
-  useAcademicNavTree: () => ({ tree: arvoreAcademica, canRead: true, schoolId: "school-a" }),
-}));
-
 // A moldura da barra (escola, tenant, terminar sessão) arrasta os módulos de
 // servidor e o cliente Supabase; o objecto do teste é só a lista de navegação.
 vi.mock("@/features/auth/use-school-settings", () => ({
@@ -170,7 +157,6 @@ afterEach(() => {
   (contas.Aluno as { isAlumni: boolean }).isAlumni = false;
   currentPathname = "/pedagogica";
   currentSearch = {};
-  arvoreAcademica = [];
   localStorage.clear();
   document.documentElement.style.cssText = "";
   document.documentElement.classList.remove("dark");
@@ -507,190 +493,4 @@ describe("AppSidebar — contexto e perfil", () => {
       expect(Boolean(settings)).toBe(role === "Administrador");
     },
   );
-});
-
-const TURMA_A = "11111111-1111-4111-8111-111111111111";
-const TURMA_B = "22222222-2222-4222-8222-222222222222";
-const MATEMATICA = "33333333-3333-4333-8333-333333333333";
-const PORTUGUES = "44444444-4444-4444-8444-444444444444";
-
-function duasTurmas(): AcademicNavBranch[] {
-  return [
-    {
-      id: "course:ciências",
-      label: "Ciências",
-      kind: "course",
-      classTeacher: false,
-      classes: [
-        {
-          id: TURMA_A,
-          name: "10.ª A",
-          classTeacher: false,
-          subjects: [{ id: MATEMATICA, name: "Matemática" }],
-        },
-        {
-          id: TURMA_B,
-          name: "11.ª B",
-          classTeacher: false,
-          subjects: [{ id: PORTUGUES, name: "Português" }],
-        },
-      ],
-    },
-  ];
-}
-
-function contextHeader(container: HTMLElement) {
-  return container.querySelector("[data-context-header]")?.textContent ?? null;
-}
-
-describe("AppSidebar — contexto da turma e da disciplina", () => {
-  it("abre o nível da disciplina validada, só com as suas entradas", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
-    const { container } = renderSidebar();
-    expect(contextHeader(container)).toBe("Disciplina · Matemática10.ª A");
-    const notas = screen.getByRole("link", { name: "Avaliações e notas" });
-    expect(notas.getAttribute("aria-current")).toBe("page");
-    expect(JSON.parse(notas.getAttribute("data-search") ?? "null")).toEqual({
-      tab: "notas",
-      turma: TURMA_A,
-      disciplina: MATEMATICA,
-      pauta: "1",
-    });
-    expect(screen.getByRole("link", { name: "Presenças" }).getAttribute("aria-current")).toBeNull();
-    expect(linksTo("/planos-aula")).toEqual([
-      { label: "Planos de aula", search: { turma: TURMA_A, disciplina: MATEMATICA } },
-    ]);
-    // Os separadores gerais da área ficam atrás do regresso, não somem.
-    expect(linksTo("/pedagogica").map((link) => link.search?.["tab"])).toEqual([
-      "notas",
-      "presencas",
-    ]);
-  });
-
-  it("cada «voltar» sobe um nível sem mudar de página", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
-    const { container } = renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: "Voltar para 10.ª A" }));
-    expect(contextHeader(container)).toBe("Turma · 10.ª A");
-    const pauta = screen.getByRole("link", { name: "Pauta da turma" });
-    expect(JSON.parse(pauta.getAttribute("data-search") ?? "null")).toEqual({
-      tab: "notas",
-      turma: TURMA_A,
-      pauta: "1",
-    });
-    // A página continua a da disciplina: nada fica activo no nível acima.
-    expect(pauta.getAttribute("aria-current")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^Voltar para / }));
-    expect(container.querySelector("[data-context-level]")).toBeNull();
-    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
-    expect(linksTo("/pedagogica").map((link) => link.search?.["tab"])).toEqual([
-      "turmas",
-      "notas",
-      "horarios",
-      "chamada",
-    ]);
-  });
-
-  it("volta ao nível da entidade depois de navegar", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
-    const view = renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: "Voltar para 10.ª A" }));
-    currentSearch = { tab: "presencas", turma: TURMA_A, disciplina: MATEMATICA };
-    view.rerenderSidebar();
-    expect(contextHeader(view.container)).toBe("Disciplina · Matemática10.ª A");
-    expect(screen.getByRole("link", { name: "Presenças" }).getAttribute("aria-current")).toBe(
-      "page",
-    );
-  });
-
-  it("um id fora da árvore autorizada não cria contexto", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: "99999999-9999-4999-8999-999999999999", pauta: "1" };
-    const { container } = renderSidebar();
-    expect(container.querySelector("[data-context-level]")).toBeNull();
-    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
-  });
-
-  it("não junta a disciplina de outra turma", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: PORTUGUES };
-    const { container } = renderSidebar();
-    expect(contextHeader(container)).toBe("Turma · 10.ª A");
-    expect(screen.queryByText(/Português/)).toBeNull();
-  });
-
-  it("enquanto não há dados autorizados mantém a área como hoje", () => {
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
-    const { container } = renderSidebar();
-    expect(container.querySelector("[data-context-level]")).toBeNull();
-    expect(linksTo("/pedagogica").map((link) => link.search?.["tab"])).toEqual([
-      "turmas",
-      "notas",
-      "horarios",
-      "chamada",
-    ]);
-  });
-
-  it("recusa a árvore de outra escola depois de mudar de escola", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
-    const view = renderSidebar();
-    expect(view.container.querySelector("[data-context-level]")).not.toBeNull();
-    (contas.Administrador as { schoolId: string }).schoolId = "school-b";
-    view.rerenderSidebar();
-    expect(view.container.querySelector("[data-context-level]")).toBeNull();
-    expect(screen.queryByText(/Matemática/)).toBeNull();
-  });
-
-  it("a turma aberta num modal, sem estar na URL, não muda a sidebar", () => {
-    // O TurmaProfileModal declara a turma em foco para o painel de relações.
-    // A sidebar segue a URL: abrir e fechar o modal não a faz saltar de nível.
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "turmas" };
-    const foco = {
-      type: "class",
-      id: TURMA_A,
-      label: "10.ª A",
-      schoolId: "school-a",
-      data: {},
-    } as unknown as EntityFocus;
-    function ModalDaTurma() {
-      useDeclareEntityFocus(foco);
-      return null;
-    }
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-    const { container } = render(
-      <QueryClientProvider client={client}>
-        <EntityFocusProvider>
-          <ModalDaTurma />
-          <AppSidebar />
-        </EntityFocusProvider>
-      </QueryClientProvider>,
-    );
-    expect(container.querySelector("[data-context-level]")).toBeNull();
-    expect(screen.getByRole("button", { name: "Todas as áreas" })).toBeTruthy();
-  });
-
-  it("o aluno fica com a sua barra, sem o menu de gestão da turma", () => {
-    papel = "Aluno";
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
-    const { container } = renderSidebar();
-    expect(container.querySelector("[data-context-level]")).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Voltar para / })).toBeNull();
-    expect(screen.queryByText(/Disciplina · /)).toBeNull();
-  });
-
-  it("na barra recolhida mostra ícones com nome acessível e sem cabeçalho", () => {
-    arvoreAcademica = duasTurmas();
-    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA, pauta: "1" };
-    const { container } = renderSidebar(true);
-    expect(container.querySelector("aside")?.className).toContain("w-[64px]");
-    expect(contextHeader(container)).toBeNull();
-    expect(screen.getByRole("button", { name: "Voltar para 10.ª A" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Avaliações e notas" })).toBeTruthy();
-  });
 });
