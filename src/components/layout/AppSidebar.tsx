@@ -25,6 +25,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
@@ -248,7 +252,7 @@ export function AppSidebar({
                 }}
                 onPointerLeave={(event) => closeSchoolMenuAfterPointerLeave(event.pointerType)}
                 onCloseAutoFocus={cancelSchoolMenuClose}
-                className="z-50 w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto border-border/70 p-1 shadow-sm max-h-[min(75vh,var(--radix-dropdown-menu-content-available-height))] [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:py-1"
+                className="z-50 max-h-[min(75vh,var(--radix-dropdown-menu-content-available-height))] w-64 max-w-[calc(100vw-1.5rem)] overflow-y-auto border-border/70 p-1 shadow-sm [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:px-2 [&_[role=menuitem]]:lg:py-1"
               >
                 <DropdownMenuLabel className="font-normal">
                   <span className="block break-words text-sm font-semibold text-foreground">
@@ -262,75 +266,93 @@ export function AppSidebar({
                   ) : null}
                 </DropdownMenuLabel>
 
-                {currentUser.schools.length > 1 ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground py-1">
-                      Alternar Instituição
-                    </DropdownMenuLabel>
-                    {currentUser.schools.map((item) => {
-                      const isCurrent = item.schoolId === currentUser.schoolId;
-                      return (
-                        <DropdownMenuItem
-                          key={item.membershipId}
-                          onClick={() => {
-                            if (!isCurrent) {
-                              currentUser.setActiveSchoolId(item.schoolId);
-                              setSchoolMenuOpen(false);
-                            }
-                          }}
-                          className={cn(
-                            "flex min-h-[44px] items-center justify-between gap-2 text-sm cursor-pointer",
-                            isCurrent && "font-bold text-primary bg-primary/10",
-                          )}
-                        >
-                          <span className="min-w-0 flex-1 break-words">{item.schoolName}</span>
-                          <span className="text-[11px] text-muted-foreground ml-2 shrink-0">
-                            {item.roleName || item.appRole}
-                          </span>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </>
-                ) : null}
-
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    setProfileModalTab("perfil");
-                    setProfileModalOpen(true);
-                  }}
-                >
-                  <User className="size-4 text-primary" /> Meu perfil
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setProfileModalTab("instituicoes");
-                    setProfileModalOpen(true);
-                  }}
-                >
-                  <Building2 className="size-4 text-primary" /> Instituições
-                  {currentUser.schools.length > 1 ? (
-                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
-                      {currentUser.schools.length}
-                    </span>
-                  ) : null}
-                </DropdownMenuItem>
                 {canAccessPath(
                   "/configuracoes",
                   currentUser.role,
                   currentUser.grants,
                   activePlan,
                 ) ? (
-                  <DropdownMenuItem onClick={() => onOpenSettings?.("escola")}>
-                    <Settings className="size-4 text-muted-foreground" /> Configurações da Escola
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSchoolMenuOpen(false);
+                      onOpenSettings?.("escola");
+                    }}
+                  >
+                    <Settings className="size-4 text-muted-foreground" />
+                    Configurações da Escola
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem asChild>
-                  <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
-                    <PlusCircle className="size-4 text-primary" /> Criar escola
-                  </a>
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="lg:min-h-9 lg:px-2 lg:py-1">
+                    <Building2 className="size-4 text-muted-foreground" />
+                    Instituições
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent
+                      data-school-submenu=""
+                      sideOffset={6}
+                      collisionPadding={12}
+                      onPointerEnter={(event) => {
+                        if (event.pointerType === "mouse") cancelSchoolMenuClose();
+                      }}
+                      onPointerLeave={(event) =>
+                        closeSchoolMenuAfterPointerLeave(event.pointerType)
+                      }
+                      className="w-64 max-w-[calc(100vw-1.5rem)] border-border/70 p-1 shadow-sm [&_[role=menuitem]]:lg:min-h-9 [&_[role=menuitem]]:lg:px-2 [&_[role=menuitem]]:lg:py-1"
+                    >
+                      {currentUser.schools.length > 1 ? (
+                        <>
+                          <DropdownMenuLabel className="px-2 py-1 text-[11px]">
+                            Alternar escola
+                          </DropdownMenuLabel>
+                          {currentUser.schools.map((item) => {
+                            const isCurrent = item.schoolId === currentUser.schoolId;
+                            return (
+                              <DropdownMenuItem
+                                key={item.membershipId}
+                                onClick={() => {
+                                  if (!isCurrent) {
+                                    currentUser.setActiveSchoolId(item.schoolId);
+                                    setSchoolMenuOpen(false);
+                                  }
+                                }}
+                                className={cn(
+                                  "flex items-center justify-between gap-2 text-sm",
+                                  isCurrent && "bg-primary/10 font-semibold text-primary",
+                                )}
+                              >
+                                <span className="min-w-0 flex-1 break-words">
+                                  {item.schoolName}
+                                </span>
+                                <span className="ml-2 shrink-0 text-[11px] text-muted-foreground">
+                                  {isCurrent ? "Actual" : item.roleName || item.appRole}
+                                </span>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                          <DropdownMenuSeparator />
+                        </>
+                      ) : null}
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setProfileModalTab("instituicoes");
+                          setProfileModalOpen(true);
+                          setSchoolMenuOpen(false);
+                        }}
+                      >
+                        <Building2 className="size-4 text-muted-foreground" />
+                        Gerir instituições
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <a href={getCreateSchoolUrl()} target="_blank" rel="noreferrer">
+                          <PlusCircle className="size-4 text-muted-foreground" />
+                          Criar escola
+                        </a>
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -357,10 +379,10 @@ export function AppSidebar({
           aria-label="Navegação principal"
           className={cn(
             "flex-1 pb-4",
-            collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-4",
+            collapsed ? "overflow-visible px-2" : "no-scrollbar overflow-y-auto px-2.5",
           )}
         >
-          <div className="pt-3 pb-1">
+          <div className="pt-2 pb-0.5">
             <NavButtonRow
               label={
                 contextual ? "Todas as áreas" : context ? "Voltar ao módulo" : "Áreas de trabalho"
@@ -451,7 +473,7 @@ export function AppSidebar({
         <div
           className={cn(
             "mt-auto border-t border-sidebar-border",
-            collapsed ? "px-2 py-3" : "px-3 py-3",
+            collapsed ? "px-2 py-2" : "px-2.5 py-2",
           )}
         >
           <DropdownMenu>
@@ -461,7 +483,7 @@ export function AppSidebar({
                 data-account-trigger=""
                 aria-label="Abrir menu da conta"
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
+                  "flex w-full items-center gap-2 rounded-lg text-left outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-primary/60",
                   collapsed ? "justify-center px-1 py-2" : "px-2 py-2",
                 )}
               >
@@ -506,7 +528,7 @@ export function AppSidebar({
                   <User className="size-4" /> Perfil
                 </Link>
               </DropdownMenuItem>
-              {canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
+              {!hasSchool && canAccessPath("/configuracoes", currentUser.role, currentUser.grants) ? (
                 <DropdownMenuItem onClick={() => onOpenSettings?.()}>
                   <Settings className="size-4" /> Configurações
                 </DropdownMenuItem>
