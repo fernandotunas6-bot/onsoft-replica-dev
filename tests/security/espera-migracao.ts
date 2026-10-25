@@ -19,9 +19,8 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
  * obriga a tirar a entrada quando o retrato mostrar a função.
  */
 // O retrato de 2026-10-21 inclui também a sonda service-only do website/blog, e já tem
-// `merge_school_subjects`.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // 20261010110000 (auditoria 14, P4): fundir pessoas numa transacção. Sem ela,
-  // mergePeople segue os passos soltos de antes (mergePeopleInSteps, por isMissingFunction).
-  "siga_merge_people",
-]);
+// `merge_school_subjects`. `siga_merge_people` (auditoria 14, P4) e as sete funções das
+// sessões de caixa do #283 (20261024110000) saíram daqui a 25/10: confirmadas as oito em
+// produção por consulta directa a `information_schema.routines`, depois de a produção ter
+// sido recapturada por este ciclo.
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);

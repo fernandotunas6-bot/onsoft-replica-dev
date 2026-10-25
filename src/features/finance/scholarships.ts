@@ -63,3 +63,20 @@ export function discountAmountFor(amount: number, percent: number) {
   if (!(percent > 0)) return 0;
   return Math.round(((amount * percent) / 100) * 100) / 100;
 }
+
+/**
+ * Até onde a Tesouraria dá bolsas e descontos sozinha (decidido a 25/10/2026, §8 do plano
+ * financeiro). Acima disto — e para mudar ou retirar uma bolsa acima disto — só um
+ * Administrador. O desconto de irmãos costuma ficar abaixo; as bolsas maiores são da Direcção.
+ */
+export const TREASURY_DISCOUNT_LIMIT = 25;
+
+/** Recusa a bolsa ou o desconto que o papel de quem a pede não pode dar. */
+export function assertDiscountWithinRole(roles: readonly string[], ...percents: number[]) {
+  if (roles.includes("Administrador")) return;
+  if (percents.some((percent) => percent > TREASURY_DISCOUNT_LIMIT)) {
+    throw new Error(
+      `A Tesouraria dá bolsas e descontos até ${TREASURY_DISCOUNT_LIMIT} %. Acima disso, pede a um Administrador.`,
+    );
+  }
+}

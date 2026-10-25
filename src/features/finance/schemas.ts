@@ -33,6 +33,8 @@ export const listInvoicesInputSchema = z
   .object({
     limit: z.number().int().min(1).max(1000).default(100),
     studentId: z.string().guid().optional(),
+    /** Junta às mais recentes todas as faturas por pagar, por mais antigas que sejam. */
+    includeOpen: z.boolean().optional(),
   })
   .refine((input) => Boolean(input.studentId) || input.limit <= 250, {
     message: "Sem aluno, a lista vai até 250 faturas.",
@@ -48,6 +50,7 @@ export const recordInvoicePaymentInputSchema = z.object({
   amount: z.number().positive().max(999_999_999_999.99),
   method: z.enum([
     "cash",
+    "tpa",
     "multicaixa",
     "transfer",
     "express",
@@ -56,6 +59,11 @@ export const recordInvoicePaymentInputSchema = z.object({
   ]),
   reference: z.string().trim().max(160).optional(),
   paidAt: z.string().datetime({ offset: true }).optional(),
+  /**
+   * Gerada pelo formulário ao abrir e reenviada em cada tentativa: repetir depois
+   * de um tempo esgotado devolve o recibo que já entrou em vez de emitir outro.
+   */
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export type RecordInvoicePaymentInput = z.infer<typeof recordInvoicePaymentInputSchema>;
@@ -168,3 +176,8 @@ export const syncStudentToPayflowInputSchema = z.object({
   studentId: z.string().guid(),
 });
 export type SyncStudentToPayflowInput = z.infer<typeof syncStudentToPayflowInputSchema>;
+
+/** Mês da exportação para o contabilista, «AAAA-MM». */
+export const accountantExportInputSchema = z.object({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Indique o mês (AAAA-MM)."),
+});

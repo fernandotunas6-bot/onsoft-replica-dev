@@ -1,5 +1,51 @@
 # Handoff — continuar o SIGA
 
+## Backend: horários, agenda e matrículas — 2026-10-25
+
+Pedido deste ciclo: só backend. [Contrato, pesquisa comparativa e migrações](../architecture/ACADEMIC_AGENDA.md).
+`calendar/agenda-server.ts` lê períodos, horários publicados, provas e tarefas;
+gere eventos complementares com MFA, escola, grants e controlo de versão. O
+adaptador `fullcalendar-source.ts` usa o contrato Standard, sem biblioteca visual
+instalada nem alterações de páginas. Professor limitado às atribuições; aluno e
+encarregado limitados a matrículas e inscrições em unidades curriculares.
+
+Publicar com sincronização usa `calendar/agenda-sessions.ts`: os próximos 28 dias
+vêm da mesma agenda, respeitando validade, períodos, feriados e interrupções.
+23 de Março acrescentado à lista existente após confirmação na Lei 11/18 (MAPTSS).
+Não se apagam presenças existentes ao alterar um evento do calendário.
+
+Nove migrações aplicadas no SGA, incluindo `20261025070201` (professores/fusão),
+os quatro hardenings pendentes de 17–18/10, `20261025070215` (agenda),
+`20261025070218` (matrícula antecipada preservando `next_year_number`) e
+`20261025070713` (captura de duas tabelas de caixa já existentes na base) e
+`20261025071525` (preserva números docentes maiores que seis dígitos: `lpad`
+cortava-os, falha descoberta pelo ensaio funcional).
+**Não reaplicar `20261010130000`**: repõe `MAT-…`, incompatível com a numeração
+numérica actual. Não repetir os pacotes antigos apenas por divergência dos
+carimbos no histórico. `siga_merge_people` já saiu da lista de espera de migração.
+Os 9 ficheiros em `supabase/migrations/` foram renomeados do carimbo do ficheiro
+para o carimbo real registado em `supabase_migrations.schema_migrations` — o
+`apply_migration` gera o seu próprio ao aplicar, e os nomes antigos nunca tinham
+sido corrigidos (ver [ACADEMIC_AGENDA.md](../architecture/ACADEMIC_AGENDA.md)).
+
+Tipos canónicos regenerados por `siga:gen-types` e retrato por `siga:db-snapshot`:
+210 tabelas, todas com RLS. Scripts de captura/geração aceitam
+`SIGA_SUPABASE_CLI=/usr/local/bin/supabase` para usar o CLI instalado. Ensaio do
+pacote inicial duas vezes em transacção revertida; teste SQL pós-aplicação em
+`supabase/tests/academic_agenda_security_test.sql`, também revertido, incluindo
+cadastro docente e matrícula antecipada reais de ensaio, janela e MFA. Contagens
+antes/depois iguais: 42 alunos, 4 professores, 43 matrículas, 233 turmas.
+
+Verificação: build de produção aprovado; 1 194 testes de backend aprovados, um
+ignorado, em 148 ficheiros; reteste posterior de 31 verificações aprovado após
+reforçar a matrícula encerrada sem data de fim. A execução com componentes detectou 15 falhas em dois ficheiros
+de UI por React duplicado no ambiente: `@testing-library/react` resolve a cópia
+`.pnpm/react@19.3.1`, enquanto React Query resolve `node_modules/react`. Não se
+alteraram ecrãs ou dependências para encobrir essas falhas. TypeScript e ESLint
+aprovados; a verificação final de 130 testes em 15 ficheiros e os
+carimbos reais das nove migrações estão na
+[evidência deste ciclo](../architecture/academic-agenda-evidence-2026-10-25.json).
+
 ## Navegação contextual e superfícies discretas — 2026-10-22
 
 A sidebar deriva o módulo activo do catálogo já filtrado por papel/grants/plano.

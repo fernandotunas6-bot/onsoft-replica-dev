@@ -13,7 +13,7 @@ const invite = access.slice(
 const people = readFileSync("src/features/people/server.ts", "utf8");
 const mergeSteps = people.slice(people.indexOf("async function mergePeopleInSteps"));
 const mergeSql = readFileSync(
-  "supabase/migrations/20261010110000_teacher_number_and_merge_people.sql",
+  "supabase/migrations/20261025070201_teacher_number_and_merge_people.sql",
   "utf8",
 );
 

@@ -56,7 +56,44 @@ describe("navigation catalog", () => {
     const missing = missingAdminNavPaths(paths);
     expect(missing, `paths missing from sidebar: ${missing.join(", ")}`).toEqual([]);
     expect(ADMIN_NAV_PATH_COVERAGE.every((path) => paths.has(path))).toBe(true);
-    expect(paths.has("/alumni")).toBe(true);
+  });
+
+  /**
+   * Um módulo adormecido existe, tem ficheiros e as rotas funcionam — mas não está
+   * em navegação nenhuma, nem no lançador nem no menu. A 25/10/2026 são o Alumni, o
+   * RH e as Catracas: zero registos em produção, medidos por `count(*)`.
+   *
+   * Até aqui este teste exigia `paths.has("/alumni")`. A regra passou a ser a
+   * inversa, e vigiada: enquanto o módulo estiver marcado, não volta ao menu por
+   * descuido. Para o acordar, tirar `dormant` do `modules.json` — e então as duas
+   * asserções abaixo obrigam a pôr-lhe navegação outra vez.
+   */
+  const modulosAdormecidos = modulesCatalog.modules.filter(
+    (mod) => "dormant" in mod && mod.dormant,
+  );
+
+  it("declara os módulos adormecidos com a razão escrita", () => {
+    expect(modulosAdormecidos.map((mod) => mod.id).sort()).toEqual(["alumni", "catracas", "rh"]);
+    for (const mod of modulosAdormecidos) {
+      expect("dormantReason" in mod && mod.dormantReason, `${mod.id} sem razão`).toBeTruthy();
+      // Adormecido e navegável ao mesmo tempo não existe.
+      expect("navPath" in mod && mod.navPath, `${mod.id} tem navPath`).toBeFalsy();
+      expect(
+        "secondaryNavPaths" in mod && mod.secondaryNavPaths?.length,
+        `${mod.id} tem caminhos secundários`,
+      ).toBeFalsy();
+    }
+  });
+
+  it("nenhum módulo adormecido aparece no menu de qualquer papel", () => {
+    const papeis = ["Administrador", "Secretaria", "Tesouraria", "Professor"] as const;
+    const caminhosAdormecidos = ["/alumni", "/financeiro/rh", "/catracas"];
+    for (const papel of papeis) {
+      const paths = collectNavPaths(getPortalNavigation(papel, {}, fullPlan));
+      for (const caminho of caminhosAdormecidos) {
+        expect(paths.has(caminho), `${papel} ainda vê ${caminho}`).toBe(false);
+      }
+    }
   });
 
   it("maps inventory modules with navPath to workspace catalog", () => {
@@ -107,7 +144,7 @@ describe("navigation catalog", () => {
     expect(paths.has("/importar")).toBe(true);
     expect(paths.has("/pessoas")).toBe(true);
     expect(paths.has("/alunos")).toBe(true);
-    expect(paths.has("/alumni")).toBe(true);
+    // O /alumni saiu do menu (módulo adormecido) — ver o teste dos adormecidos acima.
     expect(paths.has("/configuracoes")).toBe(false);
   });
 
@@ -129,7 +166,7 @@ describe("navigation catalog", () => {
   it("shows finance modules for Tesouraria without secretaria-only routes", () => {
     const paths = collectNavPaths(getPortalNavigation("Tesouraria", {}, fullPlan));
     expect(paths.has("/financeiro")).toBe(true);
-    expect(paths.has("/financeiro/rh")).toBe(true);
+    // O /financeiro/rh saiu do menu (módulo adormecido) — ver o teste dos adormecidos acima.
     expect(paths.has("/faturas")).toBe(true);
     expect(paths.has("/relatorios/financeiros")).toBe(true);
     expect(paths.has("/importar")).toBe(true);

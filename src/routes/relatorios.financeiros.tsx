@@ -1,8 +1,9 @@
-import { useMemo, lazy, Suspense, useEffect } from "react";
+import { useMemo, lazy, Suspense, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ChevronDown,
   Download,
   FileBadge,
   FileDown,
@@ -11,12 +12,19 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { whatsappHref } from "@/features/integrations/actions";
-import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { toast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid } from "@/components/layout/PageHeader";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -29,6 +37,7 @@ import {
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { getFinanceReporting } from "@/features/finance/server";
+import { AccountantExportDialog } from "@/features/finance/components/AccountantExportDialog";
 import { kwanza } from "@/lib/currency";
 import { exportCsv, type CsvValue } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
@@ -38,7 +47,6 @@ import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { warmFinanceCharts } from "@/lib/warm-charts";
-import { schoolTodayIso } from "@/lib/school-date";
 
 const RelatoriosFinanceirosCategoryCharts = lazy(() =>
   import("@/features/finance/RelatoriosFinanceirosCategoryCharts").then((module) => ({
@@ -112,7 +120,6 @@ function RelatoriosFinanceiros() {
   const { selectedYearLabel, school } = useSchoolSettings();
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
-  const agtOn = installed.hasCapability("agt.einvoice") || installed.hasCapability("agt.nif");
   const resendOn = installed.hasCapability("resend.invoices");
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "relatorios-financeiros",
@@ -192,6 +199,7 @@ function RelatoriosFinanceiros() {
     { label: "Categoria", value: (row) => row.categoria },
     { label: "Valor (Kz)", value: (row) => row.valor },
   ];
+  const openAccountantExport = useRef<(() => void) | null>(null);
   const exportarCobrancaCsv = () =>
     exportCsv("relatorio-financeiro-cobranca", cobrancaColumns, cobrancaRows);
   const exportarCobrancaPdf = () =>
@@ -377,95 +385,102 @@ function RelatoriosFinanceiros() {
           </Alert>
         ) : null}
         <PageHeader
-          group="Relatórios"
+          group="Financeiro"
           title="Relatórios Financeiros"
           description="Resultado do ano lectivo, composição das receitas e estrutura de custos da instituição."
           actions={
             <>
               <DocHelpButton title="Navegação — Relatórios financeiros" />
-              <Button variant="outline" className="gap-2" onClick={exportarCobrancaCsv}>
-                <Download className="size-4" /> CSV cobrança
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCobrancaPdf}>
-                <FileDown className="size-4" /> PDF cobrança
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCobrancaOficial}
-                disabled={cobrancaRows.length === 0}
-              >
-                <FileBadge className="size-4" /> Oficial cobrança
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCategoriasCsv}>
-                <Download className="size-4" /> CSV categorias
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={exportarCategoriasPdf}>
-                <FileDown className="size-4" /> PDF categorias
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarCategoriasOficial}
-                disabled={categoriaRows.length === 0}
-              >
-                <FileBadge className="size-4" /> Oficial categorias
-              </Button>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={exportarOficial}
-                disabled={cobrancaRows.length === 0}
-              >
-                <FileBadge className="size-4" /> Oficial
-              </Button>
-              {agtOn ? (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={async () => {
-                    const payload = `AGT;${school?.nif ?? "sem-nif"};${school?.name ?? "Escola"};${schoolTodayIso()};${kwanza(receita)}`;
-                    await navigator.clipboard.writeText(payload);
-                    toast.success("Linha AGT copiada");
-                  }}
-                >
-                  AGT
-                </Button>
-              ) : null}
-              {whatsappOn ? (
-                <Button variant="outline" className="gap-2" asChild>
-                  <a
-                    href={whatsappHref(
-                      "",
-                      `Relatório financeiro ${selectedYearLabel}: receita ${kwanza(receita)} · despesa ${kwanza(despesa)}.`,
-                    )}
-                    target="_blank"
-                    rel="noreferrer"
+              <AccountantExportDialog
+                trigger={(open) => {
+                  openAccountantExport.current = open;
+                  return null;
+                }}
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Download className="size-4" /> Exportar
+                    <ChevronDown className="size-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>Cobrança mensal</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={exportarCobrancaCsv}>
+                    <Download className="size-4" /> CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarCobrancaPdf}>
+                    <FileDown className="size-4" /> PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={exportarCobrancaOficial}
+                    disabled={cobrancaRows.length === 0}
                   >
-                    WhatsApp
-                  </a>
-                </Button>
-              ) : null}
-              {resendOn ? (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(
-                      `Relatório financeiro ${selectedYearLabel}\nReceita: ${kwanza(receita)}\nDespesa: ${kwanza(despesa)}\nResultado: ${kwanza(resultado)}\nDívida: ${kwanza(dividaAcumulada)}`,
-                    );
-                    toast.success("Resumo copiado para e-mail Resend");
-                  }}
-                >
-                  E-mail
-                </Button>
-              ) : null}
+                    <FileBadge className="size-4" /> Oficial
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Receitas por categoria</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={exportarCategoriasCsv}>
+                    <Download className="size-4" /> CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportarCategoriasPdf}>
+                    <FileDown className="size-4" /> PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={exportarCategoriasOficial}
+                    disabled={categoriaRows.length === 0}
+                  >
+                    <FileBadge className="size-4" /> Oficial
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={exportarOficial} disabled={cobrancaRows.length === 0}>
+                    <FileBadge className="size-4" /> Relatório oficial completo
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Contabilidade</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    // O menu fecha primeiro; o formulário abre a seguir, fora dele.
+                    onSelect={() => setTimeout(() => openAccountantExport.current?.(), 0)}
+                  >
+                    <FileDown className="size-4" /> Mês para o contabilista (Excel)
+                  </DropdownMenuItem>
+                  {whatsappOn || resendOn ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Partilhar resumo</DropdownMenuLabel>
+                    </>
+                  ) : null}
+                  {whatsappOn ? (
+                    <DropdownMenuItem asChild>
+                      <a
+                        href={whatsappHref(
+                          "",
+                          `Relatório financeiro ${selectedYearLabel}: receita ${kwanza(receita)} · despesa ${kwanza(despesa)}.`,
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        WhatsApp
+                      </a>
+                    </DropdownMenuItem>
+                  ) : null}
+                  {resendOn ? (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(
+                          `Relatório financeiro ${selectedYearLabel}\nReceita: ${kwanza(receita)}\nDespesa: ${kwanza(despesa)}\nResultado: ${kwanza(resultado)}\nDívida: ${kwanza(dividaAcumulada)}`,
+                        );
+                        toast.success("Resumo copiado para e-mail Resend");
+                      }}
+                    >
+                      Copiar para e-mail
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           }
         />
-
-        <InstalledModuleTools module="faturas" />
-        <InstalledModuleTools module="financeiro" />
 
         <StatGrid
           collapsible

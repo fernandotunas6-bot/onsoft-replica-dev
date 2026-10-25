@@ -106,7 +106,7 @@ function HrAbsencesPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="RH e Folha Salarial"
+          group="Finanças · RH"
           title="Faltas e Assiduidade"
           description="Faltas detectadas automaticamente ficam pendentes até revisão. Só uma falta validada pode produzir desconto na folha salarial."
           actions={

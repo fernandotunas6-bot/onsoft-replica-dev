@@ -123,6 +123,8 @@ export async function issuePrintDocument(input: {
       uuid: verification.code,
       qrCodeDataUrl: verification.qrCodeDataUrl,
       verifyUrl: verification.url,
+      // Recibos e faturas levam valor: o rodapé diz que não são documentos fiscais AGT.
+      financial: Boolean(input.amountLabel),
     };
     printOfficialHtml(renderHandlebars(template.source, payload));
     return key;
