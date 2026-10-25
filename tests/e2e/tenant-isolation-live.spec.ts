@@ -106,28 +106,25 @@ test.describe("Isolamento multi-tenant @live — Supabase RLS", () => {
           .select("school_id, user_id")
           .eq("school_id", other.schoolId)
           .eq("user_id", other.userId);
-        if (foreignError) {
-          // Revogação de acesso à tabela também é isolamento válido, desde que
-          // a leitura positiva anterior tenha comprovado a própria conta.
-          expect(["42501", "PGRST301"].includes(foreignError.code)).toBe(true);
-        } else {
-          expect(
-            foreign ?? [],
-            "Fuga: uma escola recebeu a membership autenticada da outra",
-          ).toEqual([]);
-        }
+        expect(foreignError, "A sonda não pode aprovar um erro de leitura como isolamento").toBeNull();
+        expect(
+          foreign ?? [],
+          "Fuga: uma escola recebeu a membership autenticada da outra",
+        ).toEqual([]);
       }
     } finally {
+      const cleanupErrors: string[] = [];
       for (const slug of [...schools].reverse()) {
         // Limpeza só permite slugs reservados de E2E e contas @siga-plus.test.
-        // O erro de limpeza não deve ocultar o erro original do ensaio.
+        // Falhas na limpeza ficam vermelhas: sem dados órfãos ignorados.
         const email = buildSignupPayload(slug).admin_email;
-        await cleanupE2ETenantBySlug(slug, email).catch((error: unknown) => {
-          console.error(
-            `Falha na limpeza da escola E2E ${slug}: ${error instanceof Error ? error.message : "erro desconhecido"}`,
-          );
-        });
+        try {
+          await cleanupE2ETenantBySlug(slug, email);
+        } catch (error) {
+          cleanupErrors.push(`${slug}: ${error instanceof Error ? error.message : "erro desconhecido"}`);
+        }
       }
+      expect(cleanupErrors, "Limpeza dos dois tenants de staging").toEqual([]);
     }
   });
 });
