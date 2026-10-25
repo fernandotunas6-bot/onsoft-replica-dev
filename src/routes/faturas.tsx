@@ -15,6 +15,7 @@ import {
   FileText,
   FileUp,
   Plus,
+  Users,
   QrCode,
   Wallet,
   X,
@@ -67,7 +68,9 @@ import {
   getFinanceSchemaStatus,
   cancelInvoice,
   issueInvoice,
+  issueTuitionBatch,
   listFinanceStudents,
+  listTuitionBatchClasses,
   listInvoices,
   recordInvoicePayment,
 } from "@/features/finance/server";
@@ -190,6 +193,11 @@ function FaturasPage() {
   const reportingQuery = useQuery({
     queryKey: ["finance", "reporting"],
     queryFn: () => getFinanceReporting(),
+  });
+  const batchClassesQuery = useQuery({
+    queryKey: ["finance", "tuition-batch-classes"],
+    queryFn: () => listTuitionBatchClasses(),
+    staleTime: 60_000,
   });
   const schemaQuery = useQuery({
     queryKey: ["finance", "schema-status"],
@@ -868,6 +876,53 @@ function FaturasPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {batchClassesQuery.data?.length ? (
+                <QuickFormModal
+                  eyebrow="Cobrança"
+                  title="Propinas da turma"
+                  description="Emite a propina do mês para todos os alunos activos da turma. Quem já a tem fica de fora; nada é emitido duas vezes."
+                  submitLabel="Emitir propinas"
+                  successDescription="Lote concluído."
+                  fields={[
+                    {
+                      name: "turma",
+                      label: "Turma",
+                      type: "select",
+                      full: true,
+                      options: batchClassesQuery.data.map((group) => ({
+                        value: group.id,
+                        label: `${group.label} · ${group.students} alunos`,
+                      })),
+                    },
+                    { name: "vencimento", label: "Vencimento", type: "date" },
+                  ]}
+                  onSubmit={async (values) => {
+                    const result = await issueTuitionBatch({
+                      data: {
+                        classGroupId: values["turma"] ?? "",
+                        dueOn: values["vencimento"] ?? "",
+                      },
+                    });
+                    await queryClient.invalidateQueries({ queryKey: ["finance"] });
+                    const summary = `${result.issued.length} emitidas · ${result.skipped.length} já tinham a propina · ${result.failed.length} com erro`;
+                    if (result.failed.length) {
+                      toast.warning(summary, { description: result.failed[0]?.reason });
+                    } else {
+                      toast.success(summary);
+                    }
+                  }}
+                  trigger={(open) => (
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={open}
+                      disabled={financeInvoiceBlocked}
+                    >
+                      <Users className="size-4" /> Propinas da turma
+                    </Button>
+                  )}
+                />
+              ) : null}
               <QuickFormModal
                 title="Emitir Fatura Proforma"
                 eyebrow="Orçamento"

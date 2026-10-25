@@ -54,6 +54,8 @@ vi.mock("@/features/finance/server", () => ({
   getFinanceSchemaStatus: () => getFinanceSchemaStatusMock(),
   cancelInvoice: vi.fn(),
   issueInvoice: vi.fn(),
+  issueTuitionBatch: vi.fn(),
+  listTuitionBatchClasses: async () => [],
   recordInvoicePayment: vi.fn(),
 }));
 
