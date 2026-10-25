@@ -26,7 +26,7 @@ const handle = createWebsiteContentHandler(async (code) => {
     if (tenant.error) throw new Error("Tenant lookup failed");
     if (
       !tenant.data ||
-      getPublicSiteBlock(tenant.data as Parameters<typeof getTenantAccessBlock>[0]).blocked
+      getPublicSiteBlock(tenant.data as Parameters<typeof getPublicSiteBlock>[0]).blocked
     )
       return null;
   }
