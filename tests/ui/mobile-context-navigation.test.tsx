@@ -107,7 +107,7 @@ describe("menu mobile contextual", () => {
       await act(async () => vi.advanceTimersByTime(100));
       expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
       expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
-      expect(screen.getByRole("link", { name: "Faturas e Recibos" })).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Faturas" })).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }
@@ -131,13 +131,11 @@ describe("menu mobile contextual", () => {
   it("mostra o módulo activo, permite mudar de área e fecha ao escolher um destino", () => {
     const close = vi.fn();
     render(<MoreHub open onOpenChange={close} />);
-    expect(
-      screen.getByRole("link", { name: "Faturas e Recibos" }).getAttribute("aria-current"),
-    ).toBe("page");
+    expect(screen.getByRole("link", { name: "Faturas" }).getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("link", { name: "Relatórios Financeiros" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "Matricular Aluno" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Todas as áreas" }));
-    expect(screen.queryByRole("link", { name: "Faturas e Recibos" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Faturas" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
     fireEvent.click(screen.getByRole("link", { name: "Matricular Aluno" }));
     expect(close).toHaveBeenCalledWith(false);
@@ -169,7 +167,7 @@ describe("menu mobile contextual", () => {
     await waitFor(() =>
       expect(screen.queryByRole("link", { name: "Relatórios Académicos" })).toBeNull(),
     );
-    expect(screen.getByRole("link", { name: "Faturas e Recibos" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Faturas" })).toBeTruthy();
   });
   it("encontra uma área pelo nome sem expandir outras áreas", async () => {
     render(<MoreHub open onOpenChange={vi.fn()} />);

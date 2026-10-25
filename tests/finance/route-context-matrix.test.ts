@@ -73,6 +73,35 @@ describe("matriz de contexto das rotas financeiras", () => {
     expect(s).not.toContain("invoice");
   });
 
+  it("as propinas tratam do plano, não da liquidação", () => {
+    const s = source("financeiro.propinas.tsx");
+    expect(s).toContain("FeePlanSettingsForm");
+    // Reutiliza o painel das configurações em vez de duplicar o formulário.
+    expect(s).toContain('from "@/features/school/settings-billing-panel"');
+    // Liquidar, emitir recibo ou mexer no caixa pertence à tesouraria.
+    expect(s).not.toContain("recordInvoicePayment");
+    expect(s).not.toContain("listReceipts");
+    expect(s).not.toContain("listCashEntries");
+  });
+
+  it("os recibos apresentam documentos, sem os emitir nem anular", () => {
+    const s = source("financeiro.recibos.tsx");
+    expect(s).toContain("listReceipts");
+    // A emissão é consequência da liquidação e o estorno pertence à operação
+    // que o motiva: esta página é de consulta.
+    expect(s).not.toContain("recordInvoicePayment");
+    expect(s).not.toContain("issueInvoice");
+    expect(s).not.toContain("reverseCashEntry");
+    expect(s).not.toContain("recordCashExpense");
+  });
+
+  it("os recibos não apresentam folha salarial nem plano de propinas", () => {
+    const s = source("financeiro.recibos.tsx");
+    expect(s).not.toContain("listHrPayrollRuns");
+    expect(s).not.toContain("FeePlanSettingsForm");
+    expect(s).not.toContain("createTeacherLessonQr");
+  });
+
   it("a assiduidade docente não apresenta totais de folha salarial", () => {
     const s = source("financeiro.rh.aulas.tsx");
     expect(s).not.toContain("StatGrid");

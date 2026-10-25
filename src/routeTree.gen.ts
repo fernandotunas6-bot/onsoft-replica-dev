@@ -53,6 +53,8 @@ import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configurac
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
+import { Route as FinanceiroPropinasRouteImport } from './routes/financeiro.propinas'
+import { Route as FinanceiroRecibosRouteImport } from './routes/financeiro.recibos'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
 import { Route as PedagogicaCatalogoRouteImport } from './routes/pedagogica_.catalogo'
@@ -357,6 +359,16 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroPropinasRoute = FinanceiroPropinasRouteImport.update({
+  id: '/propinas',
+  path: '/propinas',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroRecibosRoute = FinanceiroRecibosRouteImport.update({
+  id: '/recibos',
+  path: '/recibos',
+  getParentRoute: () => FinanceiroRoute,
 } as any)
 const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
   id: '/rh',
@@ -838,6 +850,8 @@ export interface FileRoutesByFullPath {
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/financeiro/propinas': typeof FinanceiroPropinasRoute
+  '/financeiro/recibos': typeof FinanceiroRecibosRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
@@ -966,6 +980,8 @@ export interface FileRoutesByTo {
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/financeiro/propinas': typeof FinanceiroPropinasRoute
+  '/financeiro/recibos': typeof FinanceiroRecibosRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
@@ -1095,6 +1111,8 @@ export interface FileRoutesById {
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/financeiro/propinas': typeof FinanceiroPropinasRoute
+  '/financeiro/recibos': typeof FinanceiroRecibosRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica_/catalogo': typeof PedagogicaCatalogoRoute
@@ -1225,6 +1243,8 @@ export interface FileRouteTypes {
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
+    | '/financeiro/propinas'
+    | '/financeiro/recibos'
     | '/financeiro/rh'
     | '/matricula/$slug'
     | '/pedagogica/catalogo'
@@ -1353,6 +1373,8 @@ export interface FileRouteTypes {
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
+    | '/financeiro/propinas'
+    | '/financeiro/recibos'
     | '/financeiro/rh'
     | '/matricula/$slug'
     | '/pedagogica/catalogo'
@@ -1481,6 +1503,8 @@ export interface FileRouteTypes {
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/convite/$token'
+    | '/financeiro/propinas'
+    | '/financeiro/recibos'
     | '/financeiro/rh'
     | '/matricula/$slug'
     | '/pedagogica_/catalogo'
@@ -1965,6 +1989,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/convite/$token'
       preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/financeiro/propinas': {
+      id: '/financeiro/propinas'
+      path: '/propinas'
+      fullPath: '/financeiro/propinas'
+      preLoaderRoute: typeof FinanceiroPropinasRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro/recibos': {
+      id: '/financeiro/recibos'
+      path: '/recibos'
+      fullPath: '/financeiro/recibos'
+      preLoaderRoute: typeof FinanceiroRecibosRouteImport
+      parentRoute: typeof FinanceiroRoute
     }
     '/financeiro/rh': {
       id: '/financeiro/rh'
@@ -2646,10 +2684,14 @@ const FinanceiroRhRouteWithChildren = FinanceiroRhRoute._addFileChildren(
 )
 
 interface FinanceiroRouteChildren {
+  FinanceiroPropinasRoute: typeof FinanceiroPropinasRoute
+  FinanceiroRecibosRoute: typeof FinanceiroRecibosRoute
   FinanceiroRhRoute: typeof FinanceiroRhRouteWithChildren
 }
 
 const FinanceiroRouteChildren: FinanceiroRouteChildren = {
+  FinanceiroPropinasRoute: FinanceiroPropinasRoute,
+  FinanceiroRecibosRoute: FinanceiroRecibosRoute,
   FinanceiroRhRoute: FinanceiroRhRouteWithChildren,
 }
 

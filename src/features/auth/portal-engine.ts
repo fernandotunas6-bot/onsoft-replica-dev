@@ -415,7 +415,13 @@ export function getPortalNavigation(
           children: [
             { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
-            { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
+            {
+              label: "Propinas e Cobranças",
+              icon: moduleIcons.finance,
+              to: "/financeiro/propinas",
+            },
+            { label: "Faturas", icon: moduleIcons.receipts, to: "/faturas" },
+            { label: "Recibos", icon: moduleIcons.receipts, to: "/financeiro/recibos" },
             { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
             { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
             {
