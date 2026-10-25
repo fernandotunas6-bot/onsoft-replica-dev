@@ -454,6 +454,7 @@ mod tests {
         with_vault(&opened, |vault| {
             client_store(vault)?
                 .insert(OUTBOX_KEY.to_vec(), b"[pending]".to_vec(), None)
+                .map(|_| ())
                 .map_err(|_| "Não foi possível criar fila de teste.".to_string())
         })
         .unwrap();
@@ -463,6 +464,7 @@ mod tests {
         with_vault(&opened, |vault| {
             client_store(vault)?
                 .delete(OUTBOX_KEY)
+                .map(|_| ())
                 .map_err(|_| "Não foi possível limpar fila de teste.".to_string())
         })
         .unwrap();
