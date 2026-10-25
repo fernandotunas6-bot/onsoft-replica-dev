@@ -13,6 +13,7 @@ const REQUIRED = [
   "STAGING_SUPABASE_URL",
   "STAGING_SUPABASE_PUBLISHABLE_KEY",
   "STAGING_SUPABASE_SECRET_KEY",
+  "STAGING_SUPABASE_ACCESS_TOKEN",
 ];
 
 export function assertStagingReady(env = process.env) {
