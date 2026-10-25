@@ -20,9 +20,7 @@ describe("E2E remoto: erros reais não se tornam sucesso", () => {
 
   it("Python @live não permite silenciar a ausência do browser", () => {
     expect(pythonE2E).toContain('if not LIVE and os.environ.get("SIGA_E2E_SKIP_UI") == "1":');
-    expect(pythonE2E).not.toContain(
-      'if os.environ.get("SIGA_E2E_SKIP_UI") == "1":',
-    );
+    expect(pythonE2E).not.toContain('if os.environ.get("SIGA_E2E_SKIP_UI") == "1":');
   });
 
   it("Python @live inclui as falhas de limpeza no resultado final", () => {
