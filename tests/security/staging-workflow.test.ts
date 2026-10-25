@@ -15,6 +15,7 @@ type StagingWorkflow = {
   jobs?: {
     live?: {
       environment?: string;
+      env?: Record<string, string>;
       steps?: WorkflowStep[];
     };
   };
@@ -61,9 +62,15 @@ describe("workflow E2E autenticado de staging", () => {
       "STAGING_SUPABASE_URL",
       "STAGING_SUPABASE_PUBLISHABLE_KEY",
       "STAGING_SUPABASE_SECRET_KEY",
+      "STAGING_SUPABASE_ACCESS_TOKEN",
     ]) {
       expect(guard.env?.[secret]).toContain(`secrets.${secret}`);
     }
+    expect(job?.env?.SIGA_E2E_ALLOW_WRITES).toBe("1");
+    expect(job?.env?.SIGA_E2E_PROJECT_REF).toContain("secrets.STAGING_SUPABASE_PROJECT_ID");
+    expect(steps[e2eIndex].env?.SUPABASE_ACCESS_TOKEN).toContain(
+      "secrets.STAGING_SUPABASE_ACCESS_TOKEN",
+    );
     expect(steps[e2eIndex].if).toBeUndefined();
     expect(steps[e2eIndex]["continue-on-error"]).toBeUndefined();
   });
