@@ -20,6 +20,9 @@ export type AgendaEvent = {
     room?: string | null;
     version?: number;
     description?: string;
+    classGroupName?: string;
+    subjectName?: string;
+    teacherName?: string | null;
   };
 };
 export type AgendaTerm = {
@@ -83,6 +86,7 @@ export type AgendaData = {
   assignments: AgendaAssignment[];
   groups: Array<{ id: string; name: string; academic_year_id: string }>;
   subjects: Array<{ id: string; name: string }>;
+  teachers?: Array<{ id: string; name: string | null }>;
   calendar: AgendaCalendarRow[];
   assessments: Array<{
     id: string;
@@ -117,6 +121,7 @@ export function buildAcademicAgenda(
   const assignments = new Map(data.assignments.map((a) => [a.id, a]));
   const groups = new Map(data.groups.map((g) => [g.id, g]));
   const subjects = new Map(data.subjects.map((s) => [s.id, s.name]));
+  const teachers = new Map((data.teachers ?? []).map((t) => [t.id, t.name]));
   const schedules = new Map(
     data.schedules.filter((s) => s.status === "published").map((s) => [s.id, s]),
   );
@@ -276,6 +281,9 @@ export function buildAcademicAgenda(
           subjectId: a.subject_id,
           teacherId: a.teacher_id,
           room: slot.room,
+          classGroupName: group.name,
+          subjectName: subjects.get(a.subject_id) ?? "Disciplina",
+          teacherName: a.teacher_id ? (teachers.get(a.teacher_id) ?? null) : null,
         },
         false,
       );

@@ -23,7 +23,8 @@ import {
   updateCalendarEventInputSchema,
 } from "./schemas";
 import { todayInLuanda, inclusiveRangesOverlap } from "./dates";
-import { sortDayAgendaLessons, dayAgendaWeekday, type DayAgendaLesson } from "./day-lessons";
+import type { DayAgendaLesson } from "./day-lessons";
+import { loadDayAgendaLessons } from "./day-lessons-server";
 
 export type CalendarEventSummary = {
   id: string;
@@ -80,131 +81,7 @@ export const listCalendarEvents = createServerFn({ method: "GET" })
 export const listDayAgendaLessons = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listDayAgendaLessonsInputSchema.parse(input ?? {}))
-  .handler(async ({ data, context }): Promise<DayAgendaLesson[]> => {
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) return [];
-    if (!["Administrador", "Secretaria", "Tesouraria", "Professor"].includes(membership.appRole)) {
-      return [];
-    }
-
-    const date = data.date ?? todayInLuanda();
-    const weekday = dayAgendaWeekday(date);
-    const db = await loadSgaAdminClient();
-    const schoolId = membership.schoolId;
-
-    const { data: slots, error: slotsError } = await db
-      .from("timetable_slots")
-      .select("id, class_subject_id, starts_at, ends_at, room")
-      .eq("school_id", schoolId)
-      .eq("weekday", weekday)
-      .eq("status", "active")
-      .order("starts_at", { ascending: true })
-      .limit(data.limit);
-    if (slotsError) {
-      throw publicDatabaseError(slotsError, "Não foi possível carregar as aulas do dia.");
-    }
-    const slotRows = slots ?? [];
-    if (slotRows.length === 0) return [];
-
-    const classSubjectIds = [
-      ...new Set(slotRows.map((slot) => String(slot.class_subject_id)).filter(Boolean)),
-    ];
-    const { data: classSubjects, error: csError } = await db
-      .from("class_subjects")
-      .select("id, class_group_id, subject_id, teacher_id")
-      .eq("school_id", schoolId)
-      .in("id", classSubjectIds);
-    if (csError) {
-      throw publicDatabaseError(csError, "Não foi possível carregar as aulas do dia.");
-    }
-
-    const classGroupIds = [
-      ...new Set(
-        (classSubjects ?? []).map((row) => String(row.class_group_id ?? "")).filter(Boolean),
-      ),
-    ];
-    const subjectIds = [
-      ...new Set((classSubjects ?? []).map((row) => String(row.subject_id ?? "")).filter(Boolean)),
-    ];
-    const teacherIds = [
-      ...new Set((classSubjects ?? []).map((row) => String(row.teacher_id ?? "")).filter(Boolean)),
-    ];
-
-    const [groupsRes, subjectsRes, teachersRes] = await Promise.all([
-      classGroupIds.length
-        ? db
-            .from("class_groups")
-            .select("id, name")
-            .eq("school_id", schoolId)
-            .in("id", classGroupIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
-      subjectIds.length
-        ? db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
-      teacherIds.length
-        ? db.from("teachers").select("id, person_id").eq("school_id", schoolId).in("id", teacherIds)
-        : Promise.resolve({
-            data: [] as Array<{ id: string; person_id: string | null }>,
-            error: null,
-          }),
-    ]);
-
-    const loadError = groupsRes.error ?? subjectsRes.error ?? teachersRes.error;
-    if (loadError) {
-      throw publicDatabaseError(loadError, "Não foi possível carregar as aulas do dia.");
-    }
-
-    const teacherPersonIds = [
-      ...new Set(
-        (teachersRes.data ?? []).map((row) => String(row.person_id ?? "")).filter(Boolean),
-      ),
-    ];
-    const peopleRes = teacherPersonIds.length
-      ? await db
-          .from("people")
-          .select("id, full_name")
-          .eq("school_id", schoolId)
-          .in("id", teacherPersonIds)
-      : { data: [] as Array<{ id: string; full_name: string }> };
-
-    const classSubjectById = new Map((classSubjects ?? []).map((row) => [String(row.id), row]));
-    const groupName = new Map(
-      (groupsRes.data ?? []).map((row) => [String(row.id), String(row.name ?? "")]),
-    );
-    const subjectName = new Map(
-      (subjectsRes.data ?? []).map((row) => [String(row.id), String(row.name ?? "")]),
-    );
-    const personNameById = new Map(
-      (peopleRes.data ?? []).map((row) => [String(row.id), String(row.full_name ?? "")]),
-    );
-    const teacherName = new Map(
-      (teachersRes.data ?? []).map((row) => [
-        String(row.id),
-        row.person_id ? (personNameById.get(String(row.person_id)) ?? "") : "",
-      ]),
-    );
-
-    const lessons: DayAgendaLesson[] = slotRows.map((slot) => {
-      const cs = classSubjectById.get(String(slot.class_subject_id));
-      const classGroupId = cs?.class_group_id ? String(cs.class_group_id) : null;
-      const subjectId = cs?.subject_id ? String(cs.subject_id) : null;
-      const teacherId = cs?.teacher_id ? String(cs.teacher_id) : null;
-      return {
-        id: String(slot.id),
-        startsAt: String(slot.starts_at ?? "").slice(0, 5),
-        endsAt: String(slot.ends_at ?? "").slice(0, 5),
-        room: slot.room ? String(slot.room) : null,
-        classGroupId,
-        classGroupName: (classGroupId && groupName.get(classGroupId)) || "Turma",
-        subjectId,
-        subjectName: (subjectId && subjectName.get(subjectId)) || "Disciplina",
-        teacherId,
-        teacherName: teacherId ? (teacherName.get(teacherId) ?? null) : null,
-      };
-    });
-
-    return sortDayAgendaLessons(lessons).slice(0, data.limit);
-  });
+  .handler(({ data, context }): Promise<DayAgendaLesson[]> => loadDayAgendaLessons(data, context));
 
 /** Ano lectivo activo da escola, ou `null` — é o que destranca períodos e propinas. */
 export const getActiveAcademicYear = createServerFn({ method: "GET" })
