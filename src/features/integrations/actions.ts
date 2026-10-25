@@ -7,7 +7,8 @@ export type CapabilityActionKind =
   | "copy-payment-ref"
   | "copy-unitel-ref"
   | "copy-nif"
-  | "copy-einvoice"
+  | "invoice-row-email"
+  | "open-agt-portal"
   | "copy-meeting-zoom"
   | "copy-meeting-teams"
   | "open-official"
@@ -37,7 +38,7 @@ export const capabilityActionKind: Record<string, CapabilityActionKind> = {
   "gcal.subscribe": "ics-google",
   "apple.ics": "ics-apple",
   "resend.send": "navigate-comunicacoes",
-  "resend.invoices": "copy-einvoice",
+  "resend.invoices": "invoice-row-email",
   "resend.documents": "open-official",
   "gmail.welcome": "navigate-comunicacoes",
   "gmail.credentials": "open-official",
@@ -51,7 +52,7 @@ export const capabilityActionKind: Record<string, CapabilityActionKind> = {
   "sige.export_classes": "export-sige-classes",
   "sige.export_students": "export-sige-students",
   "agt.nif": "copy-nif",
-  "agt.einvoice": "copy-einvoice",
+  "agt.einvoice": "open-agt-portal",
 };
 
 export function actionForCapability(cap?: { id?: string }): CapabilityActionKind {
@@ -161,8 +162,10 @@ export function actionLabelForCapability(cap: IntegrationCapability): string {
       return "Subscrever Google";
     case "ics-apple":
       return "Descarregar ICS";
-    case "copy-einvoice":
-      return "Copiar fatura AGT";
+    case "open-agt-portal":
+      return "Abrir Portal do Contribuinte";
+    case "invoice-row-email":
+      return "E-mail na linha da fatura";
     case "copy-nif":
       return "Copiar NIF";
     case "copy-meeting-zoom":

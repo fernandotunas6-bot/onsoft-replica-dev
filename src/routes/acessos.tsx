@@ -402,7 +402,7 @@ function AcessosPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Gestão e Comunicação"
+          group="Secretaria"
           title="Gestão de Acessos"
           description="Convide contas de login, ajuste cargos e mantenha a equipa escolar no registo de pessoas."
           actions={

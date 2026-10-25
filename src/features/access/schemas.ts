@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PASSWORD_POLICY_HINT, passwordMeetsPolicy } from "@/lib/password-policy-error";
 import { applicationRoles } from "@/features/auth/access-policy";
 
 export const inviteUserInputSchema = z.object({
@@ -27,7 +28,7 @@ export type ResendSystemInviteInput = z.infer<typeof resendSystemInviteInputSche
 
 export const resetStaffPasswordInputSchema = z.object({
   userId: z.string().guid(),
-  newPassword: z.string().min(8),
+  newPassword: z.string().min(8).refine(passwordMeetsPolicy, { message: PASSWORD_POLICY_HINT }),
 });
 export type ResetStaffPasswordInput = z.infer<typeof resetStaffPasswordInputSchema>;
 

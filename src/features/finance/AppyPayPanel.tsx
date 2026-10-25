@@ -6,6 +6,8 @@ import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { gatewayChargeState } from "@/features/finance/payment-states";
 import {
   createInvoiceCharge,
   getAppyPayStatus,
@@ -15,15 +17,6 @@ import {
 import { cn } from "@/lib/utils";
 
 const chargesKey = ["tesouraria", "appypay-charges"] as const;
-const statusLabel: Record<string, string> = {
-  pending: "A aguardar pagamento",
-  settling: "A lançar",
-  paid: "Pago e conciliado",
-  failed: "Falhou",
-  expired: "Expirou",
-  needs_review: "Rever",
-  mismatch: "Não confere",
-};
 const kz = (n: number) =>
   `${new Intl.NumberFormat("pt-AO", { maximumFractionDigits: 0 }).format(Math.round(n || 0))} Kz`;
 
@@ -147,7 +140,7 @@ export function AppyPayPanel() {
       ) : !charges.data?.length ? (
         <EmptyState
           title="Sem cobranças"
-          description="Use “Cobrar” numa factura pendente para criar uma referência."
+          description="Use “Cobrar” numa factura pendente da Tesouraria para criar uma referência."
         />
       ) : (
         <ul className="divide-y divide-border text-sm">
@@ -167,18 +160,11 @@ export function AppyPayPanel() {
               </div>
               <div className="text-right">
                 <p className="font-medium">{kz(c.amount)}</p>
-                <p
-                  className={cn(
-                    "text-xs",
-                    c.status === "paid"
-                      ? "text-primary"
-                      : ["failed", "mismatch", "needs_review"].includes(c.status)
-                        ? "text-destructive"
-                        : "text-muted-foreground",
-                  )}
-                >
-                  {statusLabel[c.status] ?? c.status}
-                </p>
+                <StatusBadge
+                  size="sm"
+                  status={gatewayChargeState(c.status).status}
+                  label={gatewayChargeState(c.status).label}
+                />
               </div>
             </li>
           ))}

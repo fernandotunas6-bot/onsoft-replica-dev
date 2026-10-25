@@ -65,7 +65,7 @@ describe("ecossistema — contratos Fase 13", () => {
       slug: "escola-nova",
       admin_name: "Director",
       admin_email: "dir@escola.ao",
-      admin_password: "senha-forte-123",
+      admin_password: "Senha-forte-123",
       website: "",
     });
     expect(payload.slug).toBe("escola-nova");
@@ -95,7 +95,7 @@ describe("ecossistema — contratos Fase 13", () => {
       slug: "dom-afonso-demo",
       admin_name: "Director",
       admin_email: "geral@siga-demo.ao",
-      admin_password: "senha-forte-123",
+      admin_password: "Senha-forte-123",
       website: "",
     });
     expect(payload.slug).toBe("dom-afonso-demo");

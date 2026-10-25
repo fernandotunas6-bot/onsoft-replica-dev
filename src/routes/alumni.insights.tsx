@@ -85,7 +85,7 @@ function AlumniInsightsPage() {
     <AppShell>
       <div className="mx-auto w-full max-w-[1400px] space-y-6 px-4 py-5 sm:px-6 lg:px-8">
         <PageHeader
-          group="Comunidade & Alumni"
+          group="Alumni"
           title="Insights & Operações Alumni"
           description="Distribuição geográfica, empregabilidade, públicos segmentados e exportação institucional com regras de privacidade."
           actions={

@@ -58,6 +58,11 @@ export const recordInvoicePaymentInputSchema = z.object({
   ]),
   reference: z.string().trim().max(160).optional(),
   paidAt: z.string().datetime({ offset: true }).optional(),
+  /**
+   * Gerada pelo formulário ao abrir e reenviada em cada tentativa: repetir depois
+   * de um tempo esgotado devolve o recibo que já entrou em vez de emitir outro.
+   */
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export type RecordInvoicePaymentInput = z.infer<typeof recordInvoicePaymentInputSchema>;

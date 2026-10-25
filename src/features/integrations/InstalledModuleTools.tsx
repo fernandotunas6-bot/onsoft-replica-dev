@@ -13,7 +13,6 @@ import {
 } from "./actions";
 import { capabilitiesForModule, type SigaHostModule } from "./install";
 import { useInstalledIntegrations } from "./use-installed-integrations";
-import { schoolTodayIso } from "@/lib/school-date";
 
 export function InstalledModuleTools({
   module,
@@ -70,18 +69,19 @@ export function InstalledModuleTools({
         toast.success(`NIF ${nif} copiado`);
         return;
       }
-      if (kind === "copy-einvoice") {
-        const nif = school?.nif?.trim() || "sem-nif";
-        const payload = `AGT;${nif};${school?.name ?? "Escola"};${schoolTodayIso()}`;
-        await copyText(payload);
-        toast.success("Linha de faturação electrónica copiada", {
-          description: "Use no software certificado ou no Portal do Contribuinte.",
+      if (kind === "open-agt-portal") {
+        window.open(officialUrlForCapability(id), "_blank", "noopener,noreferrer");
+        toast.message("Portal do Contribuinte", {
+          description:
+            "O SIGA não é software certificado pela AGT: a fatura fiscal emite-se no software certificado ou no portal.",
         });
-        window.open(
-          officialUrlForCapability(id) || "https://portaldocontribuinte.minfin.gov.ao/",
-          "_blank",
-          "noopener,noreferrer",
-        );
+        return;
+      }
+      if (kind === "invoice-row-email") {
+        toast.info("E-mail por fatura", {
+          description: "Use E-mail na linha da fatura para copiar o resumo dessa fatura.",
+        });
+        void navigate({ href: "/faturas" });
         return;
       }
       if (kind === "copy-meeting-zoom") {

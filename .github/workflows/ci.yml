@@ -108,6 +108,11 @@ jobs:
       - name: Testes (Vitest)
         run: bun run test
 
+      # Testa um esquema SQLite real em memória; não grava dados escolares.
+      # A cifragem SQLCipher continua um pré-requisito antes de usar em produção.
+      - name: Esquema SQLite Desktop (integridade multi-tenant)
+        run: python3 -m unittest discover -s tests/tauri -p 'test_sqlite_schema.py'
+
       # Ensaios das migrações em Postgres local (PGlite): liquidação de pagamentos,
       # integridade do chat, comunicados por papel, pauta anual e tempo real. Cada
       # um corre a migração real duas vezes e falha sem ela. O PGlite instala-se
