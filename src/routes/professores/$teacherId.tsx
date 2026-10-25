@@ -348,7 +348,15 @@ function TeacherProfilePage() {
               </div>
             </dl>
             <Button asChild variant="outline" className="mt-4 gap-2">
-              <Link to="/pedagogica" search={{ tab: "horarios" }}>
+              <Link
+                to="/pedagogica"
+                // A vista por professor do horário da escola é de quem gere o Pedagógico.
+                search={
+                  canManage && teacher
+                    ? { tab: "horarios", professor: teacher.id }
+                    : { tab: "horarios" }
+                }
+              >
                 <GraduationCap className="size-4" /> Ver horários
               </Link>
             </Button>

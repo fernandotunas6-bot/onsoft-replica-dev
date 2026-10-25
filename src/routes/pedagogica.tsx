@@ -177,6 +177,8 @@ const pedagogicaSearchSchema = z
       .optional(),
     turma: z.string().guid().optional(),
     disciplina: z.string().guid().optional(),
+    // O horário de um professor (menu do professor, SIGA Context Engine).
+    professor: z.string().guid().optional(),
     pauta: z.enum(["1"]).optional(),
     dia: z
       .string()
@@ -247,6 +249,7 @@ function PedagogicaPage() {
     tab: tabFromSearch,
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
+    professor: professorFromSearch,
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
@@ -1334,6 +1337,7 @@ function PedagogicaPage() {
                 <SchoolNowWidget />
                 <ScheduleWorkspace
                   initialClassGroupId={turmaFromSearch}
+                  initialTeacherId={professorFromSearch}
                   activeYearLabel={activeYearLabel}
                   activeYearId={selectedYearId ?? undefined}
                   canManage={canManageAcademic}

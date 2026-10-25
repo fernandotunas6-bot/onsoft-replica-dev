@@ -151,16 +151,16 @@ da URL é recusada.
 
 ### 5.3 Restantes contextos
 
-| Contexto                                            | Estado                                                                    |
-| --------------------------------------------------- | ------------------------------------------------------------------------- |
-| Professor                                           | Parcial (perfil e relações; sem entradas)                                 |
-| Financeiro                                          | Parcial — seguir [FINANCE_MASTER_2026.md](finance/FINANCE_MASTER_2026.md) |
-| Documentos e Arquivos                               | Parcial                                                                   |
-| Website escolar                                     | Bloqueado — PRs #205, #206, #275, #277                                    |
-| RH                                                  | Parcial (só por cargo)                                                    |
-| Biblioteca, Transporte                              | Ausente — sem rotas no `main`                                             |
-| Comunicações, Calendário, Relatórios, Configurações | Parcial — sem entidade                                                    |
-| Mobile (gaveta/navegação inferior)                  | Implementado no hub «Mais» (fase 8); falta validar em aparelhos           |
+| Contexto                                            | Estado                                                                                                                                                                                                          |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Professor                                           | Parcial — menu com «Perfil e turmas» (`/professores/$teacherId`) e «Horário semanal» (`/pedagogica?tab=horarios&professor`, só a quem grava no Pedagógico); planos de aula e presenças sem filtro por professor |
+| Financeiro                                          | Parcial — seguir [FINANCE_MASTER_2026.md](finance/FINANCE_MASTER_2026.md)                                                                                                                                       |
+| Documentos e Arquivos                               | Parcial                                                                                                                                                                                                         |
+| Website escolar                                     | Bloqueado — PRs #205, #206, #275, #277                                                                                                                                                                          |
+| RH                                                  | Parcial (só por cargo)                                                                                                                                                                                          |
+| Biblioteca, Transporte                              | Ausente — sem rotas no `main`                                                                                                                                                                                   |
+| Comunicações, Calendário, Relatórios, Configurações | Parcial — sem entidade                                                                                                                                                                                          |
+| Mobile (gaveta/navegação inferior)                  | Implementado no hub «Mais» (fase 8); falta validar em aparelhos                                                                                                                                                 |
 
 ## 6. Comportamento de menus
 
@@ -199,17 +199,17 @@ da URL é recusada.
 
 ## 9. Estado das fases
 
-| Fase                | Estado                                             | Evidência                                                                                                                                                                                      |
-| ------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 Auditoria         | Parcial                                            | Inventário §5; falta auditoria em sessão autenticada                                                                                                                                           |
-| 2 Motor de contexto | Implementado                                       | PR #332 (24 testes)                                                                                                                                                                            |
-| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno)** | `ContextEntityNav`; 12 testes de sidebar + 7 de lookup; breadcrumb com 8 testes                                                                                                                |
-| 4 Disciplina piloto | Parcial                                            | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
-| 5 Aluno piloto      | **Implementado (desktop)**                         | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
-| 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
-| 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
-| 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
-| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (696 ficheiros); Playwright pendente                                                                                                                  |
+| Fase                | Estado                                                       | Evidência                                                                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 Auditoria         | Parcial                                                      | Inventário §5; falta auditoria em sessão autenticada                                                                                                                                           |
+| 2 Motor de contexto | Implementado                                                 | PR #332 (24 testes)                                                                                                                                                                            |
+| 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno/professor)** | `ContextEntityNav`; 16 testes de sidebar + 7 de lookup + 10 do professor; breadcrumb com 9 testes                                                                                              |
+| 4 Disciplina piloto | Parcial                                                      | Falta Trabalhos (#329) e validação em staging                                                                                                                                                  |
+| 5 Aluno piloto      | **Implementado (desktop)**                                   | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
+| 6–7 Restantes       | Ausente                                                      |                                                                                                                                                                                                |
+| 8 Desktop/mobile    | Parcial                                                      | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
+| 9 Optimização       | Parcial                                                      | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
+| 10 Revisão          | Parcial                                                      | Lint, TypeScript e suite completa passam (698 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
@@ -220,9 +220,9 @@ da URL é recusada.
 | C Secretaria → aluno           | Menu com as secções que a conta lê; Financeiro segue o servidor; secção recusada abre a ficha completa | E2E                  |
 | D Multi-escola                 | Entidade de outra escola descartada; queries repostas; recentes e favoritos por escola                 | E2E com duas escolas |
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
-| F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
+| F Segurança                    | IDs não-UUID ignorados; turma ou professor não devolvidos pelo servidor ignorados                      | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (696 ficheiros, 4818 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (698 ficheiros, 4857 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 

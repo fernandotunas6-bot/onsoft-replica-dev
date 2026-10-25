@@ -85,6 +85,22 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/alunos/novo")).toEqual([]);
   });
 
+  it("no horário, o professor da URL abre o contexto do professor", () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    expect(routeContextCandidates("/pedagogica", { tab: "horarios", professor: PROF })).toEqual([
+      { type: "teacher", id: PROF },
+    ]);
+    // Só o separador Horários filtra por professor; a turma manda sobre ele.
+    expect(routeContextCandidates("/pedagogica", { tab: "notas", professor: PROF })).toEqual([]);
+    expect(
+      routeContextCandidates("/pedagogica", { tab: "horarios", turma: TURMA_A, professor: PROF }),
+    ).toEqual([{ type: "class", id: TURMA_A }]);
+    expect(routeContextCandidates("/planos-aula", { tab: "horarios", professor: PROF })).toEqual(
+      [],
+    );
+    expect(routeContextCandidates("/pedagogica", { tab: "horarios", professor: "x" })).toEqual([]);
+  });
+
   it("nos arquivos, a turma abre o contexto da turma e a disciplina não entra", () => {
     // Os ficheiros estão por turma: `/arquivos` não aceita disciplina.
     expect(routeContextCandidates("/arquivos", { turma: TURMA_A })).toEqual([

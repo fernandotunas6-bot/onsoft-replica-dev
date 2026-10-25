@@ -69,6 +69,20 @@ describe("contextCrumbs", () => {
     ]);
   });
 
+  it("no horário de um professor, o professor segue o título, que leva ao horário da escola", () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    const professor: ContextFrame = { type: "teacher", id: PROF, label: "João Mendes" };
+    const crumbs = contextCrumbs([professor], "/pedagogica", { tab: "horarios", professor: PROF });
+    expect(crumbs.page).toEqual({ to: "/pedagogica", search: { tab: "horarios" } });
+    expect(crumbs.frames).toEqual([
+      {
+        label: "João Mendes",
+        to: "/pedagogica",
+        search: { tab: "horarios", professor: PROF },
+      },
+    ]);
+  });
+
   it("sem caminho confirmado, sem passos", () => {
     const vazio = { page: null, frames: [] };
     expect(contextCrumbs([], "/pedagogica", { tab: "turmas" })).toEqual(vazio);

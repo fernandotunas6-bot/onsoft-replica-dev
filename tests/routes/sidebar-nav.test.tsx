@@ -134,7 +134,18 @@ vi.mock("@/features/academic/use-academic-nav-tree", () => ({
 
 // Entidade que a página declarou em foco (a ficha do aluno lida do servidor).
 const focus = vi.hoisted(() => ({
-  entity: null as null | { type: "student"; id: string; label: string; schoolId: string },
+  entity: null as null | {
+    type: "student" | "teacher";
+    id: string;
+    label: string;
+    schoolId: string;
+  },
+}));
+// Professores que o servidor devolveria à escola (horário de um professor).
+const teacherList = vi.hoisted(() => ({ rows: [] as Array<{ id: string; full_name: string }> }));
+vi.mock("@/features/intelligence/teacher-context-lookup", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/intelligence/teacher-context-lookup")>()),
+  useTeacherNavList: () => teacherList.rows,
 }));
 vi.mock("@/features/intelligence/entity-focus-context", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/features/intelligence/entity-focus-context")>()),
@@ -203,6 +214,7 @@ afterEach(() => {
   currentSearch = {};
   academic.tree = [];
   focus.entity = null;
+  teacherList.rows = [];
   localStorage.clear();
   document.documentElement.style.cssText = "";
   document.documentElement.classList.remove("dark");
@@ -730,5 +742,62 @@ describe("AppSidebar — menu do aluno (Context Engine, piloto Aluno)", () => {
     currentPathname = `/alunos/${ANA}`;
     renderSidebar();
     expect(screen.queryByRole("region", { name: /^Aluno/ })).toBeNull();
+  });
+});
+
+describe("AppSidebar — menu do professor (Context Engine)", () => {
+  const JOAO = "66666666-6666-4666-8666-666666666666";
+  const joao = { type: "teacher" as const, id: JOAO, label: "João Mendes", schoolId: "school-a" };
+
+  it("no perfil: voltar a Pessoas, o professor, o perfil marcado e o horário semanal", () => {
+    papel = "Secretaria";
+    focus.entity = joao;
+    currentPathname = `/professores/${JOAO}`;
+    renderSidebar();
+
+    const section = screen.getByRole("region", { name: "Professor: João Mendes" });
+    expect(section.textContent).toContain("Professor · João Mendes");
+    expect(linksTo("/pessoas").find((link) => link.label.startsWith("Voltar"))).toBeTruthy();
+    expect(linksTo(`/professores/${JOAO}`)).toEqual([{ label: "Perfil e turmas", search: {} }]);
+    expect(
+      within(section)
+        .getAllByRole("link")
+        .filter((el) => el.getAttribute("data-to") === "/pedagogica")
+        .map((el) => JSON.parse(el.getAttribute("data-search") ?? "null")),
+    ).toEqual([{ tab: "horarios", professor: JOAO }]);
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Perfil e turmas");
+  });
+
+  it("no horário, o professor da URL confirma-se na lista da escola e fica marcado", () => {
+    papel = "Secretaria";
+    teacherList.rows = [{ id: JOAO, full_name: "João Mendes" }];
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "horarios", professor: JOAO };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Professor: João Mendes" });
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Horário semanal");
+  });
+
+  it("um professor que a escola não devolveu não muda o menu", () => {
+    papel = "Secretaria";
+    teacherList.rows = [{ id: "77777777-7777-4777-8777-777777777777", full_name: "Outro" }];
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "horarios", professor: JOAO };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Professor/ })).toBeNull();
+  });
+
+  it("o encarregado não recebe o menu do professor", () => {
+    papel = "Encarregado";
+    focus.entity = joao;
+    currentPathname = `/professores/${JOAO}`;
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Professor/ })).toBeNull();
   });
 });

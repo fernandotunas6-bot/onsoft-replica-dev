@@ -72,6 +72,8 @@ export const CLASS_SEARCH_ROUTES: ReadonlySet<string> = new Set([
   "/arquivos",
 ]);
 const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set(["/pedagogica", "/planos-aula"]);
+/** A página que abre o horário de um professor por `?professor=` (separador Horários). */
+export const TEACHER_SEARCH_ROUTE = "/pedagogica";
 
 /** (1) Só rotas e parâmetros tipados que já existem; ids mal formados são ignorados. */
 export function routeContextCandidates(
@@ -85,7 +87,16 @@ export function routeContextCandidates(
   }
   if (CLASS_SEARCH_ROUTES.has(pathname)) {
     const turma = typeof search.turma === "string" && UUID.test(search.turma) ? search.turma : null;
-    if (!turma) return [];
+    if (!turma) {
+      // O horário de um professor (`?tab=horarios&professor=`): só esse separador o filtra.
+      const professor = search.professor;
+      return pathname === TEACHER_SEARCH_ROUTE &&
+        search.tab === "horarios" &&
+        typeof professor === "string" &&
+        UUID.test(professor)
+        ? [{ type: "teacher", id: professor }]
+        : [];
+    }
     const candidates: ContextCandidate[] = [{ type: "class", id: turma }];
     const disciplina = search.disciplina;
     if (

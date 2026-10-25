@@ -36,6 +36,13 @@ fictícios a 1440 e 390 px, sem scroll horizontal.
 ganha «Horário da turma» (`/pedagogica?tab=horarios&turma`); o horário abre nessa turma, com
 o menu e o breadcrumb da turma. Sem estilos novos; captura com dados fictícios a 1440 px.
 
+**25/10/2026 — SIGA Context Engine (menu do professor):** o perfil `/professores/<id>` fica
+na área Secretaria (onde a lista de pessoas o abre) e a sidebar mostra «Voltar», `Professor ·
+‹nome›`, «Perfil e turmas» e «Horário semanal». Este abre o horário da escola na vista por
+professor (`/pedagogica?tab=horarios&professor`), com o menu e o breadcrumb do professor; só
+para quem grava no Pedagógico, os que têm a lista de professores. Sem estilos novos; capturas
+com dados fictícios a 1440 px.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

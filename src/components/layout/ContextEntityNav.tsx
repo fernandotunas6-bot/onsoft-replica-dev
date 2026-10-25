@@ -8,6 +8,11 @@ import { ACADEMIC_CONTEXT_ENTRIES } from "@/features/intelligence/academic-conte
 import { academicContextLookup } from "@/features/intelligence/academic-context-lookup";
 import { useEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { STUDENT_CONTEXT_ENTRIES } from "@/features/intelligence/student-context-entries";
+import { TEACHER_CONTEXT_ENTRIES } from "@/features/intelligence/teacher-context-entries";
+import {
+  teacherContextLookup,
+  useTeacherNavList,
+} from "@/features/intelligence/teacher-context-lookup";
 import {
   contextEntryLink,
   findActiveContextEntry,
@@ -44,15 +49,23 @@ import { NavLinkRow, NavSubheader } from "./NavItem";
 const ENTITY_MENU_ROLES = new Set(["Administrador", "Secretaria", "Professor"]);
 
 /** Entradas de todos os contextos; o registo escolhe pelo tipo da entidade aberta. */
-const ENTITY_ENTRIES = [...ACADEMIC_CONTEXT_ENTRIES, ...STUDENT_CONTEXT_ENTRIES];
+const ENTITY_ENTRIES = [
+  ...ACADEMIC_CONTEXT_ENTRIES,
+  ...STUDENT_CONTEXT_ENTRIES,
+  ...TEACHER_CONTEXT_ENTRIES,
+];
 
-/** «Voltar» leva de onde a entidade se abre: o separador da área ou a lista de alunos. */
+/**
+ * «Voltar» leva de onde a entidade se abre: o separador da área, a lista de alunos
+ * ou, do perfil do professor, Pessoas.
+ */
 function backLink(
   context: ResolvedContext,
   pathname: string,
   search: Record<string, unknown>,
 ): EntityNavigation["back"] {
   if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
+  if (pathname.startsWith("/professores/")) return { to: "/pessoas" };
   const tab = typeof search.tab === "string" ? search.tab : undefined;
   return { to: pathname, ...(tab ? { search: { tab } } : {}) };
 }
@@ -77,6 +90,11 @@ export function useEntityNavigation(
     (candidate) => candidate.type === "class" || candidate.type === "subject-offering",
   );
   const { tree, schoolId } = useAcademicNavTree({ enabled: academic });
+  // O professor do horário (`?professor=`) confirma-se na lista da escola; no
+  // perfil, pelo foco que a página declara.
+  const teachers = useTeacherNavList({
+    enabled: !pathname.startsWith("/professores/") && route.some((c) => c.type === "teacher"),
+  });
 
   return useMemo(() => {
     if (route.length === 0 || !schoolId) return null;
@@ -91,11 +109,13 @@ export function useEntityNavigation(
       schoolId,
       academicYearId: selectedYearId ?? null,
       route,
-      // Turma e disciplina vêm da lista que o servidor devolveu à conta; o aluno,
-      // da ficha que a página leu do servidor (a entidade em foco).
+      // Turma e disciplina vêm da lista que o servidor devolveu à conta; o aluno e
+      // o professor, da ficha que a página leu do servidor (a entidade em foco) ou,
+      // no horário, da lista de professores da escola.
       lookup: combineContextLookups(
         academicContextLookup(tree, schoolId),
         focusContextLookup(focusedEntity),
+        teacherContextLookup(teachers, schoolId),
       ),
     });
     if (context.trail.length === 0) return null;
@@ -111,6 +131,7 @@ export function useEntityNavigation(
     route,
     schoolId,
     tree,
+    teachers,
     focusedEntity,
     account.id,
     account.role,

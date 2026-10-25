@@ -45,12 +45,14 @@ export function contextCrumbs(
     if (typeof value === "string") kept[key] = value;
   }
   const at = (depth: number) => {
-    const { turma, disciplina } = academicIdsFromTrail(trail.slice(0, depth));
+    const level = trail.slice(0, depth);
+    const { turma, disciplina } = academicIdsFromTrail(level);
+    const professor = [...level].reverse().find((frame) => frame.type === "teacher")?.id;
     return {
       to: pathname,
-      // Os filtros da página ficam; só mudam turma e disciplina. A pauta abre-se
-      // sobre uma turma, por isso sai com ela.
-      search: { ...kept, turma, disciplina, pauta: turma ? kept.pauta : undefined },
+      // Os filtros da página ficam; só mudam turma, disciplina e professor. A pauta
+      // abre-se sobre uma turma, por isso sai com ela.
+      search: { ...kept, turma, disciplina, professor, pauta: turma ? kept.pauta : undefined },
     };
   };
   return {

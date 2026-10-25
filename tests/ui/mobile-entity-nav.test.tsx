@@ -80,6 +80,11 @@ const academic = vi.hoisted(() => ({ tree: [] as unknown[] }));
 vi.mock("@/features/academic/use-academic-nav-tree", () => ({
   useAcademicNavTree: () => ({ tree: academic.tree, schoolId: "school-a" }),
 }));
+// Professores da escola (horário de um professor); estes testes não abrem nenhum.
+vi.mock("@/features/intelligence/teacher-context-lookup", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/intelligence/teacher-context-lookup")>()),
+  useTeacherNavList: () => [],
+}));
 
 // O aluno que a ficha leu do servidor (a entidade que a página declara em foco).
 const focus = vi.hoisted(() => ({
