@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  combineContextLookups,
   contextKey,
+  focusContextLookup,
   parseSubjectOfferingId,
   resolveContext,
   routeContextCandidates,
@@ -225,5 +227,58 @@ describe("resolveContext", () => {
       contextKey(SCHOOL_A, "Professor", "2027", trail),
     ]);
     expect(keys.size).toBe(4);
+  });
+});
+
+describe("lookups do foco", () => {
+  const ana: EntityFocus = {
+    type: "student",
+    id: ALUNO,
+    label: "Ana Silva",
+    schoolId: SCHOOL_A,
+    data: null,
+  };
+
+  it("o foco declarado pela página confirma só essa entidade", () => {
+    const lookup = focusContextLookup(ana);
+    expect(lookup({ type: "student", id: ALUNO })).toEqual({
+      type: "student",
+      id: ALUNO,
+      label: "Ana Silva",
+      schoolId: SCHOOL_A,
+    });
+    expect(lookup({ type: "student", id: TURMA_A })).toBeNull();
+    expect(lookup({ type: "class", id: ALUNO })).toBeNull();
+    expect(focusContextLookup(null)({ type: "student", id: ALUNO })).toBeNull();
+  });
+
+  it("a primeira fonte que confirma ganha", () => {
+    const lookup = combineContextLookups(lookupFrom(turmaA), focusContextLookup(ana));
+    expect(lookup({ type: "class", id: TURMA_A })?.label).toBe("Turma A");
+    expect(lookup({ type: "student", id: ALUNO })?.label).toBe("Ana Silva");
+    expect(lookup({ type: "class", id: TURMA_B })).toBeNull();
+  });
+
+  it("o aluno da URL entra pelo foco; de outra escola é recusado", () => {
+    const route = routeContextCandidates(`/alunos/${ALUNO}`);
+    const ok = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route,
+      lookup: focusContextLookup(ana),
+    });
+    expect(ok.source).toBe("route");
+    expect(ok.context.trail).toEqual([{ type: "student", id: ALUNO, label: "Ana Silva" }]);
+
+    const other = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route,
+      lookup: focusContextLookup({ ...ana, schoolId: SCHOOL_B }),
+    });
+    expect(other.context.trail).toEqual([]);
+    expect(other.refused).toEqual({ type: "student", id: ALUNO });
   });
 });

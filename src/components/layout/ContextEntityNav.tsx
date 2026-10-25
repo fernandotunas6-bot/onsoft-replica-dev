@@ -6,22 +6,29 @@ import { useTenant } from "@/features/saas/tenant-context";
 import { useAcademicNavTree } from "@/features/academic/use-academic-nav-tree";
 import { ACADEMIC_CONTEXT_ENTRIES } from "@/features/intelligence/academic-context-entries";
 import { academicContextLookup } from "@/features/intelligence/academic-context-lookup";
+import { useEntityFocus } from "@/features/intelligence/entity-focus-context";
+import { STUDENT_CONTEXT_ENTRIES } from "@/features/intelligence/student-context-entries";
 import {
   contextEntryLink,
   findActiveContextEntry,
   getContextEntries,
   type ContextNavEntry,
 } from "@/features/intelligence/context-registry";
-import { resolveContext, routeContextCandidates } from "@/features/intelligence/context-resolver";
+import {
+  combineContextLookups,
+  focusContextLookup,
+  resolveContext,
+  routeContextCandidates,
+} from "@/features/intelligence/context-resolver";
 import type { ContextFrame, EntityType, ResolvedContext } from "@/features/intelligence/types";
 import { cn } from "@/lib/utils";
 import { NavLinkRow, NavSubheader } from "./NavItem";
 
 /**
  * SIGA Context Engine — menu da entidade na sidebar existente (opção A: sem
- * coluna nova). Quando a URL abre uma turma ou uma disciplina que o servidor
- * devolveu à conta, a sidebar mostra «Voltar», o nome da entidade e só as
- * funções dessa entidade. A URL que o servidor não confirma não muda o menu.
+ * coluna nova). Quando a URL abre uma turma, uma disciplina ou um aluno que o
+ * servidor devolveu à conta, a sidebar mostra «Voltar», o nome da entidade e só
+ * as funções dessa entidade. A URL que o servidor não confirma não muda o menu.
  */
 
 const ENTITY_KIND: Partial<Record<EntityType, string>> = {
@@ -32,11 +39,26 @@ const ENTITY_KIND: Partial<Record<EntityType, string>> = {
 };
 
 /**
- * As entradas académicas são de gestão da turma (pauta, chamada, planos). Aluno e
+ * O menu da entidade é de gestão (pauta, chamada, planos, ficha do aluno). Aluno e
  * encarregado vêem o que é seu pelo portal; as regras de rota deixam-nos abrir
- * `/pedagogica` e `/planos-aula`, por isso a restrição fica aqui, só a estreitar.
+ * `/pedagogica`, `/planos-aula` e, ao encarregado, `/alunos/<id>`, por isso a
+ * restrição fica aqui, só a estreitar.
  */
-const ACADEMIC_ENTITY_ROLES = new Set(["Administrador", "Secretaria", "Professor"]);
+const ENTITY_MENU_ROLES = new Set(["Administrador", "Secretaria", "Professor"]);
+
+/** Entradas de todos os contextos; o registo escolhe pelo tipo da entidade aberta. */
+const ENTITY_ENTRIES = [...ACADEMIC_CONTEXT_ENTRIES, ...STUDENT_CONTEXT_ENTRIES];
+
+/** «Voltar» leva de onde a entidade se abre: o separador da área ou a lista de alunos. */
+function backLink(
+  context: ResolvedContext,
+  pathname: string,
+  search: Record<string, unknown>,
+): EntityNavigation["back"] {
+  if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
+  const tab = typeof search.tab === "string" ? search.tab : undefined;
+  return { to: pathname, ...(tab ? { search: { tab } } : {}) };
+}
 
 export type EntityNavigation = {
   context: ResolvedContext;
@@ -53,13 +75,18 @@ export function useEntityNavigation(
   const account = useCurrentAccount();
   const { selectedYearId } = useSchoolSettings();
   const { activePlan } = useTenant();
-  const staff = ACADEMIC_ENTITY_ROLES.has(account.role);
+  const { focusedEntity } = useEntityFocus();
+  const staff = ENTITY_MENU_ROLES.has(account.role);
   const route = useMemo(
     () => (staff ? routeContextCandidates(pathname, search) : []),
     [staff, pathname, search],
   );
-  // Só pede dados quando a URL traz uma turma; noutras páginas nada é carregado.
-  const { tree, schoolId } = useAcademicNavTree({ enabled: route.length > 0 });
+  // Só pede turmas e disciplinas quando a URL traz uma turma; noutras páginas
+  // nada é carregado.
+  const academic = route.some(
+    (candidate) => candidate.type === "class" || candidate.type === "subject-offering",
+  );
+  const { tree, schoolId } = useAcademicNavTree({ enabled: academic });
 
   return useMemo(() => {
     if (route.length === 0 || !schoolId) return null;
@@ -74,22 +101,27 @@ export function useEntityNavigation(
       schoolId,
       academicYearId: selectedYearId ?? null,
       route,
-      lookup: academicContextLookup(tree, schoolId),
+      // Turma e disciplina vêm da lista que o servidor devolveu à conta; o aluno,
+      // da ficha que a página leu do servidor (a entidade em foco).
+      lookup: combineContextLookups(
+        academicContextLookup(tree, schoolId),
+        focusContextLookup(focusedEntity),
+      ),
     });
     if (context.trail.length === 0) return null;
-    const entries = getContextEntries(context, ACADEMIC_CONTEXT_ENTRIES, activePlan);
+    const entries = getContextEntries(context, ENTITY_ENTRIES, activePlan);
     if (entries.length === 0) return null;
-    const tab = typeof search.tab === "string" ? search.tab : undefined;
     return {
       context,
       entries,
       activeId: findActiveContextEntry(entries, context, pathname, search),
-      back: { to: pathname, ...(tab ? { search: { tab } } : {}) },
+      back: backLink(context, pathname, search),
     };
   }, [
     route,
     schoolId,
     tree,
+    focusedEntity,
     account.id,
     account.role,
     account.grants,

@@ -92,6 +92,14 @@ const contas: Record<string, unknown> = {
     setActiveRole: () => {},
   },
 };
+for (const role of ["Secretaria", "Encarregado"]) {
+  contas[role] = {
+    ...(contas.Administrador as Record<string, unknown>),
+    role,
+    name: `${role} Teste`,
+    roles: [role],
+  };
+}
 let papel = "Administrador";
 
 vi.mock("@/features/auth/use-current-account", () => ({
@@ -121,6 +129,21 @@ vi.mock("@/features/academic/use-academic-nav-tree", () => ({
   useAcademicNavTree: () => ({
     tree: academic.tree,
     schoolId: (contas[papel] as { schoolId?: string }).schoolId ?? null,
+  }),
+}));
+
+// Entidade que a página declarou em foco (a ficha do aluno lida do servidor).
+const focus = vi.hoisted(() => ({
+  entity: null as null | { type: "student"; id: string; label: string; schoolId: string },
+}));
+vi.mock("@/features/intelligence/entity-focus-context", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/intelligence/entity-focus-context")>()),
+  useEntityFocus: () => ({
+    focusedEntity: focus.entity ? { ...focus.entity, data: null } : null,
+    setFocusedEntity: () => {},
+    clearFocusedEntity: () => {},
+    panelCollapsed: true,
+    setPanelCollapsed: () => {},
   }),
 }));
 
@@ -179,6 +202,7 @@ afterEach(() => {
   currentPathname = "/pedagogica";
   currentSearch = {};
   academic.tree = [];
+  focus.entity = null;
   localStorage.clear();
   document.documentElement.style.cssText = "";
   document.documentElement.classList.remove("dark");
@@ -617,5 +641,75 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     renderSidebar();
     expect(screen.queryByRole("region", { name: /Disciplina|Turma/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /^Voltar a/ })).toBeNull();
+  });
+});
+
+describe("AppSidebar — menu do aluno (Context Engine, piloto Aluno)", () => {
+  const ANA = "44444444-4444-4444-8444-444444444444";
+  const OUTRO = "55555555-5555-4555-8555-555555555555";
+  const ana = { type: "student" as const, id: ANA, label: "Ana Silva", schoolId: "school-a" };
+
+  it("abre a ficha: voltar à lista, o aluno e as secções, com a actual marcada", () => {
+    papel = "Secretaria";
+    focus.entity = ana;
+    currentPathname = `/alunos/${ANA}`;
+    currentSearch = { secao: "financeiro" };
+    renderSidebar();
+
+    const section = screen.getByRole("region", { name: "Aluno: Ana Silva" });
+    expect(section.textContent).toContain("Aluno · Ana Silva");
+    expect(linksTo("/alunos").find((link) => link.label.startsWith("Voltar"))).toBeTruthy();
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([
+      { label: "Ficha completa", search: {} },
+      { label: "Identificação", search: { secao: "identificacao" } },
+      { label: "Académico", search: { secao: "academico" } },
+      { label: "Financeiro", search: { secao: "financeiro" } },
+      { label: "Documentos", search: { secao: "documentos" } },
+    ]);
+    const active = screen
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Financeiro");
+    // Não pede turmas nem disciplinas: o aluno vem da ficha que a página leu.
+    expect(document.body.innerHTML).not.toContain(OUTRO);
+  });
+
+  it("sem secção, a ficha completa fica marcada", () => {
+    papel = "Secretaria";
+    focus.entity = ana;
+    currentPathname = `/alunos/${ANA}`;
+    renderSidebar();
+    const active = screen
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Ficha completa");
+  });
+
+  it("enquanto a página não leu o aluno do servidor, o id da URL não muda o menu", () => {
+    papel = "Secretaria";
+    currentPathname = `/alunos/${ANA}`;
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Aluno/ })).toBeNull();
+  });
+
+  it("outro aluno em foco, ou de outra escola, não confirma o id da URL", () => {
+    papel = "Secretaria";
+    currentPathname = `/alunos/${ANA}`;
+    focus.entity = { ...ana, id: OUTRO };
+    const first = renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Aluno/ })).toBeNull();
+    first.unmount();
+
+    focus.entity = { ...ana, schoolId: "school-b" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Aluno/ })).toBeNull();
+  });
+
+  it("o encarregado não recebe o menu de gestão do aluno", () => {
+    papel = "Encarregado";
+    focus.entity = ana;
+    currentPathname = `/alunos/${ANA}`;
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Aluno/ })).toBeNull();
   });
 });
