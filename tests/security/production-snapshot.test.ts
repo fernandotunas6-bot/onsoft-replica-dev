@@ -88,9 +88,9 @@ const NAO_DECLARADAS_HOJE = 0;
  * Qualquer entrada nova aqui é uma decisão de expor dados sem autenticação e
  * tem de ser justificada por escrito antes de passar.
  */
+// As duas das inscrições públicas saíram a 2026-10-25 com a
+// 20261018110000_enrollment_public_server_only (o formulário passa pelo servidor).
 const ANON_POLICIES_ESPERADAS = [
-  "enrollment_applications.Public insert open enrollment applications",
-  "enrollment_forms.Public read open enrollment forms",
   "reserved_subdomains.public_read_reserved_subdomains",
   "school_branding.public_read_school_branding",
 ];
@@ -154,15 +154,9 @@ const ANON_POLICIES_ESPERADAS = [
 // tabelas do chat (20261002093000_chat_conversations.sql) foram aplicadas e
 // aparecem no retrato recapturado nesse dia.
 // O retrato de 2026-10-21 confirma também tenant_billing_profiles.
-// 2026-10-24: sessões de caixa (20261024110000_finance_cash_sessions.sql), por
-// aplicar. `getCashSessionState` lê primeiro `finance_cash_points` e, sem a
-// tabela, devolve `available: false` — o ecrã não mostra o bloco do caixa e
-// nada mais consulta as duas tabelas. Saem quando o retrato as mostrar.
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  "finance_cash_points",
-  "finance_cash_sessions",
-  "finance_cash_deposits",
-]);
+// Voltou a esvaziar a 2026-10-25: as tabelas das sessões de caixa e dos depósitos
+// (20261024110000 e 20261025110000) estão no retrato recapturado nesse dia.
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {

@@ -1,14 +1,14 @@
 {
-  "capturadoEm": "2026-10-21T05:39:44.278Z",
+  "capturadoEm": "2026-10-25T11:49:10.846Z",
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
-    "com_rls": 207,
-    "funcoes_private": 130,
-    "politicas": 371,
+    "com_rls": 211,
+    "funcoes_private": 146,
+    "politicas": 364,
     "politicas_storage": 14,
-    "tabelas": 207,
-    "triggers": 221
+    "tabelas": 211,
+    "triggers": 231
   },
   "tabelas": [
     {
@@ -1438,13 +1438,13 @@
         "form_id",
         "full_name"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "enrollment_applications"
     },
     {
-      "anon_select": true,
+      "anon_select": false,
       "auth_select": true,
       "colunas": [
         "id",
@@ -1469,7 +1469,7 @@
         "slug",
         "title"
       ],
-      "politicas": 2,
+      "politicas": 1,
       "rls": true,
       "rls_forcada": true,
       "tabela": "enrollment_forms"
@@ -1563,6 +1563,86 @@
       "rls": true,
       "rls_forcada": false,
       "tabela": "fee_plans"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "cash_session_id",
+        "amount",
+        "bank_reference",
+        "status",
+        "deposited_by",
+        "deposited_at",
+        "confirmed_by",
+        "confirmed_at",
+        "reversed_by",
+        "reversed_at",
+        "reversal_reason"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "cash_session_id",
+        "amount",
+        "bank_reference",
+        "deposited_by"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": false,
+      "tabela": "finance_cash_deposits"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "name",
+        "active",
+        "enforce_from",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "school_id"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "finance_cash_points"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "cash_point_id",
+        "status",
+        "opened_by",
+        "opened_at",
+        "opening_float",
+        "closed_by",
+        "closed_at",
+        "counted_cash",
+        "expected_cash",
+        "difference",
+        "difference_reason",
+        "approved_by",
+        "approved_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "cash_point_id",
+        "opened_by",
+        "opening_float"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "finance_cash_sessions"
     },
     {
       "anon_select": false,
@@ -1717,7 +1797,10 @@
         "reversed_by",
         "reversal_reason",
         "created_at",
-        "external_id"
+        "external_id",
+        "cash_session_id",
+        "reversed_in_session_id",
+        "idempotency_key"
       ],
       "obrigatorias": [
         "school_id",
@@ -3789,7 +3872,7 @@
     },
     {
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "colunas": [
         "id",
         "tenant_id",
@@ -3805,9 +3888,9 @@
         "action",
         "entity"
       ],
-      "politicas": 4,
+      "politicas": 3,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "saas_audit_logs"
     },
     {
@@ -4538,6 +4621,44 @@
       "colunas": [
         "id",
         "school_id",
+        "academic_year_id",
+        "class_group_id",
+        "teacher_id",
+        "title",
+        "description",
+        "category",
+        "starts_on",
+        "ends_on",
+        "starts_at",
+        "ends_at",
+        "audience",
+        "blocks_teaching",
+        "status",
+        "version",
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "academic_year_id",
+        "title",
+        "category",
+        "starts_on",
+        "ends_on"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_calendar_events"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
         "document_number",
         "description",
         "category",
@@ -4552,7 +4673,11 @@
         "created_at",
         "created_by",
         "updated_at",
-        "updated_by"
+        "updated_by",
+        "cash_session_id",
+        "reversed_in_session_id",
+        "approved_by",
+        "approved_at"
       ],
       "obrigatorias": [
         "school_id",
@@ -4850,7 +4975,7 @@
     },
     {
       "anon_select": false,
-      "auth_select": true,
+      "auth_select": false,
       "colunas": [
         "id",
         "school_id",
@@ -4873,9 +4998,9 @@
         "external_meeting_id",
         "join_url"
       ],
-      "politicas": 4,
+      "politicas": 0,
       "rls": true,
-      "rls_forcada": false,
+      "rls_forcada": true,
       "tabela": "siga_lesson_meetings"
     },
     {
@@ -6526,24 +6651,6 @@
       "verificando": ""
     },
     {
-      "cmd": "INSERT",
-      "modo": "PERMISSIVE",
-      "papeis": "{anon}",
-      "politica": "Public insert open enrollment applications",
-      "tabela": "enrollment_applications",
-      "usando": "",
-      "verificando": "((status = 'pending'::text) AND (decided_at IS NULL) AND (decided_by IS NULL) AND (student_id IS NULL) AND (deleted_at IS NULL) AND (EXISTS ( SELECT 1\n   FROM enrollment_forms forms\n  WHERE ((forms.id = enrollment_applications.form_id) AND (forms.school_id = enrollment_applications.school_id) AND (forms.is_open = true) AND (forms.deleted_at IS NULL)))))"
-    },
-    {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{anon}",
-      "politica": "Public read open enrollment forms",
-      "tabela": "enrollment_forms",
-      "usando": "((is_open = true) AND (deleted_at IS NULL))",
-      "verificando": ""
-    },
-    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -8155,15 +8262,6 @@
       "verificando": "private.is_aal2()"
     },
     {
-      "cmd": "ALL",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "platform_admin_all_saas_audit_logs",
-      "tabela": "saas_audit_logs",
-      "usando": "is_platform_admin()",
-      "verificando": "is_platform_admin()"
-    },
-    {
       "cmd": "SELECT",
       "modo": "PERMISSIVE",
       "papeis": "{authenticated}",
@@ -8711,42 +8809,6 @@
       "tabela": "siga_files",
       "usando": "(is_school_member(school_id) AND (is_system IS NOT TRUE) AND ((owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))) AND private.sga_file_can_write_area(private.sga_file_role(school_id), area))",
       "verificando": "(is_school_member(school_id) AND (is_system IS NOT TRUE) AND ((owner_user_id = ( SELECT auth.uid() AS uid)) OR (private.sga_file_role(school_id) = 'Administrador'::text) OR ((area = 'secretaria'::text) AND (private.sga_file_role(school_id) = 'Secretaria'::text))) AND private.sga_file_can_write_area(private.sga_file_role(school_id), area))"
-    },
-    {
-      "cmd": "DELETE",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Staff manage lesson meetings in own school (delete)",
-      "tabela": "siga_lesson_meetings",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
-      "verificando": ""
-    },
-    {
-      "cmd": "INSERT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Staff manage lesson meetings in own school (insert)",
-      "tabela": "siga_lesson_meetings",
-      "usando": "",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))"
-    },
-    {
-      "cmd": "UPDATE",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "Staff manage lesson meetings in own school (update)",
-      "tabela": "siga_lesson_meetings",
-      "usando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))",
-      "verificando": "((school_id = ( SELECT current_school_id() AS current_school_id)) AND is_school_member(school_id) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text]))"
-    },
-    {
-      "cmd": "SELECT",
-      "modo": "PERMISSIVE",
-      "papeis": "{authenticated}",
-      "politica": "siga_lesson_meetings_read",
-      "tabela": "siga_lesson_meetings",
-      "usando": "(((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids)))) OR ((school_id = ( SELECT current_school_id() AS current_school_id)) AND ((school_id IS NOT NULL) AND (school_id IN ( SELECT private.user_member_school_ids() AS user_member_school_ids))) AND current_school_role_is(ARRAY['owner'::text, 'admin'::text, 'administrator'::text, 'administrador'::text, 'diretor geral'::text, 'director geral'::text, 'professor'::text, 'teacher'::text])))",
-      "verificando": ""
     },
     {
       "cmd": "DELETE",
@@ -9479,6 +9541,12 @@
       "security_definer": true
     },
     {
+      "args": "p_school_id uuid, p_session_id uuid",
+      "funcao": "approve_cash_difference",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_sheet_id uuid, actor uuid",
       "funcao": "archive_grade_sheet_version",
       "schema": "private",
@@ -9557,6 +9625,42 @@
       "security_definer": false
     },
     {
+      "args": "",
+      "funcao": "cash_movement_attach_session",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "cash_movement_reversal_session",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "cash_point_for",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_session_id uuid",
+      "funcao": "cash_session_expected",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "cash_session_or_refuse",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_session_id uuid, p_counted_cash numeric, p_reason text",
+      "funcao": "close_cash_session",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_gradebook_id uuid",
       "funcao": "close_gradebook",
       "schema": "private",
@@ -9571,6 +9675,12 @@
     {
       "args": "target_school_id uuid, target_class_group_id uuid, target_subject_id uuid, target_teacher_id uuid, target_weekly_periods integer",
       "funcao": "configure_class_subject",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_deposit_id uuid",
+      "funcao": "confirm_cash_deposit",
       "schema": "private",
       "security_definer": true
     },
@@ -9702,6 +9812,12 @@
     },
     {
       "args": "",
+      "funcao": "finance_invoice_one_tuition_per_month",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "",
       "funcao": "grade_sheet_versions_immutable",
       "schema": "private",
       "security_definer": false
@@ -9711,6 +9827,12 @@
       "funcao": "guard_academic_year_covers_terms",
       "schema": "private",
       "security_definer": true
+    },
+    {
+      "args": "",
+      "funcao": "guard_siga_calendar_event",
+      "schema": "private",
+      "security_definer": false
     },
     {
       "args": "target_school_id uuid, permission_code text",
@@ -9797,6 +9919,12 @@
       "security_definer": false
     },
     {
+      "args": "p_school_id uuid, p_survivor_id uuid, p_duplicate_id uuid, p_reason text, p_actor uuid",
+      "funcao": "merge_people",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
       "args": "target_school_id uuid, target_document_type text, default_prefix text",
       "funcao": "next_document_number",
       "schema": "private",
@@ -9811,6 +9939,12 @@
     {
       "args": "target_school_id uuid, target_entity text",
       "funcao": "next_entity_identifier",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_kind text, target_year integer",
+      "funcao": "next_year_number",
       "schema": "private",
       "security_definer": true
     },
@@ -9835,6 +9969,18 @@
     {
       "args": "target_school_id uuid, target_timetable_slot_id uuid, target_session_date date",
       "funcao": "open_attendance_session",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid, p_opening_float numeric",
+      "funcao": "open_cash_session",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "p_school_id uuid",
+      "funcao": "open_cash_session_for",
       "schema": "private",
       "security_definer": true
     },
@@ -9899,7 +10045,13 @@
       "security_definer": false
     },
     {
-      "args": "target_school_id uuid, target_invoice_id uuid, target_amount numeric, target_payment_method text, target_paid_on date",
+      "args": "p_school_id uuid, p_amount numeric, p_bank_reference text",
+      "funcao": "record_cash_deposit",
+      "schema": "private",
+      "security_definer": true
+    },
+    {
+      "args": "target_school_id uuid, target_invoice_id uuid, target_amount numeric, target_payment_method text, target_paid_on date, target_idempotency_key uuid",
       "funcao": "register_payment",
       "schema": "private",
       "security_definer": true
@@ -9951,6 +10103,12 @@
       "funcao": "respond_grade_complaint",
       "schema": "private",
       "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_deposit_id uuid, p_reason text",
+      "funcao": "reverse_cash_deposit",
+      "schema": "private",
+      "security_definer": true
     },
     {
       "args": "p_school_id uuid, p_receipt_id uuid, p_reason text",
@@ -10271,6 +10429,12 @@
       "security_definer": false
     },
     {
+      "args": "school_id uuid, session_id uuid",
+      "funcao": "approve_cash_difference",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "p_request_id uuid, p_reviewer_id uuid, p_person_id uuid",
       "funcao": "approve_school_access_request",
       "schema": "public",
@@ -10331,6 +10495,12 @@
       "security_definer": false
     },
     {
+      "args": "session_id uuid",
+      "funcao": "cash_session_expected",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "",
       "funcao": "claim_guardian_portal",
       "schema": "public",
@@ -10343,6 +10513,12 @@
       "security_definer": true
     },
     {
+      "args": "school_id uuid, session_id uuid, counted_cash numeric, reason text",
+      "funcao": "close_cash_session",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "school_id uuid, gradebook_id uuid",
       "funcao": "close_gradebook",
       "schema": "public",
@@ -10351,6 +10527,12 @@
     {
       "args": "school_id uuid, class_group_id uuid, subject_id uuid, teacher_id uuid, weekly_periods integer",
       "funcao": "configure_class_subject",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, deposit_id uuid",
+      "funcao": "confirm_cash_deposit",
       "schema": "public",
       "security_definer": false
     },
@@ -10775,6 +10957,12 @@
       "security_definer": false
     },
     {
+      "args": "",
+      "funcao": "hr_settle_zero_net_payroll_item",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "p_school_id uuid, p_employment_id uuid, p_destination jsonb",
       "funcao": "hr_upsert_payment_destination",
       "schema": "public",
@@ -10877,6 +11065,12 @@
       "security_definer": false
     },
     {
+      "args": "school_id uuid, opening_float numeric",
+      "funcao": "open_cash_session",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
       "args": "school_id uuid, class_subject_id uuid, term_id uuid",
       "funcao": "open_gradebook",
       "schema": "public",
@@ -10919,7 +11113,13 @@
       "security_definer": false
     },
     {
-      "args": "school_id uuid, invoice_id uuid, amount numeric, payment_method text, paid_on date",
+      "args": "school_id uuid, amount numeric, bank_reference text",
+      "funcao": "record_cash_deposit",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, invoice_id uuid, amount numeric, payment_method text, paid_on date, idempotency_key uuid",
       "funcao": "register_payment",
       "schema": "public",
       "security_definer": false
@@ -10975,6 +11175,12 @@
     {
       "args": "school_id uuid, complaint_id uuid, status text, response text",
       "funcao": "respond_grade_complaint",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "school_id uuid, deposit_id uuid, reason text",
+      "funcao": "reverse_cash_deposit",
       "schema": "public",
       "security_definer": false
     },
@@ -11065,6 +11271,12 @@
     {
       "args": "p_school_id uuid, p_request_id uuid, p_person jsonb, p_guardians jsonb, p_class_group_id uuid, p_academic_year_id uuid, p_admission_date date",
       "funcao": "siga_enroll_new_student_atomic",
+      "schema": "public",
+      "security_definer": false
+    },
+    {
+      "args": "p_school_id uuid, p_survivor_id uuid, p_duplicate_id uuid, p_reason text, p_actor uuid",
+      "funcao": "siga_merge_people",
       "schema": "public",
       "security_definer": false
     },
@@ -11521,6 +11733,12 @@
       "trigger": "audit_finance_invoices_change"
     },
     {
+      "funcao": "finance_invoice_one_tuition_per_month",
+      "funcao_schema": "private",
+      "tabela": "finance_invoices",
+      "trigger": "finance_invoices_one_tuition_per_month"
+    },
+    {
       "funcao": "trg_notify_invoice_issued",
       "funcao_schema": "private",
       "tabela": "finance_invoices",
@@ -11531,6 +11749,18 @@
       "funcao_schema": "private",
       "tabela": "finance_receipts",
       "trigger": "audit_finance_receipts_change"
+    },
+    {
+      "funcao": "cash_movement_reversal_session",
+      "funcao_schema": "private",
+      "tabela": "finance_receipts",
+      "trigger": "finance_receipts_cash_reversal"
+    },
+    {
+      "funcao": "cash_movement_attach_session",
+      "funcao_schema": "private",
+      "tabela": "finance_receipts",
+      "trigger": "finance_receipts_cash_session"
     },
     {
       "funcao": "audit_row_change",
@@ -11771,6 +12001,12 @@
       "funcao_schema": "public",
       "tabela": "hr_payroll_items",
       "trigger": "hr_payroll_items_set_updated_at"
+    },
+    {
+      "funcao": "hr_settle_zero_net_payroll_item",
+      "funcao_schema": "public",
+      "tabela": "hr_payroll_items",
+      "trigger": "hr_payroll_items_settle_zero_net"
     },
     {
       "funcao": "set_updated_at_and_version",
@@ -12247,6 +12483,42 @@
       "trigger": "enforce_teacher_assessment_score_scope"
     },
     {
+      "funcao": "guard_siga_calendar_event",
+      "funcao_schema": "private",
+      "tabela": "siga_calendar_events",
+      "trigger": "guard_siga_calendar_event"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "siga_calendar_events",
+      "trigger": "siga_calendar_events_audit"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
+      "tabela": "siga_calendar_events",
+      "trigger": "siga_calendar_events_touch"
+    },
+    {
+      "funcao": "audit_row_change",
+      "funcao_schema": "private",
+      "tabela": "siga_cash_expenses",
+      "trigger": "audit_siga_cash_expenses_change"
+    },
+    {
+      "funcao": "cash_movement_reversal_session",
+      "funcao_schema": "private",
+      "tabela": "siga_cash_expenses",
+      "trigger": "siga_cash_expenses_cash_reversal"
+    },
+    {
+      "funcao": "cash_movement_attach_session",
+      "funcao_schema": "private",
+      "tabela": "siga_cash_expenses",
+      "trigger": "siga_cash_expenses_cash_session"
+    },
+    {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
       "tabela": "siga_cash_expenses",
@@ -12522,9 +12794,9 @@
       "para": "class_groups"
     },
     {
+      "chave": "academic_schedules_shift_id_fkey",
       "de": "academic_schedules",
-      "para": "school_shifts",
-      "chave": "academic_schedules_shift_id_fkey"
+      "para": "school_shifts"
     },
     {
       "chave": "academic_schedules_school_id_fkey",
@@ -13137,6 +13409,31 @@
       "para": "schools"
     },
     {
+      "chave": "finance_cash_deposits_cash_session_id_fkey",
+      "de": "finance_cash_deposits",
+      "para": "finance_cash_sessions"
+    },
+    {
+      "chave": "finance_cash_deposits_school_id_fkey",
+      "de": "finance_cash_deposits",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_cash_points_school_id_fkey",
+      "de": "finance_cash_points",
+      "para": "schools"
+    },
+    {
+      "chave": "finance_cash_sessions_cash_point_id_fkey",
+      "de": "finance_cash_sessions",
+      "para": "finance_cash_points"
+    },
+    {
+      "chave": "finance_cash_sessions_school_id_fkey",
+      "de": "finance_cash_sessions",
+      "para": "schools"
+    },
+    {
       "chave": "finance_contracts_school_id_enrollment_id_fkey",
       "de": "finance_contracts",
       "para": "enrollments"
@@ -13185,6 +13482,16 @@
       "chave": "finance_payment_plans_school_id_fkey",
       "de": "finance_payment_plans",
       "para": "schools"
+    },
+    {
+      "chave": "finance_receipts_cash_session_id_fkey",
+      "de": "finance_receipts",
+      "para": "finance_cash_sessions"
+    },
+    {
+      "chave": "finance_receipts_reversed_in_session_id_fkey",
+      "de": "finance_receipts",
+      "para": "finance_cash_sessions"
     },
     {
       "chave": "finance_receipts_school_id_invoice_id_fkey",
@@ -14187,6 +14494,36 @@
       "para": "timetable_slots"
     },
     {
+      "chave": "siga_calendar_events_year_fkey",
+      "de": "siga_calendar_events",
+      "para": "academic_years"
+    },
+    {
+      "chave": "siga_calendar_events_group_fkey",
+      "de": "siga_calendar_events",
+      "para": "class_groups"
+    },
+    {
+      "chave": "siga_calendar_events_school_id_fkey",
+      "de": "siga_calendar_events",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_calendar_events_teacher_fkey",
+      "de": "siga_calendar_events",
+      "para": "teachers"
+    },
+    {
+      "chave": "siga_cash_expenses_cash_session_id_fkey",
+      "de": "siga_cash_expenses",
+      "para": "finance_cash_sessions"
+    },
+    {
+      "chave": "siga_cash_expenses_reversed_in_session_id_fkey",
+      "de": "siga_cash_expenses",
+      "para": "finance_cash_sessions"
+    },
+    {
       "chave": "siga_cash_expenses_school_id_fkey",
       "de": "siga_cash_expenses",
       "para": "schools"
@@ -14649,8 +14986,8 @@
   ],
   "valores": [
     {
-      "tabela": "academic_schedules",
       "coluna": "source",
+      "tabela": "academic_schedules",
       "valores": [
         "carried_over",
         "imported",
@@ -15230,6 +15567,22 @@
         "active",
         "draft",
         "retired"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "finance_cash_deposits",
+      "valores": [
+        "posted",
+        "reversed"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "finance_cash_sessions",
+      "valores": [
+        "closed",
+        "open"
       ]
     },
     {
@@ -16210,6 +16563,33 @@
       ]
     },
     {
+      "coluna": "audience",
+      "tabela": "siga_calendar_events",
+      "valores": [
+        "all",
+        "staff"
+      ]
+    },
+    {
+      "coluna": "category",
+      "tabela": "siga_calendar_events",
+      "valores": [
+        "closure",
+        "deadline",
+        "event",
+        "holiday",
+        "meeting"
+      ]
+    },
+    {
+      "coluna": "status",
+      "tabela": "siga_calendar_events",
+      "valores": [
+        "cancelled",
+        "published"
+      ]
+    },
+    {
       "coluna": "method",
       "tabela": "siga_cash_expenses",
       "valores": [
@@ -16225,6 +16605,7 @@
       "coluna": "status",
       "tabela": "siga_cash_expenses",
       "valores": [
+        "pending_approval",
         "posted",
         "reversed"
       ]

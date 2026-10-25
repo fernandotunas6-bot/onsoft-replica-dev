@@ -20,19 +20,6 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
  */
 // O retrato de 2026-10-21 inclui também a sonda service-only do website/blog, e já tem
 // `merge_school_subjects`.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
-  // 20261010110000 (auditoria 14, P4): fundir pessoas numa transacção. Sem ela,
-  // mergePeople segue os passos soltos de antes (mergePeopleInSteps, por isMissingFunction).
-  "siga_merge_people",
-  // 2026-10-24: sessões de caixa, `20261024110000_finance_cash_sessions.sql` por aplicar.
-  // `getCashSessionState` lê primeiro `finance_cash_points` e, sem a tabela, devolve
-  // `available: false`: o ecrã não mostra o bloco, e as três operações e o esperado
-  // (que vêm na mesma migração) não são chamados.
-  "open_cash_session",
-  "close_cash_session",
-  "approve_cash_difference",
-  "cash_session_expected",
-  "record_cash_deposit",
-  "reverse_cash_deposit",
-  "confirm_cash_deposit",
-]);
+// O retrato de 2026-10-25 já tem `siga_merge_people` e as funções das sessões de caixa
+// (20261024110000, actualizada pela 20261025110000).
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
