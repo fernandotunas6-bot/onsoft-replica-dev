@@ -17,6 +17,7 @@ import {
   financeListInputSchema,
   listInvoicesInputSchema,
   issueInvoiceInputSchema,
+  EXPENSE_APPROVAL_THRESHOLD,
   recordCashExpenseInputSchema,
   recordInvoicePaymentInputSchema,
   createPaymentPlanInputSchema,
@@ -88,7 +89,7 @@ export type CashEntrySummary = {
   description: string;
   category: string;
   method: string;
-  status: "posted" | "reversed";
+  status: "posted" | "reversed" | "pending_approval";
   direction: "in" | "out";
   amount: number;
 };
@@ -556,7 +557,8 @@ export const getFinanceReporting = createServerFn({ method: "GET" })
     }
 
     for (const expense of expenses) {
-      if (expense.status === "reversed") continue;
+      // Por aprovar ainda não saiu do caixa; anulada nunca saiu.
+      if (expense.status === "reversed" || expense.status === "pending_approval") continue;
       const expenseAmount = Number(expense.amount ?? 0);
       cashOut += expenseAmount;
       const category = String(expense.category ?? "Despesa");
@@ -822,7 +824,12 @@ export const listCashEntries = createServerFn({ method: "GET" })
               : String(expense["description"] ?? ""),
           category: String(expense["category"] ?? "Despesa"),
           method: String(expense["method"] ?? "cash"),
-          status: expense["status"] === "reversed" ? "reversed" : "posted",
+          status:
+            expense["status"] === "reversed"
+              ? "reversed"
+              : expense["status"] === "pending_approval"
+                ? "pending_approval"
+                : "posted",
           direction: "out" as const,
           amount: Number(expense["amount"] ?? 0),
         }));
@@ -1358,6 +1365,11 @@ export const issueInvoice = createServerFn({ method: "POST" })
     };
   });
 
+// Quem registou uma despesa nunca a anula sozinho (§8); o limite de aprovação está em
+// schemas.ts (EXPENSE_APPROVAL_THRESHOLD), partilhado com o ecrã.
+const EXPENSE_SELF_REVERSAL_MESSAGE =
+  "Quem registou a despesa não a pode anular. Peça a outra pessoa da tesouraria ou a um Administrador.";
+
 export const recordCashExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => recordCashExpenseInputSchema.parse(input))
@@ -1370,24 +1382,35 @@ export const recordCashExpense = createServerFn({ method: "POST" })
       ["Administrador", "Tesouraria"],
     );
     const db = await loadSgaAdminClient();
-    const { data: expense, error } = await db
-      .from("siga_cash_expenses")
-      .insert({
-        school_id: membership.schoolId,
-        document_number: data.documentNumber,
-        description: data.description,
-        category: data.category,
-        amount: data.amount,
-        method: data.method,
-        reference: data.reference ?? null,
-        occurred_at: data.occurredAt ?? new Date().toISOString(),
-        status: "posted",
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
-      .select("id, document_number, description, category, amount, method, occurred_at, status")
-      .single();
+    const insertExpense = (status: "posted" | "pending_approval") =>
+      db
+        .from("siga_cash_expenses")
+        .insert({
+          school_id: membership.schoolId,
+          document_number: data.documentNumber,
+          description: data.description,
+          category: data.category,
+          amount: data.amount,
+          method: data.method,
+          reference: data.reference ?? null,
+          occurred_at: data.occurredAt ?? new Date().toISOString(),
+          status,
+          created_by: context.userId,
+          updated_by: context.userId,
+        })
+        .select("id, document_number, description, category, amount, method, occurred_at, status")
+        .single();
+    const needsApproval = data.amount > EXPENSE_APPROVAL_THRESHOLD;
+    let { data: expense, error } = await insertExpense(
+      needsApproval ? "pending_approval" : "posted",
+    );
+    // Base ainda sem 20261025100000: o CHECK de `status` recusa `pending_approval`.
+    // Lança como antes, em vez de recusar a despesa; a aprovação activa-se com a migração.
+    if (needsApproval && error?.code === "23514") {
+      ({ data: expense, error } = await insertExpense("posted"));
+    }
     if (error) throw publicDatabaseError(error, "Não foi possível registar a despesa de caixa.");
+    if (!expense) throw new Error("Não foi possível registar a despesa de caixa.");
 
     const documentCode = stableDocumentCode("despesa", String(expense.id));
     const archived = await archiveFinanceQuietly(db, {
@@ -1472,6 +1495,19 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
       );
     }
 
+    // Separação de funções (§8): quem registou a saída não a anula sozinho.
+    const { data: current, error: currentError } = await db
+      .from("siga_cash_expenses")
+      .select("created_by")
+      .eq("id", data.cashEntryId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (currentError)
+      throw publicDatabaseError(currentError, "Não foi possível verificar a despesa.");
+    if (current?.created_by && current.created_by === context.userId) {
+      throw new Error(EXPENSE_SELF_REVERSAL_MESSAGE);
+    }
+
     const { data: expense, error: expenseError } = await db
       .from("siga_cash_expenses")
       .update({
@@ -1483,11 +1519,64 @@ export const reverseCashEntry = createServerFn({ method: "POST" })
       })
       .eq("id", data.cashEntryId)
       .eq("school_id", membership.schoolId)
-      .eq("status", "posted")
+      .in("status", ["posted", "pending_approval"])
+      .or(`created_by.is.null,created_by.neq.${context.userId}`)
       .select("*")
       .maybeSingle();
     if (expenseError) throw publicDatabaseError(expenseError, "Não foi possível anular a despesa.");
     if (!expense) throw new Error("Movimento não encontrado ou já anulado.");
+    return expense;
+  });
+
+const approveCashExpenseInputSchema = z.object({ cashEntryId: z.string().guid() });
+
+/** Aprovar uma despesa por aprovar: só um Administrador, e nunca quem a registou. */
+export const approveCashExpense = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => approveCashExpenseInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    requireAal2(context.claims, "Aprovar uma despesa");
+    const membership = await requireSgaWriterForWrite(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador"],
+    );
+    const db = await loadSgaAdminClient();
+    const { data: current, error: currentError } = await db
+      .from("siga_cash_expenses")
+      .select("created_by, status")
+      .eq("id", data.cashEntryId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (currentError) throw publicDatabaseError(currentError, "Não foi possível ler a despesa.");
+    if (!current || current.status !== "pending_approval") {
+      throw new Error("Esta despesa não está por aprovar.");
+    }
+    if (current.created_by === context.userId) {
+      throw new Error("Quem registou a despesa não a pode aprovar.");
+    }
+    const approve = (fields: Record<string, unknown>) =>
+      db
+        .from("siga_cash_expenses")
+        .update({ status: "posted", updated_by: context.userId, ...fields })
+        .eq("id", data.cashEntryId)
+        .eq("school_id", membership.schoolId)
+        .eq("status", "pending_approval")
+        .neq("created_by", context.userId)
+        .select("id, status")
+        .maybeSingle();
+    let { data: expense, error } = await approve({
+      approved_by: context.userId,
+      approved_at: new Date().toISOString(),
+    });
+    // Base ainda sem 20261025100000: sem as colunas da aprovação, quem aprovou fica
+    // em `updated_by` — a despesa não pode ficar presa por aprovar.
+    if (error && (error.code === "PGRST204" || error.code === "42703")) {
+      ({ data: expense, error } = await approve({}));
+    }
+    if (error) throw publicDatabaseError(error, "Não foi possível aprovar a despesa.");
+    if (!expense) throw new Error("Esta despesa já foi tratada por outra pessoa.");
     return expense;
   });
 

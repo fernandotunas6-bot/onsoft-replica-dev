@@ -71,6 +71,7 @@ import {
   recordCashExpense,
   recordInvoicePayment,
   reverseCashEntry,
+  approveCashExpense,
 } from "@/features/finance/server";
 import { kwanza } from "@/lib/currency";
 import { exportCsv } from "@/lib/export-csv";
@@ -78,7 +79,7 @@ import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader"
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
-import { officialReceiptBody } from "@/features/finance/schemas";
+import { officialReceiptBody, EXPENSE_APPROVAL_THRESHOLD } from "@/features/finance/schemas";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
@@ -101,7 +102,7 @@ type CashExportRow = {
   metodo: string;
   tipo: "Entrada" | "Saída";
   valor: number;
-  status: "posted" | "reversed";
+  status: "posted" | "reversed" | "pending_approval";
 };
 
 export const Route = createFileRoute("/financeiro")({
@@ -160,6 +161,7 @@ function FamilyFinancePage() {
 }
 
 function FinanceiroPage() {
+  const account = useCurrentAccount();
   useEffect(() => {
     warmFinanceCharts();
   }, []);
@@ -279,7 +281,12 @@ function FinanceiroPage() {
       overlay: overlayServico({
         name: movimento.tipo === "Entrada" ? "Recibo de caixa" : "Comprovativo de saída",
         reference: movimento.documento || "CAIXA",
-        status: movimento.status === "reversed" ? "Anulado" : "Lançado",
+        status:
+          movimento.status === "reversed"
+            ? "Anulado"
+            : movimento.status === "pending_approval"
+              ? "Por aprovar"
+              : "Lançado",
         parties: [
           { label: "Escola", value: school?.name ?? "Escola" },
           { label: "Tesouraria", value: school?.director_name || "Caixa" },
@@ -375,7 +382,15 @@ function FinanceiroPage() {
   const paymentMethods = {
     Numerário: "cash",
   } as const;
-  const reversibleEntries = movimentos.filter((movimento) => movimento.status === "posted");
+  // Uma despesa por aprovar também se pode recusar (anular), por outra pessoa.
+  const reversibleEntries = movimentos.filter(
+    (movimento) => movimento.status === "posted" || movimento.status === "pending_approval",
+  );
+  const pendingExpenses = movimentos.filter((movimento) => movimento.status === "pending_approval");
+  const pendingExpenseOptions = pendingExpenses.map(
+    (movimento) => `${movimento.documento} · ${movimento.descricao} · ${kwanza(movimento.valor)}`,
+  );
+  const canApproveExpenses = account.role === "Administrador";
   const cashEntryOptions = reversibleEntries.map(
     (movimento) => `${movimento.documento} · ${movimento.descricao}`,
   );
@@ -663,6 +678,39 @@ function FinanceiroPage() {
                     </Button>
                   )}
                 />
+                {canApproveExpenses && pendingExpenses.length ? (
+                  <QuickFormModal
+                    eyebrow="Tesouraria"
+                    title="Aprovar despesa"
+                    description={`Despesas acima de ${kwanza(EXPENSE_APPROVAL_THRESHOLD)} ficam por aprovar até um Administrador que não as registou as aprovar. Para recusar, use Anular lançamento.`}
+                    submitLabel="Aprovar"
+                    successDescription="Despesa aprovada e lançada."
+                    fields={[
+                      {
+                        name: "despesa",
+                        label: "Despesa",
+                        type: "select",
+                        options: pendingExpenseOptions,
+                        full: true,
+                      },
+                    ]}
+                    onSubmit={async (values) => {
+                      const entry =
+                        pendingExpenses[pendingExpenseOptions.indexOf(values["despesa"] ?? "")];
+                      if (!entry) throw new Error("Selecione uma despesa.");
+                      await approveCashExpense({ data: { cashEntryId: entry.id } });
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
+                        queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
+                      ]);
+                    }}
+                    trigger={(open) => (
+                      <Button variant="outline" className="gap-2" onClick={open}>
+                        Aprovar despesa ({pendingExpenses.length})
+                      </Button>
+                    )}
+                  />
+                ) : null}
                 <QuickFormModal
                   eyebrow="Tesouraria"
                   title="Registar despesa"
@@ -1033,6 +1081,10 @@ function FinanceiroPage() {
                             <span className="mt-1 block">
                               <StatusBadge status="cancelled" label="Anulado" size="sm" />
                             </span>
+                          ) : m.status === "pending_approval" ? (
+                            <span className="mt-1 block">
+                              <StatusBadge status="pending" label="Por aprovar" size="sm" />
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -1094,6 +1146,8 @@ function FinanceiroPage() {
                             </p>
                             {m.status === "reversed" ? (
                               <StatusBadge status="cancelled" label="Anulado" size="sm" />
+                            ) : m.status === "pending_approval" ? (
+                              <StatusBadge status="pending" label="Por aprovar" size="sm" />
                             ) : null}
                           </div>
                         </TableCell>

@@ -25,3 +25,15 @@ export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
   // mergePeople segue os passos soltos de antes (mergePeopleInSteps, por isMissingFunction).
   "siga_merge_people",
 ]);
+
+/**
+ * Valores de estado que o código escreve ou filtra e o CHECK da produção ainda não
+ * aceita (migração escrita e por aplicar). Só vale se o código funcionar sem o valor:
+ * a escrita cai para um valor aceite quando a base o recusa (23514).
+ * `production-columns.test.ts` usa-a no teste dos valores literais.
+ */
+// 2026-10-25: aprovação de despesas, `20261025100000_cash_expenses_audit_and_approval.sql`.
+// `recordCashExpense` volta a `posted` se a base recusar `pending_approval`.
+export const VALORES_ESPERA_MIGRACAO = new Set<string>([
+  "siga_cash_expenses.status=pending_approval",
+]);

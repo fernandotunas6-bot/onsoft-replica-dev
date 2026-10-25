@@ -62,6 +62,7 @@ vi.mock("@/features/finance/server", () => ({
   recordCashExpense: vi.fn(),
   recordInvoicePayment: vi.fn(),
   reverseCashEntry: vi.fn(),
+  approveCashExpense: vi.fn(),
 }));
 
 vi.mock("@/features/arquivos/server", () => ({
