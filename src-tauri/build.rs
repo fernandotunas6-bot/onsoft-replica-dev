@@ -16,6 +16,7 @@ fn main() {
             "open_siga_portal",
             "open_offline_shell",
             "desktop_update_status",
+            "desktop_offline_readiness",
             "get_system_info",
             "pulse_turnstile_relay",
             "print_thermal_receipt_native",

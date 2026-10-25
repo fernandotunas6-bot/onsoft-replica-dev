@@ -40,7 +40,21 @@ assert.deepEqual(remote.windows, ["school"]);
 const offlinePreview = readJson("src-tauri/capabilities/offline-shell.json");
 assert.equal(offlinePreview.local, true);
 assert.deepEqual(offlinePreview.windows, ["offline-shell"]);
-assert.deepEqual(offlinePreview.permissions, ["core:default", "core:window:allow-close"]);
+assert.deepEqual(offlinePreview.permissions, [
+  "core:default",
+  "core:window:allow-close",
+  "allow-desktop-offline-readiness",
+]);
+const nativeReadiness = readFileSync("src-tauri/src/commands/siga.rs", "utf8");
+assert(nativeReadiness.includes("pub fn desktop_offline_readiness"));
+for (const blocked of [
+  "sqlcipher_ready: false",
+  "authorized_bootstrap_ready: false",
+  "bidirectional_sync_ready: false",
+  "private_data_offline_ready: false",
+]) {
+  assert(nativeReadiness.includes(blocked), `Componente offline indevidamente activo: ${blocked}`);
+}
 assert(!offlinePreview.remote, "A interface local não pode receber origens remotas");
 assert(local.permissions.includes("allow-open-offline-shell"));
 const rust = readFileSync("src-tauri/src/school/mod.rs", "utf8");

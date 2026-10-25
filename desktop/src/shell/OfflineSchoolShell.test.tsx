@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import { commands } from '@/lib/tauri-bindings'
 import { OfflineSchoolShell } from './OfflineSchoolShell'
 
 describe('SIGA offline school shell', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.clearAllMocks()
+  })
 
   it('renders bundled UI without claiming that school data are available', () => {
     render(<OfflineSchoolShell />)
@@ -12,6 +16,26 @@ describe('SIGA offline school shell', () => {
     ).toBeVisible()
     expect(screen.getByText(/Ainda indisponíveis/)).toBeVisible()
     expect(screen.getByText(/sem dados escolares/i)).toBeVisible()
+  })
+
+  it('shows truthful status from native Rust without school data', async () => {
+    render(<OfflineSchoolShell />)
+    await waitFor(() =>
+      expect(screen.getByText('Versão instalada: 1.2.2')).toBeVisible()
+    )
+    expect(screen.getByText('SQLCipher: Pendente')).toBeVisible()
+    expect(screen.getByText('Dados privados offline: Bloqueados')).toBeVisible()
+    expect(commands.desktopOfflineReadiness).toHaveBeenCalledOnce()
+  })
+
+  it('fails closed when the native status command is unavailable', async () => {
+    vi.mocked(commands.desktopOfflineReadiness).mockRejectedValueOnce(
+      new Error('Indisponível')
+    )
+    render(<OfflineSchoolShell />)
+    expect(
+      await screen.findByText(/Nenhum acesso offline adicional foi activado/)
+    ).toBeVisible()
   })
 
   it('renders without Internet or privileged IPC requests', () => {

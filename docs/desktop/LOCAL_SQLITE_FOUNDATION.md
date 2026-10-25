@@ -55,3 +55,20 @@ SQLite normal no posto. Apenas ensaios em `:memory:` usam SQLite normal.
 
 **Estado:** migração v1 e testes disponíveis; motor SQLCipher, key management,
 autenticação offline, bootstrap e sincronização ainda por implementar.
+
+## Diagnóstico Tauri integrado na pré-visualização
+
+A janela `offline-shell` consulta o comando tipado `desktop_offline_readiness`.
+O comando fornece apenas a versão nativa, existência do bundle/esquema, estado
+do actualizador assinado e estado das funcionalidades offline. **Nunca devolve
+nomes de escolas, caminhos de armazenamento, PINs ou credenciais.**
+
+Esta pré-visualização tem uma única autorização IPC extra:
+`allow-desktop-offline-readiness`, sem plugin de ficheiros, Store, Stronghold,
+SQL, shell, updater ou acesso a funções administrativas.
+
+Os campos `sqlcipherReady`, `authorizedBootstrapReady`,
+`bidirectionalSyncReady` e `privateDataOfflineReady` permanecem `false`
+até cada implementação ser verificável. Se o comando falhar, a interface
+não anuncia capacidades offline adicionais. Isto é um **diagnóstico real
+de bloqueios**, não um motor SQLite ou um sistema de sincronização.
