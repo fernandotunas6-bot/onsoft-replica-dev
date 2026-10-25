@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const source = readFileSync("src/features/people/server.ts", "utf8");
-// A fusão: a função do servidor e, até a migração 20261010110000 ser aplicada, os
+// A fusão: a função do servidor e, até a migração 20261025070201 ser aplicada, os
 // passos soltos (mergePeopleInSteps). A transacção está em tests/sql/merge-people.mjs.
 const merge = source.slice(
   source.indexOf("export const mergePeople"),

@@ -4,6 +4,11 @@ Contrato: [VISUAL_MASTER_2026.md](VISUAL_MASTER_2026.md). Esta matriz acompanha
 **todas as dez fases**. O padrão está registado; a execução integral está parcial.
 Não considerar o sistema todo validado por causa dos testes abaixo.
 
+**25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
+de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
+Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
+visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
