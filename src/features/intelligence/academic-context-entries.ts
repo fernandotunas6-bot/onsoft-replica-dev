@@ -83,6 +83,19 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 20,
   },
   {
+    // O horário é da turma: da disciplina abre-se o horário da turma.
+    id: "class.timetable",
+    label: "Horário da turma",
+    icon: moduleIcons.schedule,
+    group: "Acompanhamento",
+    contexts: ["class", "subject-offering"],
+    to: "/pedagogica",
+    search: (trail) => ({ tab: "horarios", turma: academicIdsFromTrail(trail).turma }),
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 25,
+  },
+  {
     id: "academic.lesson-plans",
     label: "Planos de aula",
     icon: moduleIcons.lessonPlans,

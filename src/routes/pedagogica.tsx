@@ -1333,6 +1333,7 @@ function PedagogicaPage() {
               <LazyTab>
                 <SchoolNowWidget />
                 <ScheduleWorkspace
+                  initialClassGroupId={turmaFromSearch}
                   activeYearLabel={activeYearLabel}
                   activeYearId={selectedYearId ?? undefined}
                   canManage={canManageAcademic}

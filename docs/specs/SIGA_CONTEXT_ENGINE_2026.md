@@ -120,19 +120,20 @@ da URL é recusada.
 
 ### 5.1 Disciplina e turma (prioridade 1)
 
-| Função                                 | Destino                                             | Estado                                                                                        |
-| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                         |
-| Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                  |
-| Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                  |
-| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — só na disciplina: com a turma sozinha o separador não filtra                   |
-| Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                  |
-| Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)     |
-| Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora      |
-| Trabalhos, entregas, correcção         | —                                                   | Parcial — `siga_class_tasks` e `siga_class_task_submissions` (#331) sem ecrã; SPEC na PR #329 |
-| Alunos da turma, horário da turma      | `/pedagogica?tab=turmas` / `horarios`               | Parcial — filtro por `turma` por confirmar                                                    |
-| Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                              |
-| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula` e `/arquivos`                                    |
+| Função                                 | Destino                                             | Estado                                                                                         |
+| -------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                          |
+| Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                   |
+| Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                   |
+| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — só na disciplina: com a turma sozinha o separador não filtra                    |
+| Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                   |
+| Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)      |
+| Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora       |
+| Trabalhos, entregas, correcção         | —                                                   | Parcial — `siga_class_tasks` e `siga_class_task_submissions` (#331) sem ecrã; SPEC na PR #329  |
+| Horário da turma                       | `/pedagogica?tab=horarios&turma`                    | Implementado — turma e disciplina abrem o horário da turma (`ScheduleWorkspace`)               |
+| Alunos da turma                        | `/pedagogica?tab=turmas`                            | Parcial — o separador abre a turma num modal sem URL (`TurmaProfileModal`); pergunta em aberto |
+| Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                               |
+| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula` e `/arquivos`                                     |
 
 ### 5.2 Aluno (prioridade 2)
 
@@ -199,7 +200,7 @@ da URL é recusada.
 | 6–7 Restantes       | Ausente                                            |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                            | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                            | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
-| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (694 ficheiros); Playwright pendente                                                                                                                  |
+| 10 Revisão          | Parcial                                            | Lint, TypeScript e suite completa passam (695 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
@@ -212,7 +213,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma não devolvida pelo servidor ignorada                                     | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (694 ficheiros, 4805 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (695 ficheiros, 4809 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 

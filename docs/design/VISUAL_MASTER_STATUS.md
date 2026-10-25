@@ -32,6 +32,10 @@ Secretaria): um bloco por ano lectivo com média, situação e médias por disci
 telemóvel a tabela fica com a disciplina e a média. Sem estilos novos; capturas com dados
 fictícios a 1440 e 390 px, sem scroll horizontal.
 
+**25/10/2026 — SIGA Context Engine (horário da turma):** o menu da turma e da disciplina
+ganha «Horário da turma» (`/pedagogica?tab=horarios&turma`); o horário abre nessa turma, com
+o menu e o breadcrumb da turma. Sem estilos novos; captura com dados fictícios a 1440 px.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

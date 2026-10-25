@@ -48,6 +48,7 @@ describe("getContextEntries", () => {
     expect(entries.map((e) => e.id)).toEqual([
       "subject.grades",
       "academic.attendance",
+      "class.timetable",
       "academic.lesson-plans",
       "academic.files",
     ]);
@@ -59,6 +60,7 @@ describe("getContextEntries", () => {
     // na disciplina, onde abre a chamada dessa aula.
     expect(entries.map((e) => e.id)).toEqual([
       "class.grades",
+      "class.timetable",
       "academic.lesson-plans",
       "academic.files",
     ]);
@@ -72,6 +74,7 @@ describe("getContextEntries", () => {
     expect(entries.map((e) => e.id)).toEqual([
       "subject.grades",
       "academic.attendance",
+      "class.timetable",
       "academic.lesson-plans",
     ]);
   });
@@ -127,6 +130,12 @@ describe("links e entrada activa", () => {
     // Os ficheiros estão por turma: da disciplina abre-se a pasta da turma.
     const files = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "academic.files")!;
     expect(contextEntryLink(files, ctx)).toEqual({ to: "/arquivos", search: { turma: TURMA_A } });
+    // O horário também é da turma.
+    const timetable = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.timetable")!;
+    expect(contextEntryLink(timetable, ctx)).toEqual({
+      to: "/pedagogica",
+      search: { tab: "horarios", turma: TURMA_A },
+    });
   });
 
   it("activa só a entrada da localização actual", () => {
@@ -139,6 +148,9 @@ describe("links e entrada activa", () => {
       }),
     ).toBe("academic.attendance");
     expect(findActiveContextEntry(entries, ctx, "/pedagogica", { tab: "horarios" })).toBeNull();
+    expect(
+      findActiveContextEntry(entries, ctx, "/pedagogica", { tab: "horarios", turma: TURMA_A }),
+    ).toBe("class.timetable");
     expect(
       withActiveView(ctx, entries, "/planos-aula", { turma: TURMA_A, disciplina: MATEMATICA })
         .activeView,
