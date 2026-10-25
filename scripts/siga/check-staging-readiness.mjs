@@ -48,6 +48,14 @@ export function assertStagingReady(env = process.env) {
   if (target.projectRef !== projectRef) {
     throw new Error("Staging não configurado: o projecto de E2E diverge do esperado.");
   }
+  // O preflight não pode apresentar staging como pronto quando o próprio
+  // processo de execução não tem autorização de escrita ou aponta a outra ref.
+  if (env.SIGA_E2E_ALLOW_WRITES !== "1") {
+    throw new Error("E2E bloqueado: SIGA_E2E_ALLOW_WRITES=1 é obrigatório.");
+  }
+  if (env.SIGA_E2E_PROJECT_REF !== projectRef) {
+    throw new Error("E2E bloqueado: SIGA_E2E_PROJECT_REF difere do staging escolhido.");
+  }
   return { projectRef };
 }
 
