@@ -29,6 +29,18 @@ interface nem alterar a identidade. Medir antes/depois e preservar segurança e 
 
 **Visual mestre (sidebar/modais):** [docs/design/SIGA_VISUAL_MASTER_2026-10-23.md](docs/design/SIGA_VISUAL_MASTER_2026-10-23.md) — concavidade à direita e margem esquerda recta; catálogo autorizado, contexto por papel/escola e diálogos simples, sem eliminar campos nem fluxos. Evitar conflitos com a PR #259.
 
+**Financeiro — ler antes de qualquer alteração em páginas financeiras:**
+[docs/specs/finance/FINANCE_MASTER_2026.md](docs/specs/finance/FINANCE_MASTER_2026.md).
+Lei aplicável: UMA PÁGINA = UMA FINALIDADE. A pertença de cada elemento à sua rota está em
+[docs/specs/finance/FINANCE_ROUTE_CONTEXT_MATRIX.md](docs/specs/finance/FINANCE_ROUTE_CONTEXT_MATRIX.md)
+e é guardada por `tests/finance/route-context-matrix.test.ts`; o estado de aceitação está em
+[docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md](docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md).
+Nenhuma função é eliminada por esta lei — o que está fora de contexto muda de lugar. O SIGA Plus
+não é software de facturação certificado pela AGT e não tem núcleo contabilístico: não apresentar
+movimentos de caixa como lançamentos contabilísticos nem exportações como fiscalmente
+certificadas. Os QR de pagamento, de verificação documental e de presença são finalidades
+distintas e nunca intercambiáveis.
+
 **Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
 Auto-construção:

@@ -140,7 +140,6 @@ Commits publicados de implementação: `faa4784` (contrato), `2b0f4be` (padrões
 `fc11dc2` (integração de main), `1be6a91` (feedback de pendência). O commit de
 relatório/evidências que contém esta secção não muda lógica da aplicação.
 
-
 ## Refinamento transversal — sidebar e modais compactos (23/10/2026)
 
 O contrato visual da PR #262 e o trabalho paralelo das PRs #252/#259/#270 já fazem
@@ -148,12 +147,42 @@ parte de `main`. Este incremento **não** substitui sidebar, navegação ou sist
 de diálogos; preserva a margem esquerda recta, a concavidade direita, o catálogo
 por papel e o estado dos formulários.
 
-| Área | Ajuste dirigido | Prova e limite |
-| --- | --- | --- |
-| Navegação | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
-| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange` | Teste de semântica com `Dialog` existente |
-| PremiumModal | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes | Teste DOM; sem conversão de matrículas/finanças em modal simplificado |
+| Área             | Ajuste dirigido                                                                                                         | Prova e limite                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Navegação        | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
+| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange`                         | Teste de semântica com `Dialog` existente                                                             |
+| PremiumModal     | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes                            | Teste DOM; sem conversão de matrículas/finanças em modal simplificado                                 |
 
 Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada nem
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
+
+## Financeiro — correcção contextual UMA PÁGINA = UMA FINALIDADE (25/10/2026)
+
+Primeiro incremento das Etapas A–B do Prompt Master Finance 2026. **Não** substitui
+sidebar, navegação, sistema de diálogos nem identidade visual, e **não** elimina
+nenhuma funcionalidade: o que estava fora de contexto mudou de lugar. Preserva as
+alterações publicadas das PRs #252, #259, #262, #270 e #271.
+
+Diagnóstico completo, lacunas e trabalho proposto não executado em
+[docs/specs/finance/FINANCE_MASTER_2026.md](../specs/finance/FINANCE_MASTER_2026.md).
+
+| Área             | Ajuste dirigido                                                                                                                                                                                                           | Prova e limite                                                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/financeiro/rh` | Emissão de QR de presença docente sai da folha salarial para a nova rota `/financeiro/rh/aulas`; função, validade do desafio e ligação ao cálculo salarial inalteradas                                                    | `tests/routes/financeiro-rh-aulas.test.tsx` (4 testes), asserção de ausência em `tests/routes/financeiro-rh.test.tsx`; QA autenticada por papel pendente |
+| `/faturas`       | `group="Relatórios"` → `group="Financeiro"`; retirados do menu de exportação a importação de pagamentos e o portal do pagador (continuam em `/importar` e `/financeiro`); `InstalledModuleTools` apenas do próprio módulo | `tests/finance/route-context-matrix.test.ts`                                                                                                             |
+| `/financeiro`    | Retirado o atalho «RH e Folha» do cabeçalho da tesouraria (mantido na navegação institucional); `InstalledModuleTools` apenas do próprio módulo                                                                           | idem                                                                                                                                                     |
+| Estado vazio     | Folha salarial passou do bloco tracejado ad-hoc para `EmptyState`, alinhando com o contrato de densidade                                                                                                                  | `tests/ui/density-empty-state-contract.test.ts`                                                                                                          |
+| Navegação        | Nova entrada «Assiduidade Docente» no grupo Financeiro                                                                                                                                                                    | `tests/auth/navigation-catalog.test.ts`                                                                                                                  |
+
+Verificações locais deste incremento: `tsc --noEmit` limpo, `eslint` limpo nos
+ficheiros alterados, suite completa **4284 testes a passar / 19 ignorados / 0
+falhas**, `check:style` 51/51 rotas, `check:a11y` aprovado, `siga:check` e
+`siga:check-nav` aprovados, build de produção concluído.
+
+Limites a não ultrapassar na leitura destes resultados: **não** há medição p75 de
+INP/LCP/CLS atribuída a este incremento, **não** houve QA autenticada com duas
+escolas e papéis distintos, **não** houve captura de evidência visual antes/depois,
+e a CI do GitHub não foi consultada. O núcleo contabilístico, a sessão de caixa e a
+conciliação bancária continuam ausentes da base de produção e permanecem propostos,
+não executados.
