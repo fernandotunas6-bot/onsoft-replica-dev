@@ -43,7 +43,7 @@ function SubjectPage() {
           </Link>
         </Button>
         <PageHeader
-          group="Notas"
+          group="Académico"
           title={work.data?.subjectName || "Disciplina"}
           description="O caminho até 20 e todos os trabalhos, com as entregas e os comentários."
         />
