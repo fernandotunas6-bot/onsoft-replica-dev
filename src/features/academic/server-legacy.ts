@@ -1151,6 +1151,12 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Secretaria", "Professor"],
     );
+    if (data.offlineSchoolId && data.offlineSchoolId !== membership.schoolId) {
+      throw new Error("A escola activa é diferente da escola de origem do lançamento offline.");
+    }
+    if (data.offlineActorId && data.offlineActorId !== context.userId) {
+      throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
+    }
     const db = await loadSgaAdminClient();
     await assertTermOpen(db, membership.schoolId, data.term);
     // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).

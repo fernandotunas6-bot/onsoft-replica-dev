@@ -30,15 +30,6 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/alunos" },
   },
   {
-    id: "siga-alumni",
-    name: "Alumni",
-    shortName: "Alumni",
-    description: "Antigos alunos, carreira, mentoria e impacto.",
-    mark: "siga-alumni",
-    navPath: "/alumni",
-    target: { type: "route", to: "/alumni" },
-  },
-  {
     id: "siga-pedagogica",
     name: "Pedagógica",
     shortName: "Pedagógica",
@@ -131,15 +122,6 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/financeiro/conciliacao" },
   },
   {
-    id: "siga-rh",
-    name: "Recursos Humanos",
-    shortName: "RH",
-    description: "Funcionários, contratos e presenças.",
-    mark: "siga-rh",
-    navPath: "/financeiro/rh",
-    target: { type: "route", to: "/financeiro/rh" },
-  },
-  {
     id: "siga-arquivos",
     name: "Arquivos",
     shortName: "Arquivos",
@@ -174,15 +156,6 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     mark: "siga-relatorios-financeiros",
     navPath: "/relatorios/financeiros",
     target: { type: "route", to: "/relatorios/financeiros" },
-  },
-  {
-    id: "siga-catracas",
-    name: "Catracas & Cartão Virtual",
-    shortName: "Catracas",
-    description: "Controlo de acesso físico e cartões digitais.",
-    mark: "siga-catracas",
-    navPath: "/catracas",
-    target: { type: "route", to: "/catracas" },
   },
   {
     id: "siga-acessos",

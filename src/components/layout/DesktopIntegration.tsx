@@ -136,21 +136,37 @@ export function DesktopIntegration() {
           }),
         );
     };
-    const updateTimer = window.setTimeout(() => {
-      void checkNativeUpdate()
-        .then((update) => {
-          if (!update.available) return;
-          toast.message(`Nova versão do SIGA (${update.version ?? "nova"})`, {
-            description: "Grave o que estiver a fazer antes de instalar.",
-            duration: Infinity,
-            action: { label: "Instalar e reiniciar", onClick: install },
-          });
-        })
-        .catch((error) => console.warn("[desktop] verificação de versão falhou", error));
-    }, 15_000);
+    let checkingUpdate = false;
+    let notifiedVersion: string | null = null;
+    const checkForUpdates = async () => {
+      if (navigator.onLine === false || checkingUpdate) return;
+      checkingUpdate = true;
+      try {
+        const update = await checkNativeUpdate();
+        if (!update.available || !update.version || notifiedVersion === update.version) return;
+        notifiedVersion = update.version;
+        toast.message(`Nova versão do SIGA (${update.version})`, {
+          description: "Grave o que estiver a fazer antes de instalar.",
+          duration: Infinity,
+          action: { label: "Instalar e reiniciar", onClick: install },
+        });
+      } catch (error) {
+        console.warn("[desktop] verificação de versão falhou", error);
+      } finally {
+        checkingUpdate = false;
+      }
+    };
+    // Ao regressar a rede, procurar a versão publicada sem obrigar o utilizador
+    // a fechar e reabrir a app. Uma verificação periódica cobre ligações instáveis.
+    const onReconnect = () => void checkForUpdates();
+    window.addEventListener("online", onReconnect);
+    const updateTimer = window.setTimeout(() => void checkForUpdates(), 15_000);
+    const updateInterval = window.setInterval(() => void checkForUpdates(), 6 * 60 * 60_000);
 
     return () => {
       window.clearTimeout(updateTimer);
+      window.clearInterval(updateInterval);
+      window.removeEventListener("online", onReconnect);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKeyDown);
       window.open = originalOpen;

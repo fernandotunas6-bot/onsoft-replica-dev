@@ -44,6 +44,9 @@ export const getAttendanceCallSheetInputSchema = z.object({
 
 export const submitAttendanceCallBatchInputSchema = z.object({
   sessionId: z.string().guid(),
+  /** Defesa do servidor contra replay offline noutra escola/conta. */
+  offlineSchoolId: z.string().guid().optional(),
+  offlineActorId: z.string().guid().optional(),
   markAllPresent: z.boolean().optional(),
   records: z.array(
     z.object({
@@ -591,6 +594,12 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Secretaria", "Professor"],
     );
+    if (data.offlineSchoolId && data.offlineSchoolId !== membership.schoolId) {
+      throw new Error("A escola activa é diferente da escola de origem do lançamento offline.");
+    }
+    if (data.offlineActorId && data.offlineActorId !== context.userId) {
+      throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
+    }
     const db = await loadSgaAdminClient();
 
     const { data: session, error: sErr } = await db
