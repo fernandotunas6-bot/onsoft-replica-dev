@@ -135,7 +135,9 @@ export function StackedModal({
 
   const [activeId, setActiveId] = useState(() => resolveTopId(initialPanelId));
   const activeIdRef = useRef(activeId);
-  activeIdRef.current = activeId;
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
   const [dirty, setDirty] = useState(false);
   const dirtyPanels = useRef(new Map<string, boolean>());
   const reportPanelDirty = useCallback((id: string, value: boolean) => {
