@@ -255,8 +255,12 @@ export function flushOutbox(userId: string | null, schoolId: string | null): Pro
   const task = (previous ?? Promise.resolve()).catch(() => undefined).then(run);
   flushing = task;
   void task.then(
-    () => { if (flushing === task) flushing = null; },
-    () => { if (flushing === task) flushing = null; },
+    () => {
+      if (flushing === task) flushing = null;
+    },
+    () => {
+      if (flushing === task) flushing = null;
+    },
   );
   return task;
 }
