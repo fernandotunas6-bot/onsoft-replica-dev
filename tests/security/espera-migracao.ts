@@ -24,3 +24,13 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
 // produção por consulta directa a `information_schema.routines`, depois de a produção ter
 // sido recapturada por este ciclo.
 export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
+
+/**
+ * Valores de estado que o código escreve ou filtra e o CHECK da produção ainda não
+ * aceita (migração escrita e por aplicar). Só vale se o código funcionar sem o valor:
+ * a escrita cai para um valor aceite quando a base o recusa (23514).
+ * `production-columns.test.ts` e `valores-permitidos.test.ts` usam-na.
+ */
+// `siga_cash_expenses.status=pending_approval` saiu a 25/10: a 20261025100000 foi
+// aplicada e o retrato desse dia já o tem.
+export const VALORES_ESPERA_MIGRACAO = new Set<string>([]);

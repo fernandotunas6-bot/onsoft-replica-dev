@@ -80,6 +80,13 @@ export const issueInvoiceInputSchema = z.object({
 
 export type IssueInvoiceInput = z.infer<typeof issueInvoiceInputSchema>;
 
+/**
+ * Separação de funções nas despesas (§8, decidido a 25/10/2026): acima deste valor a
+ * despesa fica por aprovar até um Administrador que não a registou a aprovar, e não
+ * conta como saída antes disso.
+ */
+export const EXPENSE_APPROVAL_THRESHOLD = 50_000;
+
 export const recordCashExpenseInputSchema = z.object({
   documentNumber: z.string().trim().min(1).max(64),
   description: z.string().trim().min(1).max(500),
