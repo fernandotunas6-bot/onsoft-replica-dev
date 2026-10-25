@@ -21,9 +21,7 @@ describe("inventário de autonomia local Tauri", () => {
     expect(result.counts.routeFiles).toBeGreaterThan(50);
     expect(result.counts.apiRoutes).toBeGreaterThan(20);
     expect(result.counts.filesDefiningServerFunctions).toBeGreaterThan(0);
-    expect(result.counts.routeFiles).toBe(
-      result.counts.apiRoutes + result.counts.otherRoutes,
-    );
+    expect(result.counts.routeFiles).toBe(result.counts.apiRoutes + result.counts.otherRoutes);
     expect(result.candidatesForAudit.every((path) => path.startsWith("src/routes/"))).toBe(true);
   });
 
