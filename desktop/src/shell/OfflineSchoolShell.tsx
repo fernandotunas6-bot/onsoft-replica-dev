@@ -59,10 +59,16 @@ export function OfflineSchoolShell() {
             A primeira interface escolar já vive no instalador.
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
-            Esta página abre localmente, mesmo sem Internet. Não apresenta alunos,
-            notas, presenças ou informações pessoais. Essas funcionalidades
-            continuam protegidas no portal escolar até serem concluídas a base
-            cifrada, a autorização offline e a sincronização por escola.
+            Esta página abre localmente, mesmo sem Internet.
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+            Não contém alunos, notas, presenças nem informações pessoais.
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+            O portal escolar mantém o acesso autorizado aos módulos reais.
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+            A base cifrada e a sincronização segura serão entregues por fases.
           </p>
         </section>
 
@@ -88,7 +94,7 @@ export function OfflineSchoolShell() {
             <LockKeyhole aria-hidden="true" className="mb-4 size-6" />
             <h3 className="font-medium">Segurança institucional</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sem contas, credenciais ou ficheiros pessoais nesta pré-visualização.
+              Sem contas nem ficheiros pessoais nesta pré-visualização.
             </p>
           </article>
         </section>
@@ -96,9 +102,8 @@ export function OfflineSchoolShell() {
         <footer className="flex items-start gap-3 text-sm text-muted-foreground">
           <BookOpen aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
           <p>
-            Para trabalhar com turmas e lançar dados reais, continue a utilizar o
-            portal escolar. A base local será ampliada após testes de permissões,
-            recuperação de rede e sincronização.
+            Para trabalhar com turmas, continue a utilizar o portal escolar.
+            A base local será ampliada após testes de segurança e sincronização.
           </p>
         </footer>
       </div>
