@@ -37,6 +37,18 @@ def unique_slug(prefix: str = "e2e") -> str:
     return f"{prefix}-{int(time.time() * 1000):x}"
 
 
+def synthetic_nif(slug: str) -> str:
+    """NIF fictício por escola, compatível com testSchoolNifForSlug (TypeScript).
+
+    FNV-1a de 32 bits; os slugs E2E contêm apenas caracteres ASCII.
+    O identificador não deve ser utilizado em qualquer contexto fiscal real.
+    """
+    value = 2166136261
+    for character in slug:
+        value = ((value ^ ord(character)) * 16777619) & 0xFFFFFFFF
+    return f"5417{value % 1_000_000:06d}"
+
+
 # Mesma regra do helper TypeScript (tests/e2e/helpers/sga-live-admin.ts): vem de
 # E2E_LIVE_ADMIN_PASSWORD ou é gerada ao acaso por execução; nunca fica no código.
 E2E_LIVE_ADMIN_PASSWORD = (
@@ -57,7 +69,7 @@ def signup_payload(slug: str) -> dict:
     email = f"e2e+{slug}@siga-plus.test"
     return {
         "name": f"Escola E2E {slug}",
-        "nif": "5417000000",
+        "nif": synthetic_nif(slug),
         "contact_name": "Director E2E",
         "contact_email": email,
         "plan_code": "start",
@@ -235,7 +247,7 @@ async def test_live_wizard(page, failures: list[str]) -> None:
     slug = unique_slug("web")
     email = f"e2e+{slug}@siga-plus.test"
     school = f"Escola Live {slug}"
-    nif = f"5417{int(time.time() * 1000) % 1_000_000:06d}"
+    nif = synthetic_nif(slug)
     try:
         await page.goto(f"{WEB}/start", wait_until="domcontentloaded")
         await fill_wizard_until_review(
