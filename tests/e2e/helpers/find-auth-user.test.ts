@@ -3,8 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { findE2EAuthUserByEmail, type ListAuthUsers } from "./find-auth-user";
 
 const target = "e2e+mat-test@siga-plus.test";
-const createUser = (email: string): User =>
-  ({ id: email, email } as User);
+const createUser = (email: string): User => ({ id: email, email }) as User;
 const pageOf = (count: number) =>
   Array.from({ length: count }, (_, index) => createUser(`other-${index}@siga-plus.test`));
 
