@@ -32,6 +32,7 @@ import {
   type LauncherApp,
   type LauncherSectionId,
 } from "@/features/integrations/launcher";
+import { hiddenLauncherIds } from "@/features/auth/module-availability";
 import { InstallConsentModal } from "@/features/integrations/InstallConsentModal";
 import { isCatalogIntegrationId } from "@/features/integrations/catalog";
 import { listInstalledCapabilities } from "@/features/integrations/server";
@@ -212,6 +213,14 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
       .filter((section) => section.apps.length > 0);
   }, [currentUser.role, currentUser.grants, statusByProvider, query, hubOpen, activePlan]);
 
+  // Os mosaicos dos módulos que esta escola não tem ligados. Calculado uma vez e
+  // passado a todas as peneiras do lançador, para a pesquisa não devolver o que a
+  // grelha esconde.
+  const hiddenApps = useMemo(
+    () => hiddenLauncherIds(currentUser.enabledModules),
+    [currentUser.enabledModules],
+  );
+
   const visibleHubSections = useMemo(
     () =>
       launcherHubSections.filter(
@@ -221,9 +230,10 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
             currentUser.role,
             currentUser.grants,
             activePlan,
+            hiddenApps,
           ).length > 0,
       ),
-    [currentUser.role, currentUser.grants, activePlan],
+    [currentUser.role, currentUser.grants, activePlan, hiddenApps],
   );
 
   const searching = query.trim().length > 0;
@@ -235,6 +245,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
         currentUser.grants,
         statusByProvider,
         activePlan,
+        hiddenApps,
       );
     }
     const accessible = filterAccessibleApps(
@@ -242,6 +253,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
       currentUser.role,
       currentUser.grants,
       activePlan,
+      hiddenApps,
     );
     return hubSection === "workspace"
       ? accessible
@@ -254,6 +266,7 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
     query,
     searching,
     activePlan,
+    hiddenApps,
   ]);
 
   const bundleApps = useMemo(() => {
@@ -263,8 +276,9 @@ export function AppLauncher({ onOpenSettings }: { onOpenSettings: (panelId?: str
       currentUser.role,
       currentUser.grants,
       activePlan,
+      hiddenApps,
     );
-  }, [searching, hubSection, currentUser.role, currentUser.grants, activePlan]);
+  }, [searching, hubSection, currentUser.role, currentUser.grants, activePlan, hiddenApps]);
 
   const activeHub = launcherHubSections.find((section) => section.id === hubSection);
 

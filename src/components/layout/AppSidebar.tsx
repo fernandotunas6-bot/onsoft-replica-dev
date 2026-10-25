@@ -139,9 +139,17 @@ export function AppSidebar({
   const visibleGroups = useMemo(() => {
     const groups = getPortalNavigation(currentUser.role, currentUser.grants, activePlan, {
       isAlumni: currentUser.isAlumni,
+      enabledModules: currentUser.enabledModules,
     });
     return higherEdOnly ? withHigherEdVocabulary(groups) : groups;
-  }, [currentUser.role, currentUser.grants, activePlan, higherEdOnly, currentUser.isAlumni]);
+  }, [
+    currentUser.role,
+    currentUser.grants,
+    activePlan,
+    higherEdOnly,
+    currentUser.isAlumni,
+    currentUser.enabledModules,
+  ]);
   const context = getNavigationContext(visibleGroups, pathname, locationSearch);
   const [areaPicker, setAreaPicker] = useState(false);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);

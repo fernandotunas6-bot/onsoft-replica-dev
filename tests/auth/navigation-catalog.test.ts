@@ -11,6 +11,7 @@ import {
   inventoryNavPaths,
   missingAdminNavPaths,
 } from "@/features/auth/navigation-catalog";
+import { MODULE_CATALOG } from "@/features/auth/module-availability";
 import {
   SIGA_AUTHENTICATED_ROUTE_PREFIXES,
   isKnownSigaRoute,
@@ -38,6 +39,13 @@ const fullPlan = {
 };
 
 describe("navigation catalog", () => {
+  /**
+   * A cobertura verifica-se **com tudo ligado**: é o que prova que um módulo, ao
+   * ser ligado numa escola, fica de facto alcançável pelo menu. Com a omissão do
+   * produto os adormecidos não aparecem — e isso tem o seu próprio teste.
+   */
+  const tudoLigado = { enabledModules: new Set(MODULE_CATALOG.map((mod) => mod.id)) };
+
   it("keeps launcher workspace apps aligned with the catalog", () => {
     expect(launcherWorkspaceApps.map((app) => app.id).sort()).toEqual(
       WORKSPACE_MODULE_SPECS.map((spec) => spec.id).sort(),
@@ -51,7 +59,7 @@ describe("navigation catalog", () => {
   });
 
   it("exposes every admin module path in the sidebar for Administrador", () => {
-    const groups = getPortalNavigation("Administrador", {}, fullPlan);
+    const groups = getPortalNavigation("Administrador", {}, fullPlan, tudoLigado);
     const paths = collectNavPaths(groups);
     const missing = missingAdminNavPaths(paths);
     expect(missing, `paths missing from sidebar: ${missing.join(", ")}`).toEqual([]);
@@ -59,8 +67,9 @@ describe("navigation catalog", () => {
   });
 
   /**
-   * Um módulo adormecido existe, tem ficheiros e as rotas funcionam — mas não está
-   * em navegação nenhuma, nem no lançador nem no menu. A 25/10/2026 são o Alumni, o
+   * Um módulo adormecido existe, tem ficheiros e caminho — e vem **desligado por
+   * omissão**, pelo que não aparece no lançador nem no menu até uma escola o ligar
+   * (uma linha em `school_modules`). Ver `module-availability.ts`. A 25/10/2026 são o Alumni, o
    * RH e as Catracas: zero registos em produção, medidos por `count(*)`.
    *
    * Até aqui este teste exigia `paths.has("/alumni")`. A regra passou a ser a
@@ -76,12 +85,9 @@ describe("navigation catalog", () => {
     expect(modulosAdormecidos.map((mod) => mod.id).sort()).toEqual(["alumni", "catracas", "rh"]);
     for (const mod of modulosAdormecidos) {
       expect("dormantReason" in mod && mod.dormantReason, `${mod.id} sem razão`).toBeTruthy();
-      // Adormecido e navegável ao mesmo tempo não existe.
-      expect("navPath" in mod && mod.navPath, `${mod.id} tem navPath`).toBeFalsy();
-      expect(
-        "secondaryNavPaths" in mod && mod.secondaryNavPaths?.length,
-        `${mod.id} tem caminhos secundários`,
-      ).toBeFalsy();
+      // Têm de manter o caminho: `dormant` é o estado **por omissão**, não uma
+      // remoção. Sem caminho, uma escola que ligasse o módulo não chegava lá.
+      expect("navPath" in mod && mod.navPath, `${mod.id} sem navPath`).toBeTruthy();
     }
   });
 
@@ -116,7 +122,7 @@ describe("navigation catalog", () => {
   });
 
   it("exposes secondary inventory routes in the admin sidebar", () => {
-    const paths = collectNavPaths(getPortalNavigation("Administrador", {}, fullPlan));
+    const paths = collectNavPaths(getPortalNavigation("Administrador", {}, fullPlan, tudoLigado));
     for (const mod of modulesCatalog.modules) {
       const secondary = "secondaryNavPaths" in mod ? mod.secondaryNavPaths : undefined;
       if (!secondary?.length) continue;
