@@ -15,6 +15,16 @@ const disciplina: ContextFrame = {
 };
 
 describe("contextCrumbs", () => {
+  it("na pasta aberta, o título leva aos arquivos sem a pasta", () => {
+    const PASTA = "99999999-9999-4999-8999-999999999999";
+    const pasta: ContextFrame = { type: "folder", id: PASTA, label: "Provas 2026" };
+    const crumbs = contextCrumbs([pasta], "/arquivos", { pasta: PASTA });
+    expect(crumbs.page).toEqual({ to: "/arquivos", search: {} });
+    expect(crumbs.frames).toEqual([
+      { label: "Provas 2026", to: "/arquivos", search: { pasta: PASTA } },
+    ]);
+  });
+
   it("cada passo leva à mesma página nesse nível e guarda os filtros da página", () => {
     const crumbs = contextCrumbs([turma, disciplina], "/pedagogica", {
       tab: "notas",

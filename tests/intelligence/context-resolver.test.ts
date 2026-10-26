@@ -183,6 +183,15 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/financeiro/rh/funcionarios")).toEqual([]);
     expect(routeContextCandidates(`/financeiro/rh/funcionarios/${ALUNO}/extra`)).toEqual([]);
     expect(routeContextCandidates(`/arquivos/${ALUNO}`)).toEqual([{ type: "file", id: ALUNO }]);
+    expect(routeContextCandidates(`/pedagogica/tarefas/${ALUNO}`)).toEqual([
+      { type: "task", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/pedagogica/tarefas/nao-uuid")).toEqual([]);
+    // A pasta aberta manda sobre a turma da mesma página.
+    expect(routeContextCandidates("/arquivos", { pasta: ALUNO, turma: TURMA_A })).toEqual([
+      { type: "folder", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/arquivos", { pasta: "x" })).toEqual([]);
     expect(routeContextCandidates("/arquivos/certidao.pdf")).toEqual([]);
   });
 });
@@ -372,5 +381,39 @@ describe("lookups do foco", () => {
     });
     expect(other.context.trail).toEqual([]);
     expect(other.refused).toEqual({ type: "student", id: ALUNO });
+  });
+
+  it("o trabalho entra pelo foco, debaixo da disciplina que a árvore confirma", () => {
+    const TAREFA = "55555555-5555-4555-8555-555555555555";
+    const trabalho: EntityFocus = {
+      type: "task",
+      id: TAREFA,
+      label: "Ficha 2",
+      schoolId: SCHOOL_A,
+      data: null,
+      parent: { type: "subject-offering", id: matematicaA.id },
+    };
+    const route = routeContextCandidates(`/pedagogica/tarefas/${TAREFA}`);
+    const ok = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route,
+      lookup: combineContextLookups(lookupFrom(turmaA, matematicaA), focusContextLookup(trabalho)),
+    });
+    expect(ok.context.trail.map((frame) => frame.label)).toEqual([
+      "Turma A",
+      "Matemática",
+      "Ficha 2",
+    ]);
+    // Sem a disciplina confirmada (outro professor), o trabalho fica sozinho.
+    const alone = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route,
+      lookup: focusContextLookup(trabalho),
+    });
+    expect(alone.context.trail.map((frame) => frame.label)).toEqual(["Ficha 2"]);
   });
 });

@@ -63,10 +63,13 @@ export function useEntityNavigation(
       ),
     [account.role, pathname, search],
   );
-  // Só pede turmas e disciplinas quando a URL traz uma turma; noutras páginas
-  // nada é carregado.
+  // Só pede turmas e disciplinas quando a URL traz uma turma (ou um trabalho, que
+  // fica debaixo da sua disciplina); noutras páginas nada é carregado.
   const academic = route.some(
-    (candidate) => candidate.type === "class" || candidate.type === "subject-offering",
+    (candidate) =>
+      candidate.type === "class" ||
+      candidate.type === "subject-offering" ||
+      candidate.type === "task",
   );
   const { tree, schoolId } = useAcademicNavTree({ enabled: academic });
   // O professor do horário (`?professor=`) confirma-se na lista da escola; no

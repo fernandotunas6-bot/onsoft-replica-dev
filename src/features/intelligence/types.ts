@@ -13,7 +13,11 @@ export type EntityType =
   /** Um vínculo laboral (funcionário) da escola activa (contexto RH). */
   | "employee"
   /** Um ficheiro dos Arquivos da escola activa (contexto Documentos e Arquivos). */
-  | "file";
+  | "file"
+  /** Um trabalho (tarefa) de uma disciplina numa turma: fica debaixo da disciplina. */
+  | "task"
+  /** Uma pasta dos Arquivos da escola activa (`/arquivos?pasta=`). */
+  | "folder";
 
 export interface EntityFocus<T = unknown> {
   type: EntityType;
@@ -23,6 +27,11 @@ export interface EntityFocus<T = unknown> {
   data: T;
   /** Entidades ligadas que a página leu do servidor com esta (a turma do aluno). */
   relations?: ContextFrame["relations"];
+  /**
+   * O recurso superior que o servidor devolveu com esta (a disciplina de um
+   * trabalho). O resolvedor só o põe no caminho se o confirmar por outra leitura.
+   */
+  parent?: { type: EntityType; id: string } | null;
 }
 
 export interface AppContext {

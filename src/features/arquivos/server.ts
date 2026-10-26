@@ -1105,6 +1105,12 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
     return { ok: true, localOnly: false, moved: data.ids.length };
   });
 
+/**
+ * O caminho até uma pasta, da raiz para a pasta aberta. Só pastas desta escola,
+ * não apagadas e visíveis à conta pela mesma regra da lista (`canSeeRow`): uma
+ * pasta que a conta não veria devolve o caminho vazio, sem dizer porquê. A pasta
+ * aberta abre-se por `?pasta=` (deep link) e entra no menu do contexto.
+ */
 export const listFolderTrail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listFolderTrailInputSchema.parse(input ?? {}))
@@ -1112,29 +1118,59 @@ export const listFolderTrail = createServerFn({ method: "GET" })
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
     const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
-    if (!data.folderId) return { trail: [] as Array<{ id: string; name: string }> };
+    const empty = {
+      schoolId: membership.schoolId,
+      area: null as SchoolFileRecord["area"] | null,
+      trail: [] as Array<{ id: string; name: string }>,
+    };
+    if (!data.folderId) return empty;
     const db = await loadSgaAdminClient();
     const trail: Array<{ id: string; name: string }> = [];
+    let area: SchoolFileRecord["area"] | null = null;
     let currentId: string | null = data.folderId;
     for (let depth = 0; depth < 12 && currentId; depth += 1) {
       const { data: row, error } = (await db
         .from("siga_files")
-        .select("id, name, parent_id, is_folder")
+        .select("id, name, parent_id, is_folder, area, owner_user_id, visibility")
         .eq("id", currentId)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .maybeSingle()) as {
-        data: { id: unknown; name: unknown; parent_id: unknown; is_folder: unknown } | null;
+        data: {
+          id: unknown;
+          name: unknown;
+          parent_id: unknown;
+          is_folder: unknown;
+          area: unknown;
+          owner_user_id: unknown;
+          visibility: unknown;
+        } | null;
         error: { message?: string; code?: string } | null;
       };
       if (error) {
-        if (missingFilesTable(error) || missingOptionalColumn(error)) return { trail: [] };
+        if (missingFilesTable(error) || missingOptionalColumn(error)) return empty;
         throw publicDatabaseError(error, "Não foi possível ler o caminho da pasta.");
       }
       if (!row || !row.is_folder) break;
+      const visible = canSeeRow(
+        {
+          area: row.area as SchoolFileRecord["area"],
+          ownerUserId: String(row.owner_user_id ?? ""),
+          visibility: row.visibility as SchoolFileRecord["visibility"],
+        },
+        userId,
+        membership.appRole,
+      );
+      // A pasta aberta tem de ser visível; acima dela, o caminho pára na primeira que não é.
+      if (!visible) {
+        if (depth === 0) return empty;
+        break;
+      }
+      if (depth === 0) area = row.area as SchoolFileRecord["area"];
       trail.unshift({ id: String(row.id), name: String(row.name) });
       currentId = row.parent_id ? String(row.parent_id) : null;
     }
-    return { trail };
+    return { schoolId: membership.schoolId, area, trail };
   });
 
 export const archiveFinanceDocument = createServerFn({ method: "POST" })

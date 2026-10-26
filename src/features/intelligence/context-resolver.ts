@@ -106,6 +106,11 @@ export function routeContextCandidates(
   ) {
     return extra && UUID.test(extra) ? [{ type: "class", id: extra }] : [];
   }
+  // Entregas de um trabalho: `/pedagogica/tarefas/<tarefa>`. A disciplina e a turma
+  // vêm do trabalho lido no servidor (o foco da página), nunca da URL.
+  if (first === "pedagogica" && second === "tarefas" && more === undefined) {
+    return extra && UUID.test(extra) ? [{ type: "task", id: extra }] : [];
+  }
   // Ficha do funcionário: `/financeiro/rh/funcionarios/<vínculo>`.
   if (first === "financeiro" && second === "rh" && extra === "funcionarios" && rest === undefined) {
     return more && UUID.test(more) ? [{ type: "employee", id: more }] : [];
@@ -115,6 +120,10 @@ export function routeContextCandidates(
     if (first === "professores") return [{ type: "teacher", id: second }];
     if (first === "faturas") return [{ type: "invoice", id: second }];
     if (first === "arquivos") return [{ type: "file", id: second }];
+  }
+  // Uma pasta aberta nos Arquivos (`?pasta=`) manda sobre a turma da mesma página.
+  if (pathname === "/arquivos" && typeof search.pasta === "string" && UUID.test(search.pasta)) {
+    return [{ type: "folder", id: search.pasta }];
   }
   if (CLASS_SEARCH_ROUTES.has(pathname)) {
     const turma = typeof search.turma === "string" && UUID.test(search.turma) ? search.turma : null;
@@ -257,6 +266,7 @@ export function focusContextLookup(focus: EntityFocus | null | undefined): Conte
           label: focus.label,
           schoolId: focus.schoolId,
           ...(focus.relations ? { relations: focus.relations } : {}),
+          ...(focus.parent ? { parent: focus.parent } : {}),
         }
       : null;
 }

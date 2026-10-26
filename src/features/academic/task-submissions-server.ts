@@ -228,6 +228,10 @@ export const listTaskSubmissions = createServerFn({ method: "GET" })
       }))
       .sort((a, b) => a.studentName.localeCompare(b.studentName, "pt"));
     return {
+      // Onde o trabalho vive, lido do servidor: a página põe-no debaixo da disciplina.
+      schoolId,
+      classGroupId: str(classSubject.class_group_id),
+      subjectId: str(classSubject.subject_id),
       title: str(task.title),
       kind: str(task.kind) || "outra",
       description: task.description ? str(task.description) : null,

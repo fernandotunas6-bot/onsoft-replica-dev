@@ -48,11 +48,19 @@ export function contextCrumbs(
     const level = trail.slice(0, depth);
     const { turma, disciplina } = academicIdsFromTrail(level);
     const professor = [...level].reverse().find((frame) => frame.type === "teacher")?.id;
+    const pasta = [...level].reverse().find((frame) => frame.type === "folder")?.id;
     return {
       to: pathname,
       // Os filtros da página ficam; só mudam turma, disciplina e professor. A pauta
       // abre-se sobre uma turma, por isso sai com ela.
-      search: { ...kept, turma, disciplina, professor, pauta: turma ? kept.pauta : undefined },
+      search: {
+        ...kept,
+        turma,
+        disciplina,
+        professor,
+        pasta,
+        pauta: turma ? kept.pauta : undefined,
+      },
     };
   };
   return {

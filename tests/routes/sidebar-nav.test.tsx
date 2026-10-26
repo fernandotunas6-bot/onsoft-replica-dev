@@ -136,11 +136,19 @@ vi.mock("@/features/academic/use-academic-nav-tree", () => ({
 // Entidade que a página declarou em foco (a ficha do aluno lida do servidor).
 const focus = vi.hoisted(() => ({
   entity: null as null | {
-    type: "student" | "teacher" | "invoice" | "employee" | "file";
+    type: "student" | "teacher" | "invoice" | "employee" | "file" | "task" | "folder";
     id: string;
     label: string;
     schoolId: string;
-    relations?: { class?: string; student?: string; teacher?: string; employee?: string };
+    relations?: {
+      class?: string;
+      student?: string;
+      teacher?: string;
+      employee?: string;
+      "subject-offering"?: string;
+      folder?: string;
+    };
+    parent?: { type: "subject-offering"; id: string };
   },
 }));
 // Professores que o servidor devolveria à escola (horário de um professor).
@@ -1042,6 +1050,169 @@ describe("AppSidebar — menu do ficheiro (Context Engine, Documentos e Arquivos
     currentPathname = `/arquivos/${FICHEIRO}`;
     renderSidebar();
     expect(screen.queryByRole("region", { name: /^Ficheiro/ })).toBeNull();
+  });
+});
+
+describe("AppSidebar — menu da pasta (Context Engine, Documentos e Arquivos)", () => {
+  const PASTA = "99999999-9999-4999-8999-999999999999";
+  const ACIMA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const pasta = {
+    type: "folder" as const,
+    id: PASTA,
+    label: "Provas 2026",
+    schoolId: "school-a",
+    relations: { folder: ACIMA },
+  };
+
+  it("a pasta aberta pela URL: conteúdo, pasta acima e todos os arquivos", () => {
+    papel = "Secretaria";
+    focus.entity = pasta;
+    currentPathname = "/arquivos";
+    currentSearch = { pasta: PASTA };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Pasta: Provas 2026" });
+    expect(section.textContent).toContain("Pasta · Provas 2026");
+    expect(linksTo("/arquivos")).toEqual([
+      expect.objectContaining({ label: expect.stringMatching(/^Voltar/), search: null }),
+      { label: "Conteúdo da pasta", search: { pasta: PASTA } },
+      { label: "Pasta acima", search: { pasta: ACIMA } },
+      { label: "Todos os arquivos", search: {} },
+    ]);
+    const active = screen
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Conteúdo da pasta");
+  });
+
+  it("na raiz não há «Pasta acima»", () => {
+    papel = "Secretaria";
+    focus.entity = { ...pasta, relations: {} };
+    currentPathname = "/arquivos";
+    currentSearch = { pasta: PASTA };
+    renderSidebar();
+    expect(linksTo("/arquivos").map((link) => link.label)).not.toContain("Pasta acima");
+  });
+
+  it("uma pasta que o servidor não devolveu, ou de outra escola, não muda o menu", () => {
+    papel = "Secretaria";
+    currentPathname = "/arquivos";
+    currentSearch = { pasta: PASTA };
+    const first = renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Pasta/ })).toBeNull();
+    first.unmount();
+    focus.entity = { ...pasta, schoolId: "school-b" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Pasta/ })).toBeNull();
+  });
+
+  it("quem não abre os Arquivos não recebe o menu da pasta", () => {
+    papel = "Encarregado";
+    focus.entity = pasta;
+    currentPathname = "/arquivos";
+    currentSearch = { pasta: PASTA };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Pasta/ })).toBeNull();
+  });
+});
+
+describe("AppSidebar — menu do trabalho (Context Engine, §5.2)", () => {
+  const TAREFA = "88888888-8888-4888-8888-888888888888";
+  const TURMA = "11111111-1111-4111-8111-111111111111";
+  const MATEMATICA = "33333333-3333-4333-8333-333333333333";
+  const OFERTA = `${TURMA}:${MATEMATICA}`;
+  const trabalho = {
+    type: "task" as const,
+    id: TAREFA,
+    label: "Ficha 2",
+    schoolId: "school-a",
+    relations: { class: TURMA, "subject-offering": OFERTA },
+    parent: { type: "subject-offering" as const, id: OFERTA },
+  };
+  const tree = () => [
+    {
+      id: "grade:10ª classe",
+      label: "10ª Classe",
+      kind: "grade" as const,
+      classTeacher: false,
+      classes: [
+        {
+          id: TURMA,
+          name: "Turma A",
+          classTeacher: false,
+          subjects: [{ id: MATEMATICA, name: "Matemática" }],
+        },
+      ],
+    },
+  ];
+
+  it("o trabalho fica debaixo da disciplina, com as entregas por estado", () => {
+    academic.tree = tree();
+    focus.entity = trabalho;
+    currentPathname = `/pedagogica/tarefas/${TAREFA}`;
+    currentSearch = { estado: "por-devolver" };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Trabalho: Ficha 2" });
+    expect(section.textContent).toContain("Trabalho · Ficha 2");
+    // A turma e a disciplina vêm por cima, confirmadas pela árvore do servidor.
+    expect(section.textContent).toContain("Turma A · Matemática");
+    expect(linksTo(`/pedagogica/tarefas/${TAREFA}`)).toEqual([
+      { label: "Entregas e correcção", search: {} },
+      { label: "Por entregar", search: { estado: "por-entregar" } },
+      { label: "Por devolver", search: { estado: "por-devolver" } },
+      { label: "Devolvidas", search: { estado: "devolvidas" } },
+    ]);
+    const active = screen
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Por devolver");
+    expect(linksTo("/pedagogica/trabalhos")).toEqual([
+      expect.objectContaining({
+        label: expect.stringMatching(/^Voltar/),
+        search: { turma: TURMA, disciplina: MATEMATICA },
+      }),
+      { label: "Trabalhos da disciplina", search: { turma: TURMA, disciplina: MATEMATICA } },
+    ]);
+    expect(linksTo("/pedagogica").map((link) => link.search)).toEqual(
+      expect.arrayContaining([
+        { tab: "notas", turma: TURMA, disciplina: MATEMATICA, pauta: "1" },
+        { tab: "presencas", turma: TURMA, disciplina: MATEMATICA },
+      ]),
+    );
+    expect(linksTo(`/pedagogica/turmas/${TURMA}`)).toEqual([
+      { label: "Ficha da turma", search: {} },
+    ]);
+  });
+
+  it("uma disciplina que a árvore não confirma não entra no cabeçalho", () => {
+    academic.tree = [];
+    focus.entity = trabalho;
+    currentPathname = `/pedagogica/tarefas/${TAREFA}`;
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Trabalho: Ficha 2" });
+    expect(section.textContent).not.toContain("Matemática");
+  });
+
+  it("antes de a página ler o trabalho, ou com um de outra escola, o menu não muda", () => {
+    academic.tree = tree();
+    currentPathname = `/pedagogica/tarefas/${TAREFA}`;
+    const first = renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Trabalho/ })).toBeNull();
+    first.unmount();
+    focus.entity = { ...trabalho, schoolId: "school-b" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Trabalho/ })).toBeNull();
+  });
+
+  it("nunca a tesouraria nem ao encarregado", () => {
+    for (const role of ["Tesouraria", "Encarregado"]) {
+      papel = role;
+      academic.tree = tree();
+      focus.entity = trabalho;
+      currentPathname = `/pedagogica/tarefas/${TAREFA}`;
+      const view = renderSidebar();
+      expect(screen.queryByRole("region", { name: /^Trabalho/ })).toBeNull();
+      view.unmount();
+    }
   });
 });
 

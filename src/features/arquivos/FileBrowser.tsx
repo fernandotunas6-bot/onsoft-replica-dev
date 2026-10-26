@@ -212,6 +212,8 @@ export function FileBrowser({
   initialClassGroupId,
   uploadClassGroupId,
   initialRelatedPersonId,
+  folderId: urlFolderId,
+  onFolderChange,
   onPick,
 }: {
   pickMode?: boolean;
@@ -222,6 +224,12 @@ export function FileBrowser({
   /** Destino dos uploads do selector; não filtra os ficheiros disponíveis. */
   uploadClassGroupId?: string;
   initialRelatedPersonId?: string;
+  /**
+   * A pasta aberta vinda da URL (`/arquivos?pasta=`), para deep links e para o
+   * menu do contexto. Sem `onFolderChange`, a pasta fica só no estado local.
+   */
+  folderId?: string | null;
+  onFolderChange?: (folderId: string | null) => void;
   onPick?: (file: SchoolFileRecord) => void;
 }) {
   const account = useCurrentAccount();
@@ -261,7 +269,16 @@ export function FileBrowser({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const uploadAttemptsRef = useRef(new WeakMap<File, PreparedSchoolUpload>());
-  const [folderId, setFolderId] = useState<string | null>(null);
+  const [folderId, setFolderId] = useState<string | null>(urlFolderId ?? null);
+  // A URL manda (voltar/avançar no browser); cada pasta aberta aqui vai para a URL.
+  useEffect(() => {
+    if (urlFolderId !== undefined) setFolderId(urlFolderId ?? null);
+  }, [urlFolderId]);
+  useEffect(() => {
+    if (onFolderChange && folderId !== (urlFolderId ?? null)) onFolderChange(folderId);
+    // Só quando a pasta muda aqui dentro; a URL já reflecte a sua própria mudança.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderId]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [moveOpen, setMoveOpen] = useState(false);
   const [organizeTarget, setOrganizeTarget] = useState<SchoolFileRecord | null>(null);
@@ -390,6 +407,13 @@ export function FileBrowser({
     queryFn: () => listFolderTrail({ data: { folderId } }),
     staleTime: 30_000,
   });
+
+  // Uma pasta aberta pela URL pode ser de outra área: a lista passa para essa área.
+  const trailArea = trailQuery.data?.area ?? null;
+  useEffect(() => {
+    if (trailArea && trailArea !== area && areas.includes(trailArea)) setArea(trailArea);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trailArea]);
 
   const foldersQuery = useQuery({
     queryKey: ["arquivos", "folders", account.schoolId, account.id, account.role, area],
