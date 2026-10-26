@@ -52,6 +52,8 @@ jobs:
       SGA_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SGA_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_NSqtGz5zxP_EngLuNj00Og_y3V4D4td' }}
       SGA_PORTAL_URL: ${{ vars.SGA_PORTAL_URL || 'https://portal-siga.com' }}
       HCAPTCHA_SITE_KEY: ${{ vars.HCAPTCHA_SITE_KEY }}
+      # Certificado da chave de upload do SIGA Plus (público; o site mostra o mesmo).
+      ANDROID_SIGNING_SHA256: B3:40:33:FF:64:86:DC:0C:A0:44:9E:8D:15:CE:71:1F:08:A0:0E:34:D8:50:8C:0C:8E:54:D9:96:30:02:EF:57
       VERSAO: ${{ inputs.versao || '0.0.0' }}
       PUBLICAR: ${{ inputs.publicar || false }}
     steps:
@@ -140,6 +142,16 @@ jobs:
           (cd dist && sha256sum SIGA-Plus-Android-*.apk > SHA256SUMS-android.txt && cat SHA256SUMS-android.txt)
           ls -l dist
 
+      # Com a chave de release, os APK têm de vir assinados com este certificado: com
+      # outro (ou com o de depuração) não instalam por cima da versão anterior.
+      - name: Confirmar a assinatura
+        run: |
+          if [ -f android/key.properties ]; then
+            python3 scripts/apk-certificado.py --esperado "$ANDROID_SIGNING_SHA256" dist/SIGA-Plus-Android-*.apk
+          else
+            python3 scripts/apk-certificado.py dist/SIGA-Plus-Android-*.apk
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: siga-plus-android-${{ inputs.versao || 'pr' }}
@@ -161,7 +173,9 @@ jobs:
           | A maioria (Android 64 bits) | \`SIGA-Plus-Android-arm64.apk\` |
           | Mais antigos (32 bits) | \`SIGA-Plus-Android-armv7.apk\` |
 
-          O Android pede autorização para instalar apps fora da Play Store: os passos estão na página de transferência. Somas SHA-256 em \`SHA256SUMS-android.txt\`."
+          O Android pede autorização para instalar apps fora da Play Store: os passos estão na página de transferência. Somas SHA-256 em \`SHA256SUMS-android.txt\`.
+
+          Certificado de assinatura (SHA-256): \`B3:40:33:FF:64:86:DC:0C:A0:44:9E:8D:15:CE:71:1F:08:A0:0E:34:D8:50:8C:0C:8E:54:D9:96:30:02:EF:57\`"
           if ! gh release view android --repo "$REPO" >/dev/null 2>&1; then
             gh release create android --repo "$REPO" --target "$GITHUB_SHA" \
               --title "SIGA Plus Android" --notes "$notes" --latest=false

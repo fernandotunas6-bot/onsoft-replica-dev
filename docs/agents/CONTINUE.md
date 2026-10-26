@@ -1,5 +1,22 @@
 # Handoff — continuar o SIGA
 
+## Apps para descarregar: desktop e Android — 2026-10-26
+
+- **SIGA Desktop 1.3.1** publicado, a primeira versão com actualizações assinadas
+  (chave `8978E84141130A74`). Guia: [docs/desktop/PUBLICAR_VERSOES.md](../desktop/PUBLICAR_VERSOES.md).
+- **SIGA Plus para Android 1.0.0** (o estudo `estudo/yft-school-system` no modo SIGA)
+  na release `android` e em portal-siga.com/download. APK assinado com o certificado
+  `B3:40:33:FF:…:EF:57`; o workflow recusa publicar com outro. Guia:
+  [estudo/yft-school-system/docs/PUBLICAR_ANDROID.md](../../estudo/yft-school-system/docs/PUBLICAR_ANDROID.md).
+- **Worker do estudo no modo SIGA** em `siga-yft.valentinocanguele.workers.dev`, com a chave
+  de servidor do SIGA (decisão do dono, 26/10). `m.portal-siga.com` continua no Mobile V4.
+- **Login com o n.º de aluno** na app: rota `/api/mobile/login` do portal (o
+  `signInWithIdentifierFn`, no subdomínio da escola); o aluno vê a sua ficha como único
+  «educando».
+- Por fazer: testar num telemóvel real; assinatura do sistema operativo nos instaladores do
+  desktop (certificados pagos); fase 5 da migração (desligar Firebase/D1); e **trocar a
+  chave `sb_secret_…` do Supabase**, que foi colada numa conversa a 26/10 (não foi usada).
+
 ## Backend: horários, agenda e matrículas — 2026-10-25
 
 Pedido deste ciclo: só backend. [Contrato, pesquisa comparativa e migrações](../architecture/ACADEMIC_AGENDA.md).

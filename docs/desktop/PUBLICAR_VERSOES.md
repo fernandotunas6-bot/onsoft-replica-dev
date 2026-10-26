@@ -124,6 +124,13 @@ gravações por enviar.
 
 ## Assinatura do sistema operativo (opcional, recomendada)
 
+**Estado (26/10/2026): por fazer.** As actualizações já são assinadas (chave
+`8978E84141130A74`, acima), mas os instaladores ainda não têm certificado de editor,
+por isso o SmartScreen e o Gatekeeper pedem confirmação na primeira instalação. Exige
+comprar um certificado de assinatura de código (Windows) e uma conta Apple Developer
+(macOS): é decisão e conta do dono. A app Android tem a sua própria assinatura:
+[estudo/yft-school-system/docs/PUBLICAR_ANDROID.md](../../estudo/yft-school-system/docs/PUBLICAR_ANDROID.md).
+
 Sem ela a app funciona, mas o sistema avisa na primeira abertura:
 
 - **Windows** (SmartScreen: «O Windows protegeu o seu PC» → _Mais informações_ →

@@ -27,7 +27,13 @@ gere no SIGA, em vez do Firebase e da base D1 própria.
 | 2 | Entrada na app com a conta do SIGA (Supabase Auth) e ecrãs do encarregado a ler `/api/sga` | feito (web e Android/iOS) |
 | 3 | Leituras do encarregado: horário, faltas, recibos, boletim, saldo, disciplinas, turmas e calendário | feito |
 | 4 | Escritas e mensagens no próprio SIGA: chamada, notas e chat (`/api/mobile/attendance`, `/grades`, `/chat`) | feito |
+| — | O aluno entra com o n.º de aluno e vê a sua ficha como único «educando» (`/api/mobile/login` no portal; `wardIds` no Worker) | feito (26/10) |
 | 5 | Desligar o Firebase e a base D1 | por fazer |
+
+**No ar desde 26/10/2026:** o Worker em `siga-yft.valentinocanguele.workers.dev` no modo SIGA
+(workflow «Estudo — Worker no modo SIGA (teste)») e o APK Android 1.0.0 assinado, na página
+`/download` do site. `m.portal-siga.com` continua no Mobile V4. Publicação e assinatura do
+Android: [PUBLICAR_ANDROID.md](./PUBLICAR_ANDROID.md).
 
 ## Modo SIGA na app
 
@@ -174,6 +180,11 @@ sem cópia de regras.
   conversa marca-a como lida; o papel mostrado é o texto do SIGA.
 
 ## Pôr no ar (dono)
+
+Hoje faz-se pelo GitHub Actions, sem a chave passar por ninguém: **Estudo — Worker no modo
+SIGA (teste)** (`.github/workflows/estudo-yft-siga.yml`) usa o `SUPABASE_SERVICE_ROLE_KEY`
+do environment `production`. O captcha do portal está desligado (`VITE_HCAPTCHA_SITE_KEY`
+vazia no build de produção), por isso `HCAPTCHA_SITE_KEY` fica vazia. Os passos à mão:
 
 ```sh
 cd estudo/yft-school-system/school-worker
