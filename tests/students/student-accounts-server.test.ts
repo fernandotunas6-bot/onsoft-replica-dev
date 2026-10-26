@@ -164,6 +164,37 @@ beforeEach(() => {
 });
 
 describe("contas de acesso dos alunos", () => {
+  it("lista os alunos do ano com o endereço da escola para as fichas", async () => {
+    tables.schools = [{ id: S, public_code: "SIGA-AO-000001", tenant_id: "t1" }];
+    tables.tenants = [{ id: "t1", slug: "ispab" }];
+    tables.tenant_domains = [
+      {
+        tenant_id: "t1",
+        hostname: "ispab.portal-siga.com",
+        type: "siga_subdomain",
+        status: "active",
+      },
+    ];
+    tables.academic_years = [{ id: "y1", school_id: S, name: "2026/2027", status: "active" }];
+    tables.class_groups = [
+      { id: "c7a", school_id: S, academic_year_id: "y1", code: "7A-M", name: "7ª A" },
+    ];
+    tables.enrollments = [
+      {
+        school_id: S,
+        academic_year_id: "y1",
+        student_id: ST1,
+        class_group_id: "c7a",
+        status: "active",
+      },
+    ];
+    const list = await server.listStudentAccounts();
+    expect(list.portalHost).toBe("ispab.portal-siga.com");
+    expect(list.students).toEqual([
+      expect.objectContaining({ studentId: ST1, classLabel: "7ª A (7A-M)", hasAccount: false }),
+    ]);
+  });
+
   it("cria a conta com senha provisória, papel de aluno e ficha ligada", async () => {
     const result = await server.createStudentAccounts({ data: { studentIds: [ST1] } });
     expect(result.failed).toEqual([]);
@@ -172,6 +203,7 @@ describe("contas de acesso dos alunos", () => {
       studentId: ST1,
       studentNumber: "1260001",
       name: "Ana Tchipa",
+      loginEmail: "1260001.sigaao000001@alunos.portal-siga.com",
     });
     expect(credential!.password).toMatch(/^[A-Z]{4}-[2-9]{4}-[a-z]{2}$/);
 
