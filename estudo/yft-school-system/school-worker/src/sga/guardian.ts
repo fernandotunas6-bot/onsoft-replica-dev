@@ -41,13 +41,23 @@ export async function wardIds(db: SgaDb, schoolId: string, user: SgaUser): Promi
   const personId = await personIdFor(db, schoolId, user);
   if (!personId) return [];
   const today = luandaToday();
-  const links = await db.select<{ student_id: string }>('student_guardians', {
-    select: 'student_id',
-    school_id: `eq.${schoolId}`,
-    guardian_person_id: `eq.${personId}`,
-    or: `(valid_until.is.null,valid_until.gte.${today})`,
-  });
-  return [...new Set(links.map((l) => l.student_id))];
+  const [links, own] = await Promise.all([
+    db.select<{ student_id: string }>('student_guardians', {
+      select: 'student_id',
+      school_id: `eq.${schoolId}`,
+      guardian_person_id: `eq.${personId}`,
+      or: `(valid_until.is.null,valid_until.gte.${today})`,
+    }),
+    // A conta de aluno (contas de acesso do SIGA) liga-se à ficha da própria pessoa:
+    // o aluno é o seu único «educando». Um encarregado não tem ficha de aluno.
+    db.select<{ id: string }>('students', {
+      select: 'id',
+      school_id: `eq.${schoolId}`,
+      person_id: `eq.${personId}`,
+      deleted_at: 'is.null',
+    }),
+  ]);
+  return [...new Set([...links.map((l) => l.student_id), ...own.map((s) => s.id)])];
 }
 
 export async function loadWards(db: SgaDb, schoolId: string, user: SgaUser): Promise<Ward[]> {

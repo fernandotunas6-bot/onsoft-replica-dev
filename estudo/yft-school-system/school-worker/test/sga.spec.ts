@@ -19,6 +19,7 @@ const tables: Record<string, Row[]> = {
 		{ id: "m-old", school_id: S1, user_id: "u-gone", status: "suspended", created_at: "1" },
 		{ id: "m-e", school_id: S1, user_id: "u-email", status: "active", created_at: "1" },
 		{ id: "m-a", school_id: S1, user_id: "u-admin", status: "active", created_at: "1" },
+		{ id: "m-s", school_id: S1, user_id: "u-student", status: "active", created_at: "1" },
 	],
 	member_roles: [
 		{ membership_id: "m-g", role_id: "r-g" },
@@ -26,15 +27,17 @@ const tables: Record<string, Row[]> = {
 		{ membership_id: "m-t", role_id: "r-t" },
 		{ membership_id: "m-e", role_id: "r-g" },
 		{ membership_id: "m-a", role_id: "r-a" },
+		{ membership_id: "m-s", role_id: "r-s" },
 	],
 	profiles: [{ id: "u-guardian", full_name: "Mariana Silva", display_name: null }],
-	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }, { id: "r-a", code: "admin" }],
+	roles: [{ id: "r-g", code: "encarregado" }, { id: "r-t", code: "professor" }, { id: "r-a", code: "admin" }, { id: "r-s", code: "aluno" }],
 	people: [
 		{ id: "p-prof", school_id: S1, user_id: "u-teacher", full_name: "Carlos Mendes", preferred_name: null, deleted_at: null },
 		{ id: "p-g", school_id: S1, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
 		{ id: "p-g2", school_id: S2, user_id: "u-guardian", email: null, deleted_at: null, full_name: "Mariana" },
 		{ id: "p-e", school_id: S1, user_id: null, email: "pai@ex.ao", deleted_at: null, full_name: "Pai" },
-		{ id: "p-ana", school_id: S1, full_name: "Ana Silva", preferred_name: null, photo_url: null, deleted_at: null },
+		// A conta de aluno da Ana (contas de acesso do SIGA) liga-se à sua própria ficha.
+		{ id: "p-ana", school_id: S1, user_id: "u-student", full_name: "Ana Silva", preferred_name: null, photo_url: null, deleted_at: null },
 		{ id: "p-rui", school_id: S1, full_name: "Rui Silva", preferred_name: "Rui", photo_url: "https://x/rui.jpg", deleted_at: null },
 		{ id: "p-old", school_id: S1, full_name: "Antigo", deleted_at: null },
 		{ id: "p-other", school_id: S2, full_name: "Da Outra Escola", deleted_at: null },
@@ -158,6 +161,7 @@ const sessions: Record<string, Row> = {
 	"tok-gone": { id: "u-gone", email: "x@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-email": { id: "u-email", email: "PAI@ex.ao", email_confirmed_at: "2026-01-01" },
 	"tok-email-unconfirmed": { id: "u-email", email: "pai@ex.ao", email_confirmed_at: null },
+	"tok-student": { id: "u-student", email: "1260001.escolaum@alunos.portal-siga.com", email_confirmed_at: "2026-01-01" },
 };
 const SECRET = "sb_secret_test";
 const seen: string[] = [];
@@ -262,6 +266,15 @@ describe("API SGA", () => {
 		expect(ok.data.map((w) => w.id)).toEqual(["st-ana"]);
 		const no = (await (await get("/wards", "tok-email-unconfirmed")).json()) as { data: unknown[] };
 		expect(no.data).toEqual([]);
+	});
+
+	it("o aluno entra como o seu único educando: vê a sua ficha, mais nenhuma", async () => {
+		const me = (await (await get("/me", "tok-student")).json()) as { role: string };
+		expect(me.role).toBe("student");
+		const { data } = (await (await get("/wards", "tok-student")).json()) as { data: { id: string }[] };
+		expect(data.map((w) => w.id)).toEqual(["st-ana"]);
+		expect((await get("/attendance/student/st-ana", "tok-student")).status).toBe(200);
+		expect((await get("/attendance/student/st-rui", "tok-student")).status).toBe(404);
 	});
 
 	it("/wards e /notices são só para encarregados", async () => {

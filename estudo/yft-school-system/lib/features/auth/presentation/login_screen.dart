@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yft_school_system/core/sga/captcha_box.dart';
+import 'package:yft_school_system/core/sga/sga_auth.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -21,6 +22,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  // Modo SIGA: o endereço da escola (ex.: «ispab»), só para o n.º de aluno.
+  final _schoolSlugController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   KnownSchool? _school;
@@ -32,10 +35,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const _sga = SgaConfig.fromEnvironment;
   bool get _captchaRequired => _sga.enabled && _sga.needsCaptcha;
 
+  /// N.º de aluno do SIGA: repete-se de escola para escola, por isso pede a escola.
+  bool get _usesStudentNumber =>
+      _sga.enabled && normalizeStudentNumber(_emailController.text) != null;
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _schoolSlugController.dispose();
     super.dispose();
   }
 
@@ -45,12 +53,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Escreva o e-mail e a palavra-passe.',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            _sga.enabled
+                ? 'Escreva o e-mail, B.I. ou n.º de aluno e a palavra-passe.'
+                : 'Escreva o e-mail e a palavra-passe.',
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_usesStudentNumber && _schoolSlugController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Com o n.º de aluno, escreva também o endereço da escola (ex.: ispab).',
+          ),
         ),
       );
       return;
@@ -67,7 +88,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final error = await ref
         .read(authProvider.notifier)
-        .login(email, password, captchaToken: _captchaToken);
+        .login(
+          email,
+          password,
+          captchaToken: _captchaToken,
+          school: _usesStudentNumber ? _schoolSlugController.text.trim() : null,
+        );
 
     if (!mounted) return;
     setState(() {
@@ -256,13 +282,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         TextField(
           controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(
-            hintText: 'E-mail da conta escolar',
-            prefixIcon: Icon(LucideIcons.mail, size: 20),
+          keyboardType: _sga.enabled
+              ? TextInputType.text
+              : TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.username],
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: _sga.enabled
+                ? 'E-mail, B.I. ou n.º de aluno'
+                : 'E-mail da conta escolar',
+            prefixIcon: Icon(
+              _sga.enabled ? LucideIcons.user : LucideIcons.mail,
+              size: 20,
+            ),
           ),
         ),
+
+        if (_usesStudentNumber) ...[
+          const SizedBox(height: 14),
+          TextField(
+            controller: _schoolSlugController,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              hintText: 'Endereço da escola (ex.: ispab)',
+              helperText: 'É o início do endereço do portal: ispab.portal-siga.com',
+              prefixIcon: Icon(LucideIcons.school, size: 20),
+            ),
+          ),
+        ],
 
         const SizedBox(height: 14),
 

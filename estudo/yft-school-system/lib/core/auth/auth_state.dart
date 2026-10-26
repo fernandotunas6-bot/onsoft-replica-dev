@@ -150,16 +150,16 @@ class AuthStateNotifier extends Notifier<AppSession?> {
       final role = me['role'] as String?;
       final school = me['school'] as Map<String, dynamic>?;
       if (school == null) return 'Esta conta não tem vínculo activo numa escola.';
+      // O aluno usa os ecrãs do encarregado: o servidor dá-lhe a própria ficha
+      // como único «educando» (boletim, faltas, horário, comunicados).
       final appRole = switch (role) {
         'admin' => UserRole.admin,
         'teacher' => UserRole.teacher,
-        'parent' => UserRole.parent,
+        'parent' || 'student' => UserRole.parent,
         _ => null,
       };
       if (appRole == null) {
-        return role == 'student'
-            ? 'A área do aluno ainda não está nesta app. Use o portal do SIGA.'
-            : 'Esta conta não tem um papel na escola. Fale com a administração.';
+        return 'Esta conta não tem um papel na escola. Fale com a administração.';
       }
       state = AppSession(
         role: appRole,
@@ -181,10 +181,26 @@ class AuthStateNotifier extends Notifier<AppSession?> {
     }
   }
 
-  Future<String?> _loginSga(String email, String password, String? captchaToken) async {
+  Future<String?> _loginSga(
+    String email,
+    String password,
+    String? captchaToken,
+    String? school,
+  ) async {
     final session = ref.read(sgaSessionProvider);
     try {
-      await session.signIn(email, password, captchaToken: captchaToken);
+      // Com «@», a conta entra directa no Auth do SIGA. Sem ele (n.º de aluno,
+      // B.I. ou telefone), pela rota de entrada do portal, que resolve a conta.
+      if (email.contains('@')) {
+        await session.signIn(email, password, captchaToken: captchaToken);
+      } else {
+        await session.signInWithIdentifier(
+          email,
+          password,
+          school: school,
+          captchaToken: captchaToken,
+        );
+      }
     } on SgaAuthException catch (e) {
       return e.message;
     }
@@ -208,8 +224,15 @@ class AuthStateNotifier extends Notifier<AppSession?> {
   }
 
   /// [captchaToken]: no modo SIGA, o token do hCaptcha (o Supabase exige-o).
-  Future<String?> login(String email, String password, {String? captchaToken}) async {
-    if (sgaMode) return _loginSga(email, password, captchaToken);
+  /// [school]: no modo SIGA, o endereço da escola (ex.: «ispab»), para o n.º
+  /// de aluno.
+  Future<String?> login(
+    String email,
+    String password, {
+    String? captchaToken,
+    String? school,
+  }) async {
+    if (sgaMode) return _loginSga(email, password, captchaToken, school);
     try {
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email.trim(),

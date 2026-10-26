@@ -61,8 +61,15 @@ sga.use('*', async (c, next) => {
   for (const [k, v] of Object.entries(noStore)) c.header(k, v);
 });
 
+/**
+ * Encarregado, ou o próprio aluno: o aluno vê-se a si mesmo como o único «educando»
+ * (wardIds junta a sua ficha), nos mesmos ecrãs e com as mesmas leituras.
+ */
 const requireGuardian = (c: Context<SgaAppEnv>) => {
-  if (!c.get('membership').roles.includes('Encarregado')) throw new SgaError(403, 'GUARDIAN_ONLY');
+  const roles = c.get('membership').roles;
+  if (!roles.includes('Encarregado') && !roles.includes('Aluno')) {
+    throw new SgaError(403, 'GUARDIAN_ONLY');
+  }
 };
 
 /** Quem sou nesta escola, e as outras escolas onde tenho vínculo activo. */

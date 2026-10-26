@@ -95,6 +95,38 @@ class SgaAuthClient {
       'gotrue_meta_security': {'captcha_token': captchaToken},
   });
 
+  /// Entrada pelo identificador do SIGA (n.º de aluno, B.I., telefone ou e-mail)
+  /// na rota `/api/mobile/login` do portal: os mesmos limites e regras do ecrã
+  /// de entrada do SIGA. Com o n.º de aluno, a rota é chamada no subdomínio da
+  /// escola ([school]), porque o número repete-se de escola para escola.
+  Future<SgaTokens> signInWithIdentifier(
+    String identifier,
+    String password, {
+    String? school,
+    String? captchaToken,
+  }) async {
+    final String refreshToken;
+    try {
+      final res = await _dio.post(
+        identifierLoginUrl(config.portalUrl, school),
+        data: {
+          'identifier': identifier.trim(),
+          'password': password,
+          if (captchaToken != null && captchaToken.isNotEmpty)
+            'captcha_token': captchaToken,
+        },
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+      refreshToken =
+          (res.data as Map<String, dynamic>)['refresh_token'] as String;
+    } on DioException catch (e) {
+      throw mapAuthError(e.response?.statusCode, e.response?.data);
+    }
+    // A rota só devolve o par de tokens: a renovação dá a sessão completa
+    // (validade e utilizador), como a entrada directa no Auth.
+    return refresh(refreshToken);
+  }
+
   Future<SgaTokens> refresh(String refreshToken) =>
       _token('refresh_token', {'refresh_token': refreshToken});
 
@@ -126,6 +158,35 @@ class SgaAuthClient {
       throw mapAuthError(e.response?.statusCode, e.response?.data);
     }
   }
+}
+
+/// N.º de aluno do SIGA (ex.: 1260001), sem espaços, pontos nem traços; null
+/// se não for um. A mesma regra do portal (`student-number-login.ts`).
+String? normalizeStudentNumber(String raw) {
+  final compact = raw.replaceAll(RegExp(r'[\s.-]'), '');
+  return RegExp(r'^1\d{2}(?!0000)\d{4}$').hasMatch(compact) ? compact : null;
+}
+
+/// Endereço da rota de entrada. Com [school] (o endereço da escola no SIGA,
+/// ex.: «ispab»), no subdomínio dela: é por aí que o portal escolhe a escola.
+String identifierLoginUrl(String portalUrl, String? school) {
+  final base = Uri.parse(
+    portalUrl.isEmpty ? 'https://portal-siga.com' : portalUrl,
+  );
+  final slug = (school ?? '').trim().toLowerCase();
+  if (slug.isNotEmpty && !RegExp(r'^[a-z0-9-]+$').hasMatch(slug)) {
+    throw const SgaAuthException(
+      'school',
+      'O endereço da escola só tem letras, números e traços (ex.: ispab).',
+    );
+  }
+  final rootHost = base.host.replaceFirst(RegExp(r'^www\.'), '');
+  return base
+      .replace(
+        host: slug.isEmpty ? base.host : '$slug.$rootHost',
+        path: '/api/mobile/login',
+      )
+      .toString();
 }
 
 /// Erros do GoTrue (`error_code`, ou o texto em versões antigas) em português.
@@ -219,6 +280,21 @@ class SgaSession {
     String? captchaToken,
   }) async {
     _tokens = await client.signIn(email, password, captchaToken: captchaToken);
+    await _persist();
+  }
+
+  Future<void> signInWithIdentifier(
+    String identifier,
+    String password, {
+    String? school,
+    String? captchaToken,
+  }) async {
+    _tokens = await client.signInWithIdentifier(
+      identifier,
+      password,
+      school: school,
+      captchaToken: captchaToken,
+    );
     await _persist();
   }
 
