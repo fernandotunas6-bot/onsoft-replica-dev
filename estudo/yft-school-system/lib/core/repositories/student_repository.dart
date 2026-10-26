@@ -3,6 +3,7 @@ import '../models/paginated_response.dart';
 import '../models/parent_user.dart';
 import '../models/student.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class StudentRepository {
   final Dio _dio;
@@ -151,7 +152,7 @@ class StudentRepository {
 
   /// Parent's children. Worker returns `{ data: [...] }`.
   Future<List<Student>> getWards() async {
-    final response = await _dio.get(ApiEndpoints.wards);
+    final response = await _dio.get(sgaMode ? ApiEndpoints.sgaWards : ApiEndpoints.wards);
     final list = response.data['data'] as List;
     return list
         .map((e) => Student.fromJson(e as Map<String, dynamic>))

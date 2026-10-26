@@ -1,8 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/school_academic_calendar.dart';
 import '../models/teacher_profile.dart';
+import '../models/teacher_summary.dart';
 import '../models/user_profile.dart';
 import '../network/api_endpoints.dart';
+import '../sga/sga_config.dart';
 
 class UserRepository {
   final Dio _dio;
@@ -13,6 +16,39 @@ class UserRepository {
     final response = await _dio.get(ApiEndpoints.usersMe);
     final data = response.data['data'] as Map<String, dynamic>;
     return UserProfile.fromJson(data);
+  }
+
+  /// Corrige o próprio nome, telefone e morada.
+  Future<void> updateMe({
+    required String name,
+    required String phone,
+    required String residentialAddress,
+  }) async {
+    await _dio.patch(
+      ApiEndpoints.usersMe,
+      data: {
+        'name': name,
+        'phone': phone,
+        'residential_address': residentialAddress,
+      },
+    );
+  }
+
+  /// Envia e grava a própria fotografia; devolve a chave guardada.
+  Future<String> uploadMyPhoto(XFile file) async {
+    final bytes = await file.readAsBytes();
+    final name = file.name.trim().isEmpty ? 'foto.jpg' : file.name;
+    final res = await _dio.post(
+      '${ApiEndpoints.usersMe}/photo',
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: name),
+      }),
+    );
+    return res.data['photo_url'] as String;
+  }
+
+  Future<void> removeMyPhoto() async {
+    await _dio.delete('${ApiEndpoints.usersMe}/photo');
   }
 
   Future<void> storeFcmToken(String token, {String? platform}) async {
@@ -26,7 +62,9 @@ class UserRepository {
   }
 
   Future<SchoolAcademicCalendar?> getAcademicCalendar() async {
-    final response = await _dio.get(ApiEndpoints.usersMeAcademicCalendar);
+    final response = await _dio.get(
+      sgaMode ? ApiEndpoints.sgaAcademicCalendar : ApiEndpoints.usersMeAcademicCalendar,
+    );
     final raw = response.data['data'];
     if (raw == null) return null;
     return SchoolAcademicCalendar.fromJson(raw as Map<String, dynamic>);
@@ -41,6 +79,14 @@ class UserRepository {
     );
     final raw = response.data['data'] as Map<String, dynamic>;
     return SchoolAcademicCalendar.fromJson(raw);
+  }
+
+  Future<List<TeacherSummary>> getTeachers() async {
+    final response = await _dio.get(ApiEndpoints.usersTeachers);
+    final list = response.data['data'] as List;
+    return list
+        .map((e) => TeacherSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<TeacherProfile> getTeacherProfile(String uid) async {

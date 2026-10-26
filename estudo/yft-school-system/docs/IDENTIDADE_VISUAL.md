@@ -7,38 +7,70 @@ tipografia mudarem.
 ## Paleta
 
 Toda a cor vem de `lib/core/theme/app_colors.dart`. Nenhum ecrã deve escrever
-um `Color(0x…)` à solta: 40 ficheiros referenciam `AppColors.primary`, e é
-por isso que trocar a marca é uma linha.
+um `Color(0x…)` à solta.
 
-| Papel | Valor | Onde aparece |
-|---|---|---|
-| `primary` | `#93ACCB` | fundo de botões, realces, cabeçalhos |
-| `primaryOnLight` | `#2F4A66` | texto da mesma família sobre branco (recibos, PDF) |
-| `secondary` | `#2B3440` | barras escuras, texto sobre o primário |
-| `background` | `#F7F8FA` | fundo das páginas |
-| `surface` | branco | cartões, folhas, diálogos |
-| `error` | `#D96A6A` | validações e estados de falha |
-| `textPrimary` | `#2B3440` | corpo |
-| `textSecondary` | `#75828F` | legendas e apoio |
+Os campos de `AppColors` **já não são `const`**: a cor principal e o modo
+escuro mudam em tempo de execução (ecrã Aparência, `/aparencia`).
+`AppColors.apply(accent:, dark:)` troca a paleta e `AppRoot` marca a árvore
+inteira para reconstruir. Por isso um widget que leia `AppColors.x` não pode
+ser `const`.
 
-### Porque não é o lima do autor
+### Marca (fixa)
 
-O original era `#C7FF00`, um lima saturado, com gradiente para `#B5E600`.
-Ocupava o ecrã inteiro no login e obrigava a texto preto para ser legível.
-A paleta actual mantém a mesma função — distinguir o que é accionável — com
-muito menos ruído.
+Gradiente do logótipo SIGA Plus, em `AppColors.brandGradient`:
+`#FF8A3D → #FF3D8B → #9B5CFF → #3D7BFF`. Usado no "S" (`BrandMark`) e em
+"Plus" (`BrandWordmark`). Não serve de fundo a texto.
 
-### Contraste, verificado
+### Cor principal (escolha do utilizador)
 
-| Combinação | Rácio | Mínimo WCAG AA |
-|---|---|---|
-| `textPrimary` sobre `primary` | 5,40 | 4,5 |
-| `primaryOnLight` sobre branco | 9,16 | 4,5 |
+| id | Nome | Valor | Texto sobre ela |
+|---|---|---|---|
+| `blue` (por omissão) | Azul | `#2563EB` | branco (5,17) |
+| `violet` | Roxo | `#7C3AED` | branco (5,70) |
+| `orange` | Laranja | `#F97316` | tinta `#1E2633` |
+| `teal` | Verde-água | `#14B8A6` | tinta `#1E2633` |
+| `slate` | Cinza | `#64748B` | branco (4,76) |
 
-**Branco sobre `primary` dá 2,33 e não passa.** Texto sobre o primário é
-sempre escuro. Se o primário for aclarado, reconfirmar a primeira linha;
-se for escurecido abaixo de 4,5, o texto sobre ele tem de passar a branco e
-a tabela tem de ser refeita.
+**Texto e ícones sobre `primary` usam sempre `AppColors.onPrimary`**, que é
+calculado: o primeiro de branco, tinta (`#1E2633`) ou quase preto (`#0E131A`)
+que passar 4,5 contra a cor. Nunca escrever `Colors.white` nem
+`AppColors.secondary` sobre o primário.
+
+No modo escuro o `primary` é clareado (para o branco) até passar 4,5 sobre o
+cartão `#171E28`, porque também serve de cor de texto (ligações, separadores).
+O teste `test/accessibility_test.dart` verifica o contraste nos dois modos.
+
+A letra Outfit vem com a app em `assets/google_fonts/` (licença OFL), para
+aparecer logo mesmo sem internet.
+
+### Neutros
+
+| Papel | Claro | Escuro | Onde aparece |
+|---|---|---|---|
+| `background` | `#F6F7FB` | `#0E131A` | fundo das páginas |
+| `surface` | branco | `#171E28` | cartões, folhas, menu |
+| `border` | `#E6E9F0` | `#263040` | contornos finos |
+| `secondary` / `textPrimary` | `#1E2633` | `#E8ECF2` | títulos e corpo |
+| `textSecondary` | `#5F6878` | `#98A3B3` | legendas |
+| `ink` | `#1E2633` | `#243044` | superfícies escuras com texto branco |
+| `primaryOnLight` | `#1E40AF` | — | recibos e PDF (papel é sempre branco) |
+| `error` | `#E5484D` | — | validações |
+| `success` | `#10B981` | — | início de período, confirmações |
+| `warning` | `#F59E0B` | — | avisos (aluno inactivo, só leitura) |
+
+`secondary` passou a ser **cor de texto** (claro no escuro). Cartões e
+etiquetas escuras com texto branco usam `ink`.
+
+### Fundos do painel
+
+`AppColors.backdrops` (aurora, mist, sunset): gradiente suave por trás do
+cabeçalho do Início, a 28 % (22 % no escuro).
+
+### Porque mudou
+
+A paleta anterior (`#93ACCB`, azul acinzentado) substituíra o lima do autor.
+Em Outubro de 2026 adoptou-se o estilo do mockup SIGA Plus: azul vivo,
+gradiente de marca, modo escuro e cor principal à escolha.
 
 ## Tipografia
 
@@ -55,7 +87,8 @@ hierarquia faz-se por tamanho e por cor — `textPrimary` contra
 
 ## Regra de alteração
 
-Mudar a marca é mudar `primary` e o segundo tom de `primaryGradient`. Tudo
-o resto segue. Antes de fechar uma mudança de cor, voltar a correr a
+Acrescentar uma cor principal é acrescentar uma `AccentOption` a
+`AppColors.accents`; `onPrimary` ajusta-se sozinho. Mudar os neutros é mexer
+nos dois ramos de `AppColors.apply`. Antes de fechar uma mudança de cor, voltar a correr a
 verificação de contraste e actualizar a tabela acima — uma paleta que não
 passa em AA é uma regressão, não uma escolha estética.

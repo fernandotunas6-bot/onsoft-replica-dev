@@ -30,7 +30,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.shieldCheck,
                   size: 64,
                   color: AppColors.primary,
@@ -47,10 +47,10 @@ class PrivacyPolicyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Last updated: October 10, 2026\n\n'
-              'Edu Manager ("we", "our", or "us") is committed to protecting your personal information and your right to privacy. '
-              'If you have any questions or concerns about this privacy notice, or our practices with regards to your personal information, please contact us at privacy@edumanager.app.',
+            Text(
+              'Última actualização: 10 de Outubro de 2026\n\n'
+              'O SIGA Plus protege os seus dados pessoais e o seu direito à privacidade. '
+              'Para qualquer questão sobre esta política ou sobre os seus dados, fale com a administração da sua escola.',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -59,23 +59,23 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _buildSection(
-              '1. Information We Collect',
-              'We collect personal information that you voluntarily provide to us when you register on the application, express an interest in obtaining school updates, or otherwise when you contact us.\n\n'
-                  'The personal information that we collect depends on the context of your interactions with us and the school administration.',
+              '1. Que dados recolhemos',
+              'Os dados que a escola regista ao criar a sua conta e os que fornece ao usar a aplicação.\n\n'
+                  'O que recolhemos depende da sua relação com a escola: encarregado, professor ou administração.',
             ),
             _buildSection(
-              '2. How We Use Your Information',
-              'We use personal information collected via our application for a variety of academic and administrative purposes described below. We process your personal information for these purposes in reliance on our legitimate school administrative interests.',
+              '2. Para que os usamos',
+              'Para a gestão escolar: turmas, notas, presenças, propinas e comunicação entre a escola e as famílias.',
             ),
             _buildSection(
-              '3. Will Your Information Be Shared?',
-              'We only share information with your consent, to comply with laws, to provide you with services, to protect your rights, or to fulfill academic obligations (such as sharing grades with parents).',
+              '3. Partilhamos os seus dados?',
+              'Só com o seu consentimento, por obrigação legal, ou quando a vida escolar o exige (por exemplo, mostrar as notas ao encarregado).',
             ),
             const SizedBox(height: 24),
             Center(
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
+                child: Text(
                   'Compreendi',
                   style: TextStyle(
                     color: AppColors.primary,
@@ -99,7 +99,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 18,
               color: AppColors.secondary,
@@ -108,7 +108,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             content,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
               height: 1.6,

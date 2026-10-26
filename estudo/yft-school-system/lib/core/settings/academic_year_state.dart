@@ -27,8 +27,8 @@ class AcademicYearSettings {
   static AcademicYearSettings get defaults {
     return AcademicYearSettings(
       academicYear: getCurrentAcademicYear(),
-      activeTerm: '1.º Período',
-      currency: 'GH₵',
+      activeTerm: 'Term 1',
+      currency: 'Kz',
     );
   }
 }

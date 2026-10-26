@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/core/auth/school_suspension.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_providers.dart';
 
 const _kDefaultBaseUrl = 'https://school-worker.ceo-6f0.workers.dev';
 
@@ -11,7 +13,7 @@ const _kBaseUrl = String.fromEnvironment(
   defaultValue: _kDefaultBaseUrl,
 );
 
-Dio _createDio() {
+Dio _createDio(Ref ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: _kBaseUrl,
@@ -24,6 +26,15 @@ Dio _createDio() {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
+        if (sgaMode) {
+          // Conta do SIGA: token Supabase (renovado se preciso) e a escola.
+          final session = ref.read(sgaSessionProvider);
+          final token = await session.accessToken();
+          if (token != null) options.headers['Authorization'] = 'Bearer $token';
+          final school = session.schoolId;
+          if (school != null) options.headers['X-School-Id'] = school;
+          return handler.next(options);
+        }
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final token = await user.getIdToken();
@@ -60,4 +71,4 @@ Dio _createDio() {
   return dio;
 }
 
-final dioProvider = Provider<Dio>((ref) => _createDio());
+final dioProvider = Provider<Dio>(_createDio);
