@@ -111,7 +111,9 @@ export function planClassAllocationByAge(input: {
       group.reservedSeats < 0 ||
       group.reservedSeats > group.capacity
     ) {
-      warnings.push("Turmas com letras repetidas, lotações ou reservas inválidas; corrija antes de organizar.");
+      warnings.push(
+        "Turmas com letras repetidas, lotações ou reservas inválidas; corrija antes de organizar.",
+      );
       break;
     }
     letters.add(group.letter);
@@ -176,13 +178,17 @@ export function planClassAllocationByAge(input: {
   }
 
   if (input.mode === "reorganize" && groups.some((group) => group.reservedSeats > 0)) {
-    warnings.push("Há matrículas fora da simulação: não é possível garantir a ordem global por idade.");
+    warnings.push(
+      "Há matrículas fora da simulação: não é possível garantir a ordem global por idade.",
+    );
   }
   if (excluded.some((item) => item.reason === "invalid_birth_date")) {
     warnings.push("Há alunos sem data de nascimento válida; exigir verificação documental.");
   }
   if (excluded.some((item) => item.reason === "protected_placement")) {
-    warnings.push("Existem colocações manuais protegidas; validar o critério de idade com a Direcção.");
+    warnings.push(
+      "Existem colocações manuais protegidas; validar o critério de idade com a Direcção.",
+    );
   }
   if (excluded.some((item) => item.reason === "no_capacity")) {
     warnings.push("A capacidade das turmas é insuficiente para os alunos elegíveis.");
@@ -191,7 +197,9 @@ export function planClassAllocationByAge(input: {
     warnings.push("Há IDs de alunos duplicados na simulação.");
   }
   if (input.mode === "vacancies" && excluded.some((item) => item.reason === "already_assigned")) {
-    warnings.push("Preenchimento de vagas: a ordem global por idade requer rever as colocações existentes.");
+    warnings.push(
+      "Preenchimento de vagas: a ordem global por idade requer rever as colocações existentes.",
+    );
   }
   return {
     assignments,
