@@ -130,7 +130,11 @@ class _PresencePageState extends State<PresencePage> {
     );
     _Outcome outcome;
     try {
-      final result = await widget.api.submit(pendingScan, offline: false);
+      final result = await widget.api.submit(
+        pendingScan,
+        offline: false,
+        deviceId: await queue.deviceId(),
+      );
       outcome = _Outcome.result(result);
       unawaited(load());
     } on PresenceFailure catch (failure) {

@@ -202,7 +202,8 @@ export type PresenceScanReason =
   | "localizacao_imprecisa"
   | "localizacao_falsa"
   | "fora_da_escola"
-  | "zona_por_definir";
+  | "zona_por_definir"
+  | "aparelho_partilhado";
 
 export const PRESENCE_SCAN_REASON_LABELS: Record<PresenceScanReason, string> = {
   qr_expirado: "QR já expirado: leia o QR que está no ecrã agora",
@@ -217,6 +218,7 @@ export const PRESENCE_SCAN_REASON_LABELS: Record<PresenceScanReason, string> = {
   localizacao_falsa: "Localização falsa detectada no telemóvel",
   fora_da_escola: "Fora da zona da escola",
   zona_por_definir: "Zona da escola por definir",
+  aparelho_partilhado: "Telemóvel já usado hoje por outro professor",
 };
 
 export type PresenceDecision = "accepted" | "review" | "rejected";
@@ -246,6 +248,11 @@ export type PresenceScanEvidence = {
     accuracyM?: number | null;
     mocked?: boolean | null;
   } | null;
+  /**
+   * O mesmo telemóvel já leu o QR hoje com a conta de outro professor: um colega
+   * pode estar a marcar por quem não veio.
+   */
+  sharedDevice?: boolean;
 };
 
 /** Tolerância de relógio entre o ecrã, o telemóvel e o servidor. */
@@ -351,6 +358,10 @@ export function decidePresenceScan(
         reasons.push("fora_da_escola");
       }
     }
+  }
+  if (evidence.sharedDevice) {
+    review = true;
+    reasons.push("aparelho_partilhado");
   }
   if (!settings.center) {
     reasons.push("zona_por_definir");

@@ -145,6 +145,22 @@ describe("decisão da leitura", () => {
     expect(result.reasons).toContain("fora_da_escola");
   });
 
+  it("telemóvel já usado hoje por outro professor: por rever, mesmo na escola", () => {
+    const result = decidePresenceScan(
+      {
+        kind: "rotating",
+        step,
+        receivedAtMs: NOW,
+        offline: false,
+        location: atSchool,
+        sharedDevice: true,
+      },
+      settings,
+    );
+    expect(result.decision).toBe("review");
+    expect(result.reasons).toContain("aparelho_partilhado");
+  });
+
   it("localização falsa no telemóvel: por rever", () => {
     const result = decidePresenceScan(
       {

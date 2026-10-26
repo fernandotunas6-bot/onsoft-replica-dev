@@ -211,6 +211,21 @@ class PresenceQueue {
 
   Future<void> remove(String opId) =>
       _write(read().where((s) => s.opId != opId).toList());
+
+  static const _deviceKey = 'presence-device-v1';
+
+  /// Id aleatório deste telemóvel, criado uma vez e guardado nele. Não diz quem é
+  /// a pessoa: só mostra à Direcção quando contas de professores diferentes lêem
+  /// o QR no mesmo aparelho (um colega a marcar por quem faltou).
+  Future<String> deviceId() async {
+    final saved = prefs.getString(_deviceKey);
+    if (saved != null && RegExp(r'^[A-Za-z0-9_-]{8,128}$').hasMatch(saved)) {
+      return saved;
+    }
+    final created = newOpId();
+    await prefs.setString(_deviceKey, created);
+    return created;
+  }
 }
 
 /// Falha de rede (guardar e tentar depois) ou recusa do servidor (mostrar).
@@ -308,7 +323,11 @@ class PresenceApi {
     );
   }
 
-  Future<ScanResult> submit(PendingScan scan, {required bool offline}) async {
+  Future<ScanResult> submit(
+    PendingScan scan, {
+    required bool offline,
+    String? deviceId,
+  }) async {
     final json = await _send(
       (headers) => client.post(
         origin.resolve('/api/mobile/presence'),
@@ -317,6 +336,7 @@ class PresenceApi {
           ...scan.toJson(),
           'offline': offline,
           'deviceNow': DateTime.now().toUtc().toIso8601String(),
+          'deviceId': ?deviceId,
         }),
       ),
     );
@@ -334,9 +354,10 @@ Future<({int sent, List<String> refused})> flushPresenceQueue(
 ) async {
   var sent = 0;
   final refused = <String>[];
+  final deviceId = await queue.deviceId();
   for (final scan in queue.read()) {
     try {
-      await api.submit(scan, offline: true);
+      await api.submit(scan, offline: true, deviceId: deviceId);
       await queue.remove(scan.opId);
       sent++;
     } on PresenceFailure catch (failure) {

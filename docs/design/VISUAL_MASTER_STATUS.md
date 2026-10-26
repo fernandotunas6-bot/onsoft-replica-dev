@@ -218,3 +218,9 @@ Revisão por capturas (dados simulados, 390/768/1440 px, claro e escuro; app Flu
 horas das aulas (início em destaque, fim por baixo, atraso a âmbar) e a falta de confirmação
 antes de «Anular todos os QR» (agora pede um segundo toque). Não substitui a validação com
 sessão autenticada.
+
+Resumo da semana (26/10): painel na mesma página, depois de «Leituras de hoje». Quatro cartões
+(aulas, % com presença, sem presença, chamadas sem presença), navegação por semana, CSV e uma
+linha por professor com etiquetas só para o que precisa de atenção e barra da percentagem
+(verde ≥ 90 %, âmbar ≥ 70 %, vermelho abaixo). Na lista de leituras, «Mesmo telemóvel que …» a
+âmbar. Capturas com dados simulados em 390/1440 px e escuro a 768 px.

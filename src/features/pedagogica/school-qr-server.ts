@@ -37,6 +37,12 @@ import {
 } from "@/features/pedagogica/teacher-presence";
 import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-server";
 import { loadSchoolPresenceMode } from "@/features/pedagogica/school-presence-mode";
+import {
+  buildTeacherWeekReport,
+  weekLessonDates,
+  type WeekLesson,
+} from "@/features/pedagogica/teacher-week-report";
+import { angolaHolidaysBetween } from "@/features/calendar/angola-holidays";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -435,7 +441,12 @@ export const presenceScanInputSchema = z.object({
   longitude: z.number().min(-180).max(180).nullable().optional(),
   accuracy: z.number().min(0).max(100_000).nullable().optional(),
   mocked: z.boolean().nullable().optional(),
-  deviceId: z.string().trim().max(128).optional(),
+  /** Id aleatório do telemóvel (guardado nele): revela contas diferentes no mesmo aparelho. */
+  deviceId: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9_-]{8,128}$/)
+    .optional(),
   /** Id do envio (UUID): repetir o mesmo devolve a mesma leitura. */
   opId: z.string().uuid().optional(),
 });
@@ -472,6 +483,36 @@ function scanMessage(
     return "Presença na escola registada. Não tem aula a começar agora: leia o QR outra vez no início da aula.";
   }
   return `Presença confirmada: ${lessons.map((lesson) => lesson.label).join(", ")}.`;
+}
+
+/** Início e fim (exclusivo) de um dia de Luanda (UTC+1), em ISO. */
+function luandaDayRange(date: string) {
+  return {
+    from: new Date(Date.parse(`${date}T00:00:00+01:00`)).toISOString(),
+    to: new Date(Date.parse(`${addDays(date, 1)}T00:00:00+01:00`)).toISOString(),
+  };
+}
+
+/**
+ * Este telemóvel já leu o QR neste dia com a conta de outro professor? Um colega
+ * com a senha de quem faltou consegue marcar por ele; a leitura fica por rever.
+ */
+export async function deviceUsedByAnotherTeacher(
+  db: AdminDb,
+  input: { schoolId: string; teacherId: string; deviceId: string; date: string },
+) {
+  const { from, to } = luandaDayRange(input.date);
+  const { data, error } = await db
+    .from("siga_teacher_presence_scans")
+    .select("id")
+    .eq("school_id", input.schoolId)
+    .eq("device_id", input.deviceId)
+    .neq("teacher_id", input.teacherId)
+    .gte("scanned_at", from)
+    .lt("scanned_at", to)
+    .limit(1);
+  if (error) return false;
+  return (data ?? []).length > 0;
 }
 
 /**
@@ -548,38 +589,55 @@ export async function processPresenceScan(
   }
 
   const hasLocation = input.scan.latitude != null && input.scan.longitude != null;
-  const outcome = decidePresenceScan(
-    {
-      kind: parsed.kind,
-      step: parsed.step,
-      receivedAtMs,
-      offline: input.scan.offline,
-      deviceScannedAtMs: input.scan.deviceScannedAt ? Date.parse(input.scan.deviceScannedAt) : null,
-      deviceNowMs: input.scan.deviceNow ? Date.parse(input.scan.deviceNow) : null,
-      location: hasLocation
-        ? {
-            latitude: Number(input.scan.latitude),
-            longitude: Number(input.scan.longitude),
-            accuracyM: input.scan.accuracy ?? null,
-            mocked: input.scan.mocked ?? null,
-          }
-        : null,
-    },
-    {
-      rotationSeconds: Number(settings.rotation_seconds),
-      allowPrinted: Boolean(settings.allow_printed),
-      requireLocation: Boolean(settings.require_location),
-      offlineMaxHours: Number(settings.offline_max_hours),
-      center:
-        settings.center_latitude != null && settings.center_longitude != null
+  const decide = (sharedDevice: boolean) =>
+    decidePresenceScan(
+      {
+        sharedDevice,
+        kind: parsed.kind,
+        step: parsed.step,
+        receivedAtMs,
+        offline: input.scan.offline,
+        deviceScannedAtMs: input.scan.deviceScannedAt
+          ? Date.parse(input.scan.deviceScannedAt)
+          : null,
+        deviceNowMs: input.scan.deviceNow ? Date.parse(input.scan.deviceNow) : null,
+        location: hasLocation
           ? {
-              latitude: Number(settings.center_latitude),
-              longitude: Number(settings.center_longitude),
+              latitude: Number(input.scan.latitude),
+              longitude: Number(input.scan.longitude),
+              accuracyM: input.scan.accuracy ?? null,
+              mocked: input.scan.mocked ?? null,
             }
           : null,
-      radiusM: Number(settings.geofence_radius_m),
-    },
-  );
+      },
+      {
+        rotationSeconds: Number(settings.rotation_seconds),
+        allowPrinted: Boolean(settings.allow_printed),
+        requireLocation: Boolean(settings.require_location),
+        offlineMaxHours: Number(settings.offline_max_hours),
+        center:
+          settings.center_latitude != null && settings.center_longitude != null
+            ? {
+                latitude: Number(settings.center_latitude),
+                longitude: Number(settings.center_longitude),
+              }
+            : null,
+        radiusM: Number(settings.geofence_radius_m),
+      },
+    );
+  let outcome = decide(false);
+  if (
+    outcome.decision !== "rejected" &&
+    input.scan.deviceId &&
+    (await deviceUsedByAnotherTeacher(db, {
+      schoolId: input.schoolId,
+      teacherId: input.teacherId,
+      deviceId: input.scan.deviceId,
+      date: luandaDateOf(outcome.scannedAtMs),
+    }))
+  ) {
+    outcome = decide(true);
+  }
 
   const scanDate = luandaDateOf(outcome.scannedAtMs);
   const scanTime = luandaTimeOfMs(outcome.scannedAtMs);
@@ -727,7 +785,31 @@ export type PresenceScanRow = {
   sessionCount: number;
   reviewedAt: string | null;
   reviewNote: string | null;
+  /** Outros professores que leram o QR com o mesmo telemóvel neste dia. */
+  sharedWith: string[];
 };
+
+/** Nome de cada professor (pela ficha da pessoa), por id da ficha `teachers`. */
+async function loadTeacherNames(db: AdminDb, schoolId: string, ids: string[]) {
+  const teacherIds = [...new Set(ids)];
+  const names = new Map<string, string>();
+  if (!teacherIds.length) return names;
+  const { data: teachers } = await db
+    .from("teachers")
+    .select("id, person_id")
+    .eq("school_id", schoolId)
+    .in("id", teacherIds);
+  const rows = (teachers ?? []) as Array<{ id: string; person_id: string | null }>;
+  const personIds = rows.map((row) => row.person_id).filter((id): id is string => Boolean(id));
+  if (!personIds.length) return names;
+  const { loadPeopleLite } = await import("@/features/people/lookup");
+  const people = await loadPeopleLite(db, schoolId, personIds);
+  for (const teacher of rows) {
+    const name = teacher.person_id ? people.get(teacher.person_id)?.full_name : null;
+    if (name) names.set(teacher.id, name);
+  }
+  return names;
+}
 
 export const listPresenceScans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -745,9 +827,7 @@ export const listPresenceScans = createServerFn({ method: "GET" })
     const membership = await requireSgaWriterFor("pedagogica", context.userId, [...STAFF_ROLES]);
     const db = await loadSgaAdminClient();
     const date = data.date ?? schoolTodayIso();
-    // Dia de Luanda (UTC+1): das 23:00 UTC da véspera às 23:00 UTC do dia.
-    const from = new Date(Date.parse(`${date}T00:00:00+01:00`)).toISOString();
-    const to = new Date(Date.parse(`${addDays(date, 1)}T00:00:00+01:00`)).toISOString();
+    const { from, to } = luandaDayRange(date);
     const { data: rows, error } = await db
       .from("siga_teacher_presence_scans")
       .select("*")
@@ -761,27 +841,21 @@ export const listPresenceScans = createServerFn({ method: "GET" })
       throw publicDatabaseError(error, "Não foi possível ler as leituras do QR.");
     }
     const list = (rows ?? []) as Array<Record<string, unknown>>;
-    const teacherIds = [...new Set(list.map((row) => String(row.teacher_id)))];
-    const names = new Map<string, string>();
-    if (teacherIds.length) {
-      const { data: teachers } = await db
-        .from("teachers")
-        .select("id, person_id")
-        .eq("school_id", membership.schoolId)
-        .in("id", teacherIds);
-      const personIds = ((teachers ?? []) as Array<{ person_id: string | null }>)
-        .map((row) => row.person_id)
-        .filter((id): id is string => Boolean(id));
-      if (personIds.length) {
-        const { loadPeopleLite } = await import("@/features/people/lookup");
-        const people = await loadPeopleLite(db, membership.schoolId, personIds);
-        for (const teacher of (teachers ?? []) as Array<{ id: string; person_id: string | null }>) {
-          const name = teacher.person_id ? people.get(teacher.person_id)?.full_name : null;
-          if (name) names.set(teacher.id, name);
-        }
-      }
+    const names = await loadTeacherNames(
+      db,
+      membership.schoolId,
+      list.map((row) => String(row.teacher_id)),
+    );
+    const teachersByDevice = new Map<string, Set<string>>();
+    for (const row of list) {
+      if (!row.device_id) continue;
+      const key = String(row.device_id);
+      const set = teachersByDevice.get(key) ?? new Set<string>();
+      set.add(String(row.teacher_id));
+      teachersByDevice.set(key, set);
     }
     const scans: PresenceScanRow[] = list.map((row) => {
+      const sameDevice = row.device_id ? teachersByDevice.get(String(row.device_id)) : undefined;
       const reasons = ((row.reasons ?? []) as string[]).filter(
         (reason): reason is PresenceScanReason => reason in PRESENCE_SCAN_REASON_LABELS,
       );
@@ -803,9 +877,171 @@ export const listPresenceScans = createServerFn({ method: "GET" })
         sessionCount: Array.isArray(row.session_ids) ? row.session_ids.length : 0,
         reviewedAt: row.reviewed_at ? String(row.reviewed_at) : null,
         reviewNote: row.review_note ? String(row.review_note) : null,
+        sharedWith: [...(sameDevice ?? [])]
+          .filter((id) => id !== String(row.teacher_id))
+          .map((id) => names.get(id) ?? "Professor"),
       };
     });
     return { date, available: true, scans };
+  });
+
+// ── Resumo da semana ──────────────────────────────────────────────────────────
+
+/**
+ * Por professor, as aulas do horário desta semana (já começadas, sem feriados) e
+ * quantas têm presença, como foi confirmada, atrasos e chamadas sem presença.
+ */
+export const getTeacherWeekPresence = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z
+      .object({
+        /** Qualquer dia da semana pedida; por omissão, a semana de hoje. */
+        week: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterFor("pedagogica", context.userId, [...STAFF_ROLES]);
+    const db = await loadSgaAdminClient();
+    const nowMs = Date.now();
+    const today = luandaDateOf(nowMs);
+    const requested = data.week && data.week <= today ? data.week : today;
+    const monday = mondayOf(requested);
+    const sunday = addDays(monday, 6);
+    const holidays = angolaHolidaysBetween(monday, sunday);
+    const dates = weekLessonDates({
+      monday,
+      today,
+      holidays: new Set(holidays.map((holiday) => holiday.date)),
+    });
+    const empty = {
+      monday,
+      sunday,
+      today,
+      holidays: holidays.map((holiday) => ({ date: holiday.date, name: holiday.name })),
+      ...buildTeacherWeekReport({
+        lessons: [],
+        scans: [],
+        names: new Map(),
+        now: { today, time: luandaTimeOfMs(nowMs) },
+      }),
+    };
+    if (!dates.length) return empty;
+    const last = dates[dates.length - 1];
+
+    const [classSubjects, slots, sessions] = await Promise.all([
+      db
+        .from("class_subjects")
+        .select("id, teacher_id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .not("teacher_id", "is", null),
+      db
+        .from("timetable_slots")
+        .select("id, class_subject_id, weekday, starts_at")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active"),
+      db
+        .from("siga_attendance_sessions")
+        .select("*")
+        .eq("school_id", membership.schoolId)
+        .gte("lesson_date", dates[0])
+        .lte("lesson_date", last),
+    ]);
+    const readFailure = classSubjects.error ?? slots.error ?? sessions.error;
+    if (readFailure) {
+      throw publicDatabaseError(readFailure, "Não foi possível ler as aulas da semana.");
+    }
+    const teacherOf = new Map(
+      (classSubjects.data ?? []).map((row) => [String(row.id), String(row.teacher_id)]),
+    );
+    const sessionRows = (sessions.data ?? []) as Array<Record<string, unknown>>;
+    const sessionByKey = new Map<string, Record<string, unknown>>();
+    for (const row of sessionRows) {
+      if (row.timetable_slot_id) {
+        sessionByKey.set(`${String(row.timetable_slot_id)}|${String(row.lesson_date)}`, row);
+      }
+    }
+    const toSession = (row: Record<string, unknown> | undefined) => {
+      if (!row) return null;
+      const presence = readTeacherPresence(row).fields;
+      return {
+        status: String(row.status ?? "pending"),
+        checkedInAt: presence.teacher_checked_in_at,
+        method: presence.teacher_checkin_method,
+        lateMinutes: presence.teacher_late_minutes,
+      };
+    };
+
+    const lessons: WeekLesson[] = [];
+    const usedSessions = new Set<Record<string, unknown>>();
+    for (const date of dates) {
+      const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+      for (const slot of slots.data ?? []) {
+        if (Number(slot.weekday) !== weekday) continue;
+        const session = sessionByKey.get(`${String(slot.id)}|${date}`);
+        const teacherId = session?.teacher_id
+          ? String(session.teacher_id)
+          : teacherOf.get(String(slot.class_subject_id));
+        if (!teacherId) continue;
+        if (session) usedSessions.add(session);
+        lessons.push({
+          teacherId,
+          date,
+          startsAt: slot.starts_at ? String(slot.starts_at) : null,
+          session: toSession(session),
+        });
+      }
+    }
+    // Aulas fora do horário (sessões criadas à parte) também contam.
+    for (const row of sessionRows) {
+      if (usedSessions.has(row) || !row.teacher_id) continue;
+      if (!dates.includes(String(row.lesson_date))) continue;
+      lessons.push({
+        teacherId: String(row.teacher_id),
+        date: String(row.lesson_date),
+        startsAt: row.starts_at ? String(row.starts_at) : null,
+        session: toSession(row),
+      });
+    }
+
+    const scansFrom = luandaDayRange(monday).from;
+    const scansTo = luandaDayRange(sunday).to;
+    const { data: scanRows, error: scanError } = await db
+      .from("siga_teacher_presence_scans")
+      .select("teacher_id, decision")
+      .eq("school_id", membership.schoolId)
+      .gte("scanned_at", scansFrom)
+      .lt("scanned_at", scansTo)
+      .in("decision", ["review", "rejected"])
+      .limit(2000);
+    if (scanError && !isMissingTable(scanError)) {
+      console.warn("[presença] leituras da semana não lidas:", scanError.message);
+    }
+    const scans = scanError
+      ? []
+      : ((scanRows ?? []) as Array<{ teacher_id: string; decision: string }>).map((row) => ({
+          teacherId: String(row.teacher_id),
+          decision: row.decision as PresenceDecision,
+        }));
+
+    const names = await loadTeacherNames(db, membership.schoolId, [
+      ...lessons.map((lesson) => lesson.teacherId),
+      ...scans.map((scan) => scan.teacherId),
+    ]);
+    return {
+      ...empty,
+      ...buildTeacherWeekReport({
+        lessons,
+        scans,
+        names,
+        now: { today, time: luandaTimeOfMs(nowMs) },
+      }),
+    };
   });
 
 export const reviewPresenceScanInputSchema = z.object({

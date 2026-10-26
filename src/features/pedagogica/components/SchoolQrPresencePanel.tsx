@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { moduleIcons } from "@/lib/app-icons";
+import { TeacherWeekPresenceReport } from "@/features/pedagogica/components/TeacherWeekPresenceReport";
 import {
   SCHOOL_PRESENCE_MODE_LABELS,
   luandaDateOf,
@@ -135,6 +136,7 @@ export function SchoolQrPresencePanel() {
 
       {data.available ? <SchoolPresenceSettingsForm config={data} /> : null}
       {data.available ? <PresenceScansReview /> : null}
+      <TeacherWeekPresenceReport />
       {kioskOpen ? <SchoolQrKiosk onClose={() => setKioskOpen(false)} /> : null}
     </div>
   );
@@ -803,6 +805,11 @@ function PresenceScansReview() {
                     className={`text-xs ${row.decision === "accepted" ? "text-muted-foreground" : "text-warning-strong"}`}
                   >
                     {row.reasonLabels.join(" · ")}
+                  </p>
+                ) : null}
+                {row.sharedWith.length ? (
+                  <p className="text-xs font-medium text-warning-strong">
+                    Mesmo telemóvel que {row.sharedWith.join(", ")}
                   </p>
                 ) : null}
                 {row.reviewNote ? (

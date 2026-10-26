@@ -102,9 +102,17 @@ void main() {
       expect(body!['schoolId'], school);
       expect(body!['deviceScannedAt'], '2026-10-26T07:00:00.000Z');
       expect(body!['deviceNow'], isA<String>());
+      expect(body!['deviceId'], await queue.deviceId());
       expect(queue.read(), isEmpty);
     },
   );
+
+  test('id do telemóvel é criado uma vez e fica guardado', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final first = await PresenceQueue(prefs).deviceId();
+    expect(first, matches(RegExp(r'^[A-Za-z0-9_-]{8,128}$')));
+    expect(await PresenceQueue(prefs).deviceId(), first);
+  });
 
   test('aulas de hoje e modo da escola', () async {
     final api = PresenceApi(

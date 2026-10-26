@@ -22,6 +22,7 @@ import {
   enqueuePresenceScan,
   isNetworkError,
   newOpId,
+  presenceDeviceId,
   readPresenceQueue,
   removeQueuedPresenceScan,
   type QueuedPresenceScan,
@@ -93,7 +94,12 @@ export function TeacherSchoolQrScanner() {
       for (const item of items) {
         try {
           const result = await submitPresenceScan({
-            data: { ...item, offline: true, deviceNow: new Date().toISOString() },
+            data: {
+              ...item,
+              offline: true,
+              deviceNow: new Date().toISOString(),
+              deviceId: presenceDeviceId(),
+            },
           });
           removeQueuedPresenceScan(item.opId);
           sent += 1;
@@ -153,7 +159,12 @@ export function TeacherSchoolQrScanner() {
       try {
         if (!navigator.onLine) throw new TypeError("offline");
         const result = await submitPresenceScan({
-          data: { ...scan, offline: false, deviceNow: new Date().toISOString() },
+          data: {
+            ...scan,
+            offline: false,
+            deviceNow: new Date().toISOString(),
+            deviceId: presenceDeviceId(),
+          },
         });
         setOutcome({ kind: "result", result });
         refreshAfterScan();

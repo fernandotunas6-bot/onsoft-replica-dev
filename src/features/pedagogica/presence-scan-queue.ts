@@ -80,3 +80,22 @@ export function readRememberedPresenceMode(): string | null {
     return null;
   }
 }
+
+const DEVICE_KEY = "siga.presence.device.v1";
+
+/**
+ * Id aleatório deste navegador, criado na primeira leitura e guardado nele. Não
+ * identifica a pessoa: só deixa a Direcção ver quando contas de professores
+ * diferentes lêem o QR no mesmo telemóvel. Sem armazenamento, não se envia.
+ */
+export function presenceDeviceId(): string | undefined {
+  try {
+    const saved = window.localStorage.getItem(DEVICE_KEY);
+    if (saved && /^[A-Za-z0-9_-]{8,128}$/.test(saved)) return saved;
+    const created = newOpId();
+    window.localStorage.setItem(DEVICE_KEY, created);
+    return created;
+  } catch {
+    return undefined;
+  }
+}
