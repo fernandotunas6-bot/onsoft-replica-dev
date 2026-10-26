@@ -134,7 +134,7 @@ describe("aulas do dia (presença)", () => {
   });
 
   it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
-    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+    expect(fn).toMatch(/if \(!linked\.teacher_id\)\s*return \{\s*sessions: \[\]/);
   });
 
   it("o filtro por professor só estreita: o professor vê sempre só as suas aulas", () => {

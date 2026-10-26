@@ -44,6 +44,11 @@ import {
   type AttendanceStatus,
 } from "@/features/pedagogica/attendance-server";
 import {
+  TeacherCheckinButton,
+  TeacherPresenceLine,
+  TeacherPresenceManualRegister,
+} from "@/features/pedagogica/components/TeacherLessonPresence";
+import {
   teacherClassFilesSearch,
   teacherGradesSearch,
   teacherLessonPlansSearch,
@@ -386,6 +391,25 @@ export function AttendanceCallDialog({
                 </Badge>
               )}
             </div>
+
+            {/* PRESENÇA DO PROFESSOR NA SALA (quando a escola já tem a funcionalidade) */}
+            {data?.session.presence_enabled && data.session.presence_mode !== "off" ? (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                <TeacherPresenceLine
+                  session={data.session}
+                  self={data.session.viewer_is_session_teacher}
+                />
+                {data.session.viewer_is_session_teacher ? (
+                  <TeacherCheckinButton
+                    session={data.session}
+                    mode={data.session.presence_mode}
+                    className="h-8"
+                  />
+                ) : data.session.viewer_can_register_presence ? (
+                  <TeacherPresenceManualRegister session={data.session} />
+                ) : null}
+              </div>
+            ) : null}
 
             {/* PROGRESSO: quantos já estão marcados */}
             <div className="mt-3">

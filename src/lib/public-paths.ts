@@ -8,6 +8,8 @@ const PUBLIC_PREFIXES = [
   "/convite",
   "/auth",
   "/alterar-senha",
+  // Transferir a app de computador: ainda sem conta aberta no posto.
+  "/transferir",
   "/api/calendar",
   "/api/catracas",
   "/api/finance",

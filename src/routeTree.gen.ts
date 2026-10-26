@@ -31,6 +31,7 @@ import { Route as PlanosAulaRouteImport } from './routes/planos-aula'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
+import { Route as TransferirRouteImport } from './routes/transferir'
 import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AlumniAlumniIdRouteImport } from './routes/alumni_.$alumniId'
@@ -85,6 +86,7 @@ import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/att
 import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
 import { Route as ApiMobileGradesRouteImport } from './routes/api/mobile/grades'
 import { Route as ApiMobileLoginRouteImport } from './routes/api/mobile/login'
+import { Route as ApiMobilePresenceRouteImport } from './routes/api/mobile/presence'
 import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profile'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
@@ -263,6 +265,11 @@ const SaasAdminRoute = SaasAdminRouteImport.update({
 const TesourariaRoute = TesourariaRouteImport.update({
   id: '/tesouraria',
   path: '/tesouraria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransferirRoute = TransferirRouteImport.update({
+  id: '/transferir',
+  path: '/transferir',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerificarRoute = VerificarRouteImport.update({
@@ -538,6 +545,11 @@ const ApiMobileGradesRoute = ApiMobileGradesRouteImport.update({
 const ApiMobileLoginRoute = ApiMobileLoginRouteImport.update({
   id: '/api/mobile/login',
   path: '/api/mobile/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobilePresenceRoute = ApiMobilePresenceRouteImport.update({
+  id: '/api/mobile/presence',
+  path: '/api/mobile/presence',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMobileProfileRoute = ApiMobileProfileRouteImport.update({
@@ -936,6 +948,7 @@ export interface FileRoutesByFullPath {
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
+  '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRoute
@@ -990,6 +1003,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
@@ -1083,6 +1097,7 @@ export interface FileRoutesByTo {
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
+  '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/alumni/$alumniId': typeof AlumniAlumniIdRoute
@@ -1137,6 +1152,7 @@ export interface FileRoutesByTo {
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
@@ -1231,6 +1247,7 @@ export interface FileRoutesById {
   '/portal': typeof PortalRoute
   '/saas-admin': typeof SaasAdminRoute
   '/tesouraria': typeof TesourariaRoute
+  '/transferir': typeof TransferirRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/alumni_/$alumniId': typeof AlumniAlumniIdRoute
@@ -1285,6 +1302,7 @@ export interface FileRoutesById {
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
@@ -1380,6 +1398,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/saas-admin'
     | '/tesouraria'
+    | '/transferir'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
     | '/alumni/$alumniId'
@@ -1434,6 +1453,7 @@ export interface FileRouteTypes {
     | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/mobile/login'
+    | '/api/mobile/presence'
     | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
@@ -1527,6 +1547,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/saas-admin'
     | '/tesouraria'
+    | '/transferir'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
     | '/alumni/$alumniId'
@@ -1581,6 +1602,7 @@ export interface FileRouteTypes {
     | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/mobile/login'
+    | '/api/mobile/presence'
     | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
@@ -1674,6 +1696,7 @@ export interface FileRouteTypes {
     | '/portal'
     | '/saas-admin'
     | '/tesouraria'
+    | '/transferir'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
     | '/alumni_/$alumniId'
@@ -1728,6 +1751,7 @@ export interface FileRouteTypes {
     | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/mobile/login'
+    | '/api/mobile/presence'
     | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
@@ -1822,6 +1846,7 @@ export interface RootRouteChildren {
   PortalRoute: typeof PortalRoute
   SaasAdminRoute: typeof SaasAdminRoute
   TesourariaRoute: typeof TesourariaRoute
+  TransferirRoute: typeof TransferirRoute
   VerificarRoute: typeof VerificarRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   AlumniAlumniIdRoute: typeof AlumniAlumniIdRoute
@@ -1875,6 +1900,7 @@ export interface RootRouteChildren {
   ApiMobileChatRoute: typeof ApiMobileChatRoute
   ApiMobileGradesRoute: typeof ApiMobileGradesRoute
   ApiMobileLoginRoute: typeof ApiMobileLoginRoute
+  ApiMobilePresenceRoute: typeof ApiMobilePresenceRoute
   ApiMobileProfileRoute: typeof ApiMobileProfileRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
@@ -2083,6 +2109,13 @@ declare module '@tanstack/react-router' {
       path: '/tesouraria'
       fullPath: '/tesouraria'
       preLoaderRoute: typeof TesourariaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transferir': {
+      id: '/transferir'
+      path: '/transferir'
+      fullPath: '/transferir'
+      preLoaderRoute: typeof TransferirRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verificar': {
@@ -2461,6 +2494,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/login'
       fullPath: '/api/mobile/login'
       preLoaderRoute: typeof ApiMobileLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/presence': {
+      id: '/api/mobile/presence'
+      path: '/api/mobile/presence'
+      fullPath: '/api/mobile/presence'
+      preLoaderRoute: typeof ApiMobilePresenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/profile': {
@@ -3080,6 +3120,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortalRoute: PortalRoute,
   SaasAdminRoute: SaasAdminRoute,
   TesourariaRoute: TesourariaRoute,
+  TransferirRoute: TransferirRoute,
   VerificarRoute: VerificarRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
@@ -3134,6 +3175,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileChatRoute: ApiMobileChatRoute,
   ApiMobileGradesRoute: ApiMobileGradesRoute,
   ApiMobileLoginRoute: ApiMobileLoginRoute,
+  ApiMobilePresenceRoute: ApiMobilePresenceRoute,
   ApiMobileProfileRoute: ApiMobileProfileRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,

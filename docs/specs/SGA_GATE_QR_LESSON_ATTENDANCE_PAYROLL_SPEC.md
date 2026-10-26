@@ -3,12 +3,14 @@
 **Estado:** especificação e motor de cálculo inicial; integração física, portal, API, persistência e folha salarial ainda pendentes. Não ativar descontos em produção sem validação jurídica e aprovação do RH.
 
 ## 1. Configuração institucional
+
 - Isolar tudo por `school_id`; fuso horário IANA por escola, por exemplo `Africa/Luanda`. Aulas e eventos persistidos em UTC, com visualização no fuso institucional.
 - Definir turnos, tolerâncias, horários de entrada/saída, intervalos, calendário, feriados, fins de semana, jornadas parciais e exceções. **22 dias úteis é uma referência configurável**, não constante do motor. Calcular o calendário efetivo de cada mês e contrato.
 - Definir zonas, edifícios, portas, dispositivos e sentido de circulação. Catraca de entrada/saída não equivale a presença numa aula.
 - Cadastro do docente com vínculo institucional, turmas/disciplinas, horário publicado e contrato vigente. Docentes partilhados por escolas exigem escopo explícito.
 
 ## 2. Catracas e operação offline
+
 - Adaptador por fabricante (API/SDK ou gateway local), eventos assinados ou autenticados via credenciais por dispositivo; nunca confiar em identificadores de escola enviados sem validação.
 - Evento: ID imutável do dispositivo + sequência, instituição, docente, porta, direção, timestamp do dispositivo, timestamp de receção e resultado de validação.
 - Chave de idempotência por dispositivo + ID do evento; proteção contra replay; fila local cifrada e sincronização quando a ligação regressar.
@@ -16,6 +18,7 @@
 - Modo de emergência, evacuação e desbloqueio físico devem funcionar independentemente da aplicação.
 
 ## 3. Portal docente — início e fim de cada aula
+
 1. A partir do horário publicado, abrir a aula correspondente ao professor autenticado, instituição e turma.
 2. O QR deve ser dinâmico, de uso único, com nonce aleatório, validade curta, identificador da aula/versão, tipo de operação (entrada/saída), instituição e dispositivo emissor. Assinatura e validação exclusivamente no servidor.
 3. O professor lê o QR com o scanner no seu portal; o servidor valida sessão/MFA conforme risco, autorização, janela temporal, nonce não reutilizado e atribuição vigente.
@@ -24,6 +27,7 @@
 6. Prevenir troca de telemóvel, QR fotografado e apresentação por terceiros com QR curto, atestado de dispositivo quando disponível e verificações proporcionais; nunca alegar que QR isolado comprova identidade ou permanência.
 
 ## 4. Apuramento financeiro
+
 - Unidade: minutos letivos previstos vs. minutos confirmados por aula. Separar atraso, saída antecipada, ausência não justificada, cancelamento institucional, feriado, licença, substituição e aula reposta.
 - Carga horária contratual mensal e base remuneratória são parâmetros de RH; a jornada de 22 dias só entra quando prevista no calendário e contrato aplicáveis.
 - `previewPayroll` devolve **simulação em cêntimos de AOA**, sem lançar movimentos financeiros. `deductionEnabled=false` por padrão na integração futura.
@@ -32,6 +36,7 @@
 - Fecho mensal versionado, relatório de alterações, recibo de vencimento e integração com folha salarial existente; nunca editar silenciosamente mês fechado.
 
 ## 5. Modelo de dados proposto
+
 - `access_devices`: dispositivo, fabricante, credencial cifrada fora da tabela, escola, porta, estado.
 - `gate_access_events`: evento externo único, docente, direção, horários dispositivo/servidor, integridade, estado.
 - `lesson_attendance_challenges`: nonce **armazenado apenas como hash**, expiração, aula, operação, escola, consumido em.
@@ -43,6 +48,7 @@
 **Segurança:** RLS por instituição e papéis; RPC transacional com bloqueio/idempotência; separação entre docente, coordenação e RH; retenção e privacidade definidas antes da implantação. Não armazenar biometria bruta no SIGA.
 
 ## 6. Critérios de aceitação
+
 - Dois scans simultâneos do mesmo QR: apenas um aceite.
 - QR expirado, adulterado, de outra escola ou de outro professor: rejeitado e auditado.
 - Aula sobreposta, versão substituída, substituição autorizada e saída anterior à entrada: regras determinísticas.
@@ -75,3 +81,53 @@
 - O portal `/professor/presenca` usa `TeacherAttendancePanel` e as server functions `createTeacherLessonQr` e `redeemTeacherLessonQr` em `src/features/hr/teacher-lessons.ts`. Os dados vivem em `public.hr_teacher_qr_sessions` e `public.hr_teacher_lesson_occurrences`, com a RPC `public.hr_redeem_teacher_qr`. A base Sga activa contém ambas as tabelas e as RPCs de resgate e assurance, mas estavam sem sessões QR e ocorrências no momento da consulta.
 - O esquema `academic_evidence` criado no PR é um modelo de evidência separado e ainda não está ligado a esse fluxo real. Não implantar outro emissor QR nem migrar remuneração para ele sem uma estratégia explícita de transição, reconciliação de IDs, contratos e trilho de auditoria.
 - Revisar a RPC do RH e as server functions existentes com foco em publicação do horário, idempotência, sessão expirada, autorização por escola/professor, aprovação pedagógica e efeitos na folha. Testes com duas conexões e fixtures do modelo real são obrigatórios antes de descontos.
+
+## 11. Presença do professor na sala, sem depender do RH (2026-10-26)
+
+- A 26/10/2026 a produção tinha 0 vínculos `hr_teacher_employment_links` e 0 `hr_contracts`: `hr_materialize_teacher_lessons` não criava nenhuma ocorrência e nenhum professor conseguia usar o QR. O QR fica como está (é evidência de remuneração).
+- A presença na sala grava-se na própria aula do horário, `siga_attendance_sessions` (migração `20261026083707_teacher_lesson_presence.sql`, pacote `docs/agents/SIGA_aplicar_presenca_professor.sql`): `teacher_checked_in_at`, `teacher_checkin_method` (`portal`, `call`, `qr`, `manual`), `teacher_late_minutes`, `teacher_checked_out_at`, `teacher_presence_note`.
+- Regras (`src/features/pedagogica/teacher-presence.ts`): o professor da aula confirma «Estou na sala» no dia, de 15 min antes do início até ao fim; até 5 min depois do início conta como a horas. Concluir a chamada no dia confirma também (`call`), excepto envios offline que chegam depois. O QR do RH marca a aula (`qr`). A Direcção/Secretaria regista pelo professor com motivo (`manual`, sem atraso calculado). Só o servidor escreve (`confirmTeacherLessonPresence`).
+- Ecrãs: portal do professor, `/professor/presenca` («Aulas de hoje»), cabeçalho da chamada e Pedagógica → Presenças (estado por aula, nome do professor e contagem do dia). «Hoje na escola» conta professores com presença pelas aulas e pelo QR.
+- Não tem efeito salarial nem gera faltas de RH. Sem o SQL aplicado, a chamada funciona como antes e os botões não aparecem.
+
+## 12. QR único da escola para a presença dos professores (2026-10-26)
+
+Pedido do proprietário: o director gera um QR, o mesmo para todos os professores, e cada
+professor lê-o no telemóvel antes da aula e da chamada; tem de poder desligar-se e funcionar
+sem rede em zonas remotas. Objectivo: travar quem marca aulas sem ir à escola.
+
+- **Modo por escola** (`siga_school_presence_settings.mode`): `qr` (só conta a leitura do QR; o
+  «Estou na sala» do professor é recusado no servidor e no ecrã vira «Ler QR da escola»),
+  `button` (por omissão; a chamada concluída também confirma) e `off` (ninguém regista). A
+  Direcção/Secretaria continua a poder registar com motivo, excepto em `off`.
+- **QR rotativo** `SIGAP1.<escola>.R.<passo>.<mac>`: passo = unix/30 s, mac = HMAC da chave do
+  dia (derivada do segredo da escola). O ecrã da Direcção recebe as chaves de hoje e amanhã e
+  gera o QR sozinho, por isso funciona sem internet o dia todo. Uma fotografia enviada com
+  rede minutos depois é recusada (`qr_expirado`).
+- **QR impresso** `…P.<AAAAMMDD da segunda-feira>…` para escolas sem ecrã: vale a semana,
+  exige localização dentro da zona; sem zona definida fica sempre por rever.
+- **Zona GPS** (centro + raio, definida pela Direcção no pátio). Fora da zona, localização
+  simulada (Android), imprecisa (> 500 m) ou em falta: a leitura fica **por rever**, não conta
+  sozinha. Guarda-se só a distância e a precisão, não as coordenadas.
+- **Sem rede**: o telemóvel guarda a leitura com a hora dele; no envio manda também a hora
+  actual, e o servidor corrige o desvio (mudar a hora do telemóvel não engana) e prende a hora
+  à janela do QR. Prazo da escola, 72 h por omissão.
+- **Aulas confirmadas**: as do professor abertas na hora da leitura (de 15 min antes do início
+  até ao fim), com o método `qr` e os minutos de atraso.
+- **Revisão**: `/pedagogica_/presenca-docente` lista as leituras do dia; confirmar ou recusar
+  exige motivo, e confirmar marca as aulas guardadas na leitura com a hora do QR.
+- **Mesmo telemóvel, outra conta**: o portal e a app guardam um id aleatório do aparelho
+  (`device_id`, não identifica a pessoa). Se o mesmo aparelho já leu o QR nesse dia com outro
+  professor, a leitura fica por rever (`aparelho_partilhado`) e a lista mostra «Mesmo telemóvel
+  que …». Trava o colega que leva a senha de quem faltou. Limpar os dados do navegador gera um
+  id novo, por isso é um travão, não uma prova.
+- **Resumo da semana** (mesma página, `getTeacherWeekPresence`): por professor, as aulas do
+  horário já começadas (sem feriados nacionais), com presença por QR, pelo professor ou pela
+  Direcção, atrasos (> 5 min), aulas sem presença e **chamadas fechadas sem presença** (o sinal
+  mais forte de quem dá a chamada sem estar na sala), mais as leituras por rever e recusadas.
+  Ordena por esses sinais e exporta CSV. A chamada não é bloqueada sem QR: os alunos continuam a
+  ter presenças mesmo quando o telemóvel do professor falha.
+- **«Anular todos os QR»** roda o segredo (versão + 1): ecrãs e folhas impressas deixam de valer.
+- Web do professor: `/professor/presenca#ler-qr` (câmara com BarcodeDetector ou jsQR, fila em
+  localStorage). App Flutter: «Presença na sala», via `/api/mobile/presence`.
+- SQL: `20261026100000_school_presence_qr.sql`, aplicado na produção a 26/10 pelo proprietário.

@@ -30,13 +30,14 @@ describe("Content-Security-Policy", () => {
     expect(directive("report-uri")).toBe(CSP_REPORT_PATH);
   });
 
-  it("deixa o browser falar com Supabase (incl. Realtime), FCM e a verificação de palavras-passe", () => {
+  it("deixa o browser falar com Supabase (incl. Realtime), FCM, a verificação de palavras-passe e as versões da app", () => {
     const connect = directive("connect-src");
     for (const origin of [
       "https://*.supabase.co",
       "wss://*.supabase.co",
       "https://*.googleapis.com",
       "https://api.pwnedpasswords.com",
+      "https://api.github.com",
     ]) {
       expect(connect).toContain(origin);
     }

@@ -53,11 +53,13 @@ import {
   LoaderCircle,
   LockKeyhole,
   Mail,
+  Monitor,
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Link } from "@tanstack/react-router";
+import { isTauriDesktop } from "@/lib/desktop-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,6 +212,8 @@ export function AuthGate({
   // «Agora não» cala o convite durante 30 dias neste navegador.
   const [installDismissed, setInstallDismissed] = useState(true);
   const [isStandalone, setIsStandalone] = useState(false);
+  // Na app de computador não faz sentido oferecer a transferência dela.
+  const [insideDesktopApp, setInsideDesktopApp] = useState(true);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   // A escola deste endereço deixa os alunos entrar com o número (Definições → Segurança).
   const [studentNumberLogin, setStudentNumberLogin] = useState(false);
@@ -234,6 +238,7 @@ export function AuthGate({
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true;
       setIsStandalone(Boolean(isStandaloneMode));
+      setInsideDesktopApp(isTauriDesktop());
       try {
         const until = Number(localStorage.getItem(INSTALL_DISMISSED_KEY));
         setInstallDismissed(Number.isFinite(until) && until > Date.now());
@@ -1053,6 +1058,15 @@ export function AuthGate({
               </div>
             ) : null}
           </div>
+          {!insideDesktopApp ? (
+            // <a> simples: a página é pública e abre do zero.
+            <a
+              href="/transferir"
+              className="mt-4 hidden items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground md:inline-flex"
+            >
+              <Monitor className="size-3.5" /> Transferir a app para computador
+            </a>
+          ) : null}
         </section>
       </main>
     </AuthSessionContext.Provider>

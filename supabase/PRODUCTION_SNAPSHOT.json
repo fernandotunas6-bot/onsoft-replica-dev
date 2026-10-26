@@ -3,12 +3,12 @@
   "resumo": {
     "buckets": 6,
     "buckets_publicos": 1,
-    "com_rls": 213,
+    "com_rls": 215,
     "funcoes_private": 149,
     "politicas": 364,
     "politicas_storage": 14,
-    "tabelas": 213,
-    "triggers": 232
+    "tabelas": 215,
+    "triggers": 233
   },
   "tabelas": [
     {
@@ -4630,7 +4630,13 @@
         "created_at",
         "created_by",
         "updated_at",
-        "updated_by"
+        "updated_by",
+        "teacher_checked_in_at",
+        "teacher_checked_in_by",
+        "teacher_checkin_method",
+        "teacher_late_minutes",
+        "teacher_checked_out_at",
+        "teacher_presence_note"
       ],
       "obrigatorias": [
         "school_id",
@@ -5187,6 +5193,75 @@
       "rls": true,
       "rls_forcada": true,
       "tabela": "siga_rate_limit_hits"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "school_id",
+        "mode",
+        "qr_secret",
+        "qr_secret_version",
+        "rotation_seconds",
+        "allow_printed",
+        "require_location",
+        "center_latitude",
+        "center_longitude",
+        "geofence_radius_m",
+        "offline_max_hours",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "qr_secret"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_school_presence_settings"
+    },
+    {
+      "anon_select": false,
+      "auth_select": false,
+      "colunas": [
+        "id",
+        "school_id",
+        "teacher_id",
+        "user_id",
+        "qr_kind",
+        "qr_step",
+        "scanned_at",
+        "device_scanned_at",
+        "received_at",
+        "offline",
+        "distance_m",
+        "accuracy_m",
+        "inside_geofence",
+        "location_mocked",
+        "device_id",
+        "client_op_id",
+        "decision",
+        "reasons",
+        "session_ids",
+        "reviewed_by",
+        "reviewed_at",
+        "review_note",
+        "created_at"
+      ],
+      "obrigatorias": [
+        "school_id",
+        "teacher_id",
+        "qr_kind",
+        "qr_step",
+        "scanned_at",
+        "decision"
+      ],
+      "politicas": 0,
+      "rls": true,
+      "rls_forcada": true,
+      "tabela": "siga_teacher_presence_scans"
     },
     {
       "anon_select": false,
@@ -12680,6 +12755,12 @@
     {
       "funcao": "siga_touch_updated_at",
       "funcao_schema": "public",
+      "tabela": "siga_school_presence_settings",
+      "trigger": "siga_school_presence_settings_touch"
+    },
+    {
+      "funcao": "siga_touch_updated_at",
+      "funcao_schema": "public",
       "tabela": "siga_timetable_slot_details",
       "trigger": "siga_timetable_slot_details_touch"
     },
@@ -14850,6 +14931,21 @@
       "para": "schools"
     },
     {
+      "chave": "siga_school_presence_settings_school_id_fkey",
+      "de": "siga_school_presence_settings",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_teacher_presence_scans_school_id_fkey",
+      "de": "siga_teacher_presence_scans",
+      "para": "schools"
+    },
+    {
+      "chave": "siga_teacher_presence_scans_teacher_id_fkey",
+      "de": "siga_teacher_presence_scans",
+      "para": "teachers"
+    },
+    {
       "chave": "siga_timetable_slot_details_school_id_fkey",
       "de": "siga_timetable_slot_details",
       "para": "schools"
@@ -16953,6 +17049,32 @@
         "failed",
         "sent",
         "skipped"
+      ]
+    },
+    {
+      "coluna": "mode",
+      "tabela": "siga_school_presence_settings",
+      "valores": [
+        "button",
+        "off",
+        "qr"
+      ]
+    },
+    {
+      "coluna": "decision",
+      "tabela": "siga_teacher_presence_scans",
+      "valores": [
+        "accepted",
+        "rejected",
+        "review"
+      ]
+    },
+    {
+      "coluna": "qr_kind",
+      "tabela": "siga_teacher_presence_scans",
+      "valores": [
+        "printed",
+        "rotating"
       ]
     },
     {

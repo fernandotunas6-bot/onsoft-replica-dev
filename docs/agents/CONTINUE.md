@@ -17,6 +17,28 @@
   desktop (certificados pagos); fase 5 da migração (desligar Firebase/D1); e **trocar a
   chave `sb_secret_…` do Supabase**, que foi colada numa conversa a 26/10 (não foi usada).
 
+## Presenças: professor na sala e chamada dos alunos — 2026-10-26
+
+- **Professor na sala:** o QR do RH não funcionava em nenhuma escola (0 vínculos e 0 contratos
+  de RH na produção, logo 0 aulas para QR). A presença passa a gravar-se na aula do horário
+  (`siga_attendance_sessions`), sem depender do RH. Regras e ecrãs na
+  [especificação, §11](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md).
+  SQL aplicado a 26/10 (versão registada `20261026083707`, nome do ficheiro alinhado).
+- **QR único da escola** ([§12](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md)): a
+  Direcção mostra um QR rotativo que funciona sem internet, o professor lê-o no portal ou na
+  app Flutter; zona GPS, fila sem rede, leituras por rever e modo qr/botão/desligado. SQL
+  `20261026100000` aplicado a 26/10 no SQL Editor (sem registo de versão). Retrato e tipos
+  das duas tabelas e das seis colunas acrescentados a partir de consultas à produção (os totais
+  de tabelas, políticas, funções, triggers, relações e valores conferem); uma recaptura completa
+  (`npm run siga:db-snapshot`, `npm run siga:gen-types`) deve dar o mesmo.
+- **Chamada dos alunos:** abrir a chamada por turma+disciplina com dois tempos da mesma
+  disciplina no dia (7 casos no horário de produção) lia com `maybeSingle()`, falhava e criava
+  uma terceira sessão sem hora; agora escolhe o tempo em curso ou o próximo e liga a sessão
+  nova ao tempo do horário (`pickLessonSession`, `pickLessonSlot`). O mesmo em
+  `ensureAttendanceSessionForOccurrence` (QR).
+- **Sincronizar 14 dias (QR):** a Secretaria passava a verificação do servidor e a RPC recusava
+  («Insufficient HR permission»); agora só Administração/Tesouraria, com mensagem clara.
+
 ## Backend: horários, agenda e matrículas — 2026-10-25
 
 Pedido deste ciclo: só backend. [Contrato, pesquisa comparativa e migrações](../architecture/ACADEMIC_AGENDA.md).

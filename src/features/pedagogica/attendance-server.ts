@@ -19,6 +19,13 @@ import { resolveUserLinkedEntities } from "@/features/auth/server";
 import { schoolTodayIso } from "@/lib/school-date";
 import { LOCKED_SHEET_STATUSES } from "@/features/academic/sga-grades";
 import { loadShareableSchoolFile, signChatAttachmentFile } from "@/features/arquivos/server";
+import { nowTimeInLuanda } from "@/features/dashboard/school-today";
+import {
+  readTeacherPresence,
+  type TeacherPresenceFields,
+} from "@/features/pedagogica/teacher-presence";
+import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-server";
+import { loadSchoolPresenceMode } from "@/features/pedagogica/school-presence-mode";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -210,7 +217,15 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     // (antes via as da escola inteira).
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
-      if (!linked.teacher_id) return { sessions: [], date: today, pendingCount: 0 };
+      if (!linked.teacher_id)
+        return {
+          sessions: [],
+          date: today,
+          pendingCount: 0,
+          presenceEnabled: null,
+          presenceMode: "button" as const,
+          viewerIsTeacher: membership.appRole === "Professor",
+        };
       classSubjectQuery = classSubjectQuery.eq("teacher_id", linked.teacher_id);
     } else if (data.teacherId) {
       classSubjectQuery = classSubjectQuery.eq("teacher_id", data.teacherId);
@@ -225,7 +240,14 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
 
     const classSubjectIds = (classSubjects ?? []).map((cs: { id: string }) => cs.id);
     if (classSubjectIds.length === 0) {
-      return { sessions: [], date: today, pendingCount: 0 };
+      return {
+        sessions: [],
+        date: today,
+        pendingCount: 0,
+        presenceEnabled: null,
+        presenceMode: "button" as const,
+        viewerIsTeacher: membership.appRole === "Professor",
+      };
     }
 
     const { data: slots } = await reads
@@ -265,21 +287,27 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       ),
     );
 
+    // `*` traz também a presença do professor quando a migração 20261026083707 já
+    // correu (sem ela, as colunas simplesmente não vêm).
     const { data: existingSessions } = await reads
       .from("siga_attendance_sessions")
-      .select(
-        "id, class_group_id, subject_id, timetable_slot_id, lesson_date, status, starts_at, ends_at",
-      )
+      .select("*")
       .eq("school_id", membership.schoolId)
       .eq("lesson_date", today);
 
-    const sessionBySlotMap = new Map<string, { id: string; status: string }>(
-      (existingSessions ?? [])
-        .filter((s: { timetable_slot_id: string | null }) => s.timetable_slot_id)
-        .map((s: { timetable_slot_id: string | null; id: string; status: string }) => [
-          s.timetable_slot_id!,
-          s,
-        ]),
+    const sessionBySlotMap = new Map<
+      string,
+      { id: string; status: string } & Record<string, unknown>
+    >(
+      (
+        (existingSessions ?? []) as Array<{
+          timetable_slot_id: string | null;
+          id: string;
+          status: string;
+        }>
+      )
+        .filter((s) => s.timetable_slot_id)
+        .map((s) => [s.timetable_slot_id!, s]),
     );
 
     // Sessões que faltam para as aulas do dia: uma só escrita, com erro
@@ -308,13 +336,13 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
             };
           }),
         )
-        .select("id, status, timetable_slot_id");
+        .select("*");
       // Outro pedido criou-as entretanto (índice único por escola, aula e dia,
       // migração 20260929230000): lêem-se as que ficaram.
       if (createError?.code === "23505") {
         ({ data: created, error: createError } = await reads
           .from("siga_attendance_sessions")
-          .select("id, status, timetable_slot_id")
+          .select("*")
           .eq("school_id", membership.schoolId)
           .eq("lesson_date", today)
           .in(
@@ -346,9 +374,49 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       room: string | null;
       status: "pending" | "completed" | "cancelled";
       lesson_date: string;
+      teacher_id: string | null;
+      teacher_name: string | null;
+      teacher_presence: TeacherPresenceFields;
     }> = [];
 
     let pendingCount = 0;
+    const firstSession = sessionBySlotMap.values().next().value;
+    // null: ainda não há aulas para saber se a migração da presença já correu.
+    const presenceEnabled = firstSession ? readTeacherPresence(firstSession).enabled : null;
+
+    // Nome do professor de cada aula, para a Direcção ver quem está (ou não) na sala.
+    // O professor só vê as suas aulas e não precisa disto.
+    const teacherNames = new Map<string, string>();
+    if (membership.appRole !== "Professor") {
+      const teacherIds = [
+        ...new Set(
+          (classSubjects ?? [])
+            .map((cs: { teacher_id: string | null }) => cs.teacher_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      if (teacherIds.length) {
+        const { data: teacherRows } = await reads
+          .from("teachers")
+          .select("id, person_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", teacherIds);
+        const personIds = (teacherRows ?? [])
+          .map((row: { person_id: string | null }) => row.person_id)
+          .filter((id): id is string => Boolean(id));
+        if (personIds.length) {
+          const { loadPeopleLite } = await import("@/features/people/lookup");
+          const people = await loadPeopleLite(db, membership.schoolId, personIds);
+          for (const row of (teacherRows ?? []) as Array<{
+            id: string;
+            person_id: string | null;
+          }>) {
+            const name = row.person_id ? people.get(row.person_id)?.full_name : null;
+            if (name) teacherNames.set(row.id, name);
+          }
+        }
+      }
+    }
 
     for (const slot of slots ?? []) {
       const cs = csMap.get(slot.class_subject_id);
@@ -373,13 +441,73 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
         room: slot.room ?? null,
         status,
         lesson_date: today,
+        teacher_id: cs.teacher_id ?? null,
+        teacher_name: cs.teacher_id ? (teacherNames.get(cs.teacher_id) ?? null) : null,
+        teacher_presence: readTeacherPresence(existing ?? null).fields,
       });
     }
 
     // Os lotes de ids não mantêm a ordem por hora entre si.
     sessionsList.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-    return { sessions: sessionsList, date: today, pendingCount };
+    return {
+      sessions: sessionsList,
+      date: today,
+      pendingCount,
+      presenceEnabled,
+      presenceMode: await loadSchoolPresenceMode(db, membership.schoolId),
+      viewerIsTeacher: membership.appRole === "Professor",
+    };
   });
+
+/**
+ * Entre várias sessões da mesma turma e disciplina no mesmo dia (dois tempos),
+ * escolhe a da aula em curso ou a próxima por fazer; senão, a última do dia.
+ * Sem hora (`nowTime` nulo, outro dia), a primeira por fazer.
+ */
+export function pickLessonSession<
+  T extends { status: string; starts_at: string | null; ends_at: string | null },
+>(rows: T[], nowTime: string | null): T | null {
+  if (rows.length === 0) return null;
+  const sorted = [...rows]
+    .filter((row) => row.status !== "cancelled")
+    .sort((a, b) => String(a.starts_at ?? "").localeCompare(String(b.starts_at ?? "")));
+  if (sorted.length === 0) return rows[0] ?? null;
+  const pending = sorted.filter((row) => row.status !== "completed");
+  if (nowTime) {
+    const current = sorted.find(
+      (row) =>
+        row.starts_at &&
+        row.ends_at &&
+        String(row.starts_at).slice(0, 5) <= nowTime &&
+        nowTime < String(row.ends_at).slice(0, 5),
+    );
+    if (current) return current;
+    const next = pending.find(
+      (row) => !row.starts_at || String(row.starts_at).slice(0, 5) >= nowTime,
+    );
+    if (next) return next;
+  }
+  return pending[0] ?? sorted[sorted.length - 1] ?? null;
+}
+
+/** O tempo do horário a ligar a uma sessão nova: o que está a decorrer, o próximo ou o primeiro. */
+export function pickLessonSlot<T extends { starts_at: string; ends_at: string }>(
+  slots: T[],
+  nowTime: string | null,
+): T | null {
+  if (slots.length === 0) return null;
+  const sorted = [...slots].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  if (nowTime) {
+    const current = sorted.find(
+      (slot) => slot.starts_at.slice(0, 5) <= nowTime && nowTime < slot.ends_at.slice(0, 5),
+    );
+    if (current) return current;
+    const next = sorted.find((slot) => slot.starts_at.slice(0, 5) >= nowTime);
+    if (next) return next;
+    return sorted[sorted.length - 1] ?? null;
+  }
+  return sorted[0] ?? null;
+}
 
 export const getAttendanceCallSheet = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -417,15 +545,23 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       sessionRow = s;
     } else if (data.classGroupId && data.subjectId) {
       const today = data.date || schoolTodayIso();
-      const { data: s } = await db
+      // Pode haver dois tempos da mesma disciplina no mesmo dia (uma sessão por
+      // tempo). Antes lia-se com `maybeSingle()`: com duas sessões vinha erro, e o
+      // código criava uma terceira, sem hora, e as presenças repartiam-se.
+      const { data: sameDay, error: sameDayError } = await db
         .from("siga_attendance_sessions")
         .select("*")
         .eq("school_id", membership.schoolId)
         .eq("class_group_id", data.classGroupId)
         .eq("subject_id", data.subjectId)
-        .eq("lesson_date", today)
-        .maybeSingle();
-      sessionRow = s;
+        .eq("lesson_date", today);
+      if (sameDayError) {
+        throw publicDatabaseError(sameDayError, "Não foi possível abrir a chamada desta aula.");
+      }
+      sessionRow = pickLessonSession(
+        (sameDay ?? []) as Array<NonNullable<typeof sessionRow>>,
+        today === schoolTodayIso() ? nowTimeInLuanda() : null,
+      );
 
       if (!sessionRow) {
         // Só se abre sessão para uma disciplina realmente atribuída à turma.
@@ -446,13 +582,31 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
           }
         }
 
-        const { data: created } = await db
+        // Com tempo no horário nesse dia, a sessão fica ligada a ele (hora, sala e o
+        // índice único por tempo e dia); sem horário, abre-se uma sessão avulsa.
+        const { data: daySlots } = await db
+          .from("timetable_slots")
+          .select("id, starts_at, ends_at")
+          .eq("school_id", membership.schoolId)
+          .eq("class_subject_id", classSubject.id)
+          .eq("weekday", new Date(`${today}T12:00:00Z`).getUTCDay())
+          .eq("status", "active")
+          .order("starts_at");
+        const slot = pickLessonSlot(
+          (daySlots ?? []) as Array<{ id: string; starts_at: string; ends_at: string }>,
+          today === schoolTodayIso() ? nowTimeInLuanda() : null,
+        );
+
+        const { data: created, error: createError } = await db
           .from("siga_attendance_sessions")
           .insert({
             school_id: membership.schoolId,
             class_group_id: data.classGroupId,
             subject_id: data.subjectId,
             teacher_id: classSubject.teacher_id,
+            timetable_slot_id: slot?.id ?? null,
+            starts_at: slot?.starts_at ?? null,
+            ends_at: slot?.ends_at ?? null,
             lesson_date: today,
             status: "pending",
             created_by: context.userId,
@@ -460,6 +614,16 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
           .select("*")
           .single();
         sessionRow = created;
+        if (!sessionRow && createError?.code === "23505" && slot) {
+          const { data: concurrent } = await db
+            .from("siga_attendance_sessions")
+            .select("*")
+            .eq("school_id", membership.schoolId)
+            .eq("timetable_slot_id", slot.id)
+            .eq("lesson_date", today)
+            .maybeSingle();
+          sessionRow = concurrent;
+        }
       }
     }
 
@@ -467,12 +631,15 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
       throw new Error("Sessão de chamada não encontrada.");
     }
 
+    let viewerIsSessionTeacher = false;
     if (membership.appRole === "Professor") {
       const linked = await resolveUserLinkedEntities(db, membership.schoolId, context.userId);
       if (!teacherOwnsAttendanceSession(linked.teacher_id, sessionRow.teacher_id)) {
         throw new Error("Não tem permissão para consultar a chamada de outro professor.");
       }
+      viewerIsSessionTeacher = true;
     }
+    const teacherPresence = readTeacherPresence(sessionRow as unknown as Record<string, unknown>);
 
     const [{ data: classGroup }, { data: subject }] = await Promise.all([
       db.from("class_groups").select("id, name").eq("id", sessionRow.class_group_id).single(),
@@ -536,6 +703,13 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
         ends_at: sessionRow.ends_at,
         status: sessionRow.status,
         notes: sessionRow.notes,
+        teacher_presence: teacherPresence.fields,
+        /** Falso enquanto a migração 20261026083707 não correr. */
+        presence_enabled: teacherPresence.enabled,
+        viewer_is_session_teacher: viewerIsSessionTeacher,
+        viewer_can_register_presence:
+          membership.appRole === "Administrador" || membership.appRole === "Secretaria",
+        presence_mode: await loadSchoolPresenceMode(db, membership.schoolId),
       },
       students: studentsList,
       totalCount: studentsList.length,
@@ -632,7 +806,9 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
       async () => {
         const { data: session, error: sErr } = await db
           .from("siga_attendance_sessions")
-          .select("id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date")
+          .select(
+            "id, school_id, class_group_id, subject_id, teacher_id, status, lesson_date, starts_at",
+          )
           .eq("id", data.sessionId)
           .eq("school_id", membership.schoolId)
           .single();
@@ -706,6 +882,31 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
           .eq("id", session.id);
         if (completeError) {
           throw publicDatabaseError(completeError, "Presenças gravadas, mas a chamada não fechou.");
+        }
+
+        // Concluir a chamada no dia da aula também confirma que o professor esteve na
+        // sala, se ainda não o tinha feito. Um envio offline que chega mais tarde não
+        // conta: a hora de chegada ao servidor não é a hora da aula.
+        // Só no modo «botão»: com o QR obrigatório a presença vem da leitura do QR, e
+        // desligada não se regista.
+        if (
+          membership.appRole === "Professor" &&
+          !offlineOpId &&
+          String(session.lesson_date) === schoolTodayIso() &&
+          (await loadSchoolPresenceMode(db, membership.schoolId)) === "button"
+        ) {
+          try {
+            await recordTeacherCheckin(db, {
+              schoolId: membership.schoolId,
+              sessionId: String(session.id),
+              userId: context.userId,
+              method: "call",
+              startsAt: session.starts_at ? String(session.starts_at) : null,
+            });
+          } catch (presenceError) {
+            // A chamada já está gravada; a presença é um extra que não a desfaz.
+            console.warn("[attendance] presença do professor não registada:", presenceError);
+          }
         }
 
         return { ok: true, sessionId: session.id, count: data.records.length };

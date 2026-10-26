@@ -7,7 +7,9 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import { materializeTeacherLessonsInputSchema } from "@/features/hr/schemas";
 
-const HR_MATERIALIZE_ROLES = new Set(["Administrador", "Secretaria", "Tesouraria"]);
+// A RPC só aceita Administrador e Tesouraria (as aulas criadas são remuneráveis).
+// A Secretaria passava esta verificação e recebia da base «Insufficient HR permission».
+const HR_MATERIALIZE_ROLES = new Set(["Administrador", "Tesouraria"]);
 
 export const materializeTeacherLessons = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -16,10 +18,11 @@ export const materializeTeacherLessons = createServerFn({ method: "POST" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");
     if (!HR_MATERIALIZE_ROLES.has(membership.appRole)) {
-      throw new Error("Sem permissão para sincronizar aulas remuneráveis.");
+      throw new Error(
+        "Só a Administração ou a Tesouraria sincronizam as aulas remuneráveis (hora/aula).",
+      );
     }
-    const moduleKey = membership.appRole === "Secretaria" ? "pedagogica" : "financeiro";
-    await assertModuleNotBlocked(membership.schoolId, context.userId, moduleKey, "write");
+    await assertModuleNotBlocked(membership.schoolId, context.userId, "financeiro", "write");
 
     const { data: inserted, error } = await context.supabase.rpc("hr_materialize_teacher_lessons", {
       p_from: data.from,

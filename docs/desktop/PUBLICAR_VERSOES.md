@@ -68,6 +68,7 @@ não se deve contar com essa segunda barreira.
 | v1.1.0 – v1.2.2 (06–10/10/2026) | Publicadas                                                                                            | Não (sem chave): substituir à mão                                                         |
 | v1.3.0 (25/10/2026)             | Rascunho, **nunca publicada**                                                                         | Não. Ficou para trás de propósito: publicá-la obrigava as escolas a reinstalar duas vezes |
 | v1.3.1 (26/10/2026)             | **Publicada** a 26/10, 15:30 UTC; Tauri 2.12.5; as 10 entradas do `latest.json` assinadas com a chave | **Sim**: a primeira. As seguintes chegam pelo botão «Instalar e reiniciar»                |
+| v1.3.2 (26/10/2026)             | Preparada: ícone novo (o «S» da web) em vez do capelo amarelo; por compilar e publicar                 | Sim                                                                                       |
 
 Na construção da v1.3.1 (run 40343925848), o macOS ficou na fila até o GitHub o
 cancelar por falta de máquinas («not acquired by Runner… even after multiple
@@ -117,6 +118,10 @@ Os links servem sempre a última versão **publicada** (os rascunhos não contam
 o site não muda a cada versão. A página mostra a versão e os tamanhos lidos da API
 pública do GitHub; sem resposta, os links continuam a funcionar. Outro repositório:
 `VITE_DESKTOP_RELEASES_REPO=dono/repo` no build do site.
+
+Dentro do SIGA, a página pública `/transferir` (ligada no ecrã de entrada e em
+Definições → App para computador) usa os mesmos nomes fixos
+(`src/lib/desktop-app-downloads.ts`); `tests/tauri/stable-assets.test.ts` confere os dois.
 
 A partir daí, as apps instaladas (com chave configurada) mostram, 15 s depois de abrir,
 «Nova versão do SIGA — Instalar e reiniciar». Nunca instalam sozinhas, nem com

@@ -9,6 +9,7 @@ import {
   Gauge,
   Globe,
   KeyRound,
+  Monitor,
   Palette,
   Link2,
   Plug,
@@ -34,6 +35,7 @@ import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaig
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
+import { DesktopDownloadPanel } from "@/features/desktop/DesktopDownloadPanel";
 import { actionIcons } from "@/lib/app-icons";
 
 const WebsiteSettingsPanel = lazy(() =>
@@ -159,6 +161,13 @@ function useSettingsPanels(): StackPanel[] {
             icon: Gauge,
             tone: "info",
             to: "sistema.desempenho",
+          },
+          {
+            label: "App para computador",
+            description: "Windows, macOS e Linux",
+            icon: Monitor,
+            tone: "primary",
+            to: "sistema.app",
           },
         ],
       },
@@ -311,6 +320,14 @@ function useSettingsPanels(): StackPanel[] {
         icon: Gauge,
         tone: "info",
         render: () => <PerformancePanel />,
+      },
+      {
+        id: "sistema.app",
+        title: "App para computador",
+        description: "Transfira o SIGA Plus para o computador.",
+        icon: Monitor,
+        tone: "primary",
+        render: () => <DesktopDownloadPanel />,
       },
     ],
     [],

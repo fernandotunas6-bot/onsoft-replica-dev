@@ -10,6 +10,8 @@
  * obriga a lista a encolher: a coluna sai daqui quando o retrato recapturado já a tiver.
  */
 // O retrato de 2026-10-12 já inclui as ligações de cursos/disciplinas ao catálogo.
+// As seis colunas da presença do professor na aula (20261026083707, versão registada na produção) saíram a 26/10:
+// aplicadas na produção e já no retrato.
 export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
 
 /**

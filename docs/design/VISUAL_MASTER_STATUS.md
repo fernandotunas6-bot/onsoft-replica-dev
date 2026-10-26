@@ -311,7 +311,6 @@ Commits publicados de implementação: `faa4784` (contrato), `2b0f4be` (padrões
 `fc11dc2` (integração de main), `1be6a91` (feedback de pendência). O commit de
 relatório/evidências que contém esta secção não muda lógica da aplicação.
 
-
 ## Refinamento transversal — sidebar e modais compactos (23/10/2026)
 
 O contrato visual da PR #262 e o trabalho paralelo das PRs #252/#259/#270 já fazem
@@ -319,16 +318,15 @@ parte de `main`. Este incremento **não** substitui sidebar, navegação ou sist
 de diálogos; preserva a margem esquerda recta, a concavidade direita, o catálogo
 por papel e o estado dos formulários.
 
-| Área | Ajuste dirigido | Prova e limite |
-| --- | --- | --- |
-| Navegação | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
-| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange` | Teste de semântica com `Dialog` existente |
-| PremiumModal | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes | Teste DOM; sem conversão de matrículas/finanças em modal simplificado |
+| Área             | Ajuste dirigido                                                                                                         | Prova e limite                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Navegação        | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
+| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange`                         | Teste de semântica com `Dialog` existente                                                             |
+| PremiumModal     | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes                            | Teste DOM; sem conversão de matrículas/finanças em modal simplificado                                 |
 
 Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada nem
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
-
 
 ## Flyouts laterais compactos — referência Claude IDE (24/10/2026)
 
@@ -360,3 +358,65 @@ backend, RLS ou dados.
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.
 - Orientações para trabalho paralelo: `docs/agents/HANDOFF_SETTINGS_2026-10-25.md`.
+
+## Presença do professor na sala (26/10/2026)
+
+Acrescentos pequenos dentro de ecrãs existentes, sem modais novos: uma linha de estado
+(«Professor na sala», «Por confirmar», «Sem presença»…) e o botão «Estou na sala» nas aulas
+do portal do professor, em `/professor/presenca` e no cabeçalho da chamada; nome do professor
+e contagem do dia nas aulas de Pedagógica → Presenças; registo pela Direcção em linha, com
+motivo. Evidência automatizada: `tests/routes/professor-presenca.test.tsx` e
+`tests/pedagogica/teacher-presence.test.ts`. **Por validar no navegador:** 390/768/1440 px
+numa sessão autenticada de professor e de Direcção, depois de aplicado o SQL.
+
+## QR da escola para a presença (26/10/2026)
+
+`/pedagogica_/presenca-docente` ganha o painel «QR da escola» (três cartões de estado,
+definições com o modo em três opções, zona GPS, interruptores) e «Leituras de hoje» com
+confirmar/recusar em linha. O ecrã do QR é uma camada de ecrã inteiro (fundo da app, hora
+grande, QR com barra de tempo, aviso «Sem internet: o QR continua válido»), não um modal. No
+professor, um bloco «Ler QR da escola» com câmara e cartão de resultado (verde/âmbar/vermelho)
+em `/professor/presenca`. App Flutter: ecrã «Presença na sala» com cartão em gradiente da cor de
+acção, câmara com moldura e linha animada (desliga com movimento reduzido), folha de resultado.
+Evidência: `tests/pedagogica/school-qr.test.ts`, `mobile-flutter/test/presence_test.dart`,
+`flutter analyze`/`build web` limpos. **Por validar no navegador e num telemóvel Android de
+entrada**, com sessão autenticada.
+
+Revisão por capturas (dados simulados, 390/768/1440 px, claro e escuro; app Flutter web em
+390 px): corrigidos o contraste do botão «Ler QR da escola» no tema escuro da app, a coluna de
+horas das aulas (início em destaque, fim por baixo, atraso a âmbar) e a falta de confirmação
+antes de «Anular todos os QR» (agora pede um segundo toque). Não substitui a validação com
+sessão autenticada.
+
+Resumo da semana (26/10): painel na mesma página, depois de «Leituras de hoje». Quatro cartões
+(aulas, % com presença, sem presença, chamadas sem presença), navegação por semana, CSV e uma
+linha por professor com etiquetas só para o que precisa de atenção e barra da percentagem
+(verde ≥ 90 %, âmbar ≥ 70 %, vermelho abaixo). Na lista de leituras, «Mesmo telemóvel que …» a
+âmbar. Capturas com dados simulados em 390/1440 px e escuro a 768 px.
+
+Limpeza visual (26/10, pedido do proprietário «eliminar a poluição visual»): em
+`/pedagogica_/presenca-docente` os três cartões de estado do QR passaram a uma linha de
+etiquetas e as definições ficam recolhidas atrás de «Definições» (abertas só enquanto falta a
+zona); a impressão é um só botão com «Esta semana»/«Próxima semana»; sem coordenadas no ecrã;
+descrições de uma frase (sem «Saber mais»). «Leituras de hoje» mostra primeiro o que pede
+decisão, com motivos curtos sem repetir a linha, e recolhe as aceites («N leituras aceites ·
+Ver»). O resumo da semana tem «X de Y aulas» e etiquetas só para o que precisa de atenção. O QR
+por aula do RH fica recolhido no fim da página. App: sem título repetido no cartão, sem as três
+dicas no fundo, e a sala aparece como vem do horário («Sala 12», não «Sala Sala 12»). A página
+da Direcção ficou com cerca de metade da altura a 1440 px.
+
+Segunda passagem (26/10): portal do professor sem o painel do QR do RH quando o professor não
+tem aulas de hora/aula (o atalho da agenda continua a abrir a chamada); em modo QR, sem o botão
+«Ler QR da escola» repetido em cada aula (o leitor está no topo do painel); sem botões
+«Actualizar» (as listas refrescam sozinhas a cada minuto); o próprio professor lê «Na sala» em
+vez de «Professor na sala», sem o método; o resumo de Pedagógica → Presenças mostra só as
+categorias com casos; salas pelo `roomLabel` partilhado («12» → «Sala 12», «Sala 4» e
+«Laboratório» ficam), também na app.
+
+App de computador (26/10, pedido do proprietário): ícones da app Tauri trocados pelo «S» em
+squircle da web (saíram os do capelo amarelo) e página pública `/transferir` (também em
+Definições → App para computador): um botão para o sistema de quem visita, com formato, tamanho
+e versão, passos de instalação recolhidos, os outros sistemas numa lista e, no telemóvel, só a
+lista com um aviso de que a app é para computador. No ecrã de entrada, a ligação «Transferir a
+app para computador» aparece a partir de 768 px e nunca dentro da própria app. Capturas a
+390/1440 px e escuro a 768 px em `/mnt/project-files/desktop/`.
