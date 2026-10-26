@@ -17,7 +17,7 @@ import {
 } from "@/features/hr/salary-amendments";
 import { listApprovedSalaryScales } from "@/features/hr/salary-catalog";
 
-export const Route = createFileRoute("/financeiro/rh/salarios")({
+export const Route = createFileRoute("/financeiro_/rh_/salarios")({
   head: () => ({ meta: [{ title: "Alterações Salariais · RH · SIGA" }] }),
   component: SalaryOperationsPage,
 });

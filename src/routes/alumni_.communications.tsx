@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { buildAlumniCommunicationAudience } from "@/features/alumni/admin-tools";
 import { createSchoolAnnouncement } from "@/features/communications/server";
 
-export const Route = createFileRoute("/alumni/communications")({
+export const Route = createFileRoute("/alumni_/communications")({
   head: () => ({ meta: [{ title: "Comunicação Alumni · SIGA" }] }),
   component: AlumniCommunicationsPage,
 });

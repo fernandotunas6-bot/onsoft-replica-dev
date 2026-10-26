@@ -30,7 +30,7 @@ import {
   updateMyAlumniProfile,
 } from "@/features/alumni/self-service";
 
-export const Route = createFileRoute("/alumni/portal")({
+export const Route = createFileRoute("/alumni_/portal")({
   head: () => ({
     meta: [
       { title: "Meu Portal Alumni · SIGA" },

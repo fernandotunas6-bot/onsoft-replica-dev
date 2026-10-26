@@ -57,7 +57,7 @@ const validatedAbsence: HrAbsenceReviewRow = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/financeiro.rh.faltas");
+  const mod = await import("@/routes/financeiro_.rh_.faltas");
   return routeComponentOf(mod);
 }
 

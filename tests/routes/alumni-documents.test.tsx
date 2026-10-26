@@ -74,7 +74,7 @@ const emptyWorkspace: Workspace = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.documents");
+  const mod = await import("@/routes/alumni_.documents");
   return routeComponentOf(mod);
 }
 

@@ -9,6 +9,14 @@ de presenças e migrações verificadas; [evidência e limites](../architecture/
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
 visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
 
+**26/10/2026 — RH e Alumni abrem a sua página:** `/financeiro/rh` e as suas páginas (folha,
+salários, pagamentos, presença, faltas) estavam definidas dentro de `/financeiro`, e as do Alumni
+dentro de `/alumni`. A página de cima não tem `<Outlet />`, por isso estes endereços mostravam o
+Caixa ou o painel do Alumni. Os ficheiros passaram a `financeiro_.rh_.*.tsx` e `alumni_.*.tsx`:
+os endereços são os mesmos e cada página mostra o seu ecrã, sem estilos novos.
+`tests/routes/route-nesting-contract.test.ts` falha se uma página voltar a ficar dentro de outra
+sem `<Outlet />`.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
