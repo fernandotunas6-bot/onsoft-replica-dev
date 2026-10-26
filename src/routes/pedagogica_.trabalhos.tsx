@@ -14,14 +14,16 @@ import { moduleIcons } from "@/lib/app-icons";
 import { publicErrorMessage } from "@/lib/public-error";
 
 /**
- * Trabalhos da turma ou da disciplina (SIGA Context Engine): as tarefas que os
- * professores publicam no detalhe de cada aula, juntas por turma. A turma e a
- * disciplina vêm da URL (`?turma=&disciplina=`), como em `/planos-aula`, e o
- * servidor só devolve as que a conta pode ver.
+ * Trabalhos da turma, da disciplina ou do professor (SIGA Context Engine): as
+ * tarefas que os professores publicam no detalhe de cada aula. A turma e a
+ * disciplina (`?turma=&disciplina=`) ou o professor (`?professor=`, sem turma) vêm
+ * da URL, como em `/planos-aula`, e o servidor só devolve as que a conta pode ver.
  */
 const trabalhosSearchSchema = z.object({
   turma: z.string().guid().optional().catch(undefined),
   disciplina: z.string().guid().optional().catch(undefined),
+  /** Os trabalhos de um professor (menu do professor), quando não há turma. */
+  professor: z.string().guid().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/pedagogica_/trabalhos")({
@@ -40,17 +42,27 @@ function formatDue(iso: string | null) {
 }
 
 function TrabalhosPage() {
-  const { turma, disciplina } = Route.useSearch();
+  const { turma, disciplina, professor: professorSearch } = Route.useSearch();
   const account = useCurrentAccount();
   const staff = STAFF_ROLES.has(account.role);
+  // A turma manda sobre o professor, como no horário.
+  const professor = turma ? undefined : professorSearch;
 
   const tasksQuery = useQuery({
-    queryKey: ["academic", "class-tasks", turma ?? "-", disciplina ?? "todas"],
+    queryKey: [
+      "academic",
+      "class-tasks",
+      turma ?? "-",
+      disciplina ?? "todas",
+      professor ?? "todos",
+    ],
     queryFn: () =>
       listClassTasks({
-        data: { classGroupId: turma!, ...(disciplina ? { subjectId: disciplina } : {}) },
+        data: turma
+          ? { classGroupId: turma, ...(disciplina ? { subjectId: disciplina } : {}) }
+          : { teacherId: professor! },
       }),
-    enabled: staff && Boolean(turma),
+    enabled: staff && Boolean(turma || professor),
     retry: false,
   });
 
@@ -63,6 +75,12 @@ function TrabalhosPage() {
     />
   );
 
+  // As aulas (e os trabalhos de cada uma) abrem-se no horário da turma ou do professor.
+  const scheduleSearch = turma
+    ? { tab: "horarios" as const, turma }
+    : { tab: "horarios" as const, professor };
+  const scheduleLabel = turma ? "horário da turma" : "horário do professor";
+
   let body: ReactNode;
   if (!staff) {
     body = (
@@ -71,7 +89,7 @@ function TrabalhosPage() {
         description="Os trabalhos de cada aluno aparecem no horário do portal."
       />
     );
-  } else if (!turma) {
+  } else if (!turma && !professor) {
     body = (
       <EmptyState
         title="Escolha uma turma"
@@ -114,11 +132,11 @@ function TrabalhosPage() {
               ? "Ainda não há trabalhos nesta disciplina"
               : "Ainda não há trabalhos nesta turma"
           }
-          description="O professor cria um trabalho no detalhe da aula, a partir do horário da turma."
+          description={`O professor cria um trabalho no detalhe da aula, a partir do ${scheduleLabel}.`}
           action={
             <Button asChild size="sm" variant="outline">
-              <Link to="/pedagogica" search={{ tab: "horarios", turma }}>
-                Abrir o horário da turma
+              <Link to="/pedagogica" search={scheduleSearch}>
+                {`Abrir o ${scheduleLabel}`}
               </Link>
             </Button>
           }
@@ -131,10 +149,10 @@ function TrabalhosPage() {
             Para criar ou arquivar um trabalho, abra a aula no{" "}
             <Link
               to="/pedagogica"
-              search={{ tab: "horarios", turma }}
+              search={scheduleSearch}
               className="font-semibold text-primary hover:underline"
             >
-              horário da turma
+              {scheduleLabel}
             </Link>
             .
           </p>
@@ -172,6 +190,7 @@ function TaskSection({
           <li key={task.id} className="flex min-w-0 flex-col gap-1 p-4">
             <p className="text-xs font-semibold text-muted-foreground">
               {TASK_KIND_LABELS[task.kind] ?? "Tarefa"}
+              {task.className ? ` · ${task.className}` : ""}
               {showSubject ? ` · ${task.subjectName}` : ""}
             </p>
             <p className="text-sm font-semibold text-foreground [overflow-wrap:anywhere]">

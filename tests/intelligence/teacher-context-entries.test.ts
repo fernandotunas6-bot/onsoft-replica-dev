@@ -31,18 +31,19 @@ const ids = (role: string, grants = {}) =>
   getContextEntries(context(role, grants), TEACHER_CONTEXT_ENTRIES).map((entry) => entry.id);
 
 describe("entradas do contexto Professor", () => {
-  it("a quem gere o Pedagógico: perfil, horário, planos e presenças", () => {
+  it("a quem gere o Pedagógico: perfil, horário, planos, trabalhos e presenças", () => {
     const all = [
       "teacher.overview",
       "teacher.timetable",
       "teacher.lesson-plans",
+      "teacher.tasks",
       "teacher.attendance",
     ];
     expect(ids("Administrador")).toEqual(all);
     expect(ids("Secretaria")).toEqual(all);
   });
 
-  it("horário, planos e presenças por professor só com escrita no Pedagógico", () => {
+  it("horário, planos, trabalhos e presenças por professor só com escrita no Pedagógico", () => {
     // O professor vê o seu horário no perfil; a vista da escola não tem a lista.
     expect(ids("Professor")).toEqual(["teacher.overview"]);
     expect(ids("Secretaria", { pedagogica: "Leitura" })).toEqual(["teacher.overview"]);
@@ -64,7 +65,7 @@ describe("entradas do contexto Professor", () => {
 
   it("ligações com o professor do caminho e entrada activa", () => {
     const ctx = context("Secretaria");
-    const [overview, timetable, plans, attendance] = getContextEntries(
+    const [overview, timetable, plans, tasks, attendance] = getContextEntries(
       ctx,
       TEACHER_CONTEXT_ENTRIES,
     );
@@ -81,7 +82,14 @@ describe("entradas do contexto Professor", () => {
       to: "/planos-aula",
       search: { professor: PROF },
     });
+    expect(contextEntryLink(tasks!, ctx)).toEqual({
+      to: "/pedagogica/trabalhos",
+      search: { professor: PROF },
+    });
     const entries = getContextEntries(ctx, TEACHER_CONTEXT_ENTRIES);
+    expect(findActiveContextEntry(entries, ctx, "/pedagogica/trabalhos", { professor: PROF })).toBe(
+      "teacher.tasks",
+    );
     expect(findActiveContextEntry(entries, ctx, `/professores/${PROF}`, {})).toBe(
       "teacher.overview",
     );

@@ -67,8 +67,10 @@ menu da turma e da disciplina e abre `/pedagogica/trabalhos?turma&disciplina`: o
 e projectos que os professores publicam no detalhe da aula, numa lista «Em curso» (prazo mais
 próximo primeiro) e outra «Prazo terminado», com o tipo, a disciplina (na turma) e o prazo. O
 professor só vê os das disciplinas que lecciona. Criar e arquivar continuam no detalhe da aula,
-para onde a página leva. Sem estilos novos; capturas com dados fictícios a 1440 e 390 px, sem
-scroll horizontal.
+para onde a página leva. O menu do professor ganha «Trabalhos criados»
+(`/pedagogica/trabalhos?professor`): os trabalhos dele em todas as turmas, cada um com a turma e
+a disciplina. Sem estilos novos; capturas com dados fictícios a 1440 e 390 px, sem scroll
+horizontal.
 
 ## Diagnóstico por prioridade
 

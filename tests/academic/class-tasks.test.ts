@@ -60,7 +60,7 @@ vi.mock("@/features/calendar/dates", async (importOriginal) => ({
   todayInLuanda: () => "2026-10-25",
 }));
 
-import { listClassTasks } from "@/features/academic/timetable-lessons";
+import { listClassTasks, listClassTasksInputSchema } from "@/features/academic/timetable-lessons";
 
 type Handler = (args: {
   data: Record<string, unknown>;
@@ -85,8 +85,11 @@ const row = (over: Partial<ClassTaskRow>): ClassTaskRow => ({
 
 describe("buildClassTaskList", () => {
   const offerings = new Map([
-    ["cs-mat", { subjectId: "mat", subjectName: "Matemática" }],
-    ["cs-lp", { subjectId: "lp", subjectName: "Língua Portuguesa" }],
+    ["cs-mat", { subjectId: "mat", subjectName: "Matemática", classGroupId: "a", className: null }],
+    [
+      "cs-lp",
+      { subjectId: "lp", subjectName: "Língua Portuguesa", classGroupId: "a", className: null },
+    ],
   ]);
 
   it("separa as abertas (prazo mais próximo primeiro, sem prazo no fim) das de prazo terminado", () => {
@@ -128,7 +131,11 @@ describe("listClassTasks", () => {
     mocks.guard.mockClear();
     mocks.filters = [];
     mocks.tables = {
-      class_subjects: { data: [{ id: "cs-mat", subject_id: MAT }], error: null },
+      class_subjects: {
+        data: [{ id: "cs-mat", subject_id: MAT, class_group_id: TURMA }],
+        error: null,
+      },
+      class_groups: { data: [{ id: TURMA, name: "10.ª A" }], error: null },
       siga_class_tasks: {
         data: [
           {
@@ -159,7 +166,7 @@ describe("listClassTasks", () => {
     expect(mocks.filters).toContainEqual(["siga_class_tasks", "school_id", "school-a"]);
     expect(mocks.filters).toContainEqual(["siga_class_tasks", "status", "published"]);
     expect(mocks.filters).not.toContainEqual(expect.arrayContaining(["teacher_id"]));
-    expect(list.open).toMatchObject([{ id: "t1", subjectName: "Matemática" }]);
+    expect(list.open).toMatchObject([{ id: "t1", subjectName: "Matemática", className: null }]);
   });
 
   it("com disciplina, filtra as disciplinas da turma por ela", async () => {
@@ -172,6 +179,32 @@ describe("listClassTasks", () => {
     mocks.ownTeacher = "teacher-1";
     await run({ classGroupId: TURMA });
     expect(mocks.filters).toContainEqual(["class_subjects", "teacher_id", "teacher-1"]);
+  });
+
+  it("de um professor (sem turma), lê as disciplinas dele em todas as turmas, com a turma", async () => {
+    const list = await run({ teacherId: "teacher-9" });
+    expect(mocks.filters).toContainEqual(["class_subjects", "teacher_id", "teacher-9"]);
+    expect(mocks.filters).not.toContainEqual(expect.arrayContaining(["class_group_id"]));
+    expect(mocks.filters).toContainEqual(["class_groups", "school_id", "school-a"]);
+    expect(list.open).toMatchObject([{ id: "t1", className: "10.ª A" }]);
+  });
+
+  it("o professor que pede os trabalhos de outro professor não recebe nada", async () => {
+    mocks.membership = { schoolId: "school-a", appRole: "Professor", allAppRoles: ["Professor"] };
+    mocks.ownTeacher = "teacher-1";
+    const list = await run({ teacherId: "teacher-9" });
+    expect(list).toEqual({ available: true, open: [], closed: [] });
+    expect(mocks.filters.some(([table]) => table === "class_subjects")).toBe(false);
+  });
+
+  it("o esquema pede a turma ou o professor, e a disciplina só com a turma", () => {
+    expect(() => listClassTasksInputSchema.parse({})).toThrow();
+    expect(() => listClassTasksInputSchema.parse({ teacherId: "x" })).toThrow();
+    expect(() => listClassTasksInputSchema.parse({ teacherId: TURMA, subjectId: MAT })).toThrow();
+    expect(listClassTasksInputSchema.parse({ classGroupId: TURMA, subjectId: MAT })).toEqual({
+      classGroupId: TURMA,
+      subjectId: MAT,
+    });
   });
 
   it("um professor sem ficha de docente na escola não recebe nada", async () => {

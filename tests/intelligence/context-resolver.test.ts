@@ -135,7 +135,13 @@ describe("routeContextCandidates", () => {
       { type: "class", id: TURMA_A },
       { type: "subject-offering", id: subjectOfferingId(TURMA_A, MATEMATICA) },
     ]);
-    expect(routeContextCandidates("/pedagogica/trabalhos", { professor: ALUNO })).toEqual([]);
+    // Sem turma, os trabalhos de um professor (menu do professor); a turma manda sobre ele.
+    expect(routeContextCandidates("/pedagogica/trabalhos", { professor: ALUNO })).toEqual([
+      { type: "teacher", id: ALUNO },
+    ]);
+    expect(
+      routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A, professor: ALUNO }),
+    ).toEqual([{ type: "class", id: TURMA_A }]);
     expect(routeContextCandidates("/pedagogica/trabalhos", { turma: "x" })).toEqual([]);
   });
 

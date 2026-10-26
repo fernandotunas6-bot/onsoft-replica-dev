@@ -1,6 +1,6 @@
 /**
  * Trabalhos da turma (SIGA Context Engine): as tarefas que os professores criam
- * no detalhe de cada aula, juntas numa lista da turma ou da disciplina.
+ * no detalhe de cada aula, juntas numa lista da turma, da disciplina ou do professor.
  * Só a montagem da lista; quem lê o quê decide o servidor (`listClassTasks`).
  */
 
@@ -22,6 +22,16 @@ export type ClassTaskItem = {
   dueOn: string | null;
   subjectId: string;
   subjectName: string;
+  classGroupId: string;
+  /** Só nos trabalhos de um professor (várias turmas); na turma é null. */
+  className: string | null;
+};
+
+export type ClassTaskOffering = {
+  subjectId: string;
+  subjectName: string;
+  classGroupId: string;
+  className: string | null;
 };
 
 export type ClassTaskList = {
@@ -33,8 +43,6 @@ export type ClassTaskList = {
   closed: ClassTaskItem[];
 };
 
-export const EMPTY_CLASS_TASKS: ClassTaskList = { available: true, open: [], closed: [] };
-
 /**
  * Junta cada tarefa à sua disciplina e separa as abertas das de prazo terminado.
  * Uma tarefa cuja disciplina não está na lista (de outra turma, ou de uma
@@ -42,7 +50,7 @@ export const EMPTY_CLASS_TASKS: ClassTaskList = { available: true, open: [], clo
  */
 export function buildClassTaskList(
   rows: ClassTaskRow[],
-  offerings: ReadonlyMap<string, { subjectId: string; subjectName: string }>,
+  offerings: ReadonlyMap<string, ClassTaskOffering>,
   today: string,
 ): ClassTaskList {
   const items: ClassTaskItem[] = [];
@@ -57,6 +65,8 @@ export function buildClassTaskList(
       dueOn: row.due_on,
       subjectId: offering.subjectId,
       subjectName: offering.subjectName,
+      classGroupId: offering.classGroupId,
+      className: offering.className,
     });
   }
   const open = items.filter((item) => !item.dueOn || item.dueOn >= today);

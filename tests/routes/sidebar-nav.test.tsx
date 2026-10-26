@@ -851,6 +851,22 @@ describe("AppSidebar — menu do professor (Context Engine)", () => {
     expect(screen.queryByRole("region", { name: /^Professor/ })).toBeNull();
   });
 
+  it("nos trabalhos do professor: «Trabalhos criados» marcado e voltar à área académica", () => {
+    papel = "Secretaria";
+    teacherList.rows = [{ id: JOAO, full_name: "João Mendes" }];
+    currentPathname = "/pedagogica/trabalhos";
+    currentSearch = { professor: JOAO };
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Professor: João Mendes" });
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Trabalhos criados");
+    const back = linksTo("/pedagogica").find((link) => link.label.startsWith("Voltar"));
+    expect(back).toBeTruthy();
+    expect(back?.search ?? null).toBeNull();
+  });
+
   it("o encarregado não recebe o menu do professor", () => {
     papel = "Encarregado";
     focus.entity = joao;

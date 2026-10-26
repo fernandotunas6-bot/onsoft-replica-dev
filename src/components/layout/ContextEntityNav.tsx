@@ -66,6 +66,10 @@ function backLink(
 ): EntityNavigation["back"] {
   if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
   if (pathname.startsWith("/professores/")) return { to: "/pessoas" };
+  // Os trabalhos de um professor ficam na área académica, como o horário dele.
+  if (pathname === "/pedagogica/trabalhos" && context.trail.at(-1)?.type === "teacher") {
+    return { to: "/pedagogica" };
+  }
   // A ficha e os trabalhos da turma abrem-se da lista de turmas.
   if (pathname.startsWith("/pedagogica/turmas/") || pathname === "/pedagogica/trabalhos") {
     return { to: "/pedagogica", search: { tab: "turmas" } };

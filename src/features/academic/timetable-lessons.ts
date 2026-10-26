@@ -392,19 +392,30 @@ export const archiveClassTask = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Pedido de trabalhos: de uma turma (e disciplina) ou de um professor. */
+export const listClassTasksInputSchema = z
+  .object({
+    classGroupId: z.string().guid().optional(),
+    subjectId: z.string().guid().optional(),
+    teacherId: z.string().guid().optional(),
+  })
+  .refine((input) => Boolean(input.classGroupId || input.teacherId), {
+    message: "Indique a turma ou o professor.",
+  })
+  .refine((input) => !input.subjectId || Boolean(input.classGroupId), {
+    message: "A disciplina pede a turma.",
+  });
+
 /**
- * Trabalhos da turma ou de uma disciplina da turma, para o menu da turma (SIGA
- * Context Engine). Administrador e Secretaria vêem os de todas as disciplinas;
- * o professor, só os das disciplinas que lecciona nessa turma, como no detalhe
- * da aula. «Nenhum» no Pedagógico fecha.
+ * Trabalhos da turma, de uma disciplina da turma ou de um professor, para os
+ * menus da turma e do professor (SIGA Context Engine). Administrador e
+ * Secretaria vêem os de todas as disciplinas; o professor, só os das disciplinas
+ * que lecciona, como no detalhe da aula (o filtro por professor só estreita).
+ * «Nenhum» no Pedagógico fecha.
  */
 export const listClassTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) =>
-    z
-      .object({ classGroupId: z.string().guid(), subjectId: z.string().guid().optional() })
-      .parse(input),
-  )
+  .validator((input: unknown) => listClassTasksInputSchema.parse(input))
   .handler(async ({ data, context }): Promise<ClassTaskList> => {
     const membership = await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
@@ -413,25 +424,32 @@ export const listClassTasks = createServerFn({ method: "GET" })
     ]);
     const schoolId = membership.schoolId;
     const roles: string[] = membership.allAppRoles ?? [membership.appRole];
+    const empty: ClassTaskList = { available: true, open: [], closed: [] };
+    if (!data.classGroupId && !data.teacherId) return empty;
     const db = await loadSgaAdminClient();
-    let classSubjectQuery = db
-      .from("class_subjects")
-      .select("id, subject_id")
-      .eq("school_id", schoolId)
-      .eq("class_group_id", data.classGroupId);
-    if (data.subjectId) classSubjectQuery = classSubjectQuery.eq("subject_id", data.subjectId);
+    let teacherId = data.teacherId ?? null;
     if (!roles.some((r) => MANAGER_ROLES.includes(r))) {
       const own = await ownTeacherId(db, schoolId, context.userId);
-      if (!own) return { available: true, open: [], closed: [] };
-      classSubjectQuery = classSubjectQuery.eq("teacher_id", own);
+      if (!own || (teacherId && teacherId !== own)) return empty;
+      teacherId = own;
     }
+    let classSubjectQuery = db
+      .from("class_subjects")
+      .select("id, subject_id, class_group_id")
+      .eq("school_id", schoolId);
+    if (data.classGroupId) {
+      classSubjectQuery = classSubjectQuery.eq("class_group_id", data.classGroupId);
+      if (data.subjectId) classSubjectQuery = classSubjectQuery.eq("subject_id", data.subjectId);
+    }
+    if (teacherId) classSubjectQuery = classSubjectQuery.eq("teacher_id", teacherId);
     const { data: classSubjects, error: csError } = await classSubjectQuery;
     if (csError)
       throw publicDatabaseError(csError, "Não foi possível ler as disciplinas da turma.");
     const csIds = (classSubjects ?? []).map((cs) => String(cs.id));
-    if (!csIds.length) return { available: true, open: [], closed: [] };
+    if (!csIds.length) return empty;
     const subjectIds = [...new Set((classSubjects ?? []).map((cs) => String(cs.subject_id)))];
-    const [tasksRes, subjectsRes] = await Promise.all([
+    const groupIds = [...new Set((classSubjects ?? []).map((cs) => String(cs.class_group_id)))];
+    const [tasksRes, subjectsRes, groupsRes] = await Promise.all([
       db
         .from("siga_class_tasks")
         .select("id, class_subject_id, kind, title, description, due_on, created_at")
@@ -441,20 +459,29 @@ export const listClassTasks = createServerFn({ method: "GET" })
         .order("due_on", { ascending: false, nullsFirst: true })
         .limit(200),
       db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", subjectIds),
+      // Sem turma no pedido (trabalhos de um professor), cada trabalho diz a turma.
+      data.classGroupId
+        ? Promise.resolve({ data: [] as Array<{ id: string; name: string }> })
+        : db.from("class_groups").select("id, name").eq("school_id", schoolId).in("id", groupIds),
     ]);
     if (tasksRes.error) {
-      if (isMissingTable(tasksRes.error.message)) return { available: false, open: [], closed: [] };
+      if (isMissingTable(tasksRes.error.message)) return { ...empty, available: false };
       throw publicDatabaseError(tasksRes.error, "Não foi possível ler os trabalhos da turma.");
     }
     const subjectName = new Map(
       (subjectsRes.data ?? []).map((s) => [String(s.id), String(s.name)]),
     );
+    const groupName = new Map((groupsRes.data ?? []).map((g) => [String(g.id), String(g.name)]));
     const offerings = new Map(
       (classSubjects ?? []).map((cs) => [
         String(cs.id),
         {
           subjectId: String(cs.subject_id),
           subjectName: subjectName.get(String(cs.subject_id)) ?? "Disciplina",
+          classGroupId: String(cs.class_group_id),
+          className: data.classGroupId
+            ? null
+            : (groupName.get(String(cs.class_group_id)) ?? "Turma"),
         },
       ]),
     );

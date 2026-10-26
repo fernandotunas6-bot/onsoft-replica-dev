@@ -40,6 +40,8 @@ const task = (id: string, title: string, dueOn: string | null, subjectName = "Ma
   dueOn,
   subjectId: MAT,
   subjectName,
+  classGroupId: TURMA,
+  className: null as string | null,
 });
 
 let Page: ComponentType;
@@ -93,6 +95,22 @@ describe("/pedagogica/trabalhos", () => {
       expect(screen.getByText("Ainda não há trabalhos nesta turma")).toBeDefined(),
     );
     expect(screen.getByRole("link", { name: "Abrir o horário da turma" })).toBeDefined();
+  });
+
+  it("de um professor, pede os trabalhos dele e diz a turma de cada um", async () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    listClassTasksMock.mockResolvedValue({
+      available: true,
+      open: [{ ...task("t1", "Frações equivalentes", "2026-10-30"), className: "10.ª A" }],
+      closed: [],
+    });
+    setCurrentAccount({ role: "Secretaria" });
+    setRouteSearch({ professor: PROF });
+    renderRoute(Page);
+    await waitFor(() => expect(screen.getByText("Frações equivalentes")).toBeDefined());
+    expect(listClassTasksMock).toHaveBeenCalledWith({ data: { teacherId: PROF } });
+    expect(screen.getByText("Trabalho · 10.ª A · Matemática")).toBeDefined();
+    expect(screen.getByRole("link", { name: "horário do professor" })).toBeDefined();
   });
 
   it("sem turma na URL pede para escolher uma, sem chamar o servidor", () => {
