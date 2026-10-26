@@ -21,7 +21,13 @@ import {
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { readSettingsDomain } from "@/features/school/settings-domains";
-import { ACCOUNTS_BATCH, provisionalPassword, studentLoginEmail } from "./student-accounts";
+import { getPlatformSubdomain } from "@/lib/saas/platform-domain";
+import {
+  ACCOUNTS_BATCH,
+  pickPortalHost,
+  provisionalPassword,
+  studentLoginEmail,
+} from "./student-accounts";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -63,12 +69,13 @@ export const listStudentAccounts = createServerFn({ method: "GET" })
         .order("id", { ascending: true })
         .limit(1)
         .maybeSingle(),
-      db.from("schools").select("public_code").eq("id", schoolId).maybeSingle(),
+      db.from("schools").select("public_code, tenant_id").eq("id", schoolId).maybeSingle(),
       readSettingsDomain(db, schoolId, "student_access"),
     ]);
     const base = {
       yearName: year?.name ? str(year.name) : null,
       schoolCode: str(school?.public_code),
+      portalHost: await loadPortalHost(db, str(school?.tenant_id)),
       numberLoginEnabled: Boolean(settings.student_number_login),
       isAdministrator: (membership.allAppRoles ?? [membership.appRole]).includes("Administrador"),
       students: [] as StudentAccountLine[],
@@ -158,8 +165,28 @@ export type IssuedCredential = {
   studentId: string;
   name: string;
   studentNumber: string;
+  /** Utilizador da conta: só vai para a ficha se o aluno não tiver outro caminho. */
+  loginEmail: string;
   password: string;
 };
+
+/** Endereço da escola para as fichas; null se a escola não tem tenant. */
+async function loadPortalHost(db: Db, tenantId: string): Promise<string | null> {
+  if (!tenantId) return null;
+  const [{ data: domains }, { data: tenant }] = await Promise.all([
+    db
+      .from("tenant_domains")
+      .select("hostname, type")
+      .eq("tenant_id", tenantId)
+      .eq("status", "active"),
+    db.from("tenants").select("slug").eq("id", tenantId).maybeSingle(),
+  ]);
+  const slug = str(tenant?.slug);
+  return pickPortalHost(
+    ((domains ?? []) as Row[]).map((row) => ({ hostname: str(row.hostname), type: str(row.type) })),
+    slug ? getPlatformSubdomain(slug) : null,
+  );
+}
 
 /** Cria as contas em falta. As senhas voltam uma vez, para imprimir; não se guardam. */
 export const createStudentAccounts = createServerFn({ method: "POST" })
@@ -201,18 +228,20 @@ export const createStudentAccounts = createServerFn({ method: "POST" })
         }
         if (!line.studentNumber) throw new Error("O aluno não tem número de aluno.");
         const password = provisionalPassword();
+        const email = studentLoginEmail(line.studentNumber, str(school.public_code));
         await createOne(db, {
           schoolId,
           roleId: str(role.id),
           personId: line.personId,
           fullName: line.name,
-          email: studentLoginEmail(line.studentNumber, str(school.public_code)),
+          email,
           password,
         });
         issued.push({
           studentId: line.studentId,
           name: line.name,
           studentNumber: line.studentNumber,
+          loginEmail: email,
           password,
         });
       } catch (error) {
@@ -350,6 +379,7 @@ export const resetStudentPassword = createServerFn({ method: "POST" })
       studentId: line.studentId,
       name: line.name,
       studentNumber: line.studentNumber,
+      loginEmail: str(current.user?.email),
       password,
     } satisfies IssuedCredential;
   });

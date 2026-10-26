@@ -13,8 +13,9 @@ import {
 } from "./_harness";
 
 /**
- * `/pedagogica/turmas/$classGroupId` (SIGA Context Engine): a ficha da turma com
- * URL própria, a secção em `?secao=`, e só a turma que o servidor devolve à conta.
+ * `/pedagogica/turmas/$turmaId`: a ficha da turma em página (do main, #346), com
+ * `?secao=` do SIGA Context Engine para o menu levar a uma secção, e só a turma que
+ * o servidor devolve à conta.
  */
 
 vi.setConfig({ testTimeout: 25_000 });
@@ -110,7 +111,7 @@ vi.mock("@/features/people/server", () => ({
 let Page: ComponentType;
 
 beforeAll(async () => {
-  Page = routeComponentOf(await import("@/routes/pedagogica_.turmas.$classGroupId"));
+  Page = routeComponentOf(await import("@/routes/pedagogica_.turmas.$turmaId"));
 }, 60_000);
 
 afterEach(() => {
@@ -122,28 +123,44 @@ afterEach(() => {
 
 function open(search: Record<string, unknown> = {}, role = "Secretaria", id = TURMA) {
   server.workspace.mockResolvedValue(workspace);
-  setRouteParams({ classGroupId: id });
+  setRouteParams({ turmaId: id });
   setRouteSearch(search);
   setCurrentAccount({ role, roles: [role] });
   renderRoute(Page);
 }
 
-describe("/pedagogica/turmas/$classGroupId", () => {
-  it("abre a ficha da turma no resumo, com o nome como título", async () => {
+describe("/pedagogica/turmas/$turmaId", () => {
+  it("abre a ficha da turma, com o nome como título e todas as secções", async () => {
     open();
     await waitFor(() =>
       expect(screen.getByRole("heading", { level: 1, name: "10.ª A" })).toBeDefined(),
     );
     expect(screen.getByText("Ocupação")).toBeDefined();
-    expect(screen.getByRole("tab", { name: /Resumo/ }).getAttribute("data-state")).toBe("active");
+    for (const name of [/^Resumo$/, /^Alunos \(1\)$/, /^Horário/, /^Avaliações$/]) {
+      expect(screen.getByRole("region", { name })).toBeDefined();
+    }
   });
 
-  it("?secao=alunos abre os alunos da turma, e só os dela", async () => {
-    open({ secao: "alunos" });
-    await waitFor(() => expect(screen.getByText("Ana Paula Silva")).toBeDefined());
-    expect(screen.queryByText("Bruno Kiala")).toBeNull();
-    expect(screen.getByRole("tab", { name: /Alunos \(1\)/ }).getAttribute("data-state")).toBe(
-      "active",
+  it("?secao=alunos leva aos alunos da turma, e só aos dela", async () => {
+    const scrolled: string[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.id);
+    };
+    try {
+      open({ secao: "alunos" });
+      await waitFor(() => expect(screen.getByText("Ana Paula Silva")).toBeDefined());
+      expect(screen.queryByText("Bruno Kiala")).toBeNull();
+      await waitFor(() => expect(scrolled).toContain("turma-alunos"));
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("uma secção desconhecida abre a ficha sem erro", async () => {
+    open({ secao: "nada" });
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1, name: "10.ª A" })).toBeDefined(),
     );
   });
 
@@ -155,7 +172,7 @@ describe("/pedagogica/turmas/$classGroupId", () => {
 
   it("aluno e encarregado não pedem a turma", async () => {
     open({}, "Encarregado");
-    await waitFor(() => expect(screen.getByText("Sem acesso a esta turma")).toBeDefined());
+    await waitFor(() => expect(screen.getByText("Turma não encontrada")).toBeDefined());
     expect(server.workspace).not.toHaveBeenCalled();
   });
 });

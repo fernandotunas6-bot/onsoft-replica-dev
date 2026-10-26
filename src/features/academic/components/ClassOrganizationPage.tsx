@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
@@ -44,6 +44,22 @@ const STATUS: Record<LineStatus, { label: string; tone: string }> = {
   no_capacity: { label: "Sem vaga", tone: "bg-destructive/10 text-destructive" },
 };
 
+/** Até aqui, as propostas de todas as classes carregam logo, para a lista dizer o estado. */
+const STATUS_PREFETCH_LIMIT = 40;
+const scopeKeyOf = (scope: { gradeLevelId: string; shift: string }) =>
+  `${scope.gradeLevelId}|${scope.shift}`;
+const previewKeyOf = (key: string) => ["class-organization", "preview", key];
+
+function scopeStatus(
+  students: number,
+  plan: { moves: unknown[]; blockers: unknown[] } | undefined,
+): string {
+  if (!students) return " · sem alunos";
+  if (!plan) return "";
+  if (plan.blockers.length) return " · rever";
+  return plan.moves.length ? ` · ${plan.moves.length} por mudar` : " · ordenada";
+}
+
 const birth = (iso: string | null) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("pt-AO") : "—";
 
@@ -58,18 +74,29 @@ export function ClassOrganizationView() {
     queryKey: ["class-organization", "scopes"],
     queryFn: () => listOrganizationScopes({ data: {} }),
   });
-  const selected = scopes.data?.scopes.find(
-    (scope) => `${scope.gradeLevelId}|${scope.shift}` === scopeKey,
-  );
-  const previewKey = ["class-organization", "preview", scopeKey];
-  const preview = useQuery({
-    queryKey: previewKey,
-    queryFn: () =>
-      previewClassOrganization({
-        data: { gradeLevelId: selected!.gradeLevelId, shift: selected!.shift },
-      }),
-    enabled: Boolean(selected),
+  const scopeList = scopes.data?.scopes ?? [];
+  const selected = scopeList.find((scope) => scopeKeyOf(scope) === scopeKey);
+  // A mesma chave para a lista e para a classe escolhida: a proposta já vem feita.
+  const loadPreview = (scope: { gradeLevelId: string; shift: string }) => () =>
+    previewClassOrganization({ data: { gradeLevelId: scope.gradeLevelId, shift: scope.shift } });
+  const statuses = useQueries({
+    queries: scopeList.map((scope) => ({
+      queryKey: previewKeyOf(scopeKeyOf(scope)),
+      queryFn: loadPreview(scope),
+      enabled: scope.students > 0 && scopeList.length <= STATUS_PREFETCH_LIMIT,
+      staleTime: 60_000,
+    })),
   });
+  const preview = useQuery({
+    queryKey: previewKeyOf(scopeKey),
+    queryFn: loadPreview(selected ?? { gradeLevelId: "", shift: "" }),
+    enabled: Boolean(selected),
+    staleTime: 60_000,
+  });
+  const populated = scopeList.filter((scope) => scope.students > 0).length;
+  const ordered = scopeList.filter(
+    (scope, index) => scope.students > 0 && statuses[index]?.data?.moves.length === 0,
+  ).length;
   const apply = useMutation({
     mutationFn: () =>
       applyClassOrganization({
@@ -110,6 +137,12 @@ export function ClassOrganizationView() {
         <div className="min-w-0 flex-1 space-y-1">
           <label htmlFor="organizar-classe" className="text-xs font-medium">
             Classe e turno {scopes.data?.year ? `· ${scopes.data.year.name}` : ""}
+            {populated && scopeList.length <= STATUS_PREFETCH_LIMIT ? (
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                · {ordered} de {populated} já ordenadas
+              </span>
+            ) : null}
           </label>
           <select
             id="organizar-classe"
@@ -118,14 +151,12 @@ export function ClassOrganizationView() {
             onChange={(event) => setScopeKey(event.target.value)}
           >
             <option value="">Escolha a classe a organizar…</option>
-            {(scopes.data?.scopes ?? []).map((scope) => (
-              <option
-                key={`${scope.gradeLevelId}|${scope.shift}`}
-                value={`${scope.gradeLevelId}|${scope.shift}`}
-              >
+            {scopeList.map((scope, index) => (
+              <option key={scopeKeyOf(scope)} value={scopeKeyOf(scope)}>
                 {scope.programName ? `${scope.programName} · ` : ""}
                 {scope.gradeLevelName} · {scope.shiftLabel} — {scope.classes} turma(s),{" "}
                 {scope.students} aluno(s)
+                {scopeStatus(scope.students, statuses[index]?.data)}
               </option>
             ))}
           </select>

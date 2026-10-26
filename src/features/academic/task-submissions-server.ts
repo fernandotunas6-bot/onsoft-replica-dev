@@ -438,7 +438,7 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
     );
     const { data: current, error: currentError } = await db
       .from("siga_class_task_submissions")
-      .select("id, enrollment_id, status")
+      .select("id, enrollment_id, status, grade, feedback, graded_by, returned_at")
       .eq("school_id", schoolId)
       .eq("task_id", data.taskId)
       .eq("id", data.submissionId)
@@ -447,23 +447,22 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
     if (!current || current.status !== "submitted") {
       throw new Error("Esta entrega já foi devolvida ou não existe.");
     }
-    // Primeiro a pauta: se a pauta recusa (período fechado, cotação), a entrega
-    // não fica devolvida com uma nota que não chegou à pauta. Repetir é seguro.
-    const itemId = str(task.assessment_item_id);
-    const toPauta = Boolean(itemId) && data.grade != null;
-    if (toPauta) {
-      await writeAssessmentScores(db, {
-        schoolId,
-        userId: context.userId,
-        itemId,
-        rows: [{ enrollmentId: str(current.enrollment_id), score: data.grade ?? null }],
-      });
-    }
+    // Primeiro a entrega, numa escrita condicional: só um professor a devolve. Antes
+    // a pauta ia à frente, e dois professores ao mesmo tempo deixavam na pauta a nota
+    // do que perdia. Depois a pauta; se a pauta recusa (período fechado, cotação), a
+    // entrega volta a estar como estava — a nota nunca fica só num dos lados.
+    const before = {
+      returned_at: current.returned_at ?? null,
+      grade: current.grade ?? null,
+      feedback: current.feedback ?? null,
+      graded_by: current.graded_by ?? null,
+    };
+    const returnedAt = new Date().toISOString();
     const { data: updated, error } = await db
       .from("siga_class_task_submissions")
       .update({
         status: "returned",
-        returned_at: new Date().toISOString(),
+        returned_at: returnedAt,
         grade: data.grade ?? null,
         feedback: data.feedback || null,
         graded_by: context.userId,
@@ -477,6 +476,33 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível devolver a entrega.");
     if (!updated) throw new Error("Esta entrega já foi devolvida ou não existe.");
+    const itemId = str(task.assessment_item_id);
+    const toPauta = Boolean(itemId) && data.grade != null;
+    if (toPauta) {
+      try {
+        await writeAssessmentScores(db, {
+          schoolId,
+          userId: context.userId,
+          itemId,
+          rows: [{ enrollmentId: str(current.enrollment_id), score: data.grade ?? null }],
+        });
+      } catch (pautaError) {
+        const { error: undoError } = await db
+          .from("siga_class_task_submissions")
+          .update({ status: "submitted", ...before, updated_by: context.userId })
+          .eq("school_id", schoolId)
+          .eq("id", data.submissionId)
+          .eq("status", "returned")
+          .eq("returned_at", returnedAt);
+        if (undoError) {
+          console.error(
+            `[returnTaskSubmission] entrega ${data.submissionId} devolvida sem nota na pauta:`,
+            undoError,
+          );
+        }
+        throw pautaError;
+      }
+    }
     await notifyTaskReturned(db, {
       schoolId,
       taskId: data.taskId,
