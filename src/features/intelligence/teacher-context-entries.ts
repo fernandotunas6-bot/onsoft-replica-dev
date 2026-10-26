@@ -1,5 +1,6 @@
 import { canWriteModule } from "@/features/auth/access-policy";
 import { moduleIcons } from "@/lib/app-icons";
+import type { ContextModule } from "./context-modules";
 import type { ContextNavEntry } from "./context-registry";
 import type { ContextFrame } from "./types";
 
@@ -85,3 +86,17 @@ export const TEACHER_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 30,
   },
 ];
+
+export const TEACHER_CONTEXT_MODULE: ContextModule = {
+  kinds: { teacher: "Professor" },
+  entries: TEACHER_CONTEXT_ENTRIES,
+  menuRoles: ["Administrador", "Secretaria", "Professor"],
+  // O perfil abre-se da lista de pessoas; os trabalhos dele ficam na área académica,
+  // como o horário (que volta ao seu separador).
+  back: (_context, pathname) =>
+    pathname.startsWith("/professores/")
+      ? { to: "/pessoas" }
+      : pathname === "/pedagogica/trabalhos"
+        ? { to: "/pedagogica" }
+        : null,
+};

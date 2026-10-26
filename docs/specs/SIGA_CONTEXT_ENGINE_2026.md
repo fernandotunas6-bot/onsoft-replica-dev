@@ -254,11 +254,36 @@ da URL é recusada.
 
 ## 11. Como estender
 
-Um módulo declara `ContextNavEntry[]` (como `academic-context-entries.ts`) e, se a
-entidade for nova, um `ContextLookup` a partir de dados já validados no servidor. Antes de
-registar uma entrada: a rota aceita os parâmetros no `validateSearch`, a página filtra por
-eles, o servidor valida escola e vínculo, e a rota está em `routeContextCandidates` (senão
-abrir a entrada perde o contexto).
+Cada módulo declara a sua contribuição no próprio ficheiro (`ContextModule`, em
+`context-modules.ts`): os tipos de entidade que abre e o nome de cada um no cabeçalho, as
+entradas (`ContextNavEntry[]`), quem recebe o menu e para onde leva «Voltar». O motor
+(resolvedor, registo, sidebar e hub do telemóvel) só lê `CONTEXT_MODULES`; não se mexe nele.
+A fatura entrou assim:
+
+```ts
+// src/features/intelligence/invoice-context-entries.ts
+export const INVOICE_CONTEXT_MODULE: ContextModule = {
+  kinds: { invoice: "Fatura" },
+  entries: INVOICE_CONTEXT_ENTRIES, // «Detalhes e recibos», «Todas as faturas», aluno da fatura
+  menuRoles: ["Administrador", "Tesouraria"],
+  back: () => ({ to: "/faturas" }),
+};
+// src/features/intelligence/context-modules.ts
+export const CONTEXT_MODULES = [ACADEMIC_…, STUDENT_…, TEACHER_…, INVOICE_CONTEXT_MODULE];
+```
+
+Para um módulo novo:
+
+1. O tipo de entidade em `EntityType` (`types.ts`) e a rota em `routeContextCandidates`
+   (só parâmetros tipados, ids UUID), senão abrir a entrada perde o contexto.
+2. A confirmação da entidade: a página declara o foco com a entidade lida do servidor
+   (`useDeclareEntityFocus`, com `schoolId` e as relações devolvidas), ou um `ContextLookup`
+   sobre uma lista que o servidor já devolveu (como a árvore académica).
+3. As entradas: cada uma aponta para uma rota que existe, cujo `validateSearch` aceita os
+   parâmetros e cuja página filtra por eles; `roles`, `allow` e `available` só estreitam.
+4. O servidor valida escola e vínculo em cada leitura; o menu não autoriza nada.
+5. Testes: o contrato de `tests/intelligence/context-modules.test.ts` cobre tipos, ids e
+   «Voltar»; acrescentar os casos do módulo à sidebar (`tests/routes/sidebar-nav.test.tsx`).
 
 ## 12. Coordenação entre agentes (25/10)
 

@@ -5,12 +5,13 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useTenant } from "@/features/saas/tenant-context";
 import { useAcademicNavTree } from "@/features/academic/use-academic-nav-tree";
-import { ACADEMIC_CONTEXT_ENTRIES } from "@/features/intelligence/academic-context-entries";
 import { academicContextLookup } from "@/features/intelligence/academic-context-lookup";
 import { useEntityFocus } from "@/features/intelligence/entity-focus-context";
-import { INVOICE_CONTEXT_ENTRIES } from "@/features/intelligence/invoice-context-entries";
-import { STUDENT_CONTEXT_ENTRIES } from "@/features/intelligence/student-context-entries";
-import { TEACHER_CONTEXT_ENTRIES } from "@/features/intelligence/teacher-context-entries";
+import {
+  canOpenEntityMenu,
+  CONTEXT_ENTRIES,
+  contextBackLink,
+} from "@/features/intelligence/context-modules";
 import {
   teacherContextLookup,
   useTeacherNavList,
@@ -44,48 +45,6 @@ import { NavLinkRow, NavSubheader } from "./NavItem";
  * as funções dessa entidade. A URL que o servidor não confirma não muda o menu.
  */
 
-/**
- * O menu da entidade é de gestão (pauta, chamada, planos, ficha do aluno). Aluno e
- * encarregado vêem o que é seu pelo portal; as regras de rota deixam-nos abrir
- * `/pedagogica`, `/planos-aula` e, ao encarregado, `/alunos/<id>`, por isso a
- * restrição fica aqui, só a estreitar.
- */
-const ENTITY_MENU_ROLES = new Set(["Administrador", "Secretaria", "Professor"]);
-/** A fatura é da tesouraria: `/faturas` abre-se à Administração e à Tesouraria. */
-const INVOICE_MENU_ROLES = new Set(["Administrador", "Tesouraria"]);
-
-/** Entradas de todos os contextos; o registo escolhe pelo tipo da entidade aberta. */
-const ENTITY_ENTRIES = [
-  ...ACADEMIC_CONTEXT_ENTRIES,
-  ...STUDENT_CONTEXT_ENTRIES,
-  ...TEACHER_CONTEXT_ENTRIES,
-  ...INVOICE_CONTEXT_ENTRIES,
-];
-
-/**
- * «Voltar» leva de onde a entidade se abre: o separador da área, a lista de alunos,
- * a lista de turmas ou, do perfil do professor, Pessoas.
- */
-function backLink(
-  context: ResolvedContext,
-  pathname: string,
-  search: Record<string, unknown>,
-): EntityNavigation["back"] {
-  if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
-  if (context.trail.at(-1)?.type === "invoice") return { to: "/faturas" };
-  if (pathname.startsWith("/professores/")) return { to: "/pessoas" };
-  // Os trabalhos de um professor ficam na área académica, como o horário dele.
-  if (pathname === "/pedagogica/trabalhos" && context.trail.at(-1)?.type === "teacher") {
-    return { to: "/pedagogica" };
-  }
-  // A ficha e os trabalhos da turma abrem-se da lista de turmas.
-  if (pathname.startsWith("/pedagogica/turmas/") || pathname === "/pedagogica/trabalhos") {
-    return { to: "/pedagogica", search: { tab: "turmas" } };
-  }
-  const tab = typeof search.tab === "string" ? search.tab : undefined;
-  return { to: pathname, ...(tab ? { search: { tab } } : {}) };
-}
-
 /** Resolve o contexto da URL. Devolve null quando não há entidade confirmada. */
 export function useEntityNavigation(
   pathname: string,
@@ -95,13 +54,14 @@ export function useEntityNavigation(
   const { selectedYearId } = useSchoolSettings();
   const { activePlan } = useTenant();
   const { focusedEntity } = useEntityFocus();
-  const staff = ENTITY_MENU_ROLES.has(account.role);
+  // Cada módulo diz quem recebe o menu das suas entidades (o da turma é da equipa,
+  // o da fatura da tesouraria); as outras entidades da URL nem se resolvem.
   const route = useMemo(
     () =>
       routeContextCandidates(pathname, search).filter((candidate) =>
-        candidate.type === "invoice" ? INVOICE_MENU_ROLES.has(account.role) : staff,
+        canOpenEntityMenu(candidate.type, account.role),
       ),
-    [staff, account.role, pathname, search],
+    [account.role, pathname, search],
   );
   // Só pede turmas e disciplinas quando a URL traz uma turma; noutras páginas
   // nada é carregado.
@@ -138,13 +98,13 @@ export function useEntityNavigation(
       ),
     });
     if (context.trail.length === 0) return null;
-    const entries = getContextEntries(context, ENTITY_ENTRIES, activePlan);
+    const entries = getContextEntries(context, CONTEXT_ENTRIES, activePlan);
     if (entries.length === 0) return null;
     return {
       context,
       entries,
       activeId: findActiveContextEntry(entries, context, pathname, search),
-      back: backLink(context, pathname, search),
+      back: contextBackLink(context, pathname, search),
     };
   }, [
     route,
@@ -181,7 +141,8 @@ export function useResumeNavigation(
   const account = useCurrentAccount();
   const { selectedYearId } = useSchoolSettings();
   const { activePlan } = useTenant();
-  const staff = ENTITY_MENU_ROLES.has(account.role);
+  // «Continuar» reabre uma turma ou disciplina: só a quem recebe esse menu.
+  const staff = canOpenEntityMenu("class", account.role);
   const owner = navMemoryOwner(account.id || account.email || "anon", account.schoolId);
   // Lê os recentes antes de a página actual entrar neles (o AppShell grava depois).
   const target = useMemo(() => {

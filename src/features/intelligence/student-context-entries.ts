@@ -4,6 +4,7 @@ import {
   STUDENT_SECTIONS,
   type StudentSection,
 } from "@/features/students/student-sections";
+import type { ContextModule } from "./context-modules";
 import type { ContextNavEntry } from "./context-registry";
 import type { ContextFrame } from "./types";
 
@@ -92,3 +93,11 @@ export const STUDENT_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 120,
   },
 ];
+
+export const STUDENT_CONTEXT_MODULE: ContextModule = {
+  kinds: { student: "Aluno" },
+  entries: STUDENT_CONTEXT_ENTRIES,
+  // O encarregado abre `/alunos/<id>` do seu educando, mas o menu é de gestão.
+  menuRoles: ["Administrador", "Secretaria", "Professor"],
+  back: () => ({ to: "/alunos" }),
+};

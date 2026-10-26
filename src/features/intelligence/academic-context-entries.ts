@@ -1,5 +1,6 @@
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { moduleIcons } from "@/lib/app-icons";
+import type { ContextModule } from "./context-modules";
 import type { ContextNavEntry } from "./context-registry";
 import { parseSubjectOfferingId } from "./context-resolver";
 import type { ContextFrame } from "./types";
@@ -196,3 +197,15 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 40,
   },
 ];
+
+/** Turma e disciplina: o menu é da equipa académica. */
+export const ACADEMIC_CONTEXT_MODULE: ContextModule = {
+  kinds: { class: "Turma", "subject-offering": "Disciplina" },
+  entries: ACADEMIC_CONTEXT_ENTRIES,
+  menuRoles: ACADEMIC_STAFF_ROLES,
+  // A ficha e os trabalhos da turma abrem-se da lista de turmas.
+  back: (_context, pathname) =>
+    pathname.startsWith("/pedagogica/turmas/") || pathname === "/pedagogica/trabalhos"
+      ? { to: "/pedagogica", search: { tab: "turmas" } }
+      : null,
+};

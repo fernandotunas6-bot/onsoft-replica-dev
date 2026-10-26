@@ -1,5 +1,6 @@
 import { canReadStudentSection } from "@/features/students/student-sections";
 import { moduleIcons } from "@/lib/app-icons";
+import type { ContextModule } from "./context-modules";
 import type { ContextNavEntry } from "./context-registry";
 import type { ContextFrame } from "./types";
 
@@ -66,3 +67,11 @@ export const INVOICE_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 30,
   },
 ];
+
+export const INVOICE_CONTEXT_MODULE: ContextModule = {
+  kinds: { invoice: "Fatura" },
+  entries: INVOICE_CONTEXT_ENTRIES,
+  // A fatura é da tesouraria: `/faturas` abre-se à Administração e à Tesouraria.
+  menuRoles: ["Administrador", "Tesouraria"],
+  back: () => ({ to: "/faturas" }),
+};

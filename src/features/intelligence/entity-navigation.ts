@@ -1,3 +1,4 @@
+import { contextKindLabel } from "./context-modules";
 import type { ContextNavEntry } from "./context-registry";
 import type { EntityType, ResolvedContext } from "./types";
 
@@ -13,17 +14,9 @@ export type EntityNavigation = {
   back: { to: string; search?: Record<string, string | undefined> };
 };
 
-const ENTITY_KIND: Partial<Record<EntityType, string>> = {
-  class: "Turma",
-  "subject-offering": "Disciplina",
-  student: "Aluno",
-  teacher: "Professor",
-  invoice: "Fatura",
-};
-
-/** «Turma», «Disciplina», «Aluno»… para o cabeçalho do menu. */
+/** «Turma», «Disciplina», «Aluno»… para o cabeçalho do menu (declarado por cada módulo). */
 export function entityKindLabel(type: EntityType): string {
-  return ENTITY_KIND[type] ?? "Contexto";
+  return contextKindLabel(type);
 }
 
 /** As entradas por grupo («Ensino», «Ficha do aluno»…), pela ordem em que chegam. */
