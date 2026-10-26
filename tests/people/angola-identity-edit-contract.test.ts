@@ -14,8 +14,8 @@ describe("Pessoa edit flows use AngolaIdentityField for BI/NIF", () => {
     expect(nifFieldMatch?.[0]).toContain('type: "angola-identity"');
   });
 
-  it("PersonProfile360Modal renders AngolaIdentityField instead of a plain Input for BI/NIF", () => {
-    const modal = source("src/features/people/components/PersonProfile360Modal.tsx");
+  it("a ficha da pessoa (/pessoas/$personId) renders AngolaIdentityField instead of a plain Input for BI/NIF", () => {
+    const modal = source("src/routes/pessoas/$personId.tsx");
 
     expect(modal).toContain(
       'import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField"',
