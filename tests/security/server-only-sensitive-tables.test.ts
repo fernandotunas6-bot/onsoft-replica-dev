@@ -58,6 +58,8 @@ const MIGRATIONS = {
   "supabase/migrations/20261025070203_saas_audit_logs_server_only.sql": ["saas_audit_logs"],
   // Links das aulas online: alunos liam os de todas as turmas; professores mudavam os alheios.
   "supabase/migrations/20261025070212_lesson_meetings_server_only.sql": ["siga_lesson_meetings"],
+  // Trabalhos entregues por alunos (muitos menores), com nota e comentário do professor.
+  "supabase/migrations/20261025140000_class_task_submissions.sql": ["siga_class_task_submissions"],
   "supabase/migrations/20260925162000_lesson_plans_and_subject_guards.sql": [
     "siga_lesson_plans",
     "siga_lesson_plan_components",
