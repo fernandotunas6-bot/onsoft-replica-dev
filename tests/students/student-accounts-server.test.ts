@@ -74,7 +74,12 @@ function memoryDb() {
             return { data: { user: null }, error: { message: "User already registered" } };
           }
           const id = `user-${users.size + 1}`;
-          users.set(id, { id, email: input.email, app_metadata: input.app_metadata, password: input.password });
+          users.set(id, {
+            id,
+            email: input.email,
+            app_metadata: input.app_metadata,
+            password: input.password,
+          });
           return { data: { user: { id } }, error: null };
         },
         deleteUser: async (id: string) => {
@@ -116,8 +121,7 @@ vi.mock("@tanstack/react-start", () => ({
       },
       middleware: () => fn,
       handler:
-        (h: (ctx: { data: unknown; context: Row }) => unknown) =>
-        (call?: { data: unknown }) =>
+        (h: (ctx: { data: unknown; context: Row }) => unknown) => (call?: { data: unknown }) =>
           h({ data: fn.parse(call?.data), context: { userId: "staff", claims, supabase: {} } }),
       parse: (input: unknown) => input,
     };
@@ -164,7 +168,11 @@ describe("contas de acesso dos alunos", () => {
     const result = await server.createStudentAccounts({ data: { studentIds: [ST1] } });
     expect(result.failed).toEqual([]);
     const [credential] = result.issued;
-    expect(credential).toMatchObject({ studentId: ST1, studentNumber: "1260001", name: "Ana Tchipa" });
+    expect(credential).toMatchObject({
+      studentId: ST1,
+      studentNumber: "1260001",
+      name: "Ana Tchipa",
+    });
     expect(credential!.password).toMatch(/^[A-Z]{4}-[2-9]{4}-[a-z]{2}$/);
 
     const [user] = [...users.values()];
@@ -215,7 +223,11 @@ describe("contas de acesso dos alunos", () => {
     expect(user!.app_metadata).toMatchObject({ must_change_password: true });
 
     // A mesma conta passa a ser também de professor: a Secretaria já não lhe muda a senha.
-    tables.member_roles!.push({ school_id: S, membership_id: "school_memberships-1", role_id: "r-teacher" });
+    tables.member_roles!.push({
+      school_id: S,
+      membership_id: "school_memberships-1",
+      role_id: "r-teacher",
+    });
     await expect(server.resetStudentPassword({ data: { studentId: ST1 } })).rejects.toThrow(
       "não é só de aluno",
     );

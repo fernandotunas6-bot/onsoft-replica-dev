@@ -116,7 +116,10 @@ describe("organizar uma classe por idade", () => {
     const plan = buildOrganizationPlan({
       scope,
       referenceDate: "2026-10-26",
-      classes: [...classes, { id: "cA2", code: "07A", name: "Outra", capacity: 30, status: "active" }],
+      classes: [
+        ...classes,
+        { id: "cA2", code: "07A", name: "Outra", capacity: 30, status: "active" },
+      ],
       students: [student(1, "2013-01-01", "cA")],
     });
     expect(plan.blockers.join(" ")).toContain("duas turmas A");
@@ -127,7 +130,10 @@ describe("organizar uma classe por idade", () => {
     const plan = buildOrganizationPlan({
       scope,
       referenceDate: "2026-10-26",
-      classes: [{ ...classes[0]!, capacity: 40 }, { ...classes[1]!, capacity: 50 }],
+      classes: [
+        { ...classes[0]!, capacity: 40 },
+        { ...classes[1]!, capacity: 50 },
+      ],
       students: [],
     });
     expect(plan.warnings.join(" ")).toContain("acima de 36 só com autorização regional");
@@ -138,7 +144,12 @@ describe("organizar uma classe por idade", () => {
     // Um lugar por turma: os dois planos são de facto diferentes.
     const one = classes.map((group) => ({ ...group, capacity: 1 }));
     const base = [student(1, "2012-01-01", "cA"), student(2, "2014-06-01", "cB")];
-    const a = buildOrganizationPlan({ scope, referenceDate: "2026-10-26", classes: one, students: base });
+    const a = buildOrganizationPlan({
+      scope,
+      referenceDate: "2026-10-26",
+      classes: one,
+      students: base,
+    });
     const b = buildOrganizationPlan({
       scope,
       referenceDate: "2026-10-26",

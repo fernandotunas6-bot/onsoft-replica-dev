@@ -34,7 +34,9 @@ const { FirstPasswordScreen } = await import("@/features/auth/FirstPasswordScree
 
 const wrap = (node: ReactNode) =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       {node}
     </QueryClientProvider>,
   );
@@ -68,14 +70,20 @@ describe("acessos dos alunos", () => {
       isAdministrator: true,
       students,
     });
-    server.createStudentAccounts.mockImplementation(({ data }: { data: { studentIds: string[] } }) =>
-      Promise.resolve({
-        issued: data.studentIds.map((id) => {
-          const s = students.find((x) => x.studentId === id)!;
-          return { studentId: id, name: s.name, studentNumber: s.studentNumber, password: "KMPT-4827-ra" };
+    server.createStudentAccounts.mockImplementation(
+      ({ data }: { data: { studentIds: string[] } }) =>
+        Promise.resolve({
+          issued: data.studentIds.map((id) => {
+            const s = students.find((x) => x.studentId === id)!;
+            return {
+              studentId: id,
+              name: s.name,
+              studentNumber: s.studentNumber,
+              password: "KMPT-4827-ra",
+            };
+          }),
+          failed: [],
         }),
-        failed: [],
-      }),
     );
     wrap(<StudentAccountsView />);
 
