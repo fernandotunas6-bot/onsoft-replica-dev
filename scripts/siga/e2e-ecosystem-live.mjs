@@ -32,14 +32,25 @@ if (!process.env.SUPABASE_SECRET_KEY?.trim()) {
 
 const liveEnv = { ...process.env, SIGA_E2E_LIVE: "1" };
 
-await run("node", ["scripts/siga/e2e-ecosystem-smoke.mjs"], liveEnv);
-await run("npx", ["playwright", "install", "chromium"]);
-await run("python3", ["scripts/siga/e2e-ecosystem-playwright.py"], liveEnv);
-
+let pipelineError = null;
 try {
+  await run("node", ["scripts/siga/e2e-ecosystem-smoke.mjs"], liveEnv);
+  await run("npx", ["playwright", "install", "chromium"], liveEnv);
+  await run("python3", ["scripts/siga/e2e-ecosystem-playwright.py"], liveEnv);
   await run("npm", ["run", "siga:e2e-playwright-live"], liveEnv);
-} finally {
-  await run("node", ["scripts/siga/e2e-cleanup-stale.mjs"]).catch(() => undefined);
+} catch (error) {
+  pipelineError = error;
 }
 
-console.log("E2E @live OK");
+// Auditoria sem escrita: executa mesmo quando o teste principal falha.
+// Nunca converter um erro de limpeza ou de consulta num sucesso silencioso.
+try {
+  await run("node", ["scripts/siga/check-e2e-staging-residue.mjs"], liveEnv);
+} catch (error) {
+  pipelineError = pipelineError
+    ? new AggregateError([pipelineError, error], "Falha E2E e resíduos de staging.")
+    : error;
+}
+
+if (pipelineError) throw pipelineError;
+console.log("E2E @live OK — staging sem resíduos.");

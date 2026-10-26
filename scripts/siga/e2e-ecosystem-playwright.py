@@ -37,6 +37,18 @@ def unique_slug(prefix: str = "e2e") -> str:
     return f"{prefix}-{int(time.time() * 1000):x}"
 
 
+def synthetic_nif(slug: str) -> str:
+    """NIF fictício por escola, compatível com testSchoolNifForSlug (TypeScript).
+
+    FNV-1a de 32 bits; os slugs E2E contêm apenas caracteres ASCII.
+    O identificador não deve ser utilizado em qualquer contexto fiscal real.
+    """
+    value = 2166136261
+    for character in slug:
+        value = ((value ^ ord(character)) * 16777619) & 0xFFFFFFFF
+    return f"5417{value % 1_000_000:06d}"
+
+
 # Mesma regra do helper TypeScript (tests/e2e/helpers/sga-live-admin.ts): vem de
 # E2E_LIVE_ADMIN_PASSWORD ou é gerada ao acaso por execução; nunca fica no código.
 E2E_LIVE_ADMIN_PASSWORD = (
@@ -57,7 +69,7 @@ def signup_payload(slug: str) -> dict:
     email = f"e2e+{slug}@siga-plus.test"
     return {
         "name": f"Escola E2E {slug}",
-        "nif": "5417000000",
+        "nif": synthetic_nif(slug),
         "contact_name": "Director E2E",
         "contact_email": email,
         "plan_code": "start",
@@ -69,17 +81,30 @@ def signup_payload(slug: str) -> dict:
     }
 
 
-def cleanup_e2e_tenant(slug: str, admin_email: str | None = None) -> None:
+def cleanup_e2e_tenant(
+    slug: str, failures: list[str], admin_email: str | None = None,
+) -> None:
+    """Nunca silenciar falhas de limpeza na suite @live.
+
+    A rotina de limpeza já possui guardas estritos por tenant e staging.
+    O código de saída é suficiente para sinalizar falha sem expor segredos.
+    """
     args = ["node", "scripts/siga/e2e-cleanup-tenant.mjs", f"--slug={slug}"]
     if admin_email:
         args.append(f"--email={admin_email}")
-    subprocess.run(
-        args,
-        cwd=ROOT,
-        check=False,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    try:
+        outcome = subprocess.run(
+            args,
+            cwd=ROOT,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        failures.append(f"Live cleanup: não foi possível executar a limpeza de {slug}")
+        return
+    if outcome.returncode != 0:
+        failures.append(f"Live cleanup: falhou a limpeza de {slug} (código {outcome.returncode})")
 
 
 async def test_routes(page, failures: list[str]) -> None:
@@ -215,14 +240,14 @@ def test_live_signup_api(failures: list[str]) -> None:
     except Exception as exc:  # noqa: BLE001
         failures.append(f"Live API signup: {exc}")
     finally:
-        cleanup_e2e_tenant(slug, payload["admin_email"])
+        cleanup_e2e_tenant(slug, failures, payload["admin_email"])
 
 
 async def test_live_wizard(page, failures: list[str]) -> None:
     slug = unique_slug("web")
     email = f"e2e+{slug}@siga-plus.test"
     school = f"Escola Live {slug}"
-    nif = f"5417{int(time.time() * 1000) % 1_000_000:06d}"
+    nif = synthetic_nif(slug)
     try:
         await page.goto(f"{WEB}/start", wait_until="domcontentloaded")
         await fill_wizard_until_review(
@@ -253,7 +278,7 @@ async def test_live_wizard(page, failures: list[str]) -> None:
     except Exception as exc:  # noqa: BLE001
         failures.append(f"Live wizard UI: {exc}")
     finally:
-        cleanup_e2e_tenant(slug, email)
+        cleanup_e2e_tenant(slug, failures, email)
 
 
 async def launch_browser(playwright):
@@ -292,7 +317,7 @@ async def main() -> int:
 
             await browser.close()
     except RuntimeError as exc:
-        if os.environ.get("SIGA_E2E_SKIP_UI") == "1":
+        if not LIVE and os.environ.get("SIGA_E2E_SKIP_UI") == "1":
             print(f"Playwright UI omitido ({exc})")
             return 0
         print(str(exc), file=sys.stderr)

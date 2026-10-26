@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Cria .env mínimo para E2E @live na CI a partir de variáveis de ambiente
- * (secrets GitHub). Sem output de valores. Skip silencioso se secret em falta.
+ * (secrets GitHub). Sem output de valores. Falha fechada se faltar secret.
  */
 import { writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -13,8 +13,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const secret = process.env.SUPABASE_SECRET_KEY?.trim();
 if (!secret) {
-  console.log("prepare-ci-env: omitido (SUPABASE_SECRET_KEY não definido)");
-  process.exit(0);
+  console.error("prepare-ci-env: SUPABASE_SECRET_KEY é obrigatório para E2E @live.");
+  process.exit(1);
 }
 
 const url = process.env.SUPABASE_URL?.trim() || process.env.VITE_SUPABASE_URL?.trim();
