@@ -9,6 +9,172 @@ de presenças e migrações verificadas; [evidência e limites](../architecture/
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
 visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
 
+**25/10/2026 — SIGA Context Engine (fase 3, opção A):** com turma ou disciplina aberta,
+a sidebar existente (240/64 px) mostra «Voltar», o cabeçalho da entidade e só as funções
+dessa entidade; sem coluna nova nem estilos novos. Motor da PR #332. Desktop testado em
+jsdom; mobile e capturas por fazer. [Especificação, inventário e estado](../specs/SIGA_CONTEXT_ENGINE_2026.md).
+
+**25/10/2026 — SIGA Context Engine (aluno, breadcrumb e telemóvel):** a ficha
+`/alunos/$studentId` abre por secção (`?secao=identificacao|academico|financeiro|documentos`),
+com «Ver ficha completa»; sem secção fica como estava. Com a ficha aberta, a equipa vê na
+sidebar «Voltar», o aluno e as secções que a conta lê. Em `/pedagogica` e `/planos-aula` o
+`PageHeader` acrescenta ao breadcrumb a turma e a disciplina da URL. Sem estilos novos.
+No telemóvel, o hub «Mais» mostra o mesmo menu da entidade. Testado em jsdom e em capturas
+com dados fictícios a 1440/390 px; o módulo Alunos continua `por auditar` (falta sessão
+autenticada) e falta validar em aparelhos.
+
+**25/10/2026 — SIGA Context Engine (materiais e ficha do encarregado):** o menu da turma e
+da disciplina ganha «Materiais e ficheiros» (`/arquivos?turma`, com o menu e o breadcrumb da
+turma); «Presenças» fica só na disciplina. Na ficha do aluno, foto, turma, estado, anular,
+editar, encarregados e presença só aparecem a quem grava em Pessoas; o encarregado vê a
+ficha sem esses botões. Nova secção «Histórico» (`?secao=historico`, só Administração e
+Secretaria): um bloco por ano lectivo com média, situação e médias por disciplina; no
+telemóvel a tabela fica com a disciplina e a média. Sem estilos novos; capturas com dados
+fictícios a 1440 e 390 px, sem scroll horizontal.
+
+**25/10/2026 — SIGA Context Engine (horário da turma):** o menu da turma e da disciplina
+ganha «Horário da turma» (`/pedagogica?tab=horarios&turma`); o horário abre nessa turma, com
+o menu e o breadcrumb da turma. Sem estilos novos; captura com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (menu do professor):** o perfil `/professores/<id>` fica
+na área Secretaria (onde a lista de pessoas o abre) e a sidebar mostra «Voltar», `Professor ·
+‹nome›`, «Perfil e turmas» e «Horário semanal». Este abre o horário da escola na vista por
+professor (`/pedagogica?tab=horarios&professor`), com o menu e o breadcrumb do professor; só
+para quem grava no Pedagógico, os que têm a lista de professores. Sem estilos novos; capturas
+com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (planos do professor):** o menu do professor ganha «Planos
+de aula» (`/planos-aula?professor`): só os planos das disciplinas que o professor dá, com a
+linha «Planos das disciplinas de ‹nome› · Ver todos os planos». Os filtros de turma, disciplina
+e trimestre passam a ter a opção «Todas…»; antes o select mostrava a primeira turma com a lista
+inteira. Sem estilos novos; captura com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (presenças do professor):** o menu do professor ganha
+«Presenças» (`/pedagogica?tab=presencas&professor`): as aulas do dia são só as desse professor,
+com o nome dele ao lado da data, e cada uma abre a chamada como antes. O histórico geral de
+presenças fica o da escola. Sem estilos novos; captura com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (ficha da turma):** a turma passa de modal a página própria,
+`/pedagogica/turmas/<id>`, com a secção em `?secao=` (resumo, alunos, professores e
+disciplinas, horário, avaliações). O conteúdo é o do modal (o mesmo componente, numa caixa da
+página; o nome passa a ser o título). O separador Turmas abre a página, e o menu da turma ganha
+«Ficha da turma» e «Alunos da turma». Sem estilos novos; capturas com dados fictícios a 1440 e
+390 px, sem scroll horizontal. No telemóvel a tira de secções da ficha (`ModalSidebar`, como em
+todos os modais) só mostra uma de cada vez; o hub «Mais» leva às secções do menu.
+
+**25/10/2026 — SIGA Context Engine (trabalhos da turma):** «Trabalhos» entra no grupo Ensino do
+menu da turma e da disciplina e abre `/pedagogica/trabalhos?turma&disciplina`: os TPC, trabalhos
+e projectos que os professores publicam no detalhe da aula, numa lista «Em curso» (prazo mais
+próximo primeiro) e outra «Prazo terminado», com o tipo, a disciplina (na turma) e o prazo. O
+professor só vê os das disciplinas que lecciona. Criar e arquivar continuam no detalhe da aula,
+para onde a página leva. O menu do professor ganha «Trabalhos criados»
+(`/pedagogica/trabalhos?professor`): os trabalhos dele em todas as turmas, cada um com a turma e
+a disciplina. Sem estilos novos; capturas com dados fictícios a 1440 e 390 px, sem scroll
+horizontal.
+
+**26/10/2026 — SIGA Context Engine (presenças da turma e professor da disciplina):** o menu da
+turma ganha «Presenças», que abre as aulas do dia só dessa turma (o título diz o nome dela), e o
+da disciplina ganha «Professor responsável», que abre o perfil de quem a dá nessa turma quando o
+servidor o devolve. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (turma do aluno):** no menu do aluno, o grupo «Turma do aluno»
+leva à ficha, aos trabalhos e ao horário da turma da matrícula (só Administração e Secretaria).
+A turma vem da ficha que a página leu do servidor, nunca da URL. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (continuar onde estava):** de volta à área académica sem turma
+aberta, a sidebar mostra uma linha «Continuar em 10.ª A · Matemática» (ícone de histórico), que
+reabre a turma ou disciplina onde a conta estava, com os filtros dessa página. Só aparece se o
+servidor ainda devolve a turma. Sem estilos novos (a mesma linha das entradas do menu).
+
+**26/10/2026 — SIGA Context Engine (financeiro do aluno):** em `/alunos/<id>?secao=financeiro` a
+ficha mostra todas as faturas do aluno (antes, as cinco mais recentes), em «Por pagar» (o prazo mais
+antigo primeiro) e «Pagas», cada uma com o estado do registo (`StatusBadge`: Vencida · paga em
+parte, Por pagar, Paga), o vencimento e o que falta, e os totais Faturado, Pago e Falta pagar (com
+a parte vencida). A ficha completa continua com as cinco mais recentes e uma ligação «Ver as N
+faturas». Quem o servidor não deixa ler as faturas já não faz o pedido. Evidência: capturas a 1440
+e 390 px sem scroll horizontal. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (página da fatura):** `/faturas/<id>` mostra a fatura (estado,
+mês, emissão, vencimento, valor, desconto, multa, total, pago e o que falta), o aluno a quem foi
+emitida e os pagamentos e recibos, cada um com o seu estado (um recibo estornado aparece como tal e
+não conta como pago). O número da fatura passa a ligação na lista de faturas e no financeiro do
+aluno. A sidebar mostra o menu da fatura («Voltar», `Fatura · FT-…`, «Detalhes e recibos», «Todas
+as faturas» e, a quem abre fichas de alunos, o financeiro e a ficha do aluno). Receber e anular
+continuam na lista. Evidência: capturas a 1440 e 390 px sem scroll horizontal. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (cobranças na fatura):** a página da fatura mostra, à Tesouraria
+e à Administração, as cobranças electrónicas dessa fatura (Multicaixa Express ou referência), da
+mais recente para a mais antiga, com o estado do registo (`StatusBadge`), a referência, a última
+mensagem do fornecedor e o recibo, quando já existe. Uma cobrança não conta como paga antes de o
+fornecedor a confirmar. A Secretaria lê a fatura sem esta secção (o servidor nem a pede). Sem estilos
+novos.
+
+**26/10/2026 — SIGA Context Engine (relatórios da turma):** o menu da turma e da disciplina ganha
+«Relatórios da turma» (grupo Acompanhamento), que abre `/relatorios/academicos?turma=<id>` já
+filtrado por essa turma. Com a turma na URL, o filtro de turma segue a URL; escolher outra turma ou
+limpar os filtros actualiza a URL. Uma turma que a escola não devolve não filtra nada. Sem estilos
+novos.
+
+**26/10/2026 — SIGA Context Engine (turma e faturas do aluno):** o menu da turma ganha
+«Renovar matrículas» (só na turma, a quem grava em Pessoas) e «Alunos em risco» (os alertas e a
+análise abrem já nessa turma; `/pedagogica/risco?turma=` guarda a turma escolhida). `/faturas?aluno=`
+mostra todas as faturas de um aluno, com «Faturas de ‹nome› · processo …» e «Ver todas as
+faturas»; chega-se lá por «Faturas do aluno» no menu da fatura (a tesouraria, que não abre fichas)
+e por «Receber pagamentos» no menu do aluno (Administração). Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (página do ficheiro):** `/arquivos/<id>` mostra o ficheiro
+(tipo, tamanho, título, categoria, data, código, área, acesso, o nível da conta e o
+proprietário), «Abrir» e «Descarregar» a quem pode abrir o conteúdo, a turma e o aluno a que
+está ligado e a auditoria. O painel de detalhes dos Arquivos ganha «Abrir a página do
+ficheiro» (fora do selector de ficheiros). A sidebar mostra o menu do ficheiro («Voltar»,
+`Ficheiro · …`, «Detalhes e auditoria», «Todos os arquivos» e, quando o servidor devolve a
+ligação, «Pasta da turma», «Documentos do aluno» e «Ficha do aluno»). Renomear, mover, mudar o
+acesso e apagar continuam na lista. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (entregas dos trabalhos):** com as entregas no main (#336),
+cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedagogica/tarefas/<id>`
+(a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
+estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (ficha do funcionário):** `/financeiro/rh/funcionarios` lista
+os vínculos laborais (nome, número, cargo, departamento, tipo e estado), com procura, e cada linha
+abre `/financeiro/rh/funcionarios/<id>`: o vínculo, o professor da mesma pessoa, os contratos, as
+faltas (com as que estão por rever) e os recibos de vencimento por folha, cada secção com a
+ligação para a página do RH onde se trabalha sobre ela. O hub do RH ganha «Funcionários». A
+sidebar mostra o menu do funcionário («Voltar», `Funcionário · …`, a ficha, todos os
+funcionários, rever faltas, folha, alterações salariais e o perfil do professor), e o menu do
+professor ganha «Ficha de RH» (Administração). Linhas da lista com 56 px; sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (página do comunicado):** cada comunicado abre
+`/comunicacoes/<id>` com o texto inteiro (as quebras de linha mantêm-se), o estado, o público, o
+canal e as datas. O título na lista de Comunicações e nos painéis (Administração, aluno e
+encarregado) passa a ser uma ligação para a página. A Administração, a Secretaria e o Professor
+recebem o menu do comunicado (o comunicado e a lista); o aluno e o encarregado lêem a página sem
+menu. Mesmos cartões e `StatusBadge` da página da fatura. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (painel lateral sem separador vazio):** o separador
+«Relacionado» do painel lateral só aparece quando a entidade aberta tem relações com destino ou
+acções. Na página da fatura abria vazio; fica só «Mensagens», e o menu da fatura na sidebar leva
+às páginas ligadas. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (cobranças → fatura):** em Bancos e Conciliação, cada cobrança
+AppyPay tem «Ver fatura», que abre `/faturas/<id>` com os recibos e as cobranças dessa fatura. Só
+aparece a quem abre as faturas (Administração e Tesouraria). A ligação tem 44 px de altura no
+telemóvel. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (turma em página do main):** com a #346 no main, a ficha da
+turma é a página `/pedagogica/turmas/<id>` do main (tudo numa página, sem o modal). A #332 deixa
+a sua versão e acrescenta só `?secao=`: «Alunos da turma» e as outras entradas do menu levam à
+secção, que ganhou um id e um título ligado (`aria-labelledby`). Sem estilos novos.
+
+**26/10/2026 — RH e Alumni abrem a sua página:** `/financeiro/rh` e as suas páginas (folha,
+salários, pagamentos, presença, faltas) estavam definidas dentro de `/financeiro`, e as do Alumni
+dentro de `/alumni`. A página de cima não tem `<Outlet />`, por isso estes endereços mostravam o
+Caixa ou o painel do Alumni. Os ficheiros passaram a `financeiro_.rh_.*.tsx` e `alumni_.*.tsx`:
+os endereços são os mesmos e cada página mostra o seu ecrã, sem estilos novos.
+`tests/routes/route-nesting-contract.test.ts` falha se uma página voltar a ficar dentro de outra
+sem `<Outlet />`.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
@@ -20,7 +186,7 @@ visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de
 | P1 funcional           | FormModal/QuickModal não bloqueavam directamente Enter repetido nem `disabled` no handler.              | Bloqueio síncrono até à resolução do callback, incluindo WizardModal; feedback de operação pendente.           |
 | P2 acessibilidade      | Categorias das Definições tinham alvos com 27–32,14 px de altura no ensaio.                             | Altura mínima de 44 px, confirmada nas seis larguras.                                                          |
 | P2 visual              | PremiumModal tinha halo desfocado, sombra forte e destaque decorativo; wizard simples usava largura xl. | Cabeçalho neutro e sombra suave; wizard sem painel visual usa lg, preservando campos e acções.                 |
-| P1 auditoria restante  | Existem outros consumidores com tamanho xl/2xl/full.                                                    | Inventário estático em `evidence/2026-10-23/large-modal-inventory.json`; não migrados indiscriminadamente.     |
+| P1 auditoria restante  | Existem outros consumidores com tamanho xl/2xl/full.                                                    | **Fechado em 25/10/2026** — os 7 candidatos do inventário `evidence/2026-10-23/large-modal-inventory.json` têm veredicto: 4 migrados para página (`StudentExtensiveModal` → `/alunos/$studentId`, `TurmaProfileModal` → `/pedagogica/turmas/$turmaId`, `PersonWizardModal` → `/pessoas/novo`, `PersonProfile360Modal` → `/pessoas/$personId`), 2 justificam o tamanho (`MoreHub`, `PrintTemplateStudio`), 1 já estava corrigido (`AssignTeacherForm`). Nos quatro migrados, os formulários pequenos e confirmações continuam em modal, como o contrato permite. Falta validação visual em sessão autenticada para todos — bloqueada pelo MFA nesta sessão. |
 | P1 desempenho          | Inventário actual de preloads gerado para 18 módulos.                                                   | Diagnóstico de bytes disponível; latências e gargalos de rede/re-render ainda por medir em sessão autenticada. |
 
 ## Cobertura das fases
@@ -50,7 +216,7 @@ Estado refere-se à **auditoria integral deste contrato**, não à existência d
 
 | Módulo                                    | Estado      | Fonte                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Próximo passo                                                                      |
 | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Dashboard (`dashboard`)                   | por auditar | `src/routes/index.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Auditar com dados controlados e perfil autorizado.                                 |
+| Dashboard (`dashboard`)                   | parcial     | `src/routes/index.tsx`, `src/features/dashboard/portals/AdminPortalDashboard.tsx`. Auditoria de código (25/10/2026): (1) `stats`/`miniStats`/`toneBg`/`dotTone`/`DashboardGreeting` e os lazy imports `DashboardCharts`/`DashboardAgeChart`/`TeacherWorkspacePanel` em `index.tsx` são recomputados mas nunca usados no JSX — duplicam o que já existe em `AdminPortalDashboard.tsx`; (2) cartões de estatística (`AdminPortalDashboard.tsx:680,687,699`) usam `hover:scale-[1.02]` sem `motion-reduce:`, ao contrário de `Button`/`tooltip`/`alert-dialog`; (3) `tests/visual/{baseline,current}/dashboard.png` são de 10–16/08 e `dashboard_debug.png` de 08/09 — anteriores ao padrão visual e à página de login actual, não servem de prova. | Login autenticado bloqueado por falta de código MFA nesta sessão; falta validação visual real (390/768/1024/1440px), renderização dos gráficos (`DashboardCharts`) com dados reais e gerar novas capturas de regressão. |
 | Alunos / matrículas internas (`alunos`)   | por auditar | `src/routes/alunos/index.tsx`, `src/routes/alunos/$studentId.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Auditar com dados controlados e perfil autorizado.                                 |
 | Alumni / antigos alunos (`alumni`)        | por auditar | `src/routes/alumni.tsx`, `src/routes/alumni.$alumniId.tsx`, `src/routes/alumni.$alumniId.portfolio.tsx`, `src/routes/alumni.portal.tsx`, `src/routes/alumni.portal.portfolio.tsx`, `src/routes/alumni.portal.portfolio.showcase.tsx`, `src/routes/alumni.portal.portfolio.print.tsx`, `src/routes/alumni.insights.tsx`, `src/routes/alumni.operations.tsx`, `src/routes/alumni.communications.tsx`, `src/routes/alumni.matching.tsx`, `src/routes/alumni.documents.tsx`, `src/routes/alumni.calendar.tsx`, `src/routes/alumni.pipeline.tsx` | Auditar com dados controlados e perfil autorizado.                                 |
 | Pessoas e professores (`pessoas`)         | por auditar | `src/routes/pessoas/index.tsx`, `src/routes/professores/$teacherId.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Auditar com dados controlados e perfil autorizado.                                 |
@@ -176,15 +342,18 @@ Evidência automatizada: `tests/routes/sidebar-nav.test.tsx` cobre abertura por 
 
 ## Alcance das categorias já existentes em Definições (25/10/2026)
 
-Na branch `fix/settings-panels-handoff-20261025`, os painéis previamente
-registados `identidade` e `pedagogico` passam a estar ligados ao menu raiz
-do `SettingsCenter`, junto da escola. Isto corrige destinos órfãos sem criar
-um novo módulo ou mudar o sistema de permissões, backend, RLS ou dados.
+[PR #286](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/286)
+(`fix/settings-panels-handoff-20261025`), **merged em `main` a 25/10/2026**:
+os painéis previamente registados `identidade` e `pedagogico` passam a estar
+ligados ao menu raiz do `SettingsCenter`, junto da escola. Isto corrige
+destinos órfãos sem criar um novo módulo ou mudar o sistema de permissões,
+backend, RLS ou dados.
 
-- **Implementado no ramo, ainda não validado no navegador:** links dos painéis
-  já existentes e contrato estático em
-  `tests/ui/settings-panel-reachability.test.ts`.
-- **Por validar no CI:** lint, tipos, build e testes após a PR.
+- **Implementado e integrado em `main`:** links dos painéis já existentes e
+  contrato estático em `tests/ui/settings-panel-reachability.test.ts`.
+- **CI da PR:** aprovado — auditoria de dependências, estilo/acessibilidade/build
+  e lint/build do painel com `SUCCESS`; Lighthouse e E2E `SKIPPED` (só correm
+  no push para `main`, não nas PRs).
 - **Bloqueado até staging autorizado:** deep links em sessão Administrador,
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.

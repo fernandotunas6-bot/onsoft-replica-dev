@@ -16,6 +16,7 @@ import {
 import {
   financeListInputSchema,
   listInvoicesInputSchema,
+  getInvoiceDetailInputSchema,
   issueInvoiceInputSchema,
   EXPENSE_APPROVAL_THRESHOLD,
   type IssueInvoiceInput,
@@ -41,6 +42,12 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
+import {
+  buildInvoiceDetail,
+  type InvoiceChargeRow,
+  type InvoiceDetail,
+  type InvoiceDetailStudent,
+} from "./invoice-detail";
 import { splitCashBalances } from "./cash-balances";
 import { discountAmountFor, effectiveDiscountPercent, scholarshipPercentFor } from "./scholarships";
 import { scholarshipsOfStudent } from "./student-scholarship-server";
@@ -804,6 +811,105 @@ export const listInvoices = createServerFn({ method: "GET" })
         };
       },
     );
+  });
+
+/**
+ * Uma fatura da escola activa, com o aluno a quem foi emitida e os recibos
+ * (contexto financeiro do SIGA Context Engine). Os mesmos que lêem a lista de
+ * faturas; uma fatura de outra escola, ou que não existe, devolve null.
+ */
+export const getInvoiceDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => getInvoiceDetailInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<InvoiceDetail | null> => {
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: invoice, error } = await db
+      .from("finance_invoices")
+      .select(
+        "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at, cancellation_reason",
+      )
+      .eq("id", data.invoiceId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir a fatura.");
+    if (!invoice) return null;
+
+    const [contractResult, feeResult, receiptsResult] = await Promise.all([
+      invoice.contract_id
+        ? db
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .eq("id", invoice.contract_id)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      invoice.fee_item_id
+        ? db.from("fee_items").select("id, name").eq("id", invoice.fee_item_id).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      db
+        .from("finance_receipts")
+        .select("id, receipt_number, amount, paid_on, payment_method, status, reversal_reason")
+        .eq("school_id", membership.schoolId)
+        .eq("invoice_id", invoice.id),
+    ]);
+    if (receiptsResult.error) {
+      throw publicDatabaseError(receiptsResult.error, "Não foi possível carregar os recibos.");
+    }
+
+    // As cobranças electrónicas são da tesouraria (as mesmas contas de `listGatewayCharges`).
+    const seesCharges = ["Administrador", "Tesouraria"].includes(membership.appRole);
+    let charges: InvoiceChargeRow[] | null = null;
+    if (seesCharges) {
+      const chargesResult = await db
+        .from("payment_gateway_charges")
+        .select(
+          "id, method, amount, reference_entity, reference_number, status, status_message, receipt_number, created_at",
+        )
+        .eq("school_id", membership.schoolId)
+        .eq("invoice_id", invoice.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (chargesResult.error && !isMissingSgaTable(chargesResult.error)) {
+        throw publicDatabaseError(chargesResult.error, "Não foi possível carregar as cobranças.");
+      }
+      charges = chargesResult.data ?? [];
+    }
+
+    let student: InvoiceDetailStudent | null = null;
+    const enrollmentId = (contractResult.data as { enrollment_id?: string } | null)?.enrollment_id;
+    if (enrollmentId) {
+      const { data: enrollment } = await db
+        .from("enrollments")
+        .select("id, student_id")
+        .eq("id", enrollmentId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (enrollment?.student_id) {
+        const [row] = await loadStudentDirectory(db, membership.schoolId, [enrollment.student_id]);
+        if (row) {
+          student = {
+            id: row.student_id,
+            name: row.full_name,
+            registrationNumber: row.registration_number,
+          };
+        }
+      }
+    }
+
+    return buildInvoiceDetail({
+      schoolId: membership.schoolId,
+      invoice,
+      receipts: receiptsResult.data ?? [],
+      student,
+      feeName: (feeResult.data as { name?: string } | null)?.name ?? null,
+      today: todayIso(),
+      charges,
+    });
   });
 
 export const listCashEntries = createServerFn({ method: "GET" })

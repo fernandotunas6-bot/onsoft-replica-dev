@@ -42,7 +42,6 @@ import { StudentTimetableCard } from "@/features/dashboard/components/StudentTim
 import { StudentAttendanceCard } from "@/features/dashboard/components/StudentAttendanceCard";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
-import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -178,6 +177,8 @@ const pedagogicaSearchSchema = z
       .optional(),
     turma: z.string().guid().optional(),
     disciplina: z.string().guid().optional(),
+    // O horário de um professor (menu do professor, SIGA Context Engine).
+    professor: z.string().guid().optional(),
     pauta: z.enum(["1"]).optional(),
     dia: z
       .string()
@@ -248,6 +249,7 @@ function PedagogicaPage() {
     tab: tabFromSearch,
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
+    professor: professorFromSearch,
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
@@ -272,7 +274,6 @@ function PedagogicaPage() {
   );
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
-  const [openTurmaId, setOpenTurmaId] = useState<string | null>(null);
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "pedagogica",
     pedagogicaFilterDefaults,
@@ -1078,7 +1079,10 @@ function PedagogicaPage() {
               workspace={workspace}
               teacherNameById={teacherNameById}
               canvasWork={canvasWork}
-              onOpenTurma={(id) => setOpenTurmaId(id)}
+              // A ficha da turma tem página própria.
+              onOpenTurma={(id) =>
+                void navigate({ to: "/pedagogica/turmas/$turmaId", params: { turmaId: id } })
+              }
             />
           </TabsContent>
 
@@ -1352,6 +1356,8 @@ function PedagogicaPage() {
               <LazyTab>
                 <SchoolNowWidget />
                 <ScheduleWorkspace
+                  initialClassGroupId={turmaFromSearch}
+                  initialTeacherId={professorFromSearch}
                   activeYearLabel={activeYearLabel}
                   activeYearId={selectedYearId ?? undefined}
                   canManage={canManageAcademic}
@@ -1422,6 +1428,11 @@ function PedagogicaPage() {
                   initialClassGroupId={turmaFromSearch}
                   initialSubjectId={disciplinaFromSearch}
                   initialDate={diaFromSearch}
+                  teacherId={professorFromSearch}
+                  teacherName={
+                    teachers.find((teacher) => teacher.id === professorFromSearch)?.full_name
+                  }
+                  classGroupName={classGroups.find((group) => group.id === turmaFromSearch)?.name}
                 />
               </LazyTab>
             )}
@@ -1487,19 +1498,6 @@ function PedagogicaPage() {
           initialSubjectId={disciplinaFromSearch}
         />
       </Suspense>
-
-      <TurmaProfileModal
-        open={Boolean(openTurmaId)}
-        onOpenChange={(next) => {
-          if (!next) setOpenTurmaId(null);
-        }}
-        classGroupId={openTurmaId}
-        workspace={workspace}
-        teacherOptions={teacherOptions}
-        teacherIds={teachers.map((teacher) => teacher.id)}
-        salas={activeClassrooms}
-        onRefresh={refreshAcademic}
-      />
     </AppShell>
   );
 }

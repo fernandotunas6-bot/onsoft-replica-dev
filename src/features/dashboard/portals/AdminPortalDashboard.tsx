@@ -677,14 +677,14 @@ export function AdminPortalDashboard({
               key={s.label}
               to={s.href}
               {...(s.search ? { search: s.search } : {})}
-              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer"
+              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               {card}
             </Link>
           ) : (
             <div
               key={s.label}
-              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               {card}
             </div>
@@ -696,7 +696,7 @@ export function AdminPortalDashboard({
         {miniStats.map((s) => (
           <div
             key={s.label}
-            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
           >
             <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
             <div>
@@ -725,7 +725,19 @@ export function AdminPortalDashboard({
             <ul className="space-y-3">
               {data?.announcements.map((item) => (
                 <li key={item.id} className="rounded-xl bg-secondary p-3">
-                  <p className="text-sm font-semibold">{item.title}</p>
+                  <p className="text-sm font-semibold [overflow-wrap:anywhere]">
+                    {canAccessPath("/comunicacoes", currentUser.role, currentUser.grants) ? (
+                      <Link
+                        to="/comunicacoes/$announcementId"
+                        params={{ announcementId: item.id }}
+                        className="hover:text-primary hover:underline"
+                      >
+                        {item.title}
+                      </Link>
+                    ) : (
+                      item.title
+                    )}
+                  </p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
                   {item.published_at ? (
                     <p className="mt-2 text-[11px] text-muted-foreground">

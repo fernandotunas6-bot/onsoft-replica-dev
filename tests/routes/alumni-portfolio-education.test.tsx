@@ -46,7 +46,7 @@ const higherStage = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.portal.portfolio.education");
+  const mod = await import("@/routes/alumni_.portal_.portfolio_.education");
   return routeComponentOf(mod);
 }
 

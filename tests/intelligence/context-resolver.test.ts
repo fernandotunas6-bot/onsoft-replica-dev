@@ -1,0 +1,384 @@
+import { describe, expect, it } from "vitest";
+import {
+  combineContextLookups,
+  contextKey,
+  focusContextLookup,
+  parseSubjectOfferingId,
+  resolveContext,
+  routeContextCandidates,
+  subjectOfferingId,
+  type ContextCandidate,
+  type ValidatedEntity,
+} from "@/features/intelligence/context-resolver";
+import type { AppContext, EntityFocus } from "@/features/intelligence/types";
+
+const SCHOOL_A = "school-a";
+const SCHOOL_B = "school-b";
+const TURMA_A = "11111111-1111-4111-8111-111111111111";
+const TURMA_B = "22222222-2222-4222-8222-222222222222";
+const MATEMATICA = "33333333-3333-4333-8333-333333333333";
+const ALUNO = "44444444-4444-4444-8444-444444444444";
+
+const base: AppContext = {
+  userId: "user-1",
+  role: "Professor",
+  grants: {},
+  pathname: "/pedagogica",
+  focusedEntity: null,
+};
+
+const turmaA: ValidatedEntity = {
+  type: "class",
+  id: TURMA_A,
+  label: "Turma A",
+  schoolId: SCHOOL_A,
+};
+const matematicaA: ValidatedEntity = {
+  type: "subject-offering",
+  id: subjectOfferingId(TURMA_A, MATEMATICA),
+  label: "Matemática",
+  schoolId: SCHOOL_A,
+  parent: { type: "class", id: TURMA_A },
+};
+
+function lookupFrom(...entities: ValidatedEntity[]) {
+  return (candidate: ContextCandidate) =>
+    entities.find((e) => e.type === candidate.type && e.id === candidate.id) ?? null;
+}
+
+function resolve(
+  route: ContextCandidate[],
+  entities: ValidatedEntity[],
+  extra: { focus?: EntityFocus | null; memory?: ContextCandidate[]; schoolId?: string } = {},
+) {
+  return resolveContext({
+    base,
+    schoolId: extra.schoolId ?? SCHOOL_A,
+    academicYearId: "2026",
+    route,
+    focus: extra.focus,
+    memory: extra.memory,
+    lookup: lookupFrom(...entities),
+  });
+}
+
+describe("routeContextCandidates", () => {
+  it("lê turma e disciplina dos parâmetros tipados da Pedagógica", () => {
+    expect(
+      routeContextCandidates("/pedagogica", {
+        tab: "notas",
+        turma: TURMA_A,
+        disciplina: MATEMATICA,
+      }),
+    ).toEqual([
+      { type: "class", id: TURMA_A },
+      { type: "subject-offering", id: `${TURMA_A}:${MATEMATICA}` },
+    ]);
+    expect(routeContextCandidates("/planos-aula", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+  });
+
+  it("a ficha da turma abre o contexto da turma", () => {
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}`)).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(routeContextCandidates("/pedagogica/turmas/nao-e-uuid")).toEqual([]);
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/extra`)).toEqual([]);
+    // A renovação das matrículas da turma abre o contexto da turma.
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/renovar`)).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/renovar/mais`)).toEqual([]);
+    expect(routeContextCandidates("/pedagogica/risco", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+  });
+
+  it("ignora a disciplina sem turma e ids mal formados", () => {
+    expect(routeContextCandidates("/pedagogica", { disciplina: MATEMATICA })).toEqual([]);
+    expect(routeContextCandidates("/pedagogica", { turma: "1 or 1=1" })).toEqual([]);
+    expect(routeContextCandidates("/alunos/novo")).toEqual([]);
+  });
+
+  it("no horário, nas presenças e nos planos, o professor da URL abre o contexto do professor", () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    expect(routeContextCandidates("/pedagogica", { tab: "horarios", professor: PROF })).toEqual([
+      { type: "teacher", id: PROF },
+    ]);
+    // Só o separador Horários filtra por professor; a turma manda sobre ele.
+    expect(routeContextCandidates("/pedagogica", { tab: "presencas", professor: PROF })).toEqual([
+      { type: "teacher", id: PROF },
+    ]);
+    expect(routeContextCandidates("/pedagogica", { tab: "notas", professor: PROF })).toEqual([]);
+    expect(
+      routeContextCandidates("/pedagogica", { tab: "horarios", turma: TURMA_A, professor: PROF }),
+    ).toEqual([{ type: "class", id: TURMA_A }]);
+    // Os planos de aula também filtram por professor (sem turma).
+    expect(routeContextCandidates("/planos-aula", { professor: PROF })).toEqual([
+      { type: "teacher", id: PROF },
+    ]);
+    expect(routeContextCandidates("/arquivos", { professor: PROF })).toEqual([]);
+    expect(routeContextCandidates("/pedagogica", { tab: "horarios", professor: "x" })).toEqual([]);
+  });
+
+  it("nos arquivos, a turma abre o contexto da turma e a disciplina não entra", () => {
+    // Os ficheiros estão por turma: `/arquivos` não aceita disciplina.
+    expect(routeContextCandidates("/arquivos", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(routeContextCandidates("/arquivos", { turma: TURMA_A, disciplina: MATEMATICA })).toEqual(
+      [{ type: "class", id: TURMA_A }],
+    );
+    expect(routeContextCandidates("/arquivos", { pessoa: ALUNO })).toEqual([]);
+  });
+
+  it("nos relatórios académicos, a turma abre o contexto da turma e a disciplina não entra", () => {
+    expect(routeContextCandidates("/relatorios/academicos", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(
+      routeContextCandidates("/relatorios/academicos", { turma: TURMA_A, disciplina: MATEMATICA }),
+    ).toEqual([{ type: "class", id: TURMA_A }]);
+    expect(routeContextCandidates("/relatorios/academicos", { turma: "10A" })).toEqual([]);
+  });
+
+  it("nos trabalhos, a turma e a disciplina abrem o contexto, como nos planos", () => {
+    expect(routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(
+      routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A, disciplina: MATEMATICA }),
+    ).toEqual([
+      { type: "class", id: TURMA_A },
+      { type: "subject-offering", id: subjectOfferingId(TURMA_A, MATEMATICA) },
+    ]);
+    // Sem turma, os trabalhos de um professor (menu do professor); a turma manda sobre ele.
+    expect(routeContextCandidates("/pedagogica/trabalhos", { professor: ALUNO })).toEqual([
+      { type: "teacher", id: ALUNO },
+    ]);
+    expect(
+      routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A, professor: ALUNO }),
+    ).toEqual([{ type: "class", id: TURMA_A }]);
+    expect(routeContextCandidates("/pedagogica/trabalhos", { turma: "x" })).toEqual([]);
+  });
+
+  it("reconhece os perfis de aluno e professor, sem sub-rotas", () => {
+    expect(routeContextCandidates(`/alunos/${ALUNO}`)).toEqual([{ type: "student", id: ALUNO }]);
+    expect(routeContextCandidates(`/professores/${ALUNO}`)).toEqual([
+      { type: "teacher", id: ALUNO },
+    ]);
+    expect(routeContextCandidates(`/alunos/${ALUNO}/extra`)).toEqual([]);
+    expect(routeContextCandidates("/alunos")).toEqual([]);
+  });
+
+  it("reconhece a página da fatura, só com um uuid", () => {
+    expect(routeContextCandidates(`/faturas/${ALUNO}`)).toEqual([{ type: "invoice", id: ALUNO }]);
+    expect(routeContextCandidates("/faturas/FT-2026-0311")).toEqual([]);
+    expect(routeContextCandidates("/faturas")).toEqual([]);
+    expect(routeContextCandidates(`/financeiro/rh/funcionarios/${ALUNO}`)).toEqual([
+      { type: "employee", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/financeiro/rh/funcionarios/F-012")).toEqual([]);
+    expect(routeContextCandidates("/financeiro/rh/funcionarios")).toEqual([]);
+    expect(routeContextCandidates(`/financeiro/rh/funcionarios/${ALUNO}/extra`)).toEqual([]);
+    expect(routeContextCandidates(`/arquivos/${ALUNO}`)).toEqual([{ type: "file", id: ALUNO }]);
+    expect(routeContextCandidates("/arquivos/certidao.pdf")).toEqual([]);
+  });
+
+  it("reconhece a página do comunicado, só com um uuid", () => {
+    expect(routeContextCandidates(`/comunicacoes/${ALUNO}`)).toEqual([
+      { type: "announcement", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/comunicacoes/novo")).toEqual([]);
+    expect(routeContextCandidates("/comunicacoes")).toEqual([]);
+  });
+});
+
+describe("parseSubjectOfferingId", () => {
+  it("só aceita turma:disciplina com dois uuids", () => {
+    expect(parseSubjectOfferingId(`${TURMA_A}:${MATEMATICA}`)).toEqual({
+      classId: TURMA_A,
+      subjectId: MATEMATICA,
+    });
+    expect(parseSubjectOfferingId(TURMA_A)).toBeNull();
+    expect(parseSubjectOfferingId(`${TURMA_A}:${MATEMATICA}:x`)).toBeNull();
+    expect(parseSubjectOfferingId("a:b")).toBeNull();
+  });
+});
+
+describe("resolveContext", () => {
+  it("(1) resolve Turma A → Matemática a partir da URL", () => {
+    const result = resolve(
+      routeContextCandidates("/pedagogica", { turma: TURMA_A, disciplina: MATEMATICA }),
+      [turmaA, matematicaA],
+    );
+    expect(result.source).toBe("route");
+    expect(result.refused).toBeNull();
+    expect(result.context.trail.map((f) => f.label)).toEqual(["Turma A", "Matemática"]);
+    expect(result.context.key).toBe(
+      `${SCHOOL_A}|Professor|2026|class:${TURMA_A}|subject-offering:${TURMA_A}:${MATEMATICA}`,
+    );
+  });
+
+  it("(3) acrescenta a turma quando a URL só traz a disciplina validada", () => {
+    const result = resolve(
+      [{ type: "subject-offering", id: matematicaA.id }],
+      [turmaA, matematicaA],
+    );
+    expect(result.context.trail.map((f) => f.label)).toEqual(["Turma A", "Matemática"]);
+  });
+
+  it("nunca mistura a disciplina de uma turma com outra turma", () => {
+    const turmaB: ValidatedEntity = { ...turmaA, id: TURMA_B, label: "Turma B" };
+    const result = resolve(
+      [
+        { type: "class", id: TURMA_B },
+        { type: "subject-offering", id: matematicaA.id },
+      ],
+      [turmaA, turmaB, matematicaA],
+    );
+    expect(result.context.trail.map((f) => f.label)).toEqual(["Turma B"]);
+    expect(result.refused).toEqual({ type: "subject-offering", id: matematicaA.id });
+  });
+
+  it("um id que o servidor recusa deixa o contexto no nível acima, sem usar foco nem memória", () => {
+    const focus: EntityFocus = {
+      type: "student",
+      id: ALUNO,
+      label: "Ana",
+      schoolId: SCHOOL_A,
+      data: null,
+    };
+    const result = resolve([{ type: "class", id: TURMA_B }], [turmaA], {
+      focus,
+      memory: [{ type: "class", id: TURMA_A }],
+    });
+    expect(result.source).toBe("area");
+    expect(result.context.trail).toEqual([]);
+    expect(result.refused).toEqual({ type: "class", id: TURMA_B });
+  });
+
+  it("recusa entidades de outra escola, mesmo que a leitura as devolva", () => {
+    const result = resolve([{ type: "class", id: TURMA_A }], [turmaA], { schoolId: SCHOOL_B });
+    expect(result.context.trail).toEqual([]);
+    expect(result.context.schoolId).toBe(SCHOOL_B);
+    expect(result.context.key.startsWith(`${SCHOOL_B}|`)).toBe(true);
+  });
+
+  it("recusa uma leitura que devolve outra entidade", () => {
+    const wrong = (candidate: ContextCandidate) => (candidate.id === TURMA_B ? turmaA : null);
+    const result = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route: [{ type: "class", id: TURMA_B }],
+      lookup: wrong,
+    });
+    expect(result.context.trail).toEqual([]);
+  });
+
+  it("(2) usa a entidade declarada pela página quando a URL não tem contexto", () => {
+    const focus: EntityFocus = {
+      type: "class",
+      id: TURMA_A,
+      label: "Turma A",
+      schoolId: SCHOOL_A,
+      data: { x: 1 },
+    };
+    const result = resolve([], [], { focus });
+    expect(result.source).toBe("focus");
+    expect(result.context.trail).toEqual([{ type: "class", id: TURMA_A, label: "Turma A" }]);
+  });
+
+  it("ignora o foco de outra escola", () => {
+    const focus: EntityFocus = {
+      type: "class",
+      id: TURMA_A,
+      label: "Turma A",
+      schoolId: SCHOOL_B,
+      data: null,
+    };
+    expect(resolve([], [], { focus }).source).toBe("area");
+  });
+
+  it("(4) só restaura a memória que o servidor confirmar", () => {
+    expect(resolve([], [turmaA], { memory: [{ type: "class", id: TURMA_A }] }).source).toBe(
+      "memory",
+    );
+    expect(resolve([], [], { memory: [{ type: "class", id: TURMA_A }] }).source).toBe("area");
+  });
+
+  it("não entra em ciclo quando os pais se apontam mutuamente", () => {
+    const a: ValidatedEntity = {
+      ...turmaA,
+      parent: { type: "subject-offering", id: matematicaA.id },
+    };
+    const result = resolve([{ type: "subject-offering", id: matematicaA.id }], [a, matematicaA]);
+    expect(result.context.trail.map((f) => f.label)).toEqual(["Turma A", "Matemática"]);
+  });
+
+  it("muda a chave quando muda a escola, o papel ou o ano", () => {
+    const trail = [{ type: "class" as const, id: TURMA_A, label: "Turma A" }];
+    const keys = new Set([
+      contextKey(SCHOOL_A, "Professor", "2026", trail),
+      contextKey(SCHOOL_B, "Professor", "2026", trail),
+      contextKey(SCHOOL_A, "Secretaria", "2026", trail),
+      contextKey(SCHOOL_A, "Professor", "2027", trail),
+    ]);
+    expect(keys.size).toBe(4);
+  });
+});
+
+describe("lookups do foco", () => {
+  const ana: EntityFocus = {
+    type: "student",
+    id: ALUNO,
+    label: "Ana Silva",
+    schoolId: SCHOOL_A,
+    data: null,
+  };
+
+  it("o foco declarado pela página confirma só essa entidade", () => {
+    const lookup = focusContextLookup(ana);
+    expect(lookup({ type: "student", id: ALUNO })).toEqual({
+      type: "student",
+      id: ALUNO,
+      label: "Ana Silva",
+      schoolId: SCHOOL_A,
+    });
+    expect(lookup({ type: "student", id: TURMA_A })).toBeNull();
+    expect(lookup({ type: "class", id: ALUNO })).toBeNull();
+    expect(focusContextLookup(null)({ type: "student", id: ALUNO })).toBeNull();
+  });
+
+  it("a primeira fonte que confirma ganha", () => {
+    const lookup = combineContextLookups(lookupFrom(turmaA), focusContextLookup(ana));
+    expect(lookup({ type: "class", id: TURMA_A })?.label).toBe("Turma A");
+    expect(lookup({ type: "student", id: ALUNO })?.label).toBe("Ana Silva");
+    expect(lookup({ type: "class", id: TURMA_B })).toBeNull();
+  });
+
+  it("o aluno da URL entra pelo foco; de outra escola é recusado", () => {
+    const route = routeContextCandidates(`/alunos/${ALUNO}`);
+    const ok = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route,
+      lookup: focusContextLookup(ana),
+    });
+    expect(ok.source).toBe("route");
+    expect(ok.context.trail).toEqual([{ type: "student", id: ALUNO, label: "Ana Silva" }]);
+
+    const other = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route,
+      lookup: focusContextLookup({ ...ana, schoolId: SCHOOL_B }),
+    });
+    expect(other.context.trail).toEqual([]);
+    expect(other.refused).toEqual({ type: "student", id: ALUNO });
+  });
+});

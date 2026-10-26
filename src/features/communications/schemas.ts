@@ -96,5 +96,7 @@ export const updateAnnouncementInputSchema = z.object({
 });
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementInputSchema>;
 
+export const getAnnouncementInputSchema = z.object({ id: z.string().guid() });
+
 export const archiveAnnouncementInputSchema = z.object({ id: z.string().guid() });
 export type ArchiveAnnouncementInput = z.infer<typeof archiveAnnouncementInputSchema>;

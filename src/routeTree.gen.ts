@@ -33,47 +33,60 @@ import { Route as SaasAdminRouteImport } from './routes/saas-admin'
 import { Route as TesourariaRouteImport } from './routes/tesouraria'
 import { Route as VerificarRouteImport } from './routes/verificar'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as AlumniAlumniIdRouteImport } from './routes/alumni.$alumniId'
-import { Route as AlumniCalendarRouteImport } from './routes/alumni.calendar'
-import { Route as AlumniCommunicationsRouteImport } from './routes/alumni.communications'
-import { Route as AlumniDocumentsRouteImport } from './routes/alumni.documents'
-import { Route as AlumniInsightsRouteImport } from './routes/alumni.insights'
-import { Route as AlumniMatchingRouteImport } from './routes/alumni.matching'
-import { Route as AlumniOperationsRouteImport } from './routes/alumni.operations'
-import { Route as AlumniPipelineRouteImport } from './routes/alumni.pipeline'
-import { Route as AlumniPortalRouteImport } from './routes/alumni.portal'
+import { Route as AlumniAlumniIdRouteImport } from './routes/alumni_.$alumniId'
+import { Route as AlumniCalendarRouteImport } from './routes/alumni_.calendar'
+import { Route as AlumniCommunicationsRouteImport } from './routes/alumni_.communications'
+import { Route as AlumniDocumentsRouteImport } from './routes/alumni_.documents'
+import { Route as AlumniInsightsRouteImport } from './routes/alumni_.insights'
+import { Route as AlumniMatchingRouteImport } from './routes/alumni_.matching'
+import { Route as AlumniOperationsRouteImport } from './routes/alumni_.operations'
+import { Route as AlumniPipelineRouteImport } from './routes/alumni_.pipeline'
+import { Route as AlumniPortalRouteImport } from './routes/alumni_.portal'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
+import { Route as ArquivosFileIdRouteImport } from './routes/arquivos_.$fileId'
 import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ComunicacoesAnnouncementIdRouteImport } from './routes/comunicacoes_.$announcementId'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
 import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
-import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
+import { Route as FaturasInvoiceIdRouteImport } from './routes/faturas_.$invoiceId'
 import { Route as FinanceiroConciliacaoRouteImport } from './routes/financeiro_.conciliacao'
+import { Route as FinanceiroRhRouteImport } from './routes/financeiro_.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
 import { Route as PedagogicaCatalogoRouteImport } from './routes/pedagogica_.catalogo'
 import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogica_.pautas-superior'
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PedagogicaSuperiorRouteImport } from './routes/pedagogica_.superior'
+import { Route as PedagogicaTrabalhosRouteImport } from './routes/pedagogica_.trabalhos'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
+import { Route as PessoasPersonIdRouteImport } from './routes/pessoas/$personId'
+import { Route as PessoasAcessosAlunosRouteImport } from './routes/pessoas/acessos-alunos'
+import { Route as PessoasNovoRouteImport } from './routes/pessoas/novo'
+import { Route as PessoasOrganizarTurmasRouteImport } from './routes/pessoas/organizar-turmas'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
 import { Route as RelatoriosAcademicosRouteImport } from './routes/relatorios.academicos'
 import { Route as RelatoriosFinanceirosRouteImport } from './routes/relatorios.financeiros'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as AlumniAlumniIdPortfolioRouteImport } from './routes/alumni.$alumniId.portfolio'
-import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni.portal.portfolio'
+import { Route as AlumniAlumniIdPortfolioRouteImport } from './routes/alumni_.$alumniId_.portfolio'
+import { Route as AlumniPortalPortfolioRouteImport } from './routes/alumni_.portal_.portfolio'
 import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
+import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/attendance'
+import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
+import { Route as ApiMobileGradesRouteImport } from './routes/api/mobile/grades'
+import { Route as ApiMobileLoginRouteImport } from './routes/api/mobile/login'
 import { Route as ApiMobilePresenceRouteImport } from './routes/api/mobile/presence'
+import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profile'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
@@ -90,19 +103,21 @@ import { Route as ApiSaasSubscriptionsRouteImport } from './routes/api/saas/subs
 import { Route as ApiSaasTenantsRouteImport } from './routes/api/saas/tenants'
 import { Route as ApiWebhooksTwilioSmsRouteImport } from './routes/api/webhooks/twilio-sms'
 import { Route as ApiWebhooksWhatsappStatusRouteImport } from './routes/api/webhooks/whatsapp-status'
-import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro.rh.faltas'
-import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.folha'
-import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
-import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
-import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh.salarios'
+import { Route as FinanceiroRhFaltasRouteImport } from './routes/financeiro_.rh_.faltas'
+import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro_.rh_.folha'
+import { Route as FinanceiroRhFuncionariosRouteImport } from './routes/financeiro_.rh_.funcionarios'
+import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro_.rh_.pagamentos'
+import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro_.rh_.presenca'
+import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro_.rh_.salarios'
 import { Route as PedagogicaDisciplinasSubjectIdRouteImport } from './routes/pedagogica_.disciplinas.$subjectId'
 import { Route as PedagogicaPautasSuperiorImprimirRouteImport } from './routes/pedagogica_.pautas-superior_.imprimir'
 import { Route as PedagogicaSuperiorCertificadoRouteImport } from './routes/pedagogica_.superior_.certificado'
 import { Route as PedagogicaSuperiorHistoricoRouteImport } from './routes/pedagogica_.superior_.historico'
 import { Route as PedagogicaTarefasTaskIdRouteImport } from './routes/pedagogica_.tarefas.$taskId'
-import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni.portal.portfolio.education'
-import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni.portal.portfolio.print'
-import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni.portal.portfolio.showcase'
+import { Route as PedagogicaTurmasTurmaIdRouteImport } from './routes/pedagogica_.turmas.$turmaId'
+import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni_.portal_.portfolio_.education'
+import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni_.portal_.portfolio_.print'
+import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni_.portal_.portfolio_.showcase'
 import { Route as ApiFinanceGatewayConfirmRouteImport } from './routes/api/finance/gateway.confirm'
 import { Route as ApiFinancePayflowSettlementRouteImport } from './routes/api/finance/payflow.settlement'
 import { Route as ApiIntegrationsResendWebhookRouteImport } from './routes/api/integrations/resend.webhook'
@@ -137,6 +152,7 @@ import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tena
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
+import { Route as FinanceiroRhFuncionariosEmploymentIdRouteImport } from './routes/financeiro_.rh_.funcionarios_.$employmentId'
 import { Route as PedagogicaTurmasTurmaIdRenovarRouteImport } from './routes/pedagogica_.turmas.$turmaId_.renovar'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
 
@@ -262,49 +278,49 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const AlumniAlumniIdRoute = AlumniAlumniIdRouteImport.update({
-  id: '/$alumniId',
-  path: '/$alumniId',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/$alumniId',
+  path: '/alumni/$alumniId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniCalendarRoute = AlumniCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/calendar',
+  path: '/alumni/calendar',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniCommunicationsRoute = AlumniCommunicationsRouteImport.update({
-  id: '/communications',
-  path: '/communications',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/communications',
+  path: '/alumni/communications',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniDocumentsRoute = AlumniDocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/documents',
+  path: '/alumni/documents',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniInsightsRoute = AlumniInsightsRouteImport.update({
-  id: '/insights',
-  path: '/insights',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/insights',
+  path: '/alumni/insights',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniMatchingRoute = AlumniMatchingRouteImport.update({
-  id: '/matching',
-  path: '/matching',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/matching',
+  path: '/alumni/matching',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniOperationsRoute = AlumniOperationsRouteImport.update({
-  id: '/operations',
-  path: '/operations',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/operations',
+  path: '/alumni/operations',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniPipelineRoute = AlumniPipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/pipeline',
+  path: '/alumni/pipeline',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniPortalRoute = AlumniPortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => AlumniRoute,
+  id: '/alumni_/portal',
+  path: '/alumni/portal',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlunosIndexRoute = AlunosIndexRouteImport.update({
   id: '/alunos/',
@@ -314,6 +330,11 @@ const AlunosIndexRoute = AlunosIndexRouteImport.update({
 const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
   id: '/alunos/$studentId',
   path: '/alunos/$studentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArquivosFileIdRoute = ArquivosFileIdRouteImport.update({
+  id: '/arquivos_/$fileId',
+  path: '/arquivos/$fileId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthEmailChangeRoute = AuthEmailChangeRouteImport.update({
@@ -336,6 +357,12 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
 } as any)
+const ComunicacoesAnnouncementIdRoute =
+  ComunicacoesAnnouncementIdRouteImport.update({
+    id: '/comunicacoes_/$announcementId',
+    path: '/comunicacoes/$announcementId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
   id: '/configuracoes_/assinatura',
   path: '/configuracoes/assinatura',
@@ -362,14 +389,19 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
   path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
-  id: '/rh',
-  path: '/rh',
-  getParentRoute: () => FinanceiroRoute,
+const FaturasInvoiceIdRoute = FaturasInvoiceIdRouteImport.update({
+  id: '/faturas_/$invoiceId',
+  path: '/faturas/$invoiceId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroConciliacaoRoute = FinanceiroConciliacaoRouteImport.update({
   id: '/financeiro_/conciliacao',
   path: '/financeiro/conciliacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
+  id: '/financeiro_/rh',
+  path: '/financeiro/rh',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatriculaSlugRoute = MatriculaSlugRouteImport.update({
@@ -404,9 +436,34 @@ const PedagogicaSuperiorRoute = PedagogicaSuperiorRouteImport.update({
   path: '/pedagogica/superior',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaTrabalhosRoute = PedagogicaTrabalhosRouteImport.update({
+  id: '/pedagogica_/trabalhos',
+  path: '/pedagogica/trabalhos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
   id: '/pessoas/',
   path: '/pessoas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasPersonIdRoute = PessoasPersonIdRouteImport.update({
+  id: '/pessoas/$personId',
+  path: '/pessoas/$personId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasAcessosAlunosRoute = PessoasAcessosAlunosRouteImport.update({
+  id: '/pessoas/acessos-alunos',
+  path: '/pessoas/acessos-alunos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasNovoRoute = PessoasNovoRouteImport.update({
+  id: '/pessoas/novo',
+  path: '/pessoas/novo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasOrganizarTurmasRoute = PessoasOrganizarTurmasRouteImport.update({
+  id: '/pessoas/organizar-turmas',
+  path: '/pessoas/organizar-turmas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfessorPresencaRoute = ProfessorPresencaRouteImport.update({
@@ -435,14 +492,14 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniAlumniIdPortfolioRoute = AlumniAlumniIdPortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => AlumniAlumniIdRoute,
+  id: '/alumni_/$alumniId_/portfolio',
+  path: '/alumni/$alumniId/portfolio',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniPortalPortfolioRoute = AlumniPortalPortfolioRouteImport.update({
-  id: '/portfolio',
-  path: '/portfolio',
-  getParentRoute: () => AlumniPortalRoute,
+  id: '/alumni_/portal_/portfolio',
+  path: '/alumni/portal/portfolio',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCalendarIcsRoute = ApiCalendarIcsRouteImport.update({
   id: '/api/calendar/ics',
@@ -464,9 +521,34 @@ const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
   path: '/api/cron/saas-lifecycle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileAttendanceRoute = ApiMobileAttendanceRouteImport.update({
+  id: '/api/mobile/attendance',
+  path: '/api/mobile/attendance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileChatRoute = ApiMobileChatRouteImport.update({
+  id: '/api/mobile/chat',
+  path: '/api/mobile/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileGradesRoute = ApiMobileGradesRouteImport.update({
+  id: '/api/mobile/grades',
+  path: '/api/mobile/grades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileLoginRoute = ApiMobileLoginRouteImport.update({
+  id: '/api/mobile/login',
+  path: '/api/mobile/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobilePresenceRoute = ApiMobilePresenceRouteImport.update({
   id: '/api/mobile/presence',
   path: '/api/mobile/presence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileProfileRoute = ApiMobileProfileRouteImport.update({
+  id: '/api/mobile/profile',
+  path: '/api/mobile/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
@@ -551,29 +633,35 @@ const ApiWebhooksWhatsappStatusRoute =
     getParentRoute: () => rootRouteImport,
   } as any)
 const FinanceiroRhFaltasRoute = FinanceiroRhFaltasRouteImport.update({
-  id: '/faltas',
-  path: '/faltas',
-  getParentRoute: () => FinanceiroRhRoute,
+  id: '/financeiro_/rh_/faltas',
+  path: '/financeiro/rh/faltas',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroRhFolhaRoute = FinanceiroRhFolhaRouteImport.update({
-  id: '/folha',
-  path: '/folha',
-  getParentRoute: () => FinanceiroRhRoute,
+  id: '/financeiro_/rh_/folha',
+  path: '/financeiro/rh/folha',
+  getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroRhFuncionariosRoute =
+  FinanceiroRhFuncionariosRouteImport.update({
+    id: '/financeiro_/rh_/funcionarios',
+    path: '/financeiro/rh/funcionarios',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const FinanceiroRhPagamentosRoute = FinanceiroRhPagamentosRouteImport.update({
-  id: '/pagamentos',
-  path: '/pagamentos',
-  getParentRoute: () => FinanceiroRhRoute,
+  id: '/financeiro_/rh_/pagamentos',
+  path: '/financeiro/rh/pagamentos',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroRhPresencaRoute = FinanceiroRhPresencaRouteImport.update({
-  id: '/presenca',
-  path: '/presenca',
-  getParentRoute: () => FinanceiroRhRoute,
+  id: '/financeiro_/rh_/presenca',
+  path: '/financeiro/rh/presenca',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroRhSalariosRoute = FinanceiroRhSalariosRouteImport.update({
-  id: '/salarios',
-  path: '/salarios',
-  getParentRoute: () => FinanceiroRhRoute,
+  id: '/financeiro_/rh_/salarios',
+  path: '/financeiro/rh/salarios',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PedagogicaDisciplinasSubjectIdRoute =
   PedagogicaDisciplinasSubjectIdRouteImport.update({
@@ -604,23 +692,28 @@ const PedagogicaTarefasTaskIdRoute = PedagogicaTarefasTaskIdRouteImport.update({
   path: '/pedagogica/tarefas/$taskId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaTurmasTurmaIdRoute = PedagogicaTurmasTurmaIdRouteImport.update({
+  id: '/pedagogica_/turmas/$turmaId',
+  path: '/pedagogica/turmas/$turmaId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlumniPortalPortfolioEducationRoute =
   AlumniPortalPortfolioEducationRouteImport.update({
-    id: '/education',
-    path: '/education',
-    getParentRoute: () => AlumniPortalPortfolioRoute,
+    id: '/alumni_/portal_/portfolio_/education',
+    path: '/alumni/portal/portfolio/education',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AlumniPortalPortfolioPrintRoute =
   AlumniPortalPortfolioPrintRouteImport.update({
-    id: '/print',
-    path: '/print',
-    getParentRoute: () => AlumniPortalPortfolioRoute,
+    id: '/alumni_/portal_/portfolio_/print',
+    path: '/alumni/portal/portfolio/print',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AlumniPortalPortfolioShowcaseRoute =
   AlumniPortalPortfolioShowcaseRouteImport.update({
-    id: '/showcase',
-    path: '/showcase',
-    getParentRoute: () => AlumniPortalPortfolioRoute,
+    id: '/alumni_/portal_/portfolio_/showcase',
+    path: '/alumni/portal/portfolio/showcase',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiFinanceGatewayConfirmRoute =
   ApiFinanceGatewayConfirmRouteImport.update({
@@ -807,6 +900,12 @@ const ApiSaasUsageSyncRoute = ApiSaasUsageSyncRouteImport.update({
   path: '/api/saas/usage/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroRhFuncionariosEmploymentIdRoute =
+  FinanceiroRhFuncionariosEmploymentIdRouteImport.update({
+    id: '/financeiro_/rh_/funcionarios_/$employmentId',
+    path: '/financeiro/rh/funcionarios/$employmentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaTurmasTurmaIdRenovarRoute =
   PedagogicaTurmasTurmaIdRenovarRouteImport.update({
     id: '/pedagogica_/turmas/$turmaId_/renovar',
@@ -824,7 +923,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
-  '/alumni': typeof AlumniRouteWithChildren
+  '/alumni': typeof AlumniRoute
   '/arquivos': typeof ArquivosRoute
   '/aulas-virtuais': typeof AulasVirtuaisRoute
   '/calendario': typeof CalendarioRouteWithChildren
@@ -834,7 +933,7 @@ export interface FileRoutesByFullPath {
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
-  '/financeiro': typeof FinanceiroRouteWithChildren
+  '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
   '/mcp': typeof McpRoute
   '/pedagogica': typeof PedagogicaRoute
@@ -845,7 +944,7 @@ export interface FileRoutesByFullPath {
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
+  '/alumni/$alumniId': typeof AlumniAlumniIdRoute
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
   '/alumni/documents': typeof AlumniDocumentsRoute
@@ -853,25 +952,33 @@ export interface FileRoutesByFullPath {
   '/alumni/matching': typeof AlumniMatchingRoute
   '/alumni/operations': typeof AlumniOperationsRoute
   '/alumni/pipeline': typeof AlumniPipelineRoute
-  '/alumni/portal': typeof AlumniPortalRouteWithChildren
+  '/alumni/portal': typeof AlumniPortalRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/arquivos/$fileId': typeof ArquivosFileIdRoute
   '/auth/email-change': typeof AuthEmailChangeRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
-  '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
+  '/faturas/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
+  '/financeiro/rh': typeof FinanceiroRhRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica/trabalhos': typeof PedagogicaTrabalhosRoute
+  '/pessoas/$personId': typeof PessoasPersonIdRoute
+  '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
+  '/pessoas/novo': typeof PessoasNovoRoute
+  '/pessoas/organizar-turmas': typeof PessoasOrganizarTurmasRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -880,12 +987,17 @@ export interface FileRoutesByFullPath {
   '/pessoas/': typeof PessoasIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/alumni/$alumniId/portfolio': typeof AlumniAlumniIdPortfolioRoute
-  '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
+  '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRoute
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
+  '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/login': typeof ApiMobileLoginRoute
   '/api/mobile/presence': typeof ApiMobilePresenceRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -904,6 +1016,7 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
+  '/financeiro/rh/funcionarios': typeof FinanceiroRhFuncionariosRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
@@ -912,6 +1025,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/pedagogica/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
+  '/pedagogica/turmas/$turmaId': typeof PedagogicaTurmasTurmaIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -949,6 +1063,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/financeiro/rh/funcionarios/$employmentId': typeof FinanceiroRhFuncionariosEmploymentIdRoute
   '/pedagogica/turmas/$turmaId/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -956,7 +1071,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
-  '/alumni': typeof AlumniRouteWithChildren
+  '/alumni': typeof AlumniRoute
   '/arquivos': typeof ArquivosRoute
   '/aulas-virtuais': typeof AulasVirtuaisRoute
   '/calendario': typeof CalendarioRouteWithChildren
@@ -966,7 +1081,7 @@ export interface FileRoutesByTo {
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
-  '/financeiro': typeof FinanceiroRouteWithChildren
+  '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
   '/mcp': typeof McpRoute
   '/pedagogica': typeof PedagogicaRoute
@@ -977,7 +1092,7 @@ export interface FileRoutesByTo {
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
+  '/alumni/$alumniId': typeof AlumniAlumniIdRoute
   '/alumni/calendar': typeof AlumniCalendarRoute
   '/alumni/communications': typeof AlumniCommunicationsRoute
   '/alumni/documents': typeof AlumniDocumentsRoute
@@ -985,25 +1100,33 @@ export interface FileRoutesByTo {
   '/alumni/matching': typeof AlumniMatchingRoute
   '/alumni/operations': typeof AlumniOperationsRoute
   '/alumni/pipeline': typeof AlumniPipelineRoute
-  '/alumni/portal': typeof AlumniPortalRouteWithChildren
+  '/alumni/portal': typeof AlumniPortalRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/arquivos/$fileId': typeof ArquivosFileIdRoute
   '/auth/email-change': typeof AuthEmailChangeRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
-  '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
+  '/faturas/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
+  '/financeiro/rh': typeof FinanceiroRhRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica/trabalhos': typeof PedagogicaTrabalhosRoute
+  '/pessoas/$personId': typeof PessoasPersonIdRoute
+  '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
+  '/pessoas/novo': typeof PessoasNovoRoute
+  '/pessoas/organizar-turmas': typeof PessoasOrganizarTurmasRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -1012,12 +1135,17 @@ export interface FileRoutesByTo {
   '/pessoas': typeof PessoasIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/alumni/$alumniId/portfolio': typeof AlumniAlumniIdPortfolioRoute
-  '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
+  '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRoute
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
+  '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/login': typeof ApiMobileLoginRoute
   '/api/mobile/presence': typeof ApiMobilePresenceRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1036,6 +1164,7 @@ export interface FileRoutesByTo {
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
   '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
   '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
+  '/financeiro/rh/funcionarios': typeof FinanceiroRhFuncionariosRoute
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
@@ -1044,6 +1173,7 @@ export interface FileRoutesByTo {
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/pedagogica/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
+  '/pedagogica/turmas/$turmaId': typeof PedagogicaTurmasTurmaIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1081,6 +1211,7 @@ export interface FileRoutesByTo {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/financeiro/rh/funcionarios/$employmentId': typeof FinanceiroRhFuncionariosEmploymentIdRoute
   '/pedagogica/turmas/$turmaId/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -1089,7 +1220,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/acessos': typeof AcessosRoute
   '/alterar-senha': typeof AlterarSenhaRoute
-  '/alumni': typeof AlumniRouteWithChildren
+  '/alumni': typeof AlumniRoute
   '/arquivos': typeof ArquivosRoute
   '/aulas-virtuais': typeof AulasVirtuaisRoute
   '/calendario': typeof CalendarioRouteWithChildren
@@ -1099,7 +1230,7 @@ export interface FileRoutesById {
   '/criar-escola': typeof CriarEscolaRoute
   '/documentos': typeof DocumentosRoute
   '/faturas': typeof FaturasRoute
-  '/financeiro': typeof FinanceiroRouteWithChildren
+  '/financeiro': typeof FinanceiroRoute
   '/importar': typeof ImportarRoute
   '/mcp': typeof McpRoute
   '/pedagogica': typeof PedagogicaRoute
@@ -1110,33 +1241,41 @@ export interface FileRoutesById {
   '/tesouraria': typeof TesourariaRoute
   '/verificar': typeof VerificarRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/alumni/$alumniId': typeof AlumniAlumniIdRouteWithChildren
-  '/alumni/calendar': typeof AlumniCalendarRoute
-  '/alumni/communications': typeof AlumniCommunicationsRoute
-  '/alumni/documents': typeof AlumniDocumentsRoute
-  '/alumni/insights': typeof AlumniInsightsRoute
-  '/alumni/matching': typeof AlumniMatchingRoute
-  '/alumni/operations': typeof AlumniOperationsRoute
-  '/alumni/pipeline': typeof AlumniPipelineRoute
-  '/alumni/portal': typeof AlumniPortalRouteWithChildren
+  '/alumni_/$alumniId': typeof AlumniAlumniIdRoute
+  '/alumni_/calendar': typeof AlumniCalendarRoute
+  '/alumni_/communications': typeof AlumniCommunicationsRoute
+  '/alumni_/documents': typeof AlumniDocumentsRoute
+  '/alumni_/insights': typeof AlumniInsightsRoute
+  '/alumni_/matching': typeof AlumniMatchingRoute
+  '/alumni_/operations': typeof AlumniOperationsRoute
+  '/alumni_/pipeline': typeof AlumniPipelineRoute
+  '/alumni_/portal': typeof AlumniPortalRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/arquivos_/$fileId': typeof ArquivosFileIdRoute
   '/auth/email-change': typeof AuthEmailChangeRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes_/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
-  '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
+  '/faturas_/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro_/conciliacao': typeof FinanceiroConciliacaoRoute
+  '/financeiro_/rh': typeof FinanceiroRhRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
   '/pedagogica_/catalogo': typeof PedagogicaCatalogoRoute
   '/pedagogica_/pautas-superior': typeof PedagogicaPautasSuperiorRoute
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/pedagogica_/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica_/trabalhos': typeof PedagogicaTrabalhosRoute
+  '/pessoas/$personId': typeof PessoasPersonIdRoute
+  '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
+  '/pessoas/novo': typeof PessoasNovoRoute
+  '/pessoas/organizar-turmas': typeof PessoasOrganizarTurmasRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
   '/relatorios/academicos': typeof RelatoriosAcademicosRoute
@@ -1144,13 +1283,18 @@ export interface FileRoutesById {
   '/alunos/': typeof AlunosIndexRoute
   '/pessoas/': typeof PessoasIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/alumni/$alumniId/portfolio': typeof AlumniAlumniIdPortfolioRoute
-  '/alumni/portal/portfolio': typeof AlumniPortalPortfolioRouteWithChildren
+  '/alumni_/$alumniId_/portfolio': typeof AlumniAlumniIdPortfolioRoute
+  '/alumni_/portal_/portfolio': typeof AlumniPortalPortfolioRoute
   '/api/calendar/ics': typeof ApiCalendarIcsRoute
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
+  '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/login': typeof ApiMobileLoginRoute
   '/api/mobile/presence': typeof ApiMobilePresenceRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1167,19 +1311,21 @@ export interface FileRoutesById {
   '/api/saas/tenants': typeof ApiSaasTenantsRouteWithChildren
   '/api/webhooks/twilio-sms': typeof ApiWebhooksTwilioSmsRoute
   '/api/webhooks/whatsapp-status': typeof ApiWebhooksWhatsappStatusRoute
-  '/financeiro/rh/faltas': typeof FinanceiroRhFaltasRoute
-  '/financeiro/rh/folha': typeof FinanceiroRhFolhaRoute
-  '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
-  '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
-  '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/financeiro_/rh_/faltas': typeof FinanceiroRhFaltasRoute
+  '/financeiro_/rh_/folha': typeof FinanceiroRhFolhaRoute
+  '/financeiro_/rh_/funcionarios': typeof FinanceiroRhFuncionariosRoute
+  '/financeiro_/rh_/pagamentos': typeof FinanceiroRhPagamentosRoute
+  '/financeiro_/rh_/presenca': typeof FinanceiroRhPresencaRoute
+  '/financeiro_/rh_/salarios': typeof FinanceiroRhSalariosRoute
   '/pedagogica_/disciplinas/$subjectId': typeof PedagogicaDisciplinasSubjectIdRoute
   '/pedagogica_/pautas-superior_/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica_/superior_/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica_/superior_/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/pedagogica_/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
-  '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
-  '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
-  '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
+  '/pedagogica_/turmas/$turmaId': typeof PedagogicaTurmasTurmaIdRoute
+  '/alumni_/portal_/portfolio_/education': typeof AlumniPortalPortfolioEducationRoute
+  '/alumni_/portal_/portfolio_/print': typeof AlumniPortalPortfolioPrintRoute
+  '/alumni_/portal_/portfolio_/showcase': typeof AlumniPortalPortfolioShowcaseRoute
   '/api/finance/gateway/confirm': typeof ApiFinanceGatewayConfirmRoute
   '/api/finance/payflow/settlement': typeof ApiFinancePayflowSettlementRoute
   '/api/integrations/resend/webhook': typeof ApiIntegrationsResendWebhookRoute
@@ -1214,6 +1360,7 @@ export interface FileRoutesById {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/financeiro_/rh_/funcionarios_/$employmentId': typeof FinanceiroRhFuncionariosEmploymentIdRoute
   '/pedagogica_/turmas/$turmaId_/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -1254,23 +1401,31 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/arquivos/$fileId'
     | '/auth/email-change'
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes/$announcementId'
     | '/configuracoes/assinatura'
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
-    | '/financeiro/rh'
+    | '/faturas/$invoiceId'
     | '/financeiro/conciliacao'
+    | '/financeiro/rh'
     | '/matricula/$slug'
     | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pedagogica/trabalhos'
+    | '/pessoas/$personId'
+    | '/pessoas/acessos-alunos'
+    | '/pessoas/novo'
+    | '/pessoas/organizar-turmas'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1284,7 +1439,12 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/attendance'
+    | '/api/mobile/chat'
+    | '/api/mobile/grades'
+    | '/api/mobile/login'
     | '/api/mobile/presence'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1303,6 +1463,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
+    | '/financeiro/rh/funcionarios'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
@@ -1311,6 +1472,7 @@ export interface FileRouteTypes {
     | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
     | '/pedagogica/tarefas/$taskId'
+    | '/pedagogica/turmas/$turmaId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1348,6 +1510,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/financeiro/rh/funcionarios/$employmentId'
     | '/pedagogica/turmas/$turmaId/renovar'
     | '/api/finance/gateway/unitel/confirm'
   fileRoutesByTo: FileRoutesByTo
@@ -1386,23 +1549,31 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/arquivos/$fileId'
     | '/auth/email-change'
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes/$announcementId'
     | '/configuracoes/assinatura'
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
-    | '/financeiro/rh'
+    | '/faturas/$invoiceId'
     | '/financeiro/conciliacao'
+    | '/financeiro/rh'
     | '/matricula/$slug'
     | '/pedagogica/catalogo'
     | '/pedagogica/pautas-superior'
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pedagogica/trabalhos'
+    | '/pessoas/$personId'
+    | '/pessoas/acessos-alunos'
+    | '/pessoas/novo'
+    | '/pessoas/organizar-turmas'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1416,7 +1587,12 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/attendance'
+    | '/api/mobile/chat'
+    | '/api/mobile/grades'
+    | '/api/mobile/login'
     | '/api/mobile/presence'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1435,6 +1611,7 @@ export interface FileRouteTypes {
     | '/api/webhooks/whatsapp-status'
     | '/financeiro/rh/faltas'
     | '/financeiro/rh/folha'
+    | '/financeiro/rh/funcionarios'
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
@@ -1443,6 +1620,7 @@ export interface FileRouteTypes {
     | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
     | '/pedagogica/tarefas/$taskId'
+    | '/pedagogica/turmas/$turmaId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1480,6 +1658,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/financeiro/rh/funcionarios/$employmentId'
     | '/pedagogica/turmas/$turmaId/renovar'
     | '/api/finance/gateway/unitel/confirm'
   id:
@@ -1508,33 +1687,41 @@ export interface FileRouteTypes {
     | '/tesouraria'
     | '/verificar'
     | '/.well-known/oauth-protected-resource'
-    | '/alumni/$alumniId'
-    | '/alumni/calendar'
-    | '/alumni/communications'
-    | '/alumni/documents'
-    | '/alumni/insights'
-    | '/alumni/matching'
-    | '/alumni/operations'
-    | '/alumni/pipeline'
-    | '/alumni/portal'
+    | '/alumni_/$alumniId'
+    | '/alumni_/calendar'
+    | '/alumni_/communications'
+    | '/alumni_/documents'
+    | '/alumni_/insights'
+    | '/alumni_/matching'
+    | '/alumni_/operations'
+    | '/alumni_/pipeline'
+    | '/alumni_/portal'
     | '/alunos/$studentId'
+    | '/arquivos_/$fileId'
     | '/auth/email-change'
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes_/$announcementId'
     | '/configuracoes_/assinatura'
     | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/convite/$token'
-    | '/financeiro/rh'
+    | '/faturas_/$invoiceId'
     | '/financeiro_/conciliacao'
+    | '/financeiro_/rh'
     | '/matricula/$slug'
     | '/pedagogica_/catalogo'
     | '/pedagogica_/pautas-superior'
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
     | '/pedagogica_/superior'
+    | '/pedagogica_/trabalhos'
+    | '/pessoas/$personId'
+    | '/pessoas/acessos-alunos'
+    | '/pessoas/novo'
+    | '/pessoas/organizar-turmas'
     | '/professor/presenca'
     | '/professores/$teacherId'
     | '/relatorios/academicos'
@@ -1542,13 +1729,18 @@ export interface FileRouteTypes {
     | '/alunos/'
     | '/pessoas/'
     | '/.lovable/oauth/consent'
-    | '/alumni/$alumniId/portfolio'
-    | '/alumni/portal/portfolio'
+    | '/alumni_/$alumniId_/portfolio'
+    | '/alumni_/portal_/portfolio'
     | '/api/calendar/ics'
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/attendance'
+    | '/api/mobile/chat'
+    | '/api/mobile/grades'
+    | '/api/mobile/login'
     | '/api/mobile/presence'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1565,19 +1757,21 @@ export interface FileRouteTypes {
     | '/api/saas/tenants'
     | '/api/webhooks/twilio-sms'
     | '/api/webhooks/whatsapp-status'
-    | '/financeiro/rh/faltas'
-    | '/financeiro/rh/folha'
-    | '/financeiro/rh/pagamentos'
-    | '/financeiro/rh/presenca'
-    | '/financeiro/rh/salarios'
+    | '/financeiro_/rh_/faltas'
+    | '/financeiro_/rh_/folha'
+    | '/financeiro_/rh_/funcionarios'
+    | '/financeiro_/rh_/pagamentos'
+    | '/financeiro_/rh_/presenca'
+    | '/financeiro_/rh_/salarios'
     | '/pedagogica_/disciplinas/$subjectId'
     | '/pedagogica_/pautas-superior_/imprimir'
     | '/pedagogica_/superior_/certificado'
     | '/pedagogica_/superior_/historico'
     | '/pedagogica_/tarefas/$taskId'
-    | '/alumni/portal/portfolio/education'
-    | '/alumni/portal/portfolio/print'
-    | '/alumni/portal/portfolio/showcase'
+    | '/pedagogica_/turmas/$turmaId'
+    | '/alumni_/portal_/portfolio_/education'
+    | '/alumni_/portal_/portfolio_/print'
+    | '/alumni_/portal_/portfolio_/showcase'
     | '/api/finance/gateway/confirm'
     | '/api/finance/payflow/settlement'
     | '/api/integrations/resend/webhook'
@@ -1612,6 +1806,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/financeiro_/rh_/funcionarios_/$employmentId'
     | '/pedagogica_/turmas/$turmaId_/renovar'
     | '/api/finance/gateway/unitel/confirm'
   fileRoutesById: FileRoutesById
@@ -1620,7 +1815,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcessosRoute: typeof AcessosRoute
   AlterarSenhaRoute: typeof AlterarSenhaRoute
-  AlumniRoute: typeof AlumniRouteWithChildren
+  AlumniRoute: typeof AlumniRoute
   ArquivosRoute: typeof ArquivosRoute
   AulasVirtuaisRoute: typeof AulasVirtuaisRoute
   CalendarioRoute: typeof CalendarioRouteWithChildren
@@ -1630,7 +1825,7 @@ export interface RootRouteChildren {
   CriarEscolaRoute: typeof CriarEscolaRoute
   DocumentosRoute: typeof DocumentosRoute
   FaturasRoute: typeof FaturasRoute
-  FinanceiroRoute: typeof FinanceiroRouteWithChildren
+  FinanceiroRoute: typeof FinanceiroRoute
   ImportarRoute: typeof ImportarRoute
   McpRoute: typeof McpRoute
   PedagogicaRoute: typeof PedagogicaRoute
@@ -1641,22 +1836,40 @@ export interface RootRouteChildren {
   TesourariaRoute: typeof TesourariaRoute
   VerificarRoute: typeof VerificarRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  AlumniAlumniIdRoute: typeof AlumniAlumniIdRoute
+  AlumniCalendarRoute: typeof AlumniCalendarRoute
+  AlumniCommunicationsRoute: typeof AlumniCommunicationsRoute
+  AlumniDocumentsRoute: typeof AlumniDocumentsRoute
+  AlumniInsightsRoute: typeof AlumniInsightsRoute
+  AlumniMatchingRoute: typeof AlumniMatchingRoute
+  AlumniOperationsRoute: typeof AlumniOperationsRoute
+  AlumniPipelineRoute: typeof AlumniPipelineRoute
+  AlumniPortalRoute: typeof AlumniPortalRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
+  ArquivosFileIdRoute: typeof ArquivosFileIdRoute
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ComunicacoesAnnouncementIdRoute: typeof ComunicacoesAnnouncementIdRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
   ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  FaturasInvoiceIdRoute: typeof FaturasInvoiceIdRoute
   FinanceiroConciliacaoRoute: typeof FinanceiroConciliacaoRoute
+  FinanceiroRhRoute: typeof FinanceiroRhRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   PedagogicaCatalogoRoute: typeof PedagogicaCatalogoRoute
   PedagogicaPautasSuperiorRoute: typeof PedagogicaPautasSuperiorRoute
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   PedagogicaSuperiorRoute: typeof PedagogicaSuperiorRoute
+  PedagogicaTrabalhosRoute: typeof PedagogicaTrabalhosRoute
+  PessoasPersonIdRoute: typeof PessoasPersonIdRoute
+  PessoasAcessosAlunosRoute: typeof PessoasAcessosAlunosRoute
+  PessoasNovoRoute: typeof PessoasNovoRoute
+  PessoasOrganizarTurmasRoute: typeof PessoasOrganizarTurmasRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
   RelatoriosAcademicosRoute: typeof RelatoriosAcademicosRoute
@@ -1664,11 +1877,18 @@ export interface RootRouteChildren {
   AlunosIndexRoute: typeof AlunosIndexRoute
   PessoasIndexRoute: typeof PessoasIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  AlumniAlumniIdPortfolioRoute: typeof AlumniAlumniIdPortfolioRoute
+  AlumniPortalPortfolioRoute: typeof AlumniPortalPortfolioRoute
   ApiCalendarIcsRoute: typeof ApiCalendarIcsRoute
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
+  ApiMobileAttendanceRoute: typeof ApiMobileAttendanceRoute
+  ApiMobileChatRoute: typeof ApiMobileChatRoute
+  ApiMobileGradesRoute: typeof ApiMobileGradesRoute
+  ApiMobileLoginRoute: typeof ApiMobileLoginRoute
   ApiMobilePresenceRoute: typeof ApiMobilePresenceRoute
+  ApiMobileProfileRoute: typeof ApiMobileProfileRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
@@ -1685,11 +1905,21 @@ export interface RootRouteChildren {
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
   ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
   ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
+  FinanceiroRhFaltasRoute: typeof FinanceiroRhFaltasRoute
+  FinanceiroRhFolhaRoute: typeof FinanceiroRhFolhaRoute
+  FinanceiroRhFuncionariosRoute: typeof FinanceiroRhFuncionariosRoute
+  FinanceiroRhPagamentosRoute: typeof FinanceiroRhPagamentosRoute
+  FinanceiroRhPresencaRoute: typeof FinanceiroRhPresencaRoute
+  FinanceiroRhSalariosRoute: typeof FinanceiroRhSalariosRoute
   PedagogicaDisciplinasSubjectIdRoute: typeof PedagogicaDisciplinasSubjectIdRoute
   PedagogicaPautasSuperiorImprimirRoute: typeof PedagogicaPautasSuperiorImprimirRoute
   PedagogicaSuperiorCertificadoRoute: typeof PedagogicaSuperiorCertificadoRoute
   PedagogicaSuperiorHistoricoRoute: typeof PedagogicaSuperiorHistoricoRoute
   PedagogicaTarefasTaskIdRoute: typeof PedagogicaTarefasTaskIdRoute
+  PedagogicaTurmasTurmaIdRoute: typeof PedagogicaTurmasTurmaIdRoute
+  AlumniPortalPortfolioEducationRoute: typeof AlumniPortalPortfolioEducationRoute
+  AlumniPortalPortfolioPrintRoute: typeof AlumniPortalPortfolioPrintRoute
+  AlumniPortalPortfolioShowcaseRoute: typeof AlumniPortalPortfolioShowcaseRoute
   ApiFinanceGatewayConfirmRoute: typeof ApiFinanceGatewayConfirmRoute
   ApiFinancePayflowSettlementRoute: typeof ApiFinancePayflowSettlementRoute
   ApiIntegrationsResendWebhookRoute: typeof ApiIntegrationsResendWebhookRoute
@@ -1707,6 +1937,7 @@ export interface RootRouteChildren {
   ApiSaasSitePostsRoute: typeof ApiSaasSitePostsRoute
   ApiSaasSiteShowcaseRoute: typeof ApiSaasSiteShowcaseRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
+  FinanceiroRhFuncionariosEmploymentIdRoute: typeof FinanceiroRhFuncionariosEmploymentIdRoute
   PedagogicaTurmasTurmaIdRenovarRoute: typeof PedagogicaTurmasTurmaIdRenovarRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -1881,68 +2112,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/alumni/$alumniId': {
-      id: '/alumni/$alumniId'
-      path: '/$alumniId'
+    '/alumni_/$alumniId': {
+      id: '/alumni_/$alumniId'
+      path: '/alumni/$alumniId'
       fullPath: '/alumni/$alumniId'
       preLoaderRoute: typeof AlumniAlumniIdRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/calendar': {
-      id: '/alumni/calendar'
-      path: '/calendar'
+    '/alumni_/calendar': {
+      id: '/alumni_/calendar'
+      path: '/alumni/calendar'
       fullPath: '/alumni/calendar'
       preLoaderRoute: typeof AlumniCalendarRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/communications': {
-      id: '/alumni/communications'
-      path: '/communications'
+    '/alumni_/communications': {
+      id: '/alumni_/communications'
+      path: '/alumni/communications'
       fullPath: '/alumni/communications'
       preLoaderRoute: typeof AlumniCommunicationsRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/documents': {
-      id: '/alumni/documents'
-      path: '/documents'
+    '/alumni_/documents': {
+      id: '/alumni_/documents'
+      path: '/alumni/documents'
       fullPath: '/alumni/documents'
       preLoaderRoute: typeof AlumniDocumentsRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/insights': {
-      id: '/alumni/insights'
-      path: '/insights'
+    '/alumni_/insights': {
+      id: '/alumni_/insights'
+      path: '/alumni/insights'
       fullPath: '/alumni/insights'
       preLoaderRoute: typeof AlumniInsightsRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/matching': {
-      id: '/alumni/matching'
-      path: '/matching'
+    '/alumni_/matching': {
+      id: '/alumni_/matching'
+      path: '/alumni/matching'
       fullPath: '/alumni/matching'
       preLoaderRoute: typeof AlumniMatchingRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/operations': {
-      id: '/alumni/operations'
-      path: '/operations'
+    '/alumni_/operations': {
+      id: '/alumni_/operations'
+      path: '/alumni/operations'
       fullPath: '/alumni/operations'
       preLoaderRoute: typeof AlumniOperationsRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/pipeline': {
-      id: '/alumni/pipeline'
-      path: '/pipeline'
+    '/alumni_/pipeline': {
+      id: '/alumni_/pipeline'
+      path: '/alumni/pipeline'
       fullPath: '/alumni/pipeline'
       preLoaderRoute: typeof AlumniPipelineRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/portal': {
-      id: '/alumni/portal'
-      path: '/portal'
+    '/alumni_/portal': {
+      id: '/alumni_/portal'
+      path: '/alumni/portal'
       fullPath: '/alumni/portal'
       preLoaderRoute: typeof AlumniPortalRouteImport
-      parentRoute: typeof AlumniRoute
+      parentRoute: typeof rootRouteImport
     }
     '/alunos/': {
       id: '/alunos/'
@@ -1956,6 +2187,13 @@ declare module '@tanstack/react-router' {
       path: '/alunos/$studentId'
       fullPath: '/alunos/$studentId'
       preLoaderRoute: typeof AlunosStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arquivos_/$fileId': {
+      id: '/arquivos_/$fileId'
+      path: '/arquivos/$fileId'
+      fullPath: '/arquivos/$fileId'
+      preLoaderRoute: typeof ArquivosFileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/email-change': {
@@ -1985,6 +2223,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/calendario/ics'
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
+    }
+    '/comunicacoes_/$announcementId': {
+      id: '/comunicacoes_/$announcementId'
+      path: '/comunicacoes/$announcementId'
+      fullPath: '/comunicacoes/$announcementId'
+      preLoaderRoute: typeof ComunicacoesAnnouncementIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/configuracoes_/assinatura': {
       id: '/configuracoes_/assinatura'
@@ -2021,18 +2266,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/financeiro/rh': {
-      id: '/financeiro/rh'
-      path: '/rh'
-      fullPath: '/financeiro/rh'
-      preLoaderRoute: typeof FinanceiroRhRouteImport
-      parentRoute: typeof FinanceiroRoute
+    '/faturas_/$invoiceId': {
+      id: '/faturas_/$invoiceId'
+      path: '/faturas/$invoiceId'
+      fullPath: '/faturas/$invoiceId'
+      preLoaderRoute: typeof FaturasInvoiceIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/financeiro_/conciliacao': {
       id: '/financeiro_/conciliacao'
       path: '/financeiro/conciliacao'
       fullPath: '/financeiro/conciliacao'
       preLoaderRoute: typeof FinanceiroConciliacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro_/rh': {
+      id: '/financeiro_/rh'
+      path: '/financeiro/rh'
+      fullPath: '/financeiro/rh'
+      preLoaderRoute: typeof FinanceiroRhRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matricula/$slug': {
@@ -2077,11 +2329,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedagogicaSuperiorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/trabalhos': {
+      id: '/pedagogica_/trabalhos'
+      path: '/pedagogica/trabalhos'
+      fullPath: '/pedagogica/trabalhos'
+      preLoaderRoute: typeof PedagogicaTrabalhosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pessoas/': {
       id: '/pessoas/'
       path: '/pessoas'
       fullPath: '/pessoas/'
       preLoaderRoute: typeof PessoasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/$personId': {
+      id: '/pessoas/$personId'
+      path: '/pessoas/$personId'
+      fullPath: '/pessoas/$personId'
+      preLoaderRoute: typeof PessoasPersonIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/acessos-alunos': {
+      id: '/pessoas/acessos-alunos'
+      path: '/pessoas/acessos-alunos'
+      fullPath: '/pessoas/acessos-alunos'
+      preLoaderRoute: typeof PessoasAcessosAlunosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/novo': {
+      id: '/pessoas/novo'
+      path: '/pessoas/novo'
+      fullPath: '/pessoas/novo'
+      preLoaderRoute: typeof PessoasNovoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/organizar-turmas': {
+      id: '/pessoas/organizar-turmas'
+      path: '/pessoas/organizar-turmas'
+      fullPath: '/pessoas/organizar-turmas'
+      preLoaderRoute: typeof PessoasOrganizarTurmasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/professor/presenca': {
@@ -2119,19 +2406,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/alumni/$alumniId/portfolio': {
-      id: '/alumni/$alumniId/portfolio'
-      path: '/portfolio'
+    '/alumni_/$alumniId_/portfolio': {
+      id: '/alumni_/$alumniId_/portfolio'
+      path: '/alumni/$alumniId/portfolio'
       fullPath: '/alumni/$alumniId/portfolio'
       preLoaderRoute: typeof AlumniAlumniIdPortfolioRouteImport
-      parentRoute: typeof AlumniAlumniIdRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/portal/portfolio': {
-      id: '/alumni/portal/portfolio'
-      path: '/portfolio'
+    '/alumni_/portal_/portfolio': {
+      id: '/alumni_/portal_/portfolio'
+      path: '/alumni/portal/portfolio'
       fullPath: '/alumni/portal/portfolio'
       preLoaderRoute: typeof AlumniPortalPortfolioRouteImport
-      parentRoute: typeof AlumniPortalRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/calendar/ics': {
       id: '/api/calendar/ics'
@@ -2161,11 +2448,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile/attendance': {
+      id: '/api/mobile/attendance'
+      path: '/api/mobile/attendance'
+      fullPath: '/api/mobile/attendance'
+      preLoaderRoute: typeof ApiMobileAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/chat': {
+      id: '/api/mobile/chat'
+      path: '/api/mobile/chat'
+      fullPath: '/api/mobile/chat'
+      preLoaderRoute: typeof ApiMobileChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/grades': {
+      id: '/api/mobile/grades'
+      path: '/api/mobile/grades'
+      fullPath: '/api/mobile/grades'
+      preLoaderRoute: typeof ApiMobileGradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/login': {
+      id: '/api/mobile/login'
+      path: '/api/mobile/login'
+      fullPath: '/api/mobile/login'
+      preLoaderRoute: typeof ApiMobileLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/presence': {
       id: '/api/mobile/presence'
       path: '/api/mobile/presence'
       fullPath: '/api/mobile/presence'
       preLoaderRoute: typeof ApiMobilePresenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/profile': {
+      id: '/api/mobile/profile'
+      path: '/api/mobile/profile'
+      fullPath: '/api/mobile/profile'
+      preLoaderRoute: typeof ApiMobileProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/audit-logs': {
@@ -2280,40 +2602,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksWhatsappStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/financeiro/rh/faltas': {
-      id: '/financeiro/rh/faltas'
-      path: '/faltas'
+    '/financeiro_/rh_/faltas': {
+      id: '/financeiro_/rh_/faltas'
+      path: '/financeiro/rh/faltas'
       fullPath: '/financeiro/rh/faltas'
       preLoaderRoute: typeof FinanceiroRhFaltasRouteImport
-      parentRoute: typeof FinanceiroRhRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/financeiro/rh/folha': {
-      id: '/financeiro/rh/folha'
-      path: '/folha'
+    '/financeiro_/rh_/folha': {
+      id: '/financeiro_/rh_/folha'
+      path: '/financeiro/rh/folha'
       fullPath: '/financeiro/rh/folha'
       preLoaderRoute: typeof FinanceiroRhFolhaRouteImport
-      parentRoute: typeof FinanceiroRhRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/financeiro/rh/pagamentos': {
-      id: '/financeiro/rh/pagamentos'
-      path: '/pagamentos'
+    '/financeiro_/rh_/funcionarios': {
+      id: '/financeiro_/rh_/funcionarios'
+      path: '/financeiro/rh/funcionarios'
+      fullPath: '/financeiro/rh/funcionarios'
+      preLoaderRoute: typeof FinanceiroRhFuncionariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro_/rh_/pagamentos': {
+      id: '/financeiro_/rh_/pagamentos'
+      path: '/financeiro/rh/pagamentos'
       fullPath: '/financeiro/rh/pagamentos'
       preLoaderRoute: typeof FinanceiroRhPagamentosRouteImport
-      parentRoute: typeof FinanceiroRhRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/financeiro/rh/presenca': {
-      id: '/financeiro/rh/presenca'
-      path: '/presenca'
+    '/financeiro_/rh_/presenca': {
+      id: '/financeiro_/rh_/presenca'
+      path: '/financeiro/rh/presenca'
       fullPath: '/financeiro/rh/presenca'
       preLoaderRoute: typeof FinanceiroRhPresencaRouteImport
-      parentRoute: typeof FinanceiroRhRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/financeiro/rh/salarios': {
-      id: '/financeiro/rh/salarios'
-      path: '/salarios'
+    '/financeiro_/rh_/salarios': {
+      id: '/financeiro_/rh_/salarios'
+      path: '/financeiro/rh/salarios'
       fullPath: '/financeiro/rh/salarios'
       preLoaderRoute: typeof FinanceiroRhSalariosRouteImport
-      parentRoute: typeof FinanceiroRhRoute
+      parentRoute: typeof rootRouteImport
     }
     '/pedagogica_/disciplinas/$subjectId': {
       id: '/pedagogica_/disciplinas/$subjectId'
@@ -2350,26 +2679,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedagogicaTarefasTaskIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/alumni/portal/portfolio/education': {
-      id: '/alumni/portal/portfolio/education'
-      path: '/education'
+    '/pedagogica_/turmas/$turmaId': {
+      id: '/pedagogica_/turmas/$turmaId'
+      path: '/pedagogica/turmas/$turmaId'
+      fullPath: '/pedagogica/turmas/$turmaId'
+      preLoaderRoute: typeof PedagogicaTurmasTurmaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alumni_/portal_/portfolio_/education': {
+      id: '/alumni_/portal_/portfolio_/education'
+      path: '/alumni/portal/portfolio/education'
       fullPath: '/alumni/portal/portfolio/education'
       preLoaderRoute: typeof AlumniPortalPortfolioEducationRouteImport
-      parentRoute: typeof AlumniPortalPortfolioRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/portal/portfolio/print': {
-      id: '/alumni/portal/portfolio/print'
-      path: '/print'
+    '/alumni_/portal_/portfolio_/print': {
+      id: '/alumni_/portal_/portfolio_/print'
+      path: '/alumni/portal/portfolio/print'
       fullPath: '/alumni/portal/portfolio/print'
       preLoaderRoute: typeof AlumniPortalPortfolioPrintRouteImport
-      parentRoute: typeof AlumniPortalPortfolioRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/alumni/portal/portfolio/showcase': {
-      id: '/alumni/portal/portfolio/showcase'
-      path: '/showcase'
+    '/alumni_/portal_/portfolio_/showcase': {
+      id: '/alumni_/portal_/portfolio_/showcase'
+      path: '/alumni/portal/portfolio/showcase'
       fullPath: '/alumni/portal/portfolio/showcase'
       preLoaderRoute: typeof AlumniPortalPortfolioShowcaseRouteImport
-      parentRoute: typeof AlumniPortalPortfolioRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/finance/gateway/confirm': {
       id: '/api/finance/gateway/confirm'
@@ -2609,6 +2945,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasUsageSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro_/rh_/funcionarios_/$employmentId': {
+      id: '/financeiro_/rh_/funcionarios_/$employmentId'
+      path: '/financeiro/rh/funcionarios/$employmentId'
+      fullPath: '/financeiro/rh/funcionarios/$employmentId'
+      preLoaderRoute: typeof FinanceiroRhFuncionariosEmploymentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/turmas/$turmaId_/renovar': {
       id: '/pedagogica_/turmas/$turmaId_/renovar'
       path: '/pedagogica/turmas/$turmaId/renovar'
@@ -2626,74 +2969,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AlumniAlumniIdRouteChildren {
-  AlumniAlumniIdPortfolioRoute: typeof AlumniAlumniIdPortfolioRoute
-}
-
-const AlumniAlumniIdRouteChildren: AlumniAlumniIdRouteChildren = {
-  AlumniAlumniIdPortfolioRoute: AlumniAlumniIdPortfolioRoute,
-}
-
-const AlumniAlumniIdRouteWithChildren = AlumniAlumniIdRoute._addFileChildren(
-  AlumniAlumniIdRouteChildren,
-)
-
-interface AlumniPortalPortfolioRouteChildren {
-  AlumniPortalPortfolioEducationRoute: typeof AlumniPortalPortfolioEducationRoute
-  AlumniPortalPortfolioPrintRoute: typeof AlumniPortalPortfolioPrintRoute
-  AlumniPortalPortfolioShowcaseRoute: typeof AlumniPortalPortfolioShowcaseRoute
-}
-
-const AlumniPortalPortfolioRouteChildren: AlumniPortalPortfolioRouteChildren = {
-  AlumniPortalPortfolioEducationRoute: AlumniPortalPortfolioEducationRoute,
-  AlumniPortalPortfolioPrintRoute: AlumniPortalPortfolioPrintRoute,
-  AlumniPortalPortfolioShowcaseRoute: AlumniPortalPortfolioShowcaseRoute,
-}
-
-const AlumniPortalPortfolioRouteWithChildren =
-  AlumniPortalPortfolioRoute._addFileChildren(
-    AlumniPortalPortfolioRouteChildren,
-  )
-
-interface AlumniPortalRouteChildren {
-  AlumniPortalPortfolioRoute: typeof AlumniPortalPortfolioRouteWithChildren
-}
-
-const AlumniPortalRouteChildren: AlumniPortalRouteChildren = {
-  AlumniPortalPortfolioRoute: AlumniPortalPortfolioRouteWithChildren,
-}
-
-const AlumniPortalRouteWithChildren = AlumniPortalRoute._addFileChildren(
-  AlumniPortalRouteChildren,
-)
-
-interface AlumniRouteChildren {
-  AlumniAlumniIdRoute: typeof AlumniAlumniIdRouteWithChildren
-  AlumniCalendarRoute: typeof AlumniCalendarRoute
-  AlumniCommunicationsRoute: typeof AlumniCommunicationsRoute
-  AlumniDocumentsRoute: typeof AlumniDocumentsRoute
-  AlumniInsightsRoute: typeof AlumniInsightsRoute
-  AlumniMatchingRoute: typeof AlumniMatchingRoute
-  AlumniOperationsRoute: typeof AlumniOperationsRoute
-  AlumniPipelineRoute: typeof AlumniPipelineRoute
-  AlumniPortalRoute: typeof AlumniPortalRouteWithChildren
-}
-
-const AlumniRouteChildren: AlumniRouteChildren = {
-  AlumniAlumniIdRoute: AlumniAlumniIdRouteWithChildren,
-  AlumniCalendarRoute: AlumniCalendarRoute,
-  AlumniCommunicationsRoute: AlumniCommunicationsRoute,
-  AlumniDocumentsRoute: AlumniDocumentsRoute,
-  AlumniInsightsRoute: AlumniInsightsRoute,
-  AlumniMatchingRoute: AlumniMatchingRoute,
-  AlumniOperationsRoute: AlumniOperationsRoute,
-  AlumniPipelineRoute: AlumniPipelineRoute,
-  AlumniPortalRoute: AlumniPortalRouteWithChildren,
-}
-
-const AlumniRouteWithChildren =
-  AlumniRoute._addFileChildren(AlumniRouteChildren)
-
 interface CalendarioRouteChildren {
   CalendarioIcsRoute: typeof CalendarioIcsRoute
 }
@@ -2704,38 +2979,6 @@ const CalendarioRouteChildren: CalendarioRouteChildren = {
 
 const CalendarioRouteWithChildren = CalendarioRoute._addFileChildren(
   CalendarioRouteChildren,
-)
-
-interface FinanceiroRhRouteChildren {
-  FinanceiroRhFaltasRoute: typeof FinanceiroRhFaltasRoute
-  FinanceiroRhFolhaRoute: typeof FinanceiroRhFolhaRoute
-  FinanceiroRhPagamentosRoute: typeof FinanceiroRhPagamentosRoute
-  FinanceiroRhPresencaRoute: typeof FinanceiroRhPresencaRoute
-  FinanceiroRhSalariosRoute: typeof FinanceiroRhSalariosRoute
-}
-
-const FinanceiroRhRouteChildren: FinanceiroRhRouteChildren = {
-  FinanceiroRhFaltasRoute: FinanceiroRhFaltasRoute,
-  FinanceiroRhFolhaRoute: FinanceiroRhFolhaRoute,
-  FinanceiroRhPagamentosRoute: FinanceiroRhPagamentosRoute,
-  FinanceiroRhPresencaRoute: FinanceiroRhPresencaRoute,
-  FinanceiroRhSalariosRoute: FinanceiroRhSalariosRoute,
-}
-
-const FinanceiroRhRouteWithChildren = FinanceiroRhRoute._addFileChildren(
-  FinanceiroRhRouteChildren,
-)
-
-interface FinanceiroRouteChildren {
-  FinanceiroRhRoute: typeof FinanceiroRhRouteWithChildren
-}
-
-const FinanceiroRouteChildren: FinanceiroRouteChildren = {
-  FinanceiroRhRoute: FinanceiroRhRouteWithChildren,
-}
-
-const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
-  FinanceiroRouteChildren,
 )
 
 interface ApiSaasDomainsRouteChildren {
@@ -2838,7 +3081,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessosRoute: AcessosRoute,
   AlterarSenhaRoute: AlterarSenhaRoute,
-  AlumniRoute: AlumniRouteWithChildren,
+  AlumniRoute: AlumniRoute,
   ArquivosRoute: ArquivosRoute,
   AulasVirtuaisRoute: AulasVirtuaisRoute,
   CalendarioRoute: CalendarioRouteWithChildren,
@@ -2848,7 +3091,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarEscolaRoute: CriarEscolaRoute,
   DocumentosRoute: DocumentosRoute,
   FaturasRoute: FaturasRoute,
-  FinanceiroRoute: FinanceiroRouteWithChildren,
+  FinanceiroRoute: FinanceiroRoute,
   ImportarRoute: ImportarRoute,
   McpRoute: McpRoute,
   PedagogicaRoute: PedagogicaRoute,
@@ -2860,22 +3103,40 @@ const rootRouteChildren: RootRouteChildren = {
   VerificarRoute: VerificarRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  AlumniAlumniIdRoute: AlumniAlumniIdRoute,
+  AlumniCalendarRoute: AlumniCalendarRoute,
+  AlumniCommunicationsRoute: AlumniCommunicationsRoute,
+  AlumniDocumentsRoute: AlumniDocumentsRoute,
+  AlumniInsightsRoute: AlumniInsightsRoute,
+  AlumniMatchingRoute: AlumniMatchingRoute,
+  AlumniOperationsRoute: AlumniOperationsRoute,
+  AlumniPipelineRoute: AlumniPipelineRoute,
+  AlumniPortalRoute: AlumniPortalRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
+  ArquivosFileIdRoute: ArquivosFileIdRoute,
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ComunicacoesAnnouncementIdRoute: ComunicacoesAnnouncementIdRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
   ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  FaturasInvoiceIdRoute: FaturasInvoiceIdRoute,
   FinanceiroConciliacaoRoute: FinanceiroConciliacaoRoute,
+  FinanceiroRhRoute: FinanceiroRhRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   PedagogicaCatalogoRoute: PedagogicaCatalogoRoute,
   PedagogicaPautasSuperiorRoute: PedagogicaPautasSuperiorRoute,
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   PedagogicaSuperiorRoute: PedagogicaSuperiorRoute,
+  PedagogicaTrabalhosRoute: PedagogicaTrabalhosRoute,
+  PessoasPersonIdRoute: PessoasPersonIdRoute,
+  PessoasAcessosAlunosRoute: PessoasAcessosAlunosRoute,
+  PessoasNovoRoute: PessoasNovoRoute,
+  PessoasOrganizarTurmasRoute: PessoasOrganizarTurmasRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
   RelatoriosAcademicosRoute: RelatoriosAcademicosRoute,
@@ -2883,11 +3144,18 @@ const rootRouteChildren: RootRouteChildren = {
   AlunosIndexRoute: AlunosIndexRoute,
   PessoasIndexRoute: PessoasIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  AlumniAlumniIdPortfolioRoute: AlumniAlumniIdPortfolioRoute,
+  AlumniPortalPortfolioRoute: AlumniPortalPortfolioRoute,
   ApiCalendarIcsRoute: ApiCalendarIcsRoute,
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
+  ApiMobileAttendanceRoute: ApiMobileAttendanceRoute,
+  ApiMobileChatRoute: ApiMobileChatRoute,
+  ApiMobileGradesRoute: ApiMobileGradesRoute,
+  ApiMobileLoginRoute: ApiMobileLoginRoute,
   ApiMobilePresenceRoute: ApiMobilePresenceRoute,
+  ApiMobileProfileRoute: ApiMobileProfileRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,
@@ -2904,11 +3172,21 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
   ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
   ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
+  FinanceiroRhFaltasRoute: FinanceiroRhFaltasRoute,
+  FinanceiroRhFolhaRoute: FinanceiroRhFolhaRoute,
+  FinanceiroRhFuncionariosRoute: FinanceiroRhFuncionariosRoute,
+  FinanceiroRhPagamentosRoute: FinanceiroRhPagamentosRoute,
+  FinanceiroRhPresencaRoute: FinanceiroRhPresencaRoute,
+  FinanceiroRhSalariosRoute: FinanceiroRhSalariosRoute,
   PedagogicaDisciplinasSubjectIdRoute: PedagogicaDisciplinasSubjectIdRoute,
   PedagogicaPautasSuperiorImprimirRoute: PedagogicaPautasSuperiorImprimirRoute,
   PedagogicaSuperiorCertificadoRoute: PedagogicaSuperiorCertificadoRoute,
   PedagogicaSuperiorHistoricoRoute: PedagogicaSuperiorHistoricoRoute,
   PedagogicaTarefasTaskIdRoute: PedagogicaTarefasTaskIdRoute,
+  PedagogicaTurmasTurmaIdRoute: PedagogicaTurmasTurmaIdRoute,
+  AlumniPortalPortfolioEducationRoute: AlumniPortalPortfolioEducationRoute,
+  AlumniPortalPortfolioPrintRoute: AlumniPortalPortfolioPrintRoute,
+  AlumniPortalPortfolioShowcaseRoute: AlumniPortalPortfolioShowcaseRoute,
   ApiFinanceGatewayConfirmRoute: ApiFinanceGatewayConfirmRoute,
   ApiFinancePayflowSettlementRoute: ApiFinancePayflowSettlementRoute,
   ApiIntegrationsResendWebhookRoute: ApiIntegrationsResendWebhookRoute,
@@ -2926,19 +3204,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasSitePostsRoute: ApiSaasSitePostsRoute,
   ApiSaasSiteShowcaseRoute: ApiSaasSiteShowcaseRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
+  FinanceiroRhFuncionariosEmploymentIdRoute:
+    FinanceiroRhFuncionariosEmploymentIdRoute,
   PedagogicaTurmasTurmaIdRenovarRoute: PedagogicaTurmasTurmaIdRenovarRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

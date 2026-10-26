@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class FinanceOverviewScreen extends ConsumerWidget {
   const FinanceOverviewScreen({super.key});
@@ -19,7 +20,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Propinas',
+          'Propinas e finanças',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -43,16 +44,19 @@ class FinanceOverviewScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Alunos com dívidas',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    const Expanded(
+                      child: Text(
+                        'Alunos com dívidas',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     TextButton(
                       onPressed: () => context.push('/students-finance'),
-                      child: const Text(
+                      child: Text(
                         'Ver todos os alunos',
                         style: TextStyle(
                           color: AppColors.primary,
@@ -91,7 +95,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
+                          color: AppColors.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
@@ -99,11 +103,11 @@ class FinanceOverviewScreen extends ConsumerWidget {
                             Icon(
                               LucideIcons.checkCircle,
                               size: 48,
-                              color: Colors.green.shade600,
+                              color: AppColors.success,
                             ),
                             const SizedBox(height: 12),
                             const Text(
-                              'Não há propinas em dívida.',
+                              'Não há propinas em atraso.',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
@@ -125,7 +129,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                           width: double.infinity,
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary,
+                            color: AppColors.ink,
                             borderRadius: BorderRadius.circular(32),
                           ),
                           child: Column(
@@ -140,8 +144,8 @@ class FinanceOverviewScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '$currency ${totalOwed.toStringAsFixed(2)}',
-                                style: const TextStyle(
+                                formatMoneyDisplay(currency, totalOwed),
+                                style: TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 32,
                                   fontWeight: FontWeight.w600,
@@ -149,7 +153,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                '${arrears.length} aluno${arrears.length == 1 ? '' : 's'} com dívidas',
+                                '${arrears.length} ${arrears.length == 1 ? 'aluno' : 'alunos'} com dívida',
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 13,
@@ -175,7 +179,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                   ),
                                   child: Text(
                                     a.name.isNotEmpty ? a.name[0] : '?',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.secondary,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -195,7 +199,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                       ),
                                       Text(
                                         a.className ?? a.classId,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 12,
                                         ),
@@ -204,10 +208,10 @@ class FinanceOverviewScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  '$currency ${a.amountOwed.toStringAsFixed(2)}',
+                                  formatMoneyDisplay(currency, a.amountOwed),
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.red.shade700,
+                                    color: AppColors.error,
                                   ),
                                 ),
                               ],
@@ -242,8 +246,8 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Defina uma propina por turma e escolha se é cobrada por período ou por ano lectivo.',
+                      Text(
+                        'Defina a propina de cada turma e se é cobrada por período ou por ano lectivo.',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 16),
@@ -252,7 +256,7 @@ class FinanceOverviewScreen extends ConsumerWidget {
                         child: OutlinedButton.icon(
                           onPressed: () => context.push('/classes'),
                           icon: const Icon(LucideIcons.graduationCap),
-                          label: const Text('Gerir propinas das turmas'),
+                          label: const Text('Gerir propinas'),
                         ),
                       ),
                     ],

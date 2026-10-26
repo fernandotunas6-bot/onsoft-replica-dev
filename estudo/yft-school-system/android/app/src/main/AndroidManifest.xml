@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- API, entrada no SIGA e captcha (WebView). O modelo do Flutter só põe esta
+         permissão nos manifestos de depuração: sem ela, o APK de release não tem rede. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="yft_school_system"
+        android:label="SIGA Plus"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

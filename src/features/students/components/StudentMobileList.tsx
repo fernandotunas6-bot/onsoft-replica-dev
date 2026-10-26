@@ -1,4 +1,4 @@
-import { Eye, FileText, GraduationCap, MessageCircle, Users } from "lucide-react";
+import { FileText, GraduationCap, MessageCircle, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -107,12 +107,6 @@ export function StudentMobileList({
 
   const actions: SheetAction[] = actionsFor
     ? [
-        {
-          label: "Ver resumo",
-          icon: Eye,
-          hint: "Painel rápido com estado, turma e finanças",
-          onSelect: () => onOpenStudent(actionsFor),
-        },
         {
           label: "Abrir ficha completa",
           icon: FileText,

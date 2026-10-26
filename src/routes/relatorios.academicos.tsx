@@ -1,5 +1,6 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { EvolutionPanel } from "@/features/academic/EvolutionPanel";
@@ -50,7 +51,17 @@ const relatoriosFilterDefaults = {
   resultado: "todos",
 };
 
+/**
+ * `?turma=<id>`: os relatórios de uma turma, abertos do menu da turma (SIGA
+ * Context Engine). Com a turma na URL, o filtro de turma segue a URL; um id mal
+ * formado é ignorado.
+ */
+const relatoriosSearchSchema = z.object({
+  turma: z.string().guid().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/relatorios/academicos")({
+  validateSearch: (search: Record<string, unknown>) => relatoriosSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Relatórios Académicos · SIGA" },
@@ -86,10 +97,13 @@ function RelatoriosAcademicos() {
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const resendOn = installed.hasCapability("resend.send");
   const sigeOn = installed.hasCapability("sige.export_classes");
-  const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
-    "relatorios-academicos",
-    relatoriosFilterDefaults,
-  );
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const {
+    filters: savedFilters,
+    setFilter,
+    resetFilters,
+  } = usePersistedListFilters("relatorios-academicos", relatoriosFilterDefaults);
 
   const { selectedYearId, selectedYearLabel, school } = useSchoolSettings();
   const { passing, promotionRules } = useActiveAssessmentRule();
@@ -109,6 +123,32 @@ function RelatoriosAcademicos() {
   const classGroups = workspace?.classGroups ?? [];
   const gradesAvailable = workspace?.gradesAvailable !== false;
   const subjectsAvailable = workspace?.subjectsAvailable !== false;
+
+  // A turma da URL manda no filtro de turma (o menu da turma abre esta página
+  // com `?turma=`); sem ela, vale o filtro guardado.
+  const urlTurmaName = search.turma
+    ? classGroups.find((group) => group.id === search.turma)?.name
+    : undefined;
+  const filters = useMemo(
+    () => (search.turma ? { ...savedFilters, turma: urlTurmaName ?? "todas" } : savedFilters),
+    [savedFilters, search.turma, urlTurmaName],
+  );
+  const activeCount = (Object.keys(relatoriosFilterDefaults) as Array<keyof typeof filters>).filter(
+    (key) => filters[key] !== relatoriosFilterDefaults[key],
+  ).length;
+  const changeFilter = (name: keyof typeof filters, value: string) => {
+    setFilter(name, value);
+    if (name !== "turma") return;
+    const turmaId =
+      value === "todas" ? undefined : classGroups.find((group) => group.name === value)?.id;
+    if (turmaId === search.turma) return;
+    void navigate({ search: (prev) => ({ ...prev, turma: turmaId }), replace: true });
+  };
+  const clearFilters = () => {
+    resetFilters();
+    if (search.turma)
+      void navigate({ search: (prev) => ({ ...prev, turma: undefined }), replace: true });
+  };
 
   const termGrades = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -421,8 +461,8 @@ function RelatoriosAcademicos() {
             <ListFilterBar
               values={filters}
               activeCount={activeCount}
-              onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
-              onReset={resetFilters}
+              onChange={(name, value) => changeFilter(name as keyof typeof filters, value)}
+              onReset={clearFilters}
               fields={[
                 {
                   name: "q",

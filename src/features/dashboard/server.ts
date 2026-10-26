@@ -1033,18 +1033,24 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
 
     if (["Administrador", "Tesouraria"].includes(role)) {
       try {
-        const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .limit(250),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(250),
-        ]);
+        // Só as vencidas e não anuladas, todas, e os recibos dessas mesmas faturas.
+        // Antes eram 250 faturas e 250 recibos quaisquer, sem ordem: uma fatura paga
+        // cujo recibo ficava de fora contava como atrasada, e as outras não contavam.
+        const reads = pagedReadClient(db);
+        const { data: invoices } = await reads
+          .from("finance_invoices")
+          .select("id, amount, discount_amount, penalty_amount, status, due_date")
+          .eq("school_id", schoolId)
+          .neq("status", "cancelled")
+          .lt("due_date", today);
+        const invoiceIds = (invoices ?? []).map((invoice) => String(invoice.id));
+        const { data: receipts } = invoiceIds.length
+          ? await reads
+              .from("finance_receipts")
+              .select("invoice_id, amount, status")
+              .eq("school_id", schoolId)
+              .in("invoice_id", invoiceIds)
+          : { data: [] as Array<{ invoice_id: string; amount: number; status: string }> };
         const paidByInvoice = new Map<string, number>();
         for (const receipt of receipts ?? []) {
           if (receipt.status === "reversed") continue;

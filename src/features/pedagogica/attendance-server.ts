@@ -41,6 +41,9 @@ export type AttendanceStatus = z.infer<typeof attendanceStatusEnum>;
 export const listTeacherAttendanceSessionsInputSchema = z.object({
   date: z.string().optional(), // YYYY-MM-DD
   classGroupId: z.string().guid().optional(),
+  // As aulas de um professor (menu do professor). Só estreita: o professor vê
+  // sempre só as suas.
+  teacherId: z.string().guid().optional(),
 });
 
 export const getAttendanceCallSheetInputSchema = z.object({
@@ -224,6 +227,8 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
           viewerIsTeacher: membership.appRole === "Professor",
         };
       classSubjectQuery = classSubjectQuery.eq("teacher_id", linked.teacher_id);
+    } else if (data.teacherId) {
+      classSubjectQuery = classSubjectQuery.eq("teacher_id", data.teacherId);
     }
     if (data.classGroupId) {
       classSubjectQuery = classSubjectQuery.eq("class_group_id", data.classGroupId);

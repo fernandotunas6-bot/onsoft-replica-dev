@@ -26,6 +26,7 @@ class ApiEndpoints {
   // Attendance
   static const attendance = '/api/attendance';
   static const attendanceSummary = '/api/attendance/summary';
+  static String attendanceStudent(String id) => '/api/attendance/student/$id';
 
   // Grades
   static const grades = '/api/grades';
@@ -39,6 +40,10 @@ class ApiEndpoints {
   static String report(String studentId, String termId) =>
       '/api/reports/$studentId/$termId';
 
+  // Timetable (horário semanal)
+  static const timetable = '/api/timetable';
+  static String timetableSlot(String id) => '/api/timetable/$id';
+
   // Calendar
   static const calendar = '/api/calendar';
 
@@ -51,6 +56,7 @@ class ApiEndpoints {
   // Users
   static const usersMe = '/api/users/me';
   static const usersRegisterTeacher = '/api/users/register-teacher';
+  static const usersTeachers = '/api/users/teachers';
   static String usersTeacher(String uid) => '/api/users/teachers/$uid';
   static const usersMeAcademicCalendar = '/api/users/me/academic-calendar';
   static const usersMePassword = '/api/users/me/password';
@@ -61,5 +67,19 @@ class ApiEndpoints {
 
   // Wards (parent)
   static const wards = '/api/wards';
+
+  // Modo SIGA (conta e dados do Supabase do SIGA): ver core/sga.
+  static const sgaMe = '/api/sga/me';
+  static const sgaWards = '/api/sga/wards';
+  static const sgaNotices = '/api/sga/notices';
+  static const sgaTimetable = '/api/sga/timetable';
+  static const sgaReceipts = '/api/sga/finance/receipts';
+  static const sgaGrades = '/api/sga/grades';
+  static const sgaSubjects = '/api/sga/subjects';
+  static const sgaClasses = '/api/sga/classes';
+  static const sgaAcademicCalendar = '/api/sga/academic-calendar';
+  static const sgaGradeYears = '/api/sga/grades/years';
+  static String sgaAttendanceStudent(String id) => '/api/sga/attendance/student/$id';
+  static const sgaAttendanceSummary = '/api/sga/attendance/summary';
   static String wardProfile(String id) => '/api/wards/$id/profile';
 }

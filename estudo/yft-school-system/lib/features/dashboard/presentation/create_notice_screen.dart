@@ -1,29 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:yft_school_system/core/models/school_class.dart';
+import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 
-class CreateNoticeScreen extends StatefulWidget {
+/// Publicar um comunicado (admin). Aparece em Mensagens para os
+/// destinatários escolhidos.
+class CreateNoticeScreen extends ConsumerStatefulWidget {
   const CreateNoticeScreen({super.key});
 
   @override
-  State<CreateNoticeScreen> createState() => _CreateNoticeScreenState();
+  ConsumerState<CreateNoticeScreen> createState() => _CreateNoticeScreenState();
 }
 
-class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
+class _CreateNoticeScreenState extends ConsumerState<CreateNoticeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
-  String _targetAudience = 'Ambos (professores e encarregados)';
-  bool _sendSms = false;
-  bool _sendPush = true;
+  String _audience = 'all';
+  String _category = 'general';
+  String? _classId;
+  bool _sending = false;
 
-  final List<String> _audiences = [
-    'Ambos (professores e encarregados)',
-    'Só professores',
-    'Só encarregados de educação',
-    'Turma específica',
-  ];
+  static const _audiences = {
+    'all': 'Todos (professores e encarregados)',
+    'parents': 'Só encarregados de educação',
+    'teachers': 'Só professores',
+    'class': 'Encarregados de uma turma',
+  };
+
+  static const _categories = {
+    'general': 'Geral',
+    'academic': 'Pedagógico',
+    'event': 'Evento',
+    'urgent': 'Urgente',
+  };
 
   @override
   void dispose() {
@@ -32,8 +46,42 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
     super.dispose();
   }
 
+  Future<void> _publish() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _sending = true);
+    try {
+      await ref.read(noticesRepositoryProvider).create(
+        title: _titleController.text.trim(),
+        body: _messageController.text.trim(),
+        audience: _audience,
+        classId: _audience == 'class' ? _classId : null,
+        category: _category,
+      );
+      ref.invalidate(parentNoticesProvider);
+      ref.invalidate(unreadNoticesCountProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Comunicado publicado em Mensagens.')),
+      );
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sending = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.error,
+          content: const Text('Não foi possível publicar. Tente de novo.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final classes =
+        ref.watch(classesProvider).whenOrNull(data: (c) => c) ??
+        const <SchoolClass>[];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -41,14 +89,11 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
           'Criar comunicado',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: AppColors.secondary,
       ),
       body: SingleChildScrollView(
         padding: getResponsiveHorizontalPadding(context).copyWith(
           top: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 120,
+          bottom: MediaQuery.of(context).padding.bottom + 40,
         ),
         child: ResponsiveConstrainedContent(
           child: Form(
@@ -56,125 +101,120 @@ class _CreateNoticeScreenState extends State<CreateNoticeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Novo comunicado',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.secondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
                 TextFormField(
                   controller: _titleController,
+                  maxLength: 120,
                   decoration: const InputDecoration(
                     hintText: 'Título do comunicado',
                     prefixIcon: Icon(LucideIcons.type, size: 20),
                   ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Escreva o título.'
+                      : null,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  initialValue: _targetAudience,
+                  initialValue: _audience,
+                  isExpanded: true,
                   decoration: const InputDecoration(
-                    hintText: 'Destinatários',
+                    labelText: 'Para quem',
                     prefixIcon: Icon(LucideIcons.users, size: 20),
                   ),
-                  items: _audiences
-                      .map(
-                        (aud) => DropdownMenuItem(value: aud, child: Text(aud)),
-                      )
-                      .toList(),
-                  onChanged: (val) => setState(() => _targetAudience = val!),
+                  items: [
+                    for (final e in _audiences.entries)
+                      DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  ],
+                  onChanged: (val) => setState(() => _audience = val!),
+                ),
+                if (_audience == 'class') ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _classId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Turma',
+                      prefixIcon: Icon(LucideIcons.layoutGrid, size: 20),
+                    ),
+                    items: [
+                      for (final c in classes)
+                        DropdownMenuItem(value: c.id, child: Text(c.className)),
+                    ],
+                    onChanged: (val) => setState(() => _classId = val),
+                    validator: (val) => val == null ? 'Escolha a turma.' : null,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: _category,
+                  decoration: const InputDecoration(
+                    labelText: 'Tipo',
+                    prefixIcon: Icon(LucideIcons.tag, size: 20),
+                  ),
+                  items: [
+                    for (final e in _categories.entries)
+                      DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  ],
+                  onChanged: (val) => setState(() => _category = val!),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _messageController,
-                  maxLines: 6,
+                  maxLines: 8,
+                  maxLength: 5000,
                   decoration: const InputDecoration(
-                    hintText: 'Escreva aqui a mensagem...',
+                    hintText: 'Escreva aqui a mensagem…',
                     alignLabelWithHint: true,
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.only(bottom: 100), // Align top
-                      child: Icon(LucideIcons.alignLeft, size: 20),
-                    ),
                   ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Escreva a mensagem.'
+                      : null,
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Canais de envio',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Container(
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.black.withValues(alpha: 0.05),
-                    ),
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Column(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SwitchListTile(
-                        title: const Text(
-                          'Notificação',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                      Icon(LucideIcons.info, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'O comunicado aparece em Mensagens para os '
+                          'destinatários. O envio por SMS ou notificação no '
+                          'telemóvel ainda não está disponível.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                        subtitle: const Text('Envio imediato para a aplicação'),
-                        value: _sendPush,
-                        onChanged: (val) => setState(() => _sendPush = val),
-                        activeThumbColor: AppColors.primary,
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.black.withValues(alpha: 0.05),
-                      ),
-                      SwitchListTile(
-                        title: const Text(
-                          'Envio por SMS',
-                          style: TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: const Text(
-                          'Pode ter custos da operadora',
-                        ),
-                        value: _sendSms,
-                        onChanged: (val) => setState(() => _sendSms = val),
-                        activeThumbColor: AppColors.primary,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 28),
                 SizedBox(
                   width: double.infinity,
+                  height: 52,
                   child: ElevatedButton.icon(
-                    icon: const Icon(LucideIcons.send),
+                    icon: _sending
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.onPrimary,
+                            ),
+                          )
+                        : const Icon(LucideIcons.send),
                     label: const Text('Publicar comunicado'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Comunicado publicado.'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
+                    onPressed: _sending ? null : _publish,
                   ),
                 ),
-                const SizedBox(height: 40),
               ],
             ),
           ),

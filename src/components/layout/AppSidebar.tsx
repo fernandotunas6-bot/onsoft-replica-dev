@@ -7,7 +7,6 @@ import {
   Building2,
   LayoutGrid,
   ChevronDown,
-  ChevronRight,
   CircleHelp,
   CreditCard,
   Lock,
@@ -42,17 +41,22 @@ import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosy
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
 import {
-  NAV_DEPTH_CLASS,
+  ContextEntityNav,
+  ResumeContextLink,
+  useEntityNavigation,
+  useResumeNavigation,
+} from "./ContextEntityNav";
+import {
   NAV_ROW_BASE,
   NAV_ROW_ACTIVE,
   NAV_ROW_IDLE,
+  NAV_SUB_LIST,
   NavIcon,
   NavButtonRow,
   NavLinkRow,
   NavSubheader,
 } from "./NavItem";
 import type { NavItem, NavGroup } from "@/features/auth/portal-engine";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import {
   getNavigationContext,
@@ -179,7 +183,13 @@ export function AppSidebar({
         })),
     },
   ];
-  const displayedGroups = contextual && context ? [context] : generalGroups;
+  // Turma ou disciplina aberta (confirmada pelo servidor): a sidebar passa a ser
+  // o menu dessa entidade; «Voltar» e «Todas as áreas» repõem o módulo.
+  const entityNavigation = useEntityNavigation(pathname, locationSearch);
+  const entityActive = contextual && entityNavigation !== null;
+  // Sem turma aberta na área académica: retomar a turma ou disciplina onde estava.
+  const resumeLink = useResumeNavigation(pathname, locationSearch, contextual && !entityActive);
+  const displayedGroups = entityActive ? [] : contextual && context ? [context] : generalGroups;
 
   return (
     <>
@@ -402,6 +412,16 @@ export function AppSidebar({
               className={!context ? "hidden" : undefined}
             />
           </div>
+          {entityActive && entityNavigation ? (
+            <ContextEntityNav
+              navigation={entityNavigation}
+              areaTitle={context?.title ?? null}
+              collapsed={collapsed}
+            />
+          ) : null}
+          {!entityActive && resumeLink ? (
+            <ResumeContextLink link={resumeLink} collapsed={collapsed} />
+          ) : null}
           {contextual &&
           pathname.startsWith("/pedagogica") &&
           canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
@@ -433,21 +453,55 @@ export function AppSidebar({
                   }
 
                   if (item.children) {
+                    const open = expandedMenu === item.label;
                     return (
                       <li key={item.label}>
-                        <ExpandedNavFlyout
-                          open={expandedMenu === item.label}
-                          onOpenChange={(next) =>
+                        <NavButtonRow
+                          label={item.label}
+                          icon={item.icon}
+                          active={childActive}
+                          expanded={open}
+                          onClick={() =>
                             setExpandedMenu((current) =>
-                              next ? item.label : current === item.label ? null : current,
+                              current === item.label ? null : item.label,
                             )
                           }
-                          item={item}
-                          groups={displayedGroups}
-                          pathname={pathname}
-                          search={locationSearch}
-                          active={childActive}
+                          trailing={
+                            <ChevronDown
+                              aria-hidden
+                              className={cn(
+                                "size-4 shrink-0 transition-transform motion-reduce:transition-none",
+                                open && "rotate-180",
+                              )}
+                            />
+                          }
                         />
+                        {open ? (
+                          <nav aria-label={`Subfunções de ${item.label}`}>
+                            <ul className={NAV_SUB_LIST}>
+                              {item.children.map((child) => (
+                                <li key={child.label}>
+                                  {child.to ? (
+                                    <NavLinkRow
+                                      to={child.to}
+                                      {...(child.search ? { search: child.search } : {})}
+                                      label={child.label}
+                                      depth="sub"
+                                      active={isContextDestinationActive(
+                                        child,
+                                        displayedGroups,
+                                        pathname,
+                                        locationSearch,
+                                      )}
+                                    />
+                                  ) : (
+                                    <NavButtonRow label={child.label} depth="sub" />
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </nav>
+                        ) : null}
                       </li>
                     );
                   }
@@ -604,103 +658,6 @@ export function AppSidebar({
         </Suspense>
       ) : null}
     </>
-  );
-}
-
-/** Subfunções compactas: aparecem à direita, fora do scroll da sidebar. */
-function ExpandedNavFlyout({
-  open,
-  onOpenChange,
-  item,
-  groups,
-  pathname,
-  search,
-  active,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  item: NavItem;
-  groups: NavGroup[];
-  pathname: string;
-  search: Record<string, unknown>;
-  active: boolean;
-}) {
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cancelClose = () => {
-    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
-    closeTimer.current = null;
-  };
-  const scheduleClose = (pointerType: string) => {
-    if (pointerType !== "mouse") return;
-    cancelClose();
-    closeTimer.current = setTimeout(() => onOpenChange(false), 180);
-  };
-  useEffect(
-    () => () => {
-      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
-    },
-    [],
-  );
-
-  return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          title={item.label}
-          aria-label={item.label}
-          onPointerEnter={(event) => {
-            if (event.pointerType === "mouse") {
-              cancelClose();
-              onOpenChange(true);
-            }
-          }}
-          onPointerLeave={(event) => scheduleClose(event.pointerType)}
-          className={cn(NAV_ROW_BASE, NAV_DEPTH_CLASS.root, active ? NAV_ROW_ACTIVE : NAV_ROW_IDLE)}
-          data-nav-row=""
-          data-nav-depth="root"
-          data-active={active ? "true" : "false"}
-        >
-          <NavIcon icon={item.icon} active={active} />
-          <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 opacity-50" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="right"
-        align="start"
-        sideOffset={8}
-        collisionPadding={12}
-        onPointerEnter={(event) => {
-          if (event.pointerType === "mouse") cancelClose();
-        }}
-        onPointerLeave={(event) => scheduleClose(event.pointerType)}
-        onClick={(event) => {
-          if ((event.target as Element).closest("a[data-nav-row]")) onOpenChange(false);
-        }}
-        className="w-64 max-w-[calc(100vw-1.5rem)] max-h-[min(75vh,var(--radix-popover-content-available-height))] overflow-y-auto p-1 shadow-sm"
-        data-nav-flyout=""
-      >
-        <p className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground">{item.label}</p>
-        <nav aria-label={`Subfunções de ${item.label}`} className="space-y-0.5">
-          {item.children?.map((child) =>
-            child.to ? (
-              <NavLinkRow
-                key={child.label}
-                to={child.to}
-                {...(child.search ? { search: child.search } : {})}
-                label={child.label}
-                depth="sub"
-                active={isContextDestinationActive(child, groups, pathname, search)}
-                className="lg:min-h-9"
-              />
-            ) : (
-              <NavButtonRow key={child.label} label={child.label} depth="sub" />
-            ),
-          )}
-        </nav>
-      </PopoverContent>
-    </Popover>
   );
 }
 

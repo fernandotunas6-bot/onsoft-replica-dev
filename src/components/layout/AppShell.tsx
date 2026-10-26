@@ -21,6 +21,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { ActiveContextProvider } from "./ActiveContextProvider";
 import { AppSidebar } from "./AppSidebar";
 import { AccountDrawer } from "./AccountDrawer";
 import { AppLauncher } from "./AppLauncher";
@@ -88,7 +89,13 @@ const RightRail = lazy(() =>
 );
 
 export function AppShell({ children }: { children: ReactNode }) {
-  return <AuthenticatedAppShell>{children}</AuthenticatedAppShell>;
+  // O contexto da página (turma, disciplina, aluno) é resolvido uma vez aqui e
+  // lido pelo breadcrumb do PageHeader.
+  return (
+    <ActiveContextProvider>
+      <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
+    </ActiveContextProvider>
+  );
 }
 
 function AuthenticatedAppShell({ children }: { children: ReactNode }) {

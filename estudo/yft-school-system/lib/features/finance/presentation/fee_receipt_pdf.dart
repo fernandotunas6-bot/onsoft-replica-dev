@@ -1,3 +1,4 @@
+import 'package:yft_school_system/core/utils/date_utils.dart';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -10,10 +11,7 @@ import 'package:yft_school_system/features/finance/presentation/widgets/fee_rece
 final PdfColor _kBrandGreen = PdfColor(61 / 255, 79 / 255, 0);
 final PdfColor _kOwing = PdfColor(1.0, 0.294, 0.294);
 
-String _formatWhen(String raw) {
-  if (raw.isEmpty) return '—';
-  return raw.replaceFirst('T', ' ').split('.').first;
-}
+String _formatWhen(String raw) => formatServerDateTime(raw);
 
 List<pw.Widget> _contactLinesCentered(String? text) {
   if (text == null || text.trim().isEmpty) return [];
@@ -158,7 +156,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                 pw.SizedBox(height: 14),
                 pw.Center(
                   child: pw.Text(
-                    'RECIBO DE PROPINA',
+                    'RECIBO OFICIAL DE PROPINA',
                     style: pw.TextStyle(
                       fontSize: 11,
                       fontWeight: pw.FontWeight.bold,
@@ -169,7 +167,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                 pw.SizedBox(height: 4),
                 pw.Center(
                   child: pw.Text(
-                    'Este documento comprova o pagamento registado de propina.',
+                    'Este documento comprova um pagamento de propina registado.',
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey700,
@@ -177,7 +175,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                   ),
                 ),
                 pw.SizedBox(height: 16),
-                _rowStyled('Número do recibo', r.id, valueBold: true),
+                _rowStyled('N.º do recibo', r.id, valueBold: true),
                 _rowStyled('Data e hora', _formatWhen(r.createdAt)),
                 _rowStyled('Ano lectivo', data.displayAcademicYear),
                 _rowStyled('Período', data.displayFeeTerm),
@@ -191,12 +189,12 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                   valueBold: true,
                 ),
                 _rowStyled(
-                  'Aplicado a propinas em dívida',
+                  'Abatido à dívida',
                   formatMoneyForPdf(r.currency, r.amountToDebt),
                 ),
                 if (r.creditAdded > 0)
                   _rowStyled(
-                    'Crédito acrescentado',
+                    'Crédito / adiantamento',
                     formatMoneyForPdf(r.currency, r.creditAdded),
                     labelColor: _kBrandGreen,
                     valueColor: _kBrandGreen,
@@ -226,7 +224,7 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                 if (r.description != null && r.description!.trim().isNotEmpty) ...[
                   pw.SizedBox(height: 6),
                   pw.Text(
-                    'OBSERVAÇÕES',
+                    'NOTAS',
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey700,
@@ -242,9 +240,9 @@ Future<Uint8List> buildFeeReceiptPdf(FeeReceiptTemplateData data) async {
                   padding: const pw.EdgeInsets.all(10),
                   decoration: pw.BoxDecoration(color: PdfColors.grey200),
                   child: pw.Text(
-                    'Guarde este recibo. Para questões de facturação, contacte '
-                    'a secretaria pelos contactos acima. Emitido pelo sistema de gestão '
-                    'escolar.',
+                    'Guarde este recibo. Para questões sobre pagamentos, contacte '
+                    'a secretaria da escola pelos contactos acima. Emitido pelo sistema '
+                    'de gestão escolar SIGA Plus.',
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey800,

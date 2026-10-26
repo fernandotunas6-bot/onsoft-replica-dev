@@ -21,12 +21,13 @@ import {
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { canWriteModule } from "@/features/auth/access-policy";
+import { canAccessPath, canWriteModule } from "@/features/auth/access-policy";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { overlayCredenciais } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
+import { getTeacherHrEmployment } from "@/features/hr/server";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapTeacherWorkspaceToSnapshot } from "@/features/intelligence/teachers/teacher-relations-adapter";
 import { toast } from "@/lib/toast";
@@ -70,6 +71,16 @@ function TeacherProfilePage() {
     () => (teacher ? mapTeacherWorkspaceToSnapshot(teacher, teacherWorkspaceQuery.data) : null),
     [teacher, teacherWorkspaceQuery.data],
   );
+  // O vínculo laboral do professor, para o menu levar à ficha de RH: só para quem
+  // lê o RH, e o servidor confirma.
+  const canReadHr = canAccessPath("/financeiro/rh", account.role, account.grants);
+  const hrEmploymentQuery = useQuery({
+    queryKey: ["hr", "teacher-employment", teacherId],
+    queryFn: () => getTeacherHrEmployment({ data: { teacherId } }),
+    enabled: canReadHr && Boolean(teacherId),
+    retry: false,
+  });
+  const employmentId = canReadHr ? hrEmploymentQuery.data?.employmentId : undefined;
   const focusedTeacherEntity = useMemo(() => {
     if (!teacher || !teacherRelationsSnapshot) return null;
     return {
@@ -78,8 +89,9 @@ function TeacherProfilePage() {
       label: teacher.full_name,
       schoolId: school?.id ?? "",
       data: teacherRelationsSnapshot,
+      ...(employmentId ? { relations: { employee: employmentId } } : {}),
     };
-  }, [teacher, teacherRelationsSnapshot, school?.id]);
+  }, [teacher, teacherRelationsSnapshot, school?.id, employmentId]);
   useDeclareEntityFocus(focusedTeacherEntity);
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const subjects = workspaceQuery.data?.subjects ?? [];
@@ -348,7 +360,15 @@ function TeacherProfilePage() {
               </div>
             </dl>
             <Button asChild variant="outline" className="mt-4 gap-2">
-              <Link to="/pedagogica" search={{ tab: "horarios" }}>
+              <Link
+                to="/pedagogica"
+                // A vista por professor do horário da escola é de quem gere o Pedagógico.
+                search={
+                  canManage && teacher
+                    ? { tab: "horarios", professor: teacher.id }
+                    : { tab: "horarios" }
+                }
+              >
                 <GraduationCap className="size-4" /> Ver horários
               </Link>
             </Button>

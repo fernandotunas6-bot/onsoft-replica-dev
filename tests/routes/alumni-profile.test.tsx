@@ -75,7 +75,7 @@ function buildProfileData(overrides: { verified_at?: string | null } = {}) {
 }
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.$alumniId");
+  const mod = await import("@/routes/alumni_.$alumniId");
   return routeComponentOf(mod);
 }
 

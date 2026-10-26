@@ -46,11 +46,22 @@ export function AttendanceWorkspaceModule({
   initialClassGroupId,
   initialSubjectId,
   initialDate,
+  teacherId,
+  teacherName,
+  classGroupName,
 }: {
   initialClassGroupId?: string | undefined;
   initialSubjectId?: string | undefined;
   initialDate?: string | undefined;
+  /** O professor da URL (`?professor=`, sem turma): só as aulas dele. */
+  teacherId?: string | undefined;
+  teacherName?: string | undefined;
+  /** Nome da turma da URL, para o título das aulas do dia. */
+  classGroupName?: string | undefined;
 } = {}) {
+  // A turma da URL manda sobre o professor, como no horário, e as aulas do dia
+  // ficam só as dessa turma (menu da turma e da disciplina).
+  const lessonsTeacherId = initialClassGroupId ? undefined : teacherId;
   const [selectedDate, setSelectedDate] = useState(initialDate ?? todayInLuanda());
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [draftCall, setDraftCall] = useState<{
@@ -72,8 +83,20 @@ export function AttendanceWorkspaceModule({
   }, [initialDate]);
 
   const sessionsQuery = useQuery({
-    queryKey: ["teacher-attendance-sessions", selectedDate],
-    queryFn: () => listTeacherAttendanceSessions({ data: { date: selectedDate } }),
+    queryKey: [
+      "teacher-attendance-sessions",
+      selectedDate,
+      lessonsTeacherId ?? "todos",
+      initialClassGroupId ?? "todas",
+    ],
+    queryFn: () =>
+      listTeacherAttendanceSessions({
+        data: {
+          date: selectedDate,
+          ...(lessonsTeacherId ? { teacherId: lessonsTeacherId } : {}),
+          ...(initialClassGroupId ? { classGroupId: initialClassGroupId } : {}),
+        },
+      }),
   });
 
   const historyQuery = useQuery({
@@ -170,6 +193,15 @@ export function AttendanceWorkspaceModule({
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
           <Clock className="size-4 text-primary" /> Aulas Agendadas para {selectedDate}
+          {lessonsTeacherId ? (
+            <span className="font-medium text-muted-foreground">
+              · {teacherName ?? "este professor"}
+            </span>
+          ) : initialClassGroupId ? (
+            <span className="font-medium text-muted-foreground">
+              · {classGroupName ?? "esta turma"}
+            </span>
+          ) : null}
         </h3>
 
         {presenceSummary && !viewerIsTeacher && sessions.length > 0 ? (
