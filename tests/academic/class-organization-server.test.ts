@@ -7,25 +7,36 @@ const placed: Array<{ studentId: string; classGroupId: string }> = [];
 const S = "00000000-0000-0000-0000-00000000000a";
 const LEVEL = "00000000-0000-0000-0000-0000000000c7";
 
+// «tabela.coluna» lê a tabela embutida, como o filtro do PostgREST num embed.
+const get = (row: Row, column: string): unknown =>
+  column.split(".").reduce<unknown>((value, key) => (value as Row | undefined)?.[key], row);
+const reads: string[] = [];
+
 function memoryDb() {
   return {
     from(table: string) {
       const filters: Array<(row: Row) => boolean> = [];
-      const rows = () => (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
+      let max = Infinity;
+      const rows = () =>
+        (tables[table] ?? []).filter((row) => filters.every((f) => f(row))).slice(0, max);
+      reads.push(table);
       const chain = {
         select: () => chain,
         order: () => chain,
-        limit: () => chain,
+        limit: (n: number) => {
+          max = n;
+          return chain;
+        },
         eq: (column: string, value: unknown) => {
-          filters.push((row) => row[column] === value);
+          filters.push((row) => get(row, column) === value);
           return chain;
         },
         neq: (column: string, value: unknown) => {
-          filters.push((row) => row[column] !== value);
+          filters.push((row) => get(row, column) !== value);
           return chain;
         },
         in: (column: string, values: unknown[]) => {
-          filters.push((row) => values.includes(row[column]));
+          filters.push((row) => values.includes(get(row, column)));
           return chain;
         },
         maybeSingle: () => Promise.resolve({ data: rows()[0] ?? null, error: null }),
@@ -144,6 +155,13 @@ function seed(
 beforeEach(() => {
   claims = { aal: "aal2" };
   placed.length = 0;
+  reads.length = 0;
+});
+
+const attendance = (n: number, classGroupId: string) => ({
+  school_id: S,
+  student_id: `s${n}`,
+  siga_attendance_sessions: { class_group_id: classGroupId },
 });
 
 describe("organizar turmas no servidor", () => {
@@ -177,6 +195,37 @@ describe("organizar turmas no servidor", () => {
     expect(plan.classes.map((c) => c.letter)).toEqual(["A", "B"]);
     const status = Object.fromEntries(plan.lines.map((l) => [l.studentId, [l.status, l.toLetter]]));
     expect(status).toEqual({ s1: ["records", "A"], s2: ["move", "A"], s3: ["same", "B"] });
+  });
+
+  it("presença na chamada actual prende o aluno, mesmo com centenas de linhas", async () => {
+    seed([
+      student(1, "2012-01-01", "cA"), // mais velho, na A, com 1500 presenças
+      student(2, "2012-02-01", "cA"), // mais velho, na A, com uma presença
+      student(3, "2014-01-01", "cB"),
+    ]);
+    tables.siga_attendance_records = [
+      ...Array.from({ length: 1500 }, () => attendance(1, "cA")),
+      attendance(2, "cA"),
+      // Presença noutra turma (outro turno) não conta para esta.
+      attendance(3, "cT"),
+    ];
+    const plan = await server.previewClassOrganization({
+      data: { gradeLevelId: LEVEL, shift: "morning" },
+    });
+    const status = Object.fromEntries(plan.lines.map((l) => [l.studentId, l.status]));
+    expect(status).toMatchObject({ s1: "records", s2: "records" });
+    expect(status.s3).not.toBe("records");
+    // A primeira página encheu-se só com o aluno 1; a segunda já o tirou do filtro.
+    expect(reads.filter((t) => t === "siga_attendance_records")).toHaveLength(2);
+  });
+
+  it("inscrição em exame também prende o aluno à turma", async () => {
+    seed([student(1, "2012-01-01", "cA"), student(2, "2014-01-01", "cB")]);
+    tables.siga_exam_registrations = [{ school_id: S, enrollment_id: "e1" }];
+    const plan = await server.previewClassOrganization({
+      data: { gradeLevelId: LEVEL, shift: "morning" },
+    });
+    expect(plan.lines.find((l) => l.studentId === "s1")?.status).toBe("records");
   });
 
   it("aplica pela regra única de colocação, na ordem que não passa a lotação", async () => {
