@@ -41,6 +41,7 @@ Abrir o skill do módulo antes de editar (`.cursor/skills/siga-<id>/SKILL.md`).
 | --------------------- | ------------------- |
 | Dashboard / professor | `siga-dashboard`    |
 | Alunos                | `siga-alunos`       |
+| Conta do aluno / turma A–Z / ano lectivo | `siga-alunos-ano-lectivo` |
 | Pessoas / docentes    | `siga-pessoas`      |
 | Pedagógica / turmas   | `siga-pedagogica`   |
 | Tesouraria            | `siga-financeiro`   |
