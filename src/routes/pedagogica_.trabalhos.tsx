@@ -202,6 +202,16 @@ function TaskSection({
               </p>
             ) : null}
             <p className="text-xs text-muted-foreground">{formatDue(task.dueOn)}</p>
+            {/* As entregas da turma, com devolver e nota; o servidor só as mostra à
+                direcção, à secretaria e ao professor da disciplina. */}
+            <Link
+              to="/pedagogica/tarefas/$taskId"
+              params={{ taskId: task.id }}
+              aria-label={`Ver entregas de ${task.title}`}
+              className="mt-1 inline-flex min-h-11 items-center self-start text-xs font-semibold text-primary hover:underline sm:min-h-0"
+            >
+              Ver entregas
+            </Link>
           </li>
         ))}
       </ul>

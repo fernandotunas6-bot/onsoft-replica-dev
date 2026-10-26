@@ -122,24 +122,24 @@ da URL é recusada.
 
 ### 5.1 Disciplina e turma (prioridade 1)
 
-| Função                                 | Destino                                             | Estado                                                                                                                            |
-| -------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                                                             |
-| Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                                                      |
-| Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                                                      |
-| Presenças                              | `/pedagogica?tab=presencas&turma[&disciplina]`      | Implementado — na turma, as aulas do dia dessa turma; na disciplina, abre a chamada dessa aula                                    |
-| Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                                                      |
-| Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)                                         |
-| Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora                                          |
-| Trabalhos                              | `/pedagogica/trabalhos?turma&disciplina`            | Implementado — lista da turma ou da disciplina (em curso e prazo terminado); criam-se no detalhe da aula; entregas na #335        |
-| Horário da turma                       | `/pedagogica?tab=horarios&turma`                    | Implementado — turma e disciplina abrem o horário da turma (`ScheduleWorkspace`)                                                  |
-| Relatórios da turma                    | `/relatorios/academicos?turma`                      | Implementado — turma e disciplina abrem os relatórios académicos filtrados pela turma; o filtro de turma segue a URL              |
-| Alunos em risco                        | `/pedagogica/risco?turma`                           | Implementado — os alertas e a análise abrem na turma (da disciplina, a turma); a turma escolhida fica na URL                      |
-| Renovar matrículas                     | `/pedagogica/turmas/$turmaId/renovar`               | Implementado — só na turma, a quem grava em Pessoas (Administração e Secretaria, como `getRenewalPlan`)                           |
-| Alunos da turma                        | `/pedagogica/turmas/$classGroupId?secao=alunos`     | Implementado — a turma tem página própria (decisão do proprietário, 25/10/2026), com «Ficha da turma» e «Alunos da turma» no menu |
-| Professor responsável                  | `/professores/$teacherId`                           | Implementado — na disciplina, quando o servidor devolve o professor dela (`class_subjects.teacher_id`)                            |
-| Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                                                                  |
-| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula`, `/pedagogica/trabalhos`, `/arquivos`, `/relatorios/academicos`                      |
+| Função                                 | Destino                                             | Estado                                                                                                                             |
+| -------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                                                              |
+| Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                                                       |
+| Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                                                       |
+| Presenças                              | `/pedagogica?tab=presencas&turma[&disciplina]`      | Implementado — na turma, as aulas do dia dessa turma; na disciplina, abre a chamada dessa aula                                     |
+| Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                                                       |
+| Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)                                          |
+| Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora                                           |
+| Trabalhos                              | `/pedagogica/trabalhos?turma&disciplina`            | Implementado — lista da turma ou da disciplina (em curso e prazo terminado); criam-se no detalhe da aula; cada um leva às entregas |
+| Horário da turma                       | `/pedagogica?tab=horarios&turma`                    | Implementado — turma e disciplina abrem o horário da turma (`ScheduleWorkspace`)                                                   |
+| Relatórios da turma                    | `/relatorios/academicos?turma`                      | Implementado — turma e disciplina abrem os relatórios académicos filtrados pela turma; o filtro de turma segue a URL               |
+| Alunos em risco                        | `/pedagogica/risco?turma`                           | Implementado — os alertas e a análise abrem na turma (da disciplina, a turma); a turma escolhida fica na URL                       |
+| Renovar matrículas                     | `/pedagogica/turmas/$turmaId/renovar`               | Implementado — só na turma, a quem grava em Pessoas (Administração e Secretaria, como `getRenewalPlan`)                            |
+| Alunos da turma                        | `/pedagogica/turmas/$classGroupId?secao=alunos`     | Implementado — a turma tem página própria (decisão do proprietário, 25/10/2026), com «Ficha da turma» e «Alunos da turma» no menu  |
+| Professor responsável                  | `/professores/$teacherId`                           | Implementado — na disciplina, quando o servidor devolve o professor dela (`class_subjects.teacher_id`)                             |
+| Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                                                                   |
+| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula`, `/pedagogica/trabalhos`, `/arquivos`, `/relatorios/academicos`                       |
 
 ### 5.2 Aluno (prioridade 2)
 
@@ -244,7 +244,7 @@ da URL é recusada.
 | 1 Auditoria         | Parcial                                                      | Inventário §5; falta auditoria em sessão autenticada                                                                                                                                                 |
 | 2 Motor de contexto | Implementado                                                 | PR #332 (24 testes)                                                                                                                                                                                  |
 | 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno/professor)** | `ContextEntityNav`; 17 testes de sidebar + 7 de lookup + 15 do professor; breadcrumb com 9 testes                                                                                                    |
-| 4 Disciplina piloto | Parcial                                                      | Trabalhos da turma e da disciplina (`/pedagogica/trabalhos`); faltam as entregas (#335) e validação em staging                                                                                       |
+| 4 Disciplina piloto | Parcial                                                      | Trabalhos da turma e da disciplina (`/pedagogica/trabalhos`); cada trabalho leva às entregas (`/pedagogica/tarefas/<id>`, do main); falta validação em staging                                       |
 | 5 Aluno piloto      | **Implementado (desktop)**                                   | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                         |
 | 6 Financeiro/docs   | Parcial                                                      | Financeiro do aluno com todas as faturas e a dívida; página e menu da fatura (`/faturas/$invoiceId`) com as cobranças Multicaixa; página e menu do ficheiro (`/arquivos/$fileId`); faltam reembolsos |
 | 7 Restantes         | Ausente                                                      |                                                                                                                                                                                                      |
@@ -256,7 +256,7 @@ da URL é recusada.
 
 | Cenário                        | Coberto                                                                                                | Falta                |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------ | -------------------- |
-| A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada                                           | Entregas (#335); E2E |
+| A Professor turma → disciplina | Menu só com a turma/disciplina activas; outra turma recusada                                           | E2E                  |
 | B Aluno                        | Aluno não recebe o menu de gestão                                                                      | E2E                  |
 | C Secretaria → aluno           | Menu com as secções que a conta lê; Financeiro segue o servidor; secção recusada abre a ficha completa | E2E                  |
 | D Multi-escola                 | Entidade de outra escola descartada; queries repostas; recentes e favoritos por escola                 | E2E com duas escolas |
@@ -308,7 +308,7 @@ Para um módulo novo:
 - A #333 entrou no ramo da #332 no `049642b`, a pedido do proprietário; daqui em diante há
   um só ramo. O menu do aluno e o breadcrumb seguiram por cima.
 - #329 (Trabalhos) e #327 (disciplinas da turma) não tocam nestes ficheiros. A #335 (entregas)
-  traz `/pedagogica/tarefas/$taskId`; a lista de trabalhos da #332 liga-se a ela quando entrar.
+  entrou no main com a #336; cada trabalho da lista leva a `/pedagogica/tarefas/$taskId`.
 
 ## 13. Limitações conhecidas
 

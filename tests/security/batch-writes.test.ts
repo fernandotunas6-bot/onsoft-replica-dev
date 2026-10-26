@@ -188,7 +188,17 @@ describe("mudar estado em lote (alunos)", () => {
 });
 
 describe("lançar notas de avaliação", () => {
-  const fn = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+  // A pauta e a devolução de trabalhos gravam pelo mesmo writeAssessmentScores.
+  const write = read("src/features/academic/assessment-score-write.ts");
+  const fn = write.slice(write.indexOf("export async function writeAssessmentScores"));
+
+  it("a pauta grava por writeAssessmentScores, depois do guarda de escrita", () => {
+    const upsert = body(read("src/features/academic/server-legacy.ts"), "upsertAssessmentScores");
+    expect(upsert.indexOf('requireSgaWriterForWrite(\n      "pedagogica"')).toBeGreaterThan(-1);
+    expect(upsert.indexOf("requireSgaWriterForWrite(")).toBeLessThan(
+      upsert.indexOf("writeAssessmentScores(db"),
+    );
+  });
 
   it("só aceita alunos da turma da avaliação, também para a Administração e a Secretaria", () => {
     expect(fn).toMatch(/\.eq\("class_group_id", String\(item\.class_group_id\)\)/);

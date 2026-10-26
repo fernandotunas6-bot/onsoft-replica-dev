@@ -131,6 +131,11 @@ ficheiro» (fora do selector de ficheiros). A sidebar mostra o menu do ficheiro 
 ligação, «Pasta da turma», «Documentos do aluno» e «Ficha do aluno»). Renomear, mover, mudar o
 acesso e apagar continuam na lista. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (entregas dos trabalhos):** com as entregas no main (#336),
+cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedagogica/tarefas/<id>`
+(a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
+estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
