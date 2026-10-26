@@ -4,6 +4,80 @@
 **Base:** `main` observado em 26/10/2026. **Objectivo:** melhorar o que já existe; nenhuma reescrita.
 **Regra de interface:** uma página = uma função principal; sidebar e cabeçalho contextuais; operações extensas em página própria; apenas confirmações simples em modais.
 
+## 0. Decisão final e o que a PR seguinte entrega (26/10/2026)
+
+### Diagnóstico medido na produção (só leitura)
+
+| Escola SIGA-AO-000001 | Valor |
+|---|---|
+| Alunos activos | 72 |
+| Com conta de acesso (`people.user_id`) | **0** |
+| «Entrar com o nº de aluno» | **desligado** |
+| Sem BI registado | 70 |
+| Com número de aluno e data de nascimento | 72 |
+| Slug do tenant | `minha-escola` (tratado como portal geral) |
+
+O login não falhava por causa do resolvedor: **nenhum aluno tinha conta**. Corrigir o BI (§ desta PR) não
+chega sem contas; o caminho real é o número de aluno, que todos têm.
+
+### A lógica «no fim do ano todos voltam a Pessoas»
+
+Certa na intenção, ajustada na forma: **Pessoas é o cadastro permanente e nunca se esvazia**. O que
+termina no fim do ano é a matrícula. Na base, uma matrícula tem sempre turma (`enrollments.class_group_id`
+é obrigatório), por isso o aluno não fica «solto»: a renovação coloca-o numa turma da classe seguinte e a
+organização por idade redistribui dentro da classe antes de começarem as aulas.
+
+```
+Pessoas (permanente: ficha, BI, nº de aluno, conta)
+  └─ Fecho do ano: notas homologadas, resultado no histórico (nada se apaga)
+      └─ Renovar matrículas (por turma, #330): aprovados → classe seguinte; retidos → mesma
+          └─ Organizar turmas (por classe e turno): A = mais novos … até à lotação
+              └─ Imprimir listas (com o ID do aluno) e fichas de acesso → começar o ano
+```
+
+### Regras da organização por idade (implementadas)
+
+- Por **ano + classe + turno** (a classe já identifica o curso). A letra vem do código (`7A-M`, `CFB10A-T`,
+  `DEMO1C`); letras repetidas ou ilegíveis impedem aplicar.
+- Mais novo primeiro (data de nascimento mais recente), desempate pelo nº de aluno.
+- **Quem já tem notas, presenças, entregas ou boletins fica** onde está e o lugar conta como ocupado:
+  mudar de turma misturava pautas (havia 286 notas lançadas). Organiza-se antes das aulas.
+- Sem data de nascimento válida: fica, e a ficha é assinalada.
+- Lotação: assinala acima de 36 e recusa a ideia de mais de 45 (DP 162/23, art. 10.º; 26 com alunos
+  com deficiência).
+- Aplicar recalcula no servidor, confere a **assinatura** do plano pré-visualizado, exige 2FA e muda cada
+  aluno pela regra única `placeStudentInClass` (gatilho de lotação, histórico), numa ordem que nunca passa
+  a lotação.
+
+### Contas dos alunos (implementadas)
+
+- Pessoas → **Acessos dos alunos**: criar as contas em falta de uma turma (lotes de 10), imprimir as fichas
+  (endereço, nº de aluno, senha provisória), «Nova senha» para quem esqueceu.
+- Conta Supabase Auth com endereço interno `<nº>.<código da escola>@alunos.portal-siga.com` (sem caixa de
+  correio, nunca mostrado), perfil, membership com papel «Estudante», ficha ligada — tudo ou nada.
+- Senha provisória legível (`KMPT-4827-ra`), mostrada uma vez, nunca guardada. `app_metadata.must_change_password`
+  obriga a escolher senha no primeiro acesso (ecrã antes da aplicação; só o servidor desliga o sinal).
+- Nova senha só para contas que são **apenas de aluno nesta escola**; criar e redefinir exigem 2FA.
+- O Administrador liga «Entrar com o nº de aluno» no mesmo ecrã (servidor existente, com 2FA e auditoria).
+
+### Pendente (fora desta PR)
+
+- Mudar o slug `minha-escola` para o nome real da escola (o portal da escola passa a mostrar «Nº de aluno»).
+- Contas dos encarregados com o mesmo modelo.
+- Política «A = mais novos» como definição por escola (hoje é a única regra do ecrã).
+- Teste com contas reais em ambiente de ensaio (login por nº, primeiro acesso, nova senha).
+
+### Prompt melhorado (substitui o § 10)
+
+> Antes de mudar, **medir na produção** (só leitura): quantos alunos têm conta, que identificadores têm,
+> que regras a escola ligou. Reutilizar: `student-number-login`, `bi-login`, `placeStudentInClass`,
+> `year-rollover`, `setStudentNumberLogin`, o motor `class-age-allocation`. Pessoas é permanente; a
+> matrícula é anual e tem sempre turma. Criar contas de aluno em massa com senha provisória e troca
+> obrigatória (`app_metadata`), sem e-mail real. Organizar por idade por ano + classe + turno, sem mexer
+> em quem já tem notas/presenças, com pré-visualização assinada e 2FA ao aplicar. Uma página por função
+> (Pessoas → Organizar turmas; Pessoas → Acessos dos alunos), modais só para confirmar. Listas e fichas
+> com o nº de aluno. Testes: puro, servidor com base em memória, ecrãs; catraca ARQ-01 com razão escrita.
+
 ## 1. Pesquisa comparativa (fontes primárias)
 
 | Sistema | Prática útil | Tradução para SIGA Plus |
