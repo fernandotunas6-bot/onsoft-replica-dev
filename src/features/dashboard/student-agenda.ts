@@ -83,6 +83,13 @@ function nowInLuandaHhMm(now = new Date()) {
 }
 
 const agendaInputSchema = z.object({ studentId: z.string().guid().optional() });
+/** Segunda-feira (ou qualquer dia) da semana a mostrar; sem ela, a semana corrente. */
+export const timetableWeekSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Data inválida.")
+  .optional();
+const timetableInputSchema = agendaInputSchema.extend({ weekStart: timetableWeekSchema });
 type PortalContext = Pick<SupabaseAuthContext, "supabase" | "userId">;
 
 /** A pré-matrícula do próximo ano não substitui a turma em curso no cabeçalho. */
@@ -172,19 +179,22 @@ export type StudentTimetableLesson = {
 export type StudentTimetable = {
   className: string | null;
   publishedAt: string | null;
+  /** Segunda-feira da semana mostrada (AAAA-MM-DD). */
+  weekStart?: string;
   /** weekday como Date.getDay (0 = domingo … 6 = sábado), só dias com aulas. */
   days: Array<{ weekday: number; lessons: StudentTimetableLesson[] }>;
 };
 
-/** Semana corrente, incluindo apenas as cadeiras e datas autorizadas. */
+/** Semana pedida (ou a corrente), incluindo apenas as cadeiras e datas autorizadas. */
 export async function loadStudentTimetableForRequest(
-  input: { studentId?: string },
+  input: { studentId?: string; weekStart?: string },
   context: PortalContext,
 ): Promise<StudentTimetable> {
   const today = todayInLuanda();
   const resolved = await resolveStudentEnrollment(context.userId, today, input.studentId);
   if (!resolved) return { className: null, publishedAt: null, days: [] };
-  const week = academicAgendaWeek(today);
+  // A turma é a de hoje; só a semana mostrada muda.
+  const week = academicAgendaWeek(input.weekStart ?? today);
   const events = await loadAcademicAgendaForRequest(
     { ...week, studentId: resolved.studentId },
     context,
@@ -194,5 +204,5 @@ export async function loadStudentTimetableForRequest(
 
 export const getMyStudentTimetable = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => agendaInputSchema.parse(input ?? {}))
+  .validator((input: unknown) => timetableInputSchema.parse(input ?? {}))
   .handler(({ data, context }) => loadStudentTimetableForRequest(data, context));

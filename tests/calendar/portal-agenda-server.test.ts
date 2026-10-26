@@ -157,6 +157,7 @@ describe("portais consomem a agenda autorizada", () => {
     expect(await loadStudentTimetableForRequest({}, context)).toEqual({
       className: null,
       publishedAt: null,
+      weekStart: "2026-10-26",
       days: [],
     });
     expect(state.agenda).toHaveBeenCalledWith(
@@ -187,6 +188,28 @@ describe("portais consomem a agenda autorizada", () => {
       context,
     );
     expect(state.db.from).not.toHaveBeenCalled();
+  });
+  it("mostra outra semana sem mudar a turma de referência (a de hoje)", async () => {
+    // Uma quarta-feira pedida conta como a semana dessa segunda.
+    const shown = await loadStudentTimetableForRequest({ weekStart: "2026-11-11" }, context);
+    expect(shown.weekStart).toBe("2026-11-09");
+    expect(state.agenda).toHaveBeenLastCalledWith(
+      { start: "2026-11-09", end: "2026-11-16", studentId: "child" },
+      context,
+    );
+    expect(filters).toContainEqual(["enrollments", "lte", "enrolled_on", "2026-10-26"]);
+    await loadTeacherTimetableForRequest(context, { weekStart: "2026-10-19" });
+    expect(state.agenda).toHaveBeenLastCalledWith(
+      { start: "2026-10-19", end: "2026-10-26", teacherId: "teacher" },
+      context,
+    );
+  });
+  it("recusa uma semana que não é uma data", async () => {
+    const { timetableWeekSchema } = await import("@/features/dashboard/student-agenda");
+    expect(timetableWeekSchema.safeParse("2026-13-45").success).toBe(false);
+    expect(timetableWeekSchema.safeParse("amanhã").success).toBe(false);
+    expect(timetableWeekSchema.safeParse("2026-11-09").success).toBe(true);
+    expect(timetableWeekSchema.safeParse(undefined).success).toBe(true);
   });
   it("não carrega agenda se a conta não for docente nesta escola", async () => {
     state.ownTeacher = null;

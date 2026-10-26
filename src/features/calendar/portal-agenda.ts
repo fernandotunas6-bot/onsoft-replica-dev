@@ -56,6 +56,7 @@ export function timetableFromAcademicAgenda(
   return {
     className,
     publishedAt,
+    weekStart: week.start,
     days: groupTimetableByDay(
       lessons.map((event) => ({
         weekday: new Date(`${event.start.slice(0, 10)}T12:00:00Z`).getUTCDay(),

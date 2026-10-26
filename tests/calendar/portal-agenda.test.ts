@@ -69,6 +69,7 @@ describe("projecções dos portais sobre a agenda publicada", () => {
     ).toEqual({
       className: "A",
       publishedAt: "2026-10-24T12:00:00Z",
+      weekStart: week.start,
       days: [1, 0].map((weekday) => ({
         weekday,
         lessons: [

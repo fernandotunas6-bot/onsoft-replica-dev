@@ -21,7 +21,7 @@ import {
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { loadHiddenTeachers } from "@/features/people/teacher-contact-visibility";
 import { addDaysIso, todayInLuanda } from "@/features/calendar/dates";
-import type { StudentTimetable } from "@/features/dashboard/student-agenda";
+import { timetableWeekSchema, type StudentTimetable } from "@/features/dashboard/student-agenda";
 import { loadAcademicAgendaForRequest } from "@/features/calendar/agenda-server";
 import { academicAgendaWeek, timetableFromAcademicAgenda } from "@/features/calendar/portal-agenda";
 import {
@@ -430,6 +430,7 @@ export const archiveClassTask = createServerFn({ method: "POST" })
 /** Horário publicado da semana corrente do próprio professor, em todas as turmas. */
 export async function loadTeacherTimetableForRequest(
   context: Pick<SupabaseAuthContext, "supabase" | "userId">,
+  input: { weekStart?: string } = {},
 ): Promise<StudentTimetable> {
   const empty: StudentTimetable = { className: null, publishedAt: null, days: [] };
   const membership = await resolveSgaMembershipAdmin(context.userId);
@@ -437,14 +438,15 @@ export async function loadTeacherTimetableForRequest(
   const db = await loadSgaAdminClient();
   const teacherId = await ownTeacherId(db, membership.schoolId, context.userId);
   if (!teacherId) return empty;
-  const week = academicAgendaWeek(todayInLuanda());
+  const week = academicAgendaWeek(input.weekStart ?? todayInLuanda());
   const events = await loadAcademicAgendaForRequest({ ...week, teacherId }, context);
   return timetableFromAcademicAgenda(events, week);
 }
 
 export const getMyTeacherTimetable = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(({ context }) => loadTeacherTimetableForRequest(context));
+  .validator((input: unknown) => z.object({ weekStart: timetableWeekSchema }).parse(input ?? {}))
+  .handler(({ data, context }) => loadTeacherTimetableForRequest(context, data));
 
 function mapSettings(row: Record<string, unknown> | null): ReminderSettings {
   if (!row) return { ...DEFAULT_REMINDER_SETTINGS };
