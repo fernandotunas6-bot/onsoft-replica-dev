@@ -136,7 +136,7 @@ vi.mock("@/features/academic/use-academic-nav-tree", () => ({
 // Entidade que a página declarou em foco (a ficha do aluno lida do servidor).
 const focus = vi.hoisted(() => ({
   entity: null as null | {
-    type: "student" | "teacher" | "invoice" | "employee";
+    type: "student" | "teacher" | "invoice" | "employee" | "file";
     id: string;
     label: string;
     schoolId: string;
@@ -969,6 +969,79 @@ describe("AppSidebar — menu da fatura (Context Engine, contexto financeiro)", 
       expect(screen.queryByRole("region", { name: /^Fatura/ })).toBeNull();
       view.unmount();
     }
+  });
+});
+
+describe("AppSidebar — menu do ficheiro (Context Engine, Documentos e Arquivos)", () => {
+  const FICHEIRO = "77777777-7777-4777-8777-777777777777";
+  const TURMA = "11111111-1111-4111-8111-111111111111";
+  const ANA = "44444444-4444-4444-8444-444444444444";
+  const ficheiro = {
+    type: "file" as const,
+    id: FICHEIRO,
+    label: "Certidão de nascimento",
+    schoolId: "school-a",
+    relations: { class: TURMA, student: ANA },
+  };
+
+  it("a secretaria vai do ficheiro à pasta da turma e aos documentos do aluno", () => {
+    papel = "Secretaria";
+    focus.entity = ficheiro;
+    currentPathname = `/arquivos/${FICHEIRO}`;
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Ficheiro: Certidão de nascimento" });
+    expect(section.textContent).toContain("Ficheiro · Certidão de nascimento");
+    expect(linksTo(`/arquivos/${FICHEIRO}`)).toEqual([
+      { label: "Detalhes e auditoria", search: {} },
+    ]);
+    expect(linksTo("/arquivos")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: expect.stringMatching(/^Voltar/) }),
+        { label: "Todos os arquivos", search: {} },
+        { label: "Pasta da turma", search: { turma: TURMA } },
+      ]),
+    );
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([
+      { label: "Documentos do aluno", search: { secao: "documentos" } },
+      { label: "Ficha do aluno", search: {} },
+    ]);
+  });
+
+  it("a tesouraria não abre fichas de alunos: o menu não as oferece", () => {
+    papel = "Tesouraria";
+    focus.entity = ficheiro;
+    currentPathname = `/arquivos/${FICHEIRO}`;
+    renderSidebar();
+    expect(screen.getByRole("region", { name: "Ficheiro: Certidão de nascimento" })).toBeDefined();
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([]);
+  });
+
+  it("sem ligações devolvidas com o ficheiro, só o ficheiro e os arquivos", () => {
+    papel = "Secretaria";
+    focus.entity = { ...ficheiro, relations: {} };
+    currentPathname = `/arquivos/${FICHEIRO}`;
+    renderSidebar();
+    expect(linksTo("/arquivos").map((link) => link.label)).not.toContain("Pasta da turma");
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([]);
+  });
+
+  it("antes de a página ler o ficheiro, ou com um de outra escola, o menu não muda", () => {
+    papel = "Secretaria";
+    currentPathname = `/arquivos/${FICHEIRO}`;
+    const first = renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Ficheiro/ })).toBeNull();
+    first.unmount();
+    focus.entity = { ...ficheiro, schoolId: "school-b" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Ficheiro/ })).toBeNull();
+  });
+
+  it("quem não abre os Arquivos não recebe o menu do ficheiro", () => {
+    papel = "Encarregado";
+    focus.entity = ficheiro;
+    currentPathname = `/arquivos/${FICHEIRO}`;
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Ficheiro/ })).toBeNull();
   });
 });
 

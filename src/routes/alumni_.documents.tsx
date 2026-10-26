@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAlumni } from "@/features/alumni/server";
 import { getAlumniDocumentWorkspace } from "@/features/alumni/documents";
 
-export const Route = createFileRoute("/alumni/documents")({
+export const Route = createFileRoute("/alumni_/documents")({
   head: () => ({ meta: [{ title: "Documentos Alumni · SIGA" }] }),
   component: AlumniDocumentsPage,
 });

@@ -31,7 +31,7 @@ function payrollRunBadge(status: string) {
   return PAYROLL_RUN_BADGE[status] ?? { status: "pending" as const, label: status };
 }
 
-export const Route = createFileRoute("/financeiro/rh")({
+export const Route = createFileRoute("/financeiro_/rh")({
   head: () => ({
     meta: [
       { title: "RH e Folha Salarial · SIGA" },

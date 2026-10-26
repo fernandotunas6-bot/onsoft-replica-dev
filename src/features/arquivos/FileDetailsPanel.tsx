@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { MediaFrame } from "@/components/ui/media-frame";
@@ -39,6 +40,8 @@ type FileDetailsPanelProps = {
   onChangeVisibility: (visibility: SchoolFileRecord["visibility"]) => void;
   onOrganize: (file: SchoolFileRecord) => void;
   onEditMeta: () => void;
+  /** Ligação à página do ficheiro (`/arquivos/<id>`): fora do selector e só para ficheiros no SGA. */
+  showPageLink?: boolean;
 };
 
 export function FileDetailsPanel({
@@ -53,6 +56,7 @@ export function FileDetailsPanel({
   onChangeVisibility,
   onOrganize,
   onEditMeta,
+  showPageLink = false,
 }: FileDetailsPanelProps) {
   if (!selected) {
     return (
@@ -88,6 +92,15 @@ export function FileDetailsPanel({
         </div>
       )}
       <h3 className="mt-3 break-words text-base font-semibold">{selected.name}</h3>
+      {showPageLink && !selected.isFolder && selected.storageBackend === "sga" ? (
+        <Link
+          to="/arquivos/$fileId"
+          params={{ fileId: selected.id }}
+          className="mt-1 text-xs font-semibold text-primary hover:underline"
+        >
+          Abrir a página do ficheiro
+        </Link>
+      ) : null}
       <dl className="mt-4 space-y-3 text-sm">
         <div>
           <dt className="text-xs text-muted-foreground">Proprietário</dt>

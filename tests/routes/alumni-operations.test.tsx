@@ -57,7 +57,7 @@ const pastEvent = { id: "ev-2", status: "published", starts_at: "2020-01-01T18:0
 const publishedSurvey = { id: "sv-1", status: "published" };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.operations");
+  const mod = await import("@/routes/alumni_.operations");
   return routeComponentOf(mod);
 }
 

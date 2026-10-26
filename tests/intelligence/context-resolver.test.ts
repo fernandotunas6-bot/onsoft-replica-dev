@@ -182,6 +182,8 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/financeiro/rh/funcionarios/F-012")).toEqual([]);
     expect(routeContextCandidates("/financeiro/rh/funcionarios")).toEqual([]);
     expect(routeContextCandidates(`/financeiro/rh/funcionarios/${ALUNO}/extra`)).toEqual([]);
+    expect(routeContextCandidates(`/arquivos/${ALUNO}`)).toEqual([{ type: "file", id: ALUNO }]);
+    expect(routeContextCandidates("/arquivos/certidao.pdf")).toEqual([]);
   });
 });
 
