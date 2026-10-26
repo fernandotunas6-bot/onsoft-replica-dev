@@ -73,6 +73,7 @@ import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
+import { Route as ApiMobilePresenceRouteImport } from './routes/api/mobile/presence'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
@@ -461,6 +462,11 @@ const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
 const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
   id: '/api/cron/saas-lifecycle',
   path: '/api/cron/saas-lifecycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobilePresenceRoute = ApiMobilePresenceRouteImport.update({
+  id: '/api/mobile/presence',
+  path: '/api/mobile/presence',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
@@ -879,6 +885,7 @@ export interface FileRoutesByFullPath {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1010,6 +1017,7 @@ export interface FileRoutesByTo {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1142,6 +1150,7 @@ export interface FileRoutesById {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1275,6 +1284,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/presence'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1406,6 +1416,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/presence'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1537,6 +1548,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/presence'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1656,6 +1668,7 @@ export interface RootRouteChildren {
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
+  ApiMobilePresenceRoute: typeof ApiMobilePresenceRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
@@ -2146,6 +2159,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/saas-lifecycle'
       fullPath: '/api/cron/saas-lifecycle'
       preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/presence': {
+      id: '/api/mobile/presence'
+      path: '/api/mobile/presence'
+      fullPath: '/api/mobile/presence'
+      preLoaderRoute: typeof ApiMobilePresenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/audit-logs': {
@@ -2867,6 +2887,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
+  ApiMobilePresenceRoute: ApiMobilePresenceRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,

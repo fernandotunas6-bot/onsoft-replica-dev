@@ -37,6 +37,7 @@ import {
   type TeacherPresenceFields,
 } from "@/features/pedagogica/teacher-presence";
 import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-server";
+import { loadSchoolPresenceMode } from "@/features/pedagogica/school-presence-mode";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -887,3 +888,28 @@ export const reviewPresenceScan = createServerFn({ method: "POST" })
     }
     return { scanId: data.scanId, decision: data.decision, marked };
   });
+
+// ── App Flutter (/api/mobile/presence) ────────────────────────────────────────
+
+/** Modo da escola e aulas de hoje do professor autenticado por Bearer. */
+export async function mobilePresenceToday(userId: string, schoolId: string) {
+  const db = await loadSgaAdminClient();
+  const { membership, teacherId } = await requireTeacherForPresence(db, userId, schoolId);
+  const today = schoolTodayIso();
+  const [mode, lessons] = await Promise.all([
+    loadSchoolPresenceMode(db, membership.schoolId),
+    ensureTeacherDaySessions(db, { schoolId: membership.schoolId, teacherId, date: today, userId }),
+  ]);
+  return { schoolId: membership.schoolId, mode, date: today, serverNow: Date.now(), lessons };
+}
+
+/** Leitura do QR enviada pela app (já ou da fila sem rede). */
+export async function mobilePresenceSubmit(
+  userId: string,
+  schoolId: string,
+  scan: z.infer<typeof presenceScanInputSchema>,
+) {
+  const db = await loadSgaAdminClient();
+  const { membership, teacherId } = await requireTeacherForPresence(db, userId, schoolId);
+  return processPresenceScan(db, { schoolId: membership.schoolId, userId, teacherId, scan });
+}

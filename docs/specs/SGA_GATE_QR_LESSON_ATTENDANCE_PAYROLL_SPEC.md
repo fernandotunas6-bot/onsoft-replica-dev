@@ -83,3 +83,34 @@
 - Regras (`src/features/pedagogica/teacher-presence.ts`): o professor da aula confirma «Estou na sala» no dia, de 15 min antes do início até ao fim; até 5 min depois do início conta como a horas. Concluir a chamada no dia confirma também (`call`), excepto envios offline que chegam depois. O QR do RH marca a aula (`qr`). A Direcção/Secretaria regista pelo professor com motivo (`manual`, sem atraso calculado). Só o servidor escreve (`confirmTeacherLessonPresence`).
 - Ecrãs: portal do professor, `/professor/presenca` («Aulas de hoje»), cabeçalho da chamada e Pedagógica → Presenças (estado por aula, nome do professor e contagem do dia). «Hoje na escola» conta professores com presença pelas aulas e pelo QR.
 - Não tem efeito salarial nem gera faltas de RH. Sem o SQL aplicado, a chamada funciona como antes e os botões não aparecem.
+
+## 12. QR único da escola para a presença dos professores (2026-10-26)
+
+Pedido do proprietário: o director gera um QR, o mesmo para todos os professores, e cada
+professor lê-o no telemóvel antes da aula e da chamada; tem de poder desligar-se e funcionar
+sem rede em zonas remotas. Objectivo: travar quem marca aulas sem ir à escola.
+
+- **Modo por escola** (`siga_school_presence_settings.mode`): `qr` (só conta a leitura do QR; o
+  «Estou na sala» do professor é recusado no servidor e no ecrã vira «Ler QR da escola»),
+  `button` (por omissão; a chamada concluída também confirma) e `off` (ninguém regista). A
+  Direcção/Secretaria continua a poder registar com motivo, excepto em `off`.
+- **QR rotativo** `SIGAP1.<escola>.R.<passo>.<mac>`: passo = unix/30 s, mac = HMAC da chave do
+  dia (derivada do segredo da escola). O ecrã da Direcção recebe as chaves de hoje e amanhã e
+  gera o QR sozinho, por isso funciona sem internet o dia todo. Uma fotografia enviada com
+  rede minutos depois é recusada (`qr_expirado`).
+- **QR impresso** `…P.<AAAAMMDD da segunda-feira>…` para escolas sem ecrã: vale a semana,
+  exige localização dentro da zona; sem zona definida fica sempre por rever.
+- **Zona GPS** (centro + raio, definida pela Direcção no pátio). Fora da zona, localização
+  simulada (Android), imprecisa (> 500 m) ou em falta: a leitura fica **por rever**, não conta
+  sozinha. Guarda-se só a distância e a precisão, não as coordenadas.
+- **Sem rede**: o telemóvel guarda a leitura com a hora dele; no envio manda também a hora
+  actual, e o servidor corrige o desvio (mudar a hora do telemóvel não engana) e prende a hora
+  à janela do QR. Prazo da escola, 72 h por omissão.
+- **Aulas confirmadas**: as do professor abertas na hora da leitura (de 15 min antes do início
+  até ao fim), com o método `qr` e os minutos de atraso.
+- **Revisão**: `/pedagogica_/presenca-docente` lista as leituras do dia; confirmar ou recusar
+  exige motivo, e confirmar marca as aulas guardadas na leitura com a hora do QR.
+- **«Anular todos os QR»** roda o segredo (versão + 1): ecrãs e folhas impressas deixam de valer.
+- Web do professor: `/professor/presenca#ler-qr` (câmara com BarcodeDetector ou jsQR, fila em
+  localStorage). App Flutter: «Presença na sala», via `/api/mobile/presence`.
+- SQL: `20261026100000_school_presence_qr.sql`, aplicado na produção a 26/10 pelo proprietário.

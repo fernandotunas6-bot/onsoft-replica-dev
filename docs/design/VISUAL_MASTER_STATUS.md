@@ -201,3 +201,16 @@ e contagem do dia nas aulas de Pedagógica → Presenças; registo pela Direcç�
 motivo. Evidência automatizada: `tests/routes/professor-presenca.test.tsx` e
 `tests/pedagogica/teacher-presence.test.ts`. **Por validar no navegador:** 390/768/1440 px
 numa sessão autenticada de professor e de Direcção, depois de aplicado o SQL.
+
+## QR da escola para a presença (26/10/2026)
+
+`/pedagogica_/presenca-docente` ganha o painel «QR da escola» (três cartões de estado,
+definições com o modo em três opções, zona GPS, interruptores) e «Leituras de hoje» com
+confirmar/recusar em linha. O ecrã do QR é uma camada de ecrã inteiro (fundo da app, hora
+grande, QR com barra de tempo, aviso «Sem internet: o QR continua válido»), não um modal. No
+professor, um bloco «Ler QR da escola» com câmara e cartão de resultado (verde/âmbar/vermelho)
+em `/professor/presenca`. App Flutter: ecrã «Presença na sala» com cartão em gradiente da cor de
+acção, câmara com moldura e linha animada (desliga com movimento reduzido), folha de resultado.
+Evidência: `tests/pedagogica/school-qr.test.ts`, `mobile-flutter/test/presence_test.dart`,
+`flutter analyze`/`build web` limpos. **Por validar no navegador e num telemóvel Android de
+entrada**, com sessão autenticada.
