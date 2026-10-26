@@ -136,6 +136,11 @@ cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedago
 (a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
 estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (painel lateral sem separador vazio):** o separador
+«Relacionado» do painel lateral só aparece quando a entidade aberta tem relações com destino ou
+acções. Na página da fatura abria vazio; fica só «Mensagens», e o menu da fatura na sidebar leva
+às páginas ligadas. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
