@@ -10173,7 +10173,13 @@ export type Database = {
           starts_at: string | null
           status: string
           subject_id: string
+          teacher_checked_in_at: string | null
+          teacher_checked_in_by: string | null
+          teacher_checked_out_at: string | null
+          teacher_checkin_method: string | null
           teacher_id: string | null
+          teacher_late_minutes: number | null
+          teacher_presence_note: string | null
           timetable_slot_id: string | null
           updated_at: string
           updated_by: string | null
@@ -10192,7 +10198,13 @@ export type Database = {
           starts_at?: string | null
           status?: string
           subject_id: string
+          teacher_checked_in_at?: string | null
+          teacher_checked_in_by?: string | null
+          teacher_checked_out_at?: string | null
+          teacher_checkin_method?: string | null
           teacher_id?: string | null
+          teacher_late_minutes?: number | null
+          teacher_presence_note?: string | null
           timetable_slot_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -10211,7 +10223,13 @@ export type Database = {
           starts_at?: string | null
           status?: string
           subject_id?: string
+          teacher_checked_in_at?: string | null
+          teacher_checked_in_by?: string | null
+          teacher_checked_out_at?: string | null
+          teacher_checkin_method?: string | null
           teacher_id?: string | null
+          teacher_late_minutes?: number | null
+          teacher_presence_note?: string | null
           timetable_slot_id?: string | null
           updated_at?: string
           updated_by?: string | null

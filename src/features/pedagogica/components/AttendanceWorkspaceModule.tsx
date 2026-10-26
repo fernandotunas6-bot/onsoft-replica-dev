@@ -31,6 +31,12 @@ import {
   getStudentAttendanceHistory,
 } from "@/features/pedagogica/attendance-server";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
+import {
+  TeacherCheckinButton,
+  TeacherPresenceLine,
+  TeacherPresenceManualRegister,
+} from "@/features/pedagogica/components/TeacherLessonPresence";
+import { summarizeTeacherPresence } from "@/features/pedagogica/lesson-presence-view";
 import { ReviewAttendanceJustificationModal } from "@/features/pedagogica/components/AttendanceJustificationModal";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { SchemaMissingBanner, isSchemaMissingError } from "@/components/ui/schema-missing-banner";
@@ -80,6 +86,9 @@ export function AttendanceWorkspaceModule({
     [sessionsQuery.data?.sessions],
   );
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
+  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true;
+  const viewerIsTeacher = sessionsQuery.data?.viewerIsTeacher === true;
+  const presenceSummary = presenceEnabled ? summarizeTeacherPresence(sessions) : null;
   const historyRecords = historyQuery.data?.records ?? [];
 
   const filteredHistory = historyRecords.filter((rec) =>
@@ -162,6 +171,26 @@ export function AttendanceWorkspaceModule({
           <Clock className="size-4 text-primary" /> Aulas Agendadas para {selectedDate}
         </h3>
 
+        {presenceSummary && !viewerIsTeacher && sessions.length > 0 ? (
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span>
+              Professores na sala:{" "}
+              <strong className="text-success">
+                {presenceSummary.confirmed + presenceSummary.call_only}
+              </strong>
+            </span>
+            <span>
+              Atrasados: <strong className="text-warning-strong">{presenceSummary.late}</strong>
+            </span>
+            <span>
+              Por confirmar:{" "}
+              <strong className="text-warning-strong">{presenceSummary.awaiting}</strong>
+            </span>
+            <span>
+              Sem presença: <strong className="text-destructive">{presenceSummary.missing}</strong>
+            </span>
+          </p>
+        ) : null}
         {sessionsQuery.isLoading ? (
           <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">
             A carregar sessões de aula...
@@ -207,6 +236,19 @@ export function AttendanceWorkspaceModule({
                     {sess.class_group_name}
                   </h4>
                   <p className="text-xs text-primary font-semibold">{sess.subject_name}</p>
+                  {presenceEnabled ? (
+                    <div className="mt-2 space-y-1">
+                      <TeacherPresenceLine
+                        session={sess}
+                        teacherName={viewerIsTeacher ? null : sess.teacher_name}
+                      />
+                      {viewerIsTeacher ? (
+                        <TeacherCheckinButton session={sess} className="h-8 w-full" />
+                      ) : (
+                        <TeacherPresenceManualRegister session={sess} />
+                      )}
+                    </div>
+                  ) : null}
                 </div>
 
                 <Button

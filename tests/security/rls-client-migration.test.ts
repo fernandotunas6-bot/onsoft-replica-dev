@@ -55,6 +55,11 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Presença do professor na aula (2026-10-26): authenticated só tem SELECT em
+  // siga_attendance_sessions (as chamadas escrevem-se no servidor), por isso a
+  // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,
+  // na janela da aula, ou a Direcção/Secretaria com motivo.
+  "src/features/pedagogica/teacher-presence-server.ts",
   // Entregas de trabalhos (2026-10-25): siga_class_task_submissions nasce sem
   // políticas e sem privilégios para authenticated (trabalhos de menores), por
   // isso só o service role a lê. Aqui decide-se o âmbito: professor da

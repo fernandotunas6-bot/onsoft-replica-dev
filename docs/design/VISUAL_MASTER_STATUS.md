@@ -191,3 +191,13 @@ um novo módulo ou mudar o sistema de permissões, backend, RLS ou dados.
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.
 - Orientações para trabalho paralelo: `docs/agents/HANDOFF_SETTINGS_2026-10-25.md`.
+
+## Presença do professor na sala (26/10/2026)
+
+Acrescentos pequenos dentro de ecrãs existentes, sem modais novos: uma linha de estado
+(«Professor na sala», «Por confirmar», «Sem presença»…) e o botão «Estou na sala» nas aulas
+do portal do professor, em `/professor/presenca` e no cabeçalho da chamada; nome do professor
+e contagem do dia nas aulas de Pedagógica → Presenças; registo pela Direcção em linha, com
+motivo. Evidência automatizada: `tests/routes/professor-presenca.test.tsx` e
+`tests/pedagogica/teacher-presence.test.ts`. **Por validar no navegador:** 390/768/1440 px
+numa sessão autenticada de professor e de Direcção, depois de aplicado o SQL.

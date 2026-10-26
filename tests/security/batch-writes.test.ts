@@ -134,7 +134,7 @@ describe("aulas do dia (presença)", () => {
   });
 
   it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
-    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+    expect(fn).toMatch(/if \(!linked\.teacher_id\)\s*return \{\s*sessions: \[\]/);
   });
 
   it("as sessões em falta criam-se numa só escrita, com erro verificado", () => {

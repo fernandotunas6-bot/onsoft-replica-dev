@@ -299,8 +299,8 @@ export function TeacherAttendancePanel({
   return (
     <>
       <Panel
-        title="Presença e hora/aula"
-        description="Valide o QR no telemóvel ou tablet. Depois do check-in, abra a chamada da turma; no fim da aula, leia o QR de saída."
+        title="QR de hora/aula"
+        description="Para professores com contrato de hora/aula no RH. Valide o QR da aula no telemóvel ou tablet; no fim da aula, leia o QR de saída. O QR também confirma a presença na sala."
         action={
           <Button
             variant="outline"
@@ -560,8 +560,9 @@ export function TeacherAttendancePanel({
               </p>
             ) : lessons.length === 0 ? (
               <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                Ainda não existem ocorrências de aula ligadas ao seu vínculo de RH. Confirme que a
-                secretaria associou o seu login à ficha de professor e sincronizou o horário.
+                Sem aulas de hora/aula no RH. O QR só aparece quando a Administração ou a Tesouraria
+                regista o seu vínculo e contrato de hora/aula e sincroniza o horário. A presença na
+                sala e a chamada fazem-se nas aulas de hoje, acima.
               </p>
             ) : (
               <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">

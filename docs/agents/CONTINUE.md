@@ -1,5 +1,21 @@
 # Handoff — continuar o SIGA
 
+## Presenças: professor na sala e chamada dos alunos — 2026-10-26
+
+- **Professor na sala:** o QR do RH não funcionava em nenhuma escola (0 vínculos e 0 contratos
+  de RH na produção, logo 0 aulas para QR). A presença passa a gravar-se na aula do horário
+  (`siga_attendance_sessions`), sem depender do RH. Regras e ecrãs na
+  [especificação, §11](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md).
+  SQL **por aplicar**: `docs/agents/SIGA_aplicar_presenca_professor.sql` (só acrescenta colunas;
+  as seis estão em `tests/security/espera-migracao.ts` até o retrato as ter).
+- **Chamada dos alunos:** abrir a chamada por turma+disciplina com dois tempos da mesma
+  disciplina no dia (7 casos no horário de produção) lia com `maybeSingle()`, falhava e criava
+  uma terceira sessão sem hora; agora escolhe o tempo em curso ou o próximo e liga a sessão
+  nova ao tempo do horário (`pickLessonSession`, `pickLessonSlot`). O mesmo em
+  `ensureAttendanceSessionForOccurrence` (QR).
+- **Sincronizar 14 dias (QR):** a Secretaria passava a verificação do servidor e a RPC recusava
+  («Insufficient HR permission»); agora só Administração/Tesouraria, com mensagem clara.
+
 ## Backend: horários, agenda e matrículas — 2026-10-25
 
 Pedido deste ciclo: só backend. [Contrato, pesquisa comparativa e migrações](../architecture/ACADEMIC_AGENDA.md).
