@@ -60,6 +60,12 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // isso só o service role a lê. Aqui decide-se o âmbito: professor da
   // disciplina ou direcção; aluno na sua matrícula activa; encarregado só lê.
   "src/features/academic/task-submissions-server.ts",
+  // Renovação de matrícula para o ano seguinte (2026-10-25): grava matrículas
+  // por placeStudentInClass, que recebe o cliente privilegiado (como
+  // enrollStudentInClass em students/server.ts) e mantém a RPC enroll_student,
+  // o 2FA e o histórico de estado. Guarda Administrador/Secretaria; todas as
+  // leituras filtram pela escola da membership.
+  "src/features/academic/year-rollover-server.ts",
   // Sessões de caixa (2026-10-24): as tabelas nascem sem políticas e sem
   // privilégios para authenticated; escrevem-se só pelas RPC (sessão do
   // utilizador, AAL2). A leitura do estado corre aqui, depois da guarda de

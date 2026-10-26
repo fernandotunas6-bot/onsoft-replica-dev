@@ -1702,6 +1702,26 @@ export const createAssessment = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
+    // Como nas notas e nos planos: a disciplina tem de estar atribuída à turma, nesta
+    // escola. Sem isto a avaliação nascia e nenhuma nota se podia lançar nela.
+    const { data: classSubject, error: classSubjectError } = await db
+      .from("class_subjects")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .eq("subject_id", data.subjectId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    if (classSubjectError && !isMissingRelation(classSubjectError)) {
+      throw publicDatabaseError(
+        classSubjectError,
+        "Não foi possível validar a turma e a disciplina.",
+      );
+    }
+    if (!classSubjectError && !classSubject) {
+      throw new Error("Esta disciplina não está atribuída à turma escolhida.");
+    }
     const { data: created, error } = await db
       .from("siga_assessment_items")
       .insert({

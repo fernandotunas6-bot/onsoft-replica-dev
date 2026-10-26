@@ -218,6 +218,53 @@ describe("/planos-aula", () => {
     });
   });
 
+  it("com uma turma no filtro, a disciplina mostra só as dessa turma", async () => {
+    const [turma7a] = sampleWorkspace.classGroups;
+    listPedagogicalWorkspaceMock.mockResolvedValue({
+      ...sampleWorkspace,
+      classGroups: [
+        ...sampleWorkspace.classGroups,
+        { ...turma7a!, id: "turma-2", name: "Turma 8B" },
+      ],
+      classSubjects: [
+        {
+          class_group_id: "turma-1",
+          subject_id: "sub-1",
+          subject_name: "Matemática",
+          teacher_id: null,
+          teacher_name: null,
+        },
+        {
+          class_group_id: "turma-2",
+          subject_id: "sub-2",
+          subject_name: "Língua Portuguesa",
+          teacher_id: null,
+          teacher_name: null,
+        },
+      ],
+    });
+    renderRoute(Page);
+    await waitFor(() => expect(screen.getByText("Geometria Espacial & Álgebra")).toBeDefined());
+
+    const disciplinas = () =>
+      Array.from(
+        (screen.getByRole("combobox", { name: "Disciplina" }) as HTMLSelectElement).options,
+      ).map((option) => option.text);
+    expect(disciplinas()).toEqual(expect.arrayContaining(["Matemática", "Língua Portuguesa"]));
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Disciplina" }), {
+      target: { value: "sub-1" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Turma" }), {
+      target: { value: "turma-2" },
+    });
+    await waitFor(() => expect(disciplinas()).not.toContain("Matemática"));
+    expect(disciplinas()).toContain("Língua Portuguesa");
+    expect((screen.getByRole("combobox", { name: "Disciplina" }) as HTMLSelectElement).value).toBe(
+      "",
+    );
+  });
+
   it("permite acionar remoção de plano após confirmação", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     renderRoute(Page);

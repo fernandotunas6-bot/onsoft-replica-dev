@@ -655,6 +655,7 @@ function StudentsPage() {
                 academic_year_name: String(group.academic_year_name ?? ""),
               }))}
               people={peopleQuery.data ?? []}
+              existingStudents={studentsQuery.data ?? []}
               onCreated={async () => {
                 await Promise.all([
                   queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
