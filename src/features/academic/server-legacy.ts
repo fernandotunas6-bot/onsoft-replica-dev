@@ -3,6 +3,7 @@ import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-l
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
 import { readSettingsDomain } from "@/features/school/settings-domains";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -245,8 +246,11 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const filteredGroupIds = (groups.data ?? []).map((group: { id: string }) => group.id);
 
     const classSubjectsChain = (async () => {
+      // Por páginas e por lotes: o horário da escola inteira passa facilmente as 500
+      // linhas, e com a ordem só por `starts_at` eram as aulas da tarde que caíam.
+      const reads = pagedReadClient(db);
       const { data: classSubjectsData } = filteredGroupIds.length
-        ? await db
+        ? await reads
             .from("class_subjects")
             .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
             .in("class_group_id", filteredGroupIds)
@@ -256,13 +260,12 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         String(row["id"]),
       );
       const { data: slots, error: slotsError } = ids.length
-        ? await db
+        ? await reads
             .from("timetable_slots")
             .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
             .in("class_subject_id", ids)
             .eq("status", "active")
             .order("starts_at")
-            .limit(500)
         : { data: [] as Array<Record<string, unknown>>, error: null };
       return { data: classSubjectsData, timetableSlots: slots, scheduleError: slotsError };
     })();
