@@ -175,6 +175,9 @@ export function planClassAllocationByAge(input: {
     excluded.push({ studentId: eligible[index]!.studentId, reason: "no_capacity" });
   }
 
+  if (input.mode === "reorganize" && groups.some((group) => group.reservedSeats > 0)) {
+    warnings.push("Há matrículas fora da simulação: não é possível garantir a ordem global por idade.");
+  }
   if (excluded.some((item) => item.reason === "invalid_birth_date")) {
     warnings.push("Há alunos sem data de nascimento válida; exigir verificação documental.");
   }
