@@ -1,6 +1,7 @@
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { ACADEMIC_CONTEXT_MODULE } from "./academic-context-entries";
 import type { ContextNavEntry } from "./context-registry";
+import { FILE_CONTEXT_MODULE } from "./file-context-entries";
 import { INVOICE_CONTEXT_MODULE } from "./invoice-context-entries";
 import { STUDENT_CONTEXT_MODULE } from "./student-context-entries";
 import { TEACHER_CONTEXT_MODULE } from "./teacher-context-entries";
@@ -39,6 +40,7 @@ export const CONTEXT_MODULES: readonly ContextModule[] = [
   STUDENT_CONTEXT_MODULE,
   TEACHER_CONTEXT_MODULE,
   INVOICE_CONTEXT_MODULE,
+  FILE_CONTEXT_MODULE,
 ];
 
 /** As entradas de todos os módulos; o registo escolhe pelo tipo da entidade aberta. */

@@ -176,6 +176,8 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates(`/faturas/${ALUNO}`)).toEqual([{ type: "invoice", id: ALUNO }]);
     expect(routeContextCandidates("/faturas/FT-2026-0311")).toEqual([]);
     expect(routeContextCandidates("/faturas")).toEqual([]);
+    expect(routeContextCandidates(`/arquivos/${ALUNO}`)).toEqual([{ type: "file", id: ALUNO }]);
+    expect(routeContextCandidates("/arquivos/certidao.pdf")).toEqual([]);
   });
 });
 

@@ -1737,6 +1737,7 @@ export function FileBrowser({
             onChangeVisibility={(visibility) => void changeVisibility(visibility)}
             onOrganize={(file) => setOrganizeTarget(file)}
             onEditMeta={() => void saveSelectedMeta()}
+            showPageLink={!pickMode}
           />
         ) : null}
       </div>

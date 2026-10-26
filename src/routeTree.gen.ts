@@ -44,6 +44,7 @@ import { Route as AlumniPipelineRouteImport } from './routes/alumni_.pipeline'
 import { Route as AlumniPortalRouteImport } from './routes/alumni_.portal'
 import { Route as AlunosIndexRouteImport } from './routes/alunos/index'
 import { Route as AlunosStudentIdRouteImport } from './routes/alunos/$studentId'
+import { Route as ArquivosFileIdRouteImport } from './routes/arquivos_.$fileId'
 import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
@@ -320,6 +321,11 @@ const AlunosIndexRoute = AlunosIndexRouteImport.update({
 const AlunosStudentIdRoute = AlunosStudentIdRouteImport.update({
   id: '/alunos/$studentId',
   path: '/alunos/$studentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArquivosFileIdRoute = ArquivosFileIdRouteImport.update({
+  id: '/arquivos_/$fileId',
+  path: '/arquivos/$fileId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthEmailChangeRoute = AuthEmailChangeRouteImport.update({
@@ -891,6 +897,7 @@ export interface FileRoutesByFullPath {
   '/alumni/pipeline': typeof AlumniPipelineRoute
   '/alumni/portal': typeof AlumniPortalRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/arquivos/$fileId': typeof ArquivosFileIdRoute
   '/auth/email-change': typeof AuthEmailChangeRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -1029,6 +1036,7 @@ export interface FileRoutesByTo {
   '/alumni/pipeline': typeof AlumniPipelineRoute
   '/alumni/portal': typeof AlumniPortalRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/arquivos/$fileId': typeof ArquivosFileIdRoute
   '/auth/email-change': typeof AuthEmailChangeRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -1168,6 +1176,7 @@ export interface FileRoutesById {
   '/alumni_/pipeline': typeof AlumniPipelineRoute
   '/alumni_/portal': typeof AlumniPortalRoute
   '/alunos/$studentId': typeof AlunosStudentIdRoute
+  '/arquivos_/$fileId': typeof ArquivosFileIdRoute
   '/auth/email-change': typeof AuthEmailChangeRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
@@ -1308,6 +1317,7 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/arquivos/$fileId'
     | '/auth/email-change'
     | '/auth/magic-link'
     | '/auth/reset-password'
@@ -1446,6 +1456,7 @@ export interface FileRouteTypes {
     | '/alumni/pipeline'
     | '/alumni/portal'
     | '/alunos/$studentId'
+    | '/arquivos/$fileId'
     | '/auth/email-change'
     | '/auth/magic-link'
     | '/auth/reset-password'
@@ -1584,6 +1595,7 @@ export interface FileRouteTypes {
     | '/alumni_/pipeline'
     | '/alumni_/portal'
     | '/alunos/$studentId'
+    | '/arquivos_/$fileId'
     | '/auth/email-change'
     | '/auth/magic-link'
     | '/auth/reset-password'
@@ -1723,6 +1735,7 @@ export interface RootRouteChildren {
   AlumniPipelineRoute: typeof AlumniPipelineRoute
   AlumniPortalRoute: typeof AlumniPortalRoute
   AlunosStudentIdRoute: typeof AlunosStudentIdRoute
+  ArquivosFileIdRoute: typeof ArquivosFileIdRoute
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
@@ -2054,6 +2067,13 @@ declare module '@tanstack/react-router' {
       path: '/alunos/$studentId'
       fullPath: '/alunos/$studentId'
       preLoaderRoute: typeof AlunosStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arquivos_/$fileId': {
+      id: '/arquivos_/$fileId'
+      path: '/arquivos/$fileId'
+      fullPath: '/arquivos/$fileId'
+      preLoaderRoute: typeof ArquivosFileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/email-change': {
@@ -2910,6 +2930,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlumniPipelineRoute: AlumniPipelineRoute,
   AlumniPortalRoute: AlumniPortalRoute,
   AlunosStudentIdRoute: AlunosStudentIdRoute,
+  ArquivosFileIdRoute: ArquivosFileIdRoute,
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
