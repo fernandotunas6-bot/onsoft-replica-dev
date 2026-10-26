@@ -101,10 +101,9 @@ Para uma release de produção faltam testes reais dos instaladores Windows/macO
 
 ## Testes Windows e manifesto
 
-O `build.rs` liga `windows-app-manifest.xml` a todos os alvos MSVC, incluindo os testes de biblioteca. O conteúdo corresponde ao manifesto padrão do `tauri-build 2.7.1`: Common Controls v6. O manifesto automático é desactivado apenas nesse alvo para evitar recursos duplicados; ícone e restantes recursos continuam a ser gerados pelo Tauri. Rever este ficheiro ao actualizar `tauri-build`. Isto trata o erro de carregamento `STATUS_ENTRYPOINT_NOT_FOUND` antes da execução dos testes (tauri-apps/tauri#13419). A biblioteca usa o sufixo `_lib` para evitar colisões de nomes com o executável no Windows.
+O `build.rs` liga `windows-app-manifest.xml` a todos os alvos MSVC, incluindo os testes de biblioteca. O conteúdo corresponde ao manifesto padrão do `tauri-build`: Common Controls v6 (igual, byte a byte, nas 2.7.1 e 2.7.4; verificado a 26/10/2026 ao subir para o Tauri 2.12.5). O manifesto automático é desactivado apenas nesse alvo para evitar recursos duplicados; ícone e restantes recursos continuam a ser gerados pelo Tauri. Rever este ficheiro ao actualizar `tauri-build`. Isto trata o erro de carregamento `STATUS_ENTRYPOINT_NOT_FOUND` antes da execução dos testes (tauri-apps/tauri#13419). A biblioteca usa o sufixo `_lib` para evitar colisões de nomes com o executável no Windows.
 
 O arranque React cancela a continuação assíncrona após desmontagem e remove a subscrição de idioma. Os testes de ciclo de vida cobrem StrictMode e desmontagem durante preferências, idioma e criação de menus.
-
 
 ## Passagem de trabalho para outro agente
 
