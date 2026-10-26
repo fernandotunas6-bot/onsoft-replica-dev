@@ -7,6 +7,7 @@ import {
   parseDesktopRelease,
   primaryDesktopAsset,
 } from "@/lib/desktop-app-downloads";
+import { isAndroidVisitor, parseAndroidRelease } from "@/lib/android-app-downloads";
 
 describe("transferir a app de computador", () => {
   it("reconhece o sistema; telemóveis ficam sem botão destacado", () => {
@@ -56,5 +57,20 @@ describe("transferir a app de computador", () => {
     await expect(fetchLatestDesktopRelease(offline)).resolves.toBeNull();
     const notFound = (async () => new Response("", { status: 404 })) as unknown as typeof fetch;
     await expect(fetchLatestDesktopRelease(notFound)).resolves.toBeNull();
+  });
+
+  it("Android: reconhece o telemóvel e lê a versão do nome da release", () => {
+    expect(isAndroidVisitor("Mozilla/5.0 (Linux; Android 14; SM-A146P) Mobile")).toBe(true);
+    expect(isAndroidVisitor("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")).toBe(false);
+    expect(
+      parseAndroidRelease({
+        name: "SIGA Plus para Android 1.0.0",
+        assets: [
+          { name: "SIGA-Plus-Android-arm64.apk", size: 30 * 1024 * 1024 },
+          { name: "outro.apk", size: 1 },
+        ],
+      }),
+    ).toEqual({ version: "1.0.0", sizes: { "SIGA-Plus-Android-arm64.apk": 30 * 1024 * 1024 } });
+    expect(parseAndroidRelease({ name: "x", assets: [] })).toBeNull();
   });
 });

@@ -35,7 +35,7 @@ import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaig
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
-import { DesktopDownloadPanel } from "@/features/desktop/DesktopDownloadPanel";
+import { AppDownloads } from "@/features/desktop/AppDownloads";
 import { actionIcons } from "@/lib/app-icons";
 
 const WebsiteSettingsPanel = lazy(() =>
@@ -163,8 +163,8 @@ function useSettingsPanels(): StackPanel[] {
             to: "sistema.desempenho",
           },
           {
-            label: "App para computador",
-            description: "Windows, macOS e Linux",
+            label: "Apps do SIGA",
+            description: "Computador e Android",
             icon: Monitor,
             tone: "primary",
             to: "sistema.app",
@@ -323,11 +323,11 @@ function useSettingsPanels(): StackPanel[] {
       },
       {
         id: "sistema.app",
-        title: "App para computador",
-        description: "Transfira o SIGA Plus para o computador.",
+        title: "Apps do SIGA",
+        description: "Transfira o SIGA Plus para o computador ou para o Android.",
         icon: Monitor,
         tone: "primary",
-        render: () => <DesktopDownloadPanel />,
+        render: () => <AppDownloads />,
       },
     ],
     [],

@@ -68,7 +68,7 @@ não se deve contar com essa segunda barreira.
 | v1.1.0 – v1.2.2 (06–10/10/2026) | Publicadas                                                                                            | Não (sem chave): substituir à mão                                                         |
 | v1.3.0 (25/10/2026)             | Rascunho, **nunca publicada**                                                                         | Não. Ficou para trás de propósito: publicá-la obrigava as escolas a reinstalar duas vezes |
 | v1.3.1 (26/10/2026)             | **Publicada** a 26/10, 15:30 UTC; Tauri 2.12.5; as 10 entradas do `latest.json` assinadas com a chave | **Sim**: a primeira. As seguintes chegam pelo botão «Instalar e reiniciar»                |
-| v1.3.2 (26/10/2026)             | Preparada: ícone novo (o «S» da web) em vez do capelo amarelo; por compilar e publicar                 | Sim                                                                                       |
+| v1.3.2 (26/10/2026)             | **Publicada** a 26/10, 19:53 UTC: ícone novo (o «S» da web) em vez do capelo amarelo                  | Sim: as 1.3.1 instaladas recebem o aviso «Instalar e reiniciar»                           |
 
 Na construção da v1.3.1 (run 40343925848), o macOS ficou na fila até o GitHub o
 cancelar por falta de máquinas («not acquired by Runner… even after multiple

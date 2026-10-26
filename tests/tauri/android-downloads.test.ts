@@ -9,10 +9,21 @@ import {
   fetchAndroidRelease,
   isAndroidVisitor,
 } from "../../painel/web/src/lib/android-downloads";
+import * as sigaAndroid from "@/lib/android-app-downloads";
 
 const workflow = readFileSync(".github/workflows/estudo-yft-android.yml", "utf8");
 
 describe("APK Android no site (/download)", () => {
+  it("a página /transferir do SIGA usa os mesmos ficheiros, tag e certificado", () => {
+    expect(sigaAndroid.ANDROID_ASSETS.map((a) => a.file)).toEqual(
+      ANDROID_ASSETS.map((a) => a.file),
+    );
+    expect(sigaAndroid.ANDROID_RELEASE_TAG).toBe(ANDROID_RELEASE_TAG);
+    expect(sigaAndroid.ANDROID_SIGNING_SHA256).toBe(ANDROID_SIGNING_SHA256);
+    expect(sigaAndroid.ANDROID_CHECKSUMS_FILE).toBe(ANDROID_CHECKSUMS_FILE);
+    expect(sigaAndroid.androidDownloadUrl("x.apk")).toBe(androidDownloadUrl("x.apk"));
+  });
+
   it("os ficheiros do site são os que o workflow publica, na release «android»", () => {
     for (const asset of ANDROID_ASSETS) expect(workflow).toContain(asset.file);
     expect(workflow).toContain(ANDROID_CHECKSUMS_FILE);
