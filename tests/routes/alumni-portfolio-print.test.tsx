@@ -72,7 +72,7 @@ function buildItem(overrides: Record<string, unknown> = {}) {
 }
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.portal.portfolio.print");
+  const mod = await import("@/routes/alumni_.portal_.portfolio_.print");
   return routeComponentOf(mod);
 }
 

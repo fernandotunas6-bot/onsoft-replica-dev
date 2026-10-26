@@ -56,7 +56,7 @@ vi.mock("@/features/alumni/education-history", () => ({
 let Showcase: ComponentType;
 
 beforeAll(async () => {
-  const mod = await import("@/routes/alumni.portal.portfolio.showcase");
+  const mod = await import("@/routes/alumni_.portal_.portfolio_.showcase");
   const route = mod.Route as unknown as { component: ComponentType };
   Showcase = route.component;
 }, 60_000);

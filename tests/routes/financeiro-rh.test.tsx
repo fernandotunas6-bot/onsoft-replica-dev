@@ -70,7 +70,7 @@ const samplePayroll: Payroll = {
 } as Payroll;
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/financeiro.rh");
+  const mod = await import("@/routes/financeiro_.rh");
   return routeComponentOf(mod);
 }
 

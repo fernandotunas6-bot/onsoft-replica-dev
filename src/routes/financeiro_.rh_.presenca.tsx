@@ -14,7 +14,7 @@ import {
   saveAttendanceAssurancePolicy,
 } from "@/features/hr/attendance-assurance";
 
-export const Route = createFileRoute("/financeiro/rh/presenca")({
+export const Route = createFileRoute("/financeiro_/rh_/presenca")({
   head: () => ({ meta: [{ title: "Validação de Presença · RH · SIGA" }] }),
   component: AttendanceAssurancePage,
 });

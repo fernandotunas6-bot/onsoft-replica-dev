@@ -844,23 +844,25 @@ export const listProgramStudents = createServerFn({ method: "GET" })
     const { data: groups } = await groupsQuery;
     const groupName = new Map((groups ?? []).map((g) => [str(g.id), str(g.name)]));
     if (!groupName.size) return [];
-    const { data: enrollments } = await db
+    // Por páginas e por lotes: com algumas centenas de estudantes, o `.in("id", …)`
+    // passava o tamanho do endereço, o erro não era lido e a lista saía vazia.
+    const reads = pagedReadClient(db);
+    const { data: enrollments } = await reads
       .from("enrollments")
       .select("student_id, class_group_id")
       .eq("school_id", membership.schoolId)
       .in("class_group_id", [...groupName.keys()])
-      .in("status", ["active", "pending"])
-      .limit(2000);
+      .in("status", ["active", "pending"]);
     const studentIds = [...new Set((enrollments ?? []).map((e) => str(e.student_id)))];
     if (!studentIds.length) return [];
-    const { data: students } = await db
+    const { data: students } = await reads
       .from("students")
       .select("id, person_id, student_number")
       .eq("school_id", membership.schoolId)
       .in("id", studentIds);
     const personIds = (students ?? []).map((s) => str(s.person_id));
     const { data: people } = personIds.length
-      ? await db
+      ? await reads
           .from("people")
           .select("id, full_name")
           .eq("school_id", membership.schoolId)
@@ -1339,13 +1341,13 @@ async function programStudentIds(db: Db, schoolId: string, programId: string) {
     .in("grade_level_id", gradeIds);
   const groupIds = (groups ?? []).map((g) => str(g.id));
   if (!groupIds.length) return new Set<string>();
-  const { data: enrollments } = await db
+  // O `.limit(5000)` antigo recebia 1000: acima disso, quem faltava ficava fora do lote.
+  const { data: enrollments } = await pagedReadClient(db)
     .from("enrollments")
     .select("student_id")
     .eq("school_id", schoolId)
     .in("class_group_id", groupIds)
-    .in("status", ["active", "pending"])
-    .limit(5000);
+    .in("status", ["active", "pending"]);
   return new Set((enrollments ?? []).map((e) => str(e.student_id)));
 }
 
@@ -2140,13 +2142,12 @@ export const getUnitSheet = createServerFn({ method: "GET" })
     if (!canLaunchAny(scope)) {
       throw new Error("Só a coordenação ou o professor desta cadeira vê esta pauta.");
     }
-    const { data: inUnit, error: inUnitError } = await db
+    const { data: inUnit, error: inUnitError } = await pagedReadClient(db)
       .from("course_unit_enrollments")
       .select("student_id")
       .eq("school_id", schoolId)
       .eq("program_id", data.programId)
-      .eq("program_subject_id", unit.id)
-      .limit(5000);
+      .eq("program_subject_id", unit.id);
     if (inUnitError) throw publicDatabaseError(inUnitError, "Não foi possível carregar a pauta.");
     const studentIds = [...new Set((inUnit ?? []).map((row) => str(row.student_id)))];
     const yearId = await activeYearId(db, schoolId);
@@ -2590,14 +2591,15 @@ export const getAccessRanking = createServerFn({ method: "GET" })
     const [profiles, regulation, { data: rows, error }] = await Promise.all([
       readSettingsDomain(db, schoolId, "higher_ed_programs"),
       regulationOf(db, schoolId),
-      db
+      // Todas: o curso só se filtra depois, no `payload`, e com o `.limit(2000)` antigo
+      // (que recebia 1000, das mais antigas) as candidaturas recentes saíam da seriação.
+      pagedReadClient(db)
         .from("enrollment_applications")
         .select("id, full_name, status, payload, created_at")
         .eq("school_id", schoolId)
         .in("status", ["pending", "accepted"])
         .is("deleted_at", null)
-        .order("created_at")
-        .limit(2000),
+        .order("created_at"),
     ]);
     if (error) throw publicDatabaseError(error, "Não foi possível carregar as candidaturas.");
     const seats = parseProgramProfile(profiles[data.programId]).seats;
@@ -2700,7 +2702,10 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const membership = await officeMembership(context, "read");
-    const db = await loadSgaAdminClient();
+    // Todas as linhas, por páginas e com o `.in` em lotes. É um mapa oficial: cortado
+    // nas 1000 matrículas, ou com o `.in` de estudantes acima do tamanho do endereço,
+    // saía parcial sem aviso. Os erros continuam a ser tratados como antes.
+    const db = pagedReadClient(await loadSgaAdminClient());
     const schoolId = membership.schoolId;
     const yearId = await activeYearId(db, schoolId);
     const [{ data: school }, { data: year }, { data: programRows }, profiles] = await Promise.all([
@@ -2748,7 +2753,6 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
           .eq("school_id", schoolId)
           .in("class_group_id", [...gradeOfGroup.keys()])
           .in("status", ["active", "pending"])
-          .limit(20000)
       : { data: [] as Row[] };
     const studentIds = [...new Set(((enrollments ?? []) as Row[]).map((e) => str(e.student_id)))];
     const { data: students } = studentIds.length
@@ -2851,8 +2855,7 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
       .from("enrollment_applications")
       .select("status, payload")
       .eq("school_id", schoolId)
-      .is("deleted_at", null)
-      .limit(20000);
+      .is("deleted_at", null);
     const accessBy = new Map<string, { candidates: number; scored: number; accepted: number }>();
     for (const application of (applications ?? []) as Row[]) {
       const payload = (application.payload ?? {}) as ApplicationPayload;

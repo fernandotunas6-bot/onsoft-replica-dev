@@ -26,7 +26,7 @@ import {
   updateOpportunityApplicationStatus,
 } from "@/features/alumni/pipeline";
 
-export const Route = createFileRoute("/alumni/pipeline")({
+export const Route = createFileRoute("/alumni_/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline Alumni · SIGA" }] }),
   component: AlumniPipelinePage,
 });
