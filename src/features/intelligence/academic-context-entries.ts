@@ -1,4 +1,4 @@
-import type { ApplicationRole } from "@/features/auth/access-policy";
+import { canWriteModule, type ApplicationRole } from "@/features/auth/access-policy";
 import { moduleIcons } from "@/lib/app-icons";
 import type { ContextModule } from "./context-modules";
 import type { ContextNavEntry } from "./context-registry";
@@ -81,6 +81,21 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 5,
   },
   {
+    // Do resultado final no histórico para o ano seguinte. O servidor só a serve a
+    // quem grava em Pessoas, na Administração e na Secretaria (`getRenewalPlan`).
+    id: "class.renewal",
+    label: "Renovar matrículas",
+    icon: moduleIcons.enrollment,
+    group: "Turma",
+    contexts: ["class"],
+    to: "/pedagogica/turmas/$turmaId/renovar",
+    path: (trail) => `${classProfilePath(trail)}/renovar`,
+    module: "pedagogica",
+    roles: ["Administrador", "Secretaria"],
+    allow: (role, grants) => canWriteModule(role, "pessoas", grants),
+    order: 6,
+  },
+  {
     // O perfil do professor que dá a disciplina nesta turma (disciplinas, turmas e
     // horário dele). Só aparece quando a disciplina tem professor atribuído.
     id: "subject.teacher",
@@ -157,6 +172,19 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     module: "pedagogica",
     roles: ACADEMIC_STAFF_ROLES,
     order: 25,
+  },
+  {
+    // Os alertas e a análise de risco são por turma: da disciplina abrem-se os da turma.
+    id: "class.risk",
+    label: "Alunos em risco",
+    icon: moduleIcons.studentRisk,
+    group: "Acompanhamento",
+    contexts: ["class", "subject-offering"],
+    to: "/pedagogica/risco",
+    search: (trail) => ({ turma: academicIdsFromTrail(trail).turma }),
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 28,
   },
   {
     // Os relatórios académicos filtram por turma: da disciplina abrem-se os da turma.

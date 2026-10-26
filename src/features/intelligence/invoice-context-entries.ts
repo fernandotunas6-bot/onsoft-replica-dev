@@ -50,6 +50,19 @@ export const INVOICE_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 10,
   },
   {
+    // As outras faturas do aluno, onde se recebem e anulam (a tesouraria não abre fichas).
+    id: "invoice.student-invoices",
+    label: "Faturas do aluno",
+    icon: moduleIcons.finance,
+    group: "Aluno da fatura",
+    contexts: ["invoice"],
+    to: "/faturas",
+    search: (trail) => ({ aluno: invoiceStudentId(trail) }),
+    module: "financeiro",
+    available: (trail) => Boolean(invoiceStudentId(trail)),
+    order: 15,
+  },
+  {
     ...studentBase,
     id: "invoice.student-finance",
     label: "Financeiro do aluno",

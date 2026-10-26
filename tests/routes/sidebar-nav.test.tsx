@@ -899,8 +899,13 @@ describe("AppSidebar — menu da fatura (Context Engine, contexto financeiro)", 
       expect.arrayContaining([expect.stringMatching(/^Voltar/), "Todas as faturas"]),
     );
     expect(linksTo(`/faturas/${FATURA}`)).toEqual([{ label: "Detalhes e recibos", search: {} }]);
-    // A tesouraria não abre fichas de alunos (`/alunos` não é dela): o menu não as oferece.
+    // A tesouraria não abre fichas de alunos (`/alunos` não é dela): o menu não as oferece,
+    // mas leva às outras faturas do aluno, onde se recebem.
     expect(linksTo(`/alunos/${ANA}`)).toEqual([]);
+    expect(linksTo("/faturas")).toContainEqual({
+      label: "Faturas do aluno",
+      search: { aluno: ANA },
+    });
     const active = screen
       .getAllByRole("link")
       .find((link) => link.getAttribute("aria-current") === "page");

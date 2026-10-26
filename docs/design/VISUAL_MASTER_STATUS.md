@@ -115,6 +115,13 @@ filtrado por essa turma. Com a turma na URL, o filtro de turma segue a URL; esco
 limpar os filtros actualiza a URL. Uma turma que a escola não devolve não filtra nada. Sem estilos
 novos.
 
+**26/10/2026 — SIGA Context Engine (turma e faturas do aluno):** o menu da turma ganha
+«Renovar matrículas» (só na turma, a quem grava em Pessoas) e «Alunos em risco» (os alertas e a
+análise abrem já nessa turma; `/pedagogica/risco?turma=` guarda a turma escolhida). `/faturas?aluno=`
+mostra todas as faturas de um aluno, com «Faturas de ‹nome› · processo …» e «Ver todas as
+faturas»; chega-se lá por «Faturas do aluno» no menu da fatura (a tesouraria, que não abre fichas)
+e por «Receber pagamentos» no menu do aluno (Administração). Sem estilos novos.
+
 **26/10/2026 — SIGA Context Engine (página do ficheiro):** `/arquivos/<id>` mostra o ficheiro
 (tipo, tamanho, título, categoria, data, código, área, acesso, o nível da conta e o
 proprietário), «Abrir» e «Descarregar» a quem pode abrir o conteúdo, a turma e o aluno a que

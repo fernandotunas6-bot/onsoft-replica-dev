@@ -85,6 +85,14 @@ describe("routeContextCandidates", () => {
     ]);
     expect(routeContextCandidates("/pedagogica/turmas/nao-e-uuid")).toEqual([]);
     expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/extra`)).toEqual([]);
+    // A renovação das matrículas da turma abre o contexto da turma.
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/renovar`)).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(routeContextCandidates(`/pedagogica/turmas/${TURMA_A}/renovar/mais`)).toEqual([]);
+    expect(routeContextCandidates("/pedagogica/risco", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
   });
 
   it("ignora a disciplina sem turma e ids mal formados", () => {

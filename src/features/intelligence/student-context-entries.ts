@@ -1,3 +1,4 @@
+import { canAccessPath } from "@/features/auth/access-policy";
 import { moduleIcons } from "@/lib/app-icons";
 import {
   canReadStudentSection,
@@ -65,6 +66,23 @@ export const STUDENT_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     allow: (role, grants) => canReadStudentSection(section.id, role, grants),
     order: (index + 1) * 10,
   })),
+  {
+    // Receber e anular são da lista de faturas (`/faturas`, da Administração e da
+    // Tesouraria): o filtro `aluno` mostra só as deste aluno.
+    id: "student.invoices",
+    label: "Receber pagamentos",
+    icon: moduleIcons.receipts,
+    group: "Ficha do aluno",
+    contexts: ["student"],
+    to: "/faturas",
+    search: (trail) => ({
+      aluno: [...trail].reverse().find((frame) => frame.type === "student")?.id,
+    }),
+    module: "financeiro",
+    // É uma entrada da ficha: só a quem também a abre (a tesouraria vai pela fatura).
+    allow: (role, grants) => canAccessPath("/alunos", role, grants),
+    order: 35,
+  },
   {
     ...classBase,
     id: "student.class",
