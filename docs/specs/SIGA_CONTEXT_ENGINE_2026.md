@@ -32,7 +32,7 @@ PR #332 (`context-resolver.ts`, `context-registry.ts`, `academic-context-entries
 | `AppSidebar.tsx`                                                                              | Sidebar 240/64 px; catálogo; escola activa; mostra o menu da entidade                                                                         | existente + fase 3             |
 | `AcademicNavTree.tsx`                                                                         | Curso/classe → turma → disciplina (mudança explícita de turma)                                                                                | existente; consultas extraídas |
 | `NavItem.tsx`                                                                                 | `NavLinkRow`, `NavSubheader`                                                                                                                  | reutilizado                    |
-| `RightRail.tsx`                                                                               | Único painel contextual (Relacionado / Mensagens)                                                                                             | existente                      |
+| `RightRail.tsx`                                                                               | Único painel contextual (Relacionado / Mensagens); «Relacionado» só aparece com relações ou acções                                            | existente                      |
 | `portal-engine.ts`, `navigation-catalog.ts`, `contextual-navigation.ts`                       | Catálogo autorizado e módulo activo (nível 1)                                                                                                 | existente                      |
 | `access-policy.ts`                                                                            | `canAccessPath`, `canReadModule`, plano                                                                                                       | existente                      |
 | `intelligence/context-resolver.ts`                                                            | `routeContextCandidates`, `resolveContext` (rota → foco → pais → memória → área), `contextKey`, `focusContextLookup`, `combineContextLookups` | PR #332                        |
@@ -47,6 +47,18 @@ PR #332 (`context-resolver.ts`, `context-registry.ts`, `academic-context-entries
 | `intelligence/student-context-entries.ts`                                                     | Entradas do aluno: Ficha completa e as secções que a conta lê                                                                                 | fase 5                         |
 | `intelligence/context-breadcrumb.ts`, `active-context.ts`, `layout/ActiveContextProvider.tsx` | Breadcrumb do contexto no `PageHeader`, a partir do mesmo contexto do menu                                                                    | fase 3                         |
 | `intelligence/context-engine.ts`                                                              | `buildAppContext` descarta entidade declarada por outra escola                                                                                | este ramo                      |
+
+### 1.1 Componentes que o Prompt Master pede para melhorar (revisto a 26/10)
+
+| Componente                 | Pedido                                           | Estado                                                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AppSidebar.tsx`           | Navegação por entidade e actividade              | Feito: com uma entidade aberta, a sidebar mostra o menu dela (`ContextEntityNav`), com «Voltar» e o caminho                                                                                                        |
+| `AcademicNavTree.tsx`      | Árvore até trabalhos, alunos e aulas             | Feito pelo menu da entidade: a árvore escolhe a turma ou a disciplina, e o menu dessa entidade leva aos trabalhos, aos alunos, às presenças e ao horário. A árvore não ganhou mais níveis, para não ter dois menus |
+| `contextual-navigation.ts` | Contexto completo, além da rota e da pesquisa    | Feito em `context-resolver.ts`: rota → foco declarado pela página (lido do servidor) → pais → memória → área                                                                                                       |
+| `context-engine.ts`        | Entidades, relações e estados                    | Feito: `relations` em cada passo do caminho, vindas do servidor (turma do aluno, aluno da fatura, professor da disciplina)                                                                                         |
+| `entity-focus-context.tsx` | Sincronizar entidade, URL e painel               | Feito: `useDeclareEntityFocus` só com a entidade lida do servidor; o menu, o breadcrumb e o painel lêem o mesmo foco                                                                                               |
+| `RightRail.tsx`            | Relações e acções sem duplicar as mensagens      | Feito: um só painel; desde 26/10 o separador «Relacionado» só aparece quando há relações com destino ou acções (antes abria vazio na fatura)                                                                       |
+| `AppShell.tsx`             | Coordenar os níveis e o comportamento responsivo | Feito: sidebar, breadcrumb, painel e hub «Mais» no telemóvel partilham o contexto resolvido (`ActiveContextProvider`)                                                                                              |
 
 ## 2. Organização visual — opção A (decisão do proprietário, 25/10)
 
@@ -316,3 +328,8 @@ Para um módulo novo:
   confirmar numa sessão autenticada que a chamada e a pasta da turma abrem com dados reais.
 - Referências externas (Moodle, Canvas, Linear, Jira, Salesforce, Notion, VS Code, Odoo,
   ClickUp) inspiram os princípios; nada foi copiado.
+- Calendário sem página por evento (revisto a 26/10): o que `/calendario` mostra como
+  eventos são os trimestres (`terms`), já com as datas na própria página. A tabela
+  `siga_calendar_events` existe, mas só a agenda académica do servidor e o feed ICS a
+  lêem; a aplicação não tem onde criar nem mostrar esses eventos. Uma página por evento
+  fica para quando houver eventos na interface.

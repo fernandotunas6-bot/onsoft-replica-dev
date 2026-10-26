@@ -136,6 +136,11 @@ sidebar mostra o menu do funcionário («Voltar», `Funcionário · …`, a fich
 funcionários, rever faltas, folha, alterações salariais e o perfil do professor), e o menu do
 professor ganha «Ficha de RH» (Administração). Linhas da lista com 56 px; sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (painel lateral sem separador vazio):** o separador
+«Relacionado» do painel lateral só aparece quando a entidade aberta tem relações com destino ou
+acções. Na página da fatura abria vazio; fica só «Mensagens», e o menu da fatura na sidebar leva
+às páginas ligadas. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
