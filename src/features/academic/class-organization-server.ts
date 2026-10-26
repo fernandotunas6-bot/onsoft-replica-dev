@@ -51,7 +51,10 @@ async function activeYear(db: Db, schoolId: string, requested?: string) {
     .from("academic_years")
     .select("id, name, status")
     .eq("school_id", schoolId)
+    // A mesma ordem do resto do SIGA: com vários anos activos, todos escolhem o mesmo.
     .order("starts_on", { ascending: false })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
     .limit(1);
   query = requested ? query.eq("id", requested) : query.eq("status", "active");
   const { data, error } = await query.maybeSingle();
