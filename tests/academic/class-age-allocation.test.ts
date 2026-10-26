@@ -149,10 +149,7 @@ describe("turmas A-Z com os mais novos primeiro", () => {
   });
 
   it("recusa letras ou ocupação inválidas antes de gerar qualquer decisão", () => {
-    const plan = simulate(
-      [student("u", "2011-01-01")],
-      [group("a", "A", 1), group("b", "a", 2)],
-    );
+    const plan = simulate([student("u", "2011-01-01")], [group("a", "A", 1), group("b", "a", 2)]);
     expect(plan.assignments).toEqual([]);
     expect(plan.warnings.length).toBeGreaterThan(0);
   });
