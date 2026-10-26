@@ -4,6 +4,7 @@ import {
   ANDROID_ASSETS,
   ANDROID_CHECKSUMS_FILE,
   ANDROID_RELEASE_TAG,
+  ANDROID_SIGNING_SHA256,
   androidDownloadUrl,
   fetchAndroidRelease,
   isAndroidVisitor,
@@ -27,6 +28,15 @@ describe("APK Android no site (/download)", () => {
     expect(start).toBeGreaterThan(-1);
     expect(create).toContain("--latest=false");
     expect(workflow).toMatch(/gh release edit android[^\n]*--latest=false/);
+  });
+
+  it("o certificado de assinatura do site é o que o workflow exige e escreve nas notas", () => {
+    expect(ANDROID_SIGNING_SHA256).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
+    expect(workflow).toContain(`ANDROID_SIGNING_SHA256: ${ANDROID_SIGNING_SHA256}`);
+    expect(workflow).toContain(
+      `Certificado de assinatura (SHA-256): \\\`${ANDROID_SIGNING_SHA256}`,
+    );
+    expect(workflow).toMatch(/apk-certificado\.py --esperado "\$ANDROID_SIGNING_SHA256"/);
   });
 
   it("reconhece o telemóvel Android, e não o computador", () => {

@@ -7,6 +7,7 @@ import { formatSize } from "@/lib/desktop-downloads"
 import {
   ANDROID_ASSETS,
   ANDROID_CHECKSUMS_FILE,
+  ANDROID_SIGNING_SHA256,
   androidDownloadUrl,
   fetchAndroidRelease,
   type AndroidRelease,
@@ -136,11 +137,19 @@ export function AndroidDownloadCard({ highlight = false }: { highlight?: boolean
             </li>
           ))}
         </ol>
-        <p className="text-muted-foreground mt-4 flex gap-2 rounded-lg bg-muted/50 p-3 text-xs">
-          <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />O APK vem directamente das
-          releases oficiais do SIGA Plus e é assinado sempre com a mesma chave: as versões seguintes
-          instalam por cima.
-        </p>
+        <div className="text-muted-foreground mt-4 flex gap-2 rounded-lg bg-muted/50 p-3 text-xs">
+          <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
+          <div className="space-y-1.5">
+            <p>
+              O APK vem directamente das releases oficiais do SIGA Plus e é assinado sempre com a
+              mesma chave: as versões seguintes instalam por cima.
+            </p>
+            <p>
+              Certificado de assinatura (SHA-256):{" "}
+              <code className="text-foreground break-all font-mono">{ANDROID_SIGNING_SHA256}</code>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )

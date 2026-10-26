@@ -25,6 +25,14 @@ export const ANDROID_ASSETS: AndroidAsset[] = [
   { file: "SIGA-Plus-Android-armv7.apk", label: "Telemóveis mais antigos (32 bits)", primary: false },
 ]
 
+/**
+ * Impressão digital SHA-256 do certificado que assina os APK (chave de upload do
+ * SIGA Plus). Pública: serve para confirmar que um APK é o oficial. Muda só se a
+ * chave mudar, e então as versões instaladas deixam de actualizar por cima.
+ */
+export const ANDROID_SIGNING_SHA256 =
+  "B3:40:33:FF:64:86:DC:0C:A0:44:9E:8D:15:CE:71:1F:08:A0:0E:34:D8:50:8C:0C:8E:54:D9:96:30:02:EF:57"
+
 /** Somas SHA-256 dos dois APK, juntas pelo workflow. */
 export const ANDROID_CHECKSUMS_FILE = "SHA256SUMS-android.txt"
 
