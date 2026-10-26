@@ -103,6 +103,7 @@ export function decidePromotionStatus(
   const passes = overallAvg >= passing && withinFailures;
 
   if (rule.requiresPap) {
+    if (papGrade == null || !Number.isFinite(papGrade)) return "PENDENTE";
     if (papGrade !== undefined && papGrade !== null && papGrade < passing) {
       return "NÃO APTO (PAP)";
     }

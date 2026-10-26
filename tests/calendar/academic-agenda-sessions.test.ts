@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mock = vi.hoisted(() => ({
   agenda: vi.fn(),
-  read: {
-    data: [] as Array<{ timetable_slot_id: string; lesson_date: string }>,
-    error: null as null | { message: string },
-  },
-  insert: vi.fn(async () => ({ error: null })),
+  upsert: vi.fn(),
 }));
 vi.mock("@/features/calendar/agenda-server", () => ({ loadAcademicAgendaForRequest: mock.agenda }));
 vi.mock("@/lib/school-date", () => ({
@@ -25,14 +21,7 @@ const events = [
     },
   },
 ];
-const query = {
-  select: () => query,
-  eq: () => query,
-  in: () => query,
-  gte: () => query,
-  lt: async () => mock.read,
-  insert: mock.insert,
-};
+const query = { upsert: mock.upsert };
 const input = {
   db: { from: () => query } as never,
   schoolId: "school",
@@ -44,7 +33,8 @@ const input = {
 beforeEach(() => {
   vi.clearAllMocks();
   mock.agenda.mockResolvedValue(events);
-  mock.read = { data: [], error: null };
+  mock.upsert.mockReset();
+  mock.upsert.mockResolvedValue({ error: null, count: 1 });
 });
 describe("attendance sessions from the published agenda", () => {
   it("materializes exactly the official occurrences with their Luanda times", async () => {
@@ -53,30 +43,96 @@ describe("attendance sessions from the published agenda", () => {
       { start: "2026-10-25", end: "2026-11-22", classGroupId: "group", academicYearId: "year" },
       input.context,
     );
-    expect(mock.insert).toHaveBeenCalledWith([
-      expect.objectContaining({
-        school_id: "school",
-        timetable_slot_id: "slot",
-        lesson_date: "2026-10-26",
-        starts_at: "08:00",
-        ends_at: "08:45",
-        status: "pending",
-      }),
-    ]);
+    expect(mock.upsert).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          school_id: "school",
+          timetable_slot_id: "slot",
+          lesson_date: "2026-10-26",
+          starts_at: "08:00",
+          ends_at: "08:45",
+          status: "pending",
+        }),
+      ],
+      {
+        onConflict: "school_id,timetable_slot_id,lesson_date",
+        ignoreDuplicates: true,
+        count: "exact",
+      },
+    );
   });
   it("does not duplicate a previously materialized lesson", async () => {
-    mock.read.data = [{ timetable_slot_id: "slot", lesson_date: "2026-10-26" }];
+    mock.upsert.mockResolvedValue({ error: null, count: 0 });
     expect(await syncAcademicAgendaToSessions(input)).toBe(0);
-    expect(mock.insert).not.toHaveBeenCalled();
+    expect(mock.upsert).toHaveBeenCalledOnce();
   });
   it("does not create attendance for meetings or holidays", async () => {
     mock.agenda.mockResolvedValue([{ ...events[0], extendedProps: { source: "holiday" } }]);
     expect(await syncAcademicAgendaToSessions(input)).toBe(0);
-    expect(mock.insert).not.toHaveBeenCalled();
+    expect(mock.upsert).not.toHaveBeenCalled();
   });
-  it("stops when existing sessions cannot be read", async () => {
-    mock.read.error = { message: "connection refused" };
+  it("reports a failed write without claiming successful synchronization", async () => {
+    mock.upsert.mockResolvedValue({ error: { message: "connection refused" }, count: null });
     await expect(syncAcademicAgendaToSessions(input)).rejects.toThrow();
-    expect(mock.insert).not.toHaveBeenCalled();
+    expect(mock.upsert).toHaveBeenCalledOnce();
+  });
+  it("uses conflict-ignore so simultaneous resyncs create only one session", async () => {
+    const ledger = new Set<string>();
+    mock.upsert.mockImplementation(
+      async (
+        candidates: Array<{ timetable_slot_id: string; lesson_date: string }>,
+        options: { ignoreDuplicates: boolean },
+      ) => {
+        expect(options.ignoreDuplicates).toBe(true);
+        let count = 0;
+        for (const row of candidates) {
+          const key = `${row.timetable_slot_id}@${row.lesson_date}`;
+          if (!ledger.has(key)) {
+            ledger.add(key);
+            count += 1;
+          }
+        }
+        return { error: null, count };
+      },
+    );
+    expect(
+      await Promise.all([syncAcademicAgendaToSessions(input), syncAcademicAgendaToSessions(input)]),
+    ).toEqual([1, 0]);
+    expect(ledger.size).toBe(1);
+  });
+  it("batches a large agenda and counts only newly inserted rows", async () => {
+    mock.agenda.mockResolvedValue(
+      Array.from({ length: 1001 }, (_, i) => ({
+        ...events[0],
+        extendedProps: { ...events[0].extendedProps, sourceId: `slot-${i}@2026-10-26` },
+      })),
+    );
+    mock.upsert
+      .mockResolvedValueOnce({ error: null, count: 500 })
+      .mockResolvedValueOnce({ error: null, count: 400 })
+      .mockResolvedValueOnce({ error: null, count: 1 });
+    expect(await syncAcademicAgendaToSessions(input)).toBe(901);
+    expect(mock.upsert.mock.calls.map(([rows]) => rows.length)).toEqual([500, 500, 1]);
+  });
+  it("does not invent a count if the database omits confirmation", async () => {
+    mock.upsert.mockResolvedValue({ error: null, count: null });
+    await expect(syncAcademicAgendaToSessions(input)).rejects.toThrow(/confirmar/);
+  });
+  it("can resume after a later batch fails without recreating the committed batch", async () => {
+    mock.agenda.mockResolvedValue(
+      Array.from({ length: 501 }, (_, i) => ({
+        ...events[0],
+        extendedProps: { ...events[0].extendedProps, sourceId: `slot-${i}@2026-10-26` },
+      })),
+    );
+    mock.upsert
+      .mockResolvedValueOnce({ error: null, count: 500 })
+      .mockResolvedValueOnce({ error: { message: "connection refused" }, count: null });
+    await expect(syncAcademicAgendaToSessions(input)).rejects.toThrow();
+    mock.upsert
+      .mockResolvedValueOnce({ error: null, count: 0 })
+      .mockResolvedValueOnce({ error: null, count: 1 });
+    expect(await syncAcademicAgendaToSessions(input)).toBe(1);
+    expect(mock.upsert).toHaveBeenCalledTimes(4);
   });
 });

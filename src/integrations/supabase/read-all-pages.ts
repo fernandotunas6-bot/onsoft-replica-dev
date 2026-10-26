@@ -24,15 +24,20 @@ export async function readAllPages<T, E = { message: string }>(
   build: (from: number, to: number) => PromiseLike<Page<T, E>>,
   pageSize = READ_PAGE_SIZE,
 ): Promise<{ data: T[]; error: E | null }> {
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > READ_PAGE_SIZE) {
+    throw new Error("Tamanho de página inválido.");
+  }
   const rows: T[] = [];
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const from = page * pageSize;
     const { data, error } = await build(from, from + pageSize - 1);
     if (error) return { data: [], error };
     rows.push(...(data ?? []));
-    if (!data || data.length < pageSize) break;
+    if (!data || data.length < pageSize) return { data: rows, error: null };
   }
-  return { data: rows, error: null };
+  throw new Error(
+    "A consulta excedeu o limite de leitura completa. Restrinja o contexto antes de continuar.",
+  );
 }
 
 /**

@@ -104,7 +104,7 @@ describe("avaliações: âmbito do professor e período fechado", () => {
     const scores = write.slice(write.indexOf("export async function writeAssessmentScores"));
     expect(scores.indexOf("assertAssessmentTermNotLocked")).toBeGreaterThan(-1);
     expect(scores.indexOf("assertAssessmentTermNotLocked")).toBeLessThan(
-      scores.indexOf('from("siga_assessment_scores")'),
+      scores.indexOf('"siga_write_assessment_scores_atomic"'),
     );
   });
 });

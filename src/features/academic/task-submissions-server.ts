@@ -1,3 +1,4 @@
+import { academicWriteRpcClient } from "@/integrations/supabase/academic-write-rpcs";
 /**
  * Entregas de trabalhos. A tabela é só do servidor (migração 20261025140000): sem
  * políticas e sem privilégios para authenticated. Aqui decide-se quem pode o quê:
@@ -444,39 +445,42 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
       .eq("id", data.submissionId)
       .maybeSingle();
     if (currentError) throw publicDatabaseError(currentError, "Não foi possível ler a entrega.");
-    if (!current || current.status !== "submitted") {
-      throw new Error("Esta entrega já foi devolvida ou não existe.");
+    if (!current) throw new Error("Esta entrega já foi devolvida ou não existe.");
+    const { data: result, error } = await academicWriteRpcClient(db).rpc(
+      "siga_return_task_submission_atomic",
+      {
+        p_school_id: schoolId,
+        p_actor_user_id: context.userId,
+        p_task_id: data.taskId,
+        p_submission_id: data.submissionId,
+        p_grade: data.grade ?? null,
+        p_feedback: data.feedback || null,
+      },
+    );
+    if (error) {
+      if (error.code === "PGRST202" || error.code === "42883") {
+        throw new Error(
+          "A devolução segura de trabalhos requer a actualização académica da base de dados.",
+        );
+      }
+      throw publicDatabaseError(
+        error,
+        "Não foi possível devolver a entrega. A nota e a entrega foram preservadas.",
+      );
     }
-    // Primeiro a pauta: se a pauta recusa (período fechado, cotação), a entrega
-    // não fica devolvida com uma nota que não chegou à pauta. Repetir é seguro.
-    const itemId = str(task.assessment_item_id);
-    const toPauta = Boolean(itemId) && data.grade != null;
-    if (toPauta) {
-      await writeAssessmentScores(db, {
-        schoolId,
-        userId: context.userId,
-        itemId,
-        rows: [{ enrollmentId: str(current.enrollment_id), score: data.grade ?? null }],
-      });
+    if (
+      !result ||
+      typeof result !== "object" ||
+      Array.isArray(result) ||
+      typeof result.pauta !== "boolean" ||
+      typeof result.changed !== "boolean"
+    ) {
+      throw new Error(
+        "Não foi possível confirmar a devolução. Actualize a página antes de repetir.",
+      );
     }
-    const { data: updated, error } = await db
-      .from("siga_class_task_submissions")
-      .update({
-        status: "returned",
-        returned_at: new Date().toISOString(),
-        grade: data.grade ?? null,
-        feedback: data.feedback || null,
-        graded_by: context.userId,
-        updated_by: context.userId,
-      })
-      .eq("school_id", schoolId)
-      .eq("task_id", data.taskId)
-      .eq("id", data.submissionId)
-      .eq("status", "submitted")
-      .select("id")
-      .maybeSingle();
-    if (error) throw publicDatabaseError(error, "Não foi possível devolver a entrega.");
-    if (!updated) throw new Error("Esta entrega já foi devolvida ou não existe.");
+    const toPauta = result.pauta;
+    if (!result.changed) return { ok: true, pauta: toPauta };
     await notifyTaskReturned(db, {
       schoolId,
       taskId: data.taskId,

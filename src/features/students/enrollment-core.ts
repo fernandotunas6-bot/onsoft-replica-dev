@@ -1,3 +1,4 @@
+import { academicWriteRpcClient } from "@/integrations/supabase/academic-write-rpcs";
 /**
  * Núcleo da matrícula (auditoria 14).
  *
@@ -405,6 +406,8 @@ export async function placeStudentInClass(
     userId: string;
     /** Sessão com 2FA (aal2): exigida para matricular e para mudar de turma. */
     hasAal2: boolean;
+    /** Organização por idade: revalidar os registos na mesma transacção da mudança. */
+    reorganizeFromClassId?: string;
   },
 ): Promise<PlacementResult> {
   const { data: group, error: groupError } = await db
@@ -435,7 +438,7 @@ export async function placeStudentInClass(
   // anulada fica no histórico; nunca é reactivada.
   const { data: current, error: currentError } = await db
     .from("enrollments")
-    .select("id, enrollment_number")
+    .select("id, enrollment_number, class_group_id")
     .eq("student_id", input.studentId)
     .eq("academic_year_id", academicYearId)
     .eq("school_id", input.schoolId)
@@ -451,12 +454,32 @@ export async function placeStudentInClass(
 
   let result: PlacementResult;
   if (current) {
-    const { error } = await db
-      .from("enrollments")
-      .update({ class_group_id: input.classGroupId, status: "active", updated_by: input.userId })
-      .eq("id", current.id)
-      .eq("school_id", input.schoolId);
-    if (error) throw publicDatabaseError(error, "Não foi possível mudar o aluno de turma.");
+    if (input.reorganizeFromClassId) {
+      const { error } = await academicWriteRpcClient(db).rpc("siga_reorganize_enrollment_guarded", {
+        p_school_id: input.schoolId,
+        p_actor_user_id: input.userId,
+        p_enrollment_id: String(current.id),
+        p_source_class_id: input.reorganizeFromClassId,
+        p_target_class_id: input.classGroupId,
+      });
+      if (error?.code === "PGRST202" || error?.code === "42883") {
+        throw new Error(
+          "A organização segura das turmas requer a actualização académica da base de dados.",
+        );
+      }
+      if (error)
+        throw publicDatabaseError(
+          error,
+          "Não foi possível reorganizar o aluno. Reveja a proposta.",
+        );
+    } else {
+      const { error } = await db
+        .from("enrollments")
+        .update({ class_group_id: input.classGroupId, status: "active", updated_by: input.userId })
+        .eq("id", current.id)
+        .eq("school_id", input.schoolId);
+      if (error) throw publicDatabaseError(error, "Não foi possível mudar o aluno de turma.");
+    }
     result = {
       enrollmentId: String(current.id),
       enrollmentNumber: (current.enrollment_number as string | null) ?? null,
@@ -466,6 +489,8 @@ export async function placeStudentInClass(
       moved: true,
     };
   } else {
+    if (input.reorganizeFromClassId)
+      throw new Error("A matrícula mudou. Reveja a organização das turmas.");
     const held = heldStudentMessage(previousStatus);
     if (held) throw new Error(held);
     const enrolled = await enrollStudentReopening(db, session, {

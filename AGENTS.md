@@ -76,3 +76,7 @@ a matriz rota → funções, a auditoria de integridade e as pendências. Regras
 uma página, uma finalidade; estados do dinheiro por `payment-states.ts`; nada aparece como
 pago sem confirmação do fornecedor; o SIGA não é software certificado pela AGT e não o pode
 sugerir. A aceitação mede-se por [docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md](docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST.md).
+
+**Integridade pedagógica (26/10/2026):** ler [correcções, dependência SQL e limites de validação](docs/agents/HANDOFF_PEDAGOGICAL_INTEGRITY_2026-10-26.md) antes de alterar notas, devoluções, organização etária ou integrar os ramos de horários. Não publicar chamadas às RPC novas sem a migração validada no destino.
+
+**Candidato pedagógico consolidado:** [handoff de integração de 26/10](docs/agents/HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md). Inclui o trabalho da #338 e as correcções de integridade; não repetir a integração da #338. Envio remoto bloqueado por revisão automática; migração nova e validação autenticada continuam pendentes.

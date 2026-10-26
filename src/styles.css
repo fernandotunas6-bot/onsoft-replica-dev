@@ -289,6 +289,21 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Cor por disciplina no horário (subject-tone.ts dá a matiz em --tone-h). A
+   luminosidade fica fixa para o texto ter o mesmo contraste em todas as cores. */
+.subject-tone {
+  --tone-bg: oklch(0.967 0.026 var(--tone-h, 292));
+  --tone-bg-hover: oklch(0.938 0.045 var(--tone-h, 292));
+  --tone-accent: oklch(0.63 0.15 var(--tone-h, 292));
+  --tone-fg: oklch(0.4 0.11 var(--tone-h, 292));
+}
+.dark .subject-tone {
+  --tone-bg: oklch(0.285 0.042 var(--tone-h, 292));
+  --tone-bg-hover: oklch(0.325 0.058 var(--tone-h, 292));
+  --tone-accent: oklch(0.72 0.14 var(--tone-h, 292));
+  --tone-fg: oklch(0.9 0.055 var(--tone-h, 292));
+}
+
 /* Densidade da interface (data-density no <html>) */
 :root,
 html[data-density="comfortable"] {

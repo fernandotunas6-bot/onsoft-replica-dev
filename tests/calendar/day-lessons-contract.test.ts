@@ -23,10 +23,10 @@ function lesson(
 }
 
 describe("day agenda lessons", () => {
-  it("maps ISO dates to JS weekday like timetable_slots", () => {
+  it("maps ISO dates to the database weekday, including Sunday=7", () => {
     // 2026-09-07 is a Monday → 1
     expect(dayAgendaWeekday("2026-09-07")).toBe(1);
-    expect(dayAgendaWeekday("2026-09-06")).toBe(0);
+    expect(dayAgendaWeekday("2026-09-06")).toBe(7);
   });
 
   it("sorts by start time then class name", () => {

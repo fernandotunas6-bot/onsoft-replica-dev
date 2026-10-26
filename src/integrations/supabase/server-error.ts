@@ -59,8 +59,29 @@ const constraintMessages: Record<string, string> = {
  * lotação chegava ao ecrã como «Um ou mais valores não respeitam as regras».
  */
 const businessMessages = new Set([
+  "A matrícula mudou. Reveja a organização das turmas.",
+  "Este aluno já tem registos académicos. Não pode ser reorganizado por idade.",
+  "O período está fechado.",
+  "A pauta deste período já é oficial.",
+  "Esta entrega já foi devolvida ou não existe.",
+  "A avaliação não pertence à turma e disciplina da tarefa.",
+  "A nota não respeita a cotação da avaliação.",
+  "Há alunos que não são da turma desta avaliação.",
   // Gatilho 20261025090000: segunda propina do mesmo mês, em emissões paralelas.
   "Este aluno já tem a propina deste mês. Anule-a antes de emitir outra.",
+  // Publicação atómica do horário (20261025121012).
+  "Sem autorização para publicar o horário.",
+  "Turma ou ano lectivo inválido para publicar.",
+  "O ano lectivo não aceita publicação de horários.",
+  "A validade do horário tem de estar dentro do ano lectivo.",
+  "O nome do horário é demasiado longo.",
+  "Configure os períodos lectivos antes de publicar o horário.",
+  "Associe disciplinas activas à turma antes de publicar o horário.",
+  "Atribua docentes e disciplinas activos antes de publicar o horário.",
+  "A carga semanal do horário não corresponde às disciplinas da turma.",
+  "Resolva os conflitos de turma, docente ou sala antes de publicar.",
+  "Adicione pelo menos uma aula activa antes de publicar o horário.",
+  "O horário mudou durante a publicação; tente novamente.",
   "A turma atingiu a capacidade configurada.",
   "A turma nova tem de ser da mesma escola e do mesmo ano lectivo da matrícula.",
   "Turma ativa inválida para esta escola.",

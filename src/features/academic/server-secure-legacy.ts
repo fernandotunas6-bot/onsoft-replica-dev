@@ -1,3 +1,4 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadActivePassingValue } from "./exam-data";
@@ -764,14 +765,20 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
       throw publicDatabaseError(programError, "Não foi possível carregar os cursos.");
 
     const { data: timetableSlots, error: scheduleError } = visibleClassSubjectIds.length
-      ? await db
-          .from("timetable_slots")
-          .select("id, class_subject_id, weekday, starts_at, ends_at, room, room_id, notes, status")
-          .eq("school_id", membership.schoolId)
-          .in("class_subject_id", visibleClassSubjectIds)
-          .eq("status", "active")
-          .order("starts_at")
-          .limit(500)
+      ? await readInChunks(visibleClassSubjectIds, (chunk) =>
+          readAllPages((from, to) =>
+            db
+              .from("timetable_slots")
+              .select(
+                "id, class_subject_id, weekday, starts_at, ends_at, room, room_id, notes, status",
+              )
+              .eq("school_id", membership.schoolId)
+              .in("class_subject_id", chunk)
+              .eq("status", "active")
+              .order("id")
+              .range(from, to),
+          ),
+        )
       : { data: [], error: null };
     if (scheduleError) {
       throw publicDatabaseError(scheduleError, "Não foi possível carregar o horário do professor.");
