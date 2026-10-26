@@ -86,6 +86,14 @@ aberta, a sidebar mostra uma linha «Continuar em 10.ª A · Matemática» (íco
 reabre a turma ou disciplina onde a conta estava, com os filtros dessa página. Só aparece se o
 servidor ainda devolve a turma. Sem estilos novos (a mesma linha das entradas do menu).
 
+**26/10/2026 — SIGA Context Engine (financeiro do aluno):** em `/alunos/<id>?secao=financeiro` a
+ficha mostra todas as faturas do aluno (antes, as cinco mais recentes), em «Por pagar» (o prazo mais
+antigo primeiro) e «Pagas», cada uma com o estado do registo (`StatusBadge`: Vencida · paga em
+parte, Por pagar, Paga), o vencimento e o que falta, e os totais Faturado, Pago e Falta pagar (com
+a parte vencida). A ficha completa continua com as cinco mais recentes e uma ligação «Ver as N
+faturas». Quem o servidor não deixa ler as faturas já não faz o pedido. Evidência: capturas a 1440
+e 390 px sem scroll horizontal. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

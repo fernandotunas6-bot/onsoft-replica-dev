@@ -83,6 +83,7 @@ import {
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
 import {
+  canReadStudentSection,
   resolveStudentSection,
   studentSectionLabel,
   validateStudentDetailSearch,
@@ -114,6 +115,8 @@ import {
 } from "@/features/finance/scholarship-server";
 import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
+import { formatIsoDay, summarizeStudentInvoices } from "@/features/finance/student-finance-summary";
+import { schoolTodayIso } from "@/lib/school-date";
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
 import { canWriteModule } from "@/features/auth/access-policy";
@@ -310,6 +313,8 @@ function StudentDetail() {
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
     queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
+    // Só a quem o servidor deixa ler as faturas: os outros nem fazem o pedido recusado.
+    enabled: canReadStudentSection("financeiro", account.role, account.grants),
     retry: false,
   });
   const documentsQuery = useQuery({
@@ -417,6 +422,16 @@ function StudentDetail() {
     (invoice) => invoice.student_id === studentId,
   );
   const paymentStatus = paymentStatusFromInvoices(studentInvoices) ?? student.payment_status;
+  // Na secção Financeiro, todas as faturas do aluno, por pagar e pagas, com a dívida;
+  // na ficha completa, as cinco mais recentes, como sempre.
+  const financeSummary = summarizeStudentInvoices(studentInvoices, schoolTodayIso());
+  const invoiceGroups =
+    section === "financeiro"
+      ? [
+          { title: "Por pagar", items: financeSummary.open },
+          { title: "Pagas", items: financeSummary.settled },
+        ].filter((group) => group.items.length > 0)
+      : [{ title: null, items: studentInvoices.slice(0, 5) }];
   const templates = documentsQuery.data?.templates ?? [];
   const templateOptions = templates.map((template) => template.name);
   const suggestedDocumentNumber = `DOC-${student.registration_number.replace(/\W/g, "").slice(-8)}`;
@@ -1861,6 +1876,20 @@ function StudentDetail() {
                     value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
                   />
                 ) : null}
+                {section === "financeiro" && studentInvoices.length > 0 ? (
+                  <>
+                    <Field label="Faturado" value={kwanza(financeSummary.billed)} />
+                    <Field label="Pago" value={kwanza(financeSummary.paid)} />
+                    <Field
+                      label="Falta pagar"
+                      value={
+                        financeSummary.overdue > 0
+                          ? `${kwanza(financeSummary.outstanding)} · ${kwanza(financeSummary.overdue)} vencido`
+                          : kwanza(financeSummary.outstanding)
+                      }
+                    />
+                  </>
+                ) : null}
                 {show("financeiro") && scholarshipQuery.data?.percent ? (
                   <Field
                     label="Desconto do contrato"
@@ -1868,148 +1897,188 @@ function StudentDetail() {
                   />
                 ) : null}
               </div>
-              {show("financeiro") && studentInvoices.length > 0 ? (
-                <ul className="mt-4 space-y-2 text-sm">
-                  {studentInvoices.slice(0, 5).map((invoice) => {
-                    const openAmount = Math.max(
-                      Number(invoice.total_amount ?? 0) - Number(invoice.amount_paid ?? 0),
-                      0,
-                    );
-                    return (
-                      <li
-                        key={invoice.id}
-                        className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
-                      >
-                        <span>
-                          {invoice.number} · {invoice.description}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          <span className="font-medium text-foreground">
-                            {kwanza(Number(invoice.total_amount ?? 0))}
-                            {invoice.status === "paid" ? " · Pago" : ""}
-                          </span>
-                          {invoice.status === "paid" ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={() =>
-                                void downloadInvoiceReceipt(
-                                  invoice,
-                                  `RC-${invoice.number.replace(/^FT-?/i, "")}`,
-                                  Number(invoice.amount_paid ?? invoice.total_amount ?? 0),
-                                )
-                              }
+              {show("financeiro") && studentInvoices.length > 0
+                ? invoiceGroups.map((group) => (
+                    <div key={group.title ?? "recentes"} className="mt-4">
+                      {group.title ? (
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {group.title} <span className="font-normal">· {group.items.length}</span>
+                        </h3>
+                      ) : null}
+                      <ul className="space-y-2 text-sm">
+                        {group.items.map((invoice) => {
+                          const openAmount = Math.max(
+                            Number(invoice.total_amount ?? 0) - Number(invoice.amount_paid ?? 0),
+                            0,
+                          );
+                          return (
+                            <li
+                              key={invoice.id}
+                              className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
                             >
-                              Recibo
-                            </Button>
-                          ) : canReceivePayment ? (
-                            <QuickFormModal
-                              title={`Receber ${invoice.number}`}
-                              description="Liquida esta fatura e emite o recibo. Canais instalados aparecem no método."
-                              icon={<Wallet className="size-5" />}
-                              submitLabel="Confirmar"
-                              successDescription="Pagamento registado."
-                              fields={[
-                                {
-                                  name: "valor",
-                                  label: "Valor (Kz)",
-                                  type: "number",
-                                  defaultValue: String(openAmount || invoice.total_amount),
-                                },
-                                {
-                                  name: "recibo",
-                                  label: "Referência interna (opcional)",
-                                  defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
-                                  required: false,
-                                },
-                                {
-                                  name: "metodo",
-                                  label: "Método",
-                                  type: "select",
-                                  options: receiveMethods,
-                                },
-                                {
-                                  name: "referencia",
-                                  label: "Referência",
-                                  required: false,
-                                },
-                              ]}
-                              onSubmit={async (values) => {
-                                const amount = Number(values["valor"]);
-                                const methodMap = {
-                                  Numerário: "cash",
-                                  Transferência: "transfer",
-                                  "Multicaixa Express": "multicaixa_express",
-                                  "Unitel Money": "unitel_money",
-                                } as const;
-                                const method =
-                                  methodMap[
-                                    (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
-                                  ] ?? "cash";
-                                const reference = values["referencia"] || undefined;
-                                const paid = await recordInvoicePayment({
-                                  data: {
-                                    invoiceId: invoice.id,
-                                    receiptNumber: values["recibo"],
-                                    amount,
-                                    method,
-                                    reference,
-                                  },
-                                });
-                                await queryClient.invalidateQueries({
-                                  queryKey: ["finance", "invoices"],
-                                });
-                                // Número oficial vem do servidor (gerado atomicamente) — nunca do
-                                // valor digitado, para o PDF impresso bater sempre com a base de dados.
-                                await downloadInvoiceReceipt(invoice, paid.receipt_number, amount);
-                              }}
-                              trigger={(open) => (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 px-2"
-                                  onClick={open}
-                                >
-                                  Receber
-                                </Button>
-                              )}
-                            />
-                          ) : null}
-                          {resendInvoices ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2"
-                              onClick={async () => {
-                                await navigator.clipboard.writeText(
-                                  `${invoice.number} · ${student.full_name} · ${kwanza(Number(invoice.total_amount ?? 0))}`,
-                                );
-                                toast.success("Texto da fatura copiado para e-mail Resend");
-                              }}
-                            >
-                              E-mail
-                            </Button>
-                          ) : null}
-                          {whatsappOn ? (
-                            <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
-                              <a
-                                href={whatsappHref(
-                                  guardians[0]?.guardian?.phone_primary ?? "",
-                                  `Fatura ${invoice.number} de ${student.full_name}: ${kwanza(Number(invoice.total_amount ?? 0))}`,
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                WhatsApp
-                              </a>
-                            </Button>
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                              <span className="min-w-0 [overflow-wrap:anywhere]">
+                                {invoice.number} · {invoice.description}
+                                {"state" in invoice ? (
+                                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
+                                    <StatusBadge
+                                      status={invoice.state.status}
+                                      label={invoice.state.label}
+                                    />
+                                    {invoice.due_on
+                                      ? `Vence a ${formatIsoDay(invoice.due_on)}`
+                                      : null}
+                                    {invoice.openAmount > 0 && invoice.amount_paid > 0
+                                      ? ` · falta ${kwanza(invoice.openAmount)}`
+                                      : null}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {kwanza(Number(invoice.total_amount ?? 0))}
+                                  {invoice.status === "paid" ? " · Pago" : ""}
+                                </span>
+                                {invoice.status === "paid" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={() =>
+                                      void downloadInvoiceReceipt(
+                                        invoice,
+                                        `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                        Number(invoice.amount_paid ?? invoice.total_amount ?? 0),
+                                      )
+                                    }
+                                  >
+                                    Recibo
+                                  </Button>
+                                ) : canReceivePayment ? (
+                                  <QuickFormModal
+                                    title={`Receber ${invoice.number}`}
+                                    description="Liquida esta fatura e emite o recibo. Canais instalados aparecem no método."
+                                    icon={<Wallet className="size-5" />}
+                                    submitLabel="Confirmar"
+                                    successDescription="Pagamento registado."
+                                    fields={[
+                                      {
+                                        name: "valor",
+                                        label: "Valor (Kz)",
+                                        type: "number",
+                                        defaultValue: String(openAmount || invoice.total_amount),
+                                      },
+                                      {
+                                        name: "recibo",
+                                        label: "Referência interna (opcional)",
+                                        defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                        required: false,
+                                      },
+                                      {
+                                        name: "metodo",
+                                        label: "Método",
+                                        type: "select",
+                                        options: receiveMethods,
+                                      },
+                                      {
+                                        name: "referencia",
+                                        label: "Referência",
+                                        required: false,
+                                      },
+                                    ]}
+                                    onSubmit={async (values) => {
+                                      const amount = Number(values["valor"]);
+                                      const methodMap = {
+                                        Numerário: "cash",
+                                        Transferência: "transfer",
+                                        "Multicaixa Express": "multicaixa_express",
+                                        "Unitel Money": "unitel_money",
+                                      } as const;
+                                      const method =
+                                        methodMap[
+                                          (values["metodo"] as keyof typeof methodMap) ??
+                                            "Numerário"
+                                        ] ?? "cash";
+                                      const reference = values["referencia"] || undefined;
+                                      const paid = await recordInvoicePayment({
+                                        data: {
+                                          invoiceId: invoice.id,
+                                          receiptNumber: values["recibo"],
+                                          amount,
+                                          method,
+                                          reference,
+                                        },
+                                      });
+                                      await queryClient.invalidateQueries({
+                                        queryKey: ["finance", "invoices"],
+                                      });
+                                      // Número oficial vem do servidor (gerado atomicamente) — nunca do
+                                      // valor digitado, para o PDF impresso bater sempre com a base de dados.
+                                      await downloadInvoiceReceipt(
+                                        invoice,
+                                        paid.receipt_number,
+                                        amount,
+                                      );
+                                    }}
+                                    trigger={(open) => (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 px-2"
+                                        onClick={open}
+                                      >
+                                        Receber
+                                      </Button>
+                                    )}
+                                  />
+                                ) : null}
+                                {resendInvoices ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={async () => {
+                                      await navigator.clipboard.writeText(
+                                        `${invoice.number} · ${student.full_name} · ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                      );
+                                      toast.success("Texto da fatura copiado para e-mail Resend");
+                                    }}
+                                  >
+                                    E-mail
+                                  </Button>
+                                ) : null}
+                                {whatsappOn ? (
+                                  <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                                    <a
+                                      href={whatsappHref(
+                                        guardians[0]?.guardian?.phone_primary ?? "",
+                                        `Fatura ${invoice.number} de ${student.full_name}: ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                      )}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      WhatsApp
+                                    </a>
+                                  </Button>
+                                ) : null}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))
+                : null}
+              {section === null &&
+              studentInvoices.length > 5 &&
+              canReadStudentSection("financeiro", account.role, account.grants) ? (
+                <Link
+                  to="/alunos/$studentId"
+                  params={{ studentId }}
+                  search={{ secao: "financeiro" }}
+                  className="mt-3 inline-block text-xs font-semibold text-primary hover:underline"
+                >
+                  {`Ver as ${studentInvoices.length} faturas`}
+                </Link>
               ) : null}
               <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
                 <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.

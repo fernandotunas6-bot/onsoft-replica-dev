@@ -86,6 +86,17 @@ const invoices = [
     status: "pending",
   },
 ];
+const baseInvoices = [...invoices];
+const invoiceRow = (
+  id: string,
+  number: string,
+  description: string,
+  due_on: string,
+  total_amount: number,
+  amount_paid: number,
+  status: string,
+) => ({ id, student_id: STUDENT, number, description, due_on, total_amount, amount_paid, status });
+const listInvoicesSpy = vi.fn(() => Promise.resolve(invoices));
 
 // Anos lectivos que o servidor devolveria (o motor da Pauta Final), do mais antigo
 // para o mais recente.
@@ -142,7 +153,7 @@ vi.mock("@/features/students/server", () => ({
   updateStudentProfile: vi.fn(),
 }));
 vi.mock("@/features/finance/server", () => ({
-  listInvoices: () => Promise.resolve(invoices),
+  listInvoices: () => listInvoicesSpy(),
   issueInvoice: vi.fn(),
   recordInvoicePayment: vi.fn(),
 }));
@@ -180,6 +191,8 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   history.years = [];
+  invoices.splice(0, invoices.length, ...baseInvoices);
+  listInvoicesSpy.mockClear();
   resetRouteLocation();
   resetCurrentAccount();
 });
@@ -232,6 +245,41 @@ describe("/alunos/$studentId — secções", () => {
     expect(screen.queryByText("Curso")).toBeNull();
   });
 
+  it("Financeiro mostra todas as faturas, por pagar e pagas, com a dívida", async () => {
+    invoices.splice(
+      0,
+      invoices.length,
+      invoiceRow("f-set", "FT-0301", "Propina de Setembro", "2026-09-05", 45000, 45000, "paid"),
+      invoiceRow("f-out", "FT-0311", "Propina de Outubro", "2020-10-05", 45000, 15000, "partial"),
+      invoiceRow("f-dez", "FT-0331", "Propina de Dezembro", "2099-12-05", 45000, 0, "pending"),
+    );
+    await open({ secao: "financeiro" });
+    await waitFor(() => expect(screen.getByText("FT-0311 · Propina de Outubro")).toBeDefined());
+    const porPagar = screen.getByRole("heading", { level: 3, name: "Por pagar · 2" });
+    const pagas = screen.getByRole("heading", { level: 3, name: "Pagas · 1" });
+    expect(porPagar.nextElementSibling?.textContent).toMatch(/FT-0311.*FT-0331/);
+    expect(pagas.nextElementSibling?.textContent).toContain("FT-0301");
+    expect(screen.getByText("Vencida · paga em parte")).toBeDefined();
+    expect(screen.getByText(/Vence a 05\/10\/2020/)).toBeDefined();
+    expect(screen.getByText("Falta pagar").nextElementSibling?.textContent).toMatch(
+      /75[\s.]?000.*30[\s.]?000.*vencido/,
+    );
+  });
+
+  it("a ficha completa mostra as cinco mais recentes e leva às restantes", async () => {
+    invoices.splice(
+      0,
+      invoices.length,
+      ...Array.from({ length: 6 }, (_, index) =>
+        invoiceRow(`f-${index}`, `FT-0${index}`, "Propina", "2026-09-05", 45000, 0, "pending"),
+      ),
+    );
+    await open({});
+    await waitFor(() => expect(screen.getByText("FT-00 · Propina")).toBeDefined());
+    expect(screen.queryByText("FT-05 · Propina")).toBeNull();
+    expect(screen.getByRole("link", { name: "Ver as 6 faturas" })).toBeDefined();
+  });
+
   it("Identificação mostra os dados pessoais e os encarregados, sem faturas", async () => {
     await open({ secao: "identificacao" });
     expect(screen.getByText("Dados pessoais")).toBeDefined();
@@ -265,6 +313,8 @@ describe("/alunos/$studentId — secções", () => {
     expect(notice).toBeDefined();
     expect(screen.getByText("Dados pessoais")).toBeDefined();
     expect(screen.queryByRole("heading", { level: 2, name: "Financeiro" })).toBeNull();
+    // Nem chega a pedir as faturas, que o servidor lhe recusaria.
+    expect(listInvoicesSpy).not.toHaveBeenCalled();
   });
 });
 
