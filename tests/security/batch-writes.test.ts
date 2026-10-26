@@ -162,7 +162,9 @@ describe("sessões de presença: uma por aula e por dia", () => {
       read("src/features/pedagogica/attendance-server.ts"),
       "listTeacherAttendanceSessions",
     );
-    expect(fn).toMatch(/createError\?\.code === "23505"/);
+    expect(fn).toMatch(/onConflict: "school_id,timetable_slot_id,lesson_date"/);
+    expect(fn).toMatch(/ignoreDuplicates: true/);
+    expect(fn).toMatch(/error: confirmError/);
   });
 });
 

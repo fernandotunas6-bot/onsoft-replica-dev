@@ -66,6 +66,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // o 2FA e o histórico de estado. Guarda Administrador/Secretaria; todas as
   // leituras filtram pela escola da membership.
   "src/features/academic/year-rollover-server.ts",
+  // Publicação do horário: o RPC publish_academic_schedule_atomic é SECURITY
+  // INVOKER e executável só por service_role. O servidor verifica escola,
+  // Administrador/Secretaria, grant pedagógico e AAL2 antes de o chamar;
+  // sincronização lê também as tabelas de agenda reservadas ao servidor.
+  "src/features/academic/schedule-publication.ts",
   // Organizar turmas por idade (2026-10-26): lê matrículas, fichas e registos de
   // notas/presenças da classe para decidir quem pode mudar, e muda por
   // placeStudentInClass (cliente privilegiado, 2FA, gatilho de lotação).

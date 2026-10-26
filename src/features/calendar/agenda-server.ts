@@ -57,7 +57,6 @@ async function studentAccess(
         .eq("school_id", schoolId)
         .eq("student_id", studentId)
         .in("academic_year_id", yearIds)
-        .in("status", ["active", "transferred", "completed"])
         .order("id"),
     ),
     rows(
@@ -85,8 +84,12 @@ async function studentAccess(
       )
     : [];
   const subjectById = new Map(subjects.map((s) => [s.id, s.subject_id]));
-  const access: AgendaAccess[] = enrollments
-    .filter((e) => e.status === "active" || e.ended_on !== null)
+  const eligible = enrollments.filter(
+    (e) =>
+      e.status === "active" ||
+      (["transferred", "completed"].includes(e.status) && e.ended_on !== null),
+  );
+  const access: AgendaAccess[] = eligible
     .filter((e) => !unitGroups.has(e.class_group_id))
     .map((e) => ({
       classGroupId: e.class_group_id,
@@ -96,13 +99,23 @@ async function studentAccess(
   for (const unit of units) {
     const subjectId = subjectById.get(unit.program_subject_id);
     if (unit.status !== "inscrito" || !unit.class_group_id || !subjectId) continue;
-    const enrollment = enrollments.find((e) => e.class_group_id === unit.class_group_id);
-    access.push({
-      classGroupId: unit.class_group_id,
-      subjectId,
-      startsOn: enrollment?.enrolled_on ?? "0001-01-01",
-      endsOn: enrollment?.ended_on ?? "9999-12-31",
-    });
+    const matching = enrollments.filter((e) => e.class_group_id === unit.class_group_id);
+    // Uma inscrição em cadeira não reabre uma matrícula cancelada/encerrada.
+    // Sem matrícula de turma, a própria inscrição continua a autorizar a cadeira.
+    if (!matching.length)
+      access.push({
+        classGroupId: unit.class_group_id,
+        subjectId,
+        startsOn: "0001-01-01",
+        endsOn: "9999-12-31",
+      });
+    for (const enrollment of matching.filter((e) => eligible.includes(e)))
+      access.push({
+        classGroupId: unit.class_group_id,
+        subjectId,
+        startsOn: enrollment.enrolled_on,
+        endsOn: enrollment.ended_on ?? "9999-12-31",
+      });
   }
   return access;
 }
@@ -116,17 +129,21 @@ export async function loadAcademicAgendaForRequest(
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   const roles = membership.allAppRoles ?? [membership.appRole];
   const manager = roles.some((r) => ["Administrador", "Secretaria"].includes(r));
-  const staff = manager || roles.includes("Professor");
+  const schoolViewer = manager || roles.includes("Tesouraria");
+  // Um pedido explícito de educando usa sempre o âmbito do portal, mesmo que
+  // a conta acumule outro papel. Nunca ignorar studentId e devolver a escola.
+  const staff = !data.studentId && (schoolViewer || roles.includes("Professor"));
   if (staff)
     await requireSgaWriterFor("pedagogica", context.supabase, context.userId, [
       "Administrador",
       "Secretaria",
       "Professor",
+      "Tesouraria",
     ]);
   const db = await loadSgaAdminClient(),
     schoolId = membership.schoolId;
   let teacherId: string | undefined;
-  if (!manager && staff) {
+  if (!schoolViewer && staff) {
     teacherId = (await ownTeacherId(db, schoolId, context.userId)) ?? undefined;
     if (!teacherId || (data.teacherId && data.teacherId !== teacherId))
       throw new Error("Sem acesso ao horário deste docente.");
@@ -177,93 +194,152 @@ export async function loadAcademicAgendaForRequest(
   }
   const assignmentIds = assignments.map((a) => a.id),
     subjectIds = [...new Set(assignments.map((a) => a.subject_id))];
+  const teacherIds = [
+    ...new Set(assignments.map((a) => a.teacher_id).filter((id): id is string => !!id)),
+  ];
   const scopedGroupIds = [...new Set(assignments.map((a) => a.class_group_id))];
-  const [terms, calendar, schedules, slots, subjects, assessments, tasks] = await Promise.all([
-    rows(
-      db
-        .from("terms")
-        .select("id, academic_year_id, name, sequence, starts_on, ends_on")
-        .eq("school_id", schoolId)
-        .in("academic_year_id", yearIds)
-        .order("id"),
-    ),
-    rows(
-      db
-        .from("siga_calendar_events")
-        .select(
-          "id, academic_year_id, class_group_id, teacher_id, title, description, category, starts_on, ends_on, starts_at, ends_at, audience, blocks_teaching, version",
-        )
-        .eq("school_id", schoolId)
-        .in("academic_year_id", yearIds)
-        .eq("status", "published")
-        .lt("starts_on", data.end)
-        .gte("ends_on", data.start)
-        .order("id"),
-    ),
-    scopedGroupIds.length
+  const [terms, calendar, schedules, slots, subjects, assessments, tasks, teacherRows] =
+    await Promise.all([
+      rows(
+        db
+          .from("terms")
+          .select("id, academic_year_id, name, sequence, starts_on, ends_on")
+          .eq("school_id", schoolId)
+          .in("academic_year_id", yearIds)
+          .order("id"),
+      ),
+      rows(
+        db
+          .from("siga_calendar_events")
+          .select(
+            "id, academic_year_id, class_group_id, teacher_id, title, description, category, starts_on, ends_on, starts_at, ends_at, audience, blocks_teaching, version",
+          )
+          .eq("school_id", schoolId)
+          .in("academic_year_id", yearIds)
+          .eq("status", "published")
+          .lt("starts_on", data.end)
+          .gte("ends_on", data.start)
+          .order("id"),
+      ),
+      scopedGroupIds.length
+        ? rows(
+            db
+              .from("academic_schedules")
+              .select(
+                "id, academic_year_id, class_group_id, status, valid_from, valid_to, term, published_at",
+              )
+              .eq("school_id", schoolId)
+              .in("class_group_id", scopedGroupIds)
+              .in("academic_year_id", yearIds)
+              .eq("status", "published")
+              .is("deleted_at", null)
+              .order("id"),
+          )
+        : [],
+      assignmentIds.length
+        ? rows(
+            db
+              .from("timetable_slots")
+              .select(
+                "id, class_subject_id, schedule_id, weekday, starts_at, ends_at, room, room_id",
+              )
+              .eq("school_id", schoolId)
+              .in("class_subject_id", assignmentIds)
+              .eq("status", "active")
+              .order("id"),
+          )
+        : [],
+      subjectIds.length
+        ? rows(
+            db
+              .from("subjects")
+              .select("id, name")
+              .eq("school_id", schoolId)
+              .in("id", subjectIds)
+              .order("id"),
+          )
+        : [],
+      scopedGroupIds.length
+        ? rows(
+            db
+              .from("siga_assessment_items")
+              .select(
+                "id, class_group_id, subject_id, name, assessed_on, starts_at, duration_minutes, purpose, kind",
+              )
+              .eq("school_id", schoolId)
+              .in("class_group_id", scopedGroupIds)
+              .gte("assessed_on", data.start)
+              .lt("assessed_on", data.end)
+              .order("id"),
+          )
+        : [],
+      assignmentIds.length
+        ? rows(
+            db
+              .from("siga_class_tasks")
+              .select("id, class_subject_id, title, due_on, kind")
+              .eq("school_id", schoolId)
+              .in("class_subject_id", assignmentIds)
+              .eq("status", "published")
+              .gte("due_on", data.start)
+              .lt("due_on", data.end)
+              .order("id"),
+          )
+        : [],
+      teacherIds.length
+        ? rows(
+            db
+              .from("teachers")
+              .select("id, person_id")
+              .eq("school_id", schoolId)
+              .in("id", teacherIds)
+              .order("id"),
+          )
+        : [],
+    ]);
+  const personIds = [...new Set(teacherRows.map((t) => t.person_id))];
+  const roomIds = [...new Set(slots.map((s) => s.room_id).filter((id): id is string => !!id))];
+  const [people, rooms] = await Promise.all([
+    personIds.length
       ? rows(
           db
-            .from("academic_schedules")
-            .select("id, academic_year_id, class_group_id, status, valid_from, valid_to, term")
+            .from("people")
+            .select("id, full_name")
             .eq("school_id", schoolId)
-            .in("class_group_id", scopedGroupIds)
-            .in("academic_year_id", yearIds)
-            .eq("status", "published")
-            .is("deleted_at", null)
+            .in("id", personIds)
             .order("id"),
         )
       : [],
-    assignmentIds.length
+    roomIds.length
       ? rows(
           db
-            .from("timetable_slots")
-            .select("id, class_subject_id, schedule_id, weekday, starts_at, ends_at, room")
-            .eq("school_id", schoolId)
-            .in("class_subject_id", assignmentIds)
-            .eq("status", "active")
-            .order("id"),
-        )
-      : [],
-    subjectIds.length
-      ? rows(
-          db
-            .from("subjects")
+            .from("rooms")
             .select("id, name")
             .eq("school_id", schoolId)
-            .in("id", subjectIds)
-            .order("id"),
-        )
-      : [],
-    scopedGroupIds.length
-      ? rows(
-          db
-            .from("siga_assessment_items")
-            .select(
-              "id, class_group_id, subject_id, name, assessed_on, starts_at, duration_minutes, purpose",
-            )
-            .eq("school_id", schoolId)
-            .in("class_group_id", scopedGroupIds)
-            .gte("assessed_on", data.start)
-            .lt("assessed_on", data.end)
-            .order("id"),
-        )
-      : [],
-    assignmentIds.length
-      ? rows(
-          db
-            .from("siga_class_tasks")
-            .select("id, class_subject_id, title, due_on, kind")
-            .eq("school_id", schoolId)
-            .in("class_subject_id", assignmentIds)
-            .eq("status", "published")
-            .gte("due_on", data.start)
-            .lt("due_on", data.end)
+            .in("id", roomIds)
             .order("id"),
         )
       : [],
   ]);
+  const roomNames = new Map(rooms.map((r) => [r.id, r.name]));
+  const personNames = new Map(people.map((p) => [p.id, p.full_name]));
+  const teachers = teacherRows.map((t) => ({
+    id: t.id,
+    name: personNames.get(t.person_id) ?? null,
+  }));
   return buildAcademicAgenda(
-    { terms, calendar, schedules, slots, subjects, assessments, tasks, assignments, groups },
+    {
+      terms,
+      calendar,
+      schedules,
+      slots: slots.map((slot) => ({ ...slot, room: roomNames.get(slot.room_id!) ?? slot.room })),
+      subjects,
+      assessments,
+      tasks,
+      assignments,
+      groups,
+      teachers,
+    },
     data,
     { staff, teacherId, access },
   );
