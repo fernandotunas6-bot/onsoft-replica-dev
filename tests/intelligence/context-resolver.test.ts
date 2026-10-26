@@ -177,6 +177,14 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/faturas/FT-2026-0311")).toEqual([]);
     expect(routeContextCandidates("/faturas")).toEqual([]);
   });
+
+  it("reconhece a página do comunicado, só com um uuid", () => {
+    expect(routeContextCandidates(`/comunicacoes/${ALUNO}`)).toEqual([
+      { type: "announcement", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/comunicacoes/novo")).toEqual([]);
+    expect(routeContextCandidates("/comunicacoes")).toEqual([]);
+  });
 });
 
 describe("parseSubjectOfferingId", () => {

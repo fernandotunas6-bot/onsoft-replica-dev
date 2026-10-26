@@ -127,6 +127,13 @@ cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedago
 (a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
 estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (página do comunicado):** cada comunicado abre
+`/comunicacoes/<id>` com o texto inteiro (as quebras de linha mantêm-se), o estado, o público, o
+canal e as datas. O título na lista de Comunicações e nos painéis (Administração, aluno e
+encarregado) passa a ser uma ligação para a página. A Administração, a Secretaria e o Professor
+recebem o menu do comunicado (o comunicado e a lista); o aluno e o encarregado lêem a página sem
+menu. Mesmos cartões e `StatusBadge` da página da fatura. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

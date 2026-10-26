@@ -725,7 +725,19 @@ export function AdminPortalDashboard({
             <ul className="space-y-3">
               {data?.announcements.map((item) => (
                 <li key={item.id} className="rounded-xl bg-secondary p-3">
-                  <p className="text-sm font-semibold">{item.title}</p>
+                  <p className="text-sm font-semibold [overflow-wrap:anywhere]">
+                    {canAccessPath("/comunicacoes", currentUser.role, currentUser.grants) ? (
+                      <Link
+                        to="/comunicacoes/$announcementId"
+                        params={{ announcementId: item.id }}
+                        className="hover:text-primary hover:underline"
+                      >
+                        {item.title}
+                      </Link>
+                    ) : (
+                      item.title
+                    )}
+                  </p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
                   {item.published_at ? (
                     <p className="mt-2 text-[11px] text-muted-foreground">

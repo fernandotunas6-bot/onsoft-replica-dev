@@ -9,7 +9,9 @@ export type EntityType =
   /** Uma disciplina dentro de uma turma: o id é `<turma>:<disciplina>`. */
   | "subject-offering"
   /** Uma fatura da escola activa (contexto financeiro). */
-  | "invoice";
+  | "invoice"
+  /** Um comunicado da escola activa (contexto Comunicações). */
+  | "announcement";
 
 export interface EntityFocus<T = unknown> {
   type: EntityType;

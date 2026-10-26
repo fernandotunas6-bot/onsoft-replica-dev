@@ -46,6 +46,7 @@ describe("contribuições dos módulos de contexto", () => {
   it("nome do tipo no cabeçalho, e «Contexto» para um tipo sem módulo", () => {
     expect(contextKindLabel("subject-offering")).toBe("Disciplina");
     expect(contextKindLabel("invoice")).toBe("Fatura");
+    expect(contextKindLabel("announcement")).toBe("Comunicado");
     expect(contextKindLabel("finance-overview")).toBe("Contexto");
   });
 
@@ -54,6 +55,8 @@ describe("contribuições dos módulos de contexto", () => {
     expect(canOpenEntityMenu("student", "Encarregado")).toBe(false);
     expect(canOpenEntityMenu("invoice", "Tesouraria")).toBe(true);
     expect(canOpenEntityMenu("invoice", "Secretaria")).toBe(false);
+    expect(canOpenEntityMenu("announcement", "Professor")).toBe(true);
+    expect(canOpenEntityMenu("announcement", "Encarregado")).toBe(false);
     expect(canOpenEntityMenu("class", "Tesouraria")).toBe(false);
     // Um tipo sem módulo nunca abre menu.
     expect(canOpenEntityMenu("dashboard-overview", "Administrador")).toBe(false);
@@ -65,6 +68,9 @@ describe("contribuições dos módulos de contexto", () => {
     });
     expect(contextBackLink(context([frame("invoice")]), "/faturas/x", {})).toEqual({
       to: "/faturas",
+    });
+    expect(contextBackLink(context([frame("announcement")]), "/comunicacoes/x", {})).toEqual({
+      to: "/comunicacoes",
     });
     expect(contextBackLink(context([frame("teacher")]), "/professores/x", {})).toEqual({
       to: "/pessoas",
