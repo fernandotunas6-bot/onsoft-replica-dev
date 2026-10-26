@@ -16,6 +16,11 @@ function teacherId(trail: ContextFrame[]): string {
   return [...trail].reverse().find((frame) => frame.type === "teacher")?.id ?? "";
 }
 
+/** O vínculo laboral do professor, quando o servidor o devolveu com o perfil. */
+function teacherEmploymentId(trail: ContextFrame[]): string | undefined {
+  return [...trail].reverse().find((frame) => frame.type === "teacher")?.relations?.employee;
+}
+
 export const TEACHER_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
   {
     id: "teacher.overview",
@@ -84,6 +89,20 @@ export const TEACHER_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     // (`listTeacherAttendanceSessions` com `teacherId`).
     allow: (role, grants) => canWriteModule(role, "pedagogica", grants),
     order: 30,
+  },
+  {
+    // A ficha de RH do mesmo professor: o vínculo vem do servidor com o perfil, e só
+    // para quem lê o RH (a rota `/financeiro/rh` também o filtra).
+    id: "teacher.hr",
+    label: "Ficha de RH",
+    icon: moduleIcons.hr,
+    group: "Recursos Humanos",
+    contexts: ["teacher"],
+    to: "/financeiro/rh/funcionarios/$employmentId",
+    path: (trail) => `/financeiro/rh/funcionarios/${teacherEmploymentId(trail) ?? ""}`,
+    module: "financeiro",
+    available: (trail) => Boolean(teacherEmploymentId(trail)),
+    order: 40,
   },
 ];
 

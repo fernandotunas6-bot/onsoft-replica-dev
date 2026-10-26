@@ -127,6 +127,15 @@ cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedago
 (a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
 estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (ficha do funcionário):** `/financeiro/rh/funcionarios` lista
+os vínculos laborais (nome, número, cargo, departamento, tipo e estado), com procura, e cada linha
+abre `/financeiro/rh/funcionarios/<id>`: o vínculo, o professor da mesma pessoa, os contratos, as
+faltas (com as que estão por rever) e os recibos de vencimento por folha, cada secção com a
+ligação para a página do RH onde se trabalha sobre ela. O hub do RH ganha «Funcionários». A
+sidebar mostra o menu do funcionário («Voltar», `Funcionário · …`, a ficha, todos os
+funcionários, rever faltas, folha, alterações salariais e o perfil do professor), e o menu do
+professor ganha «Ficha de RH» (Administração). Linhas da lista com 56 px; sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

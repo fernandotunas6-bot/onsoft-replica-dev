@@ -96,6 +96,7 @@ import { Route as FinanceiroRhFolhaRouteImport } from './routes/financeiro.rh.fo
 import { Route as FinanceiroRhPagamentosRouteImport } from './routes/financeiro.rh.pagamentos'
 import { Route as FinanceiroRhPresencaRouteImport } from './routes/financeiro.rh.presenca'
 import { Route as FinanceiroRhSalariosRouteImport } from './routes/financeiro.rh.salarios'
+import { Route as FinanceiroRhFuncionariosRouteImport } from './routes/financeiro_.rh_.funcionarios'
 import { Route as PedagogicaDisciplinasSubjectIdRouteImport } from './routes/pedagogica_.disciplinas.$subjectId'
 import { Route as PedagogicaPautasSuperiorImprimirRouteImport } from './routes/pedagogica_.pautas-superior_.imprimir'
 import { Route as PedagogicaSuperiorCertificadoRouteImport } from './routes/pedagogica_.superior_.certificado'
@@ -139,6 +140,7 @@ import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tena
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
+import { Route as FinanceiroRhFuncionariosEmploymentIdRouteImport } from './routes/financeiro_.rh_.funcionarios_.$employmentId'
 import { Route as PedagogicaTurmasTurmaIdRenovarRouteImport } from './routes/pedagogica_.turmas.$turmaId_.renovar'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
 
@@ -582,6 +584,12 @@ const FinanceiroRhSalariosRoute = FinanceiroRhSalariosRouteImport.update({
   path: '/salarios',
   getParentRoute: () => FinanceiroRhRoute,
 } as any)
+const FinanceiroRhFuncionariosRoute =
+  FinanceiroRhFuncionariosRouteImport.update({
+    id: '/financeiro_/rh_/funcionarios',
+    path: '/financeiro/rh/funcionarios',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaDisciplinasSubjectIdRoute =
   PedagogicaDisciplinasSubjectIdRouteImport.update({
     id: '/pedagogica_/disciplinas/$subjectId',
@@ -820,6 +828,12 @@ const ApiSaasUsageSyncRoute = ApiSaasUsageSyncRouteImport.update({
   path: '/api/saas/usage/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroRhFuncionariosEmploymentIdRoute =
+  FinanceiroRhFuncionariosEmploymentIdRouteImport.update({
+    id: '/financeiro_/rh_/funcionarios_/$employmentId',
+    path: '/financeiro/rh/funcionarios/$employmentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedagogicaTurmasTurmaIdRenovarRoute =
   PedagogicaTurmasTurmaIdRenovarRouteImport.update({
     id: '/pedagogica_/turmas/$turmaId_/renovar',
@@ -921,6 +935,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/financeiro/rh/funcionarios': typeof FinanceiroRhFuncionariosRoute
   '/pedagogica/disciplinas/$subjectId': typeof PedagogicaDisciplinasSubjectIdRoute
   '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
@@ -964,6 +979,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/financeiro/rh/funcionarios/$employmentId': typeof FinanceiroRhFuncionariosEmploymentIdRoute
   '/pedagogica/turmas/$turmaId/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -1055,6 +1071,7 @@ export interface FileRoutesByTo {
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/financeiro/rh/funcionarios': typeof FinanceiroRhFuncionariosRoute
   '/pedagogica/disciplinas/$subjectId': typeof PedagogicaDisciplinasSubjectIdRoute
   '/pedagogica/pautas-superior/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
@@ -1098,6 +1115,7 @@ export interface FileRoutesByTo {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/financeiro/rh/funcionarios/$employmentId': typeof FinanceiroRhFuncionariosEmploymentIdRoute
   '/pedagogica/turmas/$turmaId/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -1190,6 +1208,7 @@ export interface FileRoutesById {
   '/financeiro/rh/pagamentos': typeof FinanceiroRhPagamentosRoute
   '/financeiro/rh/presenca': typeof FinanceiroRhPresencaRoute
   '/financeiro/rh/salarios': typeof FinanceiroRhSalariosRoute
+  '/financeiro_/rh_/funcionarios': typeof FinanceiroRhFuncionariosRoute
   '/pedagogica_/disciplinas/$subjectId': typeof PedagogicaDisciplinasSubjectIdRoute
   '/pedagogica_/pautas-superior_/imprimir': typeof PedagogicaPautasSuperiorImprimirRoute
   '/pedagogica_/superior_/certificado': typeof PedagogicaSuperiorCertificadoRoute
@@ -1233,6 +1252,7 @@ export interface FileRoutesById {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/financeiro_/rh_/funcionarios_/$employmentId': typeof FinanceiroRhFuncionariosEmploymentIdRoute
   '/pedagogica_/turmas/$turmaId_/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -1326,6 +1346,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
+    | '/financeiro/rh/funcionarios'
     | '/pedagogica/disciplinas/$subjectId'
     | '/pedagogica/pautas-superior/imprimir'
     | '/pedagogica/superior/certificado'
@@ -1369,6 +1390,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/financeiro/rh/funcionarios/$employmentId'
     | '/pedagogica/turmas/$turmaId/renovar'
     | '/api/finance/gateway/unitel/confirm'
   fileRoutesByTo: FileRoutesByTo
@@ -1460,6 +1482,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
+    | '/financeiro/rh/funcionarios'
     | '/pedagogica/disciplinas/$subjectId'
     | '/pedagogica/pautas-superior/imprimir'
     | '/pedagogica/superior/certificado'
@@ -1503,6 +1526,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/financeiro/rh/funcionarios/$employmentId'
     | '/pedagogica/turmas/$turmaId/renovar'
     | '/api/finance/gateway/unitel/confirm'
   id:
@@ -1594,6 +1618,7 @@ export interface FileRouteTypes {
     | '/financeiro/rh/pagamentos'
     | '/financeiro/rh/presenca'
     | '/financeiro/rh/salarios'
+    | '/financeiro_/rh_/funcionarios'
     | '/pedagogica_/disciplinas/$subjectId'
     | '/pedagogica_/pautas-superior_/imprimir'
     | '/pedagogica_/superior_/certificado'
@@ -1637,6 +1662,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/financeiro_/rh_/funcionarios_/$employmentId'
     | '/pedagogica_/turmas/$turmaId_/renovar'
     | '/api/finance/gateway/unitel/confirm'
   fileRoutesById: FileRoutesById
@@ -1711,6 +1737,7 @@ export interface RootRouteChildren {
   ApiSaasTenantsRoute: typeof ApiSaasTenantsRouteWithChildren
   ApiWebhooksTwilioSmsRoute: typeof ApiWebhooksTwilioSmsRoute
   ApiWebhooksWhatsappStatusRoute: typeof ApiWebhooksWhatsappStatusRoute
+  FinanceiroRhFuncionariosRoute: typeof FinanceiroRhFuncionariosRoute
   PedagogicaDisciplinasSubjectIdRoute: typeof PedagogicaDisciplinasSubjectIdRoute
   PedagogicaPautasSuperiorImprimirRoute: typeof PedagogicaPautasSuperiorImprimirRoute
   PedagogicaSuperiorCertificadoRoute: typeof PedagogicaSuperiorCertificadoRoute
@@ -1734,6 +1761,7 @@ export interface RootRouteChildren {
   ApiSaasSitePostsRoute: typeof ApiSaasSitePostsRoute
   ApiSaasSiteShowcaseRoute: typeof ApiSaasSiteShowcaseRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
+  FinanceiroRhFuncionariosEmploymentIdRoute: typeof FinanceiroRhFuncionariosEmploymentIdRoute
   PedagogicaTurmasTurmaIdRenovarRoute: typeof PedagogicaTurmasTurmaIdRenovarRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
 }
@@ -2349,6 +2377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceiroRhSalariosRouteImport
       parentRoute: typeof FinanceiroRhRoute
     }
+    '/financeiro_/rh_/funcionarios': {
+      id: '/financeiro_/rh_/funcionarios'
+      path: '/financeiro/rh/funcionarios'
+      fullPath: '/financeiro/rh/funcionarios'
+      preLoaderRoute: typeof FinanceiroRhFuncionariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/disciplinas/$subjectId': {
       id: '/pedagogica_/disciplinas/$subjectId'
       path: '/pedagogica/disciplinas/$subjectId'
@@ -2650,6 +2685,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasUsageSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro_/rh_/funcionarios_/$employmentId': {
+      id: '/financeiro_/rh_/funcionarios_/$employmentId'
+      path: '/financeiro/rh/funcionarios/$employmentId'
+      fullPath: '/financeiro/rh/funcionarios/$employmentId'
+      preLoaderRoute: typeof FinanceiroRhFuncionariosEmploymentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedagogica_/turmas/$turmaId_/renovar': {
       id: '/pedagogica_/turmas/$turmaId_/renovar'
       path: '/pedagogica/turmas/$turmaId/renovar'
@@ -2946,6 +2988,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasTenantsRoute: ApiSaasTenantsRouteWithChildren,
   ApiWebhooksTwilioSmsRoute: ApiWebhooksTwilioSmsRoute,
   ApiWebhooksWhatsappStatusRoute: ApiWebhooksWhatsappStatusRoute,
+  FinanceiroRhFuncionariosRoute: FinanceiroRhFuncionariosRoute,
   PedagogicaDisciplinasSubjectIdRoute: PedagogicaDisciplinasSubjectIdRoute,
   PedagogicaPautasSuperiorImprimirRoute: PedagogicaPautasSuperiorImprimirRoute,
   PedagogicaSuperiorCertificadoRoute: PedagogicaSuperiorCertificadoRoute,
@@ -2969,6 +3012,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasSitePostsRoute: ApiSaasSitePostsRoute,
   ApiSaasSiteShowcaseRoute: ApiSaasSiteShowcaseRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
+  FinanceiroRhFuncionariosEmploymentIdRoute:
+    FinanceiroRhFuncionariosEmploymentIdRoute,
   PedagogicaTurmasTurmaIdRenovarRoute: PedagogicaTurmasTurmaIdRenovarRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
 }

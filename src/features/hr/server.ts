@@ -10,7 +10,8 @@ import {
 
 const HR_READ_ROLES = new Set(["Administrador", "Tesouraria"]);
 
-async function requireHrReader(userId: string, mode: "read" | "write" = "read") {
+/** Leitura do RH: Administração e Tesouraria, salvo «Nenhum» no Financeiro. */
+export async function requireHrReader(userId: string, mode: "read" | "write" = "read") {
   const membership = await resolveSgaMembershipAdmin(userId);
   if (!membership) throw new Error("Sem vínculo activo com uma escola.");
   if (!HR_READ_ROLES.has(membership.appRole)) {

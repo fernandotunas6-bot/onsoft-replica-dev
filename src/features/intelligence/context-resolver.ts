@@ -106,6 +106,10 @@ export function routeContextCandidates(
   ) {
     return extra && UUID.test(extra) ? [{ type: "class", id: extra }] : [];
   }
+  // Ficha do funcionário: `/financeiro/rh/funcionarios/<vínculo>`.
+  if (first === "financeiro" && second === "rh" && extra === "funcionarios" && rest === undefined) {
+    return more && UUID.test(more) ? [{ type: "employee", id: more }] : [];
+  }
   if (extra === undefined && second && UUID.test(second)) {
     if (first === "alunos") return [{ type: "student", id: second }];
     if (first === "professores") return [{ type: "teacher", id: second }];
