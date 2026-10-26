@@ -43,7 +43,7 @@ Pessoas (permanente: ficha, BI, nº de aluno, conta)
 - **Quem já tem notas, presenças, entregas ou boletins fica** onde está e o lugar conta como ocupado:
   mudar de turma misturava pautas (havia 286 notas lançadas). Organiza-se antes das aulas.
 - Sem data de nascimento válida: fica, e a ficha é assinalada.
-- Lotação: assinala acima de 36 e recusa a ideia de mais de 45 (DP 162/23, art. 10.º; 26 com alunos
+- Lotação: assinala acima de 36 e acima de 45 (DP 162/23, art. 10.º; 26 com alunos
   com deficiência).
 - Aplicar recalcula no servidor, confere a **assinatura** do plano pré-visualizado, exige 2FA e muda cada
   aluno pela regra única `placeStudentInClass` (gatilho de lotação, histórico), numa ordem que nunca passa
