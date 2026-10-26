@@ -16,6 +16,8 @@ import {
 import { AuthBackgroundVideo } from "./AuthBackgroundVideo";
 import { AuthHeroSlides } from "./AuthHeroSlides";
 import { writeSessionHint } from "@/features/auth/session-hint";
+import { FirstPasswordScreen } from "@/features/auth/FirstPasswordScreen";
+import { mustChangePassword } from "@/features/students/student-accounts";
 import { pendingMfaFactors } from "@/features/auth/pending-mfa";
 import {
   passkeysSupported,
@@ -668,6 +670,20 @@ export function AuthGate({
   }
 
   if (session) {
+    // Conta criada pela Secretaria com senha provisória: primeiro escolhe a sua.
+    if (mustChangePassword(session.user.app_metadata)) {
+      return (
+        <AuthSessionContext.Provider value={session}>
+          <FirstPasswordScreen
+            name={
+              typeof session.user.user_metadata?.["full_name"] === "string"
+                ? (session.user.user_metadata["full_name"] as string)
+                : null
+            }
+          />
+        </AuthSessionContext.Provider>
+      );
+    }
     return (
       <AuthSessionContext.Provider value={session}>
         {children}
