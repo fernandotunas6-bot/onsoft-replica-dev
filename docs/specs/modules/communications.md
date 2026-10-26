@@ -45,13 +45,13 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `limit` | `z.number().int().min(1).max(100).default(40),` | [schemas.ts](../../../src/features/communications/schemas.ts) |
+| Campo    | Declaração observada                            | Schema de origem                                              |
+| -------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| `limit`  | `z.number().int().min(1).max(100).default(40),` | [schemas.ts](../../../src/features/communications/schemas.ts) |
 | `status` | `z.enum(announcementStatusOptions).optional(),` | [schemas.ts](../../../src/features/communications/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/communications/schemas.ts) |
-| `title` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/communications/schemas.ts) |
-| `body` | `z.string().trim().min(2).max(4000),` | [schemas.ts](../../../src/features/communications/schemas.ts) |
+| `id`     | `z.string().uuid(),`                            | [schemas.ts](../../../src/features/communications/schemas.ts) |
+| `title`  | `z.string().trim().min(2).max(160),`            | [schemas.ts](../../../src/features/communications/schemas.ts) |
+| `body`   | `z.string().trim().min(2).max(4000),`           | [schemas.ts](../../../src/features/communications/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -63,17 +63,17 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `communication_dispatches` | `id`, `school_id`, `channel`, `provider`, `external_message_id`, `sender_address`, `recipient`, `subject_or_template`, `status`, `delivered_at`, `error_details`, `metadata`, `created_at`, `updated_at` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `finance_contracts` | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at` |
-| `finance_invoices` | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `school_announcements` | `id`, `school_id`, `title`, `body`, `audience`, `channel`, `status`, `scheduled_for`, `published_at`, `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`, `version` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `user_communication_preferences` | `id`, `user_id`, `school_id`, `security_enabled`, `academic_enabled`, `financial_enabled`, `attendance_enabled`, `calendar_enabled`, `announcements_enabled`, `events_enabled`, `documents_enabled`, `marketing_enabled`, `channel_preferences`, `created_at`, `updated_at`, `version` |
+| Tabela                           | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `communication_dispatches`       | `id`, `school_id`, `channel`, `provider`, `external_message_id`, `sender_address`, `recipient`, `subject_or_template`, `status`, `delivered_at`, `error_details`, `metadata`, `created_at`, `updated_at`                                                                                                                                                                                                |
+| `enrollments`                    | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `finance_contracts`              | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at`                                                                                                                                                                                                                                                                                          |
+| `finance_invoices`               | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount`                                                                                                                                                            |
+| `people`                         | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `school_announcements`           | `id`, `school_id`, `title`, `body`, `audience`, `channel`, `status`, `scheduled_for`, `published_at`, `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                   |
+| `school_memberships`             | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                                                                                                                                                                         |
+| `schools`                        | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `user_communication_preferences` | `id`, `user_id`, `school_id`, `security_enabled`, `academic_enabled`, `financial_enabled`, `attendance_enabled`, `calendar_enabled`, `announcements_enabled`, `events_enabled`, `documents_enabled`, `marketing_enabled`, `channel_preferences`, `created_at`, `updated_at`, `version`                                                                                                                  |
 
 Relações confirmadas:
 
@@ -96,16 +96,16 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `syncSchoolContactsToResendFn` | POST | `Sem schema de entrada explícito neste bloco` | [contacts-sync-server.ts](../../../src/features/communications/contacts-sync-server.ts) |
-| `listSchoolCommunicationDispatches` | GET | `listDispatchesInputSchema` | [dispatches-server.ts](../../../src/features/communications/dispatches-server.ts) |
-| `getCommunicationDispatchStats` | GET | `Sem schema de entrada explícito neste bloco` | [dispatches-server.ts](../../../src/features/communications/dispatches-server.ts) |
-| `listSchoolAnnouncements` | GET | `listAnnouncementsInputSchema` | [server.ts](../../../src/features/communications/server.ts) |
-| `createSchoolAnnouncement` | POST | `createAnnouncementInputSchema` | [server.ts](../../../src/features/communications/server.ts) |
-| `updateSchoolAnnouncementStatus` | POST | `updateAnnouncementStatusInputSchema` | [server.ts](../../../src/features/communications/server.ts) |
-| `updateSchoolAnnouncement` | POST | `updateAnnouncementInputSchema` | [server.ts](../../../src/features/communications/server.ts) |
-| `archiveSchoolAnnouncement` | POST | `archiveAnnouncementInputSchema` | [server.ts](../../../src/features/communications/server.ts) |
+| Função                              | Método | Entrada                                       | Fonte                                                                                   |
+| ----------------------------------- | ------ | --------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `syncSchoolContactsToResendFn`      | POST   | `Sem schema de entrada explícito neste bloco` | [contacts-sync-server.ts](../../../src/features/communications/contacts-sync-server.ts) |
+| `listSchoolCommunicationDispatches` | GET    | `listDispatchesInputSchema`                   | [dispatches-server.ts](../../../src/features/communications/dispatches-server.ts)       |
+| `getCommunicationDispatchStats`     | GET    | `Sem schema de entrada explícito neste bloco` | [dispatches-server.ts](../../../src/features/communications/dispatches-server.ts)       |
+| `listSchoolAnnouncements`           | GET    | `listAnnouncementsInputSchema`                | [server.ts](../../../src/features/communications/server.ts)                             |
+| `createSchoolAnnouncement`          | POST   | `createAnnouncementInputSchema`               | [server.ts](../../../src/features/communications/server.ts)                             |
+| `updateSchoolAnnouncementStatus`    | POST   | `updateAnnouncementStatusInputSchema`         | [server.ts](../../../src/features/communications/server.ts)                             |
+| `updateSchoolAnnouncement`          | POST   | `updateAnnouncementInputSchema`               | [server.ts](../../../src/features/communications/server.ts)                             |
+| `archiveSchoolAnnouncement`         | POST   | `archiveAnnouncementInputSchema`              | [server.ts](../../../src/features/communications/server.ts)                             |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

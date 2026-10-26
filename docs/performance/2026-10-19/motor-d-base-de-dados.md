@@ -9,15 +9,15 @@ em paralelo e tem inventário próprio em `inventory-before.json` e `bundle-befo
 
 ## O achado principal: não há gargalo para medir
 
-| Medida | Valor |
-| --- | --- |
-| Período de recolha (`pg_stat_statements`) | 2 090,5 h — 87 dias, desde 2026-07-24 |
-| Tempo de execução de **toda** a base nesse período | **4 494 s** |
-| Em fracção de um CPU | **0,06 %** |
-| Chamadas totais | 1 150 242 |
-| Tamanho da base | 55 MB |
-| Tabelas em `public` | 207, das quais **101 vazias** |
-| Linhas em todas as tabelas somadas | 37 770 |
+| Medida                                             | Valor                                 |
+| -------------------------------------------------- | ------------------------------------- |
+| Período de recolha (`pg_stat_statements`)          | 2 090,5 h — 87 dias, desde 2026-07-24 |
+| Tempo de execução de **toda** a base nesse período | **4 494 s**                           |
+| Em fracção de um CPU                               | **0,06 %**                            |
+| Chamadas totais                                    | 1 150 242                             |
+| Tamanho da base                                    | 55 MB                                 |
+| Tabelas em `public`                                | 207, das quais **101 vazias**         |
+| Linhas em todas as tabelas somadas                 | 37 770                                |
 
 A base está parada. Em 87 dias gastou menos de hora e meia de CPU. **Qualquer ganho
 medido neste volume seria ruído**, e é por isso que este relatório não anuncia ganho
@@ -28,7 +28,7 @@ testes E2E; o uso real é de uma escola. 85 alunos, 76 matrículas, 38 facturas.
 
 ## O que os avisos do Supabase dizem — e porque não são uma lista de trabalho
 
-O *performance advisor* devolve **439 avisos**, em dois tipos. Nenhum dos dois se deve
+O _performance advisor_ devolve **439 avisos**, em dois tipos. Nenhum dos dois se deve
 seguir tal como vem.
 
 ### 230 «índices nunca usados»
@@ -41,11 +41,11 @@ seguir tal como vem.
 Esta merece ser aberta, e ao abri-la muda de significado. Das 204 que contei pela mesma
 regra:
 
-| Natureza da coluna | Quantas | Vale a pena indexar? |
-| --- | --- | --- |
+| Natureza da coluna                                                    | Quantas | Vale a pena indexar?                                                                                                     |
+| --------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Auditoria — `created_by`, `updated_by`, `issued_by`, `actor_user_id`… | **188** | **Não.** Ninguém pergunta «que matrículas criou o utilizador X». Um índice aqui é escrito em cada inserção e lido nunca. |
-| Catálogo global/país — `subject_code`, `isced_level`, `source_id`… | 12 | Marginal. Tabelas limitadas (máx. 614 linhas) e só de leitura. |
-| **Referência que cresce por aluno** | **4** | **Sim**, por antecipação. |
+| Catálogo global/país — `subject_code`, `isced_level`, `source_id`…    | 12      | Marginal. Tabelas limitadas (máx. 614 linhas) e só de leitura.                                                           |
+| **Referência que cresce por aluno**                                   | **4**   | **Sim**, por antecipação.                                                                                                |
 
 As quatro: `class_group_waitlist.student_id`, `class_group_waitlist.class_group_id`,
 `student_scholarships.student_id`, `student_special_statuses.student_id`. Estão todas a
@@ -62,12 +62,12 @@ nenhuma.** É o contrário de uma optimização.
 
 Os dois problemas clássicos de desempenho de RLS no Supabase **não existem aqui**:
 
-| Verificação | Resultado |
-| --- | --- |
-| Políticas em `public` | 370 |
-| Que usam `auth.uid()` | 31 |
-| **Com `auth.uid()` por envolver em `(SELECT …)`** | **0** |
-| Tabelas a acumular políticas permissivas de SELECT/ALL | **0** |
+| Verificação                                                                                     | Resultado      |
+| ----------------------------------------------------------------------------------------------- | -------------- |
+| Políticas em `public`                                                                           | 370            |
+| Que usam `auth.uid()`                                                                           | 31             |
+| **Com `auth.uid()` por envolver em `(SELECT …)`**                                               | **0**          |
+| Tabelas a acumular políticas permissivas de SELECT/ALL                                          | **0**          |
 | Funções de permissão (`has_permission`, `is_school_member`, `is_school_staff`, `sga_app_role`…) | todas `STABLE` |
 
 Nota de método: a primeira passagem acusou 3 políticas por envolver. Era falso — usei
@@ -95,10 +95,10 @@ as 10 tabelas publicadas tiverem movimento real.
 Cruzei a publicação com o que a aplicação realmente ouve (`postgres_changes` no código,
 não a palavra `table:`, que aparece noutros contextos e dá falsos positivos):
 
-| | Tabelas |
-| --- | --- |
-| Publicadas | 10 |
-| Subscritas pela app | **9** |
+|                               | Tabelas                    |
+| ----------------------------- | -------------------------- |
+| Publicadas                    | 10                         |
+| Subscritas pela app           | **9**                      |
 | Publicada sem ninguém a ouvir | **`siga_direct_messages`** |
 
 Não é descuido de quem subscreve: `siga_direct_messages` é a tabela **antiga** das
@@ -118,24 +118,24 @@ Varri `src/features/**/server*.ts` por consultas dentro de ciclos (18 candidatos
 contagem de chavetas e não por `grep`). A maioria é **correcta por desenho** e não se deve
 tocar:
 
-| Sítio | Veredicto |
-| --- | --- |
-| `students/server.ts:1675` — matrícula em lote | Série **deliberada**: «cada chamada tranca a mesma turma». Paralelizar daria contenção. |
-| `import/server.ts:511` — commit linha a linha | A marcação por linha é o que **impede importar o mesmo aluno duas vezes**. Agrupar partia a segurança a meio de uma falha. |
-| `higher-ed/server.ts:2574`, `import/server.ts:279`, `chat-server.ts:186` | Já são lotes (300, `CHUNK`, concorrência limitada). |
-| `finance/server.ts:1240` | Ciclo de tentativas, limitado a 5. |
-| `arquivos/server.ts:843` | Sobe a árvore de pastas, limitado a 12 níveis. |
+| Sítio                                                                    | Veredicto                                                                                                                  |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `students/server.ts:1675` — matrícula em lote                            | Série **deliberada**: «cada chamada tranca a mesma turma». Paralelizar daria contenção.                                    |
+| `import/server.ts:511` — commit linha a linha                            | A marcação por linha é o que **impede importar o mesmo aluno duas vezes**. Agrupar partia a segurança a meio de uma falha. |
+| `higher-ed/server.ts:2574`, `import/server.ts:279`, `chat-server.ts:186` | Já são lotes (300, `CHUNK`, concorrência limitada).                                                                        |
+| `finance/server.ts:1240`                                                 | Ciclo de tentativas, limitado a 5.                                                                                         |
+| `arquivos/server.ts:843`                                                 | Sobe a árvore de pastas, limitado a 12 níveis.                                                                             |
 
 **Um gargalo real — CORRIGIDO:** `exportSisiesWorkbook`, no bloco dos graduados. Fazia
 `loadPlan()` (que são **3** consultas) mais uma leitura de `course_unit_enrollments` com
 `.limit(50000)` **por cada curso**: 4 consultas por curso, 120 com 30 cursos, e até 1,5 M
 de linhas trazidas para memória para montar uma folha de Excel.
 
-| | Antes | Depois |
-| --- | --- | --- |
-| Planos dos cursos | 3 consultas × N cursos | **2**, com `loadPlanUnitsByProgram` |
-| Inscrições em cadeiras | 1 consulta × N cursos | páginas de 1000 até acabarem |
-| Com 30 cursos | **120 consultas** | **2 + nº de páginas** |
+|                        | Antes                  | Depois                              |
+| ---------------------- | ---------------------- | ----------------------------------- |
+| Planos dos cursos      | 3 consultas × N cursos | **2**, com `loadPlanUnitsByProgram` |
+| Inscrições em cadeiras | 1 consulta × N cursos  | páginas de 1000 até acabarem        |
+| Com 30 cursos          | **120 consultas**      | **2 + nº de páginas**               |
 
 O `.limit(50000)` por curso era também um corte em silêncio: uma escola com mais de 50 000
 inscrições num curso perdia linhas sem aviso, e o número de graduados saía errado. A
@@ -156,12 +156,12 @@ Estreitar colunas às cegas é perigoso: quem leia um campo que deixou de vir pa
 silêncio, sem erro de tipos, porque a linha continua a existir. Por isso medi em vez de
 mudar tudo — cruzei os 41 destinos de `select("*")` com a largura real das tabelas.
 
-| Tabela | Colunas | Das quais jsonb/text | Linhas hoje |
-| --- | --- | --- | --- |
-| **`import_rows`** | 17 | **11** | **4 400** |
-| `people` | 22 | 13 | 529 |
-| `tenant_billing_profiles` | 36 | 16 | 0 |
-| `class_groups` | 19 | 6 | 48 |
+| Tabela                    | Colunas | Das quais jsonb/text | Linhas hoje |
+| ------------------------- | ------- | -------------------- | ----------- |
+| **`import_rows`**         | 17      | **11**               | **4 400**   |
+| `people`                  | 22      | 13                   | 529         |
+| `tenant_billing_profiles` | 36      | 16                   | 0           |
+| `class_groups`            | 19      | 6                    | 48          |
 
 Só uma junta tabela larga, muitas linhas e caminho em massa: **`import_rows`**, no ciclo
 de importação. Lia as 17 colunas — incluindo `raw_data`, `errors`, `warnings` — quando o
@@ -201,11 +201,11 @@ Tentei generalizar o achado do painel com um varrimento automático de «consult
 dentro da mesma função servidor». Devolveu 12 candidatos. **Verifiquei três à mão e os três
 eram falsos positivos:**
 
-| Candidato | Porque não era |
-| --- | --- |
+| Candidato                      | Porque não era                                                                               |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
 | `getMyHigherEd` (3 repetições) | a segunda cópia está em `enrolledProgramsOf`, função separada chamada por **outro** endpoint |
-| `requestMagicLinkFn` | ramos alternativos — só um corre por pedido |
-| `commitImportBatch` | uma é tentativa de repetição, a outra é o caminho de erro |
+| `requestMagicLinkFn`           | ramos alternativos — só um corre por pedido                                                  |
+| `commitImportBatch`            | uma é tentativa de repetição, a outra é o caminho de erro                                    |
 
 O varrimento não distingue funções não exportadas, tentativas, ramos de erro nem caminhos
 mutuamente exclusivos. **O único duplicado real do dia encontrei-o a ler o código**, não a

@@ -15,13 +15,13 @@ Data: 20/10/2026 · Estado: **refinamento incremental em PR #194**. Sem alteraç
 
 `src/features/arquivos/file-request.ts` declara a finalidade da selecção:
 
-| Purpose | Regra adicional antes de o módulo receber o ID |
-|---|---|
-| `general` | escolha de ficheiro visível; compatível com arquivos locais no dispositivo |
-| `message-attachment` | exige Storage escolar, nunca apenas IndexedDB |
-| `student-document` | Storage escolar, pessoa exacta, Secretaria, visibilidade privada |
-| `class-material` | Storage escolar e turma exacta |
-| `finance-document` | Storage escolar e categoria fatura/recibo/talao |
+| Purpose              | Regra adicional antes de o módulo receber o ID                             |
+| -------------------- | -------------------------------------------------------------------------- |
+| `general`            | escolha de ficheiro visível; compatível com arquivos locais no dispositivo |
+| `message-attachment` | exige Storage escolar, nunca apenas IndexedDB                              |
+| `student-document`   | Storage escolar, pessoa exacta, Secretaria, visibilidade privada           |
+| `class-material`     | Storage escolar e turma exacta                                             |
+| `finance-document`   | Storage escolar e categoria fatura/recibo/talao                            |
 
 ### Exemplo do consumidor React
 

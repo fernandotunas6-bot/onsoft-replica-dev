@@ -115,6 +115,7 @@ const place = (
     classGroupId: "turma-b",
     userId: "secretaria",
     hasAal2: true,
+    appRole: "Secretaria",
     ...extra,
   });
 

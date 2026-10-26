@@ -18,29 +18,29 @@ O clone inicial só buscava `main` e tinha histórico raso. Foram obtidos todos 
 
 ## Trabalho Claude incluído no levantamento
 
-| Branch | Trabalho identificado | Encaminhamento |
-| --- | --- | --- |
-| `claude/aurora-web` | Aurora / experiência WEB | Cabeçalho já incluído na `main`; preservar a implementação actual. |
-| `claude/bold-goldberg-gwahyv` · #87 | Bolsas, espera por turma e turnos por cadeira | Rever contratos académicos e migrações por efeito; há quatro conflitos. |
-| `claude/ecstatic-shannon-wek2yt` · #210 | Cobrança configurável, períodos e configuração da escola | Dezoito conflitos; comparar com a cobrança e onboarding já existentes antes de resolver. |
-| `claude/flutter-visual-analysis-deploy-qn49ie` · #136 | Cliente Flutter e estudo YFT | Setenta e seis conflitos; integrar em conjunto com as variantes YFT, não como outra versão isolada. |
-| `claude/elastic-clarke-bc46ad` | Inscrição MFA/TOTP e elevação AAL2 | Dois conflitos; preservar os mecanismos de autenticação e segurança actuais. |
-| `claude/payflow-importer-tests` | Testes e correcção de importadores de pessoas | Quatro conflitos; o conteúdo é de importação, apesar do nome da branch. |
-| `claude/projeto-desenvolvimento-1a68je` | Regulamentos do ensino superior e configuração institucional | Dezassete conflitos; reconciliar regras, precedências e contratos de base antes da interface. |
-| `claude/sharp-volta-npr0aj` | Carregamento dos gráficos, pautas e centro de avaliação | Quatro conflitos; verificar o que as optimizações recentes já cobrem. |
+| Branch                                                | Trabalho identificado                                        | Encaminhamento                                                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `claude/aurora-web`                                   | Aurora / experiência WEB                                     | Cabeçalho já incluído na `main`; preservar a implementação actual.                                  |
+| `claude/bold-goldberg-gwahyv` · #87                   | Bolsas, espera por turma e turnos por cadeira                | Rever contratos académicos e migrações por efeito; há quatro conflitos.                             |
+| `claude/ecstatic-shannon-wek2yt` · #210               | Cobrança configurável, períodos e configuração da escola     | Dezoito conflitos; comparar com a cobrança e onboarding já existentes antes de resolver.            |
+| `claude/flutter-visual-analysis-deploy-qn49ie` · #136 | Cliente Flutter e estudo YFT                                 | Setenta e seis conflitos; integrar em conjunto com as variantes YFT, não como outra versão isolada. |
+| `claude/elastic-clarke-bc46ad`                        | Inscrição MFA/TOTP e elevação AAL2                           | Dois conflitos; preservar os mecanismos de autenticação e segurança actuais.                        |
+| `claude/payflow-importer-tests`                       | Testes e correcção de importadores de pessoas                | Quatro conflitos; o conteúdo é de importação, apesar do nome da branch.                             |
+| `claude/projeto-desenvolvimento-1a68je`               | Regulamentos do ensino superior e configuração institucional | Dezassete conflitos; reconciliar regras, precedências e contratos de base antes da interface.       |
+| `claude/sharp-volta-npr0aj`                           | Carregamento dos gráficos, pautas e centro de avaliação      | Quatro conflitos; verificar o que as optimizações recentes já cobrem.                               |
 
 Os hashes completos e os commits de cada ramo estão no manifesto. Alterações sem equivalência exacta de patch continuam a ser candidatas à revisão, não uma indicação automática de código em falta.
 
 ## Ordem de integração
 
-| Lote | Fontes a reconciliar | Critério de fecho |
-| --- | --- | --- |
-| 1. Contratos e segurança | #216, #208, #129, #139, #144, #135 e respectivos contratos partilhados | Confirmar o estado real das migrações, tipos gerados, isolamento escolar, MFA e regressões de escrita. #216 corrige o motor escolar actual sem importar o motor concorrente. |
-| 2. Websites escolares | #200, #205, #206, #213 e implementação já presente na `main` | Manter o contrato actual de CMS/blog em `school_settings`; identificar contributos únicos das variantes. Não fundir os modelos concorrentes inteiros por serem do mesmo tema. |
-| 3. SaaS / WEB / ADMIN / PayFlow | #210, #126, branches Claude de importação e restantes alterações comerciais/financeiras | Uma definição de cobrança por escola, revisões e auditoria preservadas, testes de períodos, isenção, atraso e integração. |
-| 4. Operação académica | #87, #121, #118, #148, #211, #128, regulamentos do ensino superior | Resolver as versões paralelas de matrícula/numeração, alinhar pessoas/importadores, regras de avaliação e dados existentes. |
-| 5. Mobile / YFT / interface | #136, #151 → #152 → #153, #154, #212, #131, #132, #133, #116 → #119 e #35 | Escolher a implementação coerente por ficheiro; preservar melhorias exclusivas e testar Flutter/backend e navegação. #212 funde com a base sem conflito textual, mas partilha 96 ficheiros com #136. |
-| 6. Serviços e entregáveis especializados | #108, #130, desktop, branches restantes sem PR e documentação #209 | Rever cada origem sem PR; relacionar o artefacto com o seu destino e configuração. Corrigir conclusões históricas desactualizadas antes de transportar documentação. |
+| Lote                                     | Fontes a reconciliar                                                                    | Critério de fecho                                                                                                                                                                                    |
+| ---------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Contratos e segurança                 | #216, #208, #129, #139, #144, #135 e respectivos contratos partilhados                  | Confirmar o estado real das migrações, tipos gerados, isolamento escolar, MFA e regressões de escrita. #216 corrige o motor escolar actual sem importar o motor concorrente.                         |
+| 2. Websites escolares                    | #200, #205, #206, #213 e implementação já presente na `main`                            | Manter o contrato actual de CMS/blog em `school_settings`; identificar contributos únicos das variantes. Não fundir os modelos concorrentes inteiros por serem do mesmo tema.                        |
+| 3. SaaS / WEB / ADMIN / PayFlow          | #210, #126, branches Claude de importação e restantes alterações comerciais/financeiras | Uma definição de cobrança por escola, revisões e auditoria preservadas, testes de períodos, isenção, atraso e integração.                                                                            |
+| 4. Operação académica                    | #87, #121, #118, #148, #211, #128, regulamentos do ensino superior                      | Resolver as versões paralelas de matrícula/numeração, alinhar pessoas/importadores, regras de avaliação e dados existentes.                                                                          |
+| 5. Mobile / YFT / interface              | #136, #151 → #152 → #153, #154, #212, #131, #132, #133, #116 → #119 e #35               | Escolher a implementação coerente por ficheiro; preservar melhorias exclusivas e testar Flutter/backend e navegação. #212 funde com a base sem conflito textual, mas partilha 96 ficheiros com #136. |
+| 6. Serviços e entregáveis especializados | #108, #130, desktop, branches restantes sem PR e documentação #209                      | Rever cada origem sem PR; relacionar o artefacto com o seu destino e configuração. Corrigir conclusões históricas desactualizadas antes de transportar documentação.                                 |
 
 Cada unidade integrada deve registar branch/hash de origem, commit resultante, conflitos resolvidos e verificações executadas. Uma alteração já equivalente recebe essa classificação e a referência da implementação actual; o original permanece preservado. Usar merges normais ou novos commits de reconciliação, sem reescrever histórico publicado.
 
@@ -48,16 +48,16 @@ Os lotes organizam a revisão, não autorizam tratar um PR com CI verde como com
 
 ## Destinos da publicação
 
-| Componente | Origem | Entrega |
-| --- | --- | --- |
-| SIGA e websites por escola | Raiz + `painel/escolas` preparado no build | Worker principal; website no hostname da escola e portal/API existentes. |
-| WEB | `painel/web` | Cloudflare Pages `siga-web`. |
-| ADMIN | `painel/admin` | Exportação estática no Pages `siga-admin`; a autorização efectiva continua nas APIs. |
-| DOC | `painel/docs` | Cloudflare Pages `siga-docs`. |
-| PayFlow | `painel/payflow` | Worker e D1; migrações compatíveis antes do código novo. |
-| Website estático escolar | `painel/escolas` | Workflow específico do website; a prévia Sites tem fonte/publicação independente e acesso privado preservado. |
-| Flutter / Mobile V4 / YFT | Pastas e workflows próprios | Compilação e publicação próprias; não são publicados pelo `deploy-all.mjs` dos cinco componentes principais. Definir o artefacto e destino exactos para cada variante reconciliada. |
-| Desktop | `desktop` e workflow de releases | Artefactos por plataforma e assinaturas do actualizador, além do backend publicado. |
+| Componente                 | Origem                                     | Entrega                                                                                                                                                                             |
+| -------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SIGA e websites por escola | Raiz + `painel/escolas` preparado no build | Worker principal; website no hostname da escola e portal/API existentes.                                                                                                            |
+| WEB                        | `painel/web`                               | Cloudflare Pages `siga-web`.                                                                                                                                                        |
+| ADMIN                      | `painel/admin`                             | Exportação estática no Pages `siga-admin`; a autorização efectiva continua nas APIs.                                                                                                |
+| DOC                        | `painel/docs`                              | Cloudflare Pages `siga-docs`.                                                                                                                                                       |
+| PayFlow                    | `painel/payflow`                           | Worker e D1; migrações compatíveis antes do código novo.                                                                                                                            |
+| Website estático escolar   | `painel/escolas`                           | Workflow específico do website; a prévia Sites tem fonte/publicação independente e acesso privado preservado.                                                                       |
+| Flutter / Mobile V4 / YFT  | Pastas e workflows próprios                | Compilação e publicação próprias; não são publicados pelo `deploy-all.mjs` dos cinco componentes principais. Definir o artefacto e destino exactos para cada variante reconciliada. |
+| Desktop                    | `desktop` e workflow de releases           | Artefactos por plataforma e assinaturas do actualizador, além do backend publicado.                                                                                                 |
 
 Na verificação do GitHub, a release desktop mais recente é `v1.2.2`. Os nomes dos seus artefactos não incluem `.sig`; a publicação web não resolve essa entrega. O empacotamento e a assinatura do desktop devem constar do fecho dessa componente.
 

@@ -36,30 +36,30 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `item` | `Pick<SpotlightItem, "kind" \| "surfaces">,` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `items` | `SpotlightItem[],` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `input` | `{` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `enabled` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `order` | `z.number().int().optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `title` | `z.string().trim().min(3).max(80).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `body` | `z.string().trim().min(8).max(180).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `cta` | `z.string().trim().min(2).max(40).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `roles` | `z.array(z.enum(applicationRoles)).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `startsOn` | `z.union([spotlightDaySchema, z.null()]).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `endsOn` | `z.union([spotlightDaySchema, z.null()]).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `surfaces` | `z` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `link` | `spotlightLinkSchema.optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `kind` | `z.enum(spotlightKinds).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `logoUrl` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `tone` | `z.enum(spotlightTones).optional(),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `items` | `z.record(z.string(), spotlightItemOverrideSchema).default({}),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `extras` | `z.array(spotlightItemSchema).max(MAX_CUSTOM_SPOTLIGHTS).default([]),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `catalog` | `SpotlightItem[],` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `overrides` | `SpotlightOverridesInput \| null \| undefined,` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `catalog` | `SpotlightItem[],` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
-| `edited` | `SpotlightItem[],` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| Campo       | Declaração observada                                                   | Schema de origem                                         |
+| ----------- | ---------------------------------------------------------------------- | -------------------------------------------------------- |
+| `item`      | `Pick<SpotlightItem, "kind" \| "surfaces">,`                           | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `items`     | `SpotlightItem[],`                                                     | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `input`     | `{`                                                                    | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `enabled`   | `z.boolean().optional(),`                                              | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `order`     | `z.number().int().optional(),`                                         | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `title`     | `z.string().trim().min(3).max(80).optional(),`                         | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `body`      | `z.string().trim().min(8).max(180).optional(),`                        | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `cta`       | `z.string().trim().min(2).max(40).optional(),`                         | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `roles`     | `z.array(z.enum(applicationRoles)).optional(),`                        | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `startsOn`  | `z.union([spotlightDaySchema, z.null()]).optional(),`                  | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `endsOn`    | `z.union([spotlightDaySchema, z.null()]).optional(),`                  | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `surfaces`  | `z`                                                                    | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `link`      | `spotlightLinkSchema.optional(),`                                      | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `kind`      | `z.enum(spotlightKinds).optional(),`                                   | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `logoUrl`   | `z.string().trim().optional(),`                                        | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `tone`      | `z.enum(spotlightTones).optional(),`                                   | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `items`     | `z.record(z.string(), spotlightItemOverrideSchema).default({}),`       | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `extras`    | `z.array(spotlightItemSchema).max(MAX_CUSTOM_SPOTLIGHTS).default([]),` | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `catalog`   | `SpotlightItem[],`                                                     | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `overrides` | `SpotlightOverridesInput \| null \| undefined,`                        | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `catalog`   | `SpotlightItem[],`                                                     | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
+| `edited`    | `SpotlightItem[],`                                                     | [schemas.ts](../../../src/features/spotlight/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -71,8 +71,8 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
+| Tabela            | Colunas existentes                                                          |
+| ----------------- | --------------------------------------------------------------------------- |
 | `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
 
 Relações confirmadas:
@@ -81,10 +81,10 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listSpotlightConfig` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/spotlight/server.ts) |
-| `saveSpotlightOverrides` | POST | `spotlightOverridesSchema` | [server.ts](../../../src/features/spotlight/server.ts) |
+| Função                   | Método | Entrada                                       | Fonte                                                  |
+| ------------------------ | ------ | --------------------------------------------- | ------------------------------------------------------ |
+| `listSpotlightConfig`    | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/spotlight/server.ts) |
+| `saveSpotlightOverrides` | POST   | `spotlightOverridesSchema`                    | [server.ts](../../../src/features/spotlight/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

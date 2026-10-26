@@ -51,25 +51,25 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `query` | `z.string().trim().min(3, "Escreva pelo menos 3 caracteres.").max(80),` | [request-schemas.ts](../../../src/features/access/request-schemas.ts) |
-| `status` | `z.enum([...accessRequestStatuses, "open", "all"]).default("open"),` | [request-schemas.ts](../../../src/features/access/request-schemas.ts) |
-| `fullName` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `email` | `z.string().trim().email(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `cargo` | `z.enum(applicationRoles),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `userId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `cargo` | `z.enum(applicationRoles),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `userId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `disabled` | `z.boolean(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `userId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `userId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `newPassword` | `z.string().min(8),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `email` | `z.string().trim().email(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `roleCode` | `z.string().trim().min(2).max(50).default("teacher"),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `fullName` | `z.string().trim().min(2).max(160).optional(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `invitationId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/access/schemas.ts) |
-| `token` | `z.string().trim().min(10).max(256),` | [schemas.ts](../../../src/features/access/schemas.ts) |
+| Campo          | Declaração observada                                                    | Schema de origem                                                      |
+| -------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `query`        | `z.string().trim().min(3, "Escreva pelo menos 3 caracteres.").max(80),` | [request-schemas.ts](../../../src/features/access/request-schemas.ts) |
+| `status`       | `z.enum([...accessRequestStatuses, "open", "all"]).default("open"),`    | [request-schemas.ts](../../../src/features/access/request-schemas.ts) |
+| `fullName`     | `z.string().trim().min(2).max(160),`                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `email`        | `z.string().trim().email(),`                                            | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `cargo`        | `z.enum(applicationRoles),`                                             | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `userId`       | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `cargo`        | `z.enum(applicationRoles),`                                             | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `userId`       | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `disabled`     | `z.boolean(),`                                                          | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `userId`       | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `userId`       | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `newPassword`  | `z.string().min(8),`                                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `email`        | `z.string().trim().email(),`                                            | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `roleCode`     | `z.string().trim().min(2).max(50).default("teacher"),`                  | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `fullName`     | `z.string().trim().min(2).max(160).optional(),`                         | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `invitationId` | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/access/schemas.ts)                 |
+| `token`        | `z.string().trim().min(10).max(256),`                                   | [schemas.ts](../../../src/features/access/schemas.ts)                 |
 
 ## Regras de negócio e fonte
 
@@ -83,23 +83,23 @@ Especificação complementar: [SGA_SECURITY_ACCESS_SPEC.md](../SGA_SECURITY_ACCE
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `hr_employments` | `id`, `school_id`, `person_id`, `position_id`, `department_id`, `employee_number`, `employment_type`, `status`, `hire_date`, `termination_date`, `work_location`, `weekly_hours`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `member_roles` | `school_id`, `membership_id`, `role_id`, `created_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `profiles` | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at` |
-| `roles` | `id`, `school_id`, `code`, `name`, `is_system`, `created_at` |
-| `school_access_requests` | `id`, `school_id`, `user_id`, `full_name`, `national_id`, `institutional_number`, `requested_profile`, `status`, `matched_person_id`, `reviewer_id`, `decision_note`, `reviewed_at`, `created_at`, `updated_at`, `enrollment_application_id`, `contact_phone`, `message`, `match_kind`, `granted_role_code`, `membership_id`, `info_request_note`, `requester_reply` |
-| `school_invitations` | `id`, `school_id`, `email`, `role_code`, `invited_by`, `status`, `token_hash`, `expires_at`, `accepted_at`, `accepted_by`, `created_at`, `updated_at` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `staff_module_grants` | `id`, `school_id`, `user_id`, `module_key`, `level`, `created_at`, `updated_at`, `created_by`, `updated_by` |
-| `student_guardians` | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `tenants` | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason` |
+| Tabela                   | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit_logs`             | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                       |
+| `hr_employments`         | `id`, `school_id`, `person_id`, `position_id`, `department_id`, `employee_number`, `employment_type`, `status`, `hire_date`, `termination_date`, `work_location`, `weekly_hours`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                              |
+| `member_roles`           | `school_id`, `membership_id`, `role_id`, `created_at`                                                                                                                                                                                                                                                                                                                                                   |
+| `people`                 | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `profiles`               | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at`                                                                                                                                            |
+| `roles`                  | `id`, `school_id`, `code`, `name`, `is_system`, `created_at`                                                                                                                                                                                                                                                                                                                                            |
+| `school_access_requests` | `id`, `school_id`, `user_id`, `full_name`, `national_id`, `institutional_number`, `requested_profile`, `status`, `matched_person_id`, `reviewer_id`, `decision_note`, `reviewed_at`, `created_at`, `updated_at`, `enrollment_application_id`, `contact_phone`, `message`, `match_kind`, `granted_role_code`, `membership_id`, `info_request_note`, `requester_reply`                                    |
+| `school_invitations`     | `id`, `school_id`, `email`, `role_code`, `invited_by`, `status`, `token_hash`, `expires_at`, `accepted_at`, `accepted_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                   |
+| `school_memberships`     | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                                                                                                                                                                         |
+| `schools`                | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `staff_module_grants`    | `id`, `school_id`, `user_id`, `module_key`, `level`, `created_at`, `updated_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                             |
+| `student_guardians`      | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at`                                                                                                                                                                                                      |
+| `students`               | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
+| `teachers`               | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `tenants`                | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason`                                                                                                                                                            |
 
 Relações confirmadas:
 
@@ -135,30 +135,30 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listStaffModuleGrants` | GET | `Sem schema de entrada explícito neste bloco` | [grants.ts](../../../src/features/access/grants.ts) |
-| `setStaffModuleGrant` | POST | `setStaffModuleGrantInputSchema` | [grants.ts](../../../src/features/access/grants.ts) |
-| `clearStaffModuleGrant` | POST | `clearStaffModuleGrantInputSchema` | [grants.ts](../../../src/features/access/grants.ts) |
-| `getInstitutionalLinkState` | GET | `Sem schema de entrada explícito neste bloco` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
-| `searchSchoolsForAccessRequest` | POST | `searchSchoolsForAccessInputSchema` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
-| `submitAccessRequest` | POST | `submitAccessRequestInputSchema` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
-| `actOnMyAccessRequest` | POST | `requesterAccessRequestActionInputSchema` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
-| `listSchoolAccessRequests` | GET | `listSchoolAccessRequestsInputSchema` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
-| `reviewAccessRequest` | POST | `reviewAccessRequestInputSchema` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
-| `listSystemAccounts` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/access/server.ts) |
-| `inviteSystemUser` | POST | `inviteUserInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `updateSystemAccountCargo` | POST | `updateAccountCargoInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `setSystemAccountDisabled` | POST | `setAccountDisabledInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `resendSystemInvite` | POST | `resendSystemInviteInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `sendSystemInviteEmail` | POST | `resendSystemInviteInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `signInWithIdentifierFn` | POST | `signInWithIdentifierInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `resetStaffPasswordDirect` | POST | `resetStaffPasswordInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `listSchoolRoles` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/access/server.ts) |
-| `listSchoolInvitations` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/access/server.ts) |
-| `createSchoolInvitation` | POST | `createSchoolInvitationInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `revokeSchoolInvitation` | POST | `revokeSchoolInvitationInputSchema` | [server.ts](../../../src/features/access/server.ts) |
-| `acceptSchoolInvitation` | POST | `acceptSchoolInvitationInputSchema` | [server.ts](../../../src/features/access/server.ts) |
+| Função                          | Método | Entrada                                       | Fonte                                                                 |
+| ------------------------------- | ------ | --------------------------------------------- | --------------------------------------------------------------------- |
+| `listStaffModuleGrants`         | GET    | `Sem schema de entrada explícito neste bloco` | [grants.ts](../../../src/features/access/grants.ts)                   |
+| `setStaffModuleGrant`           | POST   | `setStaffModuleGrantInputSchema`              | [grants.ts](../../../src/features/access/grants.ts)                   |
+| `clearStaffModuleGrant`         | POST   | `clearStaffModuleGrantInputSchema`            | [grants.ts](../../../src/features/access/grants.ts)                   |
+| `getInstitutionalLinkState`     | GET    | `Sem schema de entrada explícito neste bloco` | [requests-server.ts](../../../src/features/access/requests-server.ts) |
+| `searchSchoolsForAccessRequest` | POST   | `searchSchoolsForAccessInputSchema`           | [requests-server.ts](../../../src/features/access/requests-server.ts) |
+| `submitAccessRequest`           | POST   | `submitAccessRequestInputSchema`              | [requests-server.ts](../../../src/features/access/requests-server.ts) |
+| `actOnMyAccessRequest`          | POST   | `requesterAccessRequestActionInputSchema`     | [requests-server.ts](../../../src/features/access/requests-server.ts) |
+| `listSchoolAccessRequests`      | GET    | `listSchoolAccessRequestsInputSchema`         | [requests-server.ts](../../../src/features/access/requests-server.ts) |
+| `reviewAccessRequest`           | POST   | `reviewAccessRequestInputSchema`              | [requests-server.ts](../../../src/features/access/requests-server.ts) |
+| `listSystemAccounts`            | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/access/server.ts)                   |
+| `inviteSystemUser`              | POST   | `inviteUserInputSchema`                       | [server.ts](../../../src/features/access/server.ts)                   |
+| `updateSystemAccountCargo`      | POST   | `updateAccountCargoInputSchema`               | [server.ts](../../../src/features/access/server.ts)                   |
+| `setSystemAccountDisabled`      | POST   | `setAccountDisabledInputSchema`               | [server.ts](../../../src/features/access/server.ts)                   |
+| `resendSystemInvite`            | POST   | `resendSystemInviteInputSchema`               | [server.ts](../../../src/features/access/server.ts)                   |
+| `sendSystemInviteEmail`         | POST   | `resendSystemInviteInputSchema`               | [server.ts](../../../src/features/access/server.ts)                   |
+| `signInWithIdentifierFn`        | POST   | `signInWithIdentifierInputSchema`             | [server.ts](../../../src/features/access/server.ts)                   |
+| `resetStaffPasswordDirect`      | POST   | `resetStaffPasswordInputSchema`               | [server.ts](../../../src/features/access/server.ts)                   |
+| `listSchoolRoles`               | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/access/server.ts)                   |
+| `listSchoolInvitations`         | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/access/server.ts)                   |
+| `createSchoolInvitation`        | POST   | `createSchoolInvitationInputSchema`           | [server.ts](../../../src/features/access/server.ts)                   |
+| `revokeSchoolInvitation`        | POST   | `revokeSchoolInvitationInputSchema`           | [server.ts](../../../src/features/access/server.ts)                   |
+| `acceptSchoolInvitation`        | POST   | `acceptSchoolInvitationInputSchema`           | [server.ts](../../../src/features/access/server.ts)                   |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

@@ -48,10 +48,10 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `contact_verification_profiles` | `id`, `user_id`, `school_id`, `email_address`, `email_verified`, `email_verified_at`, `phone_number`, `phone_verified`, `phone_verified_at`, `whatsapp_number`, `whatsapp_verified`, `whatsapp_verified_at`, `preferred_communication_channel`, `preferred_language`, `last_email_sent_at`, `last_sms_sent_at`, `last_whatsapp_sent_at`, `created_at`, `updated_at`, `version` |
-| `user_communication_preferences` | `id`, `user_id`, `school_id`, `security_enabled`, `academic_enabled`, `financial_enabled`, `attendance_enabled`, `calendar_enabled`, `announcements_enabled`, `events_enabled`, `documents_enabled`, `marketing_enabled`, `channel_preferences`, `created_at`, `updated_at`, `version` |
+| Tabela                           | Colunas existentes                                                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `contact_verification_profiles`  | `id`, `user_id`, `school_id`, `email_address`, `email_verified`, `email_verified_at`, `phone_number`, `phone_verified`, `phone_verified_at`, `whatsapp_number`, `whatsapp_verified`, `whatsapp_verified_at`, `preferred_communication_channel`, `preferred_language`, `last_email_sent_at`, `last_sms_sent_at`, `last_whatsapp_sent_at`, `created_at`, `updated_at`, `version` |
+| `user_communication_preferences` | `id`, `user_id`, `school_id`, `security_enabled`, `academic_enabled`, `financial_enabled`, `attendance_enabled`, `calendar_enabled`, `announcements_enabled`, `events_enabled`, `documents_enabled`, `marketing_enabled`, `channel_preferences`, `created_at`, `updated_at`, `version`                                                                                         |
 
 Relações confirmadas:
 
@@ -60,12 +60,12 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `getContactVerificationProfileFn` | GET | `Sem schema de entrada explícito neste bloco` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
-| `getCommunicationPreferencesFn` | GET | `Sem schema de entrada explícito neste bloco` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
-| `setPreferredCommunicationChannelFn` | POST | `Sem schema de entrada explícito neste bloco` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
-| `updateCommunicationPreferencesFn` | POST | `updateCommunicationPreferencesSchema` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
+| Função                               | Método | Entrada                                       | Fonte                                                                                           |
+| ------------------------------------ | ------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `getContactVerificationProfileFn`    | GET    | `Sem schema de entrada explícito neste bloco` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
+| `getCommunicationPreferencesFn`      | GET    | `Sem schema de entrada explícito neste bloco` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
+| `setPreferredCommunicationChannelFn` | POST   | `Sem schema de entrada explícito neste bloco` | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
+| `updateCommunicationPreferencesFn`   | POST   | `updateCommunicationPreferencesSchema`        | [contact-verification-server.ts](../../../src/features/contacts/contact-verification-server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
@@ -103,6 +103,5 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 **Riscos/pendências:** jornada anual e A/B autenticado exigem staging; concorrência PostgreSQL, fornecedores, restauro, artefactos oficiais extensos e dispositivos reais não ficam certificados por mocks/PGlite. Consultar a matriz e o progresso para o resultado efectivamente executado.
 
 ## Fontes e navegação
-
 
 [Índice](../README.md) · [Contratos transversais](../CONTRATOS_TRANSVERSAIS.md)

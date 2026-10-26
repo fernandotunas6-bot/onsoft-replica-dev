@@ -23,6 +23,7 @@ import {
   updateCurrentProfile,
   uploadCurrentProfileAvatar,
 } from "./server";
+import { fileToBase64 } from "@/lib/base64";
 
 /**
  * Perfil da conta (foto + câmera + nome + telemóvel) — usado no Centro de Configurações
@@ -52,19 +53,6 @@ function Field({
 
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const res = String(reader.result ?? "");
-      const base64 = res.split(",")[1] ?? res;
-      resolve(base64);
-    };
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
-  });
-}
 
 function ProfileAvatarField() {
   const currentUser = useCurrentAccount();

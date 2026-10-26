@@ -52,44 +52,44 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `name` | `z.string().trim().min(2, "Nome da escola obrigatório"),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `commercial_name` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `nif` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `address` | `z.string().trim().max(200).optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `city` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `province` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `municipality` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `commune` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `neighborhood` | `z.string().trim().max(120).optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `school_type` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `teaching_levels` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `secondary_courses` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `phone` | `optionalAngolaPhone,` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `email` | `normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `logo_url` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `contact_name` | `z.string().trim().min(2, "Nome do responsável obrigatório"),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `contact_role` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `contact_phone` | `optionalAngolaPhone,` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `contact_email` | `normalizedEmail("E-mail do responsável inválido"),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `plan_code` | `planCodeSchema,` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `trial_days` | `z.number().int().min(0).max(90).default(14),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `slug` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `admin_email` | `normalizedEmail("E-mail do administrador inválido"),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `admin_name` | `z.string().trim().min(2, "Nome do administrador obrigatório"),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `admin_password` | `adminPasswordSchema.optional(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `tenantId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `status` | `z.enum([` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `email` | `z.string().trim().email("E-mail inválido"),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `userId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `tenantId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `hostname` | `z` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `domainId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `domainId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `status` | `z.enum(["pending", "active", "failed"]),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `slug` | `z.string().trim().toLowerCase().min(1),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
-| `hostname` | `z.string().trim().toLowerCase().min(3).max(253),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| Campo               | Declaração observada                                                         | Schema de origem                                    |
+| ------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------- |
+| `name`              | `z.string().trim().min(2, "Nome da escola obrigatório"),`                    | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `commercial_name`   | `z.string().trim().optional(),`                                              | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `nif`               | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `address`           | `z.string().trim().max(200).optional(),`                                     | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `city`              | `z.string().trim().max(80).optional(),`                                      | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `province`          | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `municipality`      | `z.string().trim().max(80).optional(),`                                      | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `commune`           | `z.string().trim().max(80).optional(),`                                      | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `neighborhood`      | `z.string().trim().max(120).optional(),`                                     | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `school_type`       | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `teaching_levels`   | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `secondary_courses` | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `phone`             | `optionalAngolaPhone,`                                                       | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `email`             | `normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),` | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `logo_url`          | `z.string().trim().optional(),`                                              | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `contact_name`      | `z.string().trim().min(2, "Nome do responsável obrigatório"),`               | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `contact_role`      | `z.string().trim().optional(),`                                              | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `contact_phone`     | `optionalAngolaPhone,`                                                       | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `contact_email`     | `normalizedEmail("E-mail do responsável inválido"),`                         | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `plan_code`         | `planCodeSchema,`                                                            | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `trial_days`        | `z.number().int().min(0).max(90).default(14),`                               | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `slug`              | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `admin_email`       | `normalizedEmail("E-mail do administrador inválido"),`                       | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `admin_name`        | `z.string().trim().min(2, "Nome do administrador obrigatório"),`             | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `admin_password`    | `adminPasswordSchema.optional(),`                                            | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `tenantId`          | `z.string().uuid(),`                                                         | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `status`            | `z.enum([`                                                                   | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `email`             | `z.string().trim().email("E-mail inválido"),`                                | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `userId`            | `z.string().uuid(),`                                                         | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `tenantId`          | `z.string().uuid(),`                                                         | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `hostname`          | `z`                                                                          | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `domainId`          | `z.string().uuid(),`                                                         | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `domainId`          | `z.string().uuid(),`                                                         | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `status`            | `z.enum(["pending", "active", "failed"]),`                                   | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `slug`              | `z.string().trim().toLowerCase().min(1),`                                    | [schemas.ts](../../../src/features/saas/schemas.ts) |
+| `hostname`          | `z.string().trim().toLowerCase().min(3).max(253),`                           | [schemas.ts](../../../src/features/saas/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -101,35 +101,35 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `document_sequences` | `id`, `school_id`, `document_type`, `prefix`, `next_number`, `padding`, `updated_at` |
-| `enrollment_forms` | `id`, `school_id`, `slug`, `title`, `subtitle`, `hero_text`, `accent_color`, `logo_url`, `is_open`, `visible_fields`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `fee_items` | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id` |
-| `fee_plans` | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at` |
-| `finance_gateway_webhook_events` | `id`, `school_id`, `channel`, `http_status`, `ok`, `message`, `reference`, `invoice_id`, `amount`, `provider`, `dev_mode`, `external_id`, `created_at` |
-| `member_roles` | `school_id`, `membership_id`, `role_id`, `created_at` |
-| `permissions` | `id`, `code`, `description` |
-| `plans` | `id`, `name`, `code`, `description`, `max_students`, `max_staff`, `max_storage_gb`, `price_aoa_monthly`, `price_aoa_yearly`, `features`, `is_active`, `created_at`, `updated_at` |
-| `platform_admins` | `user_id`, `created_at` |
-| `profiles` | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at` |
-| `role_permissions` | `school_id`, `role_id`, `permission_id` |
-| `roles` | `id`, `school_id`, `code`, `name`, `is_system`, `created_at` |
-| `saas_audit_logs` | `id`, `tenant_id`, `user_id`, `action`, `entity`, `entity_id`, `metadata`, `ip_address`, `created_at` |
-| `saas_signup_leads` | `id`, `session_id`, `last_step`, `plan_code`, `school_name`, `email`, `contact_name`, `contact_phone`, `email_verified_at`, `completed_at`, `tenant_id`, `reminder_count`, `last_reminder_at`, `unsubscribed_at`, `created_at`, `updated_at` |
-| `school_branding` | `id`, `school_id`, `logo_url`, `favicon_url`, `primary_color`, `secondary_color`, `school_name`, `short_name`, `portal_title`, `login_background`, `created_at`, `updated_at` |
-| `school_email_routes` | `id`, `school_id`, `source_address`, `destination_address`, `provider`, `status`, `verified`, `created_at`, `updated_at`, `cloudflare_route_id` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `subscriptions` | `id`, `tenant_id`, `plan_id`, `status`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `created_at`, `updated_at`, `billing_period` |
-| `tenant_domains` | `id`, `tenant_id`, `hostname`, `type`, `status`, `ssl_status`, `verified_at`, `created_at`, `last_checked_at`, `check_count`, `updated_at` |
-| `tenant_mailboxes` | `id`, `tenant_id`, `email`, `display_name`, `provider`, `provider_account_id`, `status`, `created_at`, `updated_at` |
-| `tenant_provisioning` | `id`, `school_id`, `domain_status`, `email_status`, `subscription_status`, `ssl_status`, `provisioning_status`, `error_message`, `created_at`, `updated_at`, `completed_at` |
-| `tenant_usage` | `id`, `tenant_id`, `active_students_count`, `active_staff_count`, `storage_bytes_used`, `api_calls_count`, `last_calculated_at` |
-| `tenants` | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason` |
+| Tabela                           | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_years`                 | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                                   |
+| `document_sequences`             | `id`, `school_id`, `document_type`, `prefix`, `next_number`, `padding`, `updated_at`                                                                                                                                                                                                                                                                                                                    |
+| `enrollment_forms`               | `id`, `school_id`, `slug`, `title`, `subtitle`, `hero_text`, `accent_color`, `logo_url`, `is_open`, `visible_fields`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                   |
+| `fee_items`                      | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id`                                                                                                                                                                                                                                                                            |
+| `fee_plans`                      | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at`                                                                                                                                                                                                                                                                                                          |
+| `finance_gateway_webhook_events` | `id`, `school_id`, `channel`, `http_status`, `ok`, `message`, `reference`, `invoice_id`, `amount`, `provider`, `dev_mode`, `external_id`, `created_at`                                                                                                                                                                                                                                                  |
+| `member_roles`                   | `school_id`, `membership_id`, `role_id`, `created_at`                                                                                                                                                                                                                                                                                                                                                   |
+| `permissions`                    | `id`, `code`, `description`                                                                                                                                                                                                                                                                                                                                                                             |
+| `plans`                          | `id`, `name`, `code`, `description`, `max_students`, `max_staff`, `max_storage_gb`, `price_aoa_monthly`, `price_aoa_yearly`, `features`, `is_active`, `created_at`, `updated_at`                                                                                                                                                                                                                        |
+| `platform_admins`                | `user_id`, `created_at`                                                                                                                                                                                                                                                                                                                                                                                 |
+| `profiles`                       | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at`                                                                                                                                            |
+| `role_permissions`               | `school_id`, `role_id`, `permission_id`                                                                                                                                                                                                                                                                                                                                                                 |
+| `roles`                          | `id`, `school_id`, `code`, `name`, `is_system`, `created_at`                                                                                                                                                                                                                                                                                                                                            |
+| `saas_audit_logs`                | `id`, `tenant_id`, `user_id`, `action`, `entity`, `entity_id`, `metadata`, `ip_address`, `created_at`                                                                                                                                                                                                                                                                                                   |
+| `saas_signup_leads`              | `id`, `session_id`, `last_step`, `plan_code`, `school_name`, `email`, `contact_name`, `contact_phone`, `email_verified_at`, `completed_at`, `tenant_id`, `reminder_count`, `last_reminder_at`, `unsubscribed_at`, `created_at`, `updated_at`                                                                                                                                                            |
+| `school_branding`                | `id`, `school_id`, `logo_url`, `favicon_url`, `primary_color`, `secondary_color`, `school_name`, `short_name`, `portal_title`, `login_background`, `created_at`, `updated_at`                                                                                                                                                                                                                           |
+| `school_email_routes`            | `id`, `school_id`, `source_address`, `destination_address`, `provider`, `status`, `verified`, `created_at`, `updated_at`, `cloudflare_route_id`                                                                                                                                                                                                                                                         |
+| `school_memberships`             | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                                                                                                                                                                         |
+| `school_settings`                | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                             |
+| `schools`                        | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `students`                       | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
+| `subscriptions`                  | `id`, `tenant_id`, `plan_id`, `status`, `current_period_start`, `current_period_end`, `cancel_at_period_end`, `created_at`, `updated_at`, `billing_period`                                                                                                                                                                                                                                              |
+| `tenant_domains`                 | `id`, `tenant_id`, `hostname`, `type`, `status`, `ssl_status`, `verified_at`, `created_at`, `last_checked_at`, `check_count`, `updated_at`                                                                                                                                                                                                                                                              |
+| `tenant_mailboxes`               | `id`, `tenant_id`, `email`, `display_name`, `provider`, `provider_account_id`, `status`, `created_at`, `updated_at`                                                                                                                                                                                                                                                                                     |
+| `tenant_provisioning`            | `id`, `school_id`, `domain_status`, `email_status`, `subscription_status`, `ssl_status`, `provisioning_status`, `error_message`, `created_at`, `updated_at`, `completed_at`                                                                                                                                                                                                                             |
+| `tenant_usage`                   | `id`, `tenant_id`, `active_students_count`, `active_staff_count`, `storage_bytes_used`, `api_calls_count`, `last_calculated_at`                                                                                                                                                                                                                                                                         |
+| `tenants`                        | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason`                                                                                                                                                            |
 
 Relações confirmadas:
 
@@ -172,32 +172,32 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listResendDomainsFn` | GET | `Sem schema de entrada explícito neste bloco` | [resend-domains-server.ts](../../../src/features/saas/resend-domains-server.ts) |
-| `verifyResendDomainFn` | POST | `verifyResendDomainInputSchema` | [resend-domains-server.ts](../../../src/features/saas/resend-domains-server.ts) |
-| `createResendDomainFn` | POST | `createResendDomainInputSchema` | [resend-domains-server.ts](../../../src/features/saas/resend-domains-server.ts) |
-| `checkTenantSlug` | GET | `tenantSlugInputSchema` | [server.ts](../../../src/features/saas/server.ts) |
-| `getTenantBySlug` | GET | `tenantSlugInputSchema` | [server.ts](../../../src/features/saas/server.ts) |
-| `getTenantByHostname` | GET | `tenantHostnameInputSchema` | [server.ts](../../../src/features/saas/server.ts) |
-| `getTenantForCurrentUser` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `listPlans` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `getIsPlatformAdmin` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `getSaaSStats` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `listTenants` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `updateTenantStatusFn` | POST | `updateTenantStatusInputSchema` | [server.ts](../../../src/features/saas/server.ts) |
-| `provisionSchoolTenant` | POST | `createSchoolWizardInputSchema` | [server.ts](../../../src/features/saas/server.ts) |
-| `signupSchoolPublic` | POST | `publicSchoolSignupInputSchema` | [server.ts](../../../src/features/saas/server.ts) |
-| `getSchoolDomain` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `requestDomainVerification` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `updateEmailForwarding` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `updateSchoolBranding` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `provisionMailbox` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts) |
-| `getMySubscription` | GET | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts) |
-| `requestPlanChange` | POST | `requestPlanChangeInputSchema` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts) |
-| `cancelPlanChangeRequest` | POST | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts) |
-| `startPlanPayment` | POST | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts) |
-| `submitPlanPaymentProof` | POST | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts) |
+| Função                      | Método | Entrada                                       | Fonte                                                                           |
+| --------------------------- | ------ | --------------------------------------------- | ------------------------------------------------------------------------------- |
+| `listResendDomainsFn`       | GET    | `Sem schema de entrada explícito neste bloco` | [resend-domains-server.ts](../../../src/features/saas/resend-domains-server.ts) |
+| `verifyResendDomainFn`      | POST   | `verifyResendDomainInputSchema`               | [resend-domains-server.ts](../../../src/features/saas/resend-domains-server.ts) |
+| `createResendDomainFn`      | POST   | `createResendDomainInputSchema`               | [resend-domains-server.ts](../../../src/features/saas/resend-domains-server.ts) |
+| `checkTenantSlug`           | GET    | `tenantSlugInputSchema`                       | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getTenantBySlug`           | GET    | `tenantSlugInputSchema`                       | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getTenantByHostname`       | GET    | `tenantHostnameInputSchema`                   | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getTenantForCurrentUser`   | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `listPlans`                 | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getIsPlatformAdmin`        | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getSaaSStats`              | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `listTenants`               | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `updateTenantStatusFn`      | POST   | `updateTenantStatusInputSchema`               | [server.ts](../../../src/features/saas/server.ts)                               |
+| `provisionSchoolTenant`     | POST   | `createSchoolWizardInputSchema`               | [server.ts](../../../src/features/saas/server.ts)                               |
+| `signupSchoolPublic`        | POST   | `publicSchoolSignupInputSchema`               | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getSchoolDomain`           | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `requestDomainVerification` | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `updateEmailForwarding`     | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `updateSchoolBranding`      | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `provisionMailbox`          | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/saas/server.ts)                               |
+| `getMySubscription`         | GET    | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts)     |
+| `requestPlanChange`         | POST   | `requestPlanChangeInputSchema`                | [subscription-server.ts](../../../src/features/saas/subscription-server.ts)     |
+| `cancelPlanChangeRequest`   | POST   | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts)     |
+| `startPlanPayment`          | POST   | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts)     |
+| `submitPlanPaymentProof`    | POST   | `Sem schema de entrada explícito neste bloco` | [subscription-server.ts](../../../src/features/saas/subscription-server.ts)     |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

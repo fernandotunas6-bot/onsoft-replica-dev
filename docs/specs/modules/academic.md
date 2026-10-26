@@ -84,198 +84,198 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `academicYearId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradeLevelId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `roomId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `classGroupCode,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `classGroupName,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `shift` | `z.enum(classShiftOptions),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `capacity` | `z.number().int().positive().max(200).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `whatsappInviteUrl` | `optionalHttpUrl,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `whatsappGroupName` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `classGroupCode,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `classGroupName,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `shift` | `z.enum(classShiftOptions),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `capacity` | `z.number().int().positive().max(200).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `roomId` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `status` | `z.enum(["active", "inactive"]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `whatsappInviteUrl` | `optionalHttpUrl,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `whatsappGroupName` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `yearCode` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `yearName` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `subjectCode,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(120),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `teacherName` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `weeklyHours` | `z.number().int().min(1).max(20).default(4),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradeFrom` | `z.number().int().min(1).max(99).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradeTo` | `z.number().int().min(1).max(99).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectTypeId` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `curriculumAreaId` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `shortName` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `department` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `isMandatory` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `isPractical` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasAssessment` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasExam` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasAttendance` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasPauta` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `annualHours` | `z.number().int().positive().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `defaultLessonDuration` | `z.number().int().min(15).max(180).default(45),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `color` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `icon` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `subjectCode,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(120),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `weeklyHours` | `z.number().int().min(1).max(20).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradeFrom` | `z.number().int().min(1).max(99).optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradeTo` | `z.number().int().min(1).max(99).optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectTypeId` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `curriculumAreaId` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `shortName` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `department` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `isMandatory` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `isPractical` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasAssessment` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasExam` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasAttendance` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasPauta` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `annualHours` | `z.number().int().positive().optional().nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `defaultLessonDuration` | `z.number().int().min(15).max(180).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `color` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `icon` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `enrollmentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `term` | `z.union([z.literal(1), z.literal(2), z.literal(3)]),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `mac` | `z.number().min(0).max(20),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `npp` | `z.number().min(0).max(20),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `npt` | `z.number().min(0).max(20),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `term` | `z.union([z.literal(1), z.literal(2), z.literal(3)]),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `rows` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `term` | `z.union([z.literal(1), z.literal(2), z.literal(3)]),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `kind` | `assessmentKindSchema.default("teste"),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `component` | `assessmentComponentSchema.default("NPP"),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `assessedOn` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `startsAt` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `durationMinutes` | `z.number().int().min(5).max(600).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `purpose` | `z.enum(["diagnostic", "formative", "summative"]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `maxScore` | `z.number().min(1).max(20).default(20),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `countsTowardPauta` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `allowRecovery` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `kind` | `assessmentKindSchema,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `component` | `assessmentComponentSchema,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `assessedOn` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `startsAt` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `durationMinutes` | `z.number().int().min(5).max(600).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `purpose` | `z.enum(["diagnostic", "formative", "summative"]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `maxScore` | `z.number().min(1).max(20).default(20),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `countsTowardPauta` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `allowRecovery` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `itemId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `force` | `z.boolean().optional().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `classGroupId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `term` | `z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `itemId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `rows` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `term` | `z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(200).default(100),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `slotId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `teacherId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `teacherId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `programId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `programId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `semester` | `z.number().int().min(1).max(12),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `credits` | `z.number().positive().max(60).default(6),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `programId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradingProfile` | `gradingProfileSchema.nullable(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `programId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `z.string().trim().min(1).max(40),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(100),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `countsForGpa` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `appearsInPauta` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `hasExam` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `canFail` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `isMandatory` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `defaultWeight` | `z.number().min(0.1).max(10).default(1),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `requiresSpecialRoom` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `allowsSimultaneousClasses` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `requiresSpecializedTeacher` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `color` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `status` | `z.enum(["active", "inactive"]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `z.string().trim().min(1).max(40),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(100),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `color` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `displayOrder` | `z.number().int().default(0),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `status` | `z.enum(["active", "inactive"]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `z.string().trim().min(1).max(40),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(120),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `capacity` | `z.number().int().positive().max(500).default(35),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `roomType` | `roomTypeSchema.default("standard"),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `building` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `block` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `floor` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `resources` | `z.array(z.string()).default([]),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `accessibility` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `notes` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `building` | `clearableText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `block` | `clearableText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `floor` | `clearableText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `notes` | `clearableText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `status` | `z.enum(["active", "inactive"]).optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `code` | `z.string().trim().min(1).max(40),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(100),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `startsAt` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `endsAt` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `defaultLessonDuration` | `z.number().int().min(15).max(180).default(45),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `defaultBreakDuration` | `z.number().int().min(0).max(120).default(15),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `activeDays` | `z.array(z.number().int().min(1).max(7)).default([1, 2, 3, 4, 5]),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `color` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `academicYearId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `courseId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `gradeLevelId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `z.string().trim().min(2).max(120),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `subjects` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `teacherId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `slots` | `z.array(` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `maxWeeklyHours` | `z.number().int().min(1).max(60).default(24),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `academicYearId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `name` | `optionalText,` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `validFrom` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `validTo` | `z` | [schemas.ts](../../../src/features/academic/schemas.ts) |
-| `syncToCalendar` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| Campo                        | Declaração observada                                                | Schema de origem                                        |
+| ---------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------- |
+| `academicYearId`             | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `academicYearId`             | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradeLevelId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `roomId`                     | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `classGroupCode,`                                                   | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `classGroupName,`                                                   | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `shift`                      | `z.enum(classShiftOptions),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `capacity`                   | `z.number().int().positive().max(200).optional(),`                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `whatsappInviteUrl`          | `optionalHttpUrl,`                                                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `whatsappGroupName`          | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `classGroupCode,`                                                   | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `classGroupName,`                                                   | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `shift`                      | `z.enum(classShiftOptions),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `capacity`                   | `z.number().int().positive().max(200).optional(),`                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `roomId`                     | `z.string().uuid().optional().nullable(),`                          | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `status`                     | `z.enum(["active", "inactive"]).optional(),`                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `whatsappInviteUrl`          | `optionalHttpUrl,`                                                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `whatsappGroupName`          | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `yearCode`                   | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `yearName`                   | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `subjectCode,`                                                      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(120),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `teacherName`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `weeklyHours`                | `z.number().int().min(1).max(20).default(4),`                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradeFrom`                  | `z.number().int().min(1).max(99).optional(),`                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradeTo`                    | `z.number().int().min(1).max(99).optional(),`                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectTypeId`              | `z.string().uuid().optional().nullable(),`                          | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `curriculumAreaId`           | `z.string().uuid().optional().nullable(),`                          | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `shortName`                  | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `department`                 | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `isMandatory`                | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `isPractical`                | `z.boolean().default(false),`                                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasAssessment`              | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasExam`                    | `z.boolean().default(false),`                                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasAttendance`              | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasPauta`                   | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `annualHours`                | `z.number().int().positive().optional().nullable(),`                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `defaultLessonDuration`      | `z.number().int().min(15).max(180).default(45),`                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `color`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `icon`                       | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `subjectCode,`                                                      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(120),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `weeklyHours`                | `z.number().int().min(1).max(20).optional(),`                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradeFrom`                  | `z.number().int().min(1).max(99).optional().nullable(),`            | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradeTo`                    | `z.number().int().min(1).max(99).optional().nullable(),`            | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectTypeId`              | `z.string().uuid().optional().nullable(),`                          | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `curriculumAreaId`           | `z.string().uuid().optional().nullable(),`                          | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `shortName`                  | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `department`                 | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `isMandatory`                | `z.boolean().optional(),`                                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `isPractical`                | `z.boolean().optional(),`                                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasAssessment`              | `z.boolean().optional(),`                                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasExam`                    | `z.boolean().optional(),`                                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasAttendance`              | `z.boolean().optional(),`                                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasPauta`                   | `z.boolean().optional(),`                                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `annualHours`                | `z.number().int().positive().optional().nullable(),`                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `defaultLessonDuration`      | `z.number().int().min(15).max(180).optional(),`                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `color`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `icon`                       | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `enrollmentId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `term`                       | `z.union([z.literal(1), z.literal(2), z.literal(3)]),`              | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `mac`                        | `z.number().min(0).max(20),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `npp`                        | `z.number().min(0).max(20),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `npt`                        | `z.number().min(0).max(20),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `term`                       | `z.union([z.literal(1), z.literal(2), z.literal(3)]),`              | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `rows`                       | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `classGroupId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `term`                       | `z.union([z.literal(1), z.literal(2), z.literal(3)]),`              | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(160),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `kind`                       | `assessmentKindSchema.default("teste"),`                            | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `component`                  | `assessmentComponentSchema.default("NPP"),`                         | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `assessedOn`                 | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `startsAt`                   | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `durationMinutes`            | `z.number().int().min(5).max(600).optional(),`                      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `purpose`                    | `z.enum(["diagnostic", "formative", "summative"]).optional(),`      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `maxScore`                   | `z.number().min(1).max(20).default(20),`                            | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `countsTowardPauta`          | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `allowRecovery`              | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(160),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `kind`                       | `assessmentKindSchema,`                                             | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `component`                  | `assessmentComponentSchema,`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `assessedOn`                 | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `startsAt`                   | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `durationMinutes`            | `z.number().int().min(5).max(600).optional(),`                      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `purpose`                    | `z.enum(["diagnostic", "formative", "summative"]).optional(),`      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `maxScore`                   | `z.number().min(1).max(20).default(20),`                            | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `countsTowardPauta`          | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `allowRecovery`              | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `itemId`                     | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `force`                      | `z.boolean().optional().default(false),`                            | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `classGroupId`               | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `term`                       | `z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),`   | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `itemId`                     | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `rows`                       | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `term`                       | `z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),`   | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `limit`                      | `z.number().int().min(1).max(200).default(100),`                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `slotId`                     | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `teacherId`                  | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `academicYearId`             | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `classGroupId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `teacherId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `classGroupId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `studentId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `programId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `programId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjectId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `semester`                   | `z.number().int().min(1).max(12),`                                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `credits`                    | `z.number().positive().max(60).default(6),`                         | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `programId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradingProfile`             | `gradingProfileSchema.nullable(),`                                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `classGroupId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `programId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `z.string().trim().min(1).max(40),`                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(100),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `countsForGpa`               | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `appearsInPauta`             | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `hasExam`                    | `z.boolean().default(false),`                                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `canFail`                    | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `isMandatory`                | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `defaultWeight`              | `z.number().min(0.1).max(10).default(1),`                           | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `requiresSpecialRoom`        | `z.boolean().default(false),`                                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `allowsSimultaneousClasses`  | `z.boolean().default(false),`                                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `requiresSpecializedTeacher` | `z.boolean().default(false),`                                       | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `color`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `status`                     | `z.enum(["active", "inactive"]).optional(),`                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `z.string().trim().min(1).max(40),`                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(100),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `color`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `displayOrder`               | `z.number().int().default(0),`                                      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `status`                     | `z.enum(["active", "inactive"]).optional(),`                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `z.string().trim().min(1).max(40),`                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(120),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `capacity`                   | `z.number().int().positive().max(500).default(35),`                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `roomType`                   | `roomTypeSchema.default("standard"),`                               | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `building`                   | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `block`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `floor`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `resources`                  | `z.array(z.string()).default([]),`                                  | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `accessibility`              | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `notes`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `id`                         | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `building`                   | `clearableText,`                                                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `block`                      | `clearableText,`                                                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `floor`                      | `clearableText,`                                                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `notes`                      | `clearableText,`                                                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `status`                     | `z.enum(["active", "inactive"]).optional(),`                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `code`                       | `z.string().trim().min(1).max(40),`                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(100),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `startsAt`                   | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `endsAt`                     | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `defaultLessonDuration`      | `z.number().int().min(15).max(180).default(45),`                    | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `defaultBreakDuration`       | `z.number().int().min(0).max(120).default(15),`                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `activeDays`                 | `z.array(z.number().int().min(1).max(7)).default([1, 2, 3, 4, 5]),` | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `color`                      | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `academicYearId`             | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `courseId`                   | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `gradeLevelId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `z.string().trim().min(2).max(120),`                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `description`                | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `subjects`                   | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `teacherId`                  | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `academicYearId`             | `z.string().uuid().optional(),`                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `slots`                      | `z.array(`                                                          | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `maxWeeklyHours`             | `z.number().int().min(1).max(60).default(24),`                      | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `classGroupId`               | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `academicYearId`             | `z.string().uuid(),`                                                | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `name`                       | `optionalText,`                                                     | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `validFrom`                  | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `validTo`                    | `z`                                                                 | [schemas.ts](../../../src/features/academic/schemas.ts) |
+| `syncToCalendar`             | `z.boolean().default(true),`                                        | [schemas.ts](../../../src/features/academic/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -289,59 +289,59 @@ Especificação complementar: [SGA_ANGOLA_LESSON_PLANS_ASSESSMENTS_2026.md](../S
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_levels` | `id`, `school_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `academic_schedules` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `version_number`, `name`, `status`, `valid_from`, `valid_to`, `published_at`, `published_by`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `assessment_key_subjects` | `id`, `school_id`, `rule_set_id`, `subject_id`, `created_at` |
-| `assessment_rule_sets` | `id`, `school_id`, `grading_scale_id`, `code`, `name`, `version`, `status`, `continuous_weight`, `exam_weight`, `passing_value`, `maximum_absence_percentage`, `rounding_method`, `grade_change_requires_approval`, `lock_after_publication`, `formula`, `created_by`, `created_at` |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `campuses` | `id`, `school_id`, `code`, `name`, `province`, `municipality`, `is_active`, `created_at`, `address` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `curricula` | `id`, `school_id`, `academic_year_id`, `course_id`, `grade_level_id`, `name`, `description`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `curriculum_areas` | `id`, `school_id`, `code`, `name`, `description`, `color`, `display_order`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `curriculum_subjects` | `id`, `school_id`, `curriculum_id`, `subject_id`, `subject_type_id`, `weekly_periods`, `period_duration_minutes`, `is_mandatory`, `display_order`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `grade_items` | `id`, `school_id`, `gradebook_id`, `code`, `name`, `kind`, `weight`, `max_score`, `assessed_on`, `sequence`, `created_by`, `created_at` |
-| `grade_levels` | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `grade_score_history` | `id`, `school_id`, `grade_score_id`, `previous_score`, `new_score`, `reason`, `actor_user_id`, `approved_by`, `kind`, `created_at` |
-| `grade_scores` | `id`, `school_id`, `grade_item_id`, `enrollment_id`, `score`, `status`, `note`, `recorded_by`, `updated_by`, `created_at`, `updated_at`, `pending_score`, `pending_reason`, `pending_requested_by`, `pending_requested_at` |
-| `grade_sheet_rows` | `id`, `school_id`, `grade_sheet_id`, `enrollment_id`, `continuous_average`, `exam_average`, `term_average`, `absence_percentage`, `result`, `observation`, `subject_breakdown`, `created_at`, `updated_at` |
-| `grade_sheet_versions` | `id`, `school_id`, `grade_sheet_id`, `version`, `status`, `reason`, `rule_set_id`, `built_at`, `snapshot`, `archived_by`, `archived_at` |
-| `grade_sheets` | `id`, `school_id`, `academic_year_id`, `term_id`, `class_group_id`, `rule_set_id`, `kind`, `status`, `title`, `submitted_at`, `homologated_at`, `published_at`, `closed_at`, `reopen_reason`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `gradebooks` | `id`, `school_id`, `academic_year_id`, `term_id`, `class_subject_id`, `class_group_id`, `rule_set_id`, `status`, `opened_at`, `submitted_at`, `closed_at`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `grading_scales` | `id`, `school_id`, `code`, `name`, `version`, `minimum_value`, `maximum_value`, `passing_value`, `decimal_places`, `is_active`, `created_at` |
-| `notifications` | `id`, `school_id`, `user_id`, `channel`, `event_type`, `title`, `body`, `payload`, `announcement_id`, `status`, `read_at`, `created_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `program_subjects` | `id`, `school_id`, `program_id`, `subject_id`, `semester`, `credits`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `programs` | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile` |
-| `rooms` | `id`, `school_id`, `code`, `name`, `capacity`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `room_type`, `campus_id`, `building`, `block`, `floor`, `resources`, `accessibility`, `notes` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `school_shifts` | `id`, `school_id`, `code`, `name`, `starts_at`, `ends_at`, `default_lesson_duration`, `default_break_duration`, `active_days`, `color`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `siga_assessment_item_competencies` | `id`, `school_id`, `item_id`, `competency_id`, `created_by`, `created_at` |
-| `siga_assessment_items` | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `name`, `kind`, `component`, `assessed_on`, `max_score`, `counts_toward_pauta`, `allow_recovery`, `description`, `created_at`, `updated_at`, `created_by`, `updated_by`, `lesson_plan_component_id`, `starts_at`, `duration_minutes`, `purpose` |
-| `siga_assessment_scores` | `id`, `school_id`, `item_id`, `enrollment_id`, `score`, `previous_score`, `status`, `recorded_by`, `updated_at` |
-| `siga_attendance_records` | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at` |
-| `siga_attendance_sessions` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by` |
-| `siga_class_tasks` | `id`, `school_id`, `class_subject_id`, `timetable_slot_id`, `kind`, `title`, `description`, `due_on`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `siga_competencies` | `id`, `school_id`, `subject_id`, `grade_level_id`, `code`, `description`, `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `siga_exam_registrations` | `id`, `school_id`, `session_id`, `enrollment_id`, `subject_id`, `class_group_id`, `grade_sheet_id`, `original_average`, `exam_date`, `room`, `jury`, `score`, `final_average`, `status`, `notes`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `siga_exam_sessions` | `id`, `school_id`, `academic_year_id`, `kind`, `name`, `starts_on`, `ends_on`, `max_failed_subjects`, `result_method`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `siga_lesson_reminder_log` | `id`, `school_id`, `user_id`, `lesson_date`, `channel`, `lessons_count`, `status`, `error`, `created_at` |
-| `siga_lesson_reminder_settings` | `school_id`, `enabled`, `send_hour`, `notify_teachers`, `notify_students`, `notify_guardians`, `channel_in_app`, `channel_email`, `channel_sms`, `notify_on_publish`, `updated_by`, `created_at`, `updated_at` |
-| `siga_timetable_slot_details` | `id`, `school_id`, `timetable_slot_id`, `lesson_type`, `delivery_mode`, `online_url`, `topic`, `notes`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `student_academic_history` | `id`, `school_id`, `student_id`, `academic_year_label`, `grade_level`, `previous_school`, `final_average`, `outcome`, `notes`, `created_by`, `created_at`, `updated_at`, `enrollment_id`, `grade_sheet_id`, `subject_results`, `absence_percentage`, `updated_by` |
-| `student_guardians` | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `subject_types` | `id`, `school_id`, `code`, `name`, `description`, `counts_for_gpa`, `appears_in_pauta`, `has_exam`, `can_fail`, `is_mandatory`, `default_weight`, `requires_special_room`, `allows_simultaneous_classes`, `requires_specialized_teacher`, `color`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `teacher_availability` | `id`, `school_id`, `teacher_id`, `academic_year_id`, `weekday`, `starts_at`, `ends_at`, `is_available`, `max_weekly_hours`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `terms` | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by` |
-| `timetable_slots` | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes` |
+| Tabela                              | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_levels`                   | `id`, `school_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                                |
+| `academic_schedules`                | `id`, `school_id`, `academic_year_id`, `class_group_id`, `version_number`, `name`, `status`, `valid_from`, `valid_to`, `published_at`, `published_by`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                         |
+| `academic_years`                    | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                                   |
+| `assessment_key_subjects`           | `id`, `school_id`, `rule_set_id`, `subject_id`, `created_at`                                                                                                                                                                                                                                                                                                                                            |
+| `assessment_rule_sets`              | `id`, `school_id`, `grading_scale_id`, `code`, `name`, `version`, `status`, `continuous_weight`, `exam_weight`, `passing_value`, `maximum_absence_percentage`, `rounding_method`, `grade_change_requires_approval`, `lock_after_publication`, `formula`, `created_by`, `created_at`                                                                                                                     |
+| `audit_logs`                        | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                       |
+| `campuses`                          | `id`, `school_id`, `code`, `name`, `province`, `municipality`, `is_active`, `created_at`, `address`                                                                                                                                                                                                                                                                                                     |
+| `class_groups`                      | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                      |
+| `class_subjects`                    | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                     |
+| `curricula`                         | `id`, `school_id`, `academic_year_id`, `course_id`, `grade_level_id`, `name`, `description`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                  |
+| `curriculum_areas`                  | `id`, `school_id`, `code`, `name`, `description`, `color`, `display_order`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                                   |
+| `curriculum_subjects`               | `id`, `school_id`, `curriculum_id`, `subject_id`, `subject_type_id`, `weekly_periods`, `period_duration_minutes`, `is_mandatory`, `display_order`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                      |
+| `enrollments`                       | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `grade_items`                       | `id`, `school_id`, `gradebook_id`, `code`, `name`, `kind`, `weight`, `max_score`, `assessed_on`, `sequence`, `created_by`, `created_at`                                                                                                                                                                                                                                                                 |
+| `grade_levels`                      | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                  |
+| `grade_score_history`               | `id`, `school_id`, `grade_score_id`, `previous_score`, `new_score`, `reason`, `actor_user_id`, `approved_by`, `kind`, `created_at`                                                                                                                                                                                                                                                                      |
+| `grade_scores`                      | `id`, `school_id`, `grade_item_id`, `enrollment_id`, `score`, `status`, `note`, `recorded_by`, `updated_by`, `created_at`, `updated_at`, `pending_score`, `pending_reason`, `pending_requested_by`, `pending_requested_at`                                                                                                                                                                              |
+| `grade_sheet_rows`                  | `id`, `school_id`, `grade_sheet_id`, `enrollment_id`, `continuous_average`, `exam_average`, `term_average`, `absence_percentage`, `result`, `observation`, `subject_breakdown`, `created_at`, `updated_at`                                                                                                                                                                                              |
+| `grade_sheet_versions`              | `id`, `school_id`, `grade_sheet_id`, `version`, `status`, `reason`, `rule_set_id`, `built_at`, `snapshot`, `archived_by`, `archived_at`                                                                                                                                                                                                                                                                 |
+| `grade_sheets`                      | `id`, `school_id`, `academic_year_id`, `term_id`, `class_group_id`, `rule_set_id`, `kind`, `status`, `title`, `submitted_at`, `homologated_at`, `published_at`, `closed_at`, `reopen_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                    |
+| `gradebooks`                        | `id`, `school_id`, `academic_year_id`, `term_id`, `class_subject_id`, `class_group_id`, `rule_set_id`, `status`, `opened_at`, `submitted_at`, `closed_at`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                       |
+| `grading_scales`                    | `id`, `school_id`, `code`, `name`, `version`, `minimum_value`, `maximum_value`, `passing_value`, `decimal_places`, `is_active`, `created_at`                                                                                                                                                                                                                                                            |
+| `notifications`                     | `id`, `school_id`, `user_id`, `channel`, `event_type`, `title`, `body`, `payload`, `announcement_id`, `status`, `read_at`, `created_at`                                                                                                                                                                                                                                                                 |
+| `people`                            | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `program_subjects`                  | `id`, `school_id`, `program_id`, `subject_id`, `semester`, `credits`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                                         |
+| `programs`                          | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile`                                                                                                                                                                                                                                                                                            |
+| `rooms`                             | `id`, `school_id`, `code`, `name`, `capacity`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `room_type`, `campus_id`, `building`, `block`, `floor`, `resources`, `accessibility`, `notes`                                                                                                                                                                 |
+| `school_settings`                   | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                             |
+| `school_shifts`                     | `id`, `school_id`, `code`, `name`, `starts_at`, `ends_at`, `default_lesson_duration`, `default_break_duration`, `active_days`, `color`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                       |
+| `schools`                           | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `siga_assessment_item_competencies` | `id`, `school_id`, `item_id`, `competency_id`, `created_by`, `created_at`                                                                                                                                                                                                                                                                                                                               |
+| `siga_assessment_items`             | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `name`, `kind`, `component`, `assessed_on`, `max_score`, `counts_toward_pauta`, `allow_recovery`, `description`, `created_at`, `updated_at`, `created_by`, `updated_by`, `lesson_plan_component_id`, `starts_at`, `duration_minutes`, `purpose`                                                                                              |
+| `siga_assessment_scores`            | `id`, `school_id`, `item_id`, `enrollment_id`, `score`, `previous_score`, `status`, `recorded_by`, `updated_at`                                                                                                                                                                                                                                                                                         |
+| `siga_attendance_records`           | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                                                             |
+| `siga_attendance_sessions`          | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by`                                                                                                                                                             |
+| `siga_class_tasks`                  | `id`, `school_id`, `class_subject_id`, `timetable_slot_id`, `kind`, `title`, `description`, `due_on`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                  |
+| `siga_competencies`                 | `id`, `school_id`, `subject_id`, `grade_level_id`, `code`, `description`, `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                             |
+| `siga_exam_registrations`           | `id`, `school_id`, `session_id`, `enrollment_id`, `subject_id`, `class_group_id`, `grade_sheet_id`, `original_average`, `exam_date`, `room`, `jury`, `score`, `final_average`, `status`, `notes`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                |
+| `siga_exam_sessions`                | `id`, `school_id`, `academic_year_id`, `kind`, `name`, `starts_on`, `ends_on`, `max_failed_subjects`, `result_method`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                 |
+| `siga_lesson_reminder_log`          | `id`, `school_id`, `user_id`, `lesson_date`, `channel`, `lessons_count`, `status`, `error`, `created_at`                                                                                                                                                                                                                                                                                                |
+| `siga_lesson_reminder_settings`     | `school_id`, `enabled`, `send_hour`, `notify_teachers`, `notify_students`, `notify_guardians`, `channel_in_app`, `channel_email`, `channel_sms`, `notify_on_publish`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                          |
+| `siga_timetable_slot_details`       | `id`, `school_id`, `timetable_slot_id`, `lesson_type`, `delivery_mode`, `online_url`, `topic`, `notes`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                          |
+| `student_academic_history`          | `id`, `school_id`, `student_id`, `academic_year_label`, `grade_level`, `previous_school`, `final_average`, `outcome`, `notes`, `created_by`, `created_at`, `updated_at`, `enrollment_id`, `grade_sheet_id`, `subject_results`, `absence_percentage`, `updated_by`                                                                                                                                       |
+| `student_guardians`                 | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at`                                                                                                                                                                                                      |
+| `students`                          | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
+| `subject_types`                     | `id`, `school_id`, `code`, `name`, `description`, `counts_for_gpa`, `appears_in_pauta`, `has_exam`, `can_fail`, `is_mandatory`, `default_weight`, `requires_special_room`, `allows_simultaneous_classes`, `requires_specialized_teacher`, `color`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                            |
+| `subjects`                          | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version`              |
+| `teacher_availability`              | `id`, `school_id`, `teacher_id`, `academic_year_id`, `weekday`, `starts_at`, `ends_at`, `is_available`, `max_weekly_hours`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                    |
+| `teachers`                          | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `terms`                             | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                             |
+| `timetable_slots`                   | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes`                                                                                                                                                                                                |
 
 Relações confirmadas:
 
@@ -479,97 +479,97 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listAcademicCalendar` | GET | `listAcademicCalendarInputSchema` | [academic-calendar.ts](../../../src/features/academic/academic-calendar.ts) |
-| `saveAcademicCalendar` | POST | `saveAcademicCalendarInputSchema` | [academic-calendar.ts](../../../src/features/academic/academic-calendar.ts) |
-| `getAcademicStructureStatus` | GET | `inputSchema` | [academic-structure.ts](../../../src/features/academic/academic-structure.ts) |
-| `listSubjectTypes` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `createSubjectType` | POST | `createSubjectTypeInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `updateSubjectType` | POST | `updateSubjectTypeInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `listCurriculumAreas` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `createCurriculumArea` | POST | `createCurriculumAreaInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `listRooms` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `createRoom` | POST | `createRoomInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `updateRoom` | POST | `updateRoomInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `listSchoolShifts` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `saveSchoolShift` | POST | `createSchoolShiftInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `listCurricula` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `saveCurriculumMatrix` | POST | `saveCurriculumMatrixInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `listTeacherAvailability` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `saveTeacherAvailability` | POST | `saveTeacherAvailabilityInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `createAdvancedScheduleSlot` | POST | `createScheduleSlotInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `updateAdvancedScheduleSlot` | POST | `updateScheduleSlotInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `publishAcademicSchedule` | POST | `publishAcademicScheduleInputSchema` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `getSchoolNowOverview` | GET | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts) |
-| `getAssessmentModels` | GET | `Sem schema de entrada explícito neste bloco` | [assessment-models.ts](../../../src/features/academic/assessment-models.ts) |
-| `publishAssessmentModel` | POST | `Sem schema de entrada explícito neste bloco` | [assessment-models.ts](../../../src/features/academic/assessment-models.ts) |
-| `getActivePassingValue` | GET | `Sem schema de entrada explícito neste bloco` | [assessment-models.ts](../../../src/features/academic/assessment-models.ts) |
-| `getCompetencyBoard` | GET | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts) |
-| `saveCompetency` | POST | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts) |
-| `archiveCompetency` | POST | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts) |
-| `setItemCompetencies` | POST | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts) |
-| `applyCurriculumTemplate` | POST | `applyCurriculumTemplateInputSchema` | [curriculum-templates-server.ts](../../../src/features/academic/curriculum-templates-server.ts) |
-| `getClassWarningContext` | GET | `Sem schema de entrada explícito neste bloco` | [early-warning-server.ts](../../../src/features/academic/early-warning-server.ts) |
-| `getExamBoard` | GET | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `createExamSession` | POST | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `setExamSessionStatus` | POST | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `getExamClassDetail` | GET | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `registerEligibleStudents` | POST | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `saveExamScores` | POST | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `cancelExamRegistration` | POST | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts) |
-| `getClassFinalResults` | GET | `Sem schema de entrada explícito neste bloco` | [final-results.ts](../../../src/features/academic/final-results.ts) |
-| `recordClassFinalResults` | POST | `Sem schema de entrada explícito neste bloco` | [final-results.ts](../../../src/features/academic/final-results.ts) |
-| `requestGradeChange` | POST | `Sem schema de entrada explícito neste bloco` | [grade-change-requests.ts](../../../src/features/academic/grade-change-requests.ts) |
-| `listGradeChangeRequests` | GET | `Sem schema de entrada explícito neste bloco` | [grade-change-requests.ts](../../../src/features/academic/grade-change-requests.ts) |
-| `decideGradeChange` | POST | `Sem schema de entrada explícito neste bloco` | [grade-change-requests.ts](../../../src/features/academic/grade-change-requests.ts) |
-| `getGradeSheetBoard` | GET | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts) |
-| `getGradeSheetDetail` | GET | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts) |
-| `buildGradeSheet` | POST | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts) |
-| `transitionGradeSheet` | POST | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts) |
-| `listPedagogicalWorkspace` | GET | `listPedagogicalWorkspaceInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `createClassGroup` | POST | `createClassGroupInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `updateClassGroup` | POST | `updateClassGroupInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `deleteClassGroup` | POST | `deleteClassGroupInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `createSubject` | POST | `createSubjectInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `updateSubject` | POST | `updateSubjectInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `deactivateSubject` | POST | `deactivateSubjectInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `listTermGrades` | GET | `listTermGradesInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `upsertTermGrade` | POST | `upsertTermGradeInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `upsertTermGradesBatch` | POST | `upsertTermGradesBatchInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `assignClassSubjectTeacher` | POST | `assignClassSubjectTeacherInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `unassignClassSubjectTeacher` | POST | `unassignClassSubjectTeacherInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `ensureAcademicDefaults` | POST | `ensureAcademicDefaultsInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `getTeacherWorkspace` | GET | `getTeacherWorkspaceInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `listAssessments` | GET | `listAssessmentsInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `createAssessment` | POST | `createAssessmentInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `upsertAssessmentScores` | POST | `upsertAssessmentScoresInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `updateAssessmentItem` | POST | `updateAssessmentInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `deleteAssessmentItem` | POST | `deleteAssessmentInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `getStudentAcademicHistory` | GET | `getStudentAcademicHistoryInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `listProgramCurriculum` | GET | `listProgramCurriculumInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `addProgramSubject` | POST | `addProgramSubjectInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `removeProgramSubject` | POST | `removeProgramSubjectInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `applyCurriculumToClassGroup` | POST | `applyCurriculumToClassGroupInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `updateProgramGradingProfile` | POST | `updateProgramGradingProfileInputSchema` | [server-legacy.ts](../../../src/features/academic/server-legacy.ts) |
-| `getTeacherWorkspace` | GET | `getTeacherWorkspaceInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `listTermGrades` | GET | `listTermGradesInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `listAssessments` | GET | `listAssessmentsInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `updateAssessmentItem` | POST | `updateAssessmentInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `deleteAssessmentItem` | POST | `deleteAssessmentInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `getStudentAcademicHistory` | GET | `getStudentAcademicHistoryInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `listPedagogicalWorkspace` | GET | `listPedagogicalWorkspaceInputSchema` | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts) |
-| `deleteScheduleSlot` | POST | `deleteScheduleSlotInputSchema` | [server.ts](../../../src/features/academic/server.ts) |
-| `getMyStudentGrades` | GET | `inputSchema` | [student-grades.ts](../../../src/features/academic/student-grades.ts) |
-| `getMyTeacherAssessmentBoard` | GET | `Sem schema de entrada explícito neste bloco` | [teacher-assessments.ts](../../../src/features/academic/teacher-assessments.ts) |
-| `getLessonDetail` | GET | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `saveLessonDetail` | POST | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `createClassTask` | POST | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `archiveClassTask` | POST | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `getMyTeacherTimetable` | GET | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `getLessonReminderSettings` | GET | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `saveLessonReminderSettings` | POST | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts) |
-| `getYearComparison` | GET | `Sem schema de entrada explícito neste bloco` | [year-comparison.ts](../../../src/features/academic/year-comparison.ts) |
+| Função                        | Método | Entrada                                       | Fonte                                                                                           |
+| ----------------------------- | ------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `listAcademicCalendar`        | GET    | `listAcademicCalendarInputSchema`             | [academic-calendar.ts](../../../src/features/academic/academic-calendar.ts)                     |
+| `saveAcademicCalendar`        | POST   | `saveAcademicCalendarInputSchema`             | [academic-calendar.ts](../../../src/features/academic/academic-calendar.ts)                     |
+| `getAcademicStructureStatus`  | GET    | `inputSchema`                                 | [academic-structure.ts](../../../src/features/academic/academic-structure.ts)                   |
+| `listSubjectTypes`            | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `createSubjectType`           | POST   | `createSubjectTypeInputSchema`                | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `updateSubjectType`           | POST   | `updateSubjectTypeInputSchema`                | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `listCurriculumAreas`         | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `createCurriculumArea`        | POST   | `createCurriculumAreaInputSchema`             | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `listRooms`                   | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `createRoom`                  | POST   | `createRoomInputSchema`                       | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `updateRoom`                  | POST   | `updateRoomInputSchema`                       | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `listSchoolShifts`            | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `saveSchoolShift`             | POST   | `createSchoolShiftInputSchema`                | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `listCurricula`               | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `saveCurriculumMatrix`        | POST   | `saveCurriculumMatrixInputSchema`             | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `listTeacherAvailability`     | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `saveTeacherAvailability`     | POST   | `saveTeacherAvailabilityInputSchema`          | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `createAdvancedScheduleSlot`  | POST   | `createScheduleSlotInputSchema`               | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `updateAdvancedScheduleSlot`  | POST   | `updateScheduleSlotInputSchema`               | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `publishAcademicSchedule`     | POST   | `publishAcademicScheduleInputSchema`          | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `getSchoolNowOverview`        | GET    | `Sem schema de entrada explícito neste bloco` | [advanced-academic-server.ts](../../../src/features/academic/advanced-academic-server.ts)       |
+| `getAssessmentModels`         | GET    | `Sem schema de entrada explícito neste bloco` | [assessment-models.ts](../../../src/features/academic/assessment-models.ts)                     |
+| `publishAssessmentModel`      | POST   | `Sem schema de entrada explícito neste bloco` | [assessment-models.ts](../../../src/features/academic/assessment-models.ts)                     |
+| `getActivePassingValue`       | GET    | `Sem schema de entrada explícito neste bloco` | [assessment-models.ts](../../../src/features/academic/assessment-models.ts)                     |
+| `getCompetencyBoard`          | GET    | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts)                               |
+| `saveCompetency`              | POST   | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts)                               |
+| `archiveCompetency`           | POST   | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts)                               |
+| `setItemCompetencies`         | POST   | `Sem schema de entrada explícito neste bloco` | [competencies.ts](../../../src/features/academic/competencies.ts)                               |
+| `applyCurriculumTemplate`     | POST   | `applyCurriculumTemplateInputSchema`          | [curriculum-templates-server.ts](../../../src/features/academic/curriculum-templates-server.ts) |
+| `getClassWarningContext`      | GET    | `Sem schema de entrada explícito neste bloco` | [early-warning-server.ts](../../../src/features/academic/early-warning-server.ts)               |
+| `getExamBoard`                | GET    | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `createExamSession`           | POST   | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `setExamSessionStatus`        | POST   | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `getExamClassDetail`          | GET    | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `registerEligibleStudents`    | POST   | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `saveExamScores`              | POST   | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `cancelExamRegistration`      | POST   | `Sem schema de entrada explícito neste bloco` | [exams.ts](../../../src/features/academic/exams.ts)                                             |
+| `getClassFinalResults`        | GET    | `Sem schema de entrada explícito neste bloco` | [final-results.ts](../../../src/features/academic/final-results.ts)                             |
+| `recordClassFinalResults`     | POST   | `Sem schema de entrada explícito neste bloco` | [final-results.ts](../../../src/features/academic/final-results.ts)                             |
+| `requestGradeChange`          | POST   | `Sem schema de entrada explícito neste bloco` | [grade-change-requests.ts](../../../src/features/academic/grade-change-requests.ts)             |
+| `listGradeChangeRequests`     | GET    | `Sem schema de entrada explícito neste bloco` | [grade-change-requests.ts](../../../src/features/academic/grade-change-requests.ts)             |
+| `decideGradeChange`           | POST   | `Sem schema de entrada explícito neste bloco` | [grade-change-requests.ts](../../../src/features/academic/grade-change-requests.ts)             |
+| `getGradeSheetBoard`          | GET    | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts)                               |
+| `getGradeSheetDetail`         | GET    | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts)                               |
+| `buildGradeSheet`             | POST   | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts)                               |
+| `transitionGradeSheet`        | POST   | `Sem schema de entrada explícito neste bloco` | [grade-sheets.ts](../../../src/features/academic/grade-sheets.ts)                               |
+| `listPedagogicalWorkspace`    | GET    | `listPedagogicalWorkspaceInputSchema`         | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `createClassGroup`            | POST   | `createClassGroupInputSchema`                 | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `updateClassGroup`            | POST   | `updateClassGroupInputSchema`                 | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `deleteClassGroup`            | POST   | `deleteClassGroupInputSchema`                 | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `createSubject`               | POST   | `createSubjectInputSchema`                    | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `updateSubject`               | POST   | `updateSubjectInputSchema`                    | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `deactivateSubject`           | POST   | `deactivateSubjectInputSchema`                | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `listTermGrades`              | GET    | `listTermGradesInputSchema`                   | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `upsertTermGrade`             | POST   | `upsertTermGradeInputSchema`                  | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `upsertTermGradesBatch`       | POST   | `upsertTermGradesBatchInputSchema`            | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `assignClassSubjectTeacher`   | POST   | `assignClassSubjectTeacherInputSchema`        | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `unassignClassSubjectTeacher` | POST   | `unassignClassSubjectTeacherInputSchema`      | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `ensureAcademicDefaults`      | POST   | `ensureAcademicDefaultsInputSchema`           | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `getTeacherWorkspace`         | GET    | `getTeacherWorkspaceInputSchema`              | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `listAssessments`             | GET    | `listAssessmentsInputSchema`                  | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `createAssessment`            | POST   | `createAssessmentInputSchema`                 | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `upsertAssessmentScores`      | POST   | `upsertAssessmentScoresInputSchema`           | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `updateAssessmentItem`        | POST   | `updateAssessmentInputSchema`                 | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `deleteAssessmentItem`        | POST   | `deleteAssessmentInputSchema`                 | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `getStudentAcademicHistory`   | GET    | `getStudentAcademicHistoryInputSchema`        | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `listProgramCurriculum`       | GET    | `listProgramCurriculumInputSchema`            | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `addProgramSubject`           | POST   | `addProgramSubjectInputSchema`                | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `removeProgramSubject`        | POST   | `removeProgramSubjectInputSchema`             | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `applyCurriculumToClassGroup` | POST   | `applyCurriculumToClassGroupInputSchema`      | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `updateProgramGradingProfile` | POST   | `updateProgramGradingProfileInputSchema`      | [server-legacy.ts](../../../src/features/academic/server-legacy.ts)                             |
+| `getTeacherWorkspace`         | GET    | `getTeacherWorkspaceInputSchema`              | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `listTermGrades`              | GET    | `listTermGradesInputSchema`                   | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `listAssessments`             | GET    | `listAssessmentsInputSchema`                  | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `updateAssessmentItem`        | POST   | `updateAssessmentInputSchema`                 | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `deleteAssessmentItem`        | POST   | `deleteAssessmentInputSchema`                 | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `getStudentAcademicHistory`   | GET    | `getStudentAcademicHistoryInputSchema`        | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `listPedagogicalWorkspace`    | GET    | `listPedagogicalWorkspaceInputSchema`         | [server-secure-legacy.ts](../../../src/features/academic/server-secure-legacy.ts)               |
+| `deleteScheduleSlot`          | POST   | `deleteScheduleSlotInputSchema`               | [server.ts](../../../src/features/academic/server.ts)                                           |
+| `getMyStudentGrades`          | GET    | `inputSchema`                                 | [student-grades.ts](../../../src/features/academic/student-grades.ts)                           |
+| `getMyTeacherAssessmentBoard` | GET    | `Sem schema de entrada explícito neste bloco` | [teacher-assessments.ts](../../../src/features/academic/teacher-assessments.ts)                 |
+| `getLessonDetail`             | GET    | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `saveLessonDetail`            | POST   | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `createClassTask`             | POST   | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `archiveClassTask`            | POST   | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `getMyTeacherTimetable`       | GET    | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `getLessonReminderSettings`   | GET    | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `saveLessonReminderSettings`  | POST   | `Sem schema de entrada explícito neste bloco` | [timetable-lessons.ts](../../../src/features/academic/timetable-lessons.ts)                     |
+| `getYearComparison`           | GET    | `Sem schema de entrada explícito neste bloco` | [year-comparison.ts](../../../src/features/academic/year-comparison.ts)                         |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

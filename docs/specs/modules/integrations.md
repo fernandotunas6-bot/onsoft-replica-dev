@@ -58,20 +58,20 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `profiles` | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at` |
-| `school_integration_secrets` | `id`, `school_id`, `provider`, `secret_key`, `secret_value`, `expires_at`, `created_at`, `updated_at` |
-| `school_integrations` | `id`, `school_id`, `provider`, `status`, `config`, `created_at`, `updated_at`, `created_by`, `updated_by` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `siga_attendance_sessions` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by` |
-| `siga_lesson_meetings` | `id`, `school_id`, `attendance_session_id`, `provider`, `external_meeting_id`, `join_url`, `topic`, `starts_at`, `duration_minutes`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `user_communication_preferences` | `id`, `user_id`, `school_id`, `security_enabled`, `academic_enabled`, `financial_enabled`, `attendance_enabled`, `calendar_enabled`, `announcements_enabled`, `events_enabled`, `documents_enabled`, `marketing_enabled`, `channel_preferences`, `created_at`, `updated_at`, `version` |
+| Tabela                           | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit_logs`                     | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                       |
+| `enrollments`                    | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `people`                         | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `profiles`                       | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at`                                                                                                                                            |
+| `school_integration_secrets`     | `id`, `school_id`, `provider`, `secret_key`, `secret_value`, `expires_at`, `created_at`, `updated_at`                                                                                                                                                                                                                                                                                                   |
+| `school_integrations`            | `id`, `school_id`, `provider`, `status`, `config`, `created_at`, `updated_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                               |
+| `school_memberships`             | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                                                                                                                                                                         |
+| `schools`                        | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `siga_attendance_sessions`       | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by`                                                                                                                                                             |
+| `siga_lesson_meetings`           | `id`, `school_id`, `attendance_session_id`, `provider`, `external_meeting_id`, `join_url`, `topic`, `starts_at`, `duration_minutes`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                   |
+| `teachers`                       | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `user_communication_preferences` | `id`, `user_id`, `school_id`, `security_enabled`, `academic_enabled`, `financial_enabled`, `attendance_enabled`, `calendar_enabled`, `announcements_enabled`, `events_enabled`, `documents_enabled`, `marketing_enabled`, `channel_preferences`, `created_at`, `updated_at`, `version`                                                                                                                  |
 
 Relações confirmadas:
 
@@ -100,22 +100,22 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listSchoolIntegrations` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/integrations/server.ts) |
-| `listInstalledCapabilities` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/integrations/server.ts) |
-| `upsertSchoolIntegration` | POST | `upsertIntegrationInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `installSchoolIntegration` | POST | `installIntegrationInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `revokeSchoolIntegration` | POST | `revokeIntegrationInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `rotateGatewayWebhookApiKey` | POST | `rotateGatewayWebhookKeyInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `sendSchoolResendEmail` | POST | `sendSchoolResendEmailInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `sendSchoolWhatsAppMessage` | POST | `sendSchoolWhatsAppInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `sendSchoolSmsMessage` | POST | `sendSchoolSmsInputSchema` | [server.ts](../../../src/features/integrations/server.ts) |
-| `startZoomOAuth` | GET | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts) |
-| `completeZoomOAuth` | GET | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts) |
-| `disconnectZoom` | POST | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts) |
-| `createZoomLessonMeeting` | POST | `createMeetingSchema` | [zoom.ts](../../../src/features/integrations/zoom.ts) |
-| `getZoomLessonMeeting` | GET | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts) |
+| Função                       | Método | Entrada                                       | Fonte                                                     |
+| ---------------------------- | ------ | --------------------------------------------- | --------------------------------------------------------- |
+| `listSchoolIntegrations`     | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/integrations/server.ts) |
+| `listInstalledCapabilities`  | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/integrations/server.ts) |
+| `upsertSchoolIntegration`    | POST   | `upsertIntegrationInputSchema`                | [server.ts](../../../src/features/integrations/server.ts) |
+| `installSchoolIntegration`   | POST   | `installIntegrationInputSchema`               | [server.ts](../../../src/features/integrations/server.ts) |
+| `revokeSchoolIntegration`    | POST   | `revokeIntegrationInputSchema`                | [server.ts](../../../src/features/integrations/server.ts) |
+| `rotateGatewayWebhookApiKey` | POST   | `rotateGatewayWebhookKeyInputSchema`          | [server.ts](../../../src/features/integrations/server.ts) |
+| `sendSchoolResendEmail`      | POST   | `sendSchoolResendEmailInputSchema`            | [server.ts](../../../src/features/integrations/server.ts) |
+| `sendSchoolWhatsAppMessage`  | POST   | `sendSchoolWhatsAppInputSchema`               | [server.ts](../../../src/features/integrations/server.ts) |
+| `sendSchoolSmsMessage`       | POST   | `sendSchoolSmsInputSchema`                    | [server.ts](../../../src/features/integrations/server.ts) |
+| `startZoomOAuth`             | GET    | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts)     |
+| `completeZoomOAuth`          | GET    | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts)     |
+| `disconnectZoom`             | POST   | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts)     |
+| `createZoomLessonMeeting`    | POST   | `createMeetingSchema`                         | [zoom.ts](../../../src/features/integrations/zoom.ts)     |
+| `getZoomLessonMeeting`       | GET    | `Sem schema de entrada explícito neste bloco` | [zoom.ts](../../../src/features/integrations/zoom.ts)     |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

@@ -16,8 +16,8 @@ Os modais existentes não foram alterados.
 Componentes reais com conta, configurações escolares, router e rede simulados;
 não são capturas autenticadas de produção. O conteúdo atrás da gaveta é fictício.
 
-| Antes, 390 px | Depois, 390 px |
-| --- | --- |
+| Antes, 390 px                           | Depois, 390 px                          |
+| --------------------------------------- | --------------------------------------- |
 | ![Antes](sidebar-labels-before-390.png) | ![Depois](sidebar-labels-after-390.png) |
 
 ## Verificação efectuada

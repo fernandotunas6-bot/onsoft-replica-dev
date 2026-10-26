@@ -393,8 +393,63 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   padding-left: 0.625rem;
 }
 
+/* Cabeçalho translúcido: o conteúdo passa por baixo, desfocado (vidro). */
+@utility app-topbar {
+  background-color: color-mix(in oklch, var(--color-background) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: 0 1px 0 color-mix(in oklch, var(--color-foreground) 4%, transparent);
+}
+
+/* Botões-pílula do cabeçalho (ano, período, pesquisa). */
+@utility topbar-chip {
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
+  background-color: color-mix(in oklch, var(--color-secondary) 55%, transparent);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+  &:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 40%, transparent);
+    background-color: color-mix(in oklch, var(--color-secondary) 85%, transparent);
+    box-shadow: 0 1px 3px color-mix(in oklch, var(--color-foreground) 8%, transparent);
+  }
+}
+
+/* Painel de notificações. */
+@utility notification-card {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
+  background-color: var(--color-card);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 4%, transparent);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+  &:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 35%, transparent);
+    box-shadow: 0 6px 18px -8px color-mix(in oklch, var(--color-foreground) 18%, transparent);
+  }
+}
+
+@utility notification-card-unread {
+  background-color: color-mix(in oklch, var(--color-primary) 5%, var(--color-card));
+  border-color: color-mix(in oklch, var(--color-primary) 25%, transparent);
+}
+
+@utility notifications-hero {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--color-primary) 10%, transparent),
+    transparent 70%
+  );
+}
+
 /* Header icon button, circular like Minimals topbar. */
 @utility header-icon-btn {
+  width: 2.5rem;
+  height: 2.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;

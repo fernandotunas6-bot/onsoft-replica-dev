@@ -48,27 +48,27 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `title` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `description` | `optionalText,` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `eventDate` | `z.string().trim().min(10).max(10),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `endsOn` | `z.string().trim().min(10).max(10),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `sequence` | `z.number().int().min(1).max(20).optional(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `category` | `z.enum(calendarCategoryOptions).default("academic"),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(80).default(50),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `fromDate` | `optionalText,` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `includePast` | `z.boolean().optional(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `date` | `z` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(40).default(24),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `title` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `eventDate` | `z.string().trim().min(10).max(10),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `endsOn` | `z.string().trim().min(10).max(10),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
-| `yearId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| Campo            | Declaração observada                                   | Schema de origem                                        |
+| ---------------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| `title`          | `z.string().trim().min(2).max(160),`                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `description`    | `optionalText,`                                        | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `eventDate`      | `z.string().trim().min(10).max(10),`                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `endsOn`         | `z.string().trim().min(10).max(10),`                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `academicYearId` | `z.string().uuid().optional(),`                        | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `sequence`       | `z.number().int().min(1).max(20).optional(),`          | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `category`       | `z.enum(calendarCategoryOptions).default("academic"),` | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `limit`          | `z.number().int().min(1).max(80).default(50),`         | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `fromDate`       | `optionalText,`                                        | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `academicYearId` | `z.string().uuid().optional(),`                        | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `includePast`    | `z.boolean().optional(),`                              | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `date`           | `z`                                                    | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `limit`          | `z.number().int().min(1).max(40).default(24),`         | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `id`             | `z.string().uuid(),`                                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `title`          | `z.string().trim().min(2).max(160),`                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `eventDate`      | `z.string().trim().min(10).max(10),`                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `endsOn`         | `z.string().trim().min(10).max(10),`                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `id`             | `z.string().uuid(),`                                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
+| `yearId`         | `z.string().uuid(),`                                   | [schemas.ts](../../../src/features/calendar/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -82,19 +82,19 @@ Especificação complementar: [SGA_ACADEMIC_TIME_SHIFTS_BREAKS_GATE_SPEC.md](../
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `calendar_feed_tokens` | `id`, `school_id`, `user_id`, `token`, `created_at` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `terms` | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by` |
-| `timetable_slots` | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes` |
+| Tabela                 | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_years`       | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                                   |
+| `calendar_feed_tokens` | `id`, `school_id`, `user_id`, `token`, `created_at`                                                                                                                                                                                                                                                                                                                                                     |
+| `class_groups`         | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                      |
+| `class_subjects`       | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                     |
+| `enrollments`          | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `people`               | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `schools`              | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `subjects`             | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version`              |
+| `teachers`             | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `terms`                | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                             |
+| `timetable_slots`      | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes`                                                                                                                                                                                                |
 
 Relações confirmadas:
 
@@ -132,19 +132,19 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `getOrCreateCalendarFeedToken` | POST | `Sem schema de entrada explícito neste bloco` | [feed.ts](../../../src/features/calendar/feed.ts) |
-| `getPublicCalendarFeed` | GET | `getPublicCalendarFeedInputSchema` | [feed.ts](../../../src/features/calendar/feed.ts) |
-| `listCalendarEvents` | GET | `listCalendarEventsInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
-| `listDayAgendaLessons` | GET | `listDayAgendaLessonsInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
-| `getActiveAcademicYear` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/calendar/server.ts) |
-| `listActiveAcademicYears` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/calendar/server.ts) |
-| `setActiveAcademicYear` | POST | `setActiveAcademicYearInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
-| `createAcademicYear` | POST | `createAcademicYearInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
-| `createCalendarEvent` | POST | `createCalendarEventInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
-| `updateCalendarEvent` | POST | `updateCalendarEventInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
-| `deleteCalendarEvent` | POST | `deleteCalendarEventInputSchema` | [server.ts](../../../src/features/calendar/server.ts) |
+| Função                         | Método | Entrada                                       | Fonte                                                 |
+| ------------------------------ | ------ | --------------------------------------------- | ----------------------------------------------------- |
+| `getOrCreateCalendarFeedToken` | POST   | `Sem schema de entrada explícito neste bloco` | [feed.ts](../../../src/features/calendar/feed.ts)     |
+| `getPublicCalendarFeed`        | GET    | `getPublicCalendarFeedInputSchema`            | [feed.ts](../../../src/features/calendar/feed.ts)     |
+| `listCalendarEvents`           | GET    | `listCalendarEventsInputSchema`               | [server.ts](../../../src/features/calendar/server.ts) |
+| `listDayAgendaLessons`         | GET    | `listDayAgendaLessonsInputSchema`             | [server.ts](../../../src/features/calendar/server.ts) |
+| `getActiveAcademicYear`        | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/calendar/server.ts) |
+| `listActiveAcademicYears`      | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/calendar/server.ts) |
+| `setActiveAcademicYear`        | POST   | `setActiveAcademicYearInputSchema`            | [server.ts](../../../src/features/calendar/server.ts) |
+| `createAcademicYear`           | POST   | `createAcademicYearInputSchema`               | [server.ts](../../../src/features/calendar/server.ts) |
+| `createCalendarEvent`          | POST   | `createCalendarEventInputSchema`              | [server.ts](../../../src/features/calendar/server.ts) |
+| `updateCalendarEvent`          | POST   | `updateCalendarEventInputSchema`              | [server.ts](../../../src/features/calendar/server.ts) |
+| `deleteCalendarEvent`          | POST   | `deleteCalendarEventInputSchema`              | [server.ts](../../../src/features/calendar/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

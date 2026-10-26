@@ -1,5 +1,5 @@
-import { LogIn } from "lucide-react"
-import { ErrorScreen } from "../../error-screen"
+import { LogIn } from "lucide-react";
+import { ErrorScreen } from "../../error-screen";
 
 export function UnauthorizedError() {
   return (
@@ -10,5 +10,5 @@ export function UnauthorizedError() {
       description="Inicie sessão como administrador da plataforma para continuar."
       primary={{ href: "/sign-in", label: "Entrar" }}
     />
-  )
+  );
 }

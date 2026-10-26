@@ -53,13 +53,13 @@ Duas destas pistas já não bastam, e convém saber porquê:
 
 ## Onde o Codex trabalhou
 
-| Pasta | Sessões | Período | Estado |
-|---|---|---|---|
-| `/Users/macbook/App_Edu` | 15 | 05–07/2026 | repo git, 962 ficheiros por commitar |
-| `/Users/valentinocanguele/Documents/SIGA_EDU` | 5 | 08/2026 | **sem git nenhum** |
-| `edu/onsoft-replica-dev` (este) | 19 | 09–10/2026 | ver abaixo |
-| `edu/` (pasta-mãe) | 2 | 08/2026 | `git init` acidental, repo vazio |
-| Outras (Relatório, 50 Anos, ente-main) | 8 | 06/2026 | fora do SIGA |
+| Pasta                                         | Sessões | Período    | Estado                               |
+| --------------------------------------------- | ------- | ---------- | ------------------------------------ |
+| `/Users/macbook/App_Edu`                      | 15      | 05–07/2026 | repo git, 962 ficheiros por commitar |
+| `/Users/valentinocanguele/Documents/SIGA_EDU` | 5       | 08/2026    | **sem git nenhum**                   |
+| `edu/onsoft-replica-dev` (este)               | 19      | 09–10/2026 | ver abaixo                           |
+| `edu/` (pasta-mãe)                            | 2       | 08/2026    | `git init` acidental, repo vazio     |
+| Outras (Relatório, 50 Anos, ente-main)        | 8       | 06/2026    | fora do SIGA                         |
 
 ## Neste repositório
 
@@ -83,26 +83,26 @@ Duas destas pistas já não bastam, e convém saber porquê:
 
 ### Pendente com PR aberto
 
-| PR | Ramo | Commits | Diff | Falta na main |
-|---|---|---|---|---|
-| #188 (draft) | `security/signup-verification-staging-boundary-20261020` | 8 | +252/−16 | guarda do bypass de verificação de e-mail no signup; 6 ficheiros, CI verde às 05:49, já com o novo job de lint e build do WEB. Funde limpo |
-| #186 (draft) | `audit/360-institutional-2026-10-19` | 23 | +365/−45 | auditoria de ontem; 8 ficheiros, CI verde às 05:55 de hoje. Funde limpo |
-| #108 (draft) + #107 | `feat/bigbluebutton-server-adapter-20261008` | 79+1 | +1 880 | 20 dos 23 ficheiros. **Verificado a 20/10:** funde limpo, mas 2 testes do próprio ramo falham no topo (guarda de configuração antes da guarda de âmbito; `canAccessVirtualClassroom("create")` nega ao professor da turma) e a migração `20261008170000` duplica o corpo da `20261008144147` já aplicada. O #107 (só documentação) entra sozinho |
-| #113 | `fix/calendar-ics-serialization-20261009` | 2 | +85/−7 | UTF-8 e escape de newlines no ICS. **Verificado a 20/10:** funde limpo, 7/7 testes passam com a correcção e 7/7 falham sem ela |
-| #117 | `fix/react-update-depth-20261009` | 1 | +130/−49 | ciclo React #185 na selecção de períodos. **Verificado a 20/10:** funde limpo, 14/14 testes passam e sem a correcção 3 falham com «Períodos em ciclo de actualização» |
-| #35 (draft) | `feat/mobile-clean-shell-20260928` | 8 | +2 464/−148 | 24 ficheiros; 1 010 commits atrás da main. **Verificado a 20/10: 28 ficheiros em conflito** — `AppShell`, `PageHeader`, `components/filters/*`, `ui/{button,dialog,input}`. Não é fusão, é reimplementação |
+| PR                  | Ramo                                                     | Commits | Diff        | Falta na main                                                                                                                                                                                                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #188 (draft)        | `security/signup-verification-staging-boundary-20261020` | 8       | +252/−16    | guarda do bypass de verificação de e-mail no signup; 6 ficheiros, CI verde às 05:49, já com o novo job de lint e build do WEB. Funde limpo                                                                                                                                                                                                       |
+| #186 (draft)        | `audit/360-institutional-2026-10-19`                     | 23      | +365/−45    | auditoria de ontem; 8 ficheiros, CI verde às 05:55 de hoje. Funde limpo                                                                                                                                                                                                                                                                          |
+| #108 (draft) + #107 | `feat/bigbluebutton-server-adapter-20261008`             | 79+1    | +1 880      | 20 dos 23 ficheiros. **Verificado a 20/10:** funde limpo, mas 2 testes do próprio ramo falham no topo (guarda de configuração antes da guarda de âmbito; `canAccessVirtualClassroom("create")` nega ao professor da turma) e a migração `20261008170000` duplica o corpo da `20261008144147` já aplicada. O #107 (só documentação) entra sozinho |
+| #113                | `fix/calendar-ics-serialization-20261009`                | 2       | +85/−7      | UTF-8 e escape de newlines no ICS. **Verificado a 20/10:** funde limpo, 7/7 testes passam com a correcção e 7/7 falham sem ela                                                                                                                                                                                                                   |
+| #117                | `fix/react-update-depth-20261009`                        | 1       | +130/−49    | ciclo React #185 na selecção de períodos. **Verificado a 20/10:** funde limpo, 14/14 testes passam e sem a correcção 3 falham com «Períodos em ciclo de actualização»                                                                                                                                                                            |
+| #35 (draft)         | `feat/mobile-clean-shell-20260928`                       | 8       | +2 464/−148 | 24 ficheiros; 1 010 commits atrás da main. **Verificado a 20/10: 28 ficheiros em conflito** — `AppShell`, `PageHeader`, `components/filters/*`, `ui/{button,dialog,input}`. Não é fusão, é reimplementação                                                                                                                                       |
 
 ### Fechado sem fundir, e com parte ainda ausente da main
 
-| PR | Ramo | Commits | Diff | O que ficou fora |
-|---|---|---|---|---|
-| #30 | `feat/siga-supabase-auth-email-templates-20260925` | 56 | +1 171 | **24 de 24 ficheiros**: `supabase/email-templates/`, as 7 notificações, scripts de publicação e o workflow. A `main` só tem 5 modelos do lado da app |
-| #29 | `fix/google-oauth-membership-guard-20260925` | 148 | +2 983/−809 | 34 de 43: `institutional-access.ts`, `verify-oauth-account-server.ts`, `GoogleWorkspaceConnectCard.tsx`, runbooks. O lado da base entrou (`20260928190000_capture_google_workspace_and_hr_salary_tables.sql`) |
-| #31 | `feat/institutional-onboarding-requests` | 57 | +961/−149 | 11 de 23: `src/routes/registar.tsx`, `institutional-requests.server.ts` e 2 migrações de pedidos de acesso institucional |
-| #27 | `feat/hr-salary-catalog-20260924` | 28 | +2 144/−12 | 21 de 24: 8 migrações de guardas da folha (serialização, pró-rata, frescura dos inputs) |
-| #8 | `security/rls-tenant-hardening-20260906` | 30 | +2 284/−9 | 17 de 20: fachadas `*-secure.ts` de notas, avaliação, pessoas e convites |
-| #1 | `fix/tenant-security-payment-mfa-2026-09-03` | 43 | +2 175/−434 | 9 de 32: workflows `production-gate`, `lockfile-sync`, middleware do ADMIN |
-| #15, #13, #182 | estabilização, portas do CI, Prettier | 4+3+1 | pequeno | #182 confirmado: a correcção de Prettier já está na `main` por outra via, e o ramo `fix/ci-main-responsive-prettier-20261019` ficou obsoleto. #15 e #13 por confirmar |
+| PR             | Ramo                                               | Commits | Diff        | O que ficou fora                                                                                                                                                                                              |
+| -------------- | -------------------------------------------------- | ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #30            | `feat/siga-supabase-auth-email-templates-20260925` | 56      | +1 171      | **24 de 24 ficheiros**: `supabase/email-templates/`, as 7 notificações, scripts de publicação e o workflow. A `main` só tem 5 modelos do lado da app                                                          |
+| #29            | `fix/google-oauth-membership-guard-20260925`       | 148     | +2 983/−809 | 34 de 43: `institutional-access.ts`, `verify-oauth-account-server.ts`, `GoogleWorkspaceConnectCard.tsx`, runbooks. O lado da base entrou (`20260928190000_capture_google_workspace_and_hr_salary_tables.sql`) |
+| #31            | `feat/institutional-onboarding-requests`           | 57      | +961/−149   | 11 de 23: `src/routes/registar.tsx`, `institutional-requests.server.ts` e 2 migrações de pedidos de acesso institucional                                                                                      |
+| #27            | `feat/hr-salary-catalog-20260924`                  | 28      | +2 144/−12  | 21 de 24: 8 migrações de guardas da folha (serialização, pró-rata, frescura dos inputs)                                                                                                                       |
+| #8             | `security/rls-tenant-hardening-20260906`           | 30      | +2 284/−9   | 17 de 20: fachadas `*-secure.ts` de notas, avaliação, pessoas e convites                                                                                                                                      |
+| #1             | `fix/tenant-security-payment-mfa-2026-09-03`       | 43      | +2 175/−434 | 9 de 32: workflows `production-gate`, `lockfile-sync`, middleware do ADMIN                                                                                                                                    |
+| #15, #13, #182 | estabilização, portas do CI, Prettier              | 4+3+1   | pequeno     | #182 confirmado: a correcção de Prettier já está na `main` por outra via, e o ramo `fix/ci-main-responsive-prettier-20261019` ficou obsoleto. #15 e #13 por confirmar                                         |
 
 ### Empurrado hoje, sem PR
 
@@ -133,12 +133,13 @@ Duas destas pistas já não bastam, e convém saber porquê:
 
   O `git push` por HTTPS não passou: 408 em qualquer pacote acima de ~2 MB, com
   os PNG de `apps/*/public` a pesar 9 MB dos 8,5 do repositório. A via que
-  funcionou foi empurrar os *blobs* em fatias de ~700 KB em ramos temporários e
+  funcionou foi empurrar os _blobs_ em fatias de ~700 KB em ramos temporários e
   depois criar as 9 árvores que faltavam e o commit pela API do GitHub,
   comparando o sha devolvido com o local a cada passo — as nove árvores e o
   commit saíram **com o mesmo sha**, por isso o histórico remoto é o mesmo
   objecto, não uma cópia. Verificado por clone novo: 776 ficheiros, `git fsck`
   limpo. Os ramos temporários foram apagados; o remoto só tem `main`.
+
 - **`/Users/valentinocanguele/edu/.git`** — repositório vazio, sem commits,
   criado por engano na sessão de 10/08. Só vê as quatro worktrees como ficheiros
   novos. Pode ser apagado.
@@ -169,11 +170,11 @@ Retrato das 19:30, base `origin/main` em `a9cd5a61`. Sete PRs fundiram entre as
 
 ### Os itens do roteiro que se fecharam sozinhos
 
-| Item | Como estava às 07:10 | Como está às 19:30 |
-|---|---|---|
+| Item                                         | Como estava às 07:10             | Como está às 19:30                           |
+| -------------------------------------------- | -------------------------------- | -------------------------------------------- |
 | 1. `audit/provisioning-admin-scope-20261020` | ramo sem PR, «alvo em movimento» | **fundido** — virou a #189 e entrou às 18:06 |
-| 2. #186 e #188 | rascunhos a tirar do rascunho | **fundidos**, às 18:10 e 18:09 |
-| — | — | entraram ainda #191, #194, #196 e #197 |
+| 2. #186 e #188                               | rascunhos a tirar do rascunho    | **fundidos**, às 18:10 e 18:09               |
+| —                                            | —                                | entraram ainda #191, #194, #196 e #197       |
 
 A lição do «abrir PR» confirmou-se pelo avesso: o ramo não precisou de ser
 resgatado, precisou de uma PR — e logo que a teve, fundiu no mesmo dia.
@@ -184,12 +185,12 @@ As verificações de fusão das 06:17 e 06:31 foram repetidas do zero contra
 `a9cd5a61`, porque uma fusão limpa contra `7d8ce0ec` não diz nada sobre a base
 de agora:
 
-| PR | Às 06:xx | Às 19:30 | Medição repetida |
-|---|---|---|---|
-| #113 | funde limpo, 7/7 | **confirmada** | 26/26 verdes em `tests/calendar/`; com `ics.ts` reposto da `main`, 7/7 falham |
-| #117 | funde limpo, 14/14 | **confirmada** | 344/344 verdes em `tests/academic/`; sem a correcção, 3 falham com «Períodos em ciclo de actualização» |
-| #107 | rascunho, só docs | **pronta para revisão** | tirada do rascunho; `MERGEABLE/CLEAN` |
-| #108 | «funde limpo» | **passou a conflituosa** | um conflito só, em `.github/workflows/ci.yml`, criado pela #188 ao acrescentar o job `web-quality` |
+| PR   | Às 06:xx           | Às 19:30                 | Medição repetida                                                                                       |
+| ---- | ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| #113 | funde limpo, 7/7   | **confirmada**           | 26/26 verdes em `tests/calendar/`; com `ics.ts` reposto da `main`, 7/7 falham                          |
+| #117 | funde limpo, 14/14 | **confirmada**           | 344/344 verdes em `tests/academic/`; sem a correcção, 3 falham com «Períodos em ciclo de actualização» |
+| #107 | rascunho, só docs  | **pronta para revisão**  | tirada do rascunho; `MERGEABLE/CLEAN`                                                                  |
+| #108 | «funde limpo»      | **passou a conflituosa** | um conflito só, em `.github/workflows/ci.yml`, criado pela #188 ao acrescentar o job `web-quality`     |
 
 ### A #108, aberta e fechada
 
@@ -209,7 +210,7 @@ Os três problemas que faltavam foram resolvidos e empurrados para o ramo:
    - `permits assigned teacher to create scheduled classroom` era um **fixture
      desactualizado**. A política passou a exigir `session.classGroupId` e
      `teacherAssignment.teacherId`, e o fixture não os tinha. O mais grave é que
-     os *outros* testes passavam pela razão errada: as negações davam `false`
+     os _outros_ testes passavam pela razão errada: as negações davam `false`
      por campos indefinidos, não pela regra que diziam cobrir. O fixture passou
      a distinguir o id do registo de professor (`teacher-record-1`) do id de
      utilizador (`teacher-1`) — que é precisamente a verificação de dois lados
@@ -257,8 +258,8 @@ conflito foi resolvido e os **116/116** testes passam. Mas o portão
 «Estilo, acessibilidade e build» falha no ramo, e falha por causa do nosso
 próprio commit:
 
-- `6cb9e741` (19:32, *test(bbb): o fixture da política não acompanhou o aperto
-  do tipo*) deixou **11 erros de Prettier**, todos em
+- `6cb9e741` (19:32, _test(bbb): o fixture da política não acompanhou o aperto
+  do tipo_) deixou **11 erros de Prettier**, todos em
   `tests/integrations/bigbluebutton-service.test.ts` — o ficheiro do fixture que
   esse commit reescreveu.
 - Nenhum outro job falha: dependências, WEB lint/build e `check-bbb-format`
@@ -295,14 +296,14 @@ sem PR nenhuma, nenhum é do Codex: 7 são do Claude (`ccr-*`, `claude/*`,
 
 ### Estado das PRs do inventário, às 19:36
 
-| PR | GitHub diz | Observação |
-|---|---|---|
-| #107 | `MERGEABLE / CLEAN` | fora do rascunho, só documentação. Falta fundir |
-| #113 | `MERGEABLE / CLEAN` | verificada duas vezes. Falta fundir |
-| #117 | `MERGEABLE / CLEAN` | verificada duas vezes. Falta fundir |
-| #108 | `MERGEABLE / UNSTABLE` | funde, mas o lint falha (acima) |
-| #35 | `CONFLICTING / DIRTY` | confirmado pelo GitHub, não só pelo teste local |
-| #190 (esta) | `MERGEABLE / CLEAN` | o local tinha a fusão da `main` por empurrar |
+| PR          | GitHub diz             | Observação                                      |
+| ----------- | ---------------------- | ----------------------------------------------- |
+| #107        | `MERGEABLE / CLEAN`    | fora do rascunho, só documentação. Falta fundir |
+| #113        | `MERGEABLE / CLEAN`    | verificada duas vezes. Falta fundir             |
+| #117        | `MERGEABLE / CLEAN`    | verificada duas vezes. Falta fundir             |
+| #108        | `MERGEABLE / UNSTABLE` | funde, mas o lint falha (acima)                 |
+| #35         | `CONFLICTING / DIRTY`  | confirmado pelo GitHub, não só pelo teste local |
+| #190 (esta) | `MERGEABLE / CLEAN`    | o local tinha a fusão da `main` por empurrar    |
 
 São 29 PRs abertas no repositório. A #198 (cache dos recursos públicos, aberta
 às 18:14) tem rodapé do Claude — não é trabalho do Codex e não entra neste
@@ -321,7 +322,7 @@ inventário.
 ## Quinta actualização, 19:50 de 20/10
 
 Base `origin/main` em `12b98882`. Catorze minutos depois do retrato anterior, e
-já há três coisas a corrigir — duas delas *neste* documento.
+já há três coisas a corrigir — duas delas _neste_ documento.
 
 ### Correcção: o carimbo das horas
 
@@ -337,10 +338,10 @@ deste documento cai por medição, não por mudança do mundo.
 A quarta actualização diz «a culpa é nossa». É dois terços verdade. Dos 11
 erros de `prettier/prettier` do portão:
 
-| Erros | Ficheiro | Commit |
-|---|---|---|
-| 8 | `tests/integrations/bigbluebutton-service.test.ts` | `6cb9e741`, nosso, das 19:32 |
-| 3 | `scripts/worker-secrets.mjs` | `0ba4602b`, do ramo, de 08/10 |
+| Erros | Ficheiro                                           | Commit                        |
+| ----- | -------------------------------------------------- | ----------------------------- |
+| 8     | `tests/integrations/bigbluebutton-service.test.ts` | `6cb9e741`, nosso, das 19:32  |
+| 3     | `scripts/worker-secrets.mjs`                       | `0ba4602b`, do ramo, de 08/10 |
 
 Os 3 são quatro entradas `BBB_*` no catálogo `NOT_WORKER_SECRETS` com linhas
 acima dos 100 caracteres do `printWidth`. Quer dizer que **o portão da #108 já

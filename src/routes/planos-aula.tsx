@@ -1,3 +1,4 @@
+import { useFollowSelectedTerm } from "@/features/auth/use-school-settings";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,6 +67,10 @@ function LessonPlansPage() {
     "planos-aula",
     filterDefaults,
   );
+  // Período escolhido no cabeçalho → filtro de trimestre deste ecrã.
+  useFollowSelectedTerm((sequence) => {
+    if (sequence >= 1 && sequence <= 3) setFilter("trimestre", String(sequence));
+  });
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   // Alunos e encarregados vêem os planos publicados; criar, editar e remover é do

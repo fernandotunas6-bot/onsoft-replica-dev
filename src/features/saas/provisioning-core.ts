@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { CreateSchoolWizardInput } from "@/features/saas/schemas";
@@ -348,34 +349,43 @@ async function runProvisioning(
   }
 
   trace.stage = "school";
-  const generatedPublicCode = `SIGA-AO-${Math.floor(100000 + Math.random() * 900000)}`;
-
-  const { data: school, error: schoolErr } = await db
-    .from("schools")
-    .insert({
-      tenant_id: tenantId,
-      public_code: generatedPublicCode,
-      name: data.name,
-      commercial_name: data.commercial_name || data.name,
-      nif: data.nif || null,
-      address: data.address || null,
-      city: data.city || data.municipality || "Luanda",
-      province: data.province || null,
-      municipality: data.municipality || null,
-      commune: data.commune || null,
-      neighborhood: data.neighborhood || null,
-      phone: data.phone || data.contact_phone || null,
-      email: data.email || data.contact_email,
-      logo_url: data.logo_url || null,
-      director_name: directorFromContact(data.contact_role, data.contact_name),
-    })
-    .select("id")
-    .single();
-  if (schoolErr) {
-    await cleanupTenant();
-    throw publicDatabaseError(schoolErr, "Não foi possível criar o registo da escola.");
+  // Código público ao acaso: se colidir com outra escola (unicidade), tenta outro.
+  let school: { id: string } | null = null;
+  let schoolErr: { code?: string; message: string } | null = null;
+  for (let tries = 0; tries < 5; tries += 1) {
+    const attempt = await db
+      .from("schools")
+      .insert({
+        tenant_id: tenantId,
+        public_code: `SIGA-AO-${randomInt(100000, 1000000)}`,
+        name: data.name,
+        commercial_name: data.commercial_name || data.name,
+        nif: data.nif || null,
+        address: data.address || null,
+        city: data.city || data.municipality || "Luanda",
+        province: data.province || null,
+        municipality: data.municipality || null,
+        commune: data.commune || null,
+        neighborhood: data.neighborhood || null,
+        phone: data.phone || data.contact_phone || null,
+        email: data.email || data.contact_email,
+        logo_url: data.logo_url || null,
+        director_name: directorFromContact(data.contact_role, data.contact_name),
+      })
+      .select("id")
+      .single();
+    school = attempt.data as { id: string } | null;
+    schoolErr = attempt.error;
+    if (!schoolErr || schoolErr.code !== "23505" || !/public_code/.test(schoolErr.message)) break;
   }
-  const schoolId = school.id as string;
+  if (schoolErr || !school) {
+    await cleanupTenant();
+    throw publicDatabaseError(
+      schoolErr ?? { message: "sem linha" },
+      "Não foi possível criar o registo da escola.",
+    );
+  }
+  const schoolId = school.id;
   trace.schoolId = schoolId;
   trace.stage = "admin";
 

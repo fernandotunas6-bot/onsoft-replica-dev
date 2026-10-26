@@ -1,7 +1,7 @@
-import Link from "next/link"
-import type { LucideIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { getDocsUrl } from "@/lib/ecosystem-urls"
+import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getDocsUrl } from "@/lib/ecosystem-urls";
 
 /**
  * Ecrã de erro do ADMIN. Substitui as páginas do template (imagem de
@@ -15,11 +15,11 @@ export function ErrorScreen({
   icon: Icon,
   primary = { href: "/tenants", label: "Voltar às escolas" },
 }: {
-  code: string
-  title: string
-  description: string
-  icon: LucideIcon
-  primary?: { href: string; label: string }
+  code: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  primary?: { href: string; label: string };
 }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-6 p-8 text-center">
@@ -42,5 +42,5 @@ export function ErrorScreen({
         </Button>
       </div>
     </main>
-  )
+  );
 }

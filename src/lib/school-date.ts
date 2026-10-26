@@ -43,3 +43,26 @@ export function schoolDateInDays(days: number, now: Date = new Date()): string {
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
+
+/** Nome antigo de `schoolDateInDays`. */
+export const schoolDayOffsetIso = schoolDateInDays;
+
+/**
+ * Número de proforma pela data e hora de emissão em Luanda (FP-AAAAMMDD-HHMMSS).
+ * A proforma não é documento fiscal: não precisa de série sequencial.
+ */
+export function proformaNumber(now: Date = new Date(), timeZone = "Africa/Luanda"): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "00";
+  return `FP-${get("year")}${get("month")}${get("day")}-${get("hour")}${get("minute")}${get("second")}`;
+}

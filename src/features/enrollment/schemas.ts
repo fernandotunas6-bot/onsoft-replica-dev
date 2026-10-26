@@ -130,9 +130,27 @@ export const decideEnrollmentApplicationInputSchema = z.object({
   applicationId: z.string().guid(),
   decision: z.enum(["accepted", "rejected"]),
   classGroupId: z.string().guid().optional(),
+  /** Colocar em turma fora do ciclo de matrículas: só a Administração, com motivo. */
+  outsideCycleReason: z.string().trim().max(300).optional(),
 });
 
 export function candidacyProcessNumber(applicationId: string, createdAt?: string) {
   const day = (createdAt ?? new Date().toISOString()).slice(0, 10).replaceAll("-", "");
   return `CAND-${day}-${applicationId.replaceAll("-", "").slice(0, 6).toUpperCase()}`;
 }
+
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida.");
+
+/** Ciclos de matrícula da escola (Definições › Matrícula). */
+export const saveEnrollmentCyclesInputSchema = z.object({
+  cycles: z
+    .array(
+      z.object({
+        label: z.string().trim().min(2, "Dê um nome ao ciclo.").max(80),
+        opens_on: isoDay,
+        closes_on: isoDay,
+      }),
+    )
+    .max(12),
+});
+export type SaveEnrollmentCyclesInput = z.infer<typeof saveEnrollmentCyclesInputSchema>;

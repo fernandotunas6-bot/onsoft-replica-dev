@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 /**
  * Contagens reais do ano lectivo para o separador "Estrutura académica".
  * Só contagens (head: true), nunca dados de alunos. Pessoal da escola.

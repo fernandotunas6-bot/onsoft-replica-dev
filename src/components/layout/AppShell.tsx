@@ -9,6 +9,8 @@ import { toast } from "@/lib/toast";
 import {
   Bell,
   ChevronDown,
+  BellOff,
+  Check,
   CircleHelp,
   FileText,
   Maximize2,
@@ -129,6 +131,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     terms,
     selectedTermId,
     selectedTermLabel,
+    currentTermId,
     setSelectedTermId,
   } = useSchoolSettings();
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
@@ -316,7 +319,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                     {selectedYearLabel}
                     {selectedYearId && selectedYearId === activeYear?.id ? " (Atual)" : ""}
                   </span>
-                  <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                  <ChevronDown className="size-4 shrink-0 opacity-60" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -341,16 +344,30 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                     className="hidden min-w-0 max-w-28 items-center gap-1.5 rounded-lg border border-border/80 bg-secondary/50 px-2.5 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary/40 md:flex 2xl:max-w-44"
                   >
                     <span className="truncate whitespace-nowrap">{selectedTermLabel}</span>
-                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                    <ChevronDown className="size-4 shrink-0 opacity-60" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuLabel>Período lectivo</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {terms.map((term) => (
-                    <DropdownMenuItem key={term.id} onClick={() => setSelectedTermId(term.id)}>
-                      {term.label}
-                      {term.id === selectedTermId ? " (Actual)" : ""}
+                    <DropdownMenuItem
+                      key={term.id}
+                      className="gap-2"
+                      onClick={() => {
+                        setSelectedTermId(term.id);
+                        toast.success("Período alterado", {
+                          description: `Notas e pautas passam a mostrar ${term.label}.`,
+                        });
+                      }}
+                    >
+                      <span className="flex-1">{term.label}</span>
+                      {term.id === currentTermId ? (
+                        <span className="text-[11px] text-muted-foreground">Actual</span>
+                      ) : null}
+                      {term.id === selectedTermId ? (
+                        <Check className="size-3.5 text-primary" />
+                      ) : null}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -571,14 +588,78 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       mensagens internas aparecem aqui.
                     </p>
                   ) : null}
-                  {canAccessPath("/comunicacoes", currentUser.role) ? (
-                    <Button asChild variant="outline" className="w-full">
+                  {alerts.length ? (
+                    <NotificationSection title="Escola" count={alerts.length}>
+                      <div className="space-y-2">
+                        {alerts.map((alert) => (
+                          <SchoolAlertRow
+                            key={alert.id}
+                            alert={alert}
+                            onClose={() => setNotificationsOpen(false)}
+                            onOpenSettings={(panelId) => {
+                              setNotificationsOpen(false);
+                              openSettings(panelId);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </NotificationSection>
+                  ) : null}
+                  {unread.length ? (
+                    <NotificationSection title="Mensagens" count={unread.length}>
+                      <div className="space-y-2">
+                        {unread.map((row) => (
+                          <button
+                            key={row.conversationId}
+                            type="button"
+                            className="notification-card flex w-full items-start gap-3 px-3.5 py-3 text-left"
+                            onClick={() => {
+                              setNotificationsOpen(false);
+                              requestOpenConversation(row.conversationId);
+                            }}
+                          >
+                            <UserAvatar
+                              url={row.avatar_url}
+                              initials={initialsFromName(row.full_name)}
+                              className="size-10 bg-primary-soft text-xs font-bold text-primary"
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold">
+                                {row.full_name}
+                              </span>
+                              <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                                {row.lastBody}
+                              </span>
+                            </span>
+                            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
+                          </button>
+                        ))}
+                      </div>
+                    </NotificationSection>
+                  ) : null}
+                  {!alerts.length && !unread.length && !personalCount ? (
+                    <div className="flex flex-col items-center px-6 py-14 text-center">
+                      <span className="grid size-16 place-items-center rounded-full bg-primary-soft text-primary">
+                        <BellOff className="size-7" />
+                      </span>
+                      <p className="mt-4 text-sm font-semibold">Sem notificações novas</p>
+                      <p className="mt-1 max-w-[18rem] text-xs text-muted-foreground">
+                        Candidaturas, documentos, faturas em atraso e mensagens internas aparecem
+                        aqui.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+
+                {canAccessPath("/comunicacoes", currentUser.role) ? (
+                  <div className="border-t border-border/60 bg-background/80 p-4 backdrop-blur">
+                    <Button asChild className="w-full rounded-xl">
                       <Link to="/comunicacoes" onClick={() => setNotificationsOpen(false)}>
                         Abrir comunicações
                       </Link>
                     </Button>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </SheetContent>
             </Sheet>
 
@@ -707,6 +788,30 @@ const alertChip: Record<SchoolAlert["kind"], { icon: typeof FileText; tone: Chip
   faturas: { icon: Wallet, tone: "destructive" },
 };
 
+function NotificationSection({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count?: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <h3 className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+        {count ? (
+          <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] text-primary">
+            {count}
+          </span>
+        ) : null}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
 function SchoolAlertRow({
   alert,
   onClose,
@@ -726,8 +831,7 @@ function SchoolAlertRow({
       </span>
     </>
   );
-  const className =
-    "flex w-full items-start gap-3 rounded-2xl border border-border bg-secondary/40 px-3 py-3 text-left transition-colors hover:bg-secondary";
+  const className = "notification-card flex w-full items-start gap-3 px-3.5 py-3 text-left";
 
   if (alert.settingsPanel) {
     return (

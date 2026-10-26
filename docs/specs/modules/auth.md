@@ -51,15 +51,15 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `fullName` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/auth/schemas.ts) |
-| `firstName` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/auth/schemas.ts) |
-| `lastName` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/auth/schemas.ts) |
-| `phone` | `z` | [schemas.ts](../../../src/features/auth/schemas.ts) |
+| Campo               | Declaração observada                     | Schema de origem                                    |
+| ------------------- | ---------------------------------------- | --------------------------------------------------- |
+| `fullName`          | `z.string().trim().min(2).max(160),`     | [schemas.ts](../../../src/features/auth/schemas.ts) |
+| `firstName`         | `z.string().trim().max(80).optional(),`  | [schemas.ts](../../../src/features/auth/schemas.ts) |
+| `lastName`          | `z.string().trim().max(80).optional(),`  | [schemas.ts](../../../src/features/auth/schemas.ts) |
+| `phone`             | `z`                                      | [schemas.ts](../../../src/features/auth/schemas.ts) |
 | `expectedUpdatedAt` | `z.string().datetime({ offset: true }),` | [schemas.ts](../../../src/features/auth/schemas.ts) |
-| `storagePath` | `avatarStoragePathSchema,` | [schemas.ts](../../../src/features/auth/schemas.ts) |
-| `avatarUrl` | `z.string().trim().min(1).max(800),` | [schemas.ts](../../../src/features/auth/schemas.ts) |
+| `storagePath`       | `avatarStoragePathSchema,`               | [schemas.ts](../../../src/features/auth/schemas.ts) |
+| `avatarUrl`         | `z.string().trim().min(1).max(800),`     | [schemas.ts](../../../src/features/auth/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -73,23 +73,23 @@ Especificação complementar: [SGA_SECURITY_ACCESS_SPEC.md](../SGA_SECURITY_ACCE
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `profiles` | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at` |
-| `saas_audit_logs` | `id`, `tenant_id`, `user_id`, `action`, `entity`, `entity_id`, `metadata`, `ip_address`, `created_at` |
-| `school_branding` | `id`, `school_id`, `logo_url`, `favicon_url`, `primary_color`, `secondary_color`, `school_name`, `short_name`, `portal_title`, `login_background`, `created_at`, `updated_at` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `staff_module_grants` | `id`, `school_id`, `user_id`, `module_key`, `level`, `created_at`, `updated_at`, `created_by`, `updated_by` |
-| `student_guardians` | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `tenant_domains` | `id`, `tenant_id`, `hostname`, `type`, `status`, `ssl_status`, `verified_at`, `created_at`, `last_checked_at`, `check_count`, `updated_at` |
-| `tenants` | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason` |
+| Tabela                | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `class_groups`        | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                      |
+| `enrollments`         | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `people`              | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `profiles`            | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at`                                                                                                                                            |
+| `saas_audit_logs`     | `id`, `tenant_id`, `user_id`, `action`, `entity`, `entity_id`, `metadata`, `ip_address`, `created_at`                                                                                                                                                                                                                                                                                                   |
+| `school_branding`     | `id`, `school_id`, `logo_url`, `favicon_url`, `primary_color`, `secondary_color`, `school_name`, `short_name`, `portal_title`, `login_background`, `created_at`, `updated_at`                                                                                                                                                                                                                           |
+| `school_memberships`  | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                                                                                                                                                                         |
+| `school_settings`     | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                             |
+| `schools`             | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `staff_module_grants` | `id`, `school_id`, `user_id`, `module_key`, `level`, `created_at`, `updated_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                             |
+| `student_guardians`   | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at`                                                                                                                                                                                                      |
+| `students`            | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
+| `teachers`            | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `tenant_domains`      | `id`, `tenant_id`, `hostname`, `type`, `status`, `ssl_status`, `verified_at`, `created_at`, `last_checked_at`, `check_count`, `updated_at`                                                                                                                                                                                                                                                              |
+| `tenants`             | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason`                                                                                                                                                            |
 
 Relações confirmadas:
 
@@ -126,23 +126,23 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `requestEmailChangeFn` | POST | `requestEmailChangeInputSchema` | [email-change-server.ts](../../../src/features/auth/email-change-server.ts) |
-| `requestMagicLinkFn` | POST | `requestMagicLinkInputSchema` | [magic-link-server.ts](../../../src/features/auth/magic-link-server.ts) |
-| `syncMagicLinkVerificationFn` | POST | `Sem schema de entrada explícito neste bloco` | [magic-link-server.ts](../../../src/features/auth/magic-link-server.ts) |
-| `requestPhoneChangeOtpFn` | POST | `requestPhoneChangeInputSchema` | [phone-change-server.ts](../../../src/features/auth/phone-change-server.ts) |
-| `confirmPhoneChangeWithOtpFn` | POST | `confirmPhoneChangeInputSchema` | [phone-change-server.ts](../../../src/features/auth/phone-change-server.ts) |
-| `resetPasswordWithOtpFn` | POST | `resetPasswordWithOtpInputSchema` | [reset-password-otp-server.ts](../../../src/features/auth/reset-password-otp-server.ts) |
-| `requestPasswordResetFn` | POST | `requestPasswordResetInputSchema` | [reset-password-server.ts](../../../src/features/auth/reset-password-server.ts) |
-| `syncPasswordResetVerificationFn` | POST | `Sem schema de entrada explícito neste bloco` | [reset-password-server.ts](../../../src/features/auth/reset-password-server.ts) |
-| `getCurrentAccountContext` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/auth/server.ts) |
-| `updateCurrentProfile` | POST | `updateCurrentProfileInputSchema` | [server.ts](../../../src/features/auth/server.ts) |
-| `setCurrentProfileAvatar` | POST | `setCurrentProfileAvatarInputSchema` | [server.ts](../../../src/features/auth/server.ts) |
-| `signProfileAvatar` | GET | `signProfileAvatarInputSchema` | [server.ts](../../../src/features/auth/server.ts) |
-| `uploadCurrentProfileAvatar` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/auth/server.ts) |
-| `requestSignupFn` | POST | `requestSignupInputSchema` | [signup-server.ts](../../../src/features/auth/signup-server.ts) |
-| `verifyInstitutionalMembershipFn` | POST | `Sem schema de entrada explícito neste bloco` | [verify-institutional-membership-server.ts](../../../src/features/auth/verify-institutional-membership-server.ts) |
+| Função                            | Método | Entrada                                       | Fonte                                                                                                             |
+| --------------------------------- | ------ | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `requestEmailChangeFn`            | POST   | `requestEmailChangeInputSchema`               | [email-change-server.ts](../../../src/features/auth/email-change-server.ts)                                       |
+| `requestMagicLinkFn`              | POST   | `requestMagicLinkInputSchema`                 | [magic-link-server.ts](../../../src/features/auth/magic-link-server.ts)                                           |
+| `syncMagicLinkVerificationFn`     | POST   | `Sem schema de entrada explícito neste bloco` | [magic-link-server.ts](../../../src/features/auth/magic-link-server.ts)                                           |
+| `requestPhoneChangeOtpFn`         | POST   | `requestPhoneChangeInputSchema`               | [phone-change-server.ts](../../../src/features/auth/phone-change-server.ts)                                       |
+| `confirmPhoneChangeWithOtpFn`     | POST   | `confirmPhoneChangeInputSchema`               | [phone-change-server.ts](../../../src/features/auth/phone-change-server.ts)                                       |
+| `resetPasswordWithOtpFn`          | POST   | `resetPasswordWithOtpInputSchema`             | [reset-password-otp-server.ts](../../../src/features/auth/reset-password-otp-server.ts)                           |
+| `requestPasswordResetFn`          | POST   | `requestPasswordResetInputSchema`             | [reset-password-server.ts](../../../src/features/auth/reset-password-server.ts)                                   |
+| `syncPasswordResetVerificationFn` | POST   | `Sem schema de entrada explícito neste bloco` | [reset-password-server.ts](../../../src/features/auth/reset-password-server.ts)                                   |
+| `getCurrentAccountContext`        | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/auth/server.ts)                                                                 |
+| `updateCurrentProfile`            | POST   | `updateCurrentProfileInputSchema`             | [server.ts](../../../src/features/auth/server.ts)                                                                 |
+| `setCurrentProfileAvatar`         | POST   | `setCurrentProfileAvatarInputSchema`          | [server.ts](../../../src/features/auth/server.ts)                                                                 |
+| `signProfileAvatar`               | GET    | `signProfileAvatarInputSchema`                | [server.ts](../../../src/features/auth/server.ts)                                                                 |
+| `uploadCurrentProfileAvatar`      | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/auth/server.ts)                                                                 |
+| `requestSignupFn`                 | POST   | `requestSignupInputSchema`                    | [signup-server.ts](../../../src/features/auth/signup-server.ts)                                                   |
+| `verifyInstitutionalMembershipFn` | POST   | `Sem schema de entrada explícito neste bloco` | [verify-institutional-membership-server.ts](../../../src/features/auth/verify-institutional-membership-server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

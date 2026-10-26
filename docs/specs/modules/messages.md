@@ -37,39 +37,39 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `conversationId` | `z.string().uuid(),` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `limit` | `z.number().int().min(10).max(200).default(60),` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `before` | `z.string().datetime().optional(),` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `id` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `ts` | `number;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `text` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `from` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `status` | `ChatMessageStatus;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `deleted` | `boolean;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `replyTo` | `{ id: string; from: string; text: string } \| null;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `file` | `{ name: string; size: number; fileId: string } \| null;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `id` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `type` | `ChatConversationType;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `name` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `sub` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `peerId` | `string \| null;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `avatarUrl` | `string \| null;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `unread` | `number;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `messages` | `ChatMessage[];` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `id` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `name` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `sub` | `string;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `avatarUrl` | `string \| null;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
-| `peerId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `limit` | `z.number().int().min(10).max(200).default(80),` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `peerId` | `string;` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `full_name` | `string;` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `avatar_url` | `string \| null;` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `lastActivityAt` | `string;` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `lastBody` | `string;` | [schemas.ts](../../../src/features/messages/schemas.ts) |
-| `lastIncomingAt` | `string \| null;` | [schemas.ts](../../../src/features/messages/schemas.ts) |
+| Campo            | Declaração observada                                      | Schema de origem                                                  |
+| ---------------- | --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `conversationId` | `z.string().uuid(),`                                      | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `limit`          | `z.number().int().min(10).max(200).default(60),`          | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `before`         | `z.string().datetime().optional(),`                       | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `id`             | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `ts`             | `number;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `text`           | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `from`           | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `status`         | `ChatMessageStatus;`                                      | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `deleted`        | `boolean;`                                                | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `replyTo`        | `{ id: string; from: string; text: string } \| null;`     | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `file`           | `{ name: string; size: number; fileId: string } \| null;` | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `id`             | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `type`           | `ChatConversationType;`                                   | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `name`           | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `sub`            | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `peerId`         | `string \| null;`                                         | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `avatarUrl`      | `string \| null;`                                         | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `unread`         | `number;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `messages`       | `ChatMessage[];`                                          | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `id`             | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `name`           | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `sub`            | `string;`                                                 | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `avatarUrl`      | `string \| null;`                                         | [chat-schemas.ts](../../../src/features/messages/chat-schemas.ts) |
+| `peerId`         | `z.string().uuid(),`                                      | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `limit`          | `z.number().int().min(10).max(200).default(80),`          | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `peerId`         | `string;`                                                 | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `full_name`      | `string;`                                                 | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `avatar_url`     | `string \| null;`                                         | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `lastActivityAt` | `string;`                                                 | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `lastBody`       | `string;`                                                 | [schemas.ts](../../../src/features/messages/schemas.ts)           |
+| `lastIncomingAt` | `string \| null;`                                         | [schemas.ts](../../../src/features/messages/schemas.ts)           |
 
 ## Regras de negócio e fonte
 
@@ -81,16 +81,16 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `member_roles` | `school_id`, `membership_id`, `role_id`, `created_at` |
-| `profiles` | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at` |
-| `roles` | `id`, `school_id`, `code`, `name`, `is_system`, `created_at` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `siga_chat_conversations` | `id`, `school_id`, `type`, `title`, `student_id`, `direct_key`, `created_by`, `created_at` |
-| `siga_chat_members` | `conversation_id`, `user_id`, `last_read_at`, `joined_at` |
-| `siga_chat_messages` | `id`, `conversation_id`, `school_id`, `sender_id`, `body`, `reply_to`, `attachment_file_id`, `attachment_file_name`, `deleted_at`, `created_at` |
-| `siga_direct_messages` | `id`, `school_id`, `sender_id`, `recipient_id`, `body`, `created_at`, `created_by`, `attachment_file_id`, `attachment_file_name` |
+| Tabela                    | Colunas existentes                                                                                                                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `member_roles`            | `school_id`, `membership_id`, `role_id`, `created_at`                                                                                                                                                                                                        |
+| `profiles`                | `id`, `display_name`, `locale`, `created_at`, `updated_at`, `phone`, `full_name`, `avatar_url`, `cargo`, `school_id`, `national_id`, `first_name`, `last_name`, `preferred_name`, `avatar_path`, `timezone`, `status`, `onboarding_status`, `last_active_at` |
+| `roles`                   | `id`, `school_id`, `code`, `name`, `is_system`, `created_at`                                                                                                                                                                                                 |
+| `school_memberships`      | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                              |
+| `siga_chat_conversations` | `id`, `school_id`, `type`, `title`, `student_id`, `direct_key`, `created_by`, `created_at`                                                                                                                                                                   |
+| `siga_chat_members`       | `conversation_id`, `user_id`, `last_read_at`, `joined_at`                                                                                                                                                                                                    |
+| `siga_chat_messages`      | `id`, `conversation_id`, `school_id`, `sender_id`, `body`, `reply_to`, `attachment_file_id`, `attachment_file_name`, `deleted_at`, `created_at`                                                                                                              |
+| `siga_direct_messages`    | `id`, `school_id`, `sender_id`, `recipient_id`, `body`, `created_at`, `created_by`, `attachment_file_id`, `attachment_file_name`                                                                                                                             |
 
 Relações confirmadas:
 
@@ -114,19 +114,19 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listChatConversations` | GET | `Sem schema de entrada explícito neste bloco` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `listChatMessages` | GET | `listChatMessagesInputSchema` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `sendChatMessage` | POST | `sendChatMessageInputSchema` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `deleteChatMessage` | POST | `deleteChatMessageInputSchema` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `markChatRead` | POST | `conversationInputSchema` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `startDirectConversation` | POST | `startDirectInputSchema` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `listChatContacts` | GET | `Sem schema de entrada explícito neste bloco` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
-| `listSchoolColleagues` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/messages/server.ts) |
-| `listDirectThread` | GET | `listDirectThreadInputSchema` | [server.ts](../../../src/features/messages/server.ts) |
-| `sendDirectMessage` | POST | `sendDirectMessageInputSchema` | [server.ts](../../../src/features/messages/server.ts) |
-| `listInboxPreviews` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/messages/server.ts) |
+| Função                    | Método | Entrada                                       | Fonte                                                           |
+| ------------------------- | ------ | --------------------------------------------- | --------------------------------------------------------------- |
+| `listChatConversations`   | GET    | `Sem schema de entrada explícito neste bloco` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `listChatMessages`        | GET    | `listChatMessagesInputSchema`                 | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `sendChatMessage`         | POST   | `sendChatMessageInputSchema`                  | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `deleteChatMessage`       | POST   | `deleteChatMessageInputSchema`                | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `markChatRead`            | POST   | `conversationInputSchema`                     | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `startDirectConversation` | POST   | `startDirectInputSchema`                      | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `listChatContacts`        | GET    | `Sem schema de entrada explícito neste bloco` | [chat-server.ts](../../../src/features/messages/chat-server.ts) |
+| `listSchoolColleagues`    | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/messages/server.ts)           |
+| `listDirectThread`        | GET    | `listDirectThreadInputSchema`                 | [server.ts](../../../src/features/messages/server.ts)           |
+| `sendDirectMessage`       | POST   | `sendDirectMessageInputSchema`                | [server.ts](../../../src/features/messages/server.ts)           |
+| `listInboxPreviews`       | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/messages/server.ts)           |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

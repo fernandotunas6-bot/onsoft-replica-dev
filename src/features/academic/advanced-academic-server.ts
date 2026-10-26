@@ -1095,9 +1095,21 @@ export const getSchoolNowOverview = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
 
-    const now = new Date();
-    const nowTime = now.toTimeString().slice(0, 5);
-    const weekday = now.getDay() === 0 ? 7 : now.getDay();
+    // Hora e dia da semana de Luanda: o servidor corre em UTC.
+    const luanda = Object.fromEntries(
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Africa/Luanda",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+        weekday: "short",
+      })
+        .formatToParts(new Date())
+        .map((part) => [part.type, part.value]),
+    );
+    const nowTime = `${luanda.hour}:${luanda.minute}`;
+    const nowHour = Number(luanda.hour);
+    const weekday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(luanda.weekday) + 1;
 
     // 1. Total de salas cadastradas
     const { data: rooms } = await db
@@ -1149,21 +1161,10 @@ export const getSchoolNowOverview = createServerFn({ method: "GET" })
 
     // Recomendações determinísticas inteligentes
     const recommendations: string[] = [];
-    if (
-      totalRooms > 0 &&
-      occupiedCount / totalRooms < 0.3 &&
-      now.getHours() >= 8 &&
-      now.getHours() <= 16
-    ) {
+    if (totalRooms > 0 && occupiedCount / totalRooms < 0.3 && nowHour >= 8 && nowHour <= 16) {
       recommendations.push("Taxa de ocupação de salas abaixo de 30%. Avalie otimização de turmas.");
     }
-    if (
-      activeSlots.length === 0 &&
-      weekday >= 1 &&
-      weekday <= 5 &&
-      now.getHours() >= 9 &&
-      now.getHours() <= 15
-    ) {
+    if (activeSlots.length === 0 && weekday >= 1 && weekday <= 5 && nowHour >= 9 && nowHour <= 15) {
       recommendations.push(
         "Nenhuma aula em curso neste momento letivo. Verifique se os horários foram publicados.",
       );

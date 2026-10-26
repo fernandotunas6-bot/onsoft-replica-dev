@@ -2,12 +2,12 @@
 
 08/10/2026. Aplicações e identidade visual conservadas. Banco escolar continua o SGA actual; D1 do PayFlow tem responsabilidade de cobrança própria, sem recadastrar alunos/matrículas.
 
-| App | Objectivo e perfis | Fluxo e fonte | Estado / dependências |
-| --- | --- | --- | --- |
-| WEB | Visitante conhece planos e cria instituição | `/start` recolhe instituição/responsável/estrutura/plano/conta/subdomínio/revisão → API SaaS → confirmação | Código implementado; só início/validação vazia verificados no browser da auditoria. Provisionamento integrado bloqueado sem staging. |
-| ADMIN | `platform_admins` gerem tenants, planos, domínios e SaaS | Gate cliente para UX; autorização real `requirePlatformAdmin*` nas APIs SIGA | Exportação estática: middleware Next não protege o artefacto publicado. Não atribuir privilégio global por cargo escolar. |
-| PAYFLOW | Pagador autorizado e tesouraria cobram obrigações SIGA | Obrigações/saldo vêm do SIGA → pedido ao provider → confirmação backend/webhook → liquidação/recibo → reconciliação | Health observado: D1 disponível; provider, SSO e ligação/liquidação SIGA desconfigurados. Testes locais passam, integração real não certificada. |
-| DOC | Visitante/pessoal lê documentação | Ajuda contextual por domínio → manual funcional/contrato/API | VitePress público; conteúdo e links devem reflectir estado implementado/proposto, sem expor segredos. |
+| App     | Objectivo e perfis                                       | Fluxo e fonte                                                                                                       | Estado / dependências                                                                                                                            |
+| ------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| WEB     | Visitante conhece planos e cria instituição              | `/start` recolhe instituição/responsável/estrutura/plano/conta/subdomínio/revisão → API SaaS → confirmação          | Código implementado; só início/validação vazia verificados no browser da auditoria. Provisionamento integrado bloqueado sem staging.             |
+| ADMIN   | `platform_admins` gerem tenants, planos, domínios e SaaS | Gate cliente para UX; autorização real `requirePlatformAdmin*` nas APIs SIGA                                        | Exportação estática: middleware Next não protege o artefacto publicado. Não atribuir privilégio global por cargo escolar.                        |
+| PAYFLOW | Pagador autorizado e tesouraria cobram obrigações SIGA   | Obrigações/saldo vêm do SIGA → pedido ao provider → confirmação backend/webhook → liquidação/recibo → reconciliação | Health observado: D1 disponível; provider, SSO e ligação/liquidação SIGA desconfigurados. Testes locais passam, integração real não certificada. |
+| DOC     | Visitante/pessoal lê documentação                        | Ajuda contextual por domínio → manual funcional/contrato/API                                                        | VitePress público; conteúdo e links devem reflectir estado implementado/proposto, sem expor segredos.                                            |
 
 ## Contratos e dados
 

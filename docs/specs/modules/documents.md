@@ -44,26 +44,26 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `limit` | `z.number().int().min(1).max(250).default(100),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `templateId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `requestNumber` | `z.string().trim().min(1).max(64),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `priority` | `z.enum(["normal", "urgent"]).default("normal"),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `dueOn` | `z.string().date().optional(),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `notes` | `z.string().trim().max(1000).optional(),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `requestId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `status` | `z.enum(["queued", "processing", "ready", "delivered", "rejected", "cancelled"]),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `key` | `printTemplateKeySchema,` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `key` | `printTemplateKeySchema,` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `source` | `z` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `key` | `printTemplateKeySchema,` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `key` | `printTemplateKeySchema,` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `schoolName` | `string;` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `studentName` | `string;` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `registrationNumber` | `string;` | [schemas.ts](../../../src/features/documents/schemas.ts) |
-| `academicYear` | `string;` | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| Campo                | Declaração observada                                                               | Schema de origem                                         |
+| -------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `limit`              | `z.number().int().min(1).max(250).default(100),`                                   | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `studentId`          | `z.string().uuid(),`                                                               | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `templateId`         | `z.string().uuid(),`                                                               | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `requestNumber`      | `z.string().trim().min(1).max(64),`                                                | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `priority`           | `z.enum(["normal", "urgent"]).default("normal"),`                                  | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `dueOn`              | `z.string().date().optional(),`                                                    | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `notes`              | `z.string().trim().max(1000).optional(),`                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `requestId`          | `z.string().uuid(),`                                                               | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `status`             | `z.enum(["queued", "processing", "ready", "delivered", "rejected", "cancelled"]),` | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `key`                | `printTemplateKeySchema,`                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `key`                | `printTemplateKeySchema,`                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `source`             | `z`                                                                                | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `key`                | `printTemplateKeySchema,`                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `key`                | `printTemplateKeySchema,`                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `schoolName`         | `string;`                                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `studentName`        | `string;`                                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `registrationNumber` | `string;`                                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
+| `academicYear`       | `string;`                                                                          | [schemas.ts](../../../src/features/documents/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -75,16 +75,16 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `document_requests` | `id`, `school_id`, `student_id`, `template_id`, `request_type`, `status`, `purpose`, `requested_by`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at` |
-| `document_templates` | `id`, `school_id`, `code`, `name`, `document_type`, `version`, `status`, `body_template`, `allowed_fields`, `created_by`, `created_at` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
+| Tabela               | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit_logs`         | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                       |
+| `class_groups`       | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                      |
+| `document_requests`  | `id`, `school_id`, `student_id`, `template_id`, `request_type`, `status`, `purpose`, `requested_by`, `reviewed_by`, `reviewed_at`, `review_note`, `created_at`, `updated_at`                                                                                                                                                                                                                            |
+| `document_templates` | `id`, `school_id`, `code`, `name`, `document_type`, `version`, `status`, `body_template`, `allowed_fields`, `created_by`, `created_at`                                                                                                                                                                                                                                                                  |
+| `enrollments`        | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `school_settings`    | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                             |
+| `schools`            | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `students`           | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
 
 Relações confirmadas:
 
@@ -111,18 +111,18 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listDocumentWorkspace` | GET | `listDocumentsInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `createDocumentRequest` | POST | `createDocumentRequestInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `updateDocumentRequestStatus` | POST | `updateDocumentRequestStatusInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `listPrintTemplates` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/documents/server.ts) |
-| `getPrintTemplate` | POST | `getPrintTemplateInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `savePrintTemplate` | POST | `savePrintTemplateInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `resetPrintTemplate` | POST | `resetPrintTemplateInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `setActivePrintTemplate` | POST | `setActivePrintTemplateInputSchema` | [server.ts](../../../src/features/documents/server.ts) |
-| `registerIssuedDocument` | POST | `registerInputSchema` | [verification.ts](../../../src/features/documents/verification.ts) |
-| `verifyIssuedDocument` | GET | `verifyInputSchema` | [verification.ts](../../../src/features/documents/verification.ts) |
+| Função                        | Método | Entrada                                       | Fonte                                                              |
+| ----------------------------- | ------ | --------------------------------------------- | ------------------------------------------------------------------ |
+| `listDocumentWorkspace`       | GET    | `listDocumentsInputSchema`                    | [server.ts](../../../src/features/documents/server.ts)             |
+| `createDocumentRequest`       | POST   | `createDocumentRequestInputSchema`            | [server.ts](../../../src/features/documents/server.ts)             |
+| `updateDocumentRequestStatus` | POST   | `updateDocumentRequestStatusInputSchema`      | [server.ts](../../../src/features/documents/server.ts)             |
+| `listPrintTemplates`          | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/documents/server.ts)             |
+| `getPrintTemplate`            | POST   | `getPrintTemplateInputSchema`                 | [server.ts](../../../src/features/documents/server.ts)             |
+| `savePrintTemplate`           | POST   | `savePrintTemplateInputSchema`                | [server.ts](../../../src/features/documents/server.ts)             |
+| `resetPrintTemplate`          | POST   | `resetPrintTemplateInputSchema`               | [server.ts](../../../src/features/documents/server.ts)             |
+| `setActivePrintTemplate`      | POST   | `setActivePrintTemplateInputSchema`           | [server.ts](../../../src/features/documents/server.ts)             |
+| `registerIssuedDocument`      | POST   | `registerInputSchema`                         | [verification.ts](../../../src/features/documents/verification.ts) |
+| `verifyIssuedDocument`        | GET    | `verifyInputSchema`                           | [verification.ts](../../../src/features/documents/verification.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

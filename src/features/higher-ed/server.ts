@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 /**
  * Ensino Superior no servidor: plano curricular dos cursos, precedências,
  * inscrições por cadeira, lançamento por época, histórico e regulamento.
@@ -2741,34 +2742,59 @@ export const exportSisiesWorkbook = createServerFn({ method: "POST" })
     if (yearId) groupsQuery = groupsQuery.eq("academic_year_id", yearId);
     const { data: groups } = gradeById.size ? await groupsQuery : { data: [] as Row[] };
     const gradeOfGroup = new Map((groups ?? []).map((g) => [str(g.id), str(g.grade_level_id)]));
-    const { data: enrollments } = gradeOfGroup.size
-      ? await db
-          .from("enrollments")
-          .select("id, student_id, class_group_id")
-          .eq("school_id", schoolId)
-          .in("class_group_id", [...gradeOfGroup.keys()])
-          .in("status", ["active", "pending"])
-          .limit(20000)
-      : { data: [] as Row[] };
-    const studentIds = [...new Set(((enrollments ?? []) as Row[]).map((e) => str(e.student_id)))];
-    const { data: students } = studentIds.length
-      ? await db
-          .from("students")
-          .select("id, person_id")
-          .eq("school_id", schoolId)
-          .in("id", studentIds)
-      : { data: [] as Row[] };
-    const personIds = ((students ?? []) as Row[]).map((s) => str(s.person_id));
-    const { data: people } = personIds.length
-      ? await db.from("people").select("id, sex").eq("school_id", schoolId).in("id", personIds)
-      : { data: [] as Row[] };
-    const sexOfPerson = new Map(((people ?? []) as Row[]).map((p) => [str(p.id), str(p.sex)]));
+    // Em páginas, e alunos/pessoas da escola inteira em vez de `.in()` com milhares de ids:
+    // o PostgREST corta aos 1000 (o `.limit(20000)` não passava disso) e o mapa SISIES
+    // saía com alunos a menos.
+    const groupIds = [...gradeOfGroup.keys()];
+    const enrollments: Row[] = groupIds.length
+      ? await selectAllPages<Row>(
+          (from, to) =>
+            db
+              .from("enrollments")
+              .select("id, student_id, class_group_id")
+              .eq("school_id", schoolId)
+              .in("class_group_id", groupIds)
+              .in("status", ["active", "pending"])
+              .order("id")
+              .range(from, to),
+          "Não foi possível ler as matrículas",
+        )
+      : [];
+    const enrolledStudentIds = new Set(enrollments.map((e) => str(e.student_id)));
+    const studentIds = [...enrolledStudentIds];
+    const students: Row[] = enrolledStudentIds.size
+      ? (
+          await selectAllPages<Row>(
+            (from, to) =>
+              db
+                .from("students")
+                .select("id, person_id")
+                .eq("school_id", schoolId)
+                .order("id")
+                .range(from, to),
+            "Não foi possível ler os alunos",
+          )
+        ).filter((s) => enrolledStudentIds.has(str(s.id)))
+      : [];
+    const people: Row[] = students.length
+      ? await selectAllPages<Row>(
+          (from, to) =>
+            db
+              .from("people")
+              .select("id, sex")
+              .eq("school_id", schoolId)
+              .order("id")
+              .range(from, to),
+          "Não foi possível ler as pessoas",
+        )
+      : [];
+    const sexOfPerson = new Map(people.map((p) => [str(p.id), str(p.sex)]));
     const sexOfStudent = new Map(
-      ((students ?? []) as Row[]).map((s) => [str(s.id), sexOfPerson.get(str(s.person_id)) ?? ""]),
+      students.map((s) => [str(s.id), sexOfPerson.get(str(s.person_id)) ?? ""]),
     );
     type Count = { total: number; m: number; f: number; byYear: Map<number, number> };
     const enrolledBy = new Map<string, Count>();
-    for (const enrollment of (enrollments ?? []) as Row[]) {
+    for (const enrollment of enrollments) {
       const grade = gradeById.get(gradeOfGroup.get(str(enrollment.class_group_id)) ?? "");
       if (!grade) continue;
       const programId = str(grade.program_id);

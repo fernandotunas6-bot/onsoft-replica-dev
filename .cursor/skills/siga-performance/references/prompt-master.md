@@ -1,4 +1,5 @@
 # PROMPT MASTER — SIGA PLUS 2026
+
 ## Operação Performance Total | Optimização Global, Fluidez e Refinamento Cirúrgico
 
 **Projecto:** SIGA Plus — Sistema Integrado de Gestão Escolar SaaS Multi-Tenant  
@@ -154,24 +155,24 @@ Nenhum mecanismo auxiliar pode contornar autenticação, autorização ou audito
 
 Auditar todos os módulos existentes no repositório, incluindo os que se encontrem integrados ou parcialmente implementados.
 
-| Área | Foco principal |
-|---|---|
-| Painel administrativo | Carregamento de indicadores, cartões e relatórios |
-| Escolas e configurações | Acesso, alternância e persistência de contexto |
-| Alunos e matrículas | Pesquisa, filtros, listagens e formulários |
-| Professores e funcionários | Carregamento de perfis e operações de gestão |
-| Turmas, classes e disciplinas | Navegação, associações e consulta |
-| Horários e calendários | Renderização, filtros e transições |
-| Notas, avaliações e pautas | Consultas, cálculos e geração |
-| Presenças | Registo rápido e sincronização segura |
-| Propinas e pagamentos | Consultas, validação e reconciliação |
-| Documentos escolares | Preparação, geração e visualização |
-| Biblioteca | Pesquisa, empréstimos e listagens |
-| Mensagens e avisos | Carregamento, histórico e actualização |
-| Gestão de ficheiros | Uploads, pré-visualização e progresso |
-| Transporte escolar | Consultas, listas e actualizações |
-| Aulas online e integrações | Inicialização e chamadas externas |
-| Portais e aplicação mobile | Navegação, abertura e resposta ao toque |
+| Área                          | Foco principal                                    |
+| ----------------------------- | ------------------------------------------------- |
+| Painel administrativo         | Carregamento de indicadores, cartões e relatórios |
+| Escolas e configurações       | Acesso, alternância e persistência de contexto    |
+| Alunos e matrículas           | Pesquisa, filtros, listagens e formulários        |
+| Professores e funcionários    | Carregamento de perfis e operações de gestão      |
+| Turmas, classes e disciplinas | Navegação, associações e consulta                 |
+| Horários e calendários        | Renderização, filtros e transições                |
+| Notas, avaliações e pautas    | Consultas, cálculos e geração                     |
+| Presenças                     | Registo rápido e sincronização segura             |
+| Propinas e pagamentos         | Consultas, validação e reconciliação              |
+| Documentos escolares          | Preparação, geração e visualização                |
+| Biblioteca                    | Pesquisa, empréstimos e listagens                 |
+| Mensagens e avisos            | Carregamento, histórico e actualização            |
+| Gestão de ficheiros           | Uploads, pré-visualização e progresso             |
+| Transporte escolar            | Consultas, listas e actualizações                 |
+| Aulas online e integrações    | Inicialização e chamadas externas                 |
+| Portais e aplicação mobile    | Navegação, abertura e resposta ao toque           |
 
 Aplicar optimizações apenas aos módulos realmente existentes.
 

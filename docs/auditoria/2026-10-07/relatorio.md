@@ -22,33 +22,33 @@ Além disso, a auditoria de dependências encontrou um aviso alto e um crítico;
 
 ## 2. Repositório, ambientes e versão publicada
 
-| Elemento | Evidência observada |
-| --- | --- |
-| Repositório | `fernandotunas6-bot/onsoft-replica-dev`, remoto HTTPS GitHub |
-| Branch auditada | `docs/auditoria-critica-2026-10-06` |
-| Commit local | `df5009b39f03b69acc2cc69db235682bfd994e15` |
-| Árvore inicial | Quatro ficheiros já modificados: relatório 13, cleanup E2E, helper live e teste cleanup; preservados |
-| Runtime local | Node `v24.18.0`; macOS; Chrome headless `150.0.7871.125` disponível |
-| Supabase configurado | `xodgfmxiaunpamctfeea`, identificado pelo projecto como produção |
-| Branches acessíveis | Apenas `main`; nenhum staging/preview isolado confirmado |
-| Snapshot no repositório | Capturado a `2026-10-06T08:39:05.488Z`; 189 tabelas |
-| Catálogo live | PostgreSQL 17.6; 189 tabelas públicas; 359 políticas; 6 buckets; `cron` não instalado |
+| Elemento                 | Evidência observada                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Repositório              | `fernandotunas6-bot/onsoft-replica-dev`, remoto HTTPS GitHub                                                     |
+| Branch auditada          | `docs/auditoria-critica-2026-10-06`                                                                              |
+| Commit local             | `df5009b39f03b69acc2cc69db235682bfd994e15`                                                                       |
+| Árvore inicial           | Quatro ficheiros já modificados: relatório 13, cleanup E2E, helper live e teste cleanup; preservados             |
+| Runtime local            | Node `v24.18.0`; macOS; Chrome headless `150.0.7871.125` disponível                                              |
+| Supabase configurado     | `xodgfmxiaunpamctfeea`, identificado pelo projecto como produção                                                 |
+| Branches acessíveis      | Apenas `main`; nenhum staging/preview isolado confirmado                                                         |
+| Snapshot no repositório  | Capturado a `2026-10-06T08:39:05.488Z`; 189 tabelas                                                              |
+| Catálogo live            | PostgreSQL 17.6; 189 tabelas públicas; 359 políticas; 6 buckets; `cron` não instalado                            |
 | WEB/ADMIN/DOC publicados | SHA declarado `847dda1fc40df7b88d7aafed40864266762d99dd`, `commit_dirty=true`, deploys de 07/10 às 09:15, Luanda |
-| SIGA Worker publicado | Versão `4428c830-e666-4785-b330-fa7d45615213`, número 111, deploy às 09:16:46, Luanda |
-| PayFlow Worker publicado | Versão `fdac5d2e-9149-4314-b8cb-d3883afe7731`, número 21, deploy às 09:16:08, Luanda |
+| SIGA Worker publicado    | Versão `4428c830-e666-4785-b330-fa7d45615213`, número 111, deploy às 09:16:46, Luanda                            |
+| PayFlow Worker publicado | Versão `fdac5d2e-9149-4314-b8cb-d3883afe7731`, número 21, deploy às 09:16:08, Luanda                             |
 
 As versões Worker não declaram SHA nas annotations consultadas. As Pages indicam uma árvore com alterações locais. **Não se afirma identidade entre o checkout auditado e todos os artefactos publicados.** Os metadados foram lidos; os deploys observados não foram executados por esta auditoria. Os resultados locais referem-se à branch acima; os resultados HTTP/catálogo referem-se à produção nos instantes da recolha. [Metadados](evidencias/deployments.json), [inventário](evidencias/inventory-summary.json).
 
 ### Arquitectura e serviços
 
-| Aplicação | Responsabilidade e implementação |
-| --- | --- |
-| SIGA, raiz | Operação escolar; React/TanStack Start/Router/Query, Vite, Zod; server functions com Supabase Auth e cliente de serviço guardado |
-| WEB, `painel/web` | Comercial e wizard de sete etapas; Vite/React; chama a API SaaS do SIGA |
-| ADMIN, `painel/admin` | Administração da plataforma; Next.js/exportação estática; segurança efectiva nas APIs, não apenas no gate visual |
-| PAYFLOW, `painel/payflow` | Cobrança e conciliação; Vinext/React/Cloudflare D1; integração com SIGA depende de configuração |
-| DOC, `painel/docs` | Documentação pública em VitePress |
-| Desktop | Frontend local `desktop/`, Rust Tauri v2 em `src-tauri/`; portal escolar remoto com capabilities próprias |
+| Aplicação                 | Responsabilidade e implementação                                                                                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| SIGA, raiz                | Operação escolar; React/TanStack Start/Router/Query, Vite, Zod; server functions com Supabase Auth e cliente de serviço guardado |
+| WEB, `painel/web`         | Comercial e wizard de sete etapas; Vite/React; chama a API SaaS do SIGA                                                          |
+| ADMIN, `painel/admin`     | Administração da plataforma; Next.js/exportação estática; segurança efectiva nas APIs, não apenas no gate visual                 |
+| PAYFLOW, `painel/payflow` | Cobrança e conciliação; Vinext/React/Cloudflare D1; integração com SIGA depende de configuração                                  |
+| DOC, `painel/docs`        | Documentação pública em VitePress                                                                                                |
+| Desktop                   | Frontend local `desktop/`, Rust Tauri v2 em `src-tauri/`; portal escolar remoto com capabilities próprias                        |
 
 O backend escolar é um Postgres partilhado por escolas, com `school_id` e memberships. PayFlow usa outra base, D1, pelo que sincronização e liquidação são fronteiras de consistência adicionais. A stack efectiva difere de números antigos da documentação: o build local usou Vite 8.2.1. Os manifests e lockfiles são as fontes de dependências; não foram actualizados.
 
@@ -70,64 +70,64 @@ As consultas de produção retornaram metadados e contagens, sem nomes de alunos
 
 A [matriz de cobertura](matriz-cobertura.csv) contém cenários do pedido, funcionalidades adicionais, funções servidor e rotas. **Estado de um cenário não se transfere para o módulo inteiro.** Uma rota com HTTP 200 e login visível pode ter a operação escolar bloqueada/não testada noutra linha. As contagens de linhas não medem percentagem do produto validado.
 
-| Inventário | Conteúdo |
-| --- | --- |
-| [rotas.csv](rotas.csv) | 217 declarações encontradas nos cinco frontends/API; parâmetros e URL final exigem confirmação individual |
+| Inventário                                   | Conteúdo                                                                                                                   |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [rotas.csv](rotas.csv)                       | 217 declarações encontradas nos cinco frontends/API; parâmetros e URL final exigem confirmação individual                  |
 | [funcoes-servidor.csv](funcoes-servidor.csv) | 492 server functions, método, ficheiro/linha e sinais textuais de guardas; guardas transitivas não são deduzidas por regex |
-| [modulos.csv](modulos.csv) | 30 pastas de funcionalidades; contagens de ficheiros/testes por pasta são inventário, não cobertura instrumentada |
-| [tabelas.csv](tabelas.csv) | 189 tabelas do snapshot, colunas e controlos de acesso; live confirmou totais e amostras específicas |
-| [automacoes.csv](automacoes.csv) | Workflows, crons declarados e referência a @live; existência não prova execução bem sucedida |
-| [falhas.csv](falhas.csv) | Os 12 campos exigidos para cada um dos 11 achados |
+| [modulos.csv](modulos.csv)                   | 30 pastas de funcionalidades; contagens de ficheiros/testes por pasta são inventário, não cobertura instrumentada          |
+| [tabelas.csv](tabelas.csv)                   | 189 tabelas do snapshot, colunas e controlos de acesso; live confirmou totais e amostras específicas                       |
+| [automacoes.csv](automacoes.csv)             | Workflows, crons declarados e referência a @live; existência não prova execução bem sucedida                               |
+| [falhas.csv](falhas.csv)                     | Os 12 campos exigidos para cada um dos 11 achados                                                                          |
 
 ### Estado dos módulos
 
-| Área | O que ficou comprovado | Limite para operação escolar |
-| --- | --- | --- |
-| Escola / onboarding | Wizard renderiza e recusa campos vazios; inventário do provisionamento | Criação, responsável, domínio e persistência sem teste integrado |
-| Auth / acessos | Login obrigatório nos cinco URLs sondados; três APIs ADMIN recusam anónimo; catálogo memberships/roles/MFA | Login, recuperação, Google, renovação, revogação e alternância por contas reais pendentes |
-| Pessoas / alunos | Escopo por escola/conta/professor revisto; predicados live sem ligações cruzadas | CRUD, uploads e vínculos de portais sem jornada real |
-| Importação | Parser real de 200 linhas; F03; registry com 22 importadores reais, não apenas selector | Nenhuma importação de 200 alunos persistida, interrompida ou repetida em staging |
-| Matrícula | F01; RPCs `register_student`/`enroll_student` e controlos de escola/MFA/lotação revistos | Candidatura→obrigações→portal não executado de ponta a ponta |
-| Estrutura / turmas / salas | Ensaio SQL de mudança de turma, lotação e integridade; consultas existentes sem cruzamentos | Edição/publicação, horários e conflitos simultâneos não exercitados por UI/API |
-| Calendário / ano | F02; ensaios académicos e revisão dos períodos | Fecho de ano com todas as pendências e renovação automática não comprovados |
-| Presenças / avaliações | Ensaios locais de bloqueio; funções e testes inventariados | Chamada/QR/justificação/avaliação por papel real pendentes |
-| Notas / pautas | 1681 cálculos independentes; ensaio SQL de ano/períodos; código da pauta exige completude para decisão anual | Sem conferência de notas persistidas, documentos assinados e decisões de turma real |
-| Financeiro escolar | 38 facturas/31 recibos: predicados de saldo/estado sem anomalias; SQL de multa, liquidação e estorno passa | Caixa, adiantamento, reembolso e portais com movimentos sintéticos por verificar |
-| PayFlow | Health D1 funcional; 48 testes locais aprovados | Integração publicada desconfigurada, F05; nenhum dinheiro usado |
-| Arquivos / documentos | 5 buckets privados e só logótipos públicos; caminhos/escopos e emissão inventariados | Sem upload/download/autenticidade nem QA visual de PDF/XLSX real |
-| RH / salários | Ensaios locais de confirmação, anulação e destino salarial aprovados | Sem assinatura, pagamento/estorno e QR em conta de teste real |
-| Comunicação / chat | Ensaio SQL de integridade do chat; transportes, webhooks e permissões inventariados | Nenhuma mensagem ou notificação enviada; entrega não comprovada |
-| Alumni | Portais, consentimento, portefólio, matching e pipeline inventariados | CRUD, privacidade e auto-serviço autenticados não testados |
-| Ensino Superior | Rotas de cadeiras/pautas/histórico/certificado e estatutos inventariadas; ensaio local estatutos passa | Inscrição/transição/certificação por regulamento institucional não comprovadas |
-| Risco / planos de aula | Módulos sensíveis e guardas inventariados | Permissões e dados/evidências reais sem teste integrado |
-| Catracas | API por dispositivo, QR/cartão e testes existentes inventariados | Nenhum dispositivo físico, replay autenticado ou abertura mecânica testado |
-| Inteligência / spotlight / relatórios | Sugestões/indicadores inventariados | Exactidão com volume representativo e dados de todas as áreas não conferida |
-| Biblioteca / capelania | Pesquisa não encontrou módulo operacional autónomo de empréstimos/multas ou capelania | Referências a «biblioteca» são sobretudo arquivos; não se inventa funcionalidade existente |
-| Desktop / PWA | Contrato de capabilities, CSP, lockfiles/versões passa; 40/40 testes locais e build frontend passam após instalar dependências pelo lockfile | Instalação, arranque nativo, updater, impressão física, offline e conflitos sem teste real |
+| Área                                  | O que ficou comprovado                                                                                                                       | Limite para operação escolar                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Escola / onboarding                   | Wizard renderiza e recusa campos vazios; inventário do provisionamento                                                                       | Criação, responsável, domínio e persistência sem teste integrado                           |
+| Auth / acessos                        | Login obrigatório nos cinco URLs sondados; três APIs ADMIN recusam anónimo; catálogo memberships/roles/MFA                                   | Login, recuperação, Google, renovação, revogação e alternância por contas reais pendentes  |
+| Pessoas / alunos                      | Escopo por escola/conta/professor revisto; predicados live sem ligações cruzadas                                                             | CRUD, uploads e vínculos de portais sem jornada real                                       |
+| Importação                            | Parser real de 200 linhas; F03; registry com 22 importadores reais, não apenas selector                                                      | Nenhuma importação de 200 alunos persistida, interrompida ou repetida em staging           |
+| Matrícula                             | F01; RPCs `register_student`/`enroll_student` e controlos de escola/MFA/lotação revistos                                                     | Candidatura→obrigações→portal não executado de ponta a ponta                               |
+| Estrutura / turmas / salas            | Ensaio SQL de mudança de turma, lotação e integridade; consultas existentes sem cruzamentos                                                  | Edição/publicação, horários e conflitos simultâneos não exercitados por UI/API             |
+| Calendário / ano                      | F02; ensaios académicos e revisão dos períodos                                                                                               | Fecho de ano com todas as pendências e renovação automática não comprovados                |
+| Presenças / avaliações                | Ensaios locais de bloqueio; funções e testes inventariados                                                                                   | Chamada/QR/justificação/avaliação por papel real pendentes                                 |
+| Notas / pautas                        | 1681 cálculos independentes; ensaio SQL de ano/períodos; código da pauta exige completude para decisão anual                                 | Sem conferência de notas persistidas, documentos assinados e decisões de turma real        |
+| Financeiro escolar                    | 38 facturas/31 recibos: predicados de saldo/estado sem anomalias; SQL de multa, liquidação e estorno passa                                   | Caixa, adiantamento, reembolso e portais com movimentos sintéticos por verificar           |
+| PayFlow                               | Health D1 funcional; 48 testes locais aprovados                                                                                              | Integração publicada desconfigurada, F05; nenhum dinheiro usado                            |
+| Arquivos / documentos                 | 5 buckets privados e só logótipos públicos; caminhos/escopos e emissão inventariados                                                         | Sem upload/download/autenticidade nem QA visual de PDF/XLSX real                           |
+| RH / salários                         | Ensaios locais de confirmação, anulação e destino salarial aprovados                                                                         | Sem assinatura, pagamento/estorno e QR em conta de teste real                              |
+| Comunicação / chat                    | Ensaio SQL de integridade do chat; transportes, webhooks e permissões inventariados                                                          | Nenhuma mensagem ou notificação enviada; entrega não comprovada                            |
+| Alumni                                | Portais, consentimento, portefólio, matching e pipeline inventariados                                                                        | CRUD, privacidade e auto-serviço autenticados não testados                                 |
+| Ensino Superior                       | Rotas de cadeiras/pautas/histórico/certificado e estatutos inventariadas; ensaio local estatutos passa                                       | Inscrição/transição/certificação por regulamento institucional não comprovadas             |
+| Risco / planos de aula                | Módulos sensíveis e guardas inventariados                                                                                                    | Permissões e dados/evidências reais sem teste integrado                                    |
+| Catracas                              | API por dispositivo, QR/cartão e testes existentes inventariados                                                                             | Nenhum dispositivo físico, replay autenticado ou abertura mecânica testado                 |
+| Inteligência / spotlight / relatórios | Sugestões/indicadores inventariados                                                                                                          | Exactidão com volume representativo e dados de todas as áreas não conferida                |
+| Biblioteca / capelania                | Pesquisa não encontrou módulo operacional autónomo de empréstimos/multas ou capelania                                                        | Referências a «biblioteca» são sobretudo arquivos; não se inventa funcionalidade existente |
+| Desktop / PWA                         | Contrato de capabilities, CSP, lockfiles/versões passa; 40/40 testes locais e build frontend passam após instalar dependências pelo lockfile | Instalação, arranque nativo, updater, impressão física, offline e conflitos sem teste real |
 
 ## 5. Jornada integrada obrigatória
 
 **Resultado: bloqueada antes da etapa 1 por inexistência de ambiente isolado confirmado.** Nenhuma das 17 etapas foi concluída numa escola de teste com confirmação UI→API→DB. Os ensaios locais abaixo são evidências complementares, não substitutos da jornada.
 
-| Etapa | Resultado esperado | Estado / dependência | Evidência complementar disponível |
-| --- | --- | --- | --- |
-| 1. Escola e administrador | Tenant, escola e membership persistidos uma vez | Bloqueado: staging e destinatário sintético | Wizard; API SaaS; F04 |
-| 2. Ano, períodos e regras | Ano activo, períodos e configuração persistidos | Bloqueado: etapa 1 | F02; ensaios annual-sheet-terms |
-| 3. Classes, disciplinas, salas e turmas | Estrutura consistente na escola A | Bloqueado: etapas 1–2 | Inventário; testes de schema/integridade |
-| 4. Professores e funcionários | Contas e vínculos correctos | Bloqueado: etapa 1 e contas de teste | Inventário de Pessoas/RH/Acessos |
-| 5. Aluno manual | Pessoa/aluno/processo e histórico consistentes | Bloqueado: etapas 1–3 e AAL2 | F01; SQL audit-transactions |
-| 6. Importar lote | 200 alunos persistidos e contagens reconciliadas | Bloqueado: banco isolado | Parser de 200; F03; nada importado |
-| 7. Matricular e distribuir | Sem duplicação, vagas e vínculos correctos | Bloqueado: etapas 3, 5–6 | SQL enrollment-class-change; RPCs revistas |
-| 8. Obrigações financeiras | Contratos/propinas/facturas da matrícula | Bloqueado: etapa 7 e regras configuradas | SQL fee-items-grade-level / late-fee |
-| 9. Pagamento e documento | Movimento sandbox, recibo e saldo correctos | Bloqueado: etapa 8 e fornecedor sandbox | SQL gateway-settlement; F05 |
-| 10. Horários e eventos | Agenda publicada sem conflitos | Bloqueado: etapas 2–4 | Inventário calendário/horários |
-| 11. Presenças e avaliações | Sessões e instrumentos persistidos | Bloqueado: etapas 7, 10 e conta professor | SQL assessment-closed-term |
-| 12. Notas e médias | Notas e cálculo independente coincidem | Bloqueado: etapa 11 | 1681 médias; suite académica local |
-| 13. Boletim e pauta | Documentos completos e autorizados | Bloqueado: etapa 12 e modelos/assinantes | Pauta-export / grade-sheets; sem PDF gerado |
-| 14. Portais | Cada papel vê exclusivamente o seu âmbito | Bloqueado: contas por papel e dados anteriores | Renders mock; sonda anónima e APIs 401 |
-| 15. Fechar período | Novas alterações recusadas conforme regras | Bloqueado: etapa 12 e autoridade de fecho | SQL assessment-closed-term; bloqueios revistos |
-| 16. Renovação / transição | Novo ano e matrículas com histórico | Bloqueado: decisões académicas e etapas anteriores | F02; lógica de transição inventariada |
-| 17. Isolamento escola B | UI/API/DB/arquivos/cache recusam recursos B | Bloqueado: duas escolas e contas isoladas | SQL local A/B parcial; catálogo e contagens live |
+| Etapa                                   | Resultado esperado                               | Estado / dependência                               | Evidência complementar disponível                |
+| --------------------------------------- | ------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------ |
+| 1. Escola e administrador               | Tenant, escola e membership persistidos uma vez  | Bloqueado: staging e destinatário sintético        | Wizard; API SaaS; F04                            |
+| 2. Ano, períodos e regras               | Ano activo, períodos e configuração persistidos  | Bloqueado: etapa 1                                 | F02; ensaios annual-sheet-terms                  |
+| 3. Classes, disciplinas, salas e turmas | Estrutura consistente na escola A                | Bloqueado: etapas 1–2                              | Inventário; testes de schema/integridade         |
+| 4. Professores e funcionários           | Contas e vínculos correctos                      | Bloqueado: etapa 1 e contas de teste               | Inventário de Pessoas/RH/Acessos                 |
+| 5. Aluno manual                         | Pessoa/aluno/processo e histórico consistentes   | Bloqueado: etapas 1–3 e AAL2                       | F01; SQL audit-transactions                      |
+| 6. Importar lote                        | 200 alunos persistidos e contagens reconciliadas | Bloqueado: banco isolado                           | Parser de 200; F03; nada importado               |
+| 7. Matricular e distribuir              | Sem duplicação, vagas e vínculos correctos       | Bloqueado: etapas 3, 5–6                           | SQL enrollment-class-change; RPCs revistas       |
+| 8. Obrigações financeiras               | Contratos/propinas/facturas da matrícula         | Bloqueado: etapa 7 e regras configuradas           | SQL fee-items-grade-level / late-fee             |
+| 9. Pagamento e documento                | Movimento sandbox, recibo e saldo correctos      | Bloqueado: etapa 8 e fornecedor sandbox            | SQL gateway-settlement; F05                      |
+| 10. Horários e eventos                  | Agenda publicada sem conflitos                   | Bloqueado: etapas 2–4                              | Inventário calendário/horários                   |
+| 11. Presenças e avaliações              | Sessões e instrumentos persistidos               | Bloqueado: etapas 7, 10 e conta professor          | SQL assessment-closed-term                       |
+| 12. Notas e médias                      | Notas e cálculo independente coincidem           | Bloqueado: etapa 11                                | 1681 médias; suite académica local               |
+| 13. Boletim e pauta                     | Documentos completos e autorizados               | Bloqueado: etapa 12 e modelos/assinantes           | Pauta-export / grade-sheets; sem PDF gerado      |
+| 14. Portais                             | Cada papel vê exclusivamente o seu âmbito        | Bloqueado: contas por papel e dados anteriores     | Renders mock; sonda anónima e APIs 401           |
+| 15. Fechar período                      | Novas alterações recusadas conforme regras       | Bloqueado: etapa 12 e autoridade de fecho          | SQL assessment-closed-term; bloqueios revistos   |
+| 16. Renovação / transição               | Novo ano e matrículas com histórico              | Bloqueado: decisões académicas e etapas anteriores | F02; lógica de transição inventariada            |
+| 17. Isolamento escola B                 | UI/API/DB/arquivos/cache recusam recursos B      | Bloqueado: duas escolas e contas isoladas          | SQL local A/B parcial; catálogo e contagens live |
 
 Trocar o status do ano ou fechar uma pauta não comprova encerramento anual de todas as áreas. A aceitação desta jornada precisa de critérios institucionais para pendências académicas, financeiras, documentais e renovação.
 
@@ -145,17 +145,17 @@ Consultas agregadas confirmaram 48 escolas/tenants, 45 alunos não apagados, 36 
 
 **Correcção metodológica registada:** uma primeira consulta financeira usou `posted` para recibos e produziu 31 falsos candidatos. Os estados reais foram conferidos (`issued` para os 31 recibos); a consulta corrigida deu zero. Só [financial-academic-integrity-confirmed.json](evidencias/financial-academic-integrity-confirmed.json) sustenta a conclusão. O resultado inicial foi conservado para rastreabilidade, não conta como falha do produto.
 
-| Integração | Implementação/estado observado | Verificação em falta |
-| --- | --- | --- |
-| Google Calendar / Apple | Feed ICS copiado e subscrição externa; não é prova de sync bidireccional | Criar evento e confirmar propagação/expiração/autorização em conta de teste |
-| WhatsApp | Existem transportes/webhooks; certas ferramentas só abrem WhatsApp Web | Entrega, estados e duplicação com destinatário sintético |
-| Resend / e-mail | Existem dispatch, webhook e configurações | Entrega real em caixa de teste e falhas/retries |
-| Workspace / Zoho | Adaptadores de mailbox; modo simulado é recusado em production no código local | Credenciais/provider e criação/suspensão/recovery em sandbox |
-| Multicaixa / Unitel / AppyPay | Referências, adapters e callbacks no código; PayFlow publicado sem provider | Homologação quando exigida, assinatura e liquidação sandbox |
-| SIGE / EMIS | Payload/exportações e adapters encontrados | Aceitação/sincronização por endpoint estatal/bancário real de testes |
-| AGT / SAF-T | Geração/validação estrutural; algumas ferramentas copiam linha/NIF e abrem portal | Não se certificou homologação ou conformidade fiscal por este ensaio |
-| Zoom | OAuth/callback e ligações no código | Criar reunião autorizada e testar presença/reminders em sandbox |
-| OneDrive | Ferramenta navega para arquivos e declara catalog-ready | Nenhuma sincronização de bytes externa comprovada |
+| Integração                    | Implementação/estado observado                                                    | Verificação em falta                                                        |
+| ----------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Google Calendar / Apple       | Feed ICS copiado e subscrição externa; não é prova de sync bidireccional          | Criar evento e confirmar propagação/expiração/autorização em conta de teste |
+| WhatsApp                      | Existem transportes/webhooks; certas ferramentas só abrem WhatsApp Web            | Entrega, estados e duplicação com destinatário sintético                    |
+| Resend / e-mail               | Existem dispatch, webhook e configurações                                         | Entrega real em caixa de teste e falhas/retries                             |
+| Workspace / Zoho              | Adaptadores de mailbox; modo simulado é recusado em production no código local    | Credenciais/provider e criação/suspensão/recovery em sandbox                |
+| Multicaixa / Unitel / AppyPay | Referências, adapters e callbacks no código; PayFlow publicado sem provider       | Homologação quando exigida, assinatura e liquidação sandbox                 |
+| SIGE / EMIS                   | Payload/exportações e adapters encontrados                                        | Aceitação/sincronização por endpoint estatal/bancário real de testes        |
+| AGT / SAF-T                   | Geração/validação estrutural; algumas ferramentas copiam linha/NIF e abrem portal | Não se certificou homologação ou conformidade fiscal por este ensaio        |
+| Zoom                          | OAuth/callback e ligações no código                                               | Criar reunião autorizada e testar presença/reminders em sandbox             |
+| OneDrive                      | Ferramenta navega para arquivos e declara catalog-ready                           | Nenhuma sincronização de bytes externa comprovada                           |
 
 Só instalar uma integração no catálogo não comprova transporte, entrega nem execução externa. O fallback fictício em `src/lib/saas/provisioning-service.ts` foi identificado no código, mas a pesquisa não encontrou consumidores fora da própria declaração; não foi apresentado como dashboard actualmente activo. O fallback de tenant local é limitado a hostname de desenvolvimento; não é um bypass de produção demonstrado.
 
@@ -177,25 +177,25 @@ Não foram ensaiados backup/restauro, monitorização/alertas, execução efecti
 
 ## 8. Validações executadas
 
-| Check | Resultado | Evidência |
-| --- | --- | --- |
-| `npm run typecheck` | Exit 0 | [typecheck.log](evidencias/typecheck.log) |
-| `npm run build` | Exit 0; cliente e SSR concluídos | [build.log](evidencias/build.log) |
-| `npm run siga:check` | Exit 0; módulos e 13 testes de navegação | [modules.log](evidencias/modules.log) |
-| `npm run lint` | Exit 1; 70 erros, 47 avisos | [lint.log](evidencias/lint.log) |
-| `npm test -- --maxWorkers=4 …` | **Exit 1**; 469 ficheiros, 3095 passam, 2 falham, 3 saltados; total 3100 | [test-summary.json](evidencias/test-summary.json), [vitest.json](evidencias/vitest.json) |
-| Portais isolados | 3/3 passam; não apaga falhas da suite completa | [portal-rerun.log](evidencias/portal-rerun.log) |
-| Probes de auditoria | 5/5 passam nas asserções do comportamento observado, incluindo três defeitos | [probes.log](evidencias/probes.log) |
-| Ensaios SQL PGlite | 15/15 scripts, todos exit 0 | [sql-results.json](evidencias/sql-results.json) |
-| PayFlow | Build/script retorna 0; 48/48 testes passam; avisos do ambiente conservados | [payflow-tests.log](evidencias/payflow-tests.log) |
-| Desktop contrato | Exit 0 | [desktop-check.log](evidencias/desktop-check.log) |
-| Desktop suite inicial | 8 suites não iniciaram por dependência local ausente; instalação pelo lockfile efectuada depois | [desktop-tests.log](evidencias/desktop-tests.log), [desktop-install.log](evidencias/desktop-install.log) |
-| Desktop suite após instalação | Exit 0; 8 ficheiros, 40/40 testes passam | [desktop-tests-installed.log](evidencias/desktop-tests-installed.log) |
-| Desktop build frontend | Exit 0; tipos e bundle; sem build nativo Rust | [desktop-build.log](evidencias/desktop-build.log) |
-| Dependências raiz | Exit 1; 1 alto e 1 crítico | [dependency-audit.log](evidencias/dependency-audit.log) |
-| HTTP/API públicos | 200 nas páginas/health; 401 nas três APIs administrativas | [public-http.json](evidencias/public-http.json) |
-| Anónimo no banco | 12/12 recusados com 42501; zero dados | [anon-probe.json](evidencias/anon-probe.json) |
-| UI Chrome | 12 navegações; validação vazia e foco; redes externas bloqueadas | [browser.json](evidencias/browser.json), [browser-interactions.json](evidencias/browser-interactions.json) |
+| Check                          | Resultado                                                                                       | Evidência                                                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`            | Exit 0                                                                                          | [typecheck.log](evidencias/typecheck.log)                                                                  |
+| `npm run build`                | Exit 0; cliente e SSR concluídos                                                                | [build.log](evidencias/build.log)                                                                          |
+| `npm run siga:check`           | Exit 0; módulos e 13 testes de navegação                                                        | [modules.log](evidencias/modules.log)                                                                      |
+| `npm run lint`                 | Exit 1; 70 erros, 47 avisos                                                                     | [lint.log](evidencias/lint.log)                                                                            |
+| `npm test -- --maxWorkers=4 …` | **Exit 1**; 469 ficheiros, 3095 passam, 2 falham, 3 saltados; total 3100                        | [test-summary.json](evidencias/test-summary.json), [vitest.json](evidencias/vitest.json)                   |
+| Portais isolados               | 3/3 passam; não apaga falhas da suite completa                                                  | [portal-rerun.log](evidencias/portal-rerun.log)                                                            |
+| Probes de auditoria            | 5/5 passam nas asserções do comportamento observado, incluindo três defeitos                    | [probes.log](evidencias/probes.log)                                                                        |
+| Ensaios SQL PGlite             | 15/15 scripts, todos exit 0                                                                     | [sql-results.json](evidencias/sql-results.json)                                                            |
+| PayFlow                        | Build/script retorna 0; 48/48 testes passam; avisos do ambiente conservados                     | [payflow-tests.log](evidencias/payflow-tests.log)                                                          |
+| Desktop contrato               | Exit 0                                                                                          | [desktop-check.log](evidencias/desktop-check.log)                                                          |
+| Desktop suite inicial          | 8 suites não iniciaram por dependência local ausente; instalação pelo lockfile efectuada depois | [desktop-tests.log](evidencias/desktop-tests.log), [desktop-install.log](evidencias/desktop-install.log)   |
+| Desktop suite após instalação  | Exit 0; 8 ficheiros, 40/40 testes passam                                                        | [desktop-tests-installed.log](evidencias/desktop-tests-installed.log)                                      |
+| Desktop build frontend         | Exit 0; tipos e bundle; sem build nativo Rust                                                   | [desktop-build.log](evidencias/desktop-build.log)                                                          |
+| Dependências raiz              | Exit 1; 1 alto e 1 crítico                                                                      | [dependency-audit.log](evidencias/dependency-audit.log)                                                    |
+| HTTP/API públicos              | 200 nas páginas/health; 401 nas três APIs administrativas                                       | [public-http.json](evidencias/public-http.json)                                                            |
+| Anónimo no banco               | 12/12 recusados com 42501; zero dados                                                           | [anon-probe.json](evidencias/anon-probe.json)                                                              |
+| UI Chrome                      | 12 navegações; validação vazia e foco; redes externas bloqueadas                                | [browser.json](evidencias/browser.json), [browser-interactions.json](evidencias/browser-interactions.json) |
 
 Os três saltados na suite completa foram dois testes debug e a sonda live sem variáveis exportadas. Esta última foi complementada pela sonda de auditoria de 12 tabelas, sem guardar linhas pessoais. A verificação live de selects do código, que lê `.env` e faz `limit=0`, executou na suite; não equivale a executar todos os handlers. As duas falhas de portal passaram isoladamente; a causa mantém-se hipótese de carga/cleanup. Não se declara «suite verde».
 
@@ -203,18 +203,18 @@ Houve tentativas locais interrompidas por sobrecarga e ajustes do harness de aud
 
 ## 9. Plano de correcção e aceitação
 
-| Ordem | Trabalho proposto | Dependência / aceitação |
-| --- | --- | --- |
-| 1 | **F04:** staging isolado, destinos sintéticos, duas escolas, contas por papel e MFA | Gate que recusa ID de produção antes de qualquer E2E com escrita |
-| 2 | **F06/F08/F09:** dependências, MFA de grants, configuração Auth | Revisão de alcance; provas REST AAL1/AAL2 e regressão por papel em staging |
-| 3 | **F01:** matrícula atómica ou retoma idempotente com histórico | Falha de turma, reenvio, BI duplicado, duplo clique e concorrência sem segundo aluno |
-| 4 | **F02:** activação de ano atómica | Falha e duas activações simultâneas preservam exactamente um ano activo |
-| 5 | **F03:** parser sem truncagem silenciosa | Contagens originais/importadas/rejeitadas/pendentes reconciliam |
-| 6 | **F05:** configurar fluxo financeiro integrado ou delimitar claramente capacidade publicada | Jornada sandbox e webhook repetido/estorno com documentos e saldos correctos |
-| 7 | **F07/F11:** gates locais estáveis e efectivos | Lint e suite completa passam em condições documentadas, sem ocultar falhas |
-| 8 | **F10:** publicação rastreável por app | Artefacto de árvore limpa, SHA exacto em cada aplicação; smoke no mesmo conjunto |
-| 9 | Executar as 17 etapas e aprofundar todos os cenários ainda bloqueados/não testados | Evidência UI→API→DB; documentos; fecho/renovação; isolamento A/B |
-| 10 | Ensaios operacionais: carga, restauro, mobile real, desktop assinado/offline | Resultados e limites mensuráveis, dados apenas de staging |
+| Ordem | Trabalho proposto                                                                           | Dependência / aceitação                                                              |
+| ----- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1     | **F04:** staging isolado, destinos sintéticos, duas escolas, contas por papel e MFA         | Gate que recusa ID de produção antes de qualquer E2E com escrita                     |
+| 2     | **F06/F08/F09:** dependências, MFA de grants, configuração Auth                             | Revisão de alcance; provas REST AAL1/AAL2 e regressão por papel em staging           |
+| 3     | **F01:** matrícula atómica ou retoma idempotente com histórico                              | Falha de turma, reenvio, BI duplicado, duplo clique e concorrência sem segundo aluno |
+| 4     | **F02:** activação de ano atómica                                                           | Falha e duas activações simultâneas preservam exactamente um ano activo              |
+| 5     | **F03:** parser sem truncagem silenciosa                                                    | Contagens originais/importadas/rejeitadas/pendentes reconciliam                      |
+| 6     | **F05:** configurar fluxo financeiro integrado ou delimitar claramente capacidade publicada | Jornada sandbox e webhook repetido/estorno com documentos e saldos correctos         |
+| 7     | **F07/F11:** gates locais estáveis e efectivos                                              | Lint e suite completa passam em condições documentadas, sem ocultar falhas           |
+| 8     | **F10:** publicação rastreável por app                                                      | Artefacto de árvore limpa, SHA exacto em cada aplicação; smoke no mesmo conjunto     |
+| 9     | Executar as 17 etapas e aprofundar todos os cenários ainda bloqueados/não testados          | Evidência UI→API→DB; documentos; fecho/renovação; isolamento A/B                     |
+| 10    | Ensaios operacionais: carga, restauro, mobile real, desktop assinado/offline                | Resultados e limites mensuráveis, dados apenas de staging                            |
 
 As correcções são **propostas**. Esta execução não as implementou, não alterou migrações/configuração e não publicou nada. Uma futura intervenção precisa de autorização para o âmbito concreto; não é necessário repetir aprovação para continuar consultas e testes já autorizados em ambiente seguro.
 

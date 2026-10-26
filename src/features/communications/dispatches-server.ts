@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 import { z } from "zod";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -75,13 +76,20 @@ export const getCommunicationDispatchStats = createServerFn({ method: "GET" })
     ]);
 
     const db = await loadSgaAdminClient();
-    const { data: rows } = await db
-      .from("communication_dispatches")
-      .select("channel, status")
-      .eq("school_id", membership.schoolId);
+    // Em páginas: com mais de mil envios, os totais ficavam cortados sem aviso.
+    const rows = await selectAllPages(
+      (from, to) =>
+        db
+          .from("communication_dispatches")
+          .select("id, channel, status")
+          .eq("school_id", membership.schoolId)
+          .order("id")
+          .range(from, to),
+      "Não foi possível contar os envios",
+    );
 
     const counts = {
-      total: rows?.length || 0,
+      total: rows.length,
       sent: 0,
       delivered: 0,
       opened: 0,
@@ -95,7 +103,7 @@ export const getCommunicationDispatchStats = createServerFn({ method: "GET" })
       },
     };
 
-    for (const r of rows ?? []) {
+    for (const r of rows) {
       const status = String(r.status);
       const channel = String(r.channel) as "email" | "sms" | "whatsapp";
 

@@ -49,8 +49,8 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
+| Tabela          | Colunas existentes                                                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `notifications` | `id`, `school_id`, `user_id`, `channel`, `event_type`, `title`, `body`, `payload`, `announcement_id`, `status`, `read_at`, `created_at` |
 
 Relações confirmadas:
@@ -60,10 +60,10 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listMyNotifications` | GET | `Sem schema de entrada explícito neste bloco` | [personal.ts](../../../src/features/notifications/personal.ts) |
-| `markMyNotificationsRead` | POST | `Sem schema de entrada explícito neste bloco` | [personal.ts](../../../src/features/notifications/personal.ts) |
+| Função                    | Método | Entrada                                       | Fonte                                                          |
+| ------------------------- | ------ | --------------------------------------------- | -------------------------------------------------------------- |
+| `listMyNotifications`     | GET    | `Sem schema de entrada explícito neste bloco` | [personal.ts](../../../src/features/notifications/personal.ts) |
+| `markMyNotificationsRead` | POST   | `Sem schema de entrada explícito neste bloco` | [personal.ts](../../../src/features/notifications/personal.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
@@ -101,6 +101,5 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 **Riscos/pendências:** jornada anual e A/B autenticado exigem staging; concorrência PostgreSQL, fornecedores, restauro, artefactos oficiais extensos e dispositivos reais não ficam certificados por mocks/PGlite. Consultar a matriz e o progresso para o resultado efectivamente executado.
 
 ## Fontes e navegação
-
 
 [Índice](../README.md) · [Contratos transversais](../CONTRATOS_TRANSVERSAIS.md)

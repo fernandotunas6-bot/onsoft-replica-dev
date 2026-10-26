@@ -14,16 +14,16 @@ conversa; essa referência visual continua por confirmar.
 
 ## Onde aplicar o visual
 
-| Responsabilidade | Ponto existente | Compatibilidade a conservar |
-| --- | --- | --- |
-| Cores, densidade e raio | `src/lib/appearance.tsx`, `src/styles.css` | Usar tokens semânticos; manter as escolhas pessoais e a marca escolar |
-| Marca institucional | `src/lib/brand-tokens.ts` | Reutilizar a conversão existente e os dados da escola activa |
-| Sidebar e menus recolhidos | `src/components/layout/AppSidebar.tsx`, `NavItem.tsx` | Conservar contexto, links com pesquisa, portal Radix e retorno do foco |
-| Resolução do módulo | `src/features/auth/contextual-navigation.ts` | Continuar a receber o catálogo autorizado; não duplicar destinos |
-| Cabeçalhos e painéis | `src/components/layout/PageHeader.tsx` | Manter hierarquia curta, breadcrumbs e estatísticas recolhíveis acessíveis |
-| Cartões e indicadores | `src/components/ui/stat-card.tsx`, `src/components/ui/card.tsx` | Aplicar o acabamento partilhado e preservar tons de estado explícitos |
-| Pesquisa e filtros | `src/components/filters/ListFilterBar.tsx`, `src/components/filters/debounced-search-input.tsx` | Preservar debounce, parâmetros, rótulos e remoção individual de filtros |
-| Estados vazios e listas | `src/components/ui/empty-state.tsx`, `src/components/ui/data-table-shell.tsx`, `src/components/ui/pagination.tsx` | Preservar acções, mascote de primeiro uso, todas as colunas e destinos da paginação |
+| Responsabilidade           | Ponto existente                                                                                                   | Compatibilidade a conservar                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Cores, densidade e raio    | `src/lib/appearance.tsx`, `src/styles.css`                                                                        | Usar tokens semânticos; manter as escolhas pessoais e a marca escolar               |
+| Marca institucional        | `src/lib/brand-tokens.ts`                                                                                         | Reutilizar a conversão existente e os dados da escola activa                        |
+| Sidebar e menus recolhidos | `src/components/layout/AppSidebar.tsx`, `NavItem.tsx`                                                             | Conservar contexto, links com pesquisa, portal Radix e retorno do foco              |
+| Resolução do módulo        | `src/features/auth/contextual-navigation.ts`                                                                      | Continuar a receber o catálogo autorizado; não duplicar destinos                    |
+| Cabeçalhos e painéis       | `src/components/layout/PageHeader.tsx`                                                                            | Manter hierarquia curta, breadcrumbs e estatísticas recolhíveis acessíveis          |
+| Cartões e indicadores      | `src/components/ui/stat-card.tsx`, `src/components/ui/card.tsx`                                                   | Aplicar o acabamento partilhado e preservar tons de estado explícitos               |
+| Pesquisa e filtros         | `src/components/filters/ListFilterBar.tsx`, `src/components/filters/debounced-search-input.tsx`                   | Preservar debounce, parâmetros, rótulos e remoção individual de filtros             |
+| Estados vazios e listas    | `src/components/ui/empty-state.tsx`, `src/components/ui/data-table-shell.tsx`, `src/components/ui/pagination.tsx` | Preservar acções, mascote de primeiro uso, todas as colunas e destinos da paginação |
 
 A navegação mobile continua a pertencer ao AppShell existente;
 não montar uma segunda sidebar ou uma segunda árvore de autorização.

@@ -31,16 +31,16 @@ npx playwright test tests/e2e/responsive-auth.spec.ts --project=chromium
 
 ## Matriz de ecrãs e comportamento
 
-| Largura | Contexto | O que comprovar |
-| --- | --- | --- |
-| 320px | telemóvel estreito | cabeçalho, área de toque, "Mais", títulos e botões visíveis |
-| 375px | telemóvel | menu inferior, campos e "Guardar" sem colisão com mensagens |
-| 390px | telemóvel | mudar contexto, notificações, scroll e regressar |
-| 768px | tablet | navegação compacta, tabelas e modais sem recorte |
-| 1024px | portátil pequeno | header desktop, chat por Sheet e pesquisa |
-| 1280px | portátil | listas, tabelas, ações e painel flutuante |
-| 1536px | desktop | coluna lateral direita, conteúdo e barra superior |
-| 1920px | desktop grande | proporções, alinhamento, conteúdo e botões de janela |
+| Largura | Contexto           | O que comprovar                                             |
+| ------- | ------------------ | ----------------------------------------------------------- |
+| 320px   | telemóvel estreito | cabeçalho, área de toque, "Mais", títulos e botões visíveis |
+| 375px   | telemóvel          | menu inferior, campos e "Guardar" sem colisão com mensagens |
+| 390px   | telemóvel          | mudar contexto, notificações, scroll e regressar            |
+| 768px   | tablet             | navegação compacta, tabelas e modais sem recorte            |
+| 1024px  | portátil pequeno   | header desktop, chat por Sheet e pesquisa                   |
+| 1280px  | portátil           | listas, tabelas, ações e painel flutuante                   |
+| 1536px  | desktop            | coluna lateral direita, conteúdo e barra superior           |
+| 1920px  | desktop grande     | proporções, alinhamento, conteúdo e botões de janela        |
 
 **Verificação manual adicional** (não automatizada em Chromium): Safari iOS, Chrome Android, Windows/macOS, zoom 200%, orientação vertical/horizontal, teclado virtual e tema escuro. O Playwright Chromium não substitui estes dispositivos.
 

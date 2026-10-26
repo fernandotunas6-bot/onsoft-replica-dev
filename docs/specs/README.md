@@ -8,38 +8,38 @@ As SPECs de módulo abaixo completam as especificações temáticas anteriores, 
 
 [Trabalhos com entrega e renovação de matrícula (25/10)](SGA_TRABALHOS_MATRICULAS_2026-10-25.md) · [Regras transversais](CONTRATOS_TRANSVERSAIS.md) · [Alterações críticas e aceitação](CORRECCOES_2026-10-08.md) · [Progresso](../implementation/2026-10-07/PROGRESSO.md) · [Matriz](matriz-evolucao.csv) · [Contratos API inventariados](contratos-api.csv)
 
-| Módulo | SPEC | Estado de validação |
-| --- | --- | --- |
-| Avaliações, presenças, notas e pautas | [academic](modules/academic.md) | Parcial; ver provas e bloqueios |
-| Contas, vínculos e permissões | [access](modules/access.md) | Parcial; ver provas e bloqueios |
-| Assistência pedagógica | [ai-assist](modules/ai-assist.md) | Parcial; ver provas e bloqueios |
-| Antigos alunos e portefólios | [alumni](modules/alumni.md) | Parcial; ver provas e bloqueios |
-| Arquivos escolares | [arquivos](modules/arquivos.md) | Parcial; ver provas e bloqueios |
-| Auditoria e rastreabilidade | [audit](modules/audit.md) | Parcial; ver provas e bloqueios |
-| Autenticação e contexto escolar | [auth](modules/auth.md) | Parcial; ver provas e bloqueios |
-| Ano e calendário lectivo | [calendar](modules/calendar.md) | Parcial; ver provas e bloqueios |
-| Catracas e cartões de acesso | [catracas](modules/catracas.md) | Parcial; ver provas e bloqueios |
-| Comunicação institucional | [communications](modules/communications.md) | Parcial; ver provas e bloqueios |
-| Contactos e relações | [contacts](modules/contacts.md) | Parcial; ver provas e bloqueios |
-| Painéis e portais por perfil | [dashboard](modules/dashboard.md) | Parcial; ver provas e bloqueios |
-| Documentos, modelos e exportações | [documents](modules/documents.md) | Parcial; ver provas e bloqueios |
-| Candidatura e matrícula pública | [enrollment](modules/enrollment.md) | Parcial; ver provas e bloqueios |
-| Tesouraria escolar | [finance](modules/finance.md) | Parcial; ver provas e bloqueios |
-| Ensino superior | [higher-ed](modules/higher-ed.md) | Parcial; ver provas e bloqueios |
-| Recursos humanos e salários | [hr](modules/hr.md) | Parcial; ver provas e bloqueios |
-| Importações e exportação de intercâmbio | [import](modules/import.md) | Parcial; ver provas e bloqueios |
-| Integrações e capacidades | [integrations](modules/integrations.md) | Parcial; ver provas e bloqueios |
-| Indicadores e inteligência escolar | [intelligence](modules/intelligence.md) | Parcial; ver provas e bloqueios |
-| Planos de aula | [lesson-plans](modules/lesson-plans.md) | Parcial; ver provas e bloqueios |
-| Mensagens internas | [messages](modules/messages.md) | Parcial; ver provas e bloqueios |
-| Notificações e preferências | [notifications](modules/notifications.md) | Parcial; ver provas e bloqueios |
-| Códigos de autenticação | [otp](modules/otp.md) | Parcial; ver provas e bloqueios |
-| Estrutura académica, turmas e horários | [pedagogica](modules/pedagogica.md) | Parcial; ver provas e bloqueios |
-| Registo central de pessoas | [people](modules/people.md) | Parcial; ver provas e bloqueios |
-| Provisionamento e administração da plataforma | [saas](modules/saas.md) | Parcial; ver provas e bloqueios |
-| Configuração institucional | [school](modules/school.md) | Parcial; ver provas e bloqueios |
-| Pesquisa e atalhos de trabalho | [spotlight](modules/spotlight.md) | Parcial; ver provas e bloqueios |
-| Alunos, matrícula interna e renovação | [students](modules/students.md) | Parcial; ver provas e bloqueios |
+| Módulo                                        | SPEC                                        | Estado de validação             |
+| --------------------------------------------- | ------------------------------------------- | ------------------------------- |
+| Avaliações, presenças, notas e pautas         | [academic](modules/academic.md)             | Parcial; ver provas e bloqueios |
+| Contas, vínculos e permissões                 | [access](modules/access.md)                 | Parcial; ver provas e bloqueios |
+| Assistência pedagógica                        | [ai-assist](modules/ai-assist.md)           | Parcial; ver provas e bloqueios |
+| Antigos alunos e portefólios                  | [alumni](modules/alumni.md)                 | Parcial; ver provas e bloqueios |
+| Arquivos escolares                            | [arquivos](modules/arquivos.md)             | Parcial; ver provas e bloqueios |
+| Auditoria e rastreabilidade                   | [audit](modules/audit.md)                   | Parcial; ver provas e bloqueios |
+| Autenticação e contexto escolar               | [auth](modules/auth.md)                     | Parcial; ver provas e bloqueios |
+| Ano e calendário lectivo                      | [calendar](modules/calendar.md)             | Parcial; ver provas e bloqueios |
+| Catracas e cartões de acesso                  | [catracas](modules/catracas.md)             | Parcial; ver provas e bloqueios |
+| Comunicação institucional                     | [communications](modules/communications.md) | Parcial; ver provas e bloqueios |
+| Contactos e relações                          | [contacts](modules/contacts.md)             | Parcial; ver provas e bloqueios |
+| Painéis e portais por perfil                  | [dashboard](modules/dashboard.md)           | Parcial; ver provas e bloqueios |
+| Documentos, modelos e exportações             | [documents](modules/documents.md)           | Parcial; ver provas e bloqueios |
+| Candidatura e matrícula pública               | [enrollment](modules/enrollment.md)         | Parcial; ver provas e bloqueios |
+| Tesouraria escolar                            | [finance](modules/finance.md)               | Parcial; ver provas e bloqueios |
+| Ensino superior                               | [higher-ed](modules/higher-ed.md)           | Parcial; ver provas e bloqueios |
+| Recursos humanos e salários                   | [hr](modules/hr.md)                         | Parcial; ver provas e bloqueios |
+| Importações e exportação de intercâmbio       | [import](modules/import.md)                 | Parcial; ver provas e bloqueios |
+| Integrações e capacidades                     | [integrations](modules/integrations.md)     | Parcial; ver provas e bloqueios |
+| Indicadores e inteligência escolar            | [intelligence](modules/intelligence.md)     | Parcial; ver provas e bloqueios |
+| Planos de aula                                | [lesson-plans](modules/lesson-plans.md)     | Parcial; ver provas e bloqueios |
+| Mensagens internas                            | [messages](modules/messages.md)             | Parcial; ver provas e bloqueios |
+| Notificações e preferências                   | [notifications](modules/notifications.md)   | Parcial; ver provas e bloqueios |
+| Códigos de autenticação                       | [otp](modules/otp.md)                       | Parcial; ver provas e bloqueios |
+| Estrutura académica, turmas e horários        | [pedagogica](modules/pedagogica.md)         | Parcial; ver provas e bloqueios |
+| Registo central de pessoas                    | [people](modules/people.md)                 | Parcial; ver provas e bloqueios |
+| Provisionamento e administração da plataforma | [saas](modules/saas.md)                     | Parcial; ver provas e bloqueios |
+| Configuração institucional                    | [school](modules/school.md)                 | Parcial; ver provas e bloqueios |
+| Pesquisa e atalhos de trabalho                | [spotlight](modules/spotlight.md)           | Parcial; ver provas e bloqueios |
+| Alunos, matrícula interna e renovação         | [students](modules/students.md)             | Parcial; ver provas e bloqueios |
 
 ## Aplicações e operação
 

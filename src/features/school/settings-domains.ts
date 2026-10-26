@@ -21,6 +21,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
+import { parseEnrollmentCycles, type EnrollmentCycle } from "@/features/students/enrollment-cycle";
 
 type Raw = Record<string, unknown>;
 
@@ -329,6 +330,12 @@ export const SETTINGS_DOMAINS = {
         closedTerms: [],
         gradingProfile: null,
       },
+  },
+  enrollment: {
+    label: "Matrícula",
+    parse: (value: unknown): { cycles: EnrollmentCycle[] } => ({
+      cycles: parseEnrollmentCycles(value),
+    }),
   },
   higher_ed: {
     label: "Ensino Superior",

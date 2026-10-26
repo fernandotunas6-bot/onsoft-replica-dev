@@ -59,50 +59,50 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `name` | `z.string().trim().min(3).max(120),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `nif` | `schoolNifSchema,` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `directorName` | `z.string().trim().min(3).max(120),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `phone` | `angolaPhoneSchema,` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `email` | `z.string().trim().email().max(255),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `address` | `z.string().trim().min(5).max(200),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `academicYear` | `z.string().trim().max(40).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `currency` | `z.enum(["AOA", "USD", "EUR"]),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `evaluationPeriods` | `z.number().int().min(2).max(3),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `passingGrade` | `z.number().min(0).max(20),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `preferences` | `z.record(z.string(), z.boolean()).default({}),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `logoUrl` | `z.union([z.string().trim().url().max(2048), z.literal("")]).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `motto` | `z.string().trim().max(160).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `schoolType` | `z` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `philosophy` | `z.string().trim().max(600).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `province` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `municipality` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `commune` | `z.string().trim().max(80).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `neighborhood` | `z.string().trim().max(120).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `latitude` | `z.number().min(-90).max(90).nullable().optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `longitude` | `z.number().min(-180).max(180).nullable().optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `bankName` | `z.string().trim().min(2).max(120),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `accountHolder` | `z.string().trim().min(3).max(160),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `iban` | `z` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `swift` | `z.string().trim().max(11).optional().or(z.literal("")),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `multicaixaMerchant` | `z.string().trim().max(64).optional().or(z.literal("")),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `softwareCertified` | `z.string().trim().max(120).optional().or(z.literal("")),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `invoiceSeries` | `z.string().trim().max(32).optional().or(z.literal("")),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `fiscalNotes` | `z.string().trim().max(500).optional().or(z.literal("")),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `dueDay` | `z.number().int().min(1).max(28),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `lateFeePercent` | `z.number().min(0).max(100),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `graceDays` | `z.number().int().min(0).max(60),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `lateFeeScope` | `z.enum(["all", "electronic"]),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `siblingDiscountPercent` | `z.number().min(0).max(100),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `scale` | `z.enum(["20_ects", "gpa4"]),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `components` | `z.enum(["frequencia_exame", "so_exame"]),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `teachingLevels` | `z` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `courses` | `z` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `closedTerms` | `z` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `gradingProfile` | `gradingProfileSchema.nullable().default(null),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `term` | `z.union([z.literal(1), z.literal(2), z.literal(3)]),` | [schemas.ts](../../../src/features/school/schemas.ts) |
-| `closed` | `z.boolean(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
+| Campo                    | Declaração observada                                                      | Schema de origem                                      |
+| ------------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `name`                   | `z.string().trim().min(3).max(120),`                                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `nif`                    | `schoolNifSchema,`                                                        | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `directorName`           | `z.string().trim().min(3).max(120),`                                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `phone`                  | `angolaPhoneSchema,`                                                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `email`                  | `z.string().trim().email().max(255),`                                     | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `address`                | `z.string().trim().min(5).max(200),`                                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `academicYear`           | `z.string().trim().max(40).optional(),`                                   | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `currency`               | `z.enum(["AOA", "USD", "EUR"]),`                                          | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `evaluationPeriods`      | `z.number().int().min(2).max(3),`                                         | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `passingGrade`           | `z.number().min(0).max(20),`                                              | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `preferences`            | `z.record(z.string(), z.boolean()).default({}),`                          | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `logoUrl`                | `z.union([z.string().trim().url().max(2048), z.literal("")]).optional(),` | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `motto`                  | `z.string().trim().max(160).optional(),`                                  | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `schoolType`             | `z`                                                                       | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `philosophy`             | `z.string().trim().max(600).optional(),`                                  | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `province`               | `z.string().trim().max(80).optional(),`                                   | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `municipality`           | `z.string().trim().max(80).optional(),`                                   | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `commune`                | `z.string().trim().max(80).optional(),`                                   | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `neighborhood`           | `z.string().trim().max(120).optional(),`                                  | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `latitude`               | `z.number().min(-90).max(90).nullable().optional(),`                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `longitude`              | `z.number().min(-180).max(180).nullable().optional(),`                    | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `bankName`               | `z.string().trim().min(2).max(120),`                                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `accountHolder`          | `z.string().trim().min(3).max(160),`                                      | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `iban`                   | `z`                                                                       | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `swift`                  | `z.string().trim().max(11).optional().or(z.literal("")),`                 | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `multicaixaMerchant`     | `z.string().trim().max(64).optional().or(z.literal("")),`                 | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `softwareCertified`      | `z.string().trim().max(120).optional().or(z.literal("")),`                | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `invoiceSeries`          | `z.string().trim().max(32).optional().or(z.literal("")),`                 | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `fiscalNotes`            | `z.string().trim().max(500).optional().or(z.literal("")),`                | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `dueDay`                 | `z.number().int().min(1).max(28),`                                        | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `lateFeePercent`         | `z.number().min(0).max(100),`                                             | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `graceDays`              | `z.number().int().min(0).max(60),`                                        | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `lateFeeScope`           | `z.enum(["all", "electronic"]),`                                          | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `siblingDiscountPercent` | `z.number().min(0).max(100),`                                             | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `scale`                  | `z.enum(["20_ects", "gpa4"]),`                                            | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `components`             | `z.enum(["frequencia_exame", "so_exame"]),`                               | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `teachingLevels`         | `z`                                                                       | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `courses`                | `z`                                                                       | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `closedTerms`            | `z`                                                                       | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `gradingProfile`         | `gradingProfileSchema.nullable().default(null),`                          | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `term`                   | `z.union([z.literal(1), z.literal(2), z.literal(3)]),`                    | [schemas.ts](../../../src/features/school/schemas.ts) |
+| `closed`                 | `z.boolean(),`                                                            | [schemas.ts](../../../src/features/school/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -114,31 +114,31 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `assessment_rule_sets` | `id`, `school_id`, `grading_scale_id`, `code`, `name`, `version`, `status`, `continuous_weight`, `exam_weight`, `passing_value`, `maximum_absence_percentage`, `rounding_method`, `grade_change_requires_approval`, `lock_after_publication`, `formula`, `created_by`, `created_at` |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `enrollment_forms` | `id`, `school_id`, `slug`, `title`, `subtitle`, `hero_text`, `accent_color`, `logo_url`, `is_open`, `visible_fields`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `fee_items` | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id` |
-| `fee_plans` | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at` |
-| `grade_levels` | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `program_subjects` | `id`, `school_id`, `program_id`, `subject_id`, `semester`, `credits`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `programs` | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile` |
-| `rooms` | `id`, `school_id`, `code`, `name`, `capacity`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `room_type`, `campus_id`, `building`, `block`, `floor`, `resources`, `accessibility`, `notes` |
-| `school_branding` | `id`, `school_id`, `logo_url`, `favicon_url`, `primary_color`, `secondary_color`, `school_name`, `short_name`, `portal_title`, `login_background`, `created_at`, `updated_at` |
-| `school_invitations` | `id`, `school_id`, `email`, `role_code`, `invited_by`, `status`, `token_hash`, `expires_at`, `accepted_at`, `accepted_by`, `created_at`, `updated_at` |
-| `school_memberships` | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `tenants` | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason` |
-| `terms` | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by` |
+| Tabela                 | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_years`       | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                                   |
+| `assessment_rule_sets` | `id`, `school_id`, `grading_scale_id`, `code`, `name`, `version`, `status`, `continuous_weight`, `exam_weight`, `passing_value`, `maximum_absence_percentage`, `rounding_method`, `grade_change_requires_approval`, `lock_after_publication`, `formula`, `created_by`, `created_at`                                                                                                                     |
+| `audit_logs`           | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                       |
+| `class_groups`         | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                      |
+| `class_subjects`       | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                     |
+| `enrollment_forms`     | `id`, `school_id`, `slug`, `title`, `subtitle`, `hero_text`, `accent_color`, `logo_url`, `is_open`, `visible_fields`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                   |
+| `fee_items`            | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id`                                                                                                                                                                                                                                                                            |
+| `fee_plans`            | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at`                                                                                                                                                                                                                                                                                                          |
+| `grade_levels`         | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                  |
+| `people`               | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `program_subjects`     | `id`, `school_id`, `program_id`, `subject_id`, `semester`, `credits`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                                         |
+| `programs`             | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile`                                                                                                                                                                                                                                                                                            |
+| `rooms`                | `id`, `school_id`, `code`, `name`, `capacity`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `room_type`, `campus_id`, `building`, `block`, `floor`, `resources`, `accessibility`, `notes`                                                                                                                                                                 |
+| `school_branding`      | `id`, `school_id`, `logo_url`, `favicon_url`, `primary_color`, `secondary_color`, `school_name`, `short_name`, `portal_title`, `login_background`, `created_at`, `updated_at`                                                                                                                                                                                                                           |
+| `school_invitations`   | `id`, `school_id`, `email`, `role_code`, `invited_by`, `status`, `token_hash`, `expires_at`, `accepted_at`, `accepted_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                   |
+| `school_memberships`   | `id`, `school_id`, `user_id`, `status`, `created_at`, `updated_at`, `joined_at`, `invited_at`, `activated_at`, `suspended_at`, `last_access_at`                                                                                                                                                                                                                                                         |
+| `school_settings`      | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                             |
+| `schools`              | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `students`             | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
+| `subjects`             | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version`              |
+| `teachers`             | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `tenants`              | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason`                                                                                                                                                            |
+| `terms`                | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                             |
 
 Relações confirmadas:
 
@@ -190,21 +190,21 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `getSchoolSettings` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts) |
-| `listAcademicYears` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts) |
-| `listAcademicTerms` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts) |
-| `updateSchoolSettings` | POST | `updateSchoolSettingsInputSchema` | [server.ts](../../../src/features/school/server.ts) |
-| `listRecentAuditLogs` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts) |
-| `updateBillingSettings` | POST | `updateBillingSettingsInputSchema` | [server.ts](../../../src/features/school/server.ts) |
-| `updateSchoolBanking` | POST | `updateSchoolBankingInputSchema` | [server.ts](../../../src/features/school/server.ts) |
-| `updateSchoolAgt` | POST | `updateSchoolAgtInputSchema` | [server.ts](../../../src/features/school/server.ts) |
-| `updatePedagogySettings` | POST | `pedagogySettingsSchema` | [server.ts](../../../src/features/school/server.ts) |
-| `setTermLock` | POST | `setTermLockInputSchema` | [server.ts](../../../src/features/school/server.ts) |
-| `getSchoolSetupGuide` | GET | `Sem schema de entrada explícito neste bloco` | [setup-guide-server.ts](../../../src/features/school/setup-guide-server.ts) |
-| `getSchoolSetupStatus` | GET | `Sem schema de entrada explícito neste bloco` | [setup-status.ts](../../../src/features/school/setup-status.ts) |
-| `applySchoolStructure` | POST | `Sem schema de entrada explícito neste bloco` | [setup-status.ts](../../../src/features/school/setup-status.ts) |
+| Função                   | Método | Entrada                                       | Fonte                                                                       |
+| ------------------------ | ------ | --------------------------------------------- | --------------------------------------------------------------------------- |
+| `getSchoolSettings`      | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts)                         |
+| `listAcademicYears`      | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts)                         |
+| `listAcademicTerms`      | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts)                         |
+| `updateSchoolSettings`   | POST   | `updateSchoolSettingsInputSchema`             | [server.ts](../../../src/features/school/server.ts)                         |
+| `listRecentAuditLogs`    | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/school/server.ts)                         |
+| `updateBillingSettings`  | POST   | `updateBillingSettingsInputSchema`            | [server.ts](../../../src/features/school/server.ts)                         |
+| `updateSchoolBanking`    | POST   | `updateSchoolBankingInputSchema`              | [server.ts](../../../src/features/school/server.ts)                         |
+| `updateSchoolAgt`        | POST   | `updateSchoolAgtInputSchema`                  | [server.ts](../../../src/features/school/server.ts)                         |
+| `updatePedagogySettings` | POST   | `pedagogySettingsSchema`                      | [server.ts](../../../src/features/school/server.ts)                         |
+| `setTermLock`            | POST   | `setTermLockInputSchema`                      | [server.ts](../../../src/features/school/server.ts)                         |
+| `getSchoolSetupGuide`    | GET    | `Sem schema de entrada explícito neste bloco` | [setup-guide-server.ts](../../../src/features/school/setup-guide-server.ts) |
+| `getSchoolSetupStatus`   | GET    | `Sem schema de entrada explícito neste bloco` | [setup-status.ts](../../../src/features/school/setup-status.ts)             |
+| `applySchoolStructure`   | POST   | `Sem schema de entrada explícito neste bloco` | [setup-status.ts](../../../src/features/school/setup-status.ts)             |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

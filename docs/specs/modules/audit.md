@@ -50,8 +50,8 @@ Especificação complementar: [SGA_SECURITY_ACCESS_SPEC.md](../SGA_SECURITY_ACCE
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
+| Tabela       | Colunas existentes                                                                                                |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- |
 | `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
 
 Relações confirmadas:
@@ -60,9 +60,9 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| — | — | Serviços/helpers ou endpoint de origem | Ver fontes |
+| Função | Método | Entrada                                | Fonte      |
+| ------ | ------ | -------------------------------------- | ---------- |
+| —      | —      | Serviços/helpers ou endpoint de origem | Ver fontes |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
@@ -100,6 +100,5 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 **Riscos/pendências:** jornada anual e A/B autenticado exigem staging; concorrência PostgreSQL, fornecedores, restauro, artefactos oficiais extensos e dispositivos reais não ficam certificados por mocks/PGlite. Consultar a matriz e o progresso para o resultado efectivamente executado.
 
 ## Fontes e navegação
-
 
 [Índice](../README.md) · [Contratos transversais](../CONTRATOS_TRANSVERSAIS.md)

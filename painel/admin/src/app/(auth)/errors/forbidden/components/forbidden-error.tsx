@@ -1,5 +1,5 @@
-import { ShieldX } from "lucide-react"
-import { ErrorScreen } from "../../error-screen"
+import { ShieldX } from "lucide-react";
+import { ErrorScreen } from "../../error-screen";
 
 export function ForbiddenError() {
   return (
@@ -9,5 +9,5 @@ export function ForbiddenError() {
       title="Acesso negado"
       description="Esta consola é só para administradores da plataforma. Contas de escola entram no SIGA Plus."
     />
-  )
+  );
 }

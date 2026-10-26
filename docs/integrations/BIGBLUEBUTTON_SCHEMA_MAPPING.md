@@ -2,15 +2,15 @@
 
 Inspecção read-only em 08/10/2026 do projecto Supabase associado ao SIGA Plus.
 
-| Recurso | Tabela existente | Identificadores relevantes |
-| --- | --- | --- |
-| Escolas e vínculos | `school_memberships` | `school_id`, `user_id`, `status` |
-| Funções institucionais | `member_roles`, `roles` | `membership_id`, `role_id`, `code` |
-| Professores | `teachers` | `school_id`, `id`, `user_id`, `person_id` |
-| Turmas | `class_groups` | `school_id`, `id`, `academic_year_id` |
-| Atribuições | `class_subjects` | `school_id`, `class_group_id`, `teacher_id` |
-| Alunos | `students` | `school_id`, `id`, `person_id` |
-| Matrículas | `enrollments` | `school_id`, `student_id`, `class_group_id`, `status` |
+| Recurso                | Tabela existente        | Identificadores relevantes                            |
+| ---------------------- | ----------------------- | ----------------------------------------------------- |
+| Escolas e vínculos     | `school_memberships`    | `school_id`, `user_id`, `status`                      |
+| Funções institucionais | `member_roles`, `roles` | `membership_id`, `role_id`, `code`                    |
+| Professores            | `teachers`              | `school_id`, `id`, `user_id`, `person_id`             |
+| Turmas                 | `class_groups`          | `school_id`, `id`, `academic_year_id`                 |
+| Atribuições            | `class_subjects`        | `school_id`, `class_group_id`, `teacher_id`           |
+| Alunos                 | `students`              | `school_id`, `id`, `person_id`                        |
+| Matrículas             | `enrollments`           | `school_id`, `student_id`, `class_group_id`, `status` |
 
 ## Regra de autorização
 

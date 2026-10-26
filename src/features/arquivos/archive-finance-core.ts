@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { generateDocumentCode, normalizeDocumentCode } from "./document-code";
 
@@ -53,8 +54,8 @@ export async function insertFinanceArchive(
     .filter(Boolean)
     .join("\n");
   const bytes = Buffer.from(body, "utf8");
-  const now = new Date();
-  const storagePath = `${input.schoolId}/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${input.area}/${input.userId}/${id}-${documentCode}.txt`;
+  const [year, month] = schoolTodayIso().split("-");
+  const storagePath = `${input.schoolId}/${year}/${month}/${input.area}/${input.userId}/${id}-${documentCode}.txt`;
   let storageBackend: "sga" | "local" = "local";
   try {
     const { error: upError } = await db.storage.from(FILES_BUCKET).upload(storagePath, bytes, {
@@ -66,7 +67,7 @@ export async function insertFinanceArchive(
     storageBackend = "local";
   }
 
-  const iso = now.toISOString();
+  const iso = new Date().toISOString();
   const payload = {
     id,
     school_id: input.schoolId,

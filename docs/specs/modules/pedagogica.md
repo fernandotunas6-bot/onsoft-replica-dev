@@ -59,18 +59,18 @@ Especificação complementar: [SGA_TIMETABLE_PUBLICATION_UX_SPEC.md](../SGA_TIME
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `siga_attendance_audits` | `id`, `school_id`, `session_id`, `attendance_record_id`, `student_id`, `old_status`, `new_status`, `reason`, `changed_by`, `device_info`, `created_at` |
-| `siga_attendance_justifications` | `id`, `school_id`, `student_id`, `attendance_record_id`, `session_id`, `reason`, `file_id`, `file_name`, `status`, `submitted_by`, `reviewed_by`, `review_notes`, `created_at`, `updated_at` |
-| `siga_attendance_records` | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at` |
-| `siga_attendance_sessions` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `timetable_slots` | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes` |
+| Tabela                           | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `class_groups`                   | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                         |
+| `class_subjects`                 | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                        |
+| `enrollments`                    | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                  |
+| `siga_attendance_audits`         | `id`, `school_id`, `session_id`, `attendance_record_id`, `student_id`, `old_status`, `new_status`, `reason`, `changed_by`, `device_info`, `created_at`                                                                                                                                                                                                                                     |
+| `siga_attendance_justifications` | `id`, `school_id`, `student_id`, `attendance_record_id`, `session_id`, `reason`, `file_id`, `file_name`, `status`, `submitted_by`, `reviewed_by`, `review_notes`, `created_at`, `updated_at`                                                                                                                                                                                               |
+| `siga_attendance_records`        | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                                                |
+| `siga_attendance_sessions`       | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by`                                                                                                                                                |
+| `students`                       | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                         |
+| `subjects`                       | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
+| `timetable_slots`                | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes`                                                                                                                                                                                   |
 
 Relações confirmadas:
 
@@ -120,15 +120,15 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listTeacherAttendanceSessions` | GET | `listTeacherAttendanceSessionsInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
-| `getAttendanceCallSheet` | GET | `getAttendanceCallSheetInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
-| `submitAttendanceCallBatch` | POST | `submitAttendanceCallBatchInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
-| `editFinalizedAttendanceCall` | POST | `editFinalizedAttendanceCallInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
-| `submitAttendanceJustification` | POST | `submitAttendanceJustificationInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
-| `reviewAttendanceJustification` | POST | `reviewAttendanceJustificationInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
-| `getStudentAttendanceHistory` | GET | `getStudentAttendanceHistoryInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| Função                          | Método | Entrada                                    | Fonte                                                                         |
+| ------------------------------- | ------ | ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `listTeacherAttendanceSessions` | GET    | `listTeacherAttendanceSessionsInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| `getAttendanceCallSheet`        | GET    | `getAttendanceCallSheetInputSchema`        | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| `submitAttendanceCallBatch`     | POST   | `submitAttendanceCallBatchInputSchema`     | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| `editFinalizedAttendanceCall`   | POST   | `editFinalizedAttendanceCallInputSchema`   | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| `submitAttendanceJustification` | POST   | `submitAttendanceJustificationInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| `reviewAttendanceJustification` | POST   | `reviewAttendanceJustificationInputSchema` | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
+| `getStudentAttendanceHistory`   | GET    | `getStudentAttendanceHistoryInputSchema`   | [attendance-server.ts](../../../src/features/pedagogica/attendance-server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
@@ -169,6 +169,5 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 **Riscos/pendências:** jornada anual e A/B autenticado exigem staging; concorrência PostgreSQL, fornecedores, restauro, artefactos oficiais extensos e dispositivos reais não ficam certificados por mocks/PGlite. Consultar a matriz e o progresso para o resultado efectivamente executado.
 
 ## Fontes e navegação
-
 
 [Índice](../README.md) · [Contratos transversais](../CONTRATOS_TRANSVERSAIS.md)

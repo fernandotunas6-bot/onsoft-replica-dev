@@ -51,83 +51,83 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `query` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(1000).default(25),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `offset` | `z.number().int().min(0).default(0),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `classGroupId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `status` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `paymentStatus` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `quickFilter` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentIds` | `z.array(z.string().uuid()).min(1).max(100),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `academicYearId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentIds` | `z.array(z.string().uuid()).min(1).max(100),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `newStatus` | `z.enum(studentStatusOptions),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `reason` | `z` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `guardian_person_id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `relationship` | `z.string().trim().min(1),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `is_primary` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `authorized_pickup` | `z.boolean().default(true),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `pai` | `"father",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `father` | `"father",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `mae` | `"mother",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `mother` | `"mother",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `encarregado` | `"guardian",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `guardian` | `"guardian",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `tutor` | `"guardian",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `avo` | `"grandparent",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `grandparent` | `"grandparent",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `irmao` | `"sibling",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `sibling` | `"sibling",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `conjuge` | `"other",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `contacto_emergencia` | `"other",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `responsavel_financeiro` | `"other",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `responsavel_autorizado_buscar` | `"other",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `other` | `"other",` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `personId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `registrationNumber` | `z.string().trim().min(1, "Número de processo é obrigatório"),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `classGroupId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `admittedOn` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `guardians` | `z.array(studentGuardianInputSchema).default([]),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `newStatus` | `z.enum(studentStatusOptions),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `reason` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `personId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `expectedVersion` | `z.number().int().positive(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `fullName` | `z.string().trim().min(2).max(160),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `email` | `z.union([z.literal(""), z.string().trim().email()]).optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `phone` | `optionalPhone,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `province` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `municipality` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `commune` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `address` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `academicYearId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `enrolledOn` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `enrollmentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `status` | `z.enum(["active", "inactive", "transferred", "withdrawn"]).default("active"),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `enrollmentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `reason` | `optionalText,` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `academicYearId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `classGroupId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `status` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `query` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(250).default(100),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `guardianPersonId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `relationship` | `z.string().trim().min(1).max(40),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `isPrimary` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `studentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `guardianPersonId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `enrollmentId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/students/schemas.ts) |
-| `attendanceRate` | `z.coerce.number().min(0, "Mínimo 0%").max(100, "Máximo 100%"),` | [schemas.ts](../../../src/features/students/schemas.ts) |
+| Campo                           | Declaração observada                                                            | Schema de origem                                        |
+| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `query`                         | `z.string().trim().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `limit`                         | `z.number().int().min(1).max(1000).default(25),`                                | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `offset`                        | `z.number().int().min(0).default(0),`                                           | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `academicYearId`                | `z.string().uuid().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `classGroupId`                  | `z.string().uuid().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `status`                        | `z.string().trim().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `paymentStatus`                 | `z.string().trim().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `quickFilter`                   | `z.string().trim().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentId`                     | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentIds`                    | `z.array(z.string().uuid()).min(1).max(100),`                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `classGroupId`                  | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `academicYearId`                | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentIds`                    | `z.array(z.string().uuid()).min(1).max(100),`                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `newStatus`                     | `z.enum(studentStatusOptions),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `reason`                        | `z`                                                                             | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `guardian_person_id`            | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `relationship`                  | `z.string().trim().min(1),`                                                     | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `is_primary`                    | `z.boolean().default(false),`                                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `authorized_pickup`             | `z.boolean().default(true),`                                                    | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `pai`                           | `"father",`                                                                     | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `father`                        | `"father",`                                                                     | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `mae`                           | `"mother",`                                                                     | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `mother`                        | `"mother",`                                                                     | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `encarregado`                   | `"guardian",`                                                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `guardian`                      | `"guardian",`                                                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `tutor`                         | `"guardian",`                                                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `avo`                           | `"grandparent",`                                                                | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `grandparent`                   | `"grandparent",`                                                                | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `irmao`                         | `"sibling",`                                                                    | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `sibling`                       | `"sibling",`                                                                    | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `conjuge`                       | `"other",`                                                                      | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `contacto_emergencia`           | `"other",`                                                                      | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `responsavel_financeiro`        | `"other",`                                                                      | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `responsavel_autorizado_buscar` | `"other",`                                                                      | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `other`                         | `"other",`                                                                      | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `personId`                      | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `registrationNumber`            | `z.string().trim().min(1, "Número de processo é obrigatório"),`                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `classGroupId`                  | `z.string().uuid().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `academicYearId`                | `z.string().uuid().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `admittedOn`                    | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `guardians`                     | `z.array(studentGuardianInputSchema).default([]),`                              | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentId`                     | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `newStatus`                     | `z.enum(studentStatusOptions),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `reason`                        | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `personId`                      | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `expectedVersion`               | `z.number().int().positive(),`                                                  | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `fullName`                      | `z.string().trim().min(2).max(160),`                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `email`                         | `z.union([z.literal(""), z.string().trim().email()]).optional(),`               | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `phone`                         | `optionalPhone,`                                                                | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `province`                      | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `municipality`                  | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `commune`                       | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `address`                       | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentId`                     | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `classGroupId`                  | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `academicYearId`                | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `enrolledOn`                    | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `enrollmentId`                  | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `classGroupId`                  | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `status`                        | `z.enum(["active", "inactive", "transferred", "withdrawn"]).default("active"),` | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `enrollmentId`                  | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `reason`                        | `optionalText,`                                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `academicYearId`                | `z.string().uuid().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `classGroupId`                  | `z.string().uuid().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `status`                        | `z.string().trim().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `query`                         | `z.string().trim().optional(),`                                                 | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `limit`                         | `z.number().int().min(1).max(250).default(100),`                                | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentId`                     | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `guardianPersonId`              | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `relationship`                  | `z.string().trim().min(1).max(40),`                                             | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `isPrimary`                     | `z.boolean().default(false),`                                                   | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `studentId`                     | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `guardianPersonId`              | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `enrollmentId`                  | `z.string().uuid(),`                                                            | [schemas.ts](../../../src/features/students/schemas.ts) |
+| `attendanceRate`                | `z.coerce.number().min(0, "Mínimo 0%").max(100, "Máximo 100%"),`                | [schemas.ts](../../../src/features/students/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -139,23 +139,23 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `enrollment_applications` | `id`, `school_id`, `form_id`, `full_name`, `payload`, `status`, `decided_at`, `decided_by`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `student_id` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `finance_contracts` | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at` |
-| `finance_invoices` | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount` |
-| `finance_receipts` | `id`, `school_id`, `invoice_id`, `receipt_number`, `amount`, `paid_on`, `payment_method`, `received_by`, `status`, `reversed_at`, `reversed_by`, `reversal_reason`, `created_at`, `external_id` |
-| `grade_levels` | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `programs` | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile` |
-| `student_guardians` | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at` |
-| `student_status_history` | `id`, `school_id`, `student_id`, `previous_status`, `new_status`, `reason`, `changed_by`, `created_at` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
+| Tabela                    | Colunas existentes                                                                                                                                                                                                                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_years`          | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                              |
+| `audit_logs`              | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                  |
+| `class_groups`            | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
+| `class_subjects`          | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                |
+| `enrollment_applications` | `id`, `school_id`, `form_id`, `full_name`, `payload`, `status`, `decided_at`, `decided_by`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `student_id`                                                                                          |
+| `enrollments`             | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                          |
+| `finance_contracts`       | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at`                                                                                                                                                                     |
+| `finance_invoices`        | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount`                                       |
+| `finance_receipts`        | `id`, `school_id`, `invoice_id`, `receipt_number`, `amount`, `paid_on`, `payment_method`, `received_by`, `status`, `reversed_at`, `reversed_by`, `reversal_reason`, `created_at`, `external_id`                                                                                    |
+| `grade_levels`            | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                             |
+| `people`                  | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`  |
+| `programs`                | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile`                                                                                                                                                                       |
+| `student_guardians`       | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at`                                                                                 |
+| `student_status_history`  | `id`, `school_id`, `student_id`, `previous_status`, `new_status`, `reason`, `changed_by`, `created_at`                                                                                                                                                                             |
+| `students`                | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                 |
 
 Relações confirmadas:
 
@@ -201,25 +201,25 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `searchStudents` | GET | `searchStudentsInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `getStudentProfile` | GET | `getStudentInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `createStudent` | POST | `createStudentInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `enrollNewStudent` | POST | `enrollNewStudentInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `changeStudentStatus` | POST | `changeStudentStatusInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `updateStudentProfile` | POST | `updateStudentProfileInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `enrollStudentInClass` | POST | `enrollStudentInClassInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `listEnrollments` | GET | `listEnrollmentsInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `updateEnrollment` | POST | `updateEnrollmentInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `updateEnrollmentAttendance` | POST | `updateEnrollmentAttendanceInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `cancelEnrollment` | POST | `cancelEnrollmentInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `listAcademicDirectory` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/students/server.ts) |
-| `assignGuardian` | POST | `assignGuardianInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `removeGuardian` | POST | `removeGuardianInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `getStudentStatusHistory` | GET | `getStudentStatusHistoryInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `batchAssignClass` | POST | `batchAssignClassInputSchema` | [server.ts](../../../src/features/students/server.ts) |
-| `batchUpdateStudentStatus` | POST | `batchUpdateStudentStatusInputSchema` | [server.ts](../../../src/features/students/server.ts) |
+| Função                       | Método | Entrada                                       | Fonte                                                 |
+| ---------------------------- | ------ | --------------------------------------------- | ----------------------------------------------------- |
+| `searchStudents`             | GET    | `searchStudentsInputSchema`                   | [server.ts](../../../src/features/students/server.ts) |
+| `getStudentProfile`          | GET    | `getStudentInputSchema`                       | [server.ts](../../../src/features/students/server.ts) |
+| `createStudent`              | POST   | `createStudentInputSchema`                    | [server.ts](../../../src/features/students/server.ts) |
+| `enrollNewStudent`           | POST   | `enrollNewStudentInputSchema`                 | [server.ts](../../../src/features/students/server.ts) |
+| `changeStudentStatus`        | POST   | `changeStudentStatusInputSchema`              | [server.ts](../../../src/features/students/server.ts) |
+| `updateStudentProfile`       | POST   | `updateStudentProfileInputSchema`             | [server.ts](../../../src/features/students/server.ts) |
+| `enrollStudentInClass`       | POST   | `enrollStudentInClassInputSchema`             | [server.ts](../../../src/features/students/server.ts) |
+| `listEnrollments`            | GET    | `listEnrollmentsInputSchema`                  | [server.ts](../../../src/features/students/server.ts) |
+| `updateEnrollment`           | POST   | `updateEnrollmentInputSchema`                 | [server.ts](../../../src/features/students/server.ts) |
+| `updateEnrollmentAttendance` | POST   | `updateEnrollmentAttendanceInputSchema`       | [server.ts](../../../src/features/students/server.ts) |
+| `cancelEnrollment`           | POST   | `cancelEnrollmentInputSchema`                 | [server.ts](../../../src/features/students/server.ts) |
+| `listAcademicDirectory`      | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/students/server.ts) |
+| `assignGuardian`             | POST   | `assignGuardianInputSchema`                   | [server.ts](../../../src/features/students/server.ts) |
+| `removeGuardian`             | POST   | `removeGuardianInputSchema`                   | [server.ts](../../../src/features/students/server.ts) |
+| `getStudentStatusHistory`    | GET    | `getStudentStatusHistoryInputSchema`          | [server.ts](../../../src/features/students/server.ts) |
+| `batchAssignClass`           | POST   | `batchAssignClassInputSchema`                 | [server.ts](../../../src/features/students/server.ts) |
+| `batchUpdateStudentStatus`   | POST   | `batchUpdateStudentStatusInputSchema`         | [server.ts](../../../src/features/students/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

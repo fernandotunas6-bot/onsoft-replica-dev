@@ -145,7 +145,6 @@ Commits publicados de implementação: `faa4784` (contrato), `2b0f4be` (padrões
 `fc11dc2` (integração de main), `1be6a91` (feedback de pendência). O commit de
 relatório/evidências que contém esta secção não muda lógica da aplicação.
 
-
 ## Refinamento transversal — sidebar e modais compactos (23/10/2026)
 
 O contrato visual da PR #262 e o trabalho paralelo das PRs #252/#259/#270 já fazem
@@ -153,16 +152,15 @@ parte de `main`. Este incremento **não** substitui sidebar, navegação ou sist
 de diálogos; preserva a margem esquerda recta, a concavidade direita, o catálogo
 por papel e o estado dos formulários.
 
-| Área | Ajuste dirigido | Prova e limite |
-| --- | --- | --- |
-| Navegação | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
-| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange` | Teste de semântica com `Dialog` existente |
-| PremiumModal | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes | Teste DOM; sem conversão de matrículas/finanças em modal simplificado |
+| Área             | Ajuste dirigido                                                                                                         | Prova e limite                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Navegação        | Linhas raiz e subitem com alvo mínimo de 44 px em ecrãs estreitos; em desktop (lg) mantêm a densidade original 36/32 px | Contrato em `tests/ui/compact-sidebar-modal-touch.test.tsx`; testar 390/1024 px com sessão no staging |
+| Diálogos simples | Acções no rodapé com alvo mínimo de 44 px, sem alterar os dois botões, labels ou `onOpenChange`                         | Teste de semântica com `Dialog` existente                                                             |
+| PremiumModal     | Sombra leve e rodapé neutro; continuam campos, título, descrição, botões e scroll existentes                            | Teste DOM; sem conversão de matrículas/finanças em modal simplificado                                 |
 
 Estado: alterações submetidas à revisão/CI; **não concluir QA autenticada nem
 declarar deploy de produção sem resultados reais**. O inventário restante de
 modais grandes e o ensaio de diferentes escolas continuam pendentes.
-
 
 ## Flyouts laterais compactos — referência Claude IDE (24/10/2026)
 

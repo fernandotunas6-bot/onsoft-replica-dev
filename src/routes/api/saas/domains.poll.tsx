@@ -5,16 +5,11 @@ import { pollCustomDomainDns, persistPollResult } from "@/features/saas/domain-p
 import { domainDnsInstructions } from "@/features/saas/platform-ops";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { requireTenantAccess, resolveBearerSession } from "@/features/saas/platform-guard";
+import { authErrorStatus } from "@/features/saas/auth-error-status";
 
 // style-check: route-exempt — polling DNS de domínio personalizado.
 
 const APPS = ["web", "admin"] as const;
-
-function authErrorStatus(message: string): number {
-  if (message === "Unauthorized" || message.includes("Sem permissão")) return 401;
-  if (message.includes("não encontrada")) return 404;
-  return 500;
-}
 
 const pollBodySchema = z.object({
   domainId: z.string().guid("domainId deve ser um UUID válido."),

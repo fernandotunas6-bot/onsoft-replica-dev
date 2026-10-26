@@ -79,67 +79,67 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `academic_year_id` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `module` | `z.enum(importModuleOptions),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `file_name` | `z.string().min(1),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `total_rows` | `z.number().int().nonnegative().default(0),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `schema_version` | `z.string().min(1).default("1.0"),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `exchange_mode` | `z.enum(importExchangeModeOptions).default("human"),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `source_format` | `z.enum(importSourceFormatOptions).default("xlsx"),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `dry_run` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `idempotency_key` | `z.string().trim().min(1).max(200).optional(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `manifest` | `z.record(z.string(), z.unknown()).default({}),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `dependency_plan` | `z.array(z.unknown()).default([]),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `file_base64` | `z.string().min(1).max(35_000_000, "Ficheiro demasiado grande (máximo 25 MB)."),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `file_name` | `z.string().min(1).max(255),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `job_id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `sheet_name` | `z.string().min(1),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `rows` | `z.array(z.record(z.string(), z.unknown())),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `column_mapping` | `z.record(z.string(), z.string()),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `job_id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `batch_size` | `z` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `dry_run` | `z.boolean().default(false),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `duplicate_strategy` | `z.enum(["update", "ignore", "create_new"]).default("update"),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `after_row_number` | `z.number().int().nonnegative().default(0),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `job_id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `module` | `z.enum(importModuleOptions),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `mappings` | `z.record(z.string(), z.string()),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `save_template_name` | `z.string().optional(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `row_id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `field_name` | `z.string(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `new_value` | `z.any(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `job_id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `reason` | `z.string().optional(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `id` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `school_id` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `module` | `ImportModule;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `file_name` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `status` | `ImportJobStatus;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `total_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `valid_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `invalid_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `duplicate_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `inserted_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `updated_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `ignored_rows` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `created_at` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `id` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `import_job_id` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `sheet_name` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `row_number` | `number;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `raw_data` | `Record<string, ImportJsonValue>;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `normalized_data` | `Record<string, ImportJsonValue>;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `status` | `ImportRowStatus;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `warnings` | `string[];` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `errors` | `string[];` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `created_at` | `string;` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `module` | `z.enum(importModuleOptions),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `academic_year_id` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `class_group_id` | `z.string().uuid().optional().nullable(),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `modules` | `z.array(z.enum(importModuleOptions)).min(1),` | [schemas.ts](../../../src/features/import/schemas.ts) |
-| `mode` | `z.enum(importExchangeModeOptions),` | [schemas.ts](../../../src/features/import/schemas.ts) |
+| Campo                | Declaração observada                                                              | Schema de origem                                      |
+| -------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `academic_year_id`   | `z.string().uuid().optional().nullable(),`                                        | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `module`             | `z.enum(importModuleOptions),`                                                    | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `file_name`          | `z.string().min(1),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `total_rows`         | `z.number().int().nonnegative().default(0),`                                      | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `schema_version`     | `z.string().min(1).default("1.0"),`                                               | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `exchange_mode`      | `z.enum(importExchangeModeOptions).default("human"),`                             | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `source_format`      | `z.enum(importSourceFormatOptions).default("xlsx"),`                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `dry_run`            | `z.boolean().default(false),`                                                     | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `idempotency_key`    | `z.string().trim().min(1).max(200).optional(),`                                   | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `manifest`           | `z.record(z.string(), z.unknown()).default({}),`                                  | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `dependency_plan`    | `z.array(z.unknown()).default([]),`                                               | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `file_base64`        | `z.string().min(1).max(35_000_000, "Ficheiro demasiado grande (máximo 25 MB)."),` | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `file_name`          | `z.string().min(1).max(255),`                                                     | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `job_id`             | `z.string().uuid(),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `sheet_name`         | `z.string().min(1),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `rows`               | `z.array(z.record(z.string(), z.unknown())),`                                     | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `column_mapping`     | `z.record(z.string(), z.string()),`                                               | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `job_id`             | `z.string().uuid(),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `batch_size`         | `z`                                                                               | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `dry_run`            | `z.boolean().default(false),`                                                     | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `duplicate_strategy` | `z.enum(["update", "ignore", "create_new"]).default("update"),`                   | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `after_row_number`   | `z.number().int().nonnegative().default(0),`                                      | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `job_id`             | `z.string().uuid(),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `module`             | `z.enum(importModuleOptions),`                                                    | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `mappings`           | `z.record(z.string(), z.string()),`                                               | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `save_template_name` | `z.string().optional(),`                                                          | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `row_id`             | `z.string().uuid(),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `field_name`         | `z.string(),`                                                                     | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `new_value`          | `z.any(),`                                                                        | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `job_id`             | `z.string().uuid(),`                                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `reason`             | `z.string().optional(),`                                                          | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `id`                 | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `school_id`          | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `module`             | `ImportModule;`                                                                   | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `file_name`          | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `status`             | `ImportJobStatus;`                                                                | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `total_rows`         | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `valid_rows`         | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `invalid_rows`       | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `duplicate_rows`     | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `inserted_rows`      | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `updated_rows`       | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `ignored_rows`       | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `created_at`         | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `id`                 | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `import_job_id`      | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `sheet_name`         | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `row_number`         | `number;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `raw_data`           | `Record<string, ImportJsonValue>;`                                                | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `normalized_data`    | `Record<string, ImportJsonValue>;`                                                | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `status`             | `ImportRowStatus;`                                                                | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `warnings`           | `string[];`                                                                       | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `errors`             | `string[];`                                                                       | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `created_at`         | `string;`                                                                         | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `module`             | `z.enum(importModuleOptions),`                                                    | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `academic_year_id`   | `z.string().uuid().optional().nullable(),`                                        | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `class_group_id`     | `z.string().uuid().optional().nullable(),`                                        | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `modules`            | `z.array(z.enum(importModuleOptions)).min(1),`                                    | [schemas.ts](../../../src/features/import/schemas.ts) |
+| `mode`               | `z.enum(importExchangeModeOptions),`                                              | [schemas.ts](../../../src/features/import/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -153,48 +153,48 @@ Especificação complementar: [SGA_IMPORT_EXPORT_PREMIUM_SPEC.md](../SGA_IMPORT_
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_levels` | `id`, `school_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `campuses` | `id`, `school_id`, `code`, `name`, `province`, `municipality`, `is_active`, `created_at`, `address` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `enrollment_applications` | `id`, `school_id`, `form_id`, `full_name`, `payload`, `status`, `decided_at`, `decided_by`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `student_id` |
-| `enrollment_forms` | `id`, `school_id`, `slug`, `title`, `subtitle`, `hero_text`, `accent_color`, `logo_url`, `is_open`, `visible_fields`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `fee_items` | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id` |
-| `fee_plans` | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at` |
-| `finance_contracts` | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at` |
-| `finance_invoices` | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount` |
-| `finance_receipts` | `id`, `school_id`, `invoice_id`, `receipt_number`, `amount`, `paid_on`, `payment_method`, `received_by`, `status`, `reversed_at`, `reversed_by`, `reversal_reason`, `created_at`, `external_id` |
-| `grade_items` | `id`, `school_id`, `gradebook_id`, `code`, `name`, `kind`, `weight`, `max_score`, `assessed_on`, `sequence`, `created_by`, `created_at` |
-| `grade_levels` | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `grade_scores` | `id`, `school_id`, `grade_item_id`, `enrollment_id`, `score`, `status`, `note`, `recorded_by`, `updated_by`, `created_at`, `updated_at`, `pending_score`, `pending_reason`, `pending_requested_by`, `pending_requested_at` |
-| `gradebooks` | `id`, `school_id`, `academic_year_id`, `term_id`, `class_subject_id`, `class_group_id`, `rule_set_id`, `status`, `opened_at`, `submitted_at`, `closed_at`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `hr_departments` | `id`, `school_id`, `name`, `code`, `description`, `parent_department_id`, `active`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `hr_employments` | `id`, `school_id`, `person_id`, `position_id`, `department_id`, `employee_number`, `employment_type`, `status`, `hire_date`, `termination_date`, `work_location`, `weekly_hours`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `hr_positions` | `id`, `school_id`, `department_id`, `name`, `code`, `category`, `description`, `active`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `import_audits` | `id`, `import_job_id`, `row_id`, `table_name`, `target_id`, `action_type`, `before_data`, `after_data`, `created_at`, `sequence_no`, `reversible`, `source_hash` |
-| `import_jobs` | `id`, `school_id`, `academic_year_id`, `user_id`, `module`, `file_name`, `file_path`, `status`, `total_rows`, `valid_rows`, `invalid_rows`, `duplicate_rows`, `inserted_rows`, `updated_rows`, `ignored_rows`, `job_metadata`, `started_at`, `completed_at`, `created_at`, `updated_at`, `schema_version`, `exchange_mode`, `source_format`, `dry_run`, `idempotency_key`, `manifest`, `dependency_plan`, `error_summary` |
-| `import_rows` | `id`, `import_job_id`, `sheet_name`, `row_number`, `raw_data`, `normalized_data`, `status`, `warnings`, `errors`, `duplicate_of`, `target_record_id`, `created_at`, `natural_key`, `natural_key_hash`, `validation_stage`, `resolution`, `source_hash` |
-| `import_table_specs` | `id`, `table_schema`, `table_name`, `direct_import_policy`, `export_policy`, `sensitivity`, `module_code`, `dependency_rank`, `natural_key_columns`, `fk_dependencies`, `derived_from`, `notes`, `active`, `created_at`, `updated_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `programs` | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile` |
-| `rooms` | `id`, `school_id`, `code`, `name`, `capacity`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `room_type`, `campus_id`, `building`, `block`, `floor`, `resources`, `accessibility`, `notes` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `siga_assessment_items` | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `name`, `kind`, `component`, `assessed_on`, `max_score`, `counts_toward_pauta`, `allow_recovery`, `description`, `created_at`, `updated_at`, `created_by`, `updated_by`, `lesson_plan_component_id`, `starts_at`, `duration_minutes`, `purpose` |
-| `siga_attendance_records` | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at` |
-| `siga_attendance_sessions` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by` |
-| `student_academic_history` | `id`, `school_id`, `student_id`, `academic_year_label`, `grade_level`, `previous_school`, `final_average`, `outcome`, `notes`, `created_by`, `created_at`, `updated_at`, `enrollment_id`, `grade_sheet_id`, `subject_results`, `absence_percentage`, `updated_by` |
-| `student_guardians` | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `terms` | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by` |
-| `timetable_slots` | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes` |
+| Tabela                     | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_levels`          | `id`, `school_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                                                  |
+| `academic_years`           | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                                                     |
+| `audit_logs`               | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                                         |
+| `campuses`                 | `id`, `school_id`, `code`, `name`, `province`, `municipality`, `is_active`, `created_at`, `address`                                                                                                                                                                                                                                                                                                                       |
+| `class_groups`             | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                                        |
+| `class_subjects`           | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                                       |
+| `enrollment_applications`  | `id`, `school_id`, `form_id`, `full_name`, `payload`, `status`, `decided_at`, `decided_by`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `student_id`                                                                                                                                                                                                                                 |
+| `enrollment_forms`         | `id`, `school_id`, `slug`, `title`, `subtitle`, `hero_text`, `accent_color`, `logo_url`, `is_open`, `visible_fields`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                     |
+| `enrollments`              | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                                                 |
+| `fee_items`                | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id`                                                                                                                                                                                                                                                                                              |
+| `fee_plans`                | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at`                                                                                                                                                                                                                                                                                                                            |
+| `finance_contracts`        | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at`                                                                                                                                                                                                                                                                                                            |
+| `finance_invoices`         | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount`                                                                                                                                                                              |
+| `finance_receipts`         | `id`, `school_id`, `invoice_id`, `receipt_number`, `amount`, `paid_on`, `payment_method`, `received_by`, `status`, `reversed_at`, `reversed_by`, `reversal_reason`, `created_at`, `external_id`                                                                                                                                                                                                                           |
+| `grade_items`              | `id`, `school_id`, `gradebook_id`, `code`, `name`, `kind`, `weight`, `max_score`, `assessed_on`, `sequence`, `created_by`, `created_at`                                                                                                                                                                                                                                                                                   |
+| `grade_levels`             | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                                    |
+| `grade_scores`             | `id`, `school_id`, `grade_item_id`, `enrollment_id`, `score`, `status`, `note`, `recorded_by`, `updated_by`, `created_at`, `updated_at`, `pending_score`, `pending_reason`, `pending_requested_by`, `pending_requested_at`                                                                                                                                                                                                |
+| `gradebooks`               | `id`, `school_id`, `academic_year_id`, `term_id`, `class_subject_id`, `class_group_id`, `rule_set_id`, `status`, `opened_at`, `submitted_at`, `closed_at`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                         |
+| `hr_departments`           | `id`, `school_id`, `name`, `code`, `description`, `parent_department_id`, `active`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                                                       |
+| `hr_employments`           | `id`, `school_id`, `person_id`, `position_id`, `department_id`, `employee_number`, `employment_type`, `status`, `hire_date`, `termination_date`, `work_location`, `weekly_hours`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                |
+| `hr_positions`             | `id`, `school_id`, `department_id`, `name`, `code`, `category`, `description`, `active`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                                                  |
+| `import_audits`            | `id`, `import_job_id`, `row_id`, `table_name`, `target_id`, `action_type`, `before_data`, `after_data`, `created_at`, `sequence_no`, `reversible`, `source_hash`                                                                                                                                                                                                                                                          |
+| `import_jobs`              | `id`, `school_id`, `academic_year_id`, `user_id`, `module`, `file_name`, `file_path`, `status`, `total_rows`, `valid_rows`, `invalid_rows`, `duplicate_rows`, `inserted_rows`, `updated_rows`, `ignored_rows`, `job_metadata`, `started_at`, `completed_at`, `created_at`, `updated_at`, `schema_version`, `exchange_mode`, `source_format`, `dry_run`, `idempotency_key`, `manifest`, `dependency_plan`, `error_summary` |
+| `import_rows`              | `id`, `import_job_id`, `sheet_name`, `row_number`, `raw_data`, `normalized_data`, `status`, `warnings`, `errors`, `duplicate_of`, `target_record_id`, `created_at`, `natural_key`, `natural_key_hash`, `validation_stage`, `resolution`, `source_hash`                                                                                                                                                                    |
+| `import_table_specs`       | `id`, `table_schema`, `table_name`, `direct_import_policy`, `export_policy`, `sensitivity`, `module_code`, `dependency_rank`, `natural_key_columns`, `fk_dependencies`, `derived_from`, `notes`, `active`, `created_at`, `updated_at`                                                                                                                                                                                     |
+| `people`                   | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                                         |
+| `programs`                 | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile`                                                                                                                                                                                                                                                                                                              |
+| `rooms`                    | `id`, `school_id`, `code`, `name`, `capacity`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `room_type`, `campus_id`, `building`, `block`, `floor`, `resources`, `accessibility`, `notes`                                                                                                                                                                                   |
+| `school_settings`          | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                                               |
+| `schools`                  | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude`                   |
+| `siga_assessment_items`    | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `name`, `kind`, `component`, `assessed_on`, `max_score`, `counts_toward_pauta`, `allow_recovery`, `description`, `created_at`, `updated_at`, `created_by`, `updated_by`, `lesson_plan_component_id`, `starts_at`, `duration_minutes`, `purpose`                                                                                                                |
+| `siga_attendance_records`  | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                                                                               |
+| `siga_attendance_sessions` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by`                                                                                                                                                                               |
+| `student_academic_history` | `id`, `school_id`, `student_id`, `academic_year_label`, `grade_level`, `previous_school`, `final_average`, `outcome`, `notes`, `created_by`, `created_at`, `updated_at`, `enrollment_id`, `grade_sheet_id`, `subject_results`, `absence_percentage`, `updated_by`                                                                                                                                                         |
+| `student_guardians`        | `id`, `school_id`, `student_id`, `guardian_person_id`, `relationship`, `is_primary`, `is_financially_responsible`, `is_pickup_authorized`, `valid_from`, `valid_until`, `created_by`, `created_at`                                                                                                                                                                                                                        |
+| `students`                 | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                                        |
+| `subjects`                 | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version`                                |
+| `teachers`                 | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                                    |
+| `terms`                    | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                               |
+| `timetable_slots`          | `id`, `school_id`, `class_subject_id`, `weekday`, `starts_at`, `ends_at`, `room`, `status`, `created_by`, `created_at`, `updated_by`, `schedule_id`, `room_id`, `shift_id`, `day_period_number`, `notes`                                                                                                                                                                                                                  |
 
 Relações confirmadas:
 
@@ -299,18 +299,18 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `analyzeImportFile` | POST | `analyzeImportFileInputSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `createImportJob` | POST | `createImportJobSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `listImportJobs` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/import/server.ts) |
-| `stageImportRows` | POST | `stageImportRowsInputSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `listStagingRows` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/import/server.ts) |
-| `updateStagingRowField` | POST | `updateStagingRowSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `commitImportBatch` | POST | `commitImportBatchSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `rollbackImportJob` | POST | `rollbackImportJobSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `downloadOfficialExcelTemplateFn` | POST | `downloadOfficialTemplateSchema` | [server.ts](../../../src/features/import/server.ts) |
-| `exportSchoolDataFn` | POST | `exportSchoolDataSchema` | [server.ts](../../../src/features/import/server.ts) |
+| Função                            | Método | Entrada                                       | Fonte                                               |
+| --------------------------------- | ------ | --------------------------------------------- | --------------------------------------------------- |
+| `analyzeImportFile`               | POST   | `analyzeImportFileInputSchema`                | [server.ts](../../../src/features/import/server.ts) |
+| `createImportJob`                 | POST   | `createImportJobSchema`                       | [server.ts](../../../src/features/import/server.ts) |
+| `listImportJobs`                  | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/import/server.ts) |
+| `stageImportRows`                 | POST   | `stageImportRowsInputSchema`                  | [server.ts](../../../src/features/import/server.ts) |
+| `listStagingRows`                 | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/import/server.ts) |
+| `updateStagingRowField`           | POST   | `updateStagingRowSchema`                      | [server.ts](../../../src/features/import/server.ts) |
+| `commitImportBatch`               | POST   | `commitImportBatchSchema`                     | [server.ts](../../../src/features/import/server.ts) |
+| `rollbackImportJob`               | POST   | `rollbackImportJobSchema`                     | [server.ts](../../../src/features/import/server.ts) |
+| `downloadOfficialExcelTemplateFn` | POST   | `downloadOfficialTemplateSchema`              | [server.ts](../../../src/features/import/server.ts) |
+| `exportSchoolDataFn`              | POST   | `exportSchoolDataSchema`                      | [server.ts](../../../src/features/import/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

@@ -61,19 +61,19 @@ Esta é a decisão com mais consequência de todo o documento.
 
 ## Tabela a tabela
 
-| YFT | SIGA | Veredicto |
-|---|---|---|
-| `Schools` (18) | `schools` (29) | Mapeia, com perdas dos dois lados |
-| `Users` (22) | `people` + `school_memberships` + `roles` | Parte-se em três |
-| `Students` (17) | `people` + `students` + `student_guardians` | Parte-se em três |
-| `Classes` (8) | `class_groups` (19) + `grade_levels` | Mapeia; a propina sai para o financeiro |
-| `Subjects` (4) | `subjects` (27) | Mapeia, o SIGA é muito mais rico |
-| `SubjectClasses` (5) | `class_subjects` (11) | Mapeia quase directo |
-| `Enrollments` (8) | `enrollments` + `gradebooks` + `grade_items` + `grade_scores` | **É notas, não matrículas** |
-| `Transactions` (10) | `finance_invoices` + `finance_receipts` | Parte-se em dois |
-| `Receipts` | `finance_receipts` (14) | Mapeia |
-| `DeviceTokens` (6) | — | Não encontrei equivalente |
-| `SuperAdmins` (5) | `roles` / `member_roles` | É um papel, não uma tabela |
+| YFT                  | SIGA                                                          | Veredicto                               |
+| -------------------- | ------------------------------------------------------------- | --------------------------------------- |
+| `Schools` (18)       | `schools` (29)                                                | Mapeia, com perdas dos dois lados       |
+| `Users` (22)         | `people` + `school_memberships` + `roles`                     | Parte-se em três                        |
+| `Students` (17)      | `people` + `students` + `student_guardians`                   | Parte-se em três                        |
+| `Classes` (8)        | `class_groups` (19) + `grade_levels`                          | Mapeia; a propina sai para o financeiro |
+| `Subjects` (4)       | `subjects` (27)                                               | Mapeia, o SIGA é muito mais rico        |
+| `SubjectClasses` (5) | `class_subjects` (11)                                         | Mapeia quase directo                    |
+| `Enrollments` (8)    | `enrollments` + `gradebooks` + `grade_items` + `grade_scores` | **É notas, não matrículas**             |
+| `Transactions` (10)  | `finance_invoices` + `finance_receipts`                       | Parte-se em dois                        |
+| `Receipts`           | `finance_receipts` (14)                                       | Mapeia                                  |
+| `DeviceTokens` (6)   | —                                                             | Não encontrei equivalente               |
+| `SuperAdmins` (5)    | `roles` / `member_roles`                                      | É um papel, não uma tabela              |
 
 ### A armadilha do nome `Enrollments`
 

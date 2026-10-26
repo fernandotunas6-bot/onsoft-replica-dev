@@ -71,32 +71,32 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `academic_levels` | `id`, `school_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `academic_years` | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by` |
-| `audit_logs` | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at` |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `course_unit_enrollments` | `id`, `school_id`, `student_id`, `academic_year_id`, `program_id`, `program_subject_id`, `semester`, `credits`, `attempt`, `status`, `final_grade`, `season`, `credits_earned`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `class_group_id` |
-| `enrollment_applications` | `id`, `school_id`, `form_id`, `full_name`, `payload`, `status`, `decided_at`, `decided_by`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `student_id` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `fee_items` | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id` |
-| `fee_plans` | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at` |
-| `finance_contracts` | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at` |
-| `finance_invoices` | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount` |
-| `grade_levels` | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `program_subject_prerequisites` | `id`, `school_id`, `program_subject_id`, `required_program_subject_id`, `created_at`, `created_by` |
-| `program_subjects` | `id`, `school_id`, `program_id`, `subject_id`, `semester`, `credits`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version` |
-| `programs` | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile` |
-| `school_settings` | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `student_special_statuses` | `id`, `school_id`, `student_id`, `kind`, `valid_from`, `valid_until`, `employer`, `evidence_note`, `granted_by`, `revoked_at`, `revoked_by`, `revoke_reason`, `created_at`, `updated_at`, `version` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
-| `terms` | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by` |
+| Tabela                          | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `academic_levels`               | `id`, `school_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                                |
+| `academic_years`                | `id`, `school_id`, `name`, `starts_on`, `ends_on`, `status`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                                                   |
+| `audit_logs`                    | `id`, `school_id`, `actor_user_id`, `action`, `entity_type`, `entity_id`, `request_id`, `metadata`, `occurred_at`                                                                                                                                                                                                                                                                                       |
+| `class_groups`                  | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                                      |
+| `class_subjects`                | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                                     |
+| `course_unit_enrollments`       | `id`, `school_id`, `student_id`, `academic_year_id`, `program_id`, `program_subject_id`, `semester`, `credits`, `attempt`, `status`, `final_grade`, `season`, `credits_earned`, `notes`, `created_at`, `updated_at`, `created_by`, `updated_by`, `class_group_id`                                                                                                                                       |
+| `enrollment_applications`       | `id`, `school_id`, `form_id`, `full_name`, `payload`, `status`, `decided_at`, `decided_by`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`, `student_id`                                                                                                                                                                                                               |
+| `enrollments`                   | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                                                                                                                                               |
+| `fee_items`                     | `id`, `school_id`, `fee_plan_id`, `code`, `name`, `kind`, `amount`, `frequency`, `is_active`, `created_at`, `grade_level_id`                                                                                                                                                                                                                                                                            |
+| `fee_plans`                     | `id`, `school_id`, `academic_year_id`, `code`, `name`, `currency_code`, `status`, `created_at`                                                                                                                                                                                                                                                                                                          |
+| `finance_contracts`             | `id`, `school_id`, `enrollment_id`, `fee_plan_id`, `discount_percentage`, `status`, `created_by`, `created_at`                                                                                                                                                                                                                                                                                          |
+| `finance_invoices`              | `id`, `school_id`, `contract_id`, `fee_item_id`, `invoice_number`, `competence_month`, `amount`, `discount_amount`, `due_date`, `status`, `issued_by`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `created_at`, `penalty_amount`                                                                                                                                                            |
+| `grade_levels`                  | `id`, `school_id`, `program_id`, `code`, `name`, `sequence`, `is_active`, `created_at`                                                                                                                                                                                                                                                                                                                  |
+| `people`                        | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                                       |
+| `program_subject_prerequisites` | `id`, `school_id`, `program_subject_id`, `required_program_subject_id`, `created_at`, `created_by`                                                                                                                                                                                                                                                                                                      |
+| `program_subjects`              | `id`, `school_id`, `program_id`, `subject_id`, `semester`, `credits`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`, `deleted_at`, `version`                                                                                                                                                                                                                                         |
+| `programs`                      | `id`, `school_id`, `academic_level_id`, `code`, `name`, `kind`, `is_active`, `created_at`, `grading_profile`                                                                                                                                                                                                                                                                                            |
+| `school_settings`               | `id`, `school_id`, `domain`, `version`, `value`, `changed_by`, `created_at`                                                                                                                                                                                                                                                                                                                             |
+| `schools`                       | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `student_special_statuses`      | `id`, `school_id`, `student_id`, `kind`, `valid_from`, `valid_until`, `employer`, `evidence_note`, `granted_by`, `revoked_at`, `revoked_by`, `revoke_reason`, `created_at`, `updated_at`, `version`                                                                                                                                                                                                     |
+| `students`                      | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                                                                                                      |
+| `subjects`                      | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version`              |
+| `teachers`                      | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                                  |
+| `terms`                         | `id`, `school_id`, `academic_year_id`, `name`, `sequence`, `starts_on`, `ends_on`, `created_at`, `created_by`, `updated_by`                                                                                                                                                                                                                                                                             |
 
 Relações confirmadas:
 
@@ -164,43 +164,43 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listHigherEdPrograms` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `createHigherEdProgram` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `updateHigherEdProgram` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `listSchoolSubjectsForPlan` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getProgramPlan` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `savePlanUnit` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `removePlanUnit` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `setUnitPrerequisites` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `listProgramStudents` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getStudentHigherEd` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getStudentTranscript` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `issueHigherEdCertificate` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `enrollStudentUnits` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `enrollCohort` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `cancelUnitEnrollment` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `listStalePendingEnrollments` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `correctUnitResult` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `recordDoctoralDecision` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `grantUnitExemption` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `recordUnitResult` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `listLaunchableUnits` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getUnitSheet` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getMyHigherEd` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getMyEnrollmentOffer` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `enrollMyUnits` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getAccessRanking` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `setApplicationAccessScore` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `exportSisiesWorkbook` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getHigherEdFees` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `saveHigherEdFees` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getHigherEdRegulation` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `saveHigherEdRegulation` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts) |
-| `getStudentSpecialStatuses` | GET | `Sem schema de entrada explícito neste bloco` | [student-status.ts](../../../src/features/higher-ed/student-status.ts) |
-| `grantWorkerStudentStatus` | POST | `Sem schema de entrada explícito neste bloco` | [student-status.ts](../../../src/features/higher-ed/student-status.ts) |
-| `revokeStudentSpecialStatus` | POST | `Sem schema de entrada explícito neste bloco` | [student-status.ts](../../../src/features/higher-ed/student-status.ts) |
+| Função                        | Método | Entrada                                       | Fonte                                                                  |
+| ----------------------------- | ------ | --------------------------------------------- | ---------------------------------------------------------------------- |
+| `listHigherEdPrograms`        | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `createHigherEdProgram`       | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `updateHigherEdProgram`       | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `listSchoolSubjectsForPlan`   | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getProgramPlan`              | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `savePlanUnit`                | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `removePlanUnit`              | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `setUnitPrerequisites`        | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `listProgramStudents`         | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getStudentHigherEd`          | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getStudentTranscript`        | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `issueHigherEdCertificate`    | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `enrollStudentUnits`          | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `enrollCohort`                | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `cancelUnitEnrollment`        | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `listStalePendingEnrollments` | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `correctUnitResult`           | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `recordDoctoralDecision`      | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `grantUnitExemption`          | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `recordUnitResult`            | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `listLaunchableUnits`         | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getUnitSheet`                | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getMyHigherEd`               | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getMyEnrollmentOffer`        | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `enrollMyUnits`               | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getAccessRanking`            | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `setApplicationAccessScore`   | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `exportSisiesWorkbook`        | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getHigherEdFees`             | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `saveHigherEdFees`            | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getHigherEdRegulation`       | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `saveHigherEdRegulation`      | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/higher-ed/server.ts)                 |
+| `getStudentSpecialStatuses`   | GET    | `Sem schema de entrada explícito neste bloco` | [student-status.ts](../../../src/features/higher-ed/student-status.ts) |
+| `grantWorkerStudentStatus`    | POST   | `Sem schema de entrada explícito neste bloco` | [student-status.ts](../../../src/features/higher-ed/student-status.ts) |
+| `revokeStudentSpecialStatus`  | POST   | `Sem schema de entrada explícito neste bloco` | [student-status.ts](../../../src/features/higher-ed/student-status.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

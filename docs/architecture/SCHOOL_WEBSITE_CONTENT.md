@@ -76,7 +76,6 @@ npm --prefix painel/escolas test
 
 Os testes usam dados fictícios e dependências controladas; não activam a integração nem alteram a base de produção. A activação real depende do endereço e da implantação SIGA da escola e da configuração do website.
 
-
 ## Blog de cada escola
 
 **Definições → Blog da escola** permite criar artigos, editar título/resumo/texto/categoria/capa/assinatura pública, guardar rascunhos, publicar, retirar publicação, arquivar e restaurar. Os artigos não usam `web_blog_posts`: essa tabela continua a pertencer ao blog comercial do produto. Cada artigo escolar tem um domínio `school_blog.{slug}` na tabela existente de definições. A chave única `(school_id, domain)` impede endereços duplicados entre artigos da mesma escola; escolas diferentes podem usar o mesmo slug. O endereço de um artigo fica fixo após a primeira gravação, e a revisão impede sobrepor edições concorrentes.

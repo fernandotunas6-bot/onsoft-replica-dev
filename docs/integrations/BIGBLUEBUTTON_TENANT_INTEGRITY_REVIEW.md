@@ -1,6 +1,7 @@
 # BigBlueButton — revisão de integridade referencial multi-tenant
 
 A inspeção do esquema actual confirmou as seguintes restrições únicas:
+
 - `class_groups(school_id, id)`
 - `teachers(school_id, id)`
 
@@ -13,6 +14,7 @@ Substituir essas referências por chaves estrangeiras compostas, ligando `(schoo
 Também se recomenda validar o modelo de permissões e adicionar testes de inserção que tentem combinar escola A com turma/professor da escola B. A migração continua **não aplicada** e não deve ser integrada antes da correcção.
 
 ## Outros requisitos
+
 - O servidor deve obter escola, utilizador, matrícula e atribuição docente a partir de consultas autenticadas, nunca aceitar esse contexto directamente do browser.
 - Os links BBB devem ser criados apenas após autorização e não guardados em logs.
 - O serviço de reuniões deve funcionar com segredos de servidor, sem `VITE_`.

@@ -4,27 +4,27 @@ Auditoria estática da cópia do repositório fernandotunas6-bot/onsoft-replica-
 base Mobile V4 0249dab7, com incrementos locais Flutter. Não é auditoria da
 produção nem de todas as PRs actuais; schema snapshot não prova RLS instalada.
 
-| Área | Estado do código auditado | Flutter / próximo passo | Evidência |
-|---|---|---|---|
-| Sessão, escola e papel | Existente | Parcial: email/TOTP e vínculos; sem ensaio real | src/features/mobile-v4/session-core.server.ts, authorization.ts |
-| ID/B.I. + senha | Parcial | Bloqueado por contrato móvel, contexto escola e CAPTCHA | src/features/access/bi-login.ts |
-| Google OAuth/recuperação | Parcial no ecossistema | Por implementar no Flutter com redirects e captcha compatíveis | src/features/auth/reset-password-server.ts; cliente Supabase |
-| Turmas/disciplinas/horários/tarefas | Existente em API | Páginas de consulta implementadas, testes não executados | academic-catalog.server.ts; lib/academic_page.dart |
-| Presenças/chamada | Existente em código servidor | Por migrar UI; exige MFA e validação de turmas | attendance.server.ts, attendance-call.server.ts |
-| Notas e diários | Existente em API | Por migrar UI, não presumir escala nem publicação | results.server.ts, gradebooks.server.ts |
-| Propinas/recibos/Payflow | Existente em API | Por migrar UI; pagamento confirmado pelo provedor | finance.server.ts |
-| Chat/Storage/Realtime | Parcial | Flutter só lista conversas; escrita depende de capacidades instaladas | chat.server.ts, chat-commands.server.ts, chat-files.server.ts, browser.ts |
-| Avisos | Existente em API | Por migrar UI/paginação/marcação | notifications.server.ts |
-| Integrações por escola | Existente no portal | Falta endpoint móvel de capacidades | src/features/integrations/server.ts, install.ts |
-| Zoom | Parcial, OAuth/API no servidor | Falta endpoint móvel autorizado; configuração e execução não verificadas | src/features/integrations/zoom.ts; api/integrations/zoom/callback.tsx |
-| WhatsApp | Parcial: mensagens/lançadores | Convite da turma requer contrato e link validado; não há prova de grupos automáticos | whatsapp-client.ts, actions.ts |
-| Google Calendar | Parcial: subscrição ICS/lançador | Não equivale a sincronização bidireccional via API | integrations/install.ts |
-| Gmail/Drive/Classroom/Meet | Por auditar em profundidade | Não considerar integrações operacionais só por existirem no catálogo | integrations/actions.ts; saas/mailbox-google.ts |
-| BigBlueButton | Por implementar no código examinado | Conector servidor, endpoint e permissões próprios | pesquisa de BBB/BigBlueButton sem implementação encontrada |
-| Transporte/GPS | Por implementar no código examinado | Schema privado, autorização, dispositivos e API | pesquisa em src e snapshot sem módulo operacional encontrado |
-| Biblioteca | Por expor ao cliente móvel | Não consta do router HTTP Mobile V4 examinado | src/features/mobile-v4/http.server.ts |
-| Flutter build/testes | Bloqueado no executor | SDK ausente; workflow preparado, não executado | .github/workflows/mobile-flutter.yml |
-| Publicação | Bloqueada | Envio público rejeitado anteriormente; domínio não alterado | trabalho local; sem push nesta expansão |
+| Área                                | Estado do código auditado           | Flutter / próximo passo                                                              | Evidência                                                                 |
+| ----------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Sessão, escola e papel              | Existente                           | Parcial: email/TOTP e vínculos; sem ensaio real                                      | src/features/mobile-v4/session-core.server.ts, authorization.ts           |
+| ID/B.I. + senha                     | Parcial                             | Bloqueado por contrato móvel, contexto escola e CAPTCHA                              | src/features/access/bi-login.ts                                           |
+| Google OAuth/recuperação            | Parcial no ecossistema              | Por implementar no Flutter com redirects e captcha compatíveis                       | src/features/auth/reset-password-server.ts; cliente Supabase              |
+| Turmas/disciplinas/horários/tarefas | Existente em API                    | Páginas de consulta implementadas, testes não executados                             | academic-catalog.server.ts; lib/academic_page.dart                        |
+| Presenças/chamada                   | Existente em código servidor        | Por migrar UI; exige MFA e validação de turmas                                       | attendance.server.ts, attendance-call.server.ts                           |
+| Notas e diários                     | Existente em API                    | Por migrar UI, não presumir escala nem publicação                                    | results.server.ts, gradebooks.server.ts                                   |
+| Propinas/recibos/Payflow            | Existente em API                    | Por migrar UI; pagamento confirmado pelo provedor                                    | finance.server.ts                                                         |
+| Chat/Storage/Realtime               | Parcial                             | Flutter só lista conversas; escrita depende de capacidades instaladas                | chat.server.ts, chat-commands.server.ts, chat-files.server.ts, browser.ts |
+| Avisos                              | Existente em API                    | Por migrar UI/paginação/marcação                                                     | notifications.server.ts                                                   |
+| Integrações por escola              | Existente no portal                 | Falta endpoint móvel de capacidades                                                  | src/features/integrations/server.ts, install.ts                           |
+| Zoom                                | Parcial, OAuth/API no servidor      | Falta endpoint móvel autorizado; configuração e execução não verificadas             | src/features/integrations/zoom.ts; api/integrations/zoom/callback.tsx     |
+| WhatsApp                            | Parcial: mensagens/lançadores       | Convite da turma requer contrato e link validado; não há prova de grupos automáticos | whatsapp-client.ts, actions.ts                                            |
+| Google Calendar                     | Parcial: subscrição ICS/lançador    | Não equivale a sincronização bidireccional via API                                   | integrations/install.ts                                                   |
+| Gmail/Drive/Classroom/Meet          | Por auditar em profundidade         | Não considerar integrações operacionais só por existirem no catálogo                 | integrations/actions.ts; saas/mailbox-google.ts                           |
+| BigBlueButton                       | Por implementar no código examinado | Conector servidor, endpoint e permissões próprios                                    | pesquisa de BBB/BigBlueButton sem implementação encontrada                |
+| Transporte/GPS                      | Por implementar no código examinado | Schema privado, autorização, dispositivos e API                                      | pesquisa em src e snapshot sem módulo operacional encontrado              |
+| Biblioteca                          | Por expor ao cliente móvel          | Não consta do router HTTP Mobile V4 examinado                                        | src/features/mobile-v4/http.server.ts                                     |
+| Flutter build/testes                | Bloqueado no executor               | SDK ausente; workflow preparado, não executado                                       | .github/workflows/mobile-flutter.yml                                      |
+| Publicação                          | Bloqueada                           | Envio público rejeitado anteriormente; domínio não alterado                          | trabalho local; sem push nesta expansão                                   |
 
 “Existente” significa código encontrado; “validado” requer execução e evidência.
 Nenhuma integração externa nem funcionalidade Flutter é classificada como

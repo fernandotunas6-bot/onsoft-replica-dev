@@ -34,11 +34,11 @@ Publicado e confirmado na Cloudflare a **23/10/2026, 14:23:53 (Africa/Luanda)**.
 - CI principal da main aprovado em estilo, acessibilidade, lint, tipos, testes, ensaios SQL, inventário e build. As fases complementares Lighthouse/PWA e smoke E2E ainda estavam em execução no momento deste registo; não são declaradas aprovadas aqui.
 - [Auditoria pós-publicação aprovada](https://github.com/fernandotunas6-bot/onsoft-replica-dev/actions/runs/39960877434), sem autenticação ou escrita.
 
-| Consulta pública após a publicação | Resultado |
-| --- | --- |
-| SIGA, WEB, página criar escola e DOC | HTTP 200 |
-| ADMIN | HTTP 302 |
-| Saúde PAYFLOW e catálogo público de planos | HTTP 200 |
+| Consulta pública após a publicação                        | Resultado                 |
+| --------------------------------------------------------- | ------------------------- |
+| SIGA, WEB, página criar escola e DOC                      | HTTP 200                  |
+| ADMIN                                                     | HTTP 302                  |
+| Saúde PAYFLOW e catálogo público de planos                | HTTP 200                  |
 | Sessão, métricas, domínios e subscrições sem autenticação | HTTP 401, acesso recusado |
 
 A auditoria terminou às 14:24, hora de Angola. Os seus seis testes internos de segurança também passaram. Estes resultados confirmam publicação e disponibilidade pública/protecção anónima, sem substituir testes de operação autenticada.

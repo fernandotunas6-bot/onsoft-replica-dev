@@ -4,13 +4,13 @@ Base: `82b5bdc3` (main). Referência de organização: [Atlassian Navigation Sys
 
 ## Alterações
 
-| Área | Antes | Depois | Evidência |
-| --- | --- | --- | --- |
-| Sidebar | Grupos globais e submenus acumulados em armazenamento local | Contexto derivado do catálogo autorizado; Todas as áreas/Voltar ao módulo; um submenu global aberto por vez | `tests/routes/sidebar-nav.test.tsx` |
-| Académico | Árvore académica montada também no financeiro | Árvore apresentada no contexto pedagógico | Condição em `AppSidebar.tsx`; árvore e APIs preservadas |
-| Destino activo | Listagem genérica e acção específica podiam aparecer seleccionadas simultaneamente | Parâmetros específicos têm prioridade; links sem estado explícito conservam o comportamento do router | `tests/auth/contextual-navigation.test.ts` |
-| Cabeçalhos e estatísticas | Ícones primários e sombras por omissão | Ícones neutros e hierarquia mais discreta; tons de estado explícitos preservados | `PageHeader.tsx` |
-| Painéis e cartões | Sombras, elevação ao hover e cantos maiores | Superfícies com bordas subtis, sem elevação decorativa | `PageHeader.tsx`, `card.tsx` |
+| Área                      | Antes                                                                              | Depois                                                                                                      | Evidência                                               |
+| ------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Sidebar                   | Grupos globais e submenus acumulados em armazenamento local                        | Contexto derivado do catálogo autorizado; Todas as áreas/Voltar ao módulo; um submenu global aberto por vez | `tests/routes/sidebar-nav.test.tsx`                     |
+| Académico                 | Árvore académica montada também no financeiro                                      | Árvore apresentada no contexto pedagógico                                                                   | Condição em `AppSidebar.tsx`; árvore e APIs preservadas |
+| Destino activo            | Listagem genérica e acção específica podiam aparecer seleccionadas simultaneamente | Parâmetros específicos têm prioridade; links sem estado explícito conservam o comportamento do router       | `tests/auth/contextual-navigation.test.ts`              |
+| Cabeçalhos e estatísticas | Ícones primários e sombras por omissão                                             | Ícones neutros e hierarquia mais discreta; tons de estado explícitos preservados                            | `PageHeader.tsx`                                        |
+| Painéis e cartões         | Sombras, elevação ao hover e cantos maiores                                        | Superfícies com bordas subtis, sem elevação decorativa                                                      | `PageHeader.tsx`, `card.tsx`                            |
 
 Catálogo, ordem dos destinos, rotas, grants, plano, RBAC, autenticação, APIs e base de dados não foram alterados. A navegação usa apenas o resultado já filtrado de `getPortalNavigation`. Continua disponível a navegação mobile própria do AppShell. A preferência de recolher a sidebar mantém-se.
 
@@ -18,11 +18,11 @@ Catálogo, ordem dos destinos, rotas, grants, plano, RBAC, autenticação, APIs 
 
 Capturas de componentes reais (`AppSidebar`, `PageHeader`, `StatGrid`, `Panel`) num cenário controlado de Faturas e Recibos. Escola, pessoa, valores e registos são fictícios. Conta, sessão, router e fronteiras de rede foram substituídos no ensaio; não são capturas de uma escola autenticada nem prova de funcionamento financeiro.
 
-| Tamanho | Antes | Depois |
-| --- | --- | --- |
-| Desktop 1440 × 900 | [Antes](before-1440.png) | [Depois](after-1440.png) |
-| Tablet 834 × 900 | [Antes](before-834.png) | [Depois](after-834.png) |
-| Telemóvel 390 × 900 | [Antes](before-390.png) | [Depois](after-390.png) |
+| Tamanho             | Antes                    | Depois                   |
+| ------------------- | ------------------------ | ------------------------ |
+| Desktop 1440 × 900  | [Antes](before-1440.png) | [Depois](after-1440.png) |
+| Tablet 834 × 900    | [Antes](before-834.png)  | [Depois](after-834.png)  |
+| Telemóvel 390 × 900 | [Antes](before-390.png)  | [Depois](after-390.png)  |
 
 A composição de demonstração em tablet/telemóvel verifica os componentes partilhados, não o AppShell mobile autenticado. Captura adicional: [sidebar recolhida](after-collapsed.png).
 
@@ -139,12 +139,12 @@ entrelinha compactada. No diálogo de formulário, o conteúdo usa `min-w-0` e
 `overscroll-contain`. A confirmação mantém o seu comportamento próprio de Radix;
 não foram alteradas as regras de confirmação, descarte ou submissão.
 
-| Cenário controlado | Antes | Depois |
-| --- | --- | --- |
-| Formulário, desktop 1440 px | [Antes](dialog-before-1440.png) | [Depois](dialog-after-1440.png) |
-| Formulário, telemóvel 390 px | [Antes](dialog-before-390.png) | [Depois](dialog-after-390.png) |
+| Cenário controlado                   | Antes                                 | Depois                                |
+| ------------------------------------ | ------------------------------------- | ------------------------------------- |
+| Formulário, desktop 1440 px          | [Antes](dialog-before-1440.png)       | [Depois](dialog-after-1440.png)       |
+| Formulário, telemóvel 390 px         | [Antes](dialog-before-390.png)        | [Depois](dialog-after-390.png)        |
 | Acções após deslocação, 390 × 420 px | [Antes](dialog-footer-before-390.png) | [Depois](dialog-footer-after-390.png) |
-| Confirmação, telemóvel 390 px | [Antes](alert-before-390.png) | [Depois](alert-after-390.png) |
+| Confirmação, telemóvel 390 px        | [Antes](alert-before-390.png)         | [Depois](alert-after-390.png)         |
 
 As capturas usam os componentes reais e dados fictícios, incluindo nome comprido,
 referência sem espaços, oito campos e rótulos de acção extensos. O caso limite
@@ -182,10 +182,10 @@ os 32 px já medidos sem sobreposição, em vez de aumentar para 44 px adicionai
   Começar composição cancela uma pesquisa anterior ainda pendente.
 - Popovers e dicas de ajuda seguem a preferência de movimento reduzido.
 
-| Componente integrado | Desktop 1440 px | Tablet 834 px | Telemóvel 390 px |
-| --- | --- | --- | --- |
+| Componente integrado         | Desktop 1440 px                       | Tablet 834 px                        | Telemóvel 390 px                     |
+| ---------------------------- | ------------------------------------- | ------------------------------------ | ------------------------------------ |
 | Diálogo com formulário longo | [Captura](integrated-dialog-1440.png) | [Captura](integrated-dialog-834.png) | [Captura](integrated-dialog-390.png) |
-| Painel com título longo | [Captura](integrated-sheet-1440.png) | [Captura](integrated-sheet-834.png) | [Captura](integrated-sheet-390.png) |
+| Painel com título longo      | [Captura](integrated-sheet-1440.png)  | [Captura](integrated-sheet-834.png)  | [Captura](integrated-sheet-390.png)  |
 
 Chromium: seis cenários (três larguras × movimento normal/reduzido), componentes
 reais, dados fictícios. Alvos de fecho medidos em 44 × 44 px, títulos separados do
@@ -225,10 +225,10 @@ paginação e os testes adicionais de menus. A combinação não teve conflitos.
 - A paginação usa português, mantém os links e os rótulos personalizados e pode
   quebrar linha quando não cabe na largura disponível.
 
-| Ensaio de componentes reais | Antes | Depois |
-| --- | --- | --- |
-| Desktop 1440 px | [Antes](lists-before-1440.png) | [Depois](lists-after-1440.png) |
-| Telemóvel 390 px | [Antes](lists-before-390.png) | [Depois](lists-after-390.png) |
+| Ensaio de componentes reais | Antes                          | Depois                         |
+| --------------------------- | ------------------------------ | ------------------------------ |
+| Desktop 1440 px             | [Antes](lists-before-1440.png) | [Depois](lists-after-1440.png) |
+| Telemóvel 390 px            | [Antes](lists-before-390.png)  | [Depois](lists-after-390.png)  |
 
 Dados fictícios: referência longa sem espaços, acções extensas e tabela de quatro
 registos com largura mínima de 900 px. Chromium em 320/390/834/1440 px: o transbordo

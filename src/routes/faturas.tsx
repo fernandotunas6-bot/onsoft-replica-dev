@@ -95,7 +95,7 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
-import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
+import { proformaNumber, schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
 
 const faturasFilterDefaults = {
   q: "",

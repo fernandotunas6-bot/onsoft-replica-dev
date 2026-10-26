@@ -50,12 +50,12 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `enrollments` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average` |
-| `student_risk_cases` | `id`, `school_id`, `enrollment_id`, `class_group_id`, `student_name`, `class_group_name`, `risk_level`, `reasons`, `suggested_interventions`, `baseline_average`, `latest_average`, `status`, `created_by`, `created_at`, `updated_at` |
-| `student_risk_interventions` | `id`, `case_id`, `school_id`, `kind`, `description`, `outcome`, `risk_level`, `average_snapshot`, `created_by`, `created_at` |
+| Tabela                       | Colunas existentes                                                                                                                                                                                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `class_groups`               | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
+| `enrollments`                | `id`, `school_id`, `academic_year_id`, `class_group_id`, `student_id`, `enrollment_number`, `enrolled_on`, `status`, `ended_on`, `end_reason`, `created_by`, `updated_by`, `created_at`, `updated_at`, `attendance_rate`, `final_average`                                          |
+| `student_risk_cases`         | `id`, `school_id`, `enrollment_id`, `class_group_id`, `student_name`, `class_group_name`, `risk_level`, `reasons`, `suggested_interventions`, `baseline_average`, `latest_average`, `status`, `created_by`, `created_at`, `updated_at`                                             |
+| `student_risk_interventions` | `id`, `case_id`, `school_id`, `kind`, `description`, `outcome`, `risk_level`, `average_snapshot`, `created_by`, `created_at`                                                                                                                                                       |
 
 Relações confirmadas:
 
@@ -76,14 +76,14 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `diagnoseErrorReport` | POST | `diagnoseSchema` | [ai-assist.functions.ts](../../../src/features/ai-assist/ai-assist.functions.ts) |
-| `analyzeStudentRisk` | POST | `riskSchema` | [ai-assist.functions.ts](../../../src/features/ai-assist/ai-assist.functions.ts) |
-| `listRiskCases` | GET | `Sem schema de entrada explícito neste bloco` | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
-| `saveRiskAnalysis` | POST | `saveSchema` | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
-| `addRiskIntervention` | POST | `interventionSchema` | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
-| `saveAutomaticRiskSignals` | POST | `automaticSchema` | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
+| Função                     | Método | Entrada                                       | Fonte                                                                                    |
+| -------------------------- | ------ | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `diagnoseErrorReport`      | POST   | `diagnoseSchema`                              | [ai-assist.functions.ts](../../../src/features/ai-assist/ai-assist.functions.ts)         |
+| `analyzeStudentRisk`       | POST   | `riskSchema`                                  | [ai-assist.functions.ts](../../../src/features/ai-assist/ai-assist.functions.ts)         |
+| `listRiskCases`            | GET    | `Sem schema de entrada explícito neste bloco` | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
+| `saveRiskAnalysis`         | POST   | `saveSchema`                                  | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
+| `addRiskIntervention`      | POST   | `interventionSchema`                          | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
+| `saveAutomaticRiskSignals` | POST   | `automaticSchema`                             | [risk-followup.functions.ts](../../../src/features/ai-assist/risk-followup.functions.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
@@ -121,6 +121,5 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 **Riscos/pendências:** jornada anual e A/B autenticado exigem staging; concorrência PostgreSQL, fornecedores, restauro, artefactos oficiais extensos e dispositivos reais não ficam certificados por mocks/PGlite. Consultar a matriz e o progresso para o resultado efectivamente executado.
 
 ## Fontes e navegação
-
 
 [Índice](../README.md) · [Contratos transversais](../CONTRATOS_TRANSVERSAIS.md)

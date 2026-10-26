@@ -19,7 +19,10 @@ A rota também limita 10 envios por hora/IP com o `clientIpFromRequest` e o limi
 No servidor, adicionar à configuração de runtime (não ao browser):
 
 ```json
-{"campanha-ispab-real":["https://website-oficial.example"],"outra-campanha":["https://outra-escola.example"]}
+{
+  "campanha-ispab-real": ["https://website-oficial.example"],
+  "outra-campanha": ["https://outra-escola.example"]
+}
 ```
 
 Variável: `SIGA_SCHOOL_WEBSITE_ORIGINS`. HTTPS, origens completas sem path; HTTP só localhost/127.0.0.1 para ensaio. Não usar wildcard, origem de outro cliente ou prefix matching. O próprio origin da API funciona. GET sem Origin permite leitura pública servidor-servidor; POST exige Origin permitido. CORS não substitui autorização e não transforma a candidatura pública numa operação privada.
@@ -33,6 +36,5 @@ Antes da activação, verificar em staging: origem permitida/rejeitada; campanha
 ## Rollback
 
 Retirar a origem da allowlist e desactivar o consumo no website. O visual e a versão demonstrativa continuam disponíveis. A raiz do SIGA, os outros painéis, auth e a campanha existente não são substituídos; não há migração a reverter.
-
 
 A edição de conteúdos, o login partilhado e a ligação de campanhas no portal do administrador estão documentados em [SCHOOL_WEBSITE_CONTENT.md](SCHOOL_WEBSITE_CONTENT.md).

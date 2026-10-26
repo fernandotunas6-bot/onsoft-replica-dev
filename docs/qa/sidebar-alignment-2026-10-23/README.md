@@ -38,8 +38,8 @@ Ensaio com componentes reais, conta/router/rede controlados e dados fictícios.
 Não são capturas autenticadas de produção. A página simulada é
 `/alunos/aluno-teste`; o cabeçalho atrás da gaveta é apenas conteúdo de demonstração.
 
-| Antes: área sem destaque | Depois: Secretaria identificada |
-| --- | --- |
+| Antes: área sem destaque               | Depois: Secretaria identificada        |
+| -------------------------------------- | -------------------------------------- |
 | ![Antes](sidebar-alignment-before.png) | ![Depois](sidebar-alignment-after.png) |
 
 ## Validação efectuada

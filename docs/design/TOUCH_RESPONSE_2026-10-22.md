@@ -4,12 +4,12 @@ Data: 2026-10-22. Base: `refine/contextual-sidebar`, commit `59396d4`.
 
 ## O que foi corrigido
 
-| Componente | Problema identificado no código | Alteração |
-| --- | --- | --- |
-| `src/components/ui/dialog.tsx` | Fecho sem área táctil definida | Área interactiva 44×44 px, mantendo as classes `h-4 w-4` do ícone; foco por teclado mais claro |
-| `src/components/ui/sheet.tsx` | Abertura em 500 ms e fecho em 300 ms; animação executada mesmo com redução de movimento | Objectivos de 200/150 ms; animações apenas com `motion-safe`; botão de fecho 44×44 px sem ampliar o ícone |
-| `src/components/filters/debounced-search-input.tsx` | Debounce dispara consultas com texto ainda em composição IME | Suspensão de pedidos enquanto há composição; debounce de 220 ms após o final; entradas normais preservadas |
-| `src/components/ui/data-table-shell.tsx` | `transition-all` permite animar alterações de layout sem necessidade | Transições apenas de cor de fundo e borda, respeitando movimento reduzido |
+| Componente                                          | Problema identificado no código                                                         | Alteração                                                                                                  |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `src/components/ui/dialog.tsx`                      | Fecho sem área táctil definida                                                          | Área interactiva 44×44 px, mantendo as classes `h-4 w-4` do ícone; foco por teclado mais claro             |
+| `src/components/ui/sheet.tsx`                       | Abertura em 500 ms e fecho em 300 ms; animação executada mesmo com redução de movimento | Objectivos de 200/150 ms; animações apenas com `motion-safe`; botão de fecho 44×44 px sem ampliar o ícone  |
+| `src/components/filters/debounced-search-input.tsx` | Debounce dispara consultas com texto ainda em composição IME                            | Suspensão de pedidos enquanto há composição; debounce de 220 ms após o final; entradas normais preservadas |
+| `src/components/ui/data-table-shell.tsx`            | `transition-all` permite animar alterações de layout sem necessidade                    | Transições apenas de cor de fundo e borda, respeitando movimento reduzido                                  |
 
 ## Âmbito e compatibilidade
 

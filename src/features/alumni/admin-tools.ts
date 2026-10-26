@@ -8,6 +8,7 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
+import { adminContext } from "./admin-context";
 
 const audienceSchema = z.object({
   graduationYear: z.number().int().min(1950).max(2100).optional(),
@@ -21,16 +22,6 @@ const audienceSchema = z.object({
     .enum(["general", "opportunities", "events", "mentoring", "surveys", "fundraising"])
     .default("general"),
 });
-
-async function adminContext(userId: string, mode: "read" | "write" = "read") {
-  const membership = await (mode === "write" ? requireSgaWriterForWrite : requireSgaWriterFor)(
-    "pessoas",
-    userId,
-    ["Administrador", "Secretaria"],
-  );
-  const db = await loadSgaAdminClient();
-  return { membership, db };
-}
 
 export const getAlumniGeoAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

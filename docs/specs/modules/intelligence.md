@@ -48,18 +48,17 @@ Fonte: implementação e skills canónicos, `DATABASE_RULES.md`, configuração 
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| — | Este módulo pode consumir contratos de outro domínio sem tabela própria; consultar as fontes. |
+| Tabela | Colunas existentes                                                                            |
+| ------ | --------------------------------------------------------------------------------------------- |
+| —      | Este módulo pode consumir contratos de outro domínio sem tabela própria; consultar as fontes. |
 
 Relações confirmadas:
 
-
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| — | — | Serviços/helpers ou endpoint de origem | Ver fontes |
+| Função | Método | Entrada                                | Fonte      |
+| ------ | ------ | -------------------------------------- | ---------- |
+| —      | —      | Serviços/helpers ou endpoint de origem | Ver fontes |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
@@ -109,6 +108,5 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 **Riscos/pendências:** jornada anual e A/B autenticado exigem staging; concorrência PostgreSQL, fornecedores, restauro, artefactos oficiais extensos e dispositivos reais não ficam certificados por mocks/PGlite. Consultar a matriz e o progresso para o resultado efectivamente executado.
 
 ## Fontes e navegação
-
 
 [Índice](../README.md) · [Contratos transversais](../CONTRATOS_TRANSVERSAIS.md)

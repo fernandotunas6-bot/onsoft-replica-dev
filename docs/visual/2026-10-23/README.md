@@ -25,9 +25,9 @@ Histórico e comparações anteriores: [22/10](../2026-10-22/README.md).
 Componentes reais com conteúdo fictício e sem sessão escolar. O ensaio contém
 cinco separadores, um desactivado, e mostra o último após navegação por teclado.
 
-| Largura | Antes | Depois |
-| --- | --- | --- |
-| 390 px | [Antes](sections-before-390.png) | [Depois](sections-after-390.png) |
+| Largura | Antes                             | Depois                            |
+| ------- | --------------------------------- | --------------------------------- |
+| 390 px  | [Antes](sections-before-390.png)  | [Depois](sections-after-390.png)  |
 | 1440 px | [Antes](sections-before-1440.png) | [Depois](sections-after-1440.png) |
 
 ## Validação

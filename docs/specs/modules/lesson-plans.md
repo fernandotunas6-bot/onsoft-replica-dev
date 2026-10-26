@@ -47,26 +47,26 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `kind` | `lessonPlanComponentKindSchema,` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `name` | `z.string().trim().min(2, "Indique um nome").max(120),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `plannedCount` | `z.number().int().min(1).max(20).default(1),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `classGroupId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `subjectId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `term` | `termSchema,` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `title` | `z.string().trim().min(2, "Indique um título").max(180),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `content` | `z.string().trim().max(20_000).optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `fileId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `fileName` | `z.string().trim().max(255).optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `status` | `z.enum(["draft", "published"]).default("draft"),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `components` | `z.array(lessonPlanComponentInputSchema).max(20).default([]),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `id` | `z.string().uuid(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `query` | `z.string().trim().optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `classGroupId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `subjectId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `term` | `termSchema.optional(),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(200).default(50),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| Campo          | Declaração observada                                           | Schema de origem                                            |
+| -------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| `kind`         | `lessonPlanComponentKindSchema,`                               | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `name`         | `z.string().trim().min(2, "Indique um nome").max(120),`        | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `plannedCount` | `z.number().int().min(1).max(20).default(1),`                  | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `classGroupId` | `z.string().uuid(),`                                           | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `subjectId`    | `z.string().uuid(),`                                           | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `term`         | `termSchema,`                                                  | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `title`        | `z.string().trim().min(2, "Indique um título").max(180),`      | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `content`      | `z.string().trim().max(20_000).optional(),`                    | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `fileId`       | `z.string().uuid().optional(),`                                | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `fileName`     | `z.string().trim().max(255).optional(),`                       | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `status`       | `z.enum(["draft", "published"]).default("draft"),`             | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `components`   | `z.array(lessonPlanComponentInputSchema).max(20).default([]),` | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `id`           | `z.string().uuid(),`                                           | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `query`        | `z.string().trim().optional(),`                                | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `classGroupId` | `z.string().uuid().optional(),`                                | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `subjectId`    | `z.string().uuid().optional(),`                                | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `term`         | `termSchema.optional(),`                                       | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
+| `limit`        | `z.number().int().min(1).max(200).default(50),`                | [schemas.ts](../../../src/features/lesson-plans/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -80,17 +80,17 @@ Especificação complementar: [SGA_ANGOLA_LESSON_PLANS_ASSESSMENTS_2026.md](../S
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `class_groups` | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id` |
-| `class_subjects` | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at` |
-| `people` | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address` |
-| `siga_assessment_items` | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `name`, `kind`, `component`, `assessed_on`, `max_score`, `counts_toward_pauta`, `allow_recovery`, `description`, `created_at`, `updated_at`, `created_by`, `updated_by`, `lesson_plan_component_id`, `starts_at`, `duration_minutes`, `purpose` |
-| `siga_assessment_scores` | `id`, `school_id`, `item_id`, `enrollment_id`, `score`, `previous_score`, `status`, `recorded_by`, `updated_at` |
-| `siga_lesson_plan_components` | `id`, `school_id`, `lesson_plan_id`, `kind`, `name`, `planned_count`, `sequence`, `created_at` |
-| `siga_lesson_plans` | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `title`, `content`, `file_id`, `file_name`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by` |
-| `subjects` | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
-| `teachers` | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id` |
+| Tabela                        | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `class_groups`                | `id`, `school_id`, `academic_year_id`, `campus_id`, `grade_level_id`, `homeroom_teacher_id`, `code`, `name`, `shift`, `capacity`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `delegate_student_id`, `whatsapp_invite_url`, `whatsapp_group_name`, `room_id`                                                                                                         |
+| `class_subjects`              | `id`, `school_id`, `class_group_id`, `subject_id`, `teacher_id`, `weekly_periods`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`                                                                                                                                                                                                                                        |
+| `people`                      | `id`, `school_id`, `full_name`, `preferred_name`, `date_of_birth`, `sex`, `national_id`, `email`, `phone`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `photo_path`, `photo_url`, `deleted_at`, `user_id`, `province`, `municipality`, `commune`, `address`                                                                                                          |
+| `siga_assessment_items`       | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `name`, `kind`, `component`, `assessed_on`, `max_score`, `counts_toward_pauta`, `allow_recovery`, `description`, `created_at`, `updated_at`, `created_by`, `updated_by`, `lesson_plan_component_id`, `starts_at`, `duration_minutes`, `purpose`                                                                                 |
+| `siga_assessment_scores`      | `id`, `school_id`, `item_id`, `enrollment_id`, `score`, `previous_score`, `status`, `recorded_by`, `updated_at`                                                                                                                                                                                                                                                                            |
+| `siga_lesson_plan_components` | `id`, `school_id`, `lesson_plan_id`, `kind`, `name`, `planned_count`, `sequence`, `created_at`                                                                                                                                                                                                                                                                                             |
+| `siga_lesson_plans`           | `id`, `school_id`, `class_group_id`, `subject_id`, `term`, `title`, `content`, `file_id`, `file_name`, `status`, `created_at`, `updated_at`, `created_by`, `updated_by`                                                                                                                                                                                                                    |
+| `subjects`                    | `id`, `school_id`, `code`, `name`, `short_name`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `subject_type_id`, `curriculum_area_id`, `description`, `department`, `is_mandatory`, `is_practical`, `has_assessment`, `has_exam`, `has_attendance`, `has_pauta`, `annual_hours`, `default_lesson_duration`, `color`, `icon`, `display_order`, `deleted_at`, `version` |
+| `teachers`                    | `id`, `school_id`, `person_id`, `employee_number`, `hired_on`, `employment_type`, `highest_qualification`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `user_id`                                                                                                                                                                                                     |
 
 Relações confirmadas:
 
@@ -122,13 +122,13 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `listLessonPlans` | GET | `listLessonPlansInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
-| `getLessonPlan` | GET | `getLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
-| `createLessonPlan` | POST | `createLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
-| `updateLessonPlan` | POST | `updateLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
-| `deleteLessonPlan` | POST | `deleteLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
+| Função             | Método | Entrada                       | Fonte                                                     |
+| ------------------ | ------ | ----------------------------- | --------------------------------------------------------- |
+| `listLessonPlans`  | GET    | `listLessonPlansInputSchema`  | [server.ts](../../../src/features/lesson-plans/server.ts) |
+| `getLessonPlan`    | GET    | `getLessonPlanInputSchema`    | [server.ts](../../../src/features/lesson-plans/server.ts) |
+| `createLessonPlan` | POST   | `createLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
+| `updateLessonPlan` | POST   | `updateLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
+| `deleteLessonPlan` | POST   | `deleteLessonPlanInputSchema` | [server.ts](../../../src/features/lesson-plans/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

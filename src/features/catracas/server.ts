@@ -1,3 +1,4 @@
+import { selectAllPages } from "@/features/import/engine/paged";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { resolveVerifiedAccountEmail } from "@/features/students/student-scope";
@@ -94,6 +95,13 @@ export type AttendanceAnomaly = {
  * entrou no recinto mas foi marcado ausente na aula, ou que só bateu o cartão depois das 08:00,
  * é sinalizado como anomalia para a secretaria investigar.
  */
+const SCHOOL_TIME_ZONE = "Africa/Luanda";
+const luandaHour = new Intl.DateTimeFormat("en-GB", {
+  timeZone: SCHOOL_TIME_ZONE,
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
 export function detectAttendanceAnomalies(
   gateEntries: GateEntryRecord[],
   classStatusByStudentId: Map<string, string>,
@@ -729,16 +737,22 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
       .eq("lesson_date", todayStr);
 
     const todaySessionIds = (todaySessions ?? []).map((s) => s.id as string);
-    const { data: classRecords } = todaySessionIds.length
-      ? await db
-          .from("siga_attendance_records")
-          .select("student_id, status, session_id")
-          .eq("school_id", membership.schoolId)
-          .in("session_id", todaySessionIds)
-      : { data: [] };
+    const classRecords = todaySessionIds.length
+      ? await selectAllPages<{ student_id: string; status: string }>(
+          (from, to) =>
+            db
+              .from("siga_attendance_records")
+              .select("id, student_id, status, session_id")
+              .eq("school_id", membership.schoolId)
+              .in("session_id", todaySessionIds)
+              .order("id")
+              .range(from, to),
+          "Não foi possível ler as presenças de hoje",
+        )
+      : [];
 
     const { loadPeopleLite } = await import("@/features/people/lookup");
-    const personIds = (gateEntries ?? []).filter((g) => g.person_id).map((g) => g.person_id!);
+    const personIds = gateEntries.filter((g) => g.person_id).map((g) => g.person_id!);
     const peopleMap = personIds.length
       ? await loadPeopleLite(db, membership.schoolId, personIds)
       : new Map();
@@ -747,17 +761,13 @@ export const getCampusVsClassroomReconciliation = createServerFn({ method: "GET"
     );
 
     const classStatusMap = new Map<string, string>();
-    (classRecords ?? []).forEach((r) => {
+    classRecords.forEach((r) => {
       classStatusMap.set(r.student_id, r.status);
     });
 
-    const anomalies = detectAttendanceAnomalies(
-      gateEntries ?? [],
-      classStatusMap,
-      personNameByPersonId,
-    );
+    const anomalies = detectAttendanceAnomalies(gateEntries, classStatusMap, personNameByPersonId);
     const totalCampusEntriesToday = new Set(
-      (gateEntries ?? []).filter((g) => g.student_id).map((g) => g.student_id!),
+      gateEntries.filter((g) => g.student_id).map((g) => g.student_id!),
     ).size;
 
     return {

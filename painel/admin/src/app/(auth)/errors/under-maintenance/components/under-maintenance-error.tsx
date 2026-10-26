@@ -1,5 +1,5 @@
-import { Wrench } from "lucide-react"
-import { ErrorScreen } from "../../error-screen"
+import { Wrench } from "lucide-react";
+import { ErrorScreen } from "../../error-screen";
 
 export function UnderMaintenanceError() {
   return (
@@ -9,5 +9,5 @@ export function UnderMaintenanceError() {
       title="Em manutenção"
       description="O serviço está temporariamente indisponível. Tente mais tarde."
     />
-  )
+  );
 }

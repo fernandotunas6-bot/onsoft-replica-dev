@@ -6,17 +6,17 @@ identificadores, pesquisa e página de consulta.
 
 ## O que existe
 
-| Peça | Onde |
-|---|---|
-| Dados (fonte única) | `src/features/education-catalog/data/` — `isced.ts`, `sources.ts`, `countries.ts`, `subjects.ts`, `courses.ts`, `stages.ts` |
-| Consultas com contexto de nível obrigatório | `src/features/education-catalog/catalog.ts` |
-| Pesquisa local (sem acentos, códigos, siglas, sinónimos, uma/duas letras trocadas) | `src/features/education-catalog/search.ts` |
-| Normalização de classes, períodos e disciplinas; duplicados | `src/features/education-catalog/normalize.ts` |
-| Identificadores curtos | `src/features/education-catalog/identifiers.ts` |
-| Página **Pedagógica → Catálogo global** (`/pedagogica/catalogo`) | `CatalogExplorer.tsx`, `src/routes/pedagogica_.catalogo.tsx` |
-| Esquema | `supabase/migrations/20261010120000_global_education_catalog.sql` |
-| Carga (gerada, idempotente) | `supabase/seeds/education/catalog.sql` — `npm run siga:catalog-seed` |
-| Testes | `tests/education-catalog/*`, `tests/sql/education-catalog.mjs` (PGlite) |
+| Peça                                                                               | Onde                                                                                                                        |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Dados (fonte única)                                                                | `src/features/education-catalog/data/` — `isced.ts`, `sources.ts`, `countries.ts`, `subjects.ts`, `courses.ts`, `stages.ts` |
+| Consultas com contexto de nível obrigatório                                        | `src/features/education-catalog/catalog.ts`                                                                                 |
+| Pesquisa local (sem acentos, códigos, siglas, sinónimos, uma/duas letras trocadas) | `src/features/education-catalog/search.ts`                                                                                  |
+| Normalização de classes, períodos e disciplinas; duplicados                        | `src/features/education-catalog/normalize.ts`                                                                               |
+| Identificadores curtos                                                             | `src/features/education-catalog/identifiers.ts`                                                                             |
+| Página **Pedagógica → Catálogo global** (`/pedagogica/catalogo`)                   | `CatalogExplorer.tsx`, `src/routes/pedagogica_.catalogo.tsx`                                                                |
+| Esquema                                                                            | `supabase/migrations/20261010120000_global_education_catalog.sql`                                                           |
+| Carga (gerada, idempotente)                                                        | `supabase/seeds/education/catalog.sql` — `npm run siga:catalog-seed`                                                        |
+| Testes                                                                             | `tests/education-catalog/*`, `tests/sql/education-catalog.mjs` (PGlite)                                                     |
 
 ### Camadas
 
@@ -34,12 +34,12 @@ identificadores, pesquisa e página de consulta.
 
 Nada aqui é estimado; é o que `catalogCoverage()` devolve e a página mostra.
 
-| País | Etapas | Classes/anos | Etapas com plano | Disciplinas nos planos | Cursos | Estado |
-|---|---|---|---|---|---|---|
-| Angola | 6 | 22 | 4 | 46 | 16 | Em revisão |
-| Moçambique | 6 | 16 | 0 | 0 | 0 | Em revisão |
-| Portugal | 8 | 20 | 4 | 29 | 19 | Em revisão |
-| Brasil, Cabo Verde, Guiné-Bissau, São Tomé e Príncipe, Timor-Leste | 0 | — | — | — | — | Por carregar |
+| País                                                               | Etapas | Classes/anos | Etapas com plano | Disciplinas nos planos | Cursos | Estado       |
+| ------------------------------------------------------------------ | ------ | ------------ | ---------------- | ---------------------- | ------ | ------------ |
+| Angola                                                             | 6      | 22           | 4                | 46                     | 16     | Em revisão   |
+| Moçambique                                                         | 6      | 16           | 0                | 0                      | 0      | Em revisão   |
+| Portugal                                                           | 8      | 20           | 4                | 29                     | 19     | Em revisão   |
+| Brasil, Cabo Verde, Guiné-Bissau, São Tomé e Príncipe, Timor-Leste | 0      | —            | —                | —                      | —      | Por carregar |
 
 - **Oficial verificado**: só as classificações da UNESCO e os códigos ISO.
 - **Em revisão**: os planos nacionais. Foram escritos a partir da lei e dos planos conhecidos
@@ -101,6 +101,7 @@ cliente do utilizador (RLS), não o privilegiado.
 `ALTER TABLE`, sem chave estrangeira — o catálogo vive no código; formato verificado por
 `CHECK`) diz de que disciplina do catálogo se trata, sem mudar o nome nem o código. Em
 **Rever disciplinas → Ligação ao catálogo**:
+
 - as reconhecidas pelo nome exacto (nome, nome local, sinónimo; nunca siglas soltas nem
   letras trocadas) ligam-se de uma vez;
 - as próprias da escola podem ligar-se à mão («Mat. Aplicada» → Matemática) ou ficar como
@@ -144,6 +145,7 @@ deteta a falta da coluna e a página diz que a ligação ainda não está activa
 
 Pedagógica → Disciplinas → **Nova**: o campo «Disciplina» sugere os nomes do catálogo
 (com o nome do país) enquanto se escreve, e por baixo aparece, antes de gravar:
+
 - «A escola já tem «Matemática» (MAT), que é a mesma disciplina» — quando o catálogo
   reconhece o nome escrito como uma disciplina que a escola já tem (grafia, sinónimo);
 - o nome do catálogo, se o escrito é diferente;
@@ -156,6 +158,7 @@ Não bloqueia (a escola pode querer «Matemática» e «Matemática A»). Lógic
 ## Documentos: o nome à data da emissão
 
 O que existe:
+
 - **Pautas:** guardam o nome da disciplina nas linhas (`grade_sheet_rows.subject_breakdown`)
   e têm versões arquivadas (`grade_sheet_versions.snapshot`).
 - **Histórico académico:** grava `subject_results` com o nome da altura.
@@ -225,12 +228,12 @@ novo.
 SIGA, para ninguém manter um catálogo próprio. Pública (só dados de referência), calculada
 em memória, CORS para WEB e ADMIN; o Mobile V4 chama-a na mesma origem.
 
-| Pedido | Devolve |
-|---|---|
-| `type=subjects&stage=AO-ESG2[&course=SEC-CFB][&grade=10][&q=mat]` | disciplinas do nível, as do plano primeiro (`inPlan`: `core`/`optional`/`null`) |
-| `type=subjects&isced=6&track=higher[&country=PT][&q=…]` | disciplinas do nível ISCED e via |
-| `type=courses[&country=AO][&stage=PT-SEC][&kind=bachelor][&q=enf]` | cursos |
-| `type=stages&country=AO` | etapas, classes com rótulo, períodos, escala, cursos, se há plano |
+| Pedido                                                             | Devolve                                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `type=subjects&stage=AO-ESG2[&course=SEC-CFB][&grade=10][&q=mat]`  | disciplinas do nível, as do plano primeiro (`inPlan`: `core`/`optional`/`null`) |
+| `type=subjects&isced=6&track=higher[&country=PT][&q=…]`            | disciplinas do nível ISCED e via                                                |
+| `type=courses[&country=AO][&stage=PT-SEC][&kind=bachelor][&q=enf]` | cursos                                                                          |
+| `type=stages&country=AO`                                           | etapas, classes com rótulo, períodos, escala, cursos, se há plano               |
 
 `limit` 1–50 (20 por omissão). Disciplinas sem nível → 400 com a explicação; etapa, curso
 ou classe que não existem → 400. Cada resposta leva `version` do catálogo e, por registo, o
@@ -285,13 +288,13 @@ sobem; nomes locais contam (`Português` em Portugal).
 
 ## Identificadores curtos
 
-| Entidade | Formato | Emitido por |
-|---|---|---|
-| Aluno | `EST-000123` (CHECK na base) e código público de 7 dígitos `0000123` | `private.register_student()` |
-| Professor | `DOC-000123` (já existia) | ao criar o professor: o seguinte ao **maior** `DOC-n` (`insertWithSequentialCode`) |
-| Documento | `<PREFIXO do tipo>-000123` (`FT`, `RC`, … `OT`) | `private.next_document_number()` (já existia) |
-| Sala (sugestão no formulário) | continua o padrão da escola (`S01…S07` → `S08`; `LAB-2` → `LAB-3`); sem padrão, `S-001` | `suggestNextCode` |
-| Funcionário, turma, curso, disciplina, matrícula | `F-0012`, `T-001`, `C-001`, `D-001`, `M-000123` | `private.next_entity_identifier()` (migração por aplicar; ainda não ligado) |
+| Entidade                                         | Formato                                                                                 | Emitido por                                                                        |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Aluno                                            | `EST-000123` (CHECK na base) e código público de 7 dígitos `0000123`                    | `private.register_student()`                                                       |
+| Professor                                        | `DOC-000123` (já existia)                                                               | ao criar o professor: o seguinte ao **maior** `DOC-n` (`insertWithSequentialCode`) |
+| Documento                                        | `<PREFIXO do tipo>-000123` (`FT`, `RC`, … `OT`)                                         | `private.next_document_number()` (já existia)                                      |
+| Sala (sugestão no formulário)                    | continua o padrão da escola (`S01…S07` → `S08`; `LAB-2` → `LAB-3`); sem padrão, `S-001` | `suggestNextCode`                                                                  |
+| Funcionário, turma, curso, disciplina, matrícula | `F-0012`, `T-001`, `C-001`, `D-001`, `M-000123`                                         | `private.next_entity_identifier()` (migração por aplicar; ainda não ligado)        |
 
 **Corrigido (2026-10-10):** o número automático do professor era «contagem + 1». Depois de
 apagar um professor, ou com um número escrito à mão, repetia um número existente e a

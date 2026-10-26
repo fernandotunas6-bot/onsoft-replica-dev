@@ -44,44 +44,44 @@ Enum permitido não autoriza qualquer transição: as guardas de alteração, pu
 
 Os schemas ligados são o contrato efectivo, incluindo refinamentos, campos opcionais/defaults e validação condicional. O inventário abaixo mostra as declarações encontradas; expressões multilinha e schemas derivados devem ser lidos na fonte, não inferidos apenas desta tabela.
 
-| Campo | Declaração observada | Schema de origem |
-| --- | --- | --- |
-| `personId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `studentId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `rfidTag` | `z.string().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `token` | `z.string().min(3, "Token ou código inválido."),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `deviceId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `direction` | `accessDirectionEnum.default("entry"),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `name` | `z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `location` | `z.string().min(2, "Informe a localização (ex: Portaria Principal)."),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `deviceType` | `turnstileDeviceTypeEnum.default("turnstile"),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `directionCapability` | `z.enum(["entry", "exit", "bidirectional"]).default("bidirectional"),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `ipAddress` | `z.string().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `macAddress` | `z.string().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `personId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `studentId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `deviceId` | `z.string().uuid().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `status` | `accessStatusEnum.optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `direction` | `accessDirectionEnum.optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `date` | `z.string().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(500).default(50),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `cardId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `status` | `accessCardStatusEnum,` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `deviceId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `status` | `z.enum(["online", "offline", "maintenance"]).optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `ipAddress` | `z.string().max(64).optional().nullable(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `name` | `z.string().min(3).max(120).optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `location` | `z.string().min(2).max(160).optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `deviceId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `cardId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `rfidTag` | `z.string().max(64).nullable().optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `cardId` | `z.string().uuid(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `status` | `accessCardStatusEnum.optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `search` | `z.string().max(80).optional(),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `limit` | `z.number().int().min(1).max(200).default(80),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `apiKey` | `z.string().min(8, "API key inválida."),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `token` | `z.string().min(3, "Token ou código inválido."),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
-| `direction` | `accessDirectionEnum.default("entry"),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| Campo                 | Declaração observada                                                    | Schema de origem                                        |
+| --------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- |
+| `personId`            | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `studentId`           | `z.string().uuid().optional(),`                                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `rfidTag`             | `z.string().optional(),`                                                | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `token`               | `z.string().min(3, "Token ou código inválido."),`                       | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `deviceId`            | `z.string().uuid().optional(),`                                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `direction`           | `accessDirectionEnum.default("entry"),`                                 | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `name`                | `z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),`        | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `location`            | `z.string().min(2, "Informe a localização (ex: Portaria Principal)."),` | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `deviceType`          | `turnstileDeviceTypeEnum.default("turnstile"),`                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `directionCapability` | `z.enum(["entry", "exit", "bidirectional"]).default("bidirectional"),`  | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `ipAddress`           | `z.string().optional(),`                                                | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `macAddress`          | `z.string().optional(),`                                                | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `personId`            | `z.string().uuid().optional(),`                                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `studentId`           | `z.string().uuid().optional(),`                                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `deviceId`            | `z.string().uuid().optional(),`                                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `status`              | `accessStatusEnum.optional(),`                                          | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `direction`           | `accessDirectionEnum.optional(),`                                       | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `date`                | `z.string().optional(),`                                                | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `limit`               | `z.number().int().min(1).max(500).default(50),`                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `cardId`              | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `status`              | `accessCardStatusEnum,`                                                 | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `deviceId`            | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `status`              | `z.enum(["online", "offline", "maintenance"]).optional(),`              | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `ipAddress`           | `z.string().max(64).optional().nullable(),`                             | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `name`                | `z.string().min(3).max(120).optional(),`                                | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `location`            | `z.string().min(2).max(160).optional(),`                                | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `deviceId`            | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `cardId`              | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `rfidTag`             | `z.string().max(64).nullable().optional(),`                             | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `cardId`              | `z.string().uuid(),`                                                    | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `status`              | `accessCardStatusEnum.optional(),`                                      | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `search`              | `z.string().max(80).optional(),`                                        | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `limit`               | `z.number().int().min(1).max(200).default(80),`                         | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `apiKey`              | `z.string().min(8, "API key inválida."),`                               | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `token`               | `z.string().min(3, "Token ou código inválido."),`                       | [schemas.ts](../../../src/features/catracas/schemas.ts) |
+| `direction`           | `accessDirectionEnum.default("entry"),`                                 | [schemas.ts](../../../src/features/catracas/schemas.ts) |
 
 ## Regras de negócio e fonte
 
@@ -95,14 +95,14 @@ Especificação complementar: [SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md](..
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `siga_access_cards` | `id`, `school_id`, `person_id`, `student_id`, `card_number`, `barcode`, `qr_secret`, `rfid_tag`, `status`, `issued_at`, `expires_at`, `created_at`, `updated_at` |
-| `siga_access_logs` | `id`, `school_id`, `person_id`, `student_id`, `card_id`, `device_id`, `direction`, `status`, `denial_reason`, `device_name`, `created_at` |
-| `siga_attendance_records` | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at` |
+| Tabela                     | Colunas existentes                                                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `siga_access_cards`        | `id`, `school_id`, `person_id`, `student_id`, `card_number`, `barcode`, `qr_secret`, `rfid_tag`, `status`, `issued_at`, `expires_at`, `created_at`, `updated_at`                                                                            |
+| `siga_access_logs`         | `id`, `school_id`, `person_id`, `student_id`, `card_id`, `device_id`, `direction`, `status`, `denial_reason`, `device_name`, `created_at`                                                                                                   |
+| `siga_attendance_records`  | `id`, `school_id`, `session_id`, `student_id`, `status`, `notes`, `recorded_by`, `created_at`, `updated_at`                                                                                                                                 |
 | `siga_attendance_sessions` | `id`, `school_id`, `academic_year_id`, `class_group_id`, `subject_id`, `teacher_id`, `timetable_slot_id`, `lesson_date`, `period_number`, `starts_at`, `ends_at`, `status`, `notes`, `created_at`, `created_by`, `updated_at`, `updated_by` |
-| `siga_turnstile_devices` | `id`, `school_id`, `name`, `location`, `device_type`, `direction_capability`, `ip_address`, `mac_address`, `api_key`, `status`, `last_ping_at`, `created_at` |
-| `students` | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at` |
+| `siga_turnstile_devices`   | `id`, `school_id`, `name`, `location`, `device_type`, `direction_capability`, `ip_address`, `mac_address`, `api_key`, `status`, `last_ping_at`, `created_at`                                                                                |
+| `students`                 | `id`, `school_id`, `person_id`, `student_number`, `admission_date`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`, `deleted_at`                                                                                          |
 
 Relações confirmadas:
 
@@ -129,23 +129,23 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `getOrCreateVirtualCard` | POST | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
-| `validateGatePassToken` | POST | `validateGatePassTokenInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `validateGatePassByDeviceApiKey` | POST | `validateGatePassDeviceInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `listTurnstileDevices` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
-| `revealTurnstileDeviceApiKey` | POST | `revealTurnstileDeviceApiKeyInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `registerTurnstileDevice` | POST | `registerTurnstileDeviceInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `updateTurnstileDevice` | POST | `updateTurnstileDeviceInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `setAccessCardStatus` | POST | `setAccessCardStatusInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `linkAccessCardRfid` | POST | `linkAccessCardRfidInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `rotateAccessCardQr` | POST | `rotateAccessCardQrInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `issueAccessCard` | POST | `issueAccessCardInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `listAccessCards` | GET | `listAccessCardsInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `listAccessLogs` | GET | `listAccessLogsInputSchema` | [server.ts](../../../src/features/catracas/server.ts) |
-| `exportGatePassOfflineList` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
-| `getCampusVsClassroomReconciliation` | GET | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
+| Função                               | Método | Entrada                                       | Fonte                                                 |
+| ------------------------------------ | ------ | --------------------------------------------- | ----------------------------------------------------- |
+| `getOrCreateVirtualCard`             | POST   | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
+| `validateGatePassToken`              | POST   | `validateGatePassTokenInputSchema`            | [server.ts](../../../src/features/catracas/server.ts) |
+| `validateGatePassByDeviceApiKey`     | POST   | `validateGatePassDeviceInputSchema`           | [server.ts](../../../src/features/catracas/server.ts) |
+| `listTurnstileDevices`               | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
+| `revealTurnstileDeviceApiKey`        | POST   | `revealTurnstileDeviceApiKeyInputSchema`      | [server.ts](../../../src/features/catracas/server.ts) |
+| `registerTurnstileDevice`            | POST   | `registerTurnstileDeviceInputSchema`          | [server.ts](../../../src/features/catracas/server.ts) |
+| `updateTurnstileDevice`              | POST   | `updateTurnstileDeviceInputSchema`            | [server.ts](../../../src/features/catracas/server.ts) |
+| `setAccessCardStatus`                | POST   | `setAccessCardStatusInputSchema`              | [server.ts](../../../src/features/catracas/server.ts) |
+| `linkAccessCardRfid`                 | POST   | `linkAccessCardRfidInputSchema`               | [server.ts](../../../src/features/catracas/server.ts) |
+| `rotateAccessCardQr`                 | POST   | `rotateAccessCardQrInputSchema`               | [server.ts](../../../src/features/catracas/server.ts) |
+| `issueAccessCard`                    | POST   | `issueAccessCardInputSchema`                  | [server.ts](../../../src/features/catracas/server.ts) |
+| `listAccessCards`                    | GET    | `listAccessCardsInputSchema`                  | [server.ts](../../../src/features/catracas/server.ts) |
+| `listAccessLogs`                     | GET    | `listAccessLogsInputSchema`                   | [server.ts](../../../src/features/catracas/server.ts) |
+| `exportGatePassOfflineList`          | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
+| `getCampusVsClassroomReconciliation` | GET    | `Sem schema de entrada explícito neste bloco` | [server.ts](../../../src/features/catracas/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 

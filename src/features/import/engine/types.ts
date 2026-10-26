@@ -15,6 +15,11 @@ export type ImportCommitContext = {
    * para os testes; o servidor passa-a sempre (`assertCanAddStudentForSchool`).
    */
   assertCanAddStudent?: () => Promise<void>;
+  /**
+   * Antes de cada matrícula nova: recusa (lança) fora do ciclo de matrículas, salvo
+   * para a Administração, que fica registada. Opcional para os testes.
+   */
+  assertNewEnrollment?: (studentId: string) => Promise<void>;
 };
 
 export type AuditEntry = {

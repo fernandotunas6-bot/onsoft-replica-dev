@@ -44,6 +44,8 @@ import {
   weekdayJsFromIso,
   type SchoolTodayOps,
 } from "./school-today";
+import { countOverdueInvoices } from "@/features/finance/overdue-invoices";
+import { selectAllPages } from "@/features/import/engine/paged";
 
 function countMap(entries: Array<string | null | undefined>) {
   const map = new Map<string, number>();
@@ -1019,34 +1021,8 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
 
     if (["Administrador", "Tesouraria"].includes(role)) {
       try {
-        const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .limit(250),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(250),
-        ]);
-        const paidByInvoice = new Map<string, number>();
-        for (const receipt of receipts ?? []) {
-          if (receipt.status === "reversed") continue;
-          paidByInvoice.set(
-            String(receipt.invoice_id),
-            (paidByInvoice.get(String(receipt.invoice_id)) ?? 0) + Number(receipt.amount ?? 0),
-          );
-        }
-        let overdueCount = 0;
-        for (const invoice of invoices ?? []) {
-          if (invoice.status === "cancelled") continue;
-          const total = invoiceNetTotal(invoice);
-          const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = invoiceOpenAmount(total, paid);
-          if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
-        }
+        // Só as faturas por pagar já vencidas e os recibos delas, sem corte.
+        const overdueCount = await countOverdueInvoices(db, schoolId, today);
         ops.overdueInvoices = overdueCount;
       } catch {
         /* financeiro opcional */

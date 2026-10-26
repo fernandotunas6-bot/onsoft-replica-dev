@@ -51,12 +51,12 @@ Especificação complementar: [SGA_SECURITY_ACCESS_SPEC.md](../SGA_SECURITY_ACCE
 
 Tabelas confirmadas no banco existente; este levantamento não propõe substituí-las:
 
-| Tabela | Colunas existentes |
-| --- | --- |
-| `communication_dispatches` | `id`, `school_id`, `channel`, `provider`, `external_message_id`, `sender_address`, `recipient`, `subject_or_template`, `status`, `delivered_at`, `error_details`, `metadata`, `created_at`, `updated_at` |
-| `schools` | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
-| `tenants` | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason` |
-| `verification_otps` | `id`, `school_id`, `user_id`, `target_identifier`, `channel_sent`, `purpose`, `code_hash`, `attempts_left`, `expires_at`, `consumed_at`, `requested_ip`, `user_agent`, `created_at` |
+| Tabela                     | Colunas existentes                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `communication_dispatches` | `id`, `school_id`, `channel`, `provider`, `external_message_id`, `sender_address`, `recipient`, `subject_or_template`, `status`, `delivered_at`, `error_details`, `metadata`, `created_at`, `updated_at`                                                                                                                                                                                                |
+| `schools`                  | `id`, `public_code`, `name`, `timezone`, `currency_code`, `status`, `theme`, `created_at`, `updated_at`, `nif`, `email`, `phone`, `province`, `municipality`, `address`, `logo_path`, `official_authorization_reference`, `tenant_id`, `commercial_name`, `city`, `logo_url`, `director_name`, `evaluation_periods`, `passing_grade`, `preferences`, `commune`, `neighborhood`, `latitude`, `longitude` |
+| `tenants`                  | `id`, `name`, `slug`, `status`, `plan_id`, `subscription_status`, `trial_ends_at`, `contact_name`, `contact_phone`, `contact_email`, `max_students`, `max_storage_gb`, `created_at`, `updated_at`, `billing_exempt`, `billing_exempt_reason`                                                                                                                                                            |
+| `verification_otps`        | `id`, `school_id`, `user_id`, `target_identifier`, `channel_sent`, `purpose`, `code_hash`, `attempts_left`, `expires_at`, `consumed_at`, `requested_ip`, `user_agent`, `created_at`                                                                                                                                                                                                                     |
 
 Relações confirmadas:
 
@@ -67,10 +67,10 @@ Relações confirmadas:
 
 ## Contratos de API e erros
 
-| Função | Método | Entrada | Fonte |
-| --- | --- | --- | --- |
-| `requestOtpVerificationFn` | POST | `requestOtpInputSchema` | [server.ts](../../../src/features/otp/server.ts) |
-| `verifyOtpCodeFn` | POST | `verifyOtpInputSchema` | [server.ts](../../../src/features/otp/server.ts) |
+| Função                     | Método | Entrada                 | Fonte                                            |
+| -------------------------- | ------ | ----------------------- | ------------------------------------------------ |
+| `requestOtpVerificationFn` | POST   | `requestOtpInputSchema` | [server.ts](../../../src/features/otp/server.ts) |
+| `verifyOtpCodeFn`          | POST   | `verifyOtpInputSchema`  | [server.ts](../../../src/features/otp/server.ts) |
 
 Erros esperados: sessão expirada, vínculo/grant insuficiente, AAL1 em escrita sensível, entrada inválida, recurso inexistente/fora do âmbito, conflito/duplicado, dependência indisponível e falha de persistência. Não expor SQL, tokens nem detalhes pessoais em mensagens/logs. A existência do endpoint não é prova de aceitação por perfil.
 
