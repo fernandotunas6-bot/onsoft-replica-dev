@@ -88,8 +88,8 @@ export function DesktopDownloadPanel() {
         </p>
       ) : onPhone ? (
         <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-          A app é para computador. Abra esta página no computador da escola, ou transfira o ficheiro
-          aqui e passe-o por pen.
+          Esta app é para computador. Abra esta página no computador da escola, ou transfira o
+          ficheiro aqui e passe-o por pen.
         </p>
       ) : null}
 

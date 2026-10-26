@@ -420,3 +420,9 @@ e versão, passos de instalação recolhidos, os outros sistemas numa lista e, n
 lista com um aviso de que a app é para computador. No ecrã de entrada, a ligação «Transferir a
 app para computador» aparece a partir de 768 px e nunca dentro da própria app. Capturas a
 390/1440 px e escuro a 768 px em `/mnt/project-files/desktop/`.
+
+`/transferir` com Android (26/10): a página passou a ter as duas apps, a do aparelho de quem
+visita primeiro. No Android o cartão «SIGA Plus para Android» (APK de 64 bits, ligação discreta
+para o de 32 bits, passos e certificado recolhidos) vem em cima e destacado; no computador fica
+por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã de entrada a ligação
+«Transferir a app do SIGA» aparece em todos os tamanhos (fora da app de computador).

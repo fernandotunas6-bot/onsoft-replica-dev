@@ -53,7 +53,6 @@ import {
   LoaderCircle,
   LockKeyhole,
   Mail,
-  Monitor,
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
@@ -1062,9 +1061,9 @@ export function AuthGate({
             // <a> simples: a página é pública e abre do zero.
             <a
               href="/transferir"
-              className="mt-4 hidden items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground md:inline-flex"
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
-              <Monitor className="size-3.5" /> Transferir a app para computador
+              <Download className="size-3.5" /> Transferir a app do SIGA
             </a>
           ) : null}
         </section>
