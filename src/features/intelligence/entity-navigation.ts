@@ -18,6 +18,7 @@ const ENTITY_KIND: Partial<Record<EntityType, string>> = {
   "subject-offering": "Disciplina",
   student: "Aluno",
   teacher: "Professor",
+  invoice: "Fatura",
 };
 
 /** «Turma», «Disciplina», «Aluno»… para o cabeçalho do menu. */

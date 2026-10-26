@@ -94,6 +94,14 @@ a parte vencida). A ficha completa continua com as cinco mais recentes e uma lig
 faturas». Quem o servidor não deixa ler as faturas já não faz o pedido. Evidência: capturas a 1440
 e 390 px sem scroll horizontal. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (página da fatura):** `/faturas/<id>` mostra a fatura (estado,
+mês, emissão, vencimento, valor, desconto, multa, total, pago e o que falta), o aluno a quem foi
+emitida e os pagamentos e recibos, cada um com o seu estado (um recibo estornado aparece como tal e
+não conta como pago). O número da fatura passa a ligação na lista de faturas e no financeiro do
+aluno. A sidebar mostra o menu da fatura («Voltar», `Fatura · FT-…`, «Detalhes e recibos», «Todas
+as faturas» e, a quem abre fichas de alunos, o financeiro e a ficha do aluno). Receber e anular
+continuam na lista. Evidência: capturas a 1440 e 390 px sem scroll horizontal. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

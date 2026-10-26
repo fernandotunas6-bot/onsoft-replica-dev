@@ -100,6 +100,7 @@ export function routeContextCandidates(
   if (extra === undefined && second && UUID.test(second)) {
     if (first === "alunos") return [{ type: "student", id: second }];
     if (first === "professores") return [{ type: "teacher", id: second }];
+    if (first === "faturas") return [{ type: "invoice", id: second }];
   }
   if (CLASS_SEARCH_ROUTES.has(pathname)) {
     const turma = typeof search.turma === "string" && UUID.test(search.turma) ? search.turma : null;

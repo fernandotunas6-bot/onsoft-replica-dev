@@ -93,7 +93,7 @@ const contas: Record<string, unknown> = {
     setActiveRole: () => {},
   },
 };
-for (const role of ["Secretaria", "Encarregado"]) {
+for (const role of ["Secretaria", "Encarregado", "Tesouraria"]) {
   contas[role] = {
     ...(contas.Administrador as Record<string, unknown>),
     role,
@@ -136,11 +136,11 @@ vi.mock("@/features/academic/use-academic-nav-tree", () => ({
 // Entidade que a página declarou em foco (a ficha do aluno lida do servidor).
 const focus = vi.hoisted(() => ({
   entity: null as null | {
-    type: "student" | "teacher";
+    type: "student" | "teacher" | "invoice";
     id: string;
     label: string;
     schoolId: string;
-    relations?: { class?: string };
+    relations?: { class?: string; student?: string };
   },
 }));
 // Professores que o servidor devolveria à escola (horário de um professor).
@@ -874,6 +874,81 @@ describe("AppSidebar — menu do aluno (Context Engine, piloto Aluno)", () => {
     currentPathname = `/alunos/${ANA}`;
     renderSidebar();
     expect(screen.queryByRole("region", { name: /^Aluno/ })).toBeNull();
+  });
+});
+
+describe("AppSidebar — menu da fatura (Context Engine, contexto financeiro)", () => {
+  const FATURA = "66666666-6666-4666-8666-666666666666";
+  const ANA = "44444444-4444-4444-8444-444444444444";
+  const fatura = {
+    type: "invoice" as const,
+    id: FATURA,
+    label: "FT-2026/0311",
+    schoolId: "school-a",
+    relations: { student: ANA },
+  };
+
+  it("a tesouraria abre a fatura: voltar às faturas e a fatura, sem a ficha do aluno", () => {
+    papel = "Tesouraria";
+    focus.entity = fatura;
+    currentPathname = `/faturas/${FATURA}`;
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Fatura: FT-2026/0311" });
+    expect(section.textContent).toContain("Fatura · FT-2026/0311");
+    expect(linksTo("/faturas").map((link) => link.label)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^Voltar/), "Todas as faturas"]),
+    );
+    expect(linksTo(`/faturas/${FATURA}`)).toEqual([{ label: "Detalhes e recibos", search: {} }]);
+    // A tesouraria não abre fichas de alunos (`/alunos` não é dela): o menu não as oferece.
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([]);
+    const active = screen
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Detalhes e recibos");
+  });
+
+  it("a administração vai da fatura ao financeiro e à ficha do aluno dela", () => {
+    papel = "Administrador";
+    focus.entity = fatura;
+    currentPathname = `/faturas/${FATURA}`;
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Fatura: FT-2026/0311" });
+    expect(section.textContent).toContain("Aluno da fatura");
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([
+      { label: "Financeiro do aluno", search: { secao: "financeiro" } },
+      { label: "Ficha do aluno", search: {} },
+    ]);
+  });
+
+  it("sem aluno devolvido com a fatura, não há grupo do aluno", () => {
+    papel = "Administrador";
+    focus.entity = { ...fatura, relations: {} };
+    currentPathname = `/faturas/${FATURA}`;
+    renderSidebar();
+    expect(screen.getByRole("region", { name: "Fatura: FT-2026/0311" })).toBeDefined();
+    expect(linksTo(`/alunos/${ANA}`)).toEqual([]);
+  });
+
+  it("antes de a página ler a fatura, ou com uma fatura de outra escola, o menu não muda", () => {
+    papel = "Tesouraria";
+    currentPathname = `/faturas/${FATURA}`;
+    const first = renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Fatura/ })).toBeNull();
+    first.unmount();
+    focus.entity = { ...fatura, schoolId: "school-b" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Fatura/ })).toBeNull();
+  });
+
+  it("quem não abre as faturas não recebe o menu da fatura", () => {
+    for (const role of ["Secretaria", "Encarregado"]) {
+      papel = role;
+      focus.entity = fatura;
+      currentPathname = `/faturas/${FATURA}`;
+      const view = renderSidebar();
+      expect(screen.queryByRole("region", { name: /^Fatura/ })).toBeNull();
+      view.unmount();
+    }
   });
 });
 

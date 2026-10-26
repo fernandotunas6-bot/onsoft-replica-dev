@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -1214,7 +1214,14 @@ function FaturasPage() {
                               {f.aluno}
                             </p>
                             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              <span className="tnum">{f.numero}</span> · {f.descricao}
+                              <Link
+                                to="/faturas/$invoiceId"
+                                params={{ invoiceId: f.id }}
+                                className="tnum font-medium text-primary hover:underline"
+                              >
+                                {f.numero}
+                              </Link>{" "}
+                              · {f.descricao}
                             </p>
                           </div>
                           <StatusBadge
@@ -1260,10 +1267,15 @@ function FaturasPage() {
                     {pagedFaturas.map((f) => (
                       <TableRow key={f.id}>
                         <TableCell className="font-mono text-xs">
-                          <span className="flex items-center gap-2">
+                          {/* O número abre a página da fatura, com o aluno e os recibos. */}
+                          <Link
+                            to="/faturas/$invoiceId"
+                            params={{ invoiceId: f.id }}
+                            className="flex items-center gap-2 hover:text-primary hover:underline"
+                          >
                             <FileText className="size-4 text-primary" />
                             {f.numero}
-                          </span>
+                          </Link>
                         </TableCell>
                         <TableCell className="font-semibold">{f.aluno}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">

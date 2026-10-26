@@ -53,6 +53,7 @@ import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configurac
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
+import { Route as FaturasInvoiceIdRouteImport } from './routes/faturas_.$invoiceId'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro.rh'
 import { Route as FinanceiroConciliacaoRouteImport } from './routes/financeiro_.conciliacao'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
@@ -358,6 +359,11 @@ const ConfiguracoesInicioRoute = ConfiguracoesInicioRouteImport.update({
 const ConviteTokenRoute = ConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaturasInvoiceIdRoute = FaturasInvoiceIdRouteImport.update({
+  id: '/faturas_/$invoiceId',
+  path: '/faturas/$invoiceId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroRhRoute = FinanceiroRhRouteImport.update({
@@ -851,6 +857,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/faturas/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -981,6 +988,7 @@ export interface FileRoutesByTo {
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/faturas/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -1112,6 +1120,7 @@ export interface FileRoutesById {
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/faturas_/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/rh': typeof FinanceiroRhRouteWithChildren
   '/financeiro_/conciliacao': typeof FinanceiroConciliacaoRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -1244,6 +1253,7 @@ export interface FileRouteTypes {
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
+    | '/faturas/$invoiceId'
     | '/financeiro/rh'
     | '/financeiro/conciliacao'
     | '/matricula/$slug'
@@ -1374,6 +1384,7 @@ export interface FileRouteTypes {
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
+    | '/faturas/$invoiceId'
     | '/financeiro/rh'
     | '/financeiro/conciliacao'
     | '/matricula/$slug'
@@ -1504,6 +1515,7 @@ export interface FileRouteTypes {
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/convite/$token'
+    | '/faturas_/$invoiceId'
     | '/financeiro/rh'
     | '/financeiro_/conciliacao'
     | '/matricula/$slug'
@@ -1625,6 +1637,7 @@ export interface RootRouteChildren {
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  FaturasInvoiceIdRoute: typeof FaturasInvoiceIdRoute
   FinanceiroConciliacaoRoute: typeof FinanceiroConciliacaoRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
   PedagogicaCatalogoRoute: typeof PedagogicaCatalogoRoute
@@ -1992,6 +2005,13 @@ declare module '@tanstack/react-router' {
       path: '/convite/$token'
       fullPath: '/convite/$token'
       preLoaderRoute: typeof ConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faturas_/$invoiceId': {
+      id: '/faturas_/$invoiceId'
+      path: '/faturas/$invoiceId'
+      fullPath: '/faturas/$invoiceId'
+      preLoaderRoute: typeof FaturasInvoiceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/financeiro/rh': {
@@ -2828,6 +2848,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  FaturasInvoiceIdRoute: FaturasInvoiceIdRoute,
   FinanceiroConciliacaoRoute: FinanceiroConciliacaoRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
   PedagogicaCatalogoRoute: PedagogicaCatalogoRoute,

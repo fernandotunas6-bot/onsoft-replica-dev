@@ -119,7 +119,7 @@ import { formatIsoDay, summarizeStudentInvoices } from "@/features/finance/stude
 import { schoolTodayIso } from "@/lib/school-date";
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
-import { canWriteModule } from "@/features/auth/access-policy";
+import { canAccessPath, canWriteModule } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapStudentProfileToSnapshot } from "@/features/intelligence/students/student-relations-adapter";
@@ -261,6 +261,8 @@ function StudentDetail() {
   // do servidor (escrita em Pessoas para Administração e Secretaria, ou permissão
   // de escrita dada a outro cargo). Quem não grava, como o encarregado, não vê os botões.
   const canManageStudent = canWriteModule(account.role, "pessoas", account.grants);
+  // A página de cada fatura segue as regras de `/faturas` (Administração e Tesouraria).
+  const canOpenInvoice = canAccessPath("/faturas", account.role, account.grants);
   // Secção pedida na URL; sem acesso a ela, mostra-se a ficha completa.
   const { secao } = Route.useSearch();
   const { section, refused: refusedSection } = resolveStudentSection(
@@ -1917,7 +1919,18 @@ function StudentDetail() {
                               className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
                             >
                               <span className="min-w-0 [overflow-wrap:anywhere]">
-                                {invoice.number} · {invoice.description}
+                                {canOpenInvoice ? (
+                                  <Link
+                                    to="/faturas/$invoiceId"
+                                    params={{ invoiceId: invoice.id }}
+                                    className="font-medium text-primary hover:underline"
+                                  >
+                                    {invoice.number}
+                                  </Link>
+                                ) : (
+                                  invoice.number
+                                )}{" "}
+                                · {invoice.description}
                                 {"state" in invoice ? (
                                   <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
                                     <StatusBadge

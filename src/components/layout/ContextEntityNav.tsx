@@ -8,6 +8,7 @@ import { useAcademicNavTree } from "@/features/academic/use-academic-nav-tree";
 import { ACADEMIC_CONTEXT_ENTRIES } from "@/features/intelligence/academic-context-entries";
 import { academicContextLookup } from "@/features/intelligence/academic-context-lookup";
 import { useEntityFocus } from "@/features/intelligence/entity-focus-context";
+import { INVOICE_CONTEXT_ENTRIES } from "@/features/intelligence/invoice-context-entries";
 import { STUDENT_CONTEXT_ENTRIES } from "@/features/intelligence/student-context-entries";
 import { TEACHER_CONTEXT_ENTRIES } from "@/features/intelligence/teacher-context-entries";
 import {
@@ -50,12 +51,15 @@ import { NavLinkRow, NavSubheader } from "./NavItem";
  * restrição fica aqui, só a estreitar.
  */
 const ENTITY_MENU_ROLES = new Set(["Administrador", "Secretaria", "Professor"]);
+/** A fatura é da tesouraria: `/faturas` abre-se à Administração e à Tesouraria. */
+const INVOICE_MENU_ROLES = new Set(["Administrador", "Tesouraria"]);
 
 /** Entradas de todos os contextos; o registo escolhe pelo tipo da entidade aberta. */
 const ENTITY_ENTRIES = [
   ...ACADEMIC_CONTEXT_ENTRIES,
   ...STUDENT_CONTEXT_ENTRIES,
   ...TEACHER_CONTEXT_ENTRIES,
+  ...INVOICE_CONTEXT_ENTRIES,
 ];
 
 /**
@@ -68,6 +72,7 @@ function backLink(
   search: Record<string, unknown>,
 ): EntityNavigation["back"] {
   if (context.trail.at(-1)?.type === "student") return { to: "/alunos" };
+  if (context.trail.at(-1)?.type === "invoice") return { to: "/faturas" };
   if (pathname.startsWith("/professores/")) return { to: "/pessoas" };
   // Os trabalhos de um professor ficam na área académica, como o horário dele.
   if (pathname === "/pedagogica/trabalhos" && context.trail.at(-1)?.type === "teacher") {
@@ -92,8 +97,11 @@ export function useEntityNavigation(
   const { focusedEntity } = useEntityFocus();
   const staff = ENTITY_MENU_ROLES.has(account.role);
   const route = useMemo(
-    () => (staff ? routeContextCandidates(pathname, search) : []),
-    [staff, pathname, search],
+    () =>
+      routeContextCandidates(pathname, search).filter((candidate) =>
+        candidate.type === "invoice" ? INVOICE_MENU_ROLES.has(account.role) : staff,
+      ),
+    [staff, account.role, pathname, search],
   );
   // Só pede turmas e disciplinas quando a URL traz uma turma; noutras páginas
   // nada é carregado.

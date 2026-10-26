@@ -153,6 +153,12 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates(`/alunos/${ALUNO}/extra`)).toEqual([]);
     expect(routeContextCandidates("/alunos")).toEqual([]);
   });
+
+  it("reconhece a página da fatura, só com um uuid", () => {
+    expect(routeContextCandidates(`/faturas/${ALUNO}`)).toEqual([{ type: "invoice", id: ALUNO }]);
+    expect(routeContextCandidates("/faturas/FT-2026-0311")).toEqual([]);
+    expect(routeContextCandidates("/faturas")).toEqual([]);
+  });
 });
 
 describe("parseSubjectOfferingId", () => {
