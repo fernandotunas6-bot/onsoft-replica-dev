@@ -340,7 +340,12 @@ describe("entregas no servidor", () => {
     await expect(
       server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
     ).rejects.toThrow("fechado");
-    expect(tables.siga_class_task_submissions![0]!.status).toBe("submitted");
+    // A entrega volta exactamente ao que era: sem nota nem data de devolução.
+    expect(tables.siga_class_task_submissions![0]).toMatchObject({
+      status: "submitted",
+      grade: null,
+      returned_at: null,
+    });
 
     expect(
       await server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
@@ -364,6 +369,23 @@ describe("entregas no servidor", () => {
       feedback: null,
       toPauta: true,
     });
+  });
+
+  it("dois professores a devolver ao mesmo tempo: só um ganha, e a pauta leva a nota dele", async () => {
+    await server.submitTaskWork({ data: { taskId: TASK, body: "v1" } });
+    tables.siga_class_tasks![0]!.assessment_item_id = ITEM;
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t1";
+    const submissionId = String(tables.siga_class_task_submissions![0]!.id);
+
+    const results = await Promise.allSettled([
+      server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 12 } }),
+      server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual(["fulfilled", "rejected"]);
+    expect(writeAssessmentScores).toHaveBeenCalledTimes(1);
+    const pautaScore = writeAssessmentScores.mock.calls[0]![1].rows[0].score;
+    expect(tables.siga_class_task_submissions![0]!.grade).toBe(pautaScore);
   });
 
   it("sem nota, ou sem avaliação ligada, a pauta não é tocada", async () => {

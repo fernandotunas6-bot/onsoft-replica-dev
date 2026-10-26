@@ -29,10 +29,46 @@ const RECORD_TABLES = [
   "siga_assessment_scores",
   "grade_scores",
   "grade_sheet_rows",
+  // Modelo anterior da chamada: já ninguém escreve, mas pode guardar histórico.
   "attendance_records",
   "siga_class_task_submissions",
   "report_cards",
+  "siga_exam_registrations",
 ] as const;
+/** Linhas por leitura; quem já apareceu sai do filtro na leitura seguinte. */
+const RECORD_PAGE = 1000;
+const RECORD_PASSES = 8;
+
+type RecordRead = PromiseLike<{
+  data: unknown;
+  error: Parameters<typeof publicDatabaseError>[0] | null;
+}>;
+
+/**
+ * Os `ids` com pelo menos uma linha. O PostgREST não faz DISTINCT e um aluno com
+ * centenas de presenças enche a página sozinho: cada passagem tira do filtro quem
+ * já apareceu. Se as passagens acabarem com a página ainda cheia, quem falta conta
+ * como «com registos» — na dúvida, o aluno fica onde está. (`readAllPages` leria
+ * todas as presenças; aqui só interessa quem tem alguma.)
+ */
+async function idsWithRows(
+  read: (remaining: string[]) => RecordRead,
+  column: string,
+  ids: string[],
+): Promise<Set<string>> {
+  const found = new Set<string>();
+  let remaining = ids;
+  for (let pass = 0; pass < RECORD_PASSES && remaining.length; pass += 1) {
+    const { data, error } = await read(remaining);
+    if (error) throw publicDatabaseError(error, "Não foi possível confirmar as notas e presenças.");
+    const rows = (data ?? []) as Row[];
+    for (const row of rows) found.add(str(row[column]));
+    if (rows.length < RECORD_PAGE) return found;
+    remaining = remaining.filter((id) => !found.has(id));
+  }
+  for (const id of remaining) found.add(id);
+  return found;
+}
 
 const SHIFT_LABELS: Record<string, string> = {
   morning: "Manhã",
@@ -242,21 +278,40 @@ async function loadPlan(
   // Quem já tem registos nesta matrícula (qualquer tabela chega).
   const withRecords = new Set<string>();
   if (enrollmentIds.length) {
-    const reads = await Promise.all(
-      RECORD_TABLES.map((table) =>
-        db
-          .from(table)
-          .select("enrollment_id")
-          .eq("school_id", schoolId)
-          .in("enrollment_id", enrollmentIds)
-          .limit(5000),
+    const [byEnrollment, attended] = await Promise.all([
+      Promise.all(
+        RECORD_TABLES.map((table) =>
+          idsWithRows(
+            (remaining) =>
+              db
+                .from(table)
+                .select("enrollment_id")
+                .eq("school_id", schoolId)
+                .in("enrollment_id", remaining)
+                .limit(RECORD_PAGE),
+            "enrollment_id",
+            enrollmentIds,
+          ),
+        ),
       ),
-    );
-    for (const read of reads) {
-      if (read.error) {
-        throw publicDatabaseError(read.error, "Não foi possível confirmar as notas e presenças.");
-      }
-      for (const row of (read.data ?? []) as Row[]) withRecords.add(str(row.enrollment_id));
+      // A chamada actual guarda o aluno e a sessão, não a matrícula: conta a presença
+      // numa aula de uma das turmas desta classe e turno.
+      idsWithRows(
+        (remaining) =>
+          db
+            .from("siga_attendance_records")
+            .select("student_id, siga_attendance_sessions!inner(class_group_id)")
+            .eq("school_id", schoolId)
+            .in("student_id", remaining)
+            .in("siga_attendance_sessions.class_group_id", groupIds)
+            .limit(RECORD_PAGE),
+        "student_id",
+        studentIds,
+      ),
+    ]);
+    for (const ids of byEnrollment) for (const id of ids) withRecords.add(id);
+    for (const row of enrollmentRows) {
+      if (attended.has(str(row.student_id))) withRecords.add(str(row.id));
     }
   }
 
