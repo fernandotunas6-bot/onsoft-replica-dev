@@ -42,6 +42,15 @@ describe("verificação do navegador (motores antigos)", () => {
     expect(overlay?.textContent).toContain("A app SIGA Desktop usa o motor do Safari do Mac");
   });
 
+  it("diz que motor encontrou e, na app do Mac, a versão do macOS", () => {
+    vi.stubGlobal("__TAURI_OS_PLUGIN_INTERNALS__", { version: "11.7.10" });
+    const overlay = run({ colorMix: false, tauri: true });
+    const detail = overlay?.querySelector("#siga-browser-check-detail")?.textContent ?? "";
+    expect(detail).toMatch(/^Motor encontrado: /);
+    expect(detail).toContain("macOS 11.7.10");
+    expect(overlay?.textContent).toContain("portal-siga.com");
+  });
+
   it("noutro navegador antigo sugere actualizar ou usar outro", () => {
     const overlay = run({
       colorMix: false,

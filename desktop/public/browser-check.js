@@ -33,6 +33,32 @@
 
   if (supported()) return;
 
+  // Que motor é este, por saltos de funcionalidades (o user agent do Safari não diz).
+  function engineGuess() {
+    try {
+      if (!Array.prototype.at) return "anterior ao Safari 15.4";
+      if (window.CSS && CSS.supports && !CSS.supports("container-type", "inline-size")) {
+        return "Safari 15.4 a 15.6";
+      }
+      if (window.CSS && CSS.supports && !CSS.supports("color", "color-mix(in srgb, red, blue)")) {
+        return "Safari 16.0 ou 16.1";
+      }
+      return "Safari 16.2 ou 16.3";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // Na app SIGA Desktop o plugin «os» do Tauri deixa ler a versão do macOS.
+  function macosVersion() {
+    try {
+      var info = window.__TAURI_OS_PLUGIN_INTERNALS__;
+      return info && typeof info.version === "string" ? info.version : "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   var ua = navigator.userAgent || "";
   var iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   var mac = !iOS && /Macintosh|Mac OS X/.test(ua);
@@ -55,7 +81,8 @@
     ];
     note =
       "No macOS 10.15 Catalina ou anterior não há Safari compatível: use o Firefox actualizado " +
-      "ou o SIGA Plus noutro computador.";
+      "ou o SIGA Plus noutro computador. Entretanto, o SIGA funciona no Chrome ou no Firefox " +
+      "actualizados, em portal-siga.com.";
   } else if (iOS) {
     title = "É preciso actualizar o iOS";
     intro = "O SIGA Plus precisa do iOS/iPadOS 16.4 ou mais recente.";
@@ -114,6 +141,22 @@
     }
     card.appendChild(list);
     if (note) card.appendChild(el("p", "margin:0;font-size:13px;color:#64748B;", note));
+
+    // O que foi encontrado, para quem ajuda a resolver (suporte, Direcção).
+    var found = [];
+    var engine = engineGuess();
+    if (engine) found.push("Motor encontrado: " + engine);
+    var macos = mac ? macosVersion() : "";
+    if (macos) found.push("macOS " + macos);
+    if (found.length) {
+      var detail = el(
+        "p",
+        "margin:16px 0 0;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#64748B;",
+        found.join(" · ") + ".",
+      );
+      detail.id = "siga-browser-check-detail";
+      card.appendChild(detail);
+    }
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
