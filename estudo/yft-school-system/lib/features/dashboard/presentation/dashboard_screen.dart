@@ -1,3 +1,5 @@
+import 'package:yft_school_system/core/sga/sga_work.dart';
+import 'package:yft_school_system/features/work/presentation/work_widgets.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,6 +43,8 @@ class DashboardScreen extends ConsumerWidget {
             ref.invalidate(academicCalendarProvider);
             ref.invalidate(timetableProvider(null));
             ref.invalidate(myTimetableProvider);
+            ref.invalidate(studentAgendaProvider);
+            ref.invalidate(workOverviewProvider);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -383,7 +387,10 @@ class ParentDashboard extends ConsumerWidget {
 
     return Column(
       children: [
+        const WardSwitcher(),
+        const TodayAgendaCard(),
         const CurrentClassCard(),
+        const WorkDueCard(),
         const SubjectsPreview(),
         const SizedBox(height: 16),
         const UpcomingActivities(),

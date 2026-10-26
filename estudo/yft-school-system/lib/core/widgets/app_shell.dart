@@ -181,8 +181,8 @@ const _legacyOnlyRoutes = {
   '/academic-calendar',
 };
 
-List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i) {
-  final all = _allEntriesFor(role, i);
+List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i, {bool student = false}) {
+  final all = _allEntriesFor(role, i, student: student);
   if (!sgaMode) return all;
   return [
     for (final e in all)
@@ -192,13 +192,20 @@ List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i) {
   ];
 }
 
-List<_MenuEntry> _allEntriesFor(UserRole? role, AppIcons i) {
+List<_MenuEntry> _allEntriesFor(UserRole? role, AppIcons i, {bool student = false}) {
   return [
     _MenuEntry(i.profile, 'Meu perfil', '/personal-info'),
-    if (role == UserRole.parent) ...[
+    // Aluno: os ecrãs do encarregado, com a própria ficha e na primeira pessoa.
+    if (role == UserRole.parent && student) ...[
+      _MenuEntry(i.grades, 'O meu boletim', '/result-card'),
+      _MenuEntry(i.absences, 'As minhas faltas', '/ward-attendance'),
+      if (sgaMode) _MenuEntry(i.work, 'Trabalhos', '/trabalhos'),
+      _MenuEntry(i.fees, 'Propinas', '/payment-history'),
+    ] else if (role == UserRole.parent) ...[
       _MenuEntry(i.wards, 'Educandos', '/wards'),
       _MenuEntry(i.grades, 'Notas', '/result-card'),
       _MenuEntry(i.absences, 'Faltas', '/ward-attendance'),
+      if (sgaMode) _MenuEntry(i.work, 'Trabalhos', '/trabalhos'),
       _MenuEntry(i.fees, 'Propinas', '/payment-history'),
       _MenuEntry(i.receipts, 'Recibos', '/parent-receipts'),
     ],
@@ -358,7 +365,7 @@ class AppMenu extends ConsumerWidget {
                     child: Divider(height: 1, color: AppColors.border),
                   ),
                 ],
-                for (final e in _entriesFor(session?.role, icons))
+                for (final e in _entriesFor(session?.role, icons, student: session?.isStudent ?? false))
                   tile(e.icon, e.label, () => open(e.route)),
                 tile(
                   icons.dark,

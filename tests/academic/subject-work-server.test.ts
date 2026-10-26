@@ -73,7 +73,8 @@ vi.mock("@tanstack/react-start", () => ({
   },
 }));
 
-const { getMySubjectWork } = await import("@/features/academic/subject-work-server");
+const { getMySubjectWork, getMyWorkOverview } =
+  await import("@/features/academic/subject-work-server");
 
 const task = (id: string, extra: Row = {}): Row => ({
   id,
@@ -223,5 +224,50 @@ describe("trabalhos da disciplina (aluno e encarregado)", () => {
       state: "overdue",
       archived: false,
     });
+  });
+});
+
+describe("visão geral dos trabalhos (app móvel)", () => {
+  it("todas as disciplinas do ano corrente, com o nome da disciplina; o que pede acção primeiro", async () => {
+    tables.subjects!.push({ id: "other", school_id: S, name: "Física" });
+    const work = await getMyWorkOverview({ data: {} });
+    // Anos anteriores (cs-old) e matrículas anuladas (cs-x) ficam de fora.
+    expect(work.tasks.map((t) => t.id)).toEqual(["t-overdue", "t-other", "t-open", "t-returned"]);
+    expect(work.tasks.map((t) => t.state)).toEqual(["overdue", "overdue", "open", "returned"]);
+    const subjectOf = Object.fromEntries(work.tasks.map((t) => [t.id, t.subjectName]));
+    expect(subjectOf).toEqual({
+      "t-overdue": "Matemática",
+      "t-other": "Física",
+      "t-open": "Matemática",
+      "t-returned": "Matemática",
+    });
+    expect(work.tasks.find((t) => t.id === "t-returned")?.latest).toMatchObject({
+      grade: 15,
+      feedback: "Bom",
+    });
+    expect(work.canSubmit).toBe(true);
+    expect(work.summary.total).toBe(4);
+  });
+
+  it("o encarregado vê os trabalhos do educando, mas não entrega", async () => {
+    role = "Encarregado";
+    const work = await getMyWorkOverview({
+      data: { studentId: "00000000-0000-0000-0000-0000000000c1" },
+    });
+    expect(work.tasks.length).toBe(4);
+    expect(work.canSubmit).toBe(false);
+  });
+
+  it("sem acesso ao aluno, ou sem matrícula activa: vazio", async () => {
+    visibleStudent = null;
+    expect((await getMyWorkOverview({ data: {} })).tasks).toEqual([]);
+    visibleStudent = "st1";
+    tables.enrollments = tables.enrollments!.filter((row) => row.status !== "active");
+    expect((await getMyWorkOverview({ data: {} })).tasks).toEqual([]);
+  });
+
+  it("a página da disciplina continua igual depois de partilhar o núcleo", async () => {
+    const work = await getMySubjectWork({ data: { subjectId: SUBJECT } });
+    expect(work.tasks.map((t) => t.id)).toEqual(["t-overdue", "t-open", "t-old", "t-returned"]);
   });
 });
