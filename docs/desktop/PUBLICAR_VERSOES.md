@@ -33,6 +33,42 @@ escola teria de reinstalar à mão).
 A primeira versão publicada com a chave é a que passa a receber actualizações; as
 instaladas antes disso têm de ser substituídas uma vez à mão.
 
+### Estado: configurada a 26/10/2026
+
+| O quê                                      | Onde                                                                                                                               |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Chave privada                              | Segredo `TAURI_SIGNING_PRIVATE_KEY`, **ao nível do repositório** (não num ambiente: o `release-desktop.yml` não usa ambientes)     |
+| Palavra-passe                              | Segredo `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, no mesmo sítio. É aleatória, gerada com a chave                                      |
+| Chave pública                              | Variável `TAURI_UPDATER_PUBKEY`, no mesmo sítio                                                                                    |
+| Identificador da chave                     | `8978E84141130A74` (minisign)                                                                                                      |
+| Cópias da chave privada e da palavra-passe | `~/.tauri/siga-desktop.key`, `~/.tauri/siga-desktop.password` (com `chmod 600`) no computador do dono, e o cofre de senhas do dono |
+
+A chave privada e a palavra-passe **nunca entram neste repositório** nem em conversas: com
+as duas, alguém podia assinar uma actualização que as apps das escolas aceitam. O GitHub
+não as deixa ler depois de gravadas, por isso a cópia no cofre é a única recuperável.
+
+Confirmar que a chave pública gravada é a do ficheiro (a variável pode ler-se):
+
+```sh
+[ "$(gh variable get TAURI_UPDATER_PUBKEY | tr -d '\n ')" = "$(tr -d '\n ' < ~/.tauri/siga-desktop.key.pub)" ] && echo igual
+```
+
+**Se a chave se perder:** as apps instaladas não aceitam actualizações assinadas por outra.
+Gerar uma chave nova (passo 1), gravar os três valores e publicar uma versão; cada escola
+reinstala essa versão uma vez à mão.
+
+**Se a chave for exposta:** fazer o mesmo de imediato. Para chegar às escolas, uma
+actualização falsa precisa também de entrar numa release publicada deste repositório, mas
+não se deve contar com essa segunda barreira.
+
+## Histórico de versões
+
+| Versão                          | Estado                               | Actualizações automáticas                                                                 |
+| ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| v1.1.0 – v1.2.2 (06–10/10/2026) | Publicadas                           | Não (sem chave): substituir à mão                                                         |
+| v1.3.0 (25/10/2026)             | Rascunho, **nunca publicada**        | Não. Ficou para trás de propósito: publicá-la obrigava as escolas a reinstalar duas vezes |
+| v1.3.1 (26/10/2026)             | Construída com a chave, Tauri 2.12.5 | **Sim**: a primeira. As seguintes chegam pelo botão «Instalar e reiniciar»                |
+
 ## 2. Cada versão
 
 1. Subir a versão nos quatro sítios, com o mesmo número (o workflow recusa se não
