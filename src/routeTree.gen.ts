@@ -49,6 +49,7 @@ import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ComunicacoesAnnouncementIdRouteImport } from './routes/comunicacoes_.$announcementId'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
 import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
@@ -350,6 +351,12 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
 } as any)
+const ComunicacoesAnnouncementIdRoute =
+  ComunicacoesAnnouncementIdRouteImport.update({
+    id: '/comunicacoes_/$announcementId',
+    path: '/comunicacoes/$announcementId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
   id: '/configuracoes_/assinatura',
   path: '/configuracoes/assinatura',
@@ -916,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
@@ -1057,6 +1065,7 @@ export interface FileRoutesByTo {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
@@ -1199,6 +1208,7 @@ export interface FileRoutesById {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes_/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
@@ -1342,6 +1352,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes/$announcementId'
     | '/configuracoes/assinatura'
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
@@ -1483,6 +1494,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes/$announcementId'
     | '/configuracoes/assinatura'
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
@@ -1624,6 +1636,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes_/$announcementId'
     | '/configuracoes_/assinatura'
     | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
@@ -1765,6 +1778,7 @@ export interface RootRouteChildren {
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ComunicacoesAnnouncementIdRoute: typeof ComunicacoesAnnouncementIdRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
   ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
@@ -2131,6 +2145,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/calendario/ics'
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
+    }
+    '/comunicacoes_/$announcementId': {
+      id: '/comunicacoes_/$announcementId'
+      path: '/comunicacoes/$announcementId'
+      fullPath: '/comunicacoes/$announcementId'
+      preLoaderRoute: typeof ComunicacoesAnnouncementIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/configuracoes_/assinatura': {
       id: '/configuracoes_/assinatura'
@@ -2976,6 +2997,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ComunicacoesAnnouncementIdRoute: ComunicacoesAnnouncementIdRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
   ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,

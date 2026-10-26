@@ -67,6 +67,12 @@ import { usePersistedListFilters } from "@/lib/list-filters";
 import { getDocUrl, DOC_PATHS } from "@/lib/ecosystem-urls";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import {
+  announcementStatusKey,
+  audienceLabel,
+  canalLabel,
+  estadoLabel,
+} from "@/features/communications/labels";
 
 const comunicacoesFilterDefaults = {
   q: "",
@@ -114,39 +120,11 @@ const canalIcon = {
   portal: Monitor,
 } as const;
 
-const canalLabel: Record<Channel, string> = {
-  sms: "SMS",
-  whatsapp: "WhatsApp",
-  email: "E-mail",
-  portal: "Portal",
-};
-
 const estadoTone: Record<string, string> = {
   sent: toneClass.success,
   scheduled: toneClass.info,
   draft: toneClass.muted,
   cancelled: toneClass.muted,
-};
-
-const estadoLabel: Record<string, string> = {
-  sent: "Enviado",
-  scheduled: "Agendado",
-  draft: "Rascunho",
-  cancelled: "Arquivado",
-};
-
-const audienceLabel: Record<Audience, string> = {
-  all_guardians: "Todos os encarregados",
-  guardians_with_debt: "Encarregados com dívida",
-  students_secondary: "Alunos do ensino secundário",
-  students_finalists: "Alunos finalistas",
-  teaching_staff: "Corpo docente",
-  alumni_all: "Alumni (todos com consentimento)",
-  alumni_opportunities: "Alumni (oportunidades & carreiras)",
-  alumni_events: "Alumni (eventos & encontros)",
-  alumni_mentoring: "Alumni (mentoria)",
-  alumni_surveys: "Alumni (pesquisas e tracer studies)",
-  alumni_fundraising: "Alumni (campanhas & bolsas)",
 };
 
 const audienceOptions: Array<{ value: Audience; label: string }> = (
@@ -721,7 +699,15 @@ function ComunicacoesPage() {
                                 <Icon className="size-4" />
                               </span>
                               <div>
-                                <p className="font-semibold">{c.title}</p>
+                                <p className="font-semibold [overflow-wrap:anywhere]">
+                                  <Link
+                                    to="/comunicacoes/$announcementId"
+                                    params={{ announcementId: c.id }}
+                                    className="hover:text-primary hover:underline"
+                                  >
+                                    {c.title}
+                                  </Link>
+                                </p>
                                 <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
                                 <p className="mt-2 text-xs text-muted-foreground">
                                   {audienceLabel[audience] ?? c.audience} ·{" "}
@@ -944,15 +930,7 @@ function ComunicacoesPage() {
                               </div>
                             </div>
                             <StatusBadge
-                              status={
-                                status === "sent"
-                                  ? "paid"
-                                  : status === "scheduled"
-                                    ? "pending"
-                                    : status === "cancelled"
-                                      ? "cancelled"
-                                      : "inactive"
-                              }
+                              status={announcementStatusKey(status)}
                               label={estadoLabel[status] ?? c.status}
                             />
                           </div>

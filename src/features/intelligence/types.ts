@@ -13,7 +13,9 @@ export type EntityType =
   /** Um vínculo laboral (funcionário) da escola activa (contexto RH). */
   | "employee"
   /** Um ficheiro dos Arquivos da escola activa (contexto Documentos e Arquivos). */
-  | "file";
+  | "file"
+  /** Um comunicado da escola activa (contexto Comunicações). */
+  | "announcement";
 
 export interface EntityFocus<T = unknown> {
   type: EntityType;

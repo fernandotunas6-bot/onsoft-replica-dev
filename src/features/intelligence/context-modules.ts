@@ -1,5 +1,6 @@
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import { ACADEMIC_CONTEXT_MODULE } from "./academic-context-entries";
+import { ANNOUNCEMENT_CONTEXT_MODULE } from "./announcement-context-entries";
 import type { ContextNavEntry } from "./context-registry";
 import { EMPLOYEE_CONTEXT_MODULE } from "./employee-context-entries";
 import { FILE_CONTEXT_MODULE } from "./file-context-entries";
@@ -41,6 +42,7 @@ export const CONTEXT_MODULES: readonly ContextModule[] = [
   STUDENT_CONTEXT_MODULE,
   TEACHER_CONTEXT_MODULE,
   INVOICE_CONTEXT_MODULE,
+  ANNOUNCEMENT_CONTEXT_MODULE,
   EMPLOYEE_CONTEXT_MODULE,
   FILE_CONTEXT_MODULE,
 ];

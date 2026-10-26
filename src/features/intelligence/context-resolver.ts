@@ -114,6 +114,7 @@ export function routeContextCandidates(
     if (first === "alunos") return [{ type: "student", id: second }];
     if (first === "professores") return [{ type: "teacher", id: second }];
     if (first === "faturas") return [{ type: "invoice", id: second }];
+    if (first === "comunicacoes") return [{ type: "announcement", id: second }];
     if (first === "arquivos") return [{ type: "file", id: second }];
   }
   if (CLASS_SEARCH_ROUTES.has(pathname)) {
