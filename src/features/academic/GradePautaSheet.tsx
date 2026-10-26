@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { NO_CLASS_SUBJECTS, subjectsOfClass } from "@/features/academic/pauta-subjects";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileBadge, FileDown, Lock, Save, Unlock } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -116,7 +117,8 @@ export function GradePautaSheet({
   schoolName,
   academicYear,
   classGroups,
-  subjects,
+  subjects: schoolSubjects,
+  classSubjects = NO_CLASS_SUBJECTS,
   enrollments,
   termGrades,
   passingGrade = angolaGradeScale.passing,
@@ -129,6 +131,8 @@ export function GradePautaSheet({
   academicYear: string;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
+  /** Disciplinas atribuídas a cada turma (`class_subjects`): só essas são oferecidas. */
+  classSubjects?: Array<{ class_group_id: string; subject_id: string }>;
   enrollments: EnrollmentRow[];
   termGrades: TermGradeRow[];
   passingGrade?: number;
@@ -148,6 +152,10 @@ export function GradePautaSheet({
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const [view, setView] = useState<PautaView>("disciplina");
   const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
+  const subjects = useMemo(
+    () => subjectsOfClass(schoolSubjects, classSubjects, classGroupId),
+    [schoolSubjects, classSubjects, classGroupId],
+  );
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
   const initialTerm =
     globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
@@ -163,7 +171,10 @@ export function GradePautaSheet({
   }, [classGroupId, classGroups]);
 
   useEffect(() => {
-    if (!subjectId && subjects[0]?.id) setSubjectId(subjects[0].id);
+    // Ao mudar de turma, a disciplina escolhida pode não ser dela.
+    // Sem nenhuma, fica vazia: nunca lançar na disciplina da turma anterior.
+    if (subjects.some((subject) => subject.id === subjectId)) return;
+    setSubjectId(subjects[0]?.id ?? "");
   }, [subjectId, subjects]);
 
   const selectedGroup = classGroups.find((group) => group.id === classGroupId);
@@ -728,6 +739,7 @@ export function GradePautaSheet({
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
             >
+              {subjects.length === 0 ? <option value="">Sem disciplinas atribuídas</option> : null}
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}

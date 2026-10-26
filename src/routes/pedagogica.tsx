@@ -78,6 +78,7 @@ import { getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { toast } from "@/lib/toast";
 import { warmPedagogicaCharts } from "@/lib/warm-charts";
 import { distinctOptionLabels, resolveOptionId } from "@/lib/option-label";
+import { subjectsOfClass } from "@/features/academic/pauta-subjects";
 
 // Os separadores que não abrem logo só se descarregam quando alguém os abre:
 // juntos pesavam ~300 KB no arranque da página. Estrutura e Turmas (os separadores
@@ -433,6 +434,19 @@ function PedagogicaPage() {
     enrollmentOptions,
     (enrollment) => enrollment.label,
   );
+  // Nota avulsa: disciplinas da turma do aluno, com os rótulos de `subjectOptions`
+  // (o `resolveOptionId` encontra o id pela posição nessa lista).
+  const avulsaSubjectOptions = (enrollmentLabel: string | undefined) => {
+    const enrollmentId = resolveOptionId(
+      enrollmentSelectOptions,
+      enrollmentLabel,
+      enrollmentOptions.map((row) => row.id),
+    );
+    const classGroupId =
+      enrollmentOptions.find((row) => row.id === enrollmentId)?.class_group_id ?? "";
+    const ids = new Set(subjectsOfClass(subjects, classSubjects, classGroupId).map((s) => s.id));
+    return subjectOptions.filter((_, index) => ids.has(subjects[index]?.id ?? ""));
+  };
   const structureReady = academicYears.length > 0 && courses.length > 0 && gradeLevels.length > 0;
 
   const mediaNotas =
@@ -1163,7 +1177,11 @@ function PedagogicaPage() {
                               name: "disciplina",
                               label: "Disciplina",
                               type: "select",
-                              options: subjectOptions,
+                              // Só as disciplinas da turma do aluno escolhido.
+                              optionsFor: (values) =>
+                                avulsaSubjectOptions(
+                                  values["matricula"] ?? enrollmentSelectOptions[0],
+                                ),
                             },
                             {
                               name: "trimestre",
@@ -1203,6 +1221,7 @@ function PedagogicaPage() {
                         gradeMatchesTeachingLevels(String(group.grade_name ?? ""), teachingLevels),
                       )}
                       subjects={subjects}
+                      classSubjects={classSubjects}
                       enrollments={enrollmentOptions}
                       termGrades={termGrades}
                       passingGrade={passing}
