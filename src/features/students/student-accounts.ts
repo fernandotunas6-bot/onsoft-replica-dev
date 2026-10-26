@@ -8,6 +8,9 @@
  */
 import { passwordMeetsPolicy } from "@/lib/password-policy-error";
 
+/** Por chamada: cada conta são ~6 pedidos à base; o ecrã envia a turma em lotes. */
+export const ACCOUNTS_BATCH = 10;
+
 /** Domínio da plataforma, sem caixas de correio: nada enviado para lá chega a alguém. */
 export const STUDENT_LOGIN_DOMAIN = "alunos.portal-siga.com";
 

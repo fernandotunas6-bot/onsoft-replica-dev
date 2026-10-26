@@ -21,7 +21,7 @@ import {
 import { requireAal2 } from "@/features/hr/require-aal2";
 import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { readSettingsDomain } from "@/features/school/settings-domains";
-import { provisionalPassword, studentLoginEmail } from "./student-accounts";
+import { ACCOUNTS_BATCH, provisionalPassword, studentLoginEmail } from "./student-accounts";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
@@ -29,8 +29,6 @@ const str = (value: unknown) => (value == null ? "" : String(value));
 
 const MANAGE_ROLES: Array<"Administrador" | "Secretaria"> = ["Administrador", "Secretaria"];
 const LOGIN_STATUSES = ["active", "applicant"];
-/** Por chamada: cada conta são ~6 pedidos à base; o ecrã envia a turma em lotes. */
-export const ACCOUNTS_BATCH = 10;
 
 export type StudentAccountLine = {
   studentId: string;
