@@ -153,6 +153,15 @@ people (cadastro permanente)
 6. **Encerramento anual:** acoplar ao rollover existente e suprimir sugestão da mesma letra somente quando a política por idade estiver activa.
 7. **QA integral:** testes E2E e staging, revisão da Direcção Pedagógica, revisão de segurança, aprovação; só depois discutir merge/publicação.
 
+
+## Actualização do que já ficou implementado na PR #339
+
+- **BI/telefone:** `bi-login.ts` deixou de confiar em `people.email` e consulta o e-mail de `auth.users` somente por `people.user_id` não ambíguo; `bi-identity.ts` e testes correspondentes foram acrescentados. Atenção a contas legadas sem vínculo Auth: precisam de verificação/reconciliação em staging antes de disponibilizar a alteração.
+- **Mensagens de login:** `AuthGate.tsx` passou a usar erro genérico de identificador/senha e orientação para entrar pelo portal institucional em números de aluno ambíguos.
+- **Listas:** a renovação anual (`TurmaRenewalPanel`) já apresenta `student_number`, sem criar número duplicado; demais listas/relatórios continuam pendentes de auditoria.
+- **Turmas por idade:** engine e testes criados **somente em modo simulação**. O botão em Pessoas, a nova página dedicada, a leitura autorizada do servidor e o gravador transaccional **ainda não existem** nesta PR.
+- **Controlo de qualidade:** uma primeira execução CI revelou apenas formatação Prettier nos ficheiros alterados; foram feitos commits de correcção. A nova execução deve ser verificada antes da revisão/merge.
+
 ## 10. PROMPT MASTER para o agente responsável
 
 > Trabalha **exclusivamente no SIGA Plus já existente**, na PR dedicada. Primeiro lê os módulos reais citados neste documento e o estado do `main` e das PRs abertas. Não reescrevas AuthGate, não dupliques tabelas de Pessoas/Alunos nem cries outra sidebar. Corrige o login de alunos por ID/BI com senha Supabase Auth e isolamento por escola; usa os dados existentes como fonte única. Implementa as páginas contextuais para preparar matrículas e simular turma A–Z por data de nascimento — os mais novos primeiro, dentro do mesmo ano/classe/curso/turno — com lotação e excepções legais. Preserva a pessoa e o ID ao mudar o ano, cria apenas matrícula anual nova e conserva o histórico imutável. Revê `suggestTargetGroup` quando a política etária estiver activada. Garante ID escolar em listas, turmas e exportações. Toda escrita exige validação no servidor e no banco, AAL2 quando requerido, auditoria, atomicidade e testes entre tenants. Uma página deve ter uma função principal, visual premium SIGA Plus, contexto/sidebar existentes, sem modais extensos. Apresenta provas de testes, falhas conhecidas, migrações pendentes e não fundas na `main` ou em produção sem gates.
