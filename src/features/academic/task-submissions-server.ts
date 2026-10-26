@@ -1,3 +1,4 @@
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { academicWriteRpcClient } from "@/integrations/supabase/academic-write-rpcs";
 /**
  * Entregas de trabalhos. A tabela é só do servidor (migração 20261025140000): sem
@@ -97,13 +98,15 @@ async function requireTaskManager(userId: string, taskId: string, mode: "read" |
 }
 
 async function readSubmissions(db: Db, schoolId: string, taskId: string, enrollmentId?: string) {
-  let query = db
-    .from("siga_class_task_submissions")
-    .select(SUBMISSION_COLUMNS)
-    .eq("school_id", schoolId)
-    .eq("task_id", taskId);
-  if (enrollmentId) query = query.eq("enrollment_id", enrollmentId);
-  const { data, error } = await query;
+  const { data, error } = await readAllPages((from, to) => {
+    let query = db
+      .from("siga_class_task_submissions")
+      .select(SUBMISSION_COLUMNS)
+      .eq("school_id", schoolId)
+      .eq("task_id", taskId);
+    if (enrollmentId) query = query.eq("enrollment_id", enrollmentId);
+    return query.order("id").range(from, to);
+  });
   if (error) throw publicDatabaseError(error, "Não foi possível ler as entregas.");
   const rows = (data ?? []) as unknown as SubmissionRow[];
   const files = await loadAttachmentInfo(
@@ -287,19 +290,15 @@ export const syncTaskGradesToPauta = createServerFn({ method: "POST" })
     const rows = [...latestByEnrollment(await readSubmissions(db, schoolId, data.taskId)).values()]
       .filter((row) => row.status === "returned" && row.grade != null)
       .map((row) => ({ enrollmentId: row.enrollment_id, score: Number(row.grade) }));
-    let saved = 0;
-    // Em lotes, como o lançamento da pauta (80 alunos por pedido).
-    for (let i = 0; i < rows.length; i += 80) {
-      saved += (
-        await writeAssessmentScores(db, {
-          schoolId,
-          userId: context.userId,
-          itemId,
-          rows: rows.slice(i, i + 80),
-        })
-      ).saved;
-    }
-    return { saved };
+    if (!rows.length) return { saved: 0 };
+    // Uma sincronização, uma transacção: um erro na última nota não pode
+    // deixar os primeiros 80 alunos gravados. A RPC valida o limite do lote.
+    return writeAssessmentScores(db, {
+      schoolId,
+      userId: context.userId,
+      itemId,
+      rows,
+    });
   });
 
 /** Professor/direcção: título, tipo, descrição, prazo, atrasos e arquivar/reabrir. */

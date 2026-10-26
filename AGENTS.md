@@ -79,4 +79,4 @@ sugerir. A aceitação mede-se por [docs/qa/finance/FINANCE_ACCEPTANCE_CHECKLIST
 
 **Integridade pedagógica (26/10/2026):** ler [correcções, dependência SQL e limites de validação](docs/agents/HANDOFF_PEDAGOGICAL_INTEGRITY_2026-10-26.md) antes de alterar notas, devoluções, organização etária ou integrar os ramos de horários. Não publicar chamadas às RPC novas sem a migração validada no destino.
 
-**Candidato pedagógico consolidado:** [handoff de integração de 26/10](docs/agents/HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md). Inclui o trabalho da #338 e as correcções de integridade; não repetir a integração da #338. Envio remoto bloqueado por revisão automática; migração nova e validação autenticada continuam pendentes.
+**Candidato pedagógico consolidado:** [handoff de integração de 26/10](docs/agents/HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md). Inclui o trabalho da #338 e as correcções de integridade; não repetir a integração da #338. Publicado para revisão no PR #345 após autorização explícita do utilizador; migração nova e validação autenticada continuam pendentes.

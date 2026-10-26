@@ -1,12 +1,16 @@
+> Continuação pedagógica publicada no PR #345 (ramo `fix/pedagogy-consolidated-20261026`).
+> Ler `HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md`; inclui a #338, não repetir a integração.
+> Migração académica nova e validação autenticada continuam pendentes antes da promoção.
+
 # Handoff — continuar o SIGA
 
 ## Correcções pedagógicas consolidadas — 26/10/2026
 
 Ler [o candidato acumulado, os testes e os bloqueios reais](HANDOFF_PEDAGOGY_CONSOLIDATED_2026-10-26.md).
 Preserva o trabalho da #338, acrescenta integridade transaccional e turnos
-configurados. 4.983 testes aprovados no candidato local; envio remoto bloqueado
-por revisão automática. Não aplicar SQL nem anunciar produção actualizada com
-base neste handoff.
+configurados. 4.983 testes aprovados no candidato acumulado; refinamentos posteriores
+têm validação específica descrita no handoff. Envio remoto autorizado e publicado no
+PR #345. Não aplicar SQL nem anunciar produção actualizada com base neste handoff.
 
 
 ## Backend: portais na agenda publicada e presenças repetíveis — 2026-10-25

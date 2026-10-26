@@ -11,14 +11,19 @@ contas/primeira senha/organização etária e de publicação do horário.
 - [Integridade académica e migração](HANDOFF_PEDAGOGICAL_INTEGRITY_2026-10-26.md).
 - [Turnos e propostas de horário](HANDOFF_HORARIOS_CONFIGURADOS_2026-10-26.md).
 
-O envio ao GitHub foi **bloqueado por revisão automática**: considerou faltar
-aprovação explícita para publicar código e alterações no remoto indicado.
-Não houve tentativa por API alternativa nem criação de PR. O candidato continua
-local, preparado para revisão; não foi fundido na main nem publicado.
+O utilizador autorizou expressamente commit e push em 26/10. O candidato foi
+publicado no [PR #345](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/345),
+em rascunho, no ramo `fix/pedagogy-consolidated-20261026`.
+O bloqueio anterior por falta de autorização está resolvido. Como o Git local
+não dispunha de credenciais de escrita, a ligação GitHub criou o commit remoto
+`45640c8d999fec8cc8539b1e6334221dca155cf4`, conservando a ascendência do Claude.
+A árvore publicada `e6ffcfeb613c895a3ce7b4b2bf480e2cd923b152` foi comparada com a
+árvore local `6aef39ee`: são idênticas. A main e a produção não foram alteradas.
 
 ## Destino de revisão
 
-Preparar uma PR em rascunho deste ramo para `main`, após autorização de envio.
+Claude: continuar pelo PR #345 e pelos handoffs acima; preservar as alterações
+existentes e verificar os gates seguintes antes de promover.
 O candidato **inclui a #338**: não a fundir de novo como alteração independente.
 A #336 já inclui a #335 e a #341 inclui a #339. #340, #332 e #343 não foram
 integradas neste candidato e devem manter os seus próprios gates.
@@ -59,7 +64,7 @@ substituir regras institucionais por defaults inventados para as declarar feitas
   não são apresentados como aprovados.
 
 Não somar as suites dos ramos individuais: o número acima é o da execução
-consolidada. A migração nova continua por aplicar e o envio remoto bloqueado.
+consolidada. A migração nova continua por aplicar; o candidato está no PR #345.
 
 ## Refinamento adicional — horários e precisão temporal
 
@@ -84,4 +89,19 @@ específicas incluídas, sem somar contagens sobrepostas. TypeScript aprovado;
 ESLint e diff sem erros.
 A suite global de 4.983 testes acima refere-se ao candidato anterior, não é uma
 nova execução global deste incremento. Não foi acrescentada migração nem houve
-alteração remota ou produção. O bloqueio de envio permanece.
+alteração de produção. Este incremento foi incluído no envio do PR #345.
+
+## Continuação após o envio — sincronização integral das tarefas
+
+A leitura de entregas no servidor da tarefa passa a paginar por ID único, antes
+de escolher a última tentativa de cada matrícula. Corrige a possibilidade de
+sincronizar uma tentativa antiga quando o histórico excedia 1.000 registos.
+A sincronização das notas devolvidas usa uma única chamada transaccional, em
+vez de lotes independentes de 80. Uma recusa no lote não deixa os anteriores
+já gravados. Sem notas elegíveis, devolve zero sem chamar a RPC. O limite SQL
+de 500 notas mantém-se: um lote maior é recusado integralmente.
+
+Validação: 57 testes aprovados em cinco ficheiros de entregas (servidor, domínio
+e interface), escrita de avaliações e trabalhos por disciplina. Incluem 81 notas
+recusadas num só pedido, última entrega após 1.000 tentativas e ausência de notas
+elegíveis. TypeScript, ESLint dos alterados e diff aprovados.
