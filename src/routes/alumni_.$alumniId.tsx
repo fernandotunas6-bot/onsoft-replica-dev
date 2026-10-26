@@ -24,7 +24,7 @@ import { MediaAvatar } from "@/components/ui/media-frame";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAlumniProfile, verifyAlumniProfile } from "@/features/alumni/server";
 
-export const Route = createFileRoute("/alumni/$alumniId")({
+export const Route = createFileRoute("/alumni_/$alumniId")({
   head: () => ({ meta: [{ title: "Ficha Alumni 360º · SIGA" }] }),
   component: AlumniProfilePage,
 });

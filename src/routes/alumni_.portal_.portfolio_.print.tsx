@@ -20,7 +20,7 @@ import { getMyAlumniPortfolio } from "@/features/alumni/portfolio";
 
 type PortfolioItem = Awaited<ReturnType<typeof getMyAlumniPortfolio>>[number];
 
-export const Route = createFileRoute("/alumni/portal/portfolio/print")({
+export const Route = createFileRoute("/alumni_/portal_/portfolio_/print")({
   head: () => ({
     meta: [
       { title: "Portfólio Profissional Alumni · SIGA" },
