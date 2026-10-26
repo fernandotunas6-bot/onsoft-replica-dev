@@ -201,6 +201,11 @@ export function TurmaRenewalPanel({
                   />
                   <div className="min-w-0">
                     <p className="font-medium">{line.name}</p>
+                    {line.studentNumber ? (
+                      <p className="font-mono text-xs text-muted-foreground">
+                        ID {line.studentNumber}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-muted-foreground">{line.reason}</p>
                   </div>
                 </li>
