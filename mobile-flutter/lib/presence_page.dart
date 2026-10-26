@@ -260,7 +260,6 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final start = dark ? const Color(0xff2a3f8f) : const Color(0xff315ff6);
     final end = dark ? const Color(0xff1d2a5c) : const Color(0xff1f3fb8);
@@ -331,7 +330,8 @@ class _HeroCard extends StatelessWidget {
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: colors.primary,
+                // Azul fixo: no tema escuro a cor de acção é clara e some no botão branco.
+                foregroundColor: const Color(0xff1f3fb8),
                 disabledBackgroundColor: Colors.white.withValues(alpha: .3),
                 minimumSize: const Size.fromHeight(54),
               ),
@@ -405,13 +405,13 @@ class _LessonTile extends StatelessWidget {
     final (label, color, icon) = lesson.cancelled
         ? ('Cancelada', colors.onSurfaceVariant, Icons.block)
         : lesson.confirmed
-        ? (
-            (lesson.lateMinutes ?? 0) > 5
-                ? 'Confirmada · ${lesson.lateMinutes} min de atraso'
-                : 'Confirmada',
-            const Color(0xff1f9d55),
-            Icons.check_circle,
-          )
+        ? (lesson.lateMinutes ?? 0) > 5
+              ? (
+                  'Confirmada · ${lesson.lateMinutes} min de atraso',
+                  const Color(0xffb7791f),
+                  Icons.check_circle,
+                )
+              : ('Confirmada', const Color(0xff1f9d55), Icons.check_circle)
         : ('Por confirmar', const Color(0xffb7791f), Icons.schedule);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -423,14 +423,33 @@ class _LessonTile extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Hora de início em destaque e fim por baixo, como num horário.
           SizedBox(
-            width: 82,
-            child: Text(
-              lesson.timeRange,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+            width: 64,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  lesson.timeRange.split('–').first,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                if (lesson.timeRange.contains('–'))
+                  Text(
+                    lesson.timeRange.split('–').last,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+              ],
             ),
+          ),
+          Container(
+            width: 1,
+            height: 36,
+            margin: const EdgeInsets.only(right: 14),
+            color: colors.outlineVariant,
           ),
           Expanded(
             child: Column(

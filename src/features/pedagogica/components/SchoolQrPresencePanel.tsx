@@ -166,6 +166,8 @@ function SchoolPresenceSettingsForm({
   const [rotation, setRotation] = useState(String(config.rotationSeconds));
   const [offlineHours, setOfflineHours] = useState(String(config.offlineMaxHours));
   const [locating, setLocating] = useState(false);
+  // Anular é irreversível (ecrãs e folhas impressas deixam de valer): pede um segundo toque.
+  const [confirmRotate, setConfirmRotate] = useState(false);
   const disabled = !config.canEdit;
 
   const save = useMutation({
@@ -183,6 +185,7 @@ function SchoolPresenceSettingsForm({
         },
       }),
     onSuccess: (_, rotateSecret) => {
+      setConfirmRotate(false);
       toast.success(rotateSecret ? "QR anulados e renovados" : "Definições guardadas", {
         description: rotateSecret
           ? "Os QR mostrados ou impressos antes deixam de valer. Volte a abrir o ecrã do QR."
@@ -354,15 +357,40 @@ function SchoolPresenceSettingsForm({
 
         {config.canEdit ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              className="gap-1.5 text-destructive"
-              disabled={save.isPending}
-              onClick={() => save.mutate(true)}
-            >
-              <ShieldAlert className="size-4" /> Anular todos os QR
-            </Button>
+            {confirmRotate ? (
+              <div className="flex flex-wrap items-center gap-2" role="alert">
+                <span className="text-xs text-destructive">
+                  Os QR no ecrã e impressos deixam de valer já.
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={save.isPending}
+                  onClick={() => save.mutate(true)}
+                >
+                  Sim, anular
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfirmRotate(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                className="gap-1.5 text-destructive"
+                disabled={save.isPending}
+                onClick={() => setConfirmRotate(true)}
+              >
+                <ShieldAlert className="size-4" /> Anular todos os QR
+              </Button>
+            )}
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? "A guardar…" : "Guardar definições"}
             </Button>
@@ -669,13 +697,19 @@ function PrintableQrButton({ disabled }: { disabled: boolean }) {
         disabled={disabled || print.isPending}
         onClick={() => print.mutate("next")}
       >
-        próxima
+        Semana seguinte
       </Button>
     </div>
   );
 }
 
 // ── Leituras do dia ───────────────────────────────────────────────────────────
+
+function formatDistance(meters: number) {
+  return meters >= 1000
+    ? `${(meters / 1000).toLocaleString("pt-AO", { maximumFractionDigits: 1 })} km`
+    : `${meters} m`;
+}
 
 const DECISION_LABEL: Record<PresenceScanRow["decision"], string> = {
   accepted: "Aceite",
@@ -736,7 +770,7 @@ function PresenceScansReview() {
     >
       {pending.length ? (
         <p className="mb-3 text-sm font-medium text-warning-strong">
-          {pending.length} leitura(s) por rever.
+          {pending.length === 1 ? "1 leitura por rever." : `${pending.length} leituras por rever.`}
         </p>
       ) : null}
       {rows.length === 0 ? (
@@ -761,11 +795,15 @@ function PresenceScansReview() {
                   {luandaTimeOfMs(Date.parse(row.scannedAt))} ·{" "}
                   {row.kind === "printed" ? "QR impresso" : "QR do ecrã"}
                   {row.offline ? " · enviada sem rede" : ""}
-                  {row.distanceM != null ? ` · a ${row.distanceM} m da escola` : ""}
+                  {row.distanceM != null ? ` · a ${formatDistance(row.distanceM)} da escola` : ""}
                   {row.sessionCount ? ` · ${row.sessionCount} aula(s)` : " · sem aula a essa hora"}
                 </p>
                 {row.reasonLabels.length ? (
-                  <p className="text-xs text-warning-strong">{row.reasonLabels.join(" · ")}</p>
+                  <p
+                    className={`text-xs ${row.decision === "accepted" ? "text-muted-foreground" : "text-warning-strong"}`}
+                  >
+                    {row.reasonLabels.join(" · ")}
+                  </p>
                 ) : null}
                 {row.reviewNote ? (
                   <p className="text-xs text-muted-foreground">Decisão: {row.reviewNote}</p>
