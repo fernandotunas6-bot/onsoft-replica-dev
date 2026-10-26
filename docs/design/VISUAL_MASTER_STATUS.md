@@ -137,6 +137,11 @@ AppyPay tem «Ver fatura», que abre `/faturas/<id>` com os recibos e as cobran�
 aparece a quem abre as faturas (Administração e Tesouraria). A ligação tem 44 px de altura no
 telemóvel. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (turma em página do main):** com a #346 no main, a ficha da
+turma é a página `/pedagogica/turmas/<id>` do main (tudo numa página, sem o modal). A #332 deixa
+a sua versão e acrescenta só `?secao=`: «Alunos da turma» e as outras entradas do menu levam à
+secção, que ganhou um id e um título ligado (`aria-labelledby`). Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
@@ -148,7 +153,7 @@ telemóvel. Sem estilos novos.
 | P1 funcional           | FormModal/QuickModal não bloqueavam directamente Enter repetido nem `disabled` no handler.              | Bloqueio síncrono até à resolução do callback, incluindo WizardModal; feedback de operação pendente.           |
 | P2 acessibilidade      | Categorias das Definições tinham alvos com 27–32,14 px de altura no ensaio.                             | Altura mínima de 44 px, confirmada nas seis larguras.                                                          |
 | P2 visual              | PremiumModal tinha halo desfocado, sombra forte e destaque decorativo; wizard simples usava largura xl. | Cabeçalho neutro e sombra suave; wizard sem painel visual usa lg, preservando campos e acções.                 |
-| P1 auditoria restante  | Existem outros consumidores com tamanho xl/2xl/full.                                                    | Inventário estático em `evidence/2026-10-23/large-modal-inventory.json`; não migrados indiscriminadamente.     |
+| P1 auditoria restante  | Existem outros consumidores com tamanho xl/2xl/full.                                                    | **Fechado em 25/10/2026** — os 7 candidatos do inventário `evidence/2026-10-23/large-modal-inventory.json` têm veredicto: 4 migrados para página (`StudentExtensiveModal` → `/alunos/$studentId`, `TurmaProfileModal` → `/pedagogica/turmas/$turmaId`, `PersonWizardModal` → `/pessoas/novo`, `PersonProfile360Modal` → `/pessoas/$personId`), 2 justificam o tamanho (`MoreHub`, `PrintTemplateStudio`), 1 já estava corrigido (`AssignTeacherForm`). Nos quatro migrados, os formulários pequenos e confirmações continuam em modal, como o contrato permite. Falta validação visual em sessão autenticada para todos — bloqueada pelo MFA nesta sessão. |
 | P1 desempenho          | Inventário actual de preloads gerado para 18 módulos.                                                   | Diagnóstico de bytes disponível; latências e gargalos de rede/re-render ainda por medir em sessão autenticada. |
 
 ## Cobertura das fases
@@ -178,7 +183,7 @@ Estado refere-se à **auditoria integral deste contrato**, não à existência d
 
 | Módulo                                    | Estado      | Fonte                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Próximo passo                                                                      |
 | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Dashboard (`dashboard`)                   | por auditar | `src/routes/index.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Auditar com dados controlados e perfil autorizado.                                 |
+| Dashboard (`dashboard`)                   | parcial     | `src/routes/index.tsx`, `src/features/dashboard/portals/AdminPortalDashboard.tsx`. Auditoria de código (25/10/2026): (1) `stats`/`miniStats`/`toneBg`/`dotTone`/`DashboardGreeting` e os lazy imports `DashboardCharts`/`DashboardAgeChart`/`TeacherWorkspacePanel` em `index.tsx` são recomputados mas nunca usados no JSX — duplicam o que já existe em `AdminPortalDashboard.tsx`; (2) cartões de estatística (`AdminPortalDashboard.tsx:680,687,699`) usam `hover:scale-[1.02]` sem `motion-reduce:`, ao contrário de `Button`/`tooltip`/`alert-dialog`; (3) `tests/visual/{baseline,current}/dashboard.png` são de 10–16/08 e `dashboard_debug.png` de 08/09 — anteriores ao padrão visual e à página de login actual, não servem de prova. | Login autenticado bloqueado por falta de código MFA nesta sessão; falta validação visual real (390/768/1024/1440px), renderização dos gráficos (`DashboardCharts`) com dados reais e gerar novas capturas de regressão. |
 | Alunos / matrículas internas (`alunos`)   | por auditar | `src/routes/alunos/index.tsx`, `src/routes/alunos/$studentId.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Auditar com dados controlados e perfil autorizado.                                 |
 | Alumni / antigos alunos (`alumni`)        | por auditar | `src/routes/alumni.tsx`, `src/routes/alumni.$alumniId.tsx`, `src/routes/alumni.$alumniId.portfolio.tsx`, `src/routes/alumni.portal.tsx`, `src/routes/alumni.portal.portfolio.tsx`, `src/routes/alumni.portal.portfolio.showcase.tsx`, `src/routes/alumni.portal.portfolio.print.tsx`, `src/routes/alumni.insights.tsx`, `src/routes/alumni.operations.tsx`, `src/routes/alumni.communications.tsx`, `src/routes/alumni.matching.tsx`, `src/routes/alumni.documents.tsx`, `src/routes/alumni.calendar.tsx`, `src/routes/alumni.pipeline.tsx` | Auditar com dados controlados e perfil autorizado.                                 |
 | Pessoas e professores (`pessoas`)         | por auditar | `src/routes/pessoas/index.tsx`, `src/routes/professores/$teacherId.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Auditar com dados controlados e perfil autorizado.                                 |
@@ -306,15 +311,18 @@ Evidência automatizada: `tests/routes/sidebar-nav.test.tsx` cobre abertura por 
 
 ## Alcance das categorias já existentes em Definições (25/10/2026)
 
-Na branch `fix/settings-panels-handoff-20261025`, os painéis previamente
-registados `identidade` e `pedagogico` passam a estar ligados ao menu raiz
-do `SettingsCenter`, junto da escola. Isto corrige destinos órfãos sem criar
-um novo módulo ou mudar o sistema de permissões, backend, RLS ou dados.
+[PR #286](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/286)
+(`fix/settings-panels-handoff-20261025`), **merged em `main` a 25/10/2026**:
+os painéis previamente registados `identidade` e `pedagogico` passam a estar
+ligados ao menu raiz do `SettingsCenter`, junto da escola. Isto corrige
+destinos órfãos sem criar um novo módulo ou mudar o sistema de permissões,
+backend, RLS ou dados.
 
-- **Implementado no ramo, ainda não validado no navegador:** links dos painéis
-  já existentes e contrato estático em
-  `tests/ui/settings-panel-reachability.test.ts`.
-- **Por validar no CI:** lint, tipos, build e testes após a PR.
+- **Implementado e integrado em `main`:** links dos painéis já existentes e
+  contrato estático em `tests/ui/settings-panel-reachability.test.ts`.
+- **CI da PR:** aprovado — auditoria de dependências, estilo/acessibilidade/build
+  e lint/build do painel com `SUCCESS`; Lighthouse e E2E `SKIPPED` (só correm
+  no push para `main`, não nas PRs).
 - **Bloqueado até staging autorizado:** deep links em sessão Administrador,
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.

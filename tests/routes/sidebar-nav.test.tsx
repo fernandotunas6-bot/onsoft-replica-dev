@@ -264,33 +264,51 @@ function hoverWithMouse(element: Element) {
   fireEvent(element, event);
 }
 
-describe("AppSidebar — flyouts contextuais à direita", () => {
-  it("apresenta subfunções sem expandir verticalmente a sidebar", async () => {
+describe("AppSidebar — acordeão de subfunções e menu da escola", () => {
+  it("expande as subfunções dentro da própria lista, sem abrir diálogo", async () => {
     currentPathname = "/portal";
     renderSidebar();
     const secretaria = screen.getByRole("button", { name: "Secretaria" });
+    expect(secretaria.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(secretaria);
-    const flyout = await screen.findByRole("dialog");
-    expect(flyout.hasAttribute("data-nav-flyout")).toBe(true);
-    expect(flyout.querySelector("a[data-to='/alunos']")).toBeTruthy();
+    expect(secretaria.getAttribute("aria-expanded")).toBe("true");
+    // Para baixo, dentro da navegação principal — nunca um diálogo/popover à parte.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const list = screen
+      .getByRole("navigation", { name: "Navegação principal" })
+      .querySelector(".nav-sub-list");
+    expect(list).toBeTruthy();
+    expect(list?.querySelector("a[data-to='/alunos']")).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
+    fireEvent.click(secretaria);
+    expect(secretaria.getAttribute("aria-expanded")).toBe("false");
     expect(
       screen
         .getByRole("navigation", { name: "Navegação principal" })
         .querySelector(".nav-sub-list"),
     ).toBeNull();
-    fireEvent.click(secretaria);
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
-  it("abre subfunções com hover do rato, sem depender do clique", async () => {
+  it("mantém só uma secção aberta de cada vez, bem organizada", async () => {
     currentPathname = "/portal";
     renderSidebar();
-    const secretaria = screen.getByRole("button", { name: "Secretaria" });
-    hoverWithMouse(secretaria);
-    const flyout = await screen.findByRole("dialog");
-    expect(flyout.getAttribute("data-nav-flyout")).toBe("");
-    expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    expect(linksTo("/alunos").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Financeiro" }));
+    expect(linksTo("/alunos")).toHaveLength(0);
+    expect(linksTo("/faturas").length).toBeGreaterThan(0);
+  });
+
+  it("fecha o acordeão quando a navegação muda de contexto", () => {
+    currentPathname = "/portal";
+    const view = renderSidebar();
+    fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
+    expect(linksTo("/alunos").length).toBeGreaterThan(0);
+    currentPathname = "/alunos";
+    view.rerenderSidebar();
+    // A navegação para dentro do módulo troca para a vista contextual — o
+    // seletor de áreas, e com ele o acordeão, deixa de existir.
+    expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
   });
 
   it("hover da escola abre um menu não-modal que preserva o resto da sidebar", async () => {
@@ -316,16 +334,13 @@ describe("AppSidebar — flyouts contextuais à direita", () => {
     expect(screen.getByRole("menuitem", { name: "Criar escola" })).toBeTruthy();
   });
 
-  it("fecha o flyout depois de seleccionar a subfunção, sem alterar o destino", async () => {
+  it("a subfunção aponta para o destino certo, com o search preservado", () => {
     currentPathname = "/portal";
     renderSidebar();
     fireEvent.click(screen.getByRole("button", { name: "Secretaria" }));
-    const flyout = await screen.findByRole("dialog");
     const matricular = screen.getByRole("link", { name: "Matricular Aluno" });
     expect(matricular.getAttribute("data-to")).toBe("/alunos");
     expect(matricular.getAttribute("data-search")).toContain("matricular");
-    fireEvent.click(matricular);
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("mostra configurações e instituições no flyout da escola, mantendo acesso por teclado", async () => {

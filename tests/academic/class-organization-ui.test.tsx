@@ -100,6 +100,9 @@ describe("organizar turmas", () => {
 
     const select = await screen.findByLabelText(/Classe e turno/);
     await waitFor(() => expect(select.textContent).toContain("7.ª Classe · Manhã — 2 turma(s)"));
+    // A lista diz o estado de cada classe antes de escolher; a proposta já fica feita.
+    await waitFor(() => expect(select.textContent).toContain("· 1 por mudar"));
+    expect(screen.getByText(/0 de 1 já ordenadas/)).toBeTruthy();
     fireEvent.change(select, { target: { value: "00000000-0000-0000-0000-0000000000c7|morning" } });
 
     const turmaA = await screen.findByRole("region", { name: "Turma A" });
@@ -107,6 +110,7 @@ describe("organizar turmas", () => {
     expect(turmaA.textContent).toContain("Com notas — fica");
     expect(screen.getByText(/ficam onde estão/)).toBeTruthy();
 
+    expect(server.previewClassOrganization).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Aplicar (1)" }));
     fireEvent.click(await screen.findByRole("button", { name: "Aplicar" }));
     await waitFor(() =>
