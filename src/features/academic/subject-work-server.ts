@@ -51,6 +51,18 @@ export type SubjectWork = {
   tasks: SubjectWorkTask[];
 };
 
+/** Linhas por página: o PostgREST corta em 1000 por omissão. */
+const TASK_PAGE = 500;
+/** Páginas no máximo (10 000 trabalhos numa disciplina): trava contra um ciclo sem fim. */
+const TASK_PAGES = 20;
+/** Ids por filtro `in`: o endereço do pedido tem limite de tamanho. */
+const ID_CHUNK = 150;
+
+const chunks = <T>(items: T[], size: number): T[][] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
+    items.slice(i * size, (i + 1) * size),
+  );
+
 const EMPTY: SubjectWork = {
   subjectName: "",
   canSubmit: false,
@@ -119,31 +131,43 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
     );
     if (!groupOfClassSubject.size) return base;
 
-    const { data: tasks, error: taskError } = await db
-      .from("siga_class_tasks")
-      .select(
-        "id, class_subject_id, kind, title, description, due_on, status, accepts_late, assessment_item_id, created_at",
-      )
-      .eq("school_id", schoolId)
-      .in("class_subject_id", [...groupOfClassSubject.keys()])
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (taskError) throw publicDatabaseError(taskError, "Não foi possível ler os trabalhos.");
-    const taskRows = (tasks ?? []) as Row[];
+    // O histórico inteiro, por páginas: o resumo e a média contam todos os
+    // trabalhos, não só os 200 mais recentes.
+    const taskRows: Row[] = [];
+    for (let page = 0; page < TASK_PAGES; page += 1) {
+      const { data: tasks, error: taskError } = await db
+        .from("siga_class_tasks")
+        .select(
+          "id, class_subject_id, kind, title, description, due_on, status, accepts_late, assessment_item_id, created_at",
+        )
+        .eq("school_id", schoolId)
+        .in("class_subject_id", [...groupOfClassSubject.keys()])
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(page * TASK_PAGE, (page + 1) * TASK_PAGE - 1);
+      if (taskError) throw publicDatabaseError(taskError, "Não foi possível ler os trabalhos.");
+      taskRows.push(...((tasks ?? []) as Row[]));
+      if ((tasks ?? []).length < TASK_PAGE) break;
+    }
     if (!taskRows.length) return base;
 
     const enrollmentIds = [...new Set(enrollmentOfGroup.values())];
-    const { data: submissions, error: subError } = await db
-      .from("siga_class_task_submissions")
-      .select(SUBMISSION_COLUMNS)
-      .eq("school_id", schoolId)
-      .in(
-        "task_id",
+    const submissionReads = await Promise.all(
+      chunks(
         taskRows.map((row) => str(row.id)),
-      )
-      .in("enrollment_id", enrollmentIds);
+        ID_CHUNK,
+      ).map((ids) =>
+        db
+          .from("siga_class_task_submissions")
+          .select(SUBMISSION_COLUMNS)
+          .eq("school_id", schoolId)
+          .in("task_id", ids)
+          .in("enrollment_id", enrollmentIds),
+      ),
+    );
+    const subError = submissionReads.find((read) => read.error)?.error;
     if (subError) throw publicDatabaseError(subError, "Não foi possível ler as entregas.");
-    const submissionRows = (submissions ?? []) as unknown as Array<
+    const submissionRows = submissionReads.flatMap((read) => read.data ?? []) as unknown as Array<
       SubmissionRow & { task_id: string }
     >;
     const files = await loadAttachmentInfo(
