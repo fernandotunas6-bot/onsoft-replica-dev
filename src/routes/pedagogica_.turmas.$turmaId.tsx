@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -41,8 +41,19 @@ import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { errorMessage } from "@/lib/error-message";
 import { safeHref } from "@/lib/safe-url";
+import { TURMA_SECTIONS, type TurmaSection } from "@/features/academic/turma-sections";
+import { z } from "zod";
+
+/**
+ * `?secao=` (SIGA Context Engine): o menu da turma abre a ficha numa secção
+ * («Alunos da turma» → `?secao=alunos`). A página mostra tudo e leva até lá.
+ */
+const turmaSearchSchema = z.object({
+  secao: z.enum(TURMA_SECTIONS).optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/pedagogica_/turmas/$turmaId")({
+  validateSearch: (search) => turmaSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Ficha da Turma · SIGA" },
@@ -88,8 +99,12 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** O id de cada secção na página, para `?secao=` e para ligações directas. */
+const sectionId = (section: TurmaSection) => `turma-${section}`;
+
 function TurmaDetail() {
   const { turmaId } = Route.useParams();
+  const { secao } = Route.useSearch();
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { school, selectedYearId } = useSchoolSettings();
@@ -179,6 +194,12 @@ function TurmaDetail() {
     };
   }, [turma, classRelationsSnapshot, school?.id]);
   useDeclareEntityFocus(focusedClassEntity);
+  // Com a turma carregada, leva à secção pedida pelo menu.
+  const turmaLoaded = Boolean(turma);
+  useEffect(() => {
+    if (!turmaLoaded || !secao || secao === "resumo") return;
+    document.getElementById(sectionId(secao))?.scrollIntoView?.({ block: "start" });
+  }, [turmaLoaded, secao]);
   const classRelations = useRelations();
   const classSuggestions = useSuggestions();
 
@@ -350,10 +371,16 @@ function TurmaDetail() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+          <section
+            id={sectionId("resumo")}
+            aria-labelledby={`${sectionId("resumo")}-titulo`}
+            className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Resumo" />
-              <h2 className="font-display text-base font-bold">Resumo</h2>
+              <h2 id={`${sectionId("resumo")}-titulo`} className="font-display text-base font-bold">
+                Resumo
+              </h2>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-border bg-secondary/10 p-4">
@@ -459,10 +486,16 @@ function TurmaDetail() {
             ) : null}
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("alunos")}
+            aria-labelledby={`${sectionId("alunos")}-titulo`}
+            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Users} size="sm" label="Alunos" />
-              <h2 className="font-display text-base font-bold">Alunos ({alunos.length})</h2>
+              <h2 id={`${sectionId("alunos")}-titulo`} className="font-display text-base font-bold">
+                Alunos ({alunos.length})
+              </h2>
             </div>
             <div className="mt-4">
               {alunos.length ? (
@@ -491,10 +524,17 @@ function TurmaDetail() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("disciplinas")}
+            aria-labelledby={`${sectionId("disciplinas")}-titulo`}
+            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
-              <h2 className="font-display text-base font-bold">
+              <h2
+                id={`${sectionId("disciplinas")}-titulo`}
+                className="font-display text-base font-bold"
+              >
                 Professores &amp; Disciplinas ({disciplinas.length})
               </h2>
             </div>
@@ -521,10 +561,19 @@ function TurmaDetail() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("horario")}
+            aria-labelledby={`${sectionId("horario")}-titulo`}
+            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Calendar} size="sm" label="Horário" />
-              <h2 className="font-display text-base font-bold">Horário ({horario.length})</h2>
+              <h2
+                id={`${sectionId("horario")}-titulo`}
+                className="font-display text-base font-bold"
+              >
+                Horário ({horario.length})
+              </h2>
             </div>
             <div className="mt-4">
               {horario.length ? (
@@ -551,10 +600,19 @@ function TurmaDetail() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("avaliacoes")}
+            aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
+            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
-              <h2 className="font-display text-base font-bold">Avaliações</h2>
+              <h2
+                id={`${sectionId("avaliacoes")}-titulo`}
+                className="font-display text-base font-bold"
+              >
+                Avaliações
+              </h2>
             </div>
             <div className="mt-4">
               {avaliacoes.length ? (

@@ -41,6 +41,11 @@ export const listInvoicesInputSchema = z
     path: ["limit"],
   });
 
+/** Uma fatura da escola activa, com o aluno e os recibos (página da fatura). */
+export const getInvoiceDetailInputSchema = z.object({
+  invoiceId: z.string().guid(),
+});
+
 export const recordInvoicePaymentInputSchema = z.object({
   invoiceId: z.string().guid(),
   // Referência opcional do funcionário — o número oficial do recibo é gerado

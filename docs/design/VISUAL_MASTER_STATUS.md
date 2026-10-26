@@ -9,6 +9,139 @@ de presenças e migrações verificadas; [evidência e limites](../architecture/
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados
 visuais dos módulos abaixo mantêm-se; este ciclo não constitui validação de UI.
 
+**25/10/2026 — SIGA Context Engine (fase 3, opção A):** com turma ou disciplina aberta,
+a sidebar existente (240/64 px) mostra «Voltar», o cabeçalho da entidade e só as funções
+dessa entidade; sem coluna nova nem estilos novos. Motor da PR #332. Desktop testado em
+jsdom; mobile e capturas por fazer. [Especificação, inventário e estado](../specs/SIGA_CONTEXT_ENGINE_2026.md).
+
+**25/10/2026 — SIGA Context Engine (aluno, breadcrumb e telemóvel):** a ficha
+`/alunos/$studentId` abre por secção (`?secao=identificacao|academico|financeiro|documentos`),
+com «Ver ficha completa»; sem secção fica como estava. Com a ficha aberta, a equipa vê na
+sidebar «Voltar», o aluno e as secções que a conta lê. Em `/pedagogica` e `/planos-aula` o
+`PageHeader` acrescenta ao breadcrumb a turma e a disciplina da URL. Sem estilos novos.
+No telemóvel, o hub «Mais» mostra o mesmo menu da entidade. Testado em jsdom e em capturas
+com dados fictícios a 1440/390 px; o módulo Alunos continua `por auditar` (falta sessão
+autenticada) e falta validar em aparelhos.
+
+**25/10/2026 — SIGA Context Engine (materiais e ficha do encarregado):** o menu da turma e
+da disciplina ganha «Materiais e ficheiros» (`/arquivos?turma`, com o menu e o breadcrumb da
+turma); «Presenças» fica só na disciplina. Na ficha do aluno, foto, turma, estado, anular,
+editar, encarregados e presença só aparecem a quem grava em Pessoas; o encarregado vê a
+ficha sem esses botões. Nova secção «Histórico» (`?secao=historico`, só Administração e
+Secretaria): um bloco por ano lectivo com média, situação e médias por disciplina; no
+telemóvel a tabela fica com a disciplina e a média. Sem estilos novos; capturas com dados
+fictícios a 1440 e 390 px, sem scroll horizontal.
+
+**25/10/2026 — SIGA Context Engine (horário da turma):** o menu da turma e da disciplina
+ganha «Horário da turma» (`/pedagogica?tab=horarios&turma`); o horário abre nessa turma, com
+o menu e o breadcrumb da turma. Sem estilos novos; captura com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (menu do professor):** o perfil `/professores/<id>` fica
+na área Secretaria (onde a lista de pessoas o abre) e a sidebar mostra «Voltar», `Professor ·
+‹nome›`, «Perfil e turmas» e «Horário semanal». Este abre o horário da escola na vista por
+professor (`/pedagogica?tab=horarios&professor`), com o menu e o breadcrumb do professor; só
+para quem grava no Pedagógico, os que têm a lista de professores. Sem estilos novos; capturas
+com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (planos do professor):** o menu do professor ganha «Planos
+de aula» (`/planos-aula?professor`): só os planos das disciplinas que o professor dá, com a
+linha «Planos das disciplinas de ‹nome› · Ver todos os planos». Os filtros de turma, disciplina
+e trimestre passam a ter a opção «Todas…»; antes o select mostrava a primeira turma com a lista
+inteira. Sem estilos novos; captura com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (presenças do professor):** o menu do professor ganha
+«Presenças» (`/pedagogica?tab=presencas&professor`): as aulas do dia são só as desse professor,
+com o nome dele ao lado da data, e cada uma abre a chamada como antes. O histórico geral de
+presenças fica o da escola. Sem estilos novos; captura com dados fictícios a 1440 px.
+
+**25/10/2026 — SIGA Context Engine (ficha da turma):** a turma passa de modal a página própria,
+`/pedagogica/turmas/<id>`, com a secção em `?secao=` (resumo, alunos, professores e
+disciplinas, horário, avaliações). O conteúdo é o do modal (o mesmo componente, numa caixa da
+página; o nome passa a ser o título). O separador Turmas abre a página, e o menu da turma ganha
+«Ficha da turma» e «Alunos da turma». Sem estilos novos; capturas com dados fictícios a 1440 e
+390 px, sem scroll horizontal. No telemóvel a tira de secções da ficha (`ModalSidebar`, como em
+todos os modais) só mostra uma de cada vez; o hub «Mais» leva às secções do menu.
+
+**25/10/2026 — SIGA Context Engine (trabalhos da turma):** «Trabalhos» entra no grupo Ensino do
+menu da turma e da disciplina e abre `/pedagogica/trabalhos?turma&disciplina`: os TPC, trabalhos
+e projectos que os professores publicam no detalhe da aula, numa lista «Em curso» (prazo mais
+próximo primeiro) e outra «Prazo terminado», com o tipo, a disciplina (na turma) e o prazo. O
+professor só vê os das disciplinas que lecciona. Criar e arquivar continuam no detalhe da aula,
+para onde a página leva. O menu do professor ganha «Trabalhos criados»
+(`/pedagogica/trabalhos?professor`): os trabalhos dele em todas as turmas, cada um com a turma e
+a disciplina. Sem estilos novos; capturas com dados fictícios a 1440 e 390 px, sem scroll
+horizontal.
+
+**26/10/2026 — SIGA Context Engine (presenças da turma e professor da disciplina):** o menu da
+turma ganha «Presenças», que abre as aulas do dia só dessa turma (o título diz o nome dela), e o
+da disciplina ganha «Professor responsável», que abre o perfil de quem a dá nessa turma quando o
+servidor o devolve. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (turma do aluno):** no menu do aluno, o grupo «Turma do aluno»
+leva à ficha, aos trabalhos e ao horário da turma da matrícula (só Administração e Secretaria).
+A turma vem da ficha que a página leu do servidor, nunca da URL. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (continuar onde estava):** de volta à área académica sem turma
+aberta, a sidebar mostra uma linha «Continuar em 10.ª A · Matemática» (ícone de histórico), que
+reabre a turma ou disciplina onde a conta estava, com os filtros dessa página. Só aparece se o
+servidor ainda devolve a turma. Sem estilos novos (a mesma linha das entradas do menu).
+
+**26/10/2026 — SIGA Context Engine (financeiro do aluno):** em `/alunos/<id>?secao=financeiro` a
+ficha mostra todas as faturas do aluno (antes, as cinco mais recentes), em «Por pagar» (o prazo mais
+antigo primeiro) e «Pagas», cada uma com o estado do registo (`StatusBadge`: Vencida · paga em
+parte, Por pagar, Paga), o vencimento e o que falta, e os totais Faturado, Pago e Falta pagar (com
+a parte vencida). A ficha completa continua com as cinco mais recentes e uma ligação «Ver as N
+faturas». Quem o servidor não deixa ler as faturas já não faz o pedido. Evidência: capturas a 1440
+e 390 px sem scroll horizontal. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (página da fatura):** `/faturas/<id>` mostra a fatura (estado,
+mês, emissão, vencimento, valor, desconto, multa, total, pago e o que falta), o aluno a quem foi
+emitida e os pagamentos e recibos, cada um com o seu estado (um recibo estornado aparece como tal e
+não conta como pago). O número da fatura passa a ligação na lista de faturas e no financeiro do
+aluno. A sidebar mostra o menu da fatura («Voltar», `Fatura · FT-…`, «Detalhes e recibos», «Todas
+as faturas» e, a quem abre fichas de alunos, o financeiro e a ficha do aluno). Receber e anular
+continuam na lista. Evidência: capturas a 1440 e 390 px sem scroll horizontal. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (cobranças na fatura):** a página da fatura mostra, à Tesouraria
+e à Administração, as cobranças electrónicas dessa fatura (Multicaixa Express ou referência), da
+mais recente para a mais antiga, com o estado do registo (`StatusBadge`), a referência, a última
+mensagem do fornecedor e o recibo, quando já existe. Uma cobrança não conta como paga antes de o
+fornecedor a confirmar. A Secretaria lê a fatura sem esta secção (o servidor nem a pede). Sem estilos
+novos.
+
+**26/10/2026 — SIGA Context Engine (relatórios da turma):** o menu da turma e da disciplina ganha
+«Relatórios da turma» (grupo Acompanhamento), que abre `/relatorios/academicos?turma=<id>` já
+filtrado por essa turma. Com a turma na URL, o filtro de turma segue a URL; escolher outra turma ou
+limpar os filtros actualiza a URL. Uma turma que a escola não devolve não filtra nada. Sem estilos
+novos.
+
+**26/10/2026 — SIGA Context Engine (turma e faturas do aluno):** o menu da turma ganha
+«Renovar matrículas» (só na turma, a quem grava em Pessoas) e «Alunos em risco» (os alertas e a
+análise abrem já nessa turma; `/pedagogica/risco?turma=` guarda a turma escolhida). `/faturas?aluno=`
+mostra todas as faturas de um aluno, com «Faturas de ‹nome› · processo …» e «Ver todas as
+faturas»; chega-se lá por «Faturas do aluno» no menu da fatura (a tesouraria, que não abre fichas)
+e por «Receber pagamentos» no menu do aluno (Administração). Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (entregas dos trabalhos):** com as entregas no main (#336),
+cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedagogica/tarefas/<id>`
+(a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
+estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (painel lateral sem separador vazio):** o separador
+«Relacionado» do painel lateral só aparece quando a entidade aberta tem relações com destino ou
+acções. Na página da fatura abria vazio; fica só «Mensagens», e o menu da fatura na sidebar leva
+às páginas ligadas. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (cobranças → fatura):** em Bancos e Conciliação, cada cobrança
+AppyPay tem «Ver fatura», que abre `/faturas/<id>` com os recibos e as cobranças dessa fatura. Só
+aparece a quem abre as faturas (Administração e Tesouraria). A ligação tem 44 px de altura no
+telemóvel. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (turma em página do main):** com a #346 no main, a ficha da
+turma é a página `/pedagogica/turmas/<id>` do main (tudo numa página, sem o modal). A #332 deixa
+a sua versão e acrescenta só `?secao=`: «Alunos da turma» e as outras entradas do menu levam à
+secção, que ganhou um id e um título ligado (`aria-labelledby`). Sem estilos novos.
+
 **26/10/2026 — RH e Alumni abrem a sua página:** `/financeiro/rh` e as suas páginas (folha,
 salários, pagamentos, presença, faltas) estavam definidas dentro de `/financeiro`, e as do Alumni
 dentro de `/alumni`. A página de cima não tem `<Outlet />`, por isso estes endereços mostravam o

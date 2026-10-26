@@ -41,6 +41,12 @@ import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosy
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
 import {
+  ContextEntityNav,
+  ResumeContextLink,
+  useEntityNavigation,
+  useResumeNavigation,
+} from "./ContextEntityNav";
+import {
   NAV_ROW_BASE,
   NAV_ROW_ACTIVE,
   NAV_ROW_IDLE,
@@ -177,7 +183,13 @@ export function AppSidebar({
         })),
     },
   ];
-  const displayedGroups = contextual && context ? [context] : generalGroups;
+  // Turma ou disciplina aberta (confirmada pelo servidor): a sidebar passa a ser
+  // o menu dessa entidade; «Voltar» e «Todas as áreas» repõem o módulo.
+  const entityNavigation = useEntityNavigation(pathname, locationSearch);
+  const entityActive = contextual && entityNavigation !== null;
+  // Sem turma aberta na área académica: retomar a turma ou disciplina onde estava.
+  const resumeLink = useResumeNavigation(pathname, locationSearch, contextual && !entityActive);
+  const displayedGroups = entityActive ? [] : contextual && context ? [context] : generalGroups;
 
   return (
     <>
@@ -400,6 +412,16 @@ export function AppSidebar({
               className={!context ? "hidden" : undefined}
             />
           </div>
+          {entityActive && entityNavigation ? (
+            <ContextEntityNav
+              navigation={entityNavigation}
+              areaTitle={context?.title ?? null}
+              collapsed={collapsed}
+            />
+          ) : null}
+          {!entityActive && resumeLink ? (
+            <ResumeContextLink link={resumeLink} collapsed={collapsed} />
+          ) : null}
           {contextual &&
           pathname.startsWith("/pedagogica") &&
           canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (

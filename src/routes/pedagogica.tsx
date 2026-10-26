@@ -177,6 +177,8 @@ const pedagogicaSearchSchema = z
       .optional(),
     turma: z.string().guid().optional(),
     disciplina: z.string().guid().optional(),
+    // O horário de um professor (menu do professor, SIGA Context Engine).
+    professor: z.string().guid().optional(),
     pauta: z.enum(["1"]).optional(),
     dia: z
       .string()
@@ -247,6 +249,7 @@ function PedagogicaPage() {
     tab: tabFromSearch,
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
+    professor: professorFromSearch,
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
@@ -1076,6 +1079,7 @@ function PedagogicaPage() {
               workspace={workspace}
               teacherNameById={teacherNameById}
               canvasWork={canvasWork}
+              // A ficha da turma tem página própria.
               onOpenTurma={(id) =>
                 void navigate({ to: "/pedagogica/turmas/$turmaId", params: { turmaId: id } })
               }
@@ -1352,6 +1356,8 @@ function PedagogicaPage() {
               <LazyTab>
                 <SchoolNowWidget />
                 <ScheduleWorkspace
+                  initialClassGroupId={turmaFromSearch}
+                  initialTeacherId={professorFromSearch}
                   activeYearLabel={activeYearLabel}
                   activeYearId={selectedYearId ?? undefined}
                   canManage={canManageAcademic}
@@ -1422,6 +1428,11 @@ function PedagogicaPage() {
                   initialClassGroupId={turmaFromSearch}
                   initialSubjectId={disciplinaFromSearch}
                   initialDate={diaFromSearch}
+                  teacherId={professorFromSearch}
+                  teacherName={
+                    teachers.find((teacher) => teacher.id === professorFromSearch)?.full_name
+                  }
+                  classGroupName={classGroups.find((group) => group.id === turmaFromSearch)?.name}
                 />
               </LazyTab>
             )}

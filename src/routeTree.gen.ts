@@ -53,6 +53,7 @@ import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configurac
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
 import { Route as ConfiguracoesInicioRouteImport } from './routes/configuracoes_.inicio'
 import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
+import { Route as FaturasInvoiceIdRouteImport } from './routes/faturas_.$invoiceId'
 import { Route as FinanceiroConciliacaoRouteImport } from './routes/financeiro_.conciliacao'
 import { Route as FinanceiroRhRouteImport } from './routes/financeiro_.rh'
 import { Route as MatriculaSlugRouteImport } from './routes/matricula/$slug'
@@ -61,6 +62,7 @@ import { Route as PedagogicaPautasSuperiorRouteImport } from './routes/pedagogic
 import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogica_.presenca-docente'
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PedagogicaSuperiorRouteImport } from './routes/pedagogica_.superior'
+import { Route as PedagogicaTrabalhosRouteImport } from './routes/pedagogica_.trabalhos'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
 import { Route as PessoasPersonIdRouteImport } from './routes/pessoas/$personId'
 import { Route as PessoasAcessosAlunosRouteImport } from './routes/pessoas/acessos-alunos'
@@ -366,6 +368,11 @@ const ConviteTokenRoute = ConviteTokenRouteImport.update({
   path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaturasInvoiceIdRoute = FaturasInvoiceIdRouteImport.update({
+  id: '/faturas_/$invoiceId',
+  path: '/faturas/$invoiceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroConciliacaoRoute = FinanceiroConciliacaoRouteImport.update({
   id: '/financeiro_/conciliacao',
   path: '/financeiro/conciliacao',
@@ -406,6 +413,11 @@ const PedagogicaRiscoRoute = PedagogicaRiscoRouteImport.update({
 const PedagogicaSuperiorRoute = PedagogicaSuperiorRouteImport.update({
   id: '/pedagogica_/superior',
   path: '/pedagogica/superior',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaTrabalhosRoute = PedagogicaTrabalhosRouteImport.update({
+  id: '/pedagogica_/trabalhos',
+  path: '/pedagogica/trabalhos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasIndexRoute = PessoasIndexRouteImport.update({
@@ -888,6 +900,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/faturas/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
   '/financeiro/rh': typeof FinanceiroRhRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -896,6 +909,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica/trabalhos': typeof PedagogicaTrabalhosRoute
   '/pessoas/$personId': typeof PessoasPersonIdRoute
   '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
   '/pessoas/novo': typeof PessoasNovoRoute
@@ -1024,6 +1038,7 @@ export interface FileRoutesByTo {
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/faturas/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro/conciliacao': typeof FinanceiroConciliacaoRoute
   '/financeiro/rh': typeof FinanceiroRhRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -1032,6 +1047,7 @@ export interface FileRoutesByTo {
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica/trabalhos': typeof PedagogicaTrabalhosRoute
   '/pessoas/$personId': typeof PessoasPersonIdRoute
   '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
   '/pessoas/novo': typeof PessoasNovoRoute
@@ -1161,6 +1177,7 @@ export interface FileRoutesById {
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
   '/configuracoes_/inicio': typeof ConfiguracoesInicioRoute
   '/convite/$token': typeof ConviteTokenRoute
+  '/faturas_/$invoiceId': typeof FaturasInvoiceIdRoute
   '/financeiro_/conciliacao': typeof FinanceiroConciliacaoRoute
   '/financeiro_/rh': typeof FinanceiroRhRoute
   '/matricula/$slug': typeof MatriculaSlugRoute
@@ -1169,6 +1186,7 @@ export interface FileRoutesById {
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/pedagogica_/superior': typeof PedagogicaSuperiorRoute
+  '/pedagogica_/trabalhos': typeof PedagogicaTrabalhosRoute
   '/pessoas/$personId': typeof PessoasPersonIdRoute
   '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
   '/pessoas/novo': typeof PessoasNovoRoute
@@ -1299,6 +1317,7 @@ export interface FileRouteTypes {
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
+    | '/faturas/$invoiceId'
     | '/financeiro/conciliacao'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1307,6 +1326,7 @@ export interface FileRouteTypes {
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pedagogica/trabalhos'
     | '/pessoas/$personId'
     | '/pessoas/acessos-alunos'
     | '/pessoas/novo'
@@ -1435,6 +1455,7 @@ export interface FileRouteTypes {
     | '/configuracoes/diagnostico'
     | '/configuracoes/inicio'
     | '/convite/$token'
+    | '/faturas/$invoiceId'
     | '/financeiro/conciliacao'
     | '/financeiro/rh'
     | '/matricula/$slug'
@@ -1443,6 +1464,7 @@ export interface FileRouteTypes {
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pedagogica/trabalhos'
     | '/pessoas/$personId'
     | '/pessoas/acessos-alunos'
     | '/pessoas/novo'
@@ -1571,6 +1593,7 @@ export interface FileRouteTypes {
     | '/configuracoes_/diagnostico'
     | '/configuracoes_/inicio'
     | '/convite/$token'
+    | '/faturas_/$invoiceId'
     | '/financeiro_/conciliacao'
     | '/financeiro_/rh'
     | '/matricula/$slug'
@@ -1579,6 +1602,7 @@ export interface FileRouteTypes {
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
     | '/pedagogica_/superior'
+    | '/pedagogica_/trabalhos'
     | '/pessoas/$personId'
     | '/pessoas/acessos-alunos'
     | '/pessoas/novo'
@@ -1707,6 +1731,7 @@ export interface RootRouteChildren {
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
   ConfiguracoesInicioRoute: typeof ConfiguracoesInicioRoute
   ConviteTokenRoute: typeof ConviteTokenRoute
+  FaturasInvoiceIdRoute: typeof FaturasInvoiceIdRoute
   FinanceiroConciliacaoRoute: typeof FinanceiroConciliacaoRoute
   FinanceiroRhRoute: typeof FinanceiroRhRoute
   MatriculaSlugRoute: typeof MatriculaSlugRoute
@@ -1715,6 +1740,7 @@ export interface RootRouteChildren {
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   PedagogicaSuperiorRoute: typeof PedagogicaSuperiorRoute
+  PedagogicaTrabalhosRoute: typeof PedagogicaTrabalhosRoute
   PessoasPersonIdRoute: typeof PessoasPersonIdRoute
   PessoasAcessosAlunosRoute: typeof PessoasAcessosAlunosRoute
   PessoasNovoRoute: typeof PessoasNovoRoute
@@ -2093,6 +2119,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/faturas_/$invoiceId': {
+      id: '/faturas_/$invoiceId'
+      path: '/faturas/$invoiceId'
+      fullPath: '/faturas/$invoiceId'
+      preLoaderRoute: typeof FaturasInvoiceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro_/conciliacao': {
       id: '/financeiro_/conciliacao'
       path: '/financeiro/conciliacao'
@@ -2147,6 +2180,13 @@ declare module '@tanstack/react-router' {
       path: '/pedagogica/superior'
       fullPath: '/pedagogica/superior'
       preLoaderRoute: typeof PedagogicaSuperiorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/trabalhos': {
+      id: '/pedagogica_/trabalhos'
+      path: '/pedagogica/trabalhos'
+      fullPath: '/pedagogica/trabalhos'
+      preLoaderRoute: typeof PedagogicaTrabalhosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/': {
@@ -2878,6 +2918,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
   ConfiguracoesInicioRoute: ConfiguracoesInicioRoute,
   ConviteTokenRoute: ConviteTokenRoute,
+  FaturasInvoiceIdRoute: FaturasInvoiceIdRoute,
   FinanceiroConciliacaoRoute: FinanceiroConciliacaoRoute,
   FinanceiroRhRoute: FinanceiroRhRoute,
   MatriculaSlugRoute: MatriculaSlugRoute,
@@ -2886,6 +2927,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   PedagogicaSuperiorRoute: PedagogicaSuperiorRoute,
+  PedagogicaTrabalhosRoute: PedagogicaTrabalhosRoute,
   PessoasPersonIdRoute: PessoasPersonIdRoute,
   PessoasAcessosAlunosRoute: PessoasAcessosAlunosRoute,
   PessoasNovoRoute: PessoasNovoRoute,

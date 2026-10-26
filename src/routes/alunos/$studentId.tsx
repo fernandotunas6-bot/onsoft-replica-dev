@@ -50,6 +50,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { StudentAcademicHistoryCard } from "@/features/students/components/StudentAcademicHistoryCard";
 import { StudentDigitalCardModal } from "@/features/students/components/StudentDigitalCardModal";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
@@ -84,6 +85,13 @@ import {
   type ManualStudentStatus,
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
+import {
+  canReadStudentSection,
+  resolveStudentSection,
+  studentSectionLabel,
+  validateStudentDetailSearch,
+  type StudentSection,
+} from "@/features/students/student-sections";
 import { searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { buildStudentDossier, documentValidationCode } from "@/features/academic/assessment-views";
@@ -110,8 +118,11 @@ import {
 } from "@/features/finance/scholarship-server";
 import { PayflowStudentSyncButton } from "@/features/finance/components/PayflowStudentSyncButton";
 import { officialReceiptBody, paymentStatusFromInvoices } from "@/features/finance/schemas";
+import { formatIsoDay, summarizeStudentInvoices } from "@/features/finance/student-finance-summary";
+import { schoolTodayIso } from "@/lib/school-date";
 import { kwanza } from "@/lib/currency";
 import { buildFinancePrintSchool } from "@/lib/finance-print";
+import { canAccessPath, canWriteModule } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapStudentProfileToSnapshot } from "@/features/intelligence/students/student-relations-adapter";
@@ -120,6 +131,8 @@ import { exportOfficialDeclarationPdf, exportOfficialPautaPdf } from "@/lib/expo
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/alunos/$studentId")({
+  // `?secao=financeiro` abre só essa parte da ficha; sem secção, a ficha completa.
+  validateSearch: validateStudentDetailSearch,
   head: () => ({
     meta: [
       { title: "Ficha do Aluno · SIGA" },
@@ -247,6 +260,20 @@ function StudentDetail() {
     account.role === "Tesouraria";
   const canReceivePayment = account.role === "Administrador" || account.role === "Tesouraria";
   const canRequestDocument = account.role === "Administrador" || account.role === "Secretaria";
+  // Foto, turma, estado, matrícula, dados, encarregados e presença gravam pelo mesmo guarda
+  // do servidor (escrita em Pessoas para Administração e Secretaria, ou permissão
+  // de escrita dada a outro cargo). Quem não grava, como o encarregado, não vê os botões.
+  const canManageStudent = canWriteModule(account.role, "pessoas", account.grants);
+  // A página de cada fatura segue as regras de `/faturas` (Administração e Tesouraria).
+  const canOpenInvoice = canAccessPath("/faturas", account.role, account.grants);
+  // Secção pedida na URL; sem acesso a ela, mostra-se a ficha completa.
+  const { secao } = Route.useSearch();
+  const { section, refused: refusedSection } = resolveStudentSection(
+    secao,
+    account.role,
+    account.grants,
+  );
+  const show = (part: StudentSection) => section === null || section === part;
   const installed = useInstalledIntegrations();
   const agtOn = installed.hasCapability("agt.einvoice") || installed.hasCapability("agt.nif");
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -282,8 +309,8 @@ function StudentDetail() {
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
-    // Só para escolher o encarregado, que é da Administração e da Secretaria.
-    enabled: canRequestDocument,
+    // Só para escolher o encarregado, que é de quem gere a ficha.
+    enabled: canManageStudent,
   });
   // Desconto do contrato (vale para as faturas emitidas a seguir).
   const scholarshipQuery = useQuery({
@@ -295,6 +322,8 @@ function StudentDetail() {
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
     queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
+    // Só a quem o servidor deixa ler as faturas: os outros nem fazem o pedido recusado.
+    enabled: canReadStudentSection("financeiro", account.role, account.grants),
     retry: false,
   });
   const documentsQuery = useQuery({
@@ -330,6 +359,10 @@ function StudentDetail() {
       label: profileData.student.full_name,
       schoolId: profileData.student.school_id,
       data: relationsSnapshot,
+      // A turma da matrícula, lida do servidor com a ficha: o menu do aluno leva a ela.
+      ...(profileData.student.class_group_id
+        ? { relations: { class: profileData.student.class_group_id } }
+        : {}),
     };
   }, [profileData, relationsSnapshot]);
   useDeclareEntityFocus(focusedStudentEntity);
@@ -398,6 +431,16 @@ function StudentDetail() {
     (invoice) => invoice.student_id === studentId,
   );
   const paymentStatus = paymentStatusFromInvoices(studentInvoices) ?? student.payment_status;
+  // Na secção Financeiro, todas as faturas do aluno, por pagar e pagas, com a dívida;
+  // na ficha completa, as cinco mais recentes, como sempre.
+  const financeSummary = summarizeStudentInvoices(studentInvoices, schoolTodayIso());
+  const invoiceGroups =
+    section === "financeiro"
+      ? [
+          { title: "Por pagar", items: financeSummary.open },
+          { title: "Pagas", items: financeSummary.settled },
+        ].filter((group) => group.items.length > 0)
+      : [{ title: null, items: studentInvoices.slice(0, 5) }];
   const templates = documentsQuery.data?.templates ?? [];
   const templateOptions = templates.map((template) => template.name);
   const suggestedDocumentNumber = `DOC-${student.registration_number.replace(/\W/g, "").slice(-8)}`;
@@ -900,6 +943,13 @@ function StudentDetail() {
     .slice(0, 2)
     .map((p) => p[0])
     .join("");
+  // O mesmo cartão serve a ficha completa e as secções Académico e Financeiro.
+  const enrollmentCardTitle =
+    section === "financeiro"
+      ? "Situação financeira"
+      : section === "academico"
+        ? "Matrícula"
+        : "Matrícula e situação";
 
   return (
     <AppShell>
@@ -911,8 +961,8 @@ function StudentDetail() {
         </Button>
 
         <InstalledModuleTools module="alunos" />
-        <InstalledModuleTools module="faturas" />
-        <InstalledModuleTools module="documentos" />
+        {show("financeiro") ? <InstalledModuleTools module="faturas" /> : null}
+        {show("documentos") ? <InstalledModuleTools module="documentos" /> : null}
 
         <div className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-card p-6 shadow-soft">
           <div className="flex flex-col items-center gap-2.5">
@@ -923,78 +973,84 @@ function StudentDetail() {
                 fallback={initials}
                 className="size-20 rounded-2xl text-xl object-cover ring-2 ring-primary/25 shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                title="Carregar nova foto de perfil"
-                className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
-              >
-                {isUploadingPhoto ? (
-                  <LoaderCircle className="size-3.5 animate-spin" />
-                ) : (
-                  <Camera className="size-3.5" />
-                )}
-              </button>
-              <input
-                id="student-photo-upload"
-                aria-label="Carregar foto de perfil do aluno"
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={handleDirectPhotoUpload}
-              />
+              {canManageStudent ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    title="Carregar nova foto de perfil"
+                    className="absolute -bottom-1 -right-1 size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-background disabled:opacity-50"
+                  >
+                    {isUploadingPhoto ? (
+                      <LoaderCircle className="size-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="size-3.5" />
+                    )}
+                  </button>
+                  <input
+                    id="student-photo-upload"
+                    aria-label="Carregar foto de perfil do aluno"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={handleDirectPhotoUpload}
+                  />
+                </>
+              ) : null}
             </div>
-            <div className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1 px-2 font-medium"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-              >
-                <Camera className="size-3" /> Foto
-              </Button>
-              <PickFileButton
-                label="Biblioteca"
-                area="secretaria"
-                acceptKinds={["png", "jpeg"]}
-                variant="outline"
-                size="sm"
-                onPick={(file) => {
-                  void (async () => {
-                    try {
-                      await applyLibraryPhotoToPerson({
-                        personId: student.person_id,
-                        schoolId: String(student.school_id),
-                        file,
-                      });
-                      await Promise.all([
-                        queryClient.invalidateQueries({
-                          queryKey: ["students", "profile", student.id],
-                        }),
-                        queryClient.invalidateQueries({
-                          queryKey: ["people", "get", student.person_id],
-                        }),
-                        queryClient.invalidateQueries({
-                          queryKey: ["arquivos", "student-related", student.person_id],
-                        }),
-                        queryClient.invalidateQueries({
-                          queryKey: ["students", "search"],
-                        }),
-                      ]);
-                      toast.success("Foto actualizada a partir da biblioteca");
-                    } catch (error) {
-                      toast.error("Não foi possível actualizar a foto", {
-                        description: error instanceof Error ? error.message : "Tente novamente.",
-                      });
-                    }
-                  })();
-                }}
-              />
-            </div>
+            {canManageStudent ? (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 px-2 font-medium"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                >
+                  <Camera className="size-3" /> Foto
+                </Button>
+                <PickFileButton
+                  label="Biblioteca"
+                  area="secretaria"
+                  acceptKinds={["png", "jpeg"]}
+                  variant="outline"
+                  size="sm"
+                  onPick={(file) => {
+                    void (async () => {
+                      try {
+                        await applyLibraryPhotoToPerson({
+                          personId: student.person_id,
+                          schoolId: String(student.school_id),
+                          file,
+                        });
+                        await Promise.all([
+                          queryClient.invalidateQueries({
+                            queryKey: ["students", "profile", student.id],
+                          }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["people", "get", student.person_id],
+                          }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["arquivos", "student-related", student.person_id],
+                          }),
+                          queryClient.invalidateQueries({
+                            queryKey: ["students", "search"],
+                          }),
+                        ]);
+                        toast.success("Foto actualizada a partir da biblioteca");
+                      } catch (error) {
+                        toast.error("Não foi possível actualizar a foto", {
+                          description: error instanceof Error ? error.message : "Tente novamente.",
+                        });
+                      }
+                    })();
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
 
           <div className="min-w-0">
@@ -1174,7 +1230,7 @@ function StudentDetail() {
               </DropdownMenu>
             ) : null}
 
-            {turmaOptions.length > 0 ? (
+            {!canManageStudent ? null : turmaOptions.length > 0 ? (
               <QuickFormModal
                 eyebrow={student.registration_number}
                 title="Atribuir turma"
@@ -1369,565 +1425,702 @@ function StudentDetail() {
               />
             ) : null}
 
-            <QuickFormModal
-              eyebrow={student.registration_number}
-              title="Alterar estado"
-              description="Actualize o estado académico do aluno e registe o motivo. Inactivo, Transferido e Concluído fecham a matrícula do ano e libertam o lugar na turma."
-              icon={<UserCheck className="size-5" />}
-              submitLabel="Confirmar estado"
-              onSubmit={handleChangeStatus}
-              fields={[
-                {
-                  name: "estado",
-                  label: "Novo estado",
-                  type: "select",
-                  options: studentStatusChoices(),
-                  defaultValue: student.student_status,
-                },
-                {
-                  name: "motivo",
-                  label: "Motivo",
-                  type: "textarea",
-                  full: true,
-                  required: false,
-                  placeholder: "Opcional",
-                },
-              ]}
-              trigger={(open) => (
-                <Button variant="outline" className="gap-2" onClick={open}>
-                  <UserCheck className="size-4" /> Estado
-                </Button>
-              )}
-            />
-
-            {student.enrollment_id ? (
-              <ConfirmActionModal
-                title="Anular matrícula"
-                description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se; sem outra matrícula, o aluno passa a inactivo até ser matriculado de novo.`}
-                confirmLabel="Anular matrícula"
-                onConfirm={async () => {
-                  await cancelEnrollment({
-                    data: { enrollmentId: student.enrollment_id!, reason: "Anulada na ficha" },
-                  });
-                  await invalidateStudent();
-                }}
-                trigger={(open) => (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-                    onClick={open}
-                  >
-                    <Trash2 className="size-3.5" /> Anular
-                  </Button>
-                )}
-              />
-            ) : null}
-
-            <QuickFormModal
-              eyebrow={student.registration_number}
-              title="Editar ficha"
-              description="Actualize os dados pessoais e académicos deste estudante."
-              icon={<Pencil className="size-5" />}
-              size="lg"
-              submitLabel="Guardar alterações"
-              note="No SGA, people não tem coluna de morada — só nome, email e telefone são gravados."
-              onSubmit={handleUpdateProfile}
-              fields={[
-                {
-                  name: "nome",
-                  label: "Nome completo",
-                  defaultValue: student.full_name,
-                  full: true,
-                },
-                { name: "email", label: "Email", defaultValue: student.email ?? "" },
-                { name: "telefone", label: "Telefone", defaultValue: student.phone ?? "" },
-              ]}
-              trigger={(open) => (
-                <Button className="gap-2 shadow-xs" onClick={open}>
-                  <Pencil className="size-4" /> Editar ficha
-                </Button>
-              )}
-            />
-          </div>
-        </div>
-
-        <StudentRelatedFilesPanel
-          personId={student.person_id}
-          schoolId={String(student.school_id)}
-          studentId={student.id}
-        />
-
-        {canIssueInvoice ? <StudentScholarshipPanel studentId={student.id} /> : null}
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            title="Média final"
-            value={mediaFinal != null ? mediaFinal.toFixed(1) : "—"}
-            subtitle={
-              student.final_average == null && mediaFinal != null
-                ? "Calculada das notas lançadas · 0–20 valores"
-                : "Escala curricular 0–20 valores"
-            }
-            icon={GraduationCap}
-            tone={mediaFinal != null ? (mediaFinal >= 10 ? "success" : "destructive") : "neutral"}
-          />
-          <StatCard
-            title="Taxa de presença"
-            value={
-              student.attendance_rate != null
-                ? `${Math.round(Number(student.attendance_rate))}%`
-                : "—"
-            }
-            subtitle="Frequência no ano lectivo actual"
-            icon={CalendarDays}
-            tone={
-              student.attendance_rate != null
-                ? student.attendance_rate >= 80
-                  ? "success"
-                  : "warning"
-                : "neutral"
-            }
-            action={
-              canRequestDocument && student.enrollment_id ? (
+            {canManageStudent ? (
+              <>
                 <QuickFormModal
-                  title="Taxa de presença"
-                  description="Percentagem de presenças no ano lectivo actual (0 a 100)."
-                  submitLabel="Guardar"
-                  successDescription="Presença actualizada na matrícula."
+                  eyebrow={student.registration_number}
+                  title="Alterar estado"
+                  description="Actualize o estado académico do aluno e registe o motivo. Inactivo, Transferido e Concluído fecham a matrícula do ano e libertam o lugar na turma."
+                  icon={<UserCheck className="size-5" />}
+                  submitLabel="Confirmar estado"
+                  onSubmit={handleChangeStatus}
                   fields={[
                     {
-                      name: "presenca",
-                      label: "Presença (%)",
-                      type: "number",
-                      required: true,
-                      defaultValue: student.attendance_rate ?? "",
-                      placeholder: "96",
+                      name: "estado",
+                      label: "Novo estado",
+                      type: "select",
+                      options: studentStatusChoices(),
+                      defaultValue: student.student_status,
+                    },
+                    {
+                      name: "motivo",
+                      label: "Motivo",
+                      type: "textarea",
+                      full: true,
+                      required: false,
+                      placeholder: "Opcional",
                     },
                   ]}
                   trigger={(open) => (
-                    <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={open}>
-                      Registar
+                    <Button variant="outline" className="gap-2" onClick={open}>
+                      <UserCheck className="size-4" /> Estado
                     </Button>
                   )}
-                  onSubmit={async (values) => {
-                    await updateEnrollmentAttendance({
-                      data: {
-                        enrollmentId: student.enrollment_id as string,
-                        attendanceRate: Number(values["presenca"]),
-                      },
-                    });
-                    await queryClient.invalidateQueries({
-                      queryKey: ["students", "profile", studentId],
-                    });
-                    await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-                    await queryClient.invalidateQueries({
-                      queryKey: ["academic", "pedagogical-workspace"],
-                    });
-                  }}
                 />
-              ) : null
-            }
-          />
-          <StatCard
-            title="Estado académico"
-            value={
-              student.enrollment_status
-                ? enrollmentStatusLabel(student.enrollment_status)
-                : "Sem matrícula activa"
-            }
-            subtitle={
-              student.enrolled_on
-                ? `Matriculado a ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`
-                : "Ainda sem turma atribuída"
-            }
-            icon={UserCheck}
-            tone={student.enrollment_status === "active" ? "success" : "neutral"}
-          />
+
+                {student.enrollment_id ? (
+                  <ConfirmActionModal
+                    title="Anular matrícula"
+                    description={`A matrícula activa de ${student.full_name} será anulada. O processo do aluno mantém-se; sem outra matrícula, o aluno passa a inactivo até ser matriculado de novo.`}
+                    confirmLabel="Anular matrícula"
+                    onConfirm={async () => {
+                      await cancelEnrollment({
+                        data: { enrollmentId: student.enrollment_id!, reason: "Anulada na ficha" },
+                      });
+                      await invalidateStudent();
+                    }}
+                    trigger={(open) => (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 gap-1.5 text-xs text-destructive hover:bg-destructive/10"
+                        onClick={open}
+                      >
+                        <Trash2 className="size-3.5" /> Anular
+                      </Button>
+                    )}
+                  />
+                ) : null}
+
+                <QuickFormModal
+                  eyebrow={student.registration_number}
+                  title="Editar ficha"
+                  description="Actualize os dados pessoais e académicos deste estudante."
+                  icon={<Pencil className="size-5" />}
+                  size="lg"
+                  submitLabel="Guardar alterações"
+                  note="No SGA, people não tem coluna de morada — só nome, email e telefone são gravados."
+                  onSubmit={handleUpdateProfile}
+                  fields={[
+                    {
+                      name: "nome",
+                      label: "Nome completo",
+                      defaultValue: student.full_name,
+                      full: true,
+                    },
+                    { name: "email", label: "Email", defaultValue: student.email ?? "" },
+                    { name: "telefone", label: "Telefone", defaultValue: student.phone ?? "" },
+                  ]}
+                  trigger={(open) => (
+                    <Button className="gap-2 shadow-xs" onClick={open}>
+                      <Pencil className="size-4" /> Editar ficha
+                    </Button>
+                  )}
+                />
+              </>
+            ) : null}
+          </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={User} size="sm" label="Dados pessoais" />
-              <h2 className="font-display text-base font-bold">Dados pessoais</h2>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Nome completo" value={student.full_name} />
-              <Field label="Género" value={student.gender ?? "—"} />
-              <Field
-                label="Data de nascimento"
-                value={
-                  student.birth_date
-                    ? new Date(student.birth_date).toLocaleDateString("pt-PT")
-                    : "—"
-                }
-              />
-              <Field label="Nº de processo" value={student.registration_number} />
-              <div>
-                <Field label="Email" value={student.email ?? "—"} />
-                {resendOn && student.email ? (
-                  <button
-                    type="button"
-                    className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(
-                        `SIGA · ${student.full_name} (${student.registration_number})\n${student.email}`,
-                      );
-                      toast.success("Contacto copiado para e-mail Resend");
+        {section ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-bold tracking-tight">
+              {studentSectionLabel(section)}
+            </h2>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/alunos/$studentId" params={{ studentId }}>
+                Ver ficha completa
+              </Link>
+            </Button>
+          </div>
+        ) : refusedSection ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            Sem acesso a «{studentSectionLabel(refusedSection)}» nesta conta: mostra-se a ficha
+            completa.
+          </p>
+        ) : null}
+
+        {section === "historico" ? (
+          <StudentAcademicHistoryCard
+            years={historyQuery.data?.years ?? []}
+            loading={historyQuery.isLoading}
+            failed={historyQuery.isError}
+          />
+        ) : null}
+
+        {show("documentos") ? (
+          <StudentRelatedFilesPanel
+            personId={student.person_id}
+            schoolId={String(student.school_id)}
+            studentId={student.id}
+          />
+        ) : null}
+
+        {canIssueInvoice && show("financeiro") ? (
+          <StudentScholarshipPanel studentId={student.id} />
+        ) : null}
+
+        {show("academico") ? (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              title="Média final"
+              value={mediaFinal != null ? mediaFinal.toFixed(1) : "—"}
+              subtitle={
+                student.final_average == null && mediaFinal != null
+                  ? "Calculada das notas lançadas · 0–20 valores"
+                  : "Escala curricular 0–20 valores"
+              }
+              icon={GraduationCap}
+              tone={mediaFinal != null ? (mediaFinal >= 10 ? "success" : "destructive") : "neutral"}
+            />
+            <StatCard
+              title="Taxa de presença"
+              value={
+                student.attendance_rate != null
+                  ? `${Math.round(Number(student.attendance_rate))}%`
+                  : "—"
+              }
+              subtitle="Frequência no ano lectivo actual"
+              icon={CalendarDays}
+              tone={
+                student.attendance_rate != null
+                  ? student.attendance_rate >= 80
+                    ? "success"
+                    : "warning"
+                  : "neutral"
+              }
+              action={
+                canManageStudent && student.enrollment_id ? (
+                  <QuickFormModal
+                    title="Taxa de presença"
+                    description="Percentagem de presenças no ano lectivo actual (0 a 100)."
+                    submitLabel="Guardar"
+                    successDescription="Presença actualizada na matrícula."
+                    fields={[
+                      {
+                        name: "presenca",
+                        label: "Presença (%)",
+                        type: "number",
+                        required: true,
+                        defaultValue: student.attendance_rate ?? "",
+                        placeholder: "96",
+                      },
+                    ]}
+                    trigger={(open) => (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs px-2"
+                        onClick={open}
+                      >
+                        Registar
+                      </Button>
+                    )}
+                    onSubmit={async (values) => {
+                      await updateEnrollmentAttendance({
+                        data: {
+                          enrollmentId: student.enrollment_id as string,
+                          attendanceRate: Number(values["presenca"]),
+                        },
+                      });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["students", "profile", studentId],
+                      });
+                      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+                      await queryClient.invalidateQueries({
+                        queryKey: ["academic", "pedagogical-workspace"],
+                      });
                     }}
-                  >
-                    E-mail Resend
-                  </button>
-                ) : null}
-              </div>
-              <div>
-                <Field label="Telefone" value={student.phone ?? "—"} />
-                {whatsappOn && student.phone ? (
-                  <a
-                    href={whatsappHref(student.phone)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
-                  >
-                    WhatsApp
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          </section>
+                  />
+                ) : null
+              }
+            />
+            <StatCard
+              title="Estado académico"
+              value={
+                student.enrollment_status
+                  ? enrollmentStatusLabel(student.enrollment_status)
+                  : "Sem matrícula activa"
+              }
+              subtitle={
+                student.enrolled_on
+                  ? `Matriculado a ${new Date(student.enrolled_on).toLocaleDateString("pt-PT")}`
+                  : "Ainda sem turma atribuída"
+              }
+              icon={UserCheck}
+              tone={student.enrollment_status === "active" ? "success" : "neutral"}
+            />
+          </div>
+        ) : null}
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
-            <div className="flex items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5">
-                <IconChip icon={Users} size="sm" label="Encarregados" />
-                <h2 className="font-display text-base font-bold">Encarregados de educação</h2>
-              </div>
-              <QuickFormModal
-                eyebrow={student.registration_number}
-                title="Associar encarregado"
-                description="Liga uma pessoa já existente no registo central a este aluno."
-                icon={<UserPlus className="size-5" />}
-                submitLabel="Associar"
-                onSubmit={handleAssignGuardian}
-                fields={[
-                  {
-                    name: "pessoa",
-                    label: "Pessoa",
-                    type: "select",
-                    options: guardianOptions,
-                    full: true,
-                  },
-                  {
-                    name: "parentesco",
-                    label: "Parentesco",
-                    type: "select",
-                    options: personRelationshipTypeOptions.flatMap((option) => {
-                      const label = relationshipLabels[option];
-                      return label ? [label] : [];
-                    }),
-                  },
-                  {
-                    name: "principal",
-                    label: "Encarregado principal",
-                    type: "select",
-                    options: ["Não", "Sim"],
-                    defaultValue: guardians.length === 0 ? "Sim" : "Não",
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={open}
-                    disabled={!guardianOptions.length}
-                  >
-                    <UserPlus className="size-3.5" /> Associar
-                  </Button>
-                )}
-              />
-            </div>
-            <div className="mt-4 space-y-4 text-sm">
-              {guardians.length > 0 ? (
-                guardians.map((g) => (
-                  <div
-                    key={g.guardian_person_id}
-                    className="border-b border-border pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold">
-                          {g.guardian?.full_name ?? "—"}
-                          {g.is_primary ? (
-                            <span className="ml-2 text-[11px] font-normal text-muted-foreground">
-                              (principal)
-                            </span>
-                          ) : null}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {relationshipLabels[g.relationship as keyof typeof relationshipLabels] ??
-                            g.relationship}
-                        </p>
-                      </div>
-                      <ConfirmActionModal
-                        title="Remover encarregado"
-                        description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
-                        confirmLabel="Remover"
-                        onConfirm={async () => {
-                          await removeGuardian({
-                            data: {
-                              studentId,
-                              guardianPersonId: g.guardian_person_id,
-                            },
-                          });
-                          await Promise.all([
-                            queryClient.invalidateQueries({
-                              queryKey: ["students", "profile", studentId],
-                            }),
-                            queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
-                          ]);
+        <div className="grid gap-4 lg:grid-cols-2">
+          {show("identificacao") ? (
+            <>
+              <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={User} size="sm" label="Dados pessoais" />
+                  <h2 className="font-display text-base font-bold">Dados pessoais</h2>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <Field label="Nome completo" value={student.full_name} />
+                  <Field label="Género" value={student.gender ?? "—"} />
+                  <Field
+                    label="Data de nascimento"
+                    value={
+                      student.birth_date
+                        ? new Date(student.birth_date).toLocaleDateString("pt-PT")
+                        : "—"
+                    }
+                  />
+                  <Field label="Nº de processo" value={student.registration_number} />
+                  <div>
+                    <Field label="Email" value={student.email ?? "—"} />
+                    {resendOn && student.email ? (
+                      <button
+                        type="button"
+                        className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(
+                            `SIGA · ${student.full_name} (${student.registration_number})\n${student.email}`,
+                          );
+                          toast.success("Contacto copiado para e-mail Resend");
                         }}
-                        trigger={(open) => (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive"
-                            aria-label="Remover encarregado"
-                            onClick={open}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        )}
-                      />
-                    </div>
-                    <p className="mt-1 flex items-center gap-2 text-muted-foreground">
-                      <Phone className="size-3.5" /> {g.guardian?.phone_primary ?? "—"}
-                      {whatsappOn && g.guardian?.phone_primary ? (
-                        <a
-                          href={whatsappHref(
-                            g.guardian.phone_primary,
-                            `SIGA · ${student.full_name} (${student.registration_number})`,
-                          )}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-primary hover:underline"
-                        >
-                          WhatsApp
-                        </a>
-                      ) : null}
-                    </p>
-                    <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
-                      <Mail className="size-3.5" /> {g.guardian?.email ?? "—"}
-                      {resendOn && g.guardian?.email ? (
-                        <button
-                          type="button"
-                          className="text-[11px] font-semibold text-primary hover:underline"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(
-                              `SIGA · encarregado de ${student.full_name}\n${g.guardian?.email}`,
-                            );
-                            toast.success("E-mail copiado para Resend");
-                          }}
-                        >
-                          E-mail Resend
-                        </button>
-                      ) : null}
-                    </p>
+                      >
+                        E-mail Resend
+                      </button>
+                    ) : null}
                   </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground">Sem encarregados associados.</p>
-              )}
-              <p className="flex items-start gap-2 text-muted-foreground">
-                <MapPin className="mt-0.5 size-4 shrink-0" />
-                <span>
-                  {[student.address, student.commune, student.municipality, student.province]
-                    .filter(Boolean)
-                    .join(" · ") || "Morada não registada"}
-                </span>
-              </p>
-            </div>
-          </section>
+                  <div>
+                    <Field label="Telefone" value={student.phone ?? "—"} />
+                    {whatsappOn && student.phone ? (
+                      <a
+                        href={whatsappHref(student.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={GraduationCap} size="sm" label="Matrícula e situação" />
-              <h2 className="font-display text-base font-bold">Matrícula e situação</h2>
-            </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Curso" value={student.course_name ?? "—"} />
-              <Field
-                label="Classe"
-                value={student.grade_name ? `${student.grade_name} Classe` : "—"}
-              />
-              <Field label="Turma" value={student.class_name ?? "—"} />
-              <Field
-                label="Situação financeira"
-                value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
-              />
-              {scholarshipQuery.data?.percent ? (
-                <Field
-                  label="Desconto do contrato"
-                  value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
-                />
-              ) : null}
-            </div>
-            {studentInvoices.length > 0 ? (
-              <ul className="mt-4 space-y-2 text-sm">
-                {studentInvoices.slice(0, 5).map((invoice) => {
-                  const openAmount = Math.max(
-                    Number(invoice.total_amount ?? 0) - Number(invoice.amount_paid ?? 0),
-                    0,
-                  );
-                  return (
-                    <li
-                      key={invoice.id}
-                      className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
-                    >
-                      <span>
-                        {invoice.number} · {invoice.description}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">
-                          {kwanza(Number(invoice.total_amount ?? 0))}
-                          {invoice.status === "paid" ? " · Pago" : ""}
-                        </span>
-                        {invoice.status === "paid" ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={() =>
-                              void downloadInvoiceReceipt(
-                                invoice,
-                                `RC-${invoice.number.replace(/^FT-?/i, "")}`,
-                                Number(invoice.amount_paid ?? invoice.total_amount ?? 0),
-                              )
-                            }
-                          >
-                            Recibo
-                          </Button>
-                        ) : canReceivePayment ? (
-                          <QuickFormModal
-                            title={`Receber ${invoice.number}`}
-                            description="Liquida esta fatura e emite o recibo. Canais instalados aparecem no método."
-                            icon={<Wallet className="size-5" />}
-                            submitLabel="Confirmar"
-                            successDescription="Pagamento registado."
-                            fields={[
-                              {
-                                name: "valor",
-                                label: "Valor (Kz)",
-                                type: "number",
-                                defaultValue: String(openAmount || invoice.total_amount),
-                              },
-                              {
-                                name: "recibo",
-                                label: "Referência interna (opcional)",
-                                defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
-                                required: false,
-                              },
-                              {
-                                name: "metodo",
-                                label: "Método",
-                                type: "select",
-                                options: receiveMethods,
-                              },
-                              {
-                                name: "referencia",
-                                label: "Referência",
-                                required: false,
-                              },
-                            ]}
-                            onSubmit={async (values) => {
-                              const amount = Number(values["valor"]);
-                              const methodMap = {
-                                Numerário: "cash",
-                                Transferência: "transfer",
-                                "Multicaixa Express": "multicaixa_express",
-                                "Unitel Money": "unitel_money",
-                              } as const;
-                              const method =
-                                methodMap[
-                                  (values["metodo"] as keyof typeof methodMap) ?? "Numerário"
-                                ] ?? "cash";
-                              const reference = values["referencia"] || undefined;
-                              const paid = await recordInvoicePayment({
-                                data: {
-                                  invoiceId: invoice.id,
-                                  receiptNumber: values["recibo"],
-                                  amount,
-                                  method,
-                                  reference,
-                                },
-                              });
-                              await queryClient.invalidateQueries({
-                                queryKey: ["finance", "invoices"],
-                              });
-                              // Número oficial vem do servidor (gerado atomicamente) — nunca do
-                              // valor digitado, para o PDF impresso bater sempre com a base de dados.
-                              await downloadInvoiceReceipt(invoice, paid.receipt_number, amount);
-                            }}
-                            trigger={(open) => (
-                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={open}>
-                                Receber
-                              </Button>
-                            )}
-                          />
-                        ) : null}
-                        {resendInvoices ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2"
-                            onClick={async () => {
-                              await navigator.clipboard.writeText(
-                                `${invoice.number} · ${student.full_name} · ${kwanza(Number(invoice.total_amount ?? 0))}`,
-                              );
-                              toast.success("Texto da fatura copiado para e-mail Resend");
-                            }}
-                          >
-                            E-mail
-                          </Button>
-                        ) : null}
-                        {whatsappOn ? (
-                          <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+              <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <IconChip icon={Users} size="sm" label="Encarregados" />
+                    <h2 className="font-display text-base font-bold">Encarregados de educação</h2>
+                  </div>
+                  {canManageStudent ? (
+                    <QuickFormModal
+                      eyebrow={student.registration_number}
+                      title="Associar encarregado"
+                      description="Liga uma pessoa já existente no registo central a este aluno."
+                      icon={<UserPlus className="size-5" />}
+                      submitLabel="Associar"
+                      onSubmit={handleAssignGuardian}
+                      fields={[
+                        {
+                          name: "pessoa",
+                          label: "Pessoa",
+                          type: "select",
+                          options: guardianOptions,
+                          full: true,
+                        },
+                        {
+                          name: "parentesco",
+                          label: "Parentesco",
+                          type: "select",
+                          options: personRelationshipTypeOptions.flatMap((option) => {
+                            const label = relationshipLabels[option];
+                            return label ? [label] : [];
+                          }),
+                        },
+                        {
+                          name: "principal",
+                          label: "Encarregado principal",
+                          type: "select",
+                          options: ["Não", "Sim"],
+                          defaultValue: guardians.length === 0 ? "Sim" : "Não",
+                        },
+                      ]}
+                      trigger={(open) => (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={open}
+                          disabled={!guardianOptions.length}
+                        >
+                          <UserPlus className="size-3.5" /> Associar
+                        </Button>
+                      )}
+                    />
+                  ) : null}
+                </div>
+                <div className="mt-4 space-y-4 text-sm">
+                  {guardians.length > 0 ? (
+                    guardians.map((g) => (
+                      <div
+                        key={g.guardian_person_id}
+                        className="border-b border-border pb-3 last:border-0 last:pb-0"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">
+                              {g.guardian?.full_name ?? "—"}
+                              {g.is_primary ? (
+                                <span className="ml-2 text-[11px] font-normal text-muted-foreground">
+                                  (principal)
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {relationshipLabels[
+                                g.relationship as keyof typeof relationshipLabels
+                              ] ?? g.relationship}
+                            </p>
+                          </div>
+                          {canManageStudent ? (
+                            <ConfirmActionModal
+                              title="Remover encarregado"
+                              description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
+                              confirmLabel="Remover"
+                              onConfirm={async () => {
+                                await removeGuardian({
+                                  data: {
+                                    studentId,
+                                    guardianPersonId: g.guardian_person_id,
+                                  },
+                                });
+                                await Promise.all([
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "profile", studentId],
+                                  }),
+                                  queryClient.invalidateQueries({
+                                    queryKey: ["students", "search"],
+                                  }),
+                                ]);
+                              }}
+                              trigger={(open) => (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                  aria-label="Remover encarregado"
+                                  onClick={open}
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              )}
+                            />
+                          ) : null}
+                        </div>
+                        <p className="mt-1 flex items-center gap-2 text-muted-foreground">
+                          <Phone className="size-3.5" /> {g.guardian?.phone_primary ?? "—"}
+                          {whatsappOn && g.guardian?.phone_primary ? (
                             <a
                               href={whatsappHref(
-                                guardians[0]?.guardian?.phone_primary ?? "",
-                                `Fatura ${invoice.number} de ${student.full_name}: ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                g.guardian.phone_primary,
+                                `SIGA · ${student.full_name} (${student.registration_number})`,
                               )}
                               target="_blank"
                               rel="noreferrer"
+                              className="font-semibold text-primary hover:underline"
                             >
                               WhatsApp
                             </a>
-                          </Button>
-                        ) : null}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-            <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-              <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.
-            </p>
-          </section>
+                          ) : null}
+                        </p>
+                        <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
+                          <Mail className="size-3.5" /> {g.guardian?.email ?? "—"}
+                          {resendOn && g.guardian?.email ? (
+                            <button
+                              type="button"
+                              className="text-[11px] font-semibold text-primary hover:underline"
+                              onClick={async () => {
+                                await navigator.clipboard.writeText(
+                                  `SIGA · encarregado de ${student.full_name}\n${g.guardian?.email}`,
+                                );
+                                toast.success("E-mail copiado para Resend");
+                              }}
+                            >
+                              E-mail Resend
+                            </button>
+                          ) : null}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground">Sem encarregados associados.</p>
+                  )}
+                  <p className="flex items-start gap-2 text-muted-foreground">
+                    <MapPin className="mt-0.5 size-4 shrink-0" />
+                    <span>
+                      {[student.address, student.commune, student.municipality, student.province]
+                        .filter(Boolean)
+                        .join(" · ") || "Morada não registada"}
+                    </span>
+                  </p>
+                </div>
+              </section>
+            </>
+          ) : null}
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={History} size="sm" label="Histórico de estados" />
-              <h2 className="font-display text-base font-bold">Histórico de estados</h2>
-            </div>
-            <div className="mt-4">
-              <StudentStatusHistoryTimeline
-                events={statusHistoryQuery.data ?? []}
-                isLoading={statusHistoryQuery.isLoading}
-              />
-            </div>
-          </section>
+          {show("academico") || show("financeiro") ? (
+            <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <IconChip
+                  icon={section === "financeiro" ? Wallet : GraduationCap}
+                  size="sm"
+                  label={enrollmentCardTitle}
+                />
+                <h2 className="font-display text-base font-bold">{enrollmentCardTitle}</h2>
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {show("academico") ? (
+                  <>
+                    <Field label="Curso" value={student.course_name ?? "—"} />
+                    <Field
+                      label="Classe"
+                      value={student.grade_name ? `${student.grade_name} Classe` : "—"}
+                    />
+                    <Field label="Turma" value={student.class_name ?? "—"} />
+                  </>
+                ) : null}
+                {show("financeiro") ? (
+                  <Field
+                    label="Situação financeira"
+                    value={paymentStatus ? (pagamentoLabels[paymentStatus] ?? paymentStatus) : "—"}
+                  />
+                ) : null}
+                {section === "financeiro" && studentInvoices.length > 0 ? (
+                  <>
+                    <Field label="Faturado" value={kwanza(financeSummary.billed)} />
+                    <Field label="Pago" value={kwanza(financeSummary.paid)} />
+                    <Field
+                      label="Falta pagar"
+                      value={
+                        financeSummary.overdue > 0
+                          ? `${kwanza(financeSummary.outstanding)} · ${kwanza(financeSummary.overdue)} vencido`
+                          : kwanza(financeSummary.outstanding)
+                      }
+                    />
+                  </>
+                ) : null}
+                {show("financeiro") && scholarshipQuery.data?.percent ? (
+                  <Field
+                    label="Desconto do contrato"
+                    value={`${scholarshipQuery.data.percent.toLocaleString("pt-AO")} %`}
+                  />
+                ) : null}
+              </div>
+              {show("financeiro") && studentInvoices.length > 0
+                ? invoiceGroups.map((group) => (
+                    <div key={group.title ?? "recentes"} className="mt-4">
+                      {group.title ? (
+                        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {group.title} <span className="font-normal">· {group.items.length}</span>
+                        </h3>
+                      ) : null}
+                      <ul className="space-y-2 text-sm">
+                        {group.items.map((invoice) => {
+                          const openAmount = Math.max(
+                            Number(invoice.total_amount ?? 0) - Number(invoice.amount_paid ?? 0),
+                            0,
+                          );
+                          return (
+                            <li
+                              key={invoice.id}
+                              className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground"
+                            >
+                              <span className="min-w-0 [overflow-wrap:anywhere]">
+                                {canOpenInvoice ? (
+                                  <Link
+                                    to="/faturas/$invoiceId"
+                                    params={{ invoiceId: invoice.id }}
+                                    className="font-medium text-primary hover:underline"
+                                  >
+                                    {invoice.number}
+                                  </Link>
+                                ) : (
+                                  invoice.number
+                                )}{" "}
+                                · {invoice.description}
+                                {"state" in invoice ? (
+                                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
+                                    <StatusBadge
+                                      status={invoice.state.status}
+                                      label={invoice.state.label}
+                                    />
+                                    {invoice.due_on
+                                      ? `Vence a ${formatIsoDay(invoice.due_on)}`
+                                      : null}
+                                    {invoice.openAmount > 0 && invoice.amount_paid > 0
+                                      ? ` · falta ${kwanza(invoice.openAmount)}`
+                                      : null}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <span className="font-medium text-foreground">
+                                  {kwanza(Number(invoice.total_amount ?? 0))}
+                                  {invoice.status === "paid" ? " · Pago" : ""}
+                                </span>
+                                {invoice.status === "paid" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={() =>
+                                      void downloadInvoiceReceipt(
+                                        invoice,
+                                        `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                        Number(invoice.amount_paid ?? invoice.total_amount ?? 0),
+                                      )
+                                    }
+                                  >
+                                    Recibo
+                                  </Button>
+                                ) : canReceivePayment ? (
+                                  <QuickFormModal
+                                    title={`Receber ${invoice.number}`}
+                                    description="Liquida esta fatura e emite o recibo. Canais instalados aparecem no método."
+                                    icon={<Wallet className="size-5" />}
+                                    submitLabel="Confirmar"
+                                    successDescription="Pagamento registado."
+                                    fields={[
+                                      {
+                                        name: "valor",
+                                        label: "Valor (Kz)",
+                                        type: "number",
+                                        defaultValue: String(openAmount || invoice.total_amount),
+                                      },
+                                      {
+                                        name: "recibo",
+                                        label: "Referência interna (opcional)",
+                                        defaultValue: `RC-${invoice.number.replace(/^FT-?/i, "")}`,
+                                        required: false,
+                                      },
+                                      {
+                                        name: "metodo",
+                                        label: "Método",
+                                        type: "select",
+                                        options: receiveMethods,
+                                      },
+                                      {
+                                        name: "referencia",
+                                        label: "Referência",
+                                        required: false,
+                                      },
+                                    ]}
+                                    onSubmit={async (values) => {
+                                      const amount = Number(values["valor"]);
+                                      const methodMap = {
+                                        Numerário: "cash",
+                                        Transferência: "transfer",
+                                        "Multicaixa Express": "multicaixa_express",
+                                        "Unitel Money": "unitel_money",
+                                      } as const;
+                                      const method =
+                                        methodMap[
+                                          (values["metodo"] as keyof typeof methodMap) ??
+                                            "Numerário"
+                                        ] ?? "cash";
+                                      const reference = values["referencia"] || undefined;
+                                      const paid = await recordInvoicePayment({
+                                        data: {
+                                          invoiceId: invoice.id,
+                                          receiptNumber: values["recibo"],
+                                          amount,
+                                          method,
+                                          reference,
+                                        },
+                                      });
+                                      await queryClient.invalidateQueries({
+                                        queryKey: ["finance", "invoices"],
+                                      });
+                                      // Número oficial vem do servidor (gerado atomicamente) — nunca do
+                                      // valor digitado, para o PDF impresso bater sempre com a base de dados.
+                                      await downloadInvoiceReceipt(
+                                        invoice,
+                                        paid.receipt_number,
+                                        amount,
+                                      );
+                                    }}
+                                    trigger={(open) => (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 px-2"
+                                        onClick={open}
+                                      >
+                                        Receber
+                                      </Button>
+                                    )}
+                                  />
+                                ) : null}
+                                {resendInvoices ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2"
+                                    onClick={async () => {
+                                      await navigator.clipboard.writeText(
+                                        `${invoice.number} · ${student.full_name} · ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                      );
+                                      toast.success("Texto da fatura copiado para e-mail Resend");
+                                    }}
+                                  >
+                                    E-mail
+                                  </Button>
+                                ) : null}
+                                {whatsappOn ? (
+                                  <Button size="sm" variant="ghost" className="h-7 px-2" asChild>
+                                    <a
+                                      href={whatsappHref(
+                                        guardians[0]?.guardian?.phone_primary ?? "",
+                                        `Fatura ${invoice.number} de ${student.full_name}: ${kwanza(Number(invoice.total_amount ?? 0))}`,
+                                      )}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      WhatsApp
+                                    </a>
+                                  </Button>
+                                ) : null}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))
+                : null}
+              {section === null &&
+              studentInvoices.length > 5 &&
+              canReadStudentSection("financeiro", account.role, account.grants) ? (
+                <Link
+                  to="/alunos/$studentId"
+                  params={{ studentId }}
+                  search={{ secao: "financeiro" }}
+                  className="mt-3 inline-block text-xs font-semibold text-primary hover:underline"
+                >
+                  {`Ver as ${studentInvoices.length} faturas`}
+                </Link>
+              ) : null}
+              <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+                <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.
+              </p>
+            </section>
+          ) : null}
+
+          {/* Mudanças de estado do aluno; na ficha por secções, ficam no Histórico. */}
+          {show("historico") ? (
+            <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <IconChip icon={History} size="sm" label="Histórico de estados" />
+                <h2 className="font-display text-base font-bold">Histórico de estados</h2>
+              </div>
+              <div className="mt-4">
+                <StudentStatusHistoryTimeline
+                  events={statusHistoryQuery.data ?? []}
+                  isLoading={statusHistoryQuery.isLoading}
+                />
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
 
