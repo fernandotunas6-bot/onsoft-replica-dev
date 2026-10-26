@@ -43,6 +43,11 @@ instaladas antes disso têm de ser substituídas uma vez à mão.
 | Identificador da chave                     | `8978E84141130A74` (minisign)                                                                                                      |
 | Cópias da chave privada e da palavra-passe | `~/.tauri/siga-desktop.key`, `~/.tauri/siga-desktop.password` (com `chmod 600`) no computador do dono, e o cofre de senhas do dono |
 
+Na primeira construção (run 40343925848), o macOS ficou na fila até o GitHub o
+cancelar por falta de máquinas («not acquired by Runner… even after multiple
+attempts»). Repetir só esse job (`gh run rerun <id> --failed`) junta os ficheiros ao
+mesmo rascunho, sem refazer o Windows nem o Linux.
+
 A chave privada e a palavra-passe **nunca entram neste repositório** nem em conversas: com
 as duas, alguém podia assinar uma actualização que as apps das escolas aceitam. O GitHub
 não as deixa ler depois de gravadas, por isso a cópia no cofre é a única recuperável.
@@ -63,11 +68,11 @@ não se deve contar com essa segunda barreira.
 
 ## Histórico de versões
 
-| Versão                          | Estado                               | Actualizações automáticas                                                                 |
-| ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| v1.1.0 – v1.2.2 (06–10/10/2026) | Publicadas                           | Não (sem chave): substituir à mão                                                         |
-| v1.3.0 (25/10/2026)             | Rascunho, **nunca publicada**        | Não. Ficou para trás de propósito: publicá-la obrigava as escolas a reinstalar duas vezes |
-| v1.3.1 (26/10/2026)             | Construída com a chave, Tauri 2.12.5 | **Sim**: a primeira. As seguintes chegam pelo botão «Instalar e reiniciar»                |
+| Versão                          | Estado                                                                                                | Actualizações automáticas                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| v1.1.0 – v1.2.2 (06–10/10/2026) | Publicadas                                                                                            | Não (sem chave): substituir à mão                                                         |
+| v1.3.0 (25/10/2026)             | Rascunho, **nunca publicada**                                                                         | Não. Ficou para trás de propósito: publicá-la obrigava as escolas a reinstalar duas vezes |
+| v1.3.1 (26/10/2026)             | **Publicada** a 26/10, 15:30 UTC; Tauri 2.12.5; as 10 entradas do `latest.json` assinadas com a chave | **Sim**: a primeira. As seguintes chegam pelo botão «Instalar e reiniciar»                |
 
 ## 2. Cada versão
 
