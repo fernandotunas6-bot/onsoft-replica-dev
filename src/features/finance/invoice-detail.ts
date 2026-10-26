@@ -1,5 +1,10 @@
 import { invoiceNetTotal } from "./invoice-settlement";
-import { invoiceState, receiptState, type PaymentStateView } from "./payment-states";
+import {
+  gatewayChargeState,
+  invoiceState,
+  receiptState,
+  type PaymentStateView,
+} from "./payment-states";
 
 /**
  * Detalhe de uma fatura (SIGA Context Engine, contexto financeiro): a fatura, o
@@ -41,6 +46,39 @@ export type InvoiceDetailReceipt = {
   reversalReason: string | null;
 };
 
+export type InvoiceChargeRow = {
+  id: string;
+  method: string;
+  amount: number;
+  reference_entity: string | null;
+  reference_number: string | null;
+  status: string;
+  status_message: string | null;
+  receipt_number: string | null;
+  created_at: string | null;
+};
+
+/**
+ * Uma cobrança electrónica (AppyPay: Multicaixa Express ou referência). Não é um
+ * pagamento: só passa a dinheiro recebido quando o fornecedor a confirma e o
+ * recibo é lançado. Mantém o estado e a última mensagem do processamento.
+ */
+export type InvoiceDetailCharge = {
+  id: string;
+  method: string;
+  amount: number;
+  reference: string | null;
+  state: PaymentStateView;
+  message: string | null;
+  receiptNumber: string | null;
+  createdAt: string | null;
+};
+
+const CHARGE_METHODS: Record<string, string> = {
+  GPO: "Multicaixa Express",
+  REF: "Referência Multicaixa",
+};
+
 export type InvoiceDetailStudent = {
   id: string;
   name: string;
@@ -67,6 +105,8 @@ export type InvoiceDetail = {
   student: InvoiceDetailStudent | null;
   /** Do pagamento mais antigo para o mais recente. */
   receipts: InvoiceDetailReceipt[];
+  /** Cobranças electrónicas, da mais recente para a mais antiga; null para quem não as vê. */
+  charges: InvoiceDetailCharge[] | null;
 };
 
 export function buildInvoiceDetail(input: {
@@ -76,6 +116,8 @@ export function buildInvoiceDetail(input: {
   student: InvoiceDetailStudent | null;
   feeName: string | null;
   today: string;
+  /** Só para a tesouraria e a administração; sem elas, a página não mostra a secção. */
+  charges?: readonly InvoiceChargeRow[] | null;
 }): InvoiceDetail {
   const { invoice } = input;
   const total = invoiceNetTotal(invoice);
@@ -115,5 +157,22 @@ export function buildInvoiceDetail(input: {
         state: receiptState(receipt.status),
         reversalReason: receipt.reversal_reason,
       })),
+    charges: input.charges
+      ? [...input.charges]
+          .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
+          .map((charge) => ({
+            id: charge.id,
+            method: CHARGE_METHODS[charge.method] ?? charge.method,
+            amount: Number(charge.amount ?? 0),
+            reference:
+              charge.reference_entity && charge.reference_number
+                ? `${charge.reference_entity} / ${charge.reference_number}`
+                : (charge.reference_number ?? null),
+            state: gatewayChargeState(charge.status),
+            message: charge.status_message,
+            receiptNumber: charge.receipt_number,
+            createdAt: charge.created_at,
+          }))
+      : null,
   };
 }

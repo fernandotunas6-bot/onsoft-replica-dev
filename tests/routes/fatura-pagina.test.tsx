@@ -107,6 +107,36 @@ describe("/faturas/<id>", () => {
     expect(screen.getByRole("link", { name: "Ficha do aluno" })).toBeDefined();
   });
 
+  it("mostra as cobranças electrónicas só quando o servidor as devolve", async () => {
+    getInvoiceDetailMock.mockResolvedValue({
+      ...detail,
+      charges: [
+        {
+          id: "c1",
+          method: "Multicaixa Express",
+          amount: 25_000,
+          reference: null,
+          state: { status: "failed", label: "Falhado" },
+          message: "Telefone sem saldo",
+          receiptNumber: null,
+          createdAt: "2026-10-20",
+        },
+      ],
+    });
+    open();
+    const charges = await screen.findByRole("region", { name: "Cobranças electrónicas" });
+    expect(charges.textContent).toContain("Multicaixa Express");
+    expect(charges.textContent).toContain("Falhado");
+    expect(charges.textContent).toContain("Telefone sem saldo");
+  });
+
+  it("sem cobranças na resposta (secretaria), a secção não aparece", async () => {
+    getInvoiceDetailMock.mockResolvedValue({ ...detail, charges: null });
+    open("Administrador");
+    await waitFor(() => expect(screen.getByText("Ana Paula Silva")).toBeDefined());
+    expect(screen.queryByRole("region", { name: "Cobranças electrónicas" })).toBeNull();
+  });
+
   it("sem pagamentos, diz que ainda não há", async () => {
     getInvoiceDetailMock.mockResolvedValue({ ...detail, receipts: [], paid: 0 });
     open();

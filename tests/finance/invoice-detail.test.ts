@@ -211,4 +211,57 @@ describe("getInvoiceDetail", () => {
     const detail = await run(FATURA);
     expect(detail?.student).toBeNull();
   });
+
+  it("a tesouraria vê as cobranças electrónicas da fatura, com o estado e a mensagem", async () => {
+    mocks.tables.payment_gateway_charges = {
+      data: [
+        {
+          id: "c1",
+          method: "REF",
+          amount: 25_000,
+          reference_entity: "01055",
+          reference_number: "123456789",
+          status: "pending",
+          status_message: "Referência gerada",
+          receipt_number: null,
+          created_at: "2026-10-20T09:00:00Z",
+        },
+      ],
+      error: null,
+    };
+    const detail = await run(FATURA);
+    expect(mocks.filters).toEqual(
+      expect.arrayContaining([
+        ["payment_gateway_charges", "school_id", "school-a"],
+        ["payment_gateway_charges", "invoice_id", FATURA],
+      ]),
+    );
+    expect(detail?.charges).toEqual([
+      {
+        id: "c1",
+        method: "Referência Multicaixa",
+        amount: 25_000,
+        reference: "01055 / 123456789",
+        state: { status: "pending", label: "A aguardar confirmação" },
+        message: "Referência gerada",
+        receiptNumber: null,
+        createdAt: "2026-10-20T09:00:00Z",
+      },
+    ]);
+  });
+
+  it("a secretaria lê a fatura sem as cobranças, que são da tesouraria", async () => {
+    mocks.membership = { schoolId: "school-a", appRole: "Secretaria", allAppRoles: ["Secretaria"] };
+    try {
+      const detail = await run(FATURA);
+      expect(detail?.charges).toBeNull();
+      expect(mocks.filters.some(([table]) => table === "payment_gateway_charges")).toBe(false);
+    } finally {
+      mocks.membership = {
+        schoolId: "school-a",
+        appRole: "Tesouraria",
+        allAppRoles: ["Tesouraria"],
+      };
+    }
+  });
 });

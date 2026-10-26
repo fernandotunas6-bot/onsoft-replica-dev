@@ -44,6 +44,7 @@ import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
 import {
   buildInvoiceDetail,
+  type InvoiceChargeRow,
   type InvoiceDetail,
   type InvoiceDetailStudent,
 } from "./invoice-detail";
@@ -860,6 +861,25 @@ export const getInvoiceDetail = createServerFn({ method: "GET" })
       throw publicDatabaseError(receiptsResult.error, "Não foi possível carregar os recibos.");
     }
 
+    // As cobranças electrónicas são da tesouraria (as mesmas contas de `listGatewayCharges`).
+    const seesCharges = ["Administrador", "Tesouraria"].includes(membership.appRole);
+    let charges: InvoiceChargeRow[] | null = null;
+    if (seesCharges) {
+      const chargesResult = await db
+        .from("payment_gateway_charges")
+        .select(
+          "id, method, amount, reference_entity, reference_number, status, status_message, receipt_number, created_at",
+        )
+        .eq("school_id", membership.schoolId)
+        .eq("invoice_id", invoice.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (chargesResult.error && !isMissingSgaTable(chargesResult.error)) {
+        throw publicDatabaseError(chargesResult.error, "Não foi possível carregar as cobranças.");
+      }
+      charges = chargesResult.data ?? [];
+    }
+
     let student: InvoiceDetailStudent | null = null;
     const enrollmentId = (contractResult.data as { enrollment_id?: string } | null)?.enrollment_id;
     if (enrollmentId) {
@@ -888,6 +908,7 @@ export const getInvoiceDetail = createServerFn({ method: "GET" })
       student,
       feeName: (feeResult.data as { name?: string } | null)?.name ?? null,
       today: todayIso(),
+      charges,
     });
   });
 

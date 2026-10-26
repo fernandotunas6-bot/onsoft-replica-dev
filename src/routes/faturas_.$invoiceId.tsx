@@ -265,6 +265,48 @@ function InvoiceBody({
           .
         </p>
       </section>
+
+      {invoice.charges ? (
+        <section aria-label="Cobranças electrónicas" className="space-y-3 lg:col-span-3">
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            Cobranças electrónicas <span className="font-normal">· {invoice.charges.length}</span>
+          </h2>
+          {invoice.charges.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+              Nenhuma cobrança Multicaixa criada para esta fatura.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border rounded-xl border border-border bg-card shadow-soft">
+              {invoice.charges.map((charge) => (
+                <li
+                  key={charge.id}
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-4"
+                >
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-semibold [overflow-wrap:anywhere]">
+                      {charge.method}
+                      {charge.reference ? ` · ${charge.reference}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                      {charge.createdAt ? formatIsoDay(charge.createdAt) : "Sem data"}
+                      {charge.message ? ` · ${charge.message}` : ""}
+                      {charge.receiptNumber ? ` · Recibo ${charge.receiptNumber}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={charge.state.status} label={charge.state.label} />
+                    <span className="text-sm font-semibold">{kwanza(charge.amount)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Uma cobrança só conta como paga depois de o fornecedor a confirmar e o recibo ser
+            lançado.
+          </p>
+        </section>
+      ) : null}
     </div>
   );
 }
