@@ -14,6 +14,7 @@ import {
 import { MarketingLayout } from "@/components/layouts/marketing-layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DesktopDownloadCards } from "@/components/landing/desktop-download-cards"
+import { AndroidDownloadCard } from "@/components/landing/android-download-card"
 import { useDesktopRelease, useVisitorOs } from "@/hooks/use-desktop-download"
 import {
   DESKTOP_CHECKSUMS_FILE,
@@ -21,6 +22,7 @@ import {
   desktopDownloadUrl,
   type DesktopOs,
 } from "@/lib/desktop-downloads"
+import { isAndroidVisitor } from "@/lib/android-downloads"
 
 const BENEFITS: { icon: LucideIcon; title: string; description: string }[] = [
   {
@@ -132,17 +134,37 @@ function ReleaseDetails() {
   )
 }
 
+function readIsAndroid() {
+  return typeof navigator !== "undefined" && isAndroidVisitor(navigator.userAgent)
+}
+
 export default function DownloadPage() {
   const visitorOs = useVisitorOs()
   const [tab, setTab] = useState<DesktopOs>(visitorOs ?? "windows")
+  // No Android, a app do telemóvel vem primeiro.
+  const [isAndroid] = useState(readIsAndroid)
+
+  const androidSection = (
+    <section id="android" aria-labelledby="android-title" className="mx-auto max-w-5xl scroll-mt-24">
+      <h2 id="android-title" className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
+        SIGA Plus para Android
+      </h2>
+      <p className="text-muted-foreground mx-auto mt-3 mb-8 max-w-2xl text-center">
+        A app do telemóvel para alunos, encarregados e professores: os dados da escola no SIGA,
+        com a mesma conta do portal.
+      </p>
+      <AndroidDownloadCard highlight={isAndroid} />
+    </section>
+  )
 
   return (
     <MarketingLayout
-      title="SIGA Plus para computador"
-      description="A app do SIGA Plus para Windows, macOS e Linux: o portal da escola com impressão directa, catracas, sessão protegida por PIN e trabalho sem Internet."
+      title="SIGA Plus para computador e Android"
+      description="A app do SIGA Plus para Windows, macOS e Linux: o portal da escola com impressão directa, catracas, sessão protegida por PIN e trabalho sem Internet. E a app do telemóvel para Android."
       eyebrow="Transferir"
     >
       <div className="container mx-auto space-y-20 px-4 py-12 sm:px-6 lg:px-8">
+        {isAndroid && androidSection}
         <section aria-labelledby="download-title" className="mx-auto max-w-5xl">
           <h2 id="download-title" className="sr-only">
             Escolha o seu sistema
@@ -150,6 +172,8 @@ export default function DownloadPage() {
           <DesktopDownloadCards />
           <ReleaseDetails />
         </section>
+
+        {!isAndroid && androidSection}
 
         <section aria-labelledby="benefits-title" className="mx-auto max-w-5xl">
           <h2 id="benefits-title" className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
