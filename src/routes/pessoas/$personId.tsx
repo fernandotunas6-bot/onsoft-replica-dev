@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 import { Badge } from "@/components/ui/badge";
+import { IconChip } from "@/components/ui/icon-chip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { FilePickerModal } from "@/features/arquivos/FilePickerModal";
@@ -109,7 +110,8 @@ function calculateAge(birthDate?: string | null): string {
 function NotFoundOrError({ title }: { title: string }) {
   return (
     <AppShell>
-      <div className="rounded-xl border border-border bg-card p-10 text-center shadow-soft">
+      <div className="flex flex-col items-center rounded-xl border border-border bg-card p-10 text-center shadow-soft">
+        <IconChip icon={Users} tone="muted" size="md" className="mb-3" />
         <h1 className="font-display text-xl font-bold">{title}</h1>
         <Button asChild className="mt-6">
           <Link to="/pessoas">Voltar à lista</Link>
