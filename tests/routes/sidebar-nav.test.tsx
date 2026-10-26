@@ -272,6 +272,13 @@ function hoverWithMouse(element: Element) {
   fireEvent(element, event);
 }
 
+function leaveWithPointer(element: Element, pointerType: string) {
+  const event = new window.Event("pointerout", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "pointerType", { value: pointerType });
+  Object.defineProperty(event, "relatedTarget", { value: document.body });
+  fireEvent(element, event);
+}
+
 describe("AppSidebar — acordeão de subfunções e menu da escola", () => {
   it("expande as subfunções dentro da própria lista, sem abrir diálogo", async () => {
     currentPathname = "/portal";
@@ -472,6 +479,32 @@ describe("AppSidebar — teclado na barra recolhida", () => {
       await waitFor(() => expect(document.activeElement).toBe(trigger));
     },
   );
+  it("com rato, o submenu abre ao apontar e fica aberto ao passar para ele", async () => {
+    currentPathname = "/portal";
+    renderSidebar(true);
+    const trigger = screen.getByRole("button", { name: "Secretaria" });
+    hoverWithMouse(trigger);
+    const menu = await screen.findByRole("menu");
+    // Do ícone para o submenu: o atraso de fecho deixa o cursor chegar lá.
+    leaveWithPointer(trigger, "mouse");
+    hoverWithMouse(menu);
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    expect(screen.getByRole("menu")).toBe(menu);
+    leaveWithPointer(menu, "mouse");
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
+
+  it("ao toque não simula hover: só abre com o toque/clique", async () => {
+    currentPathname = "/portal";
+    renderSidebar(true);
+    const trigger = screen.getByRole("button", { name: "Secretaria" });
+    const event = new window.Event("pointerover", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "pointerType", { value: "touch" });
+    fireEvent(trigger, event);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
   it("abre os destinos num portal e fecha com Escape", async () => {
     currentPathname = "/portal";
     const { container } = renderSidebar(true);

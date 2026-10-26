@@ -353,3 +353,16 @@ backend, RLS ou dados.
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.
 - Orientações para trabalho paralelo: `docs/agents/HANDOFF_SETTINGS_2026-10-25.md`.
+
+## Context Engine — trabalho, pasta e submenus por hover (26/10/2026)
+
+Ramo `claude/project-thread-vlrjln`, sobre o `main` com as #332, #337 e #348.
+
+- Menu do trabalho (`/pedagogica/tarefas/$taskId`) e menu da pasta (`/arquivos?pasta=`) usam o
+  mesmo `ContextEntityNav`: «Voltar», cabeçalho «Trabalho · ‹nome›» com a turma e a disciplina por
+  baixo, grupos e linhas iguais aos dos outros contextos. Sem componentes visuais novos.
+- Barra recolhida: com rato, o submenu de cada grupo abre ao apontar, à direita, e fecha 180 ms
+  depois de o cursor sair (o mesmo atraso do menu da escola). Não reabre a sidebar em hover; toque
+  e teclado continuam a abrir por toque/Enter. Expandida, mantém-se o acordeão.
+- Evidência: `tests/routes/sidebar-nav.test.tsx` (hover com rato, toque sem hover, menus do
+  trabalho e da pasta). Falta confirmação visual autenticada e em aparelhos.

@@ -7,10 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { listTaskSubmissions } from "@/features/academic/task-submissions-server";
-import {
-  TaskSubmissionsPanel,
-  type Filter,
-} from "@/features/academic/components/TaskSubmissions";
+import { TaskSubmissionsPanel, type Filter } from "@/features/academic/components/TaskSubmissions";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { subjectOfferingId } from "@/features/intelligence/context-resolver";
 import {
