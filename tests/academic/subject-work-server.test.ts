@@ -10,11 +10,19 @@ function memoryDb() {
   return {
     from(table: string) {
       const filters: Array<(row: Row) => boolean> = [];
-      const rows = () => (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
+      let window: [number, number] = [0, Infinity];
+      const rows = () =>
+        (tables[table] ?? [])
+          .filter((row) => filters.every((f) => f(row)))
+          .slice(window[0], window[1] + 1);
       const chain = {
         select: () => chain,
         order: () => chain,
         limit: () => chain,
+        range: (from: number, to: number) => {
+          window = [from, to];
+          return chain;
+        },
         eq: (column: string, value: unknown) => {
           filters.push((row) => row[column] === value);
           return chain;
@@ -147,6 +155,23 @@ describe("trabalhos da disciplina (aluno e encarregado)", () => {
     expect(ids).toEqual(["t-overdue", "t-open", "t-old", "t-returned"]);
     expect(ids).not.toContain("t-other");
     expect(ids).not.toContain("t-cancelled");
+  });
+
+  it("o histórico não se corta nos 200 trabalhos: o resumo conta todos", async () => {
+    tables.siga_class_tasks = Array.from({ length: 640 }, (_, i) =>
+      task(`t-${i}`, { status: "archived", due_on: "2025-05-01", class_subject_id: "cs-old" }),
+    );
+    tables.siga_class_task_submissions = Array.from({ length: 640 }, (_, i) =>
+      submission(`t-${i}`, 1, {
+        enrollment_id: "e-old",
+        status: "returned",
+        grade: 12,
+        returned_at: "2025-05-02T10:00:00Z",
+      }),
+    );
+    const work = await getMySubjectWork({ data: { subjectId: SUBJECT } });
+    expect(work.tasks).toHaveLength(640);
+    expect(work.summary).toMatchObject({ total: 640, returned: 640, average: 12 });
   });
 
   it("estado, tentativas e nota: o que pede acção vem primeiro", async () => {

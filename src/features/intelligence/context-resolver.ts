@@ -96,7 +96,7 @@ export function routeContextCandidates(
   search: Record<string, unknown> = {},
 ): ContextCandidate[] {
   const [, first, second, extra, more, rest] = pathname.split("/");
-  // A ficha da turma (`/pedagogica/turmas/$classGroupId`) e a renovação das
+  // A ficha da turma (`/pedagogica/turmas/$turmaId`) e a renovação das
   // matrículas dela (`/pedagogica/turmas/$turmaId/renovar`).
   if (
     first === "pedagogica" &&

@@ -88,7 +88,7 @@ export const STUDENT_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     id: "student.class",
     label: "Ficha da turma",
     icon: moduleIcons.classes,
-    to: "/pedagogica/turmas/$classGroupId",
+    to: "/pedagogica/turmas/$turmaId",
     path: (trail) => `/pedagogica/turmas/${studentClassId(trail) ?? ""}`,
     order: 100,
   },

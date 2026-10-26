@@ -186,7 +186,12 @@ describe("orçamento do primeiro desenho", () => {
     for (const pkg of ["recharts", "exceljs", "jspdf", "html2canvas"])
       expect(pacotes, `${pkg} voltou ao grafo estático da rota /`).not.toContain(pkg);
     // Se o extractor deixar de funcionar, o teste passa a não guardar nada.
-    expect(ficheiros.length).toBeGreaterThan(200);
+    // Baixado de 200 a 25/10/2026: `src/routes/index.tsx` tinha `stats`,
+    // `miniStats`, `toneBg`, `dotTone`, `DashboardGreeting`, `refresh`,
+    // `printSchool`/`printAnnouncement` e ~15 imports nunca usados no JSX
+    // (duplicavam o que já existe em `AdminPortalDashboard.tsx`) — o grafo
+    // estático real passou a 173 ficheiros. Não inflar o limiar de volta.
+    expect(ficheiros.length).toBeGreaterThan(150);
     expect(pacotes).toContain("react");
   });
 
