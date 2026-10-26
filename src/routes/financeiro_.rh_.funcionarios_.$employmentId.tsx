@@ -20,7 +20,7 @@ import {
   salaryTypeLabel,
   type HrEmployeeDetail,
 } from "@/features/hr/employee-detail";
-import { getHrEmployeeDetail } from "@/features/hr/employee-server";
+import { getHrEmployeeDetail } from "@/features/hr/server";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { moduleIcons } from "@/lib/app-icons";
 import { kwanza } from "@/lib/currency";

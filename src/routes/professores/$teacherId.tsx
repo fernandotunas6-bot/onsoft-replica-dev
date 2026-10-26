@@ -27,7 +27,7 @@ import { overlayCredenciais } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { getOrCreateCalendarFeedToken } from "@/features/calendar/feed";
 import { calendarIcsFeedUrl } from "@/features/calendar/ics";
-import { getTeacherHrEmployment } from "@/features/hr/employee-server";
+import { getTeacherHrEmployment } from "@/features/hr/server";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import { mapTeacherWorkspaceToSnapshot } from "@/features/intelligence/teachers/teacher-relations-adapter";
 import { toast } from "@/lib/toast";

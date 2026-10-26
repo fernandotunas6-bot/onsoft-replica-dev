@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { employmentState, employmentTypeLabel } from "@/features/hr/employee-detail";
-import { listHrEmployees } from "@/features/hr/employee-server";
+import { listHrEmployees } from "@/features/hr/server";
 import { moduleIcons } from "@/lib/app-icons";
 import { publicErrorMessage } from "@/lib/public-error";
 

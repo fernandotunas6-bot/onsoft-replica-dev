@@ -27,7 +27,7 @@ vi.mock("@/features/auth/use-current-account", async () =>
 
 const listHrEmployeesMock = vi.fn();
 const getHrEmployeeDetailMock = vi.fn();
-vi.mock("@/features/hr/employee-server", () => ({
+vi.mock("@/features/hr/server", () => ({
   listHrEmployees: () => listHrEmployeesMock(),
   getHrEmployeeDetail: (args: unknown) => getHrEmployeeDetailMock(args),
 }));

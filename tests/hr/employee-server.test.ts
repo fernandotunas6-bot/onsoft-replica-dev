@@ -63,7 +63,7 @@ import {
   getHrEmployeeDetail,
   getTeacherHrEmployment,
   listHrEmployees,
-} from "@/features/hr/employee-server";
+} from "@/features/hr/server";
 
 type Handler<T> = (args: {
   data?: Record<string, unknown>;
