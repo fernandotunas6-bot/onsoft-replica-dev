@@ -3,6 +3,7 @@ import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-l
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -2029,6 +2030,10 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
 
     // Regra de transição do modelo em vigor (nota de aprovação e regras por ciclo).
     const activeRule = await loadActiveRuleSummary(db, membership.schoolId);
+    // Os períodos configurados pela escola (2 ou 3); o motor ajusta-os ao ciclo de
+    // cada turma (o Superior é sempre semestral). Sem eles, uma escola de dois
+    // trimestres tinha o histórico «PENDENTE» à espera de um 3.º que não existe.
+    const academicSettings = await readSettingsDomain(db, membership.schoolId, "academic");
 
     // Resultado oficial por ano lectivo (histórico académico registado).
     const { data: officialRows } = await db
@@ -2089,7 +2094,11 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         subjects: subjectsForClass,
         termGrades: gradesForEnrollment,
         cycle,
-        options: { passing: activeRule.passing, rules: activeRule.promotionRules },
+        options: {
+          passing: activeRule.passing,
+          rules: activeRule.promotionRules,
+          periodCount: academicSettings.evaluation_periods,
+        },
       });
 
       return {
