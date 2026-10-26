@@ -235,13 +235,13 @@ class _PresencePageState extends State<PresencePage> {
             const _Notice(
               icon: Icons.wifi_off_outlined,
               text:
-                  'Sem internet. Pode ler o QR na mesma: a leitura fica guardada e a lista de aulas aparece quando houver rede.',
+                  'Sem internet. Pode ler o QR na mesma: a leitura fica guardada.',
             )
           else if (!loading && today != null && lessons.isEmpty)
             const _Notice(
               icon: Icons.event_busy_outlined,
               text:
-                  'Sem aulas suas no horário de hoje. Se devia ter, fale com a Direcção Pedagógica.',
+                  'Sem aulas suas hoje. Se devia ter, fale com a Direcção Pedagógica.',
             ),
           for (final lesson in lessons) _LessonTile(lesson: lesson),
         ],
@@ -462,7 +462,9 @@ class _LessonTile extends StatelessWidget {
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                        lesson.room == null ? label : '$label · ${lesson.room}',
+                        lesson.room == null
+                            ? label
+                            : '$label · ${roomLabel(lesson.room!)}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: color,
                           fontWeight: FontWeight.w600,

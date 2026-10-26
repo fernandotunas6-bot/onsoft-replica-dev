@@ -49,6 +49,7 @@ import {
   type PortalQuickLink,
 } from "./portal-ui";
 import { greetingFor } from "./portal-format";
+import { roomLabel } from "@/lib/room-label";
 
 export function TeacherPortalDashboard() {
   const currentUser = useCurrentAccount();
@@ -134,11 +135,11 @@ export function TeacherPortalDashboard() {
             <p className="text-sm text-muted-foreground">
               {time(nextLesson.starts_at)}–{time(nextLesson.ends_at)} ·{" "}
               {nextLesson.class_group_name}
-              {nextLesson.room ? ` · Sala ${nextLesson.room}` : ""}
+              {nextLesson.room ? ` · ${roomLabel(nextLesson.room)}` : ""}
             </p>
           </div>
           {presenceEnabled ? (
-            <TeacherPresenceLine session={nextLesson} className="w-full sm:w-auto" />
+            <TeacherPresenceLine session={nextLesson} self className="w-full sm:w-auto" />
           ) : null}
           <div className="flex flex-wrap gap-2">
             {presenceEnabled ? (
@@ -220,7 +221,7 @@ export function TeacherPortalDashboard() {
                       <p className="text-xs text-muted-foreground">
                         {pending ? "Chamada por fazer" : "Chamada feita"}
                       </p>
-                      {presenceEnabled ? <TeacherPresenceLine session={sess} /> : null}
+                      {presenceEnabled ? <TeacherPresenceLine session={sess} self /> : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">

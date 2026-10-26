@@ -296,420 +296,430 @@ export function TeacherAttendancePanel({
     if (awaitingCheckoutId) setScanMode("check_out");
   }, [awaitingCheckoutId]);
 
+  // Sem aulas de hora/aula no RH (a maioria dos professores), o painel fica escondido:
+  // a presença e a chamada fazem-se nas aulas de hoje. Os diálogos ficam montados para
+  // os atalhos da agenda (?chamada=1).
+  const showPanel = lessons.length > 0 || Boolean(focusLesson) || occurrences.isError;
+
   return (
     <>
-      <Panel
-        title="QR de hora/aula"
-        description="Para professores com contrato de hora/aula no RH. Valide o QR da aula no telemóvel ou tablet; no fim da aula, leia o QR de saída. O QR também confirma a presença na sala."
-        action={
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={() => void occurrences.refetch()}
-            disabled={occurrences.isFetching}
-          >
-            <RefreshCw className="size-3.5" /> Actualizar
-          </Button>
-        }
-      >
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-4">
-            {focusLesson && !initialCall ? (
-              <div className="rounded-lg border border-primary/30 bg-primary-soft/40 p-3">
-                <p className="text-sm font-semibold">Aula da agenda</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {focusedLesson
-                    ? `${lessonTitle(focusedLesson)} · ${focusedLesson.scheduled_starts_at.slice(0, 5)}–${focusedLesson.scheduled_ends_at.slice(0, 5)}. Leia o QR de entrada para assinar esta hora/aula.`
-                    : "Contexto recebido da agenda. Leia o QR de entrada; se a ocorrência existir nas suas aulas, fica destacada abaixo."}
-                </p>
-              </div>
-            ) : null}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Aulas hoje</p>
-                <p className="mt-1 text-2xl font-semibold">{todayLessons.length}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Confirmadas</p>
-                <p className="mt-1 text-2xl font-semibold">{confirmedCount}</p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <p className="text-xs text-muted-foreground">Próxima / em curso</p>
-                <p className="mt-1 text-sm font-semibold leading-snug">
-                  {nextLesson
-                    ? `${lessonTitle(nextLesson)} · ${nextLesson.scheduled_starts_at.slice(0, 5)}`
-                    : "Sem aula pendente"}
-                </p>
-              </div>
-            </div>
-
-            {awaitingCheckout ? (
-              <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
-                <p className="text-sm font-semibold">Aula em curso — falta o check-out</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {lessonTitle(awaitingCheckout)} · entrada{" "}
-                  {formatDateTime(awaitingCheckout.actual_started_at)}. Peça o QR de saída à
-                  secretaria e valide-o aqui para fechar a hora/aula.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="gap-1 touch-manipulation"
-                    onClick={() => {
-                      setScanMode("check_out");
-                      void startCamera();
-                    }}
-                  >
-                    <LogOut className="size-3.5" /> Ler QR de saída
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1 touch-manipulation"
-                    disabled={openCall.isPending}
-                    onClick={() => openCall.mutate(awaitingCheckout.id)}
-                  >
-                    <CheckSquare className="size-3.5" /> Abrir chamada dos alunos
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <ShieldCheck className="size-4" /> Confiança multifator
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  QR + professor autenticado + horário + contexto da escola. O score é calculado no
-                  servidor.
-                </p>
-              </div>
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <LocateFixed className="size-4" /> Localização
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {lastLocationAvailable === true
-                    ? "Localização fornecida na última validação."
-                    : lastLocationAvailable === false
-                      ? "Localização indisponível/negada; a presença pode exigir revisão conforme a política da escola."
-                      : "Será solicitada no momento da validação. Coordenadas exactas só são guardadas se a escola activar essa opção."}
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-lg border p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold">
-                    {scanMode === "check_out" ? "Ler QR de saída" : "Ler QR de entrada"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {scanMode === "check_out"
-                      ? "No fim da aula, leia o QR de check-out gerado pela secretaria para confirmar a hora/aula."
-                      : "Autorize a câmara e, quando solicitado, a localização. Também pode introduzir o código manualmente."}
+      {showPanel ? (
+        <Panel
+          title="QR de hora/aula"
+          description="Para professores com contrato de hora/aula no RH: leia o QR de entrada e, no fim, o de saída."
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => void occurrences.refetch()}
+              disabled={occurrences.isFetching}
+            >
+              <RefreshCw className="size-3.5" /> Actualizar
+            </Button>
+          }
+        >
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              {focusLesson && !initialCall ? (
+                <div className="rounded-lg border border-primary/30 bg-primary-soft/40 p-3">
+                  <p className="text-sm font-semibold">Aula da agenda</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {focusedLesson
+                      ? `${lessonTitle(focusedLesson)} · ${focusedLesson.scheduled_starts_at.slice(0, 5)}–${focusedLesson.scheduled_ends_at.slice(0, 5)}. Leia o QR de entrada para assinar esta hora/aula.`
+                      : "Contexto recebido da agenda. Leia o QR de entrada; se a ocorrência existir nas suas aulas, fica destacada abaixo."}
                   </p>
                 </div>
-                <QrCode className="size-5 text-muted-foreground" />
-              </div>
-
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={scanMode === "check_in" ? "default" : "outline"}
-                  onClick={() => setScanMode("check_in")}
-                >
-                  <LogIn className="mr-1 size-3.5" /> Entrada
-                </Button>
-                <Button
-                  size="sm"
-                  variant={scanMode === "check_out" ? "default" : "outline"}
-                  onClick={() => setScanMode("check_out")}
-                >
-                  <LogOut className="mr-1 size-3.5" /> Saída
-                </Button>
-              </div>
-
-              {classroom ? (
-                <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                  <p className="text-sm font-semibold text-primary">
-                    {classroom.classGroupName} · {classroom.subjectName}
+              ) : null}
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Aulas hoje</p>
+                  <p className="mt-1 text-2xl font-semibold">{todayLessons.length}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Confirmadas</p>
+                  <p className="mt-1 text-2xl font-semibold">{confirmedCount}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Próxima / em curso</p>
+                  <p className="mt-1 text-sm font-semibold leading-snug">
+                    {nextLesson
+                      ? `${lessonTitle(nextLesson)} · ${nextLesson.scheduled_starts_at.slice(0, 5)}`
+                      : "Sem aula pendente"}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {classroom.lessonDate}
-                    {classroom.startsAt
-                      ? ` · ${String(classroom.startsAt).slice(0, 5)}–${String(classroom.endsAt).slice(0, 5)}`
-                      : ""}
-                    {" · "}chamada e pauta desta aula
+                </div>
+              </div>
+
+              {awaitingCheckout ? (
+                <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
+                  <p className="text-sm font-semibold">Aula em curso — falta o check-out</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {lessonTitle(awaitingCheckout)} · entrada{" "}
+                    {formatDateTime(awaitingCheckout.actual_started_at)}. Peça o QR de saída à
+                    secretaria e valide-o aqui para fechar a hora/aula.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      className="touch-manipulation"
-                      onClick={() => setCallOpen(true)}
+                      variant="secondary"
+                      className="gap-1 touch-manipulation"
+                      onClick={() => {
+                        setScanMode("check_out");
+                        void startCamera();
+                      }}
                     >
-                      Abrir lista de alunos e marcar presença
+                      <LogOut className="size-3.5" /> Ler QR de saída
                     </Button>
                     <Button
-                      asChild
                       size="sm"
                       variant="outline"
                       className="gap-1 touch-manipulation"
+                      disabled={openCall.isPending}
+                      onClick={() => openCall.mutate(awaitingCheckout.id)}
                     >
-                      <Link
-                        to="/pedagogica"
-                        search={teacherGradesSearch(classroom.classGroupId, classroom.subjectId)}
-                      >
-                        <PieChart className="size-3.5" /> Lançar notas
-                      </Link>
-                    </Button>
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 touch-manipulation"
-                    >
-                      <Link
-                        to="/planos-aula"
-                        search={teacherLessonPlansSearch(
-                          classroom.classGroupId,
-                          classroom.subjectId,
-                        )}
-                      >
-                        <NotebookPen className="size-3.5" /> Plano
-                      </Link>
-                    </Button>
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 touch-manipulation"
-                    >
-                      <Link to="/arquivos" search={teacherClassFilesSearch(classroom.classGroupId)}>
-                        <FolderOpen className="size-3.5" /> Materiais
-                      </Link>
+                      <CheckSquare className="size-3.5" /> Abrir chamada dos alunos
                     </Button>
                   </div>
                 </div>
               ) : null}
 
-              <div className="overflow-hidden rounded-lg border bg-muted">
-                <video
-                  ref={videoRef}
-                  muted
-                  playsInline
-                  className={`aspect-video w-full object-cover ${cameraActive ? "block" : "hidden"}`}
-                />
-                {!cameraActive ? (
-                  <div className="flex aspect-video items-center justify-center text-sm text-muted-foreground">
-                    Câmara desligada
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border p-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <ShieldCheck className="size-4" /> Confiança multifator
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    QR + professor autenticado + horário + contexto da escola. O score é calculado
+                    no servidor.
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <LocateFixed className="size-4" /> Localização
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {lastLocationAvailable === true
+                      ? "Localização fornecida na última validação."
+                      : lastLocationAvailable === false
+                        ? "Localização indisponível/negada; a presença pode exigir revisão conforme a política da escola."
+                        : "Será solicitada no momento da validação. Coordenadas exactas só são guardadas se a escola activar essa opção."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">
+                      {scanMode === "check_out" ? "Ler QR de saída" : "Ler QR de entrada"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {scanMode === "check_out"
+                        ? "No fim da aula, leia o QR de check-out gerado pela secretaria para confirmar a hora/aula."
+                        : "Autorize a câmara e, quando solicitado, a localização. Também pode introduzir o código manualmente."}
+                    </p>
+                  </div>
+                  <QrCode className="size-5 text-muted-foreground" />
+                </div>
+
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={scanMode === "check_in" ? "default" : "outline"}
+                    onClick={() => setScanMode("check_in")}
+                  >
+                    <LogIn className="mr-1 size-3.5" /> Entrada
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={scanMode === "check_out" ? "default" : "outline"}
+                    onClick={() => setScanMode("check_out")}
+                  >
+                    <LogOut className="mr-1 size-3.5" /> Saída
+                  </Button>
+                </div>
+
+                {classroom ? (
+                  <div className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <p className="text-sm font-semibold text-primary">
+                      {classroom.classGroupName} · {classroom.subjectName}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {classroom.lessonDate}
+                      {classroom.startsAt
+                        ? ` · ${String(classroom.startsAt).slice(0, 5)}–${String(classroom.endsAt).slice(0, 5)}`
+                        : ""}
+                      {" · "}chamada e pauta desta aula
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        className="touch-manipulation"
+                        onClick={() => setCallOpen(true)}
+                      >
+                        Abrir lista de alunos e marcar presença
+                      </Button>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 touch-manipulation"
+                      >
+                        <Link
+                          to="/pedagogica"
+                          search={teacherGradesSearch(classroom.classGroupId, classroom.subjectId)}
+                        >
+                          <PieChart className="size-3.5" /> Lançar notas
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 touch-manipulation"
+                      >
+                        <Link
+                          to="/planos-aula"
+                          search={teacherLessonPlansSearch(
+                            classroom.classGroupId,
+                            classroom.subjectId,
+                          )}
+                        >
+                          <NotebookPen className="size-3.5" /> Plano
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 touch-manipulation"
+                      >
+                        <Link
+                          to="/arquivos"
+                          search={teacherClassFilesSearch(classroom.classGroupId)}
+                        >
+                          <FolderOpen className="size-3.5" /> Materiais
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
-              </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  className="gap-1"
-                  onClick={() => void startCamera()}
-                  disabled={cameraActive}
-                >
-                  <Camera className="size-3.5" /> Abrir câmara
-                </Button>
-                {cameraActive ? (
-                  <Button size="sm" variant="outline" onClick={stopCamera}>
-                    Fechar câmara
+                <div className="overflow-hidden rounded-lg border bg-muted">
+                  <video
+                    ref={videoRef}
+                    muted
+                    playsInline
+                    className={`aspect-video w-full object-cover ${cameraActive ? "block" : "hidden"}`}
+                  />
+                  {!cameraActive ? (
+                    <div className="flex aspect-video items-center justify-center text-sm text-muted-foreground">
+                      Câmara desligada
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => void startCamera()}
+                    disabled={cameraActive}
+                  >
+                    <Camera className="size-3.5" /> Abrir câmara
                   </Button>
-                ) : null}
-              </div>
+                  {cameraActive ? (
+                    <Button size="sm" variant="outline" onClick={stopCamera}>
+                      Fechar câmara
+                    </Button>
+                  ) : null}
+                </div>
 
-              <div className="mt-4 flex gap-2">
-                <Input
-                  aria-label="Código QR da aula"
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder={
-                    scanMode === "check_out"
-                      ? "Cole o código QR de saída"
-                      : "Cole ou introduza o código QR de entrada"
-                  }
-                  autoComplete="off"
-                />
-                <Button
-                  onClick={() => submitQr(token)}
-                  disabled={redeem.isPending || token.trim().length < 32}
-                >
-                  {redeem.isPending ? "A validar…" : "Validar"}
-                </Button>
+                <div className="mt-4 flex gap-2">
+                  <Input
+                    aria-label="Código QR da aula"
+                    value={token}
+                    onChange={(event) => setToken(event.target.value)}
+                    placeholder={
+                      scanMode === "check_out"
+                        ? "Cole o código QR de saída"
+                        : "Cole ou introduza o código QR de entrada"
+                    }
+                    autoComplete="off"
+                  />
+                  <Button
+                    onClick={() => submitQr(token)}
+                    disabled={redeem.isPending || token.trim().length < 32}
+                  >
+                    {redeem.isPending ? "A validar…" : "Validar"}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">Minhas aulas</p>
-            {occurrences.isLoading ? (
-              <p className="text-sm text-muted-foreground">A carregar presenças…</p>
-            ) : occurrences.isError ? (
-              <p className="text-sm text-destructive">
-                {occurrences.error instanceof Error
-                  ? occurrences.error.message
-                  : "Não foi possível carregar as presenças."}
-              </p>
-            ) : lessons.length === 0 ? (
-              <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                Sem aulas de hora/aula no RH. O QR só aparece quando a Administração ou a Tesouraria
-                regista o seu vínculo e contrato de hora/aula e sincroniza o horário. A presença na
-                sala e a chamada fazem-se nas aulas de hoje, acima.
-              </p>
-            ) : (
-              <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
-                {lessons.slice(0, 24).map((lesson) => {
-                  const needsCheckout = Boolean(
-                    lesson.actual_started_at && !lesson.actual_ended_at,
-                  );
-                  const canOpenCall = Boolean(lesson.actual_started_at);
-                  const isFocused = focusedLesson?.id === lesson.id;
-                  return (
-                    <div
-                      key={lesson.id}
-                      className={
-                        isFocused
-                          ? "rounded-lg border border-primary/40 bg-primary-soft/30 p-3 text-sm"
-                          : "rounded-lg border p-3 text-sm"
-                      }
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold leading-snug">
-                            {lessonTitle(lesson)}
-                            {isFocused ? (
-                              <span className="ml-2 text-[11px] font-semibold text-primary">
-                                Agenda
-                              </span>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Minhas aulas</p>
+              {occurrences.isLoading ? (
+                <p className="text-sm text-muted-foreground">A carregar presenças…</p>
+              ) : occurrences.isError ? (
+                <p className="text-sm text-destructive">
+                  {occurrences.error instanceof Error
+                    ? occurrences.error.message
+                    : "Não foi possível carregar as presenças."}
+                </p>
+              ) : lessons.length === 0 ? (
+                <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  Sem aulas de hora/aula no RH. O QR só aparece quando a Administração ou a
+                  Tesouraria regista o seu vínculo e contrato de hora/aula e sincroniza o horário. A
+                  presença na sala e a chamada fazem-se nas aulas de hoje, acima.
+                </p>
+              ) : (
+                <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                  {lessons.slice(0, 24).map((lesson) => {
+                    const needsCheckout = Boolean(
+                      lesson.actual_started_at && !lesson.actual_ended_at,
+                    );
+                    const canOpenCall = Boolean(lesson.actual_started_at);
+                    const isFocused = focusedLesson?.id === lesson.id;
+                    return (
+                      <div
+                        key={lesson.id}
+                        className={
+                          isFocused
+                            ? "rounded-lg border border-primary/40 bg-primary-soft/30 p-3 text-sm"
+                            : "rounded-lg border p-3 text-sm"
+                        }
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold leading-snug">
+                              {lessonTitle(lesson)}
+                              {isFocused ? (
+                                <span className="ml-2 text-[11px] font-semibold text-primary">
+                                  Agenda
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {lesson.lesson_date} · {lesson.scheduled_starts_at.slice(0, 5)}–
+                              {lesson.scheduled_ends_at.slice(0, 5)}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {lesson.status === "confirmed"
+                                ? "Aula confirmada"
+                                : needsCheckout
+                                  ? "Em curso — falta check-out"
+                                  : lesson.status === "scheduled"
+                                    ? "Aguardando check-in"
+                                    : lesson.status}
+                            </p>
+                          </div>
+                          {lesson.status === "confirmed" ? (
+                            <CheckCircle2 className="size-4 shrink-0 text-primary" />
+                          ) : needsCheckout ? (
+                            <Clock3 className="size-4 shrink-0 text-warning" />
+                          ) : (
+                            <QrCode className="size-4 shrink-0 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <LogIn className="size-3" /> Entrada{" "}
+                            {formatDateTime(lesson.actual_started_at)}
+                          </span>
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <LogOut className="size-3" /> Saída{" "}
+                            {formatDateTime(lesson.actual_ended_at)}
+                          </span>
+                        </div>
+                        {canOpenCall ||
+                        needsCheckout ||
+                        (lesson.class_group_id && lesson.subject_id) ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {canOpenCall ? (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-8 gap-1 text-xs touch-manipulation"
+                                disabled={openCall.isPending}
+                                onClick={() => openCall.mutate(lesson.id)}
+                              >
+                                <CheckSquare className="size-3.5" /> Abrir chamada
+                              </Button>
                             ) : null}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {lesson.lesson_date} · {lesson.scheduled_starts_at.slice(0, 5)}–
-                            {lesson.scheduled_ends_at.slice(0, 5)}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {lesson.status === "confirmed"
-                              ? "Aula confirmada"
-                              : needsCheckout
-                                ? "Em curso — falta check-out"
-                                : lesson.status === "scheduled"
-                                  ? "Aguardando check-in"
-                                  : lesson.status}
-                          </p>
-                        </div>
-                        {lesson.status === "confirmed" ? (
-                          <CheckCircle2 className="size-4 shrink-0 text-primary" />
-                        ) : needsCheckout ? (
-                          <Clock3 className="size-4 shrink-0 text-warning" />
-                        ) : (
-                          <QrCode className="size-4 shrink-0 text-muted-foreground" />
-                        )}
+                            {lesson.class_group_id && lesson.subject_id ? (
+                              <>
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1 text-xs touch-manipulation"
+                                >
+                                  <Link
+                                    to="/pedagogica"
+                                    search={teacherGradesSearch(
+                                      lesson.class_group_id,
+                                      lesson.subject_id,
+                                    )}
+                                  >
+                                    <PieChart className="size-3.5" /> Pauta
+                                  </Link>
+                                </Button>
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1 text-xs touch-manipulation"
+                                >
+                                  <Link
+                                    to="/planos-aula"
+                                    search={teacherLessonPlansSearch(
+                                      lesson.class_group_id,
+                                      lesson.subject_id,
+                                    )}
+                                  >
+                                    <NotebookPen className="size-3.5" /> Plano
+                                  </Link>
+                                </Button>
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1 text-xs touch-manipulation"
+                                >
+                                  <Link
+                                    to="/arquivos"
+                                    search={teacherClassFilesSearch(lesson.class_group_id)}
+                                  >
+                                    <FolderOpen className="size-3.5" /> Materiais
+                                  </Link>
+                                </Button>
+                              </>
+                            ) : null}
+                            {needsCheckout ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-1 text-xs touch-manipulation"
+                                onClick={() => {
+                                  setScanMode("check_out");
+                                  void startCamera();
+                                }}
+                              >
+                                <LogOut className="size-3.5" /> Check-out
+                              </Button>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <LogIn className="size-3" /> Entrada{" "}
-                          {formatDateTime(lesson.actual_started_at)}
-                        </span>
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <LogOut className="size-3" /> Saída{" "}
-                          {formatDateTime(lesson.actual_ended_at)}
-                        </span>
-                      </div>
-                      {canOpenCall ||
-                      needsCheckout ||
-                      (lesson.class_group_id && lesson.subject_id) ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {canOpenCall ? (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="h-8 gap-1 text-xs touch-manipulation"
-                              disabled={openCall.isPending}
-                              onClick={() => openCall.mutate(lesson.id)}
-                            >
-                              <CheckSquare className="size-3.5" /> Abrir chamada
-                            </Button>
-                          ) : null}
-                          {lesson.class_group_id && lesson.subject_id ? (
-                            <>
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="h-8 gap-1 text-xs touch-manipulation"
-                              >
-                                <Link
-                                  to="/pedagogica"
-                                  search={teacherGradesSearch(
-                                    lesson.class_group_id,
-                                    lesson.subject_id,
-                                  )}
-                                >
-                                  <PieChart className="size-3.5" /> Pauta
-                                </Link>
-                              </Button>
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="h-8 gap-1 text-xs touch-manipulation"
-                              >
-                                <Link
-                                  to="/planos-aula"
-                                  search={teacherLessonPlansSearch(
-                                    lesson.class_group_id,
-                                    lesson.subject_id,
-                                  )}
-                                >
-                                  <NotebookPen className="size-3.5" /> Plano
-                                </Link>
-                              </Button>
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="h-8 gap-1 text-xs touch-manipulation"
-                              >
-                                <Link
-                                  to="/arquivos"
-                                  search={teacherClassFilesSearch(lesson.class_group_id)}
-                                >
-                                  <FolderOpen className="size-3.5" /> Materiais
-                                </Link>
-                              </Button>
-                            </>
-                          ) : null}
-                          {needsCheckout ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 gap-1 text-xs touch-manipulation"
-                              onClick={() => {
-                                setScanMode("check_out");
-                                void startCamera();
-                              }}
-                            >
-                              <LogOut className="size-3.5" /> Check-out
-                            </Button>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </Panel>
+        </Panel>
+      ) : null}
 
       <AttendanceCallDialog
         open={callOpen}

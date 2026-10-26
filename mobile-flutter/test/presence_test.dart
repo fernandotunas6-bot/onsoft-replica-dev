@@ -107,6 +107,12 @@ void main() {
     },
   );
 
+  test('sala: número ganha «Sala», nomes ficam', () {
+    expect(roomLabel('12'), 'Sala 12');
+    expect(roomLabel('Sala 4'), 'Sala 4');
+    expect(roomLabel('Laboratório'), 'Laboratório');
+  });
+
   test('id do telemóvel é criado uma vez e fica guardado', () async {
     final prefs = await SharedPreferences.getInstance();
     final first = await PresenceQueue(prefs).deviceId();

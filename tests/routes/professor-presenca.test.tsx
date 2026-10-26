@@ -139,7 +139,8 @@ describe("/professor/presenca", () => {
     const Page = await loadPage();
     renderRoute(Page);
 
-    expect(screen.getByText(/A carregar presenças/)).toBeDefined();
+    // O painel do RH só aparece quando há aulas de hora/aula.
+    expect(screen.queryByText(/A carregar presenças/)).toBeNull();
 
     await waitFor(() => {
       expect(screen.getByText("10ª A · Matemática")).toBeDefined();
@@ -149,7 +150,7 @@ describe("/professor/presenca", () => {
     expect(screen.getByText("Aguardando check-in")).toBeDefined();
   });
 
-  it("mostra o estado vazio quando o professor não tem ocorrências ligadas", async () => {
+  it("sem aulas de hora/aula no RH, esconde o painel do QR do RH", async () => {
     listTeacherAttendanceSessionsMock.mockResolvedValue(noLessonsToday);
     listMyTeacherLessonOccurrencesMock.mockResolvedValue([]);
 
@@ -157,9 +158,10 @@ describe("/professor/presenca", () => {
     renderRoute(Page);
 
     await waitFor(() => {
-      expect(screen.getByText(/Sem aulas de hora\/aula no RH/)).toBeDefined();
+      expect(screen.getByText(/Sem aulas suas hoje/)).toBeDefined();
     });
-    expect(screen.getByText(/Sem aulas suas no horário de hoje/)).toBeDefined();
+    await waitFor(() => expect(listMyTeacherLessonOccurrencesMock).toHaveBeenCalled());
+    expect(screen.queryByText("QR de hora/aula")).toBeNull();
   });
 
   it("sem contrato de RH, confirma «Estou na sala» na aula de hoje", async () => {
@@ -215,8 +217,10 @@ describe("/professor/presenca", () => {
     const Page = await loadPage();
     renderRoute(Page);
 
-    await screen.findByText("Professor na sala");
-    expect(screen.getByText(/desde 08:03 · confirmada pelo professor/)).toBeDefined();
+    // No portal do próprio professor: «Na sala», sem repetir como confirmou.
+    await screen.findByText("Na sala");
+    expect(screen.getByText(/desde 08:03/)).toBeDefined();
+    expect(screen.queryByText(/confirmada pelo professor/)).toBeNull();
     expect(screen.getByRole("button", { name: /Terminar aula/ })).toBeDefined();
     expect(screen.queryByRole("button", { name: /Estou na sala/ })).toBeNull();
   });

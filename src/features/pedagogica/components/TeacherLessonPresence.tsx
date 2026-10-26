@@ -31,14 +31,23 @@ const TONE: Record<TeacherPresenceState, string> = {
   cancelled: "text-muted-foreground",
 };
 
+/** No portal do próprio professor: fala com ele e não repete como confirmou. */
+const SELF_LABELS: Partial<Record<TeacherPresenceState, string>> = {
+  confirmed: "Na sala",
+  late: "Entrou com atraso",
+};
+
 /** Linha curta com o estado da presença do professor nesta aula. */
 export function TeacherPresenceLine({
   session,
   teacherName,
+  self = false,
   className = "",
 }: {
   session: LessonPresenceSession;
   teacherName?: string | null;
+  /** Vista do próprio professor. */
+  self?: boolean;
   className?: string;
 }) {
   const state = lessonPresenceState(session);
@@ -55,7 +64,7 @@ export function TeacherPresenceLine({
   if (presence?.teacher_checked_in_at) {
     detail = `desde ${luandaTimeOf(presence.teacher_checked_in_at)}`;
     if (state === "late") detail += ` · ${presence.teacher_late_minutes} min de atraso`;
-    if (presence.teacher_checkin_method) {
+    if (presence.teacher_checkin_method && !self) {
       detail += ` · ${TEACHER_CHECKIN_METHOD_LABELS[presence.teacher_checkin_method]}`;
     }
     if (presence.teacher_checked_out_at) {
@@ -65,7 +74,9 @@ export function TeacherPresenceLine({
   return (
     <p className={`flex min-w-0 items-center gap-1.5 text-xs ${className}`}>
       <Icon className={`size-3.5 shrink-0 ${TONE[state]}`} aria-hidden />
-      <span className={`font-semibold ${TONE[state]}`}>{TEACHER_PRESENCE_LABELS[state]}</span>
+      <span className={`font-semibold ${TONE[state]}`}>
+        {(self ? SELF_LABELS[state] : null) ?? TEACHER_PRESENCE_LABELS[state]}
+      </span>
       {teacherName || detail ? (
         <span className="truncate text-muted-foreground">
           {teacherName ? ` · ${teacherName}` : ""}

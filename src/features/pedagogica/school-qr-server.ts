@@ -43,6 +43,7 @@ import {
   type WeekLesson,
 } from "@/features/pedagogica/teacher-week-report";
 import { angolaHolidaysBetween } from "@/features/calendar/angola-holidays";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -933,24 +934,38 @@ export const getTeacherWeekPresence = createServerFn({ method: "GET" })
     if (!dates.length) return empty;
     const last = dates[dates.length - 1];
 
+    // Escolas grandes passam as 1000 linhas por pedido (o PostgREST corta sem avisar):
+    // lê-se tudo por páginas, ordenado pelo id.
     const [classSubjects, slots, sessions] = await Promise.all([
-      db
-        .from("class_subjects")
-        .select("id, teacher_id")
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active")
-        .not("teacher_id", "is", null),
-      db
-        .from("timetable_slots")
-        .select("id, class_subject_id, weekday, starts_at")
-        .eq("school_id", membership.schoolId)
-        .eq("status", "active"),
-      db
-        .from("siga_attendance_sessions")
-        .select("*")
-        .eq("school_id", membership.schoolId)
-        .gte("lesson_date", dates[0])
-        .lte("lesson_date", last),
+      readAllPages((from, to) =>
+        db
+          .from("class_subjects")
+          .select("id, teacher_id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .not("teacher_id", "is", null)
+          .order("id")
+          .range(from, to),
+      ),
+      readAllPages((from, to) =>
+        db
+          .from("timetable_slots")
+          .select("id, class_subject_id, weekday, starts_at")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .order("id")
+          .range(from, to),
+      ),
+      readAllPages((from, to) =>
+        db
+          .from("siga_attendance_sessions")
+          .select("*")
+          .eq("school_id", membership.schoolId)
+          .gte("lesson_date", dates[0])
+          .lte("lesson_date", last)
+          .order("id")
+          .range(from, to),
+      ),
     ]);
     const readFailure = classSubjects.error ?? slots.error ?? sessions.error;
     if (readFailure) {
@@ -1011,14 +1026,17 @@ export const getTeacherWeekPresence = createServerFn({ method: "GET" })
 
     const scansFrom = luandaDayRange(monday).from;
     const scansTo = luandaDayRange(sunday).to;
-    const { data: scanRows, error: scanError } = await db
-      .from("siga_teacher_presence_scans")
-      .select("teacher_id, decision")
-      .eq("school_id", membership.schoolId)
-      .gte("scanned_at", scansFrom)
-      .lt("scanned_at", scansTo)
-      .in("decision", ["review", "rejected"])
-      .limit(2000);
+    const { data: scanRows, error: scanError } = await readAllPages((from, to) =>
+      db
+        .from("siga_teacher_presence_scans")
+        .select("id, teacher_id, decision")
+        .eq("school_id", membership.schoolId)
+        .gte("scanned_at", scansFrom)
+        .lt("scanned_at", scansTo)
+        .in("decision", ["review", "rejected"])
+        .order("id")
+        .range(from, to),
+    );
     if (scanError && !isMissingTable(scanError)) {
       console.warn("[presença] leituras da semana não lidas:", scanError.message);
     }

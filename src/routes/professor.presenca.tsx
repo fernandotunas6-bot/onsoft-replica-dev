@@ -59,7 +59,7 @@ function TeacherAttendancePage() {
         <PageHeader
           group="Professor"
           title="Presença e Hora/Aula"
-          description="Confirme que está na sala e faça a chamada dos alunos. Quem tem contrato de hora/aula assina também o QR da aula, mais abaixo."
+          description="Confirme que está na sala e faça a chamada dos alunos."
           actions={
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">

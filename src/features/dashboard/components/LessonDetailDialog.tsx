@@ -33,6 +33,7 @@ import { publicErrorMessage } from "@/lib/public-error";
 import { safeHref } from "@/lib/safe-url";
 import { Link } from "@tanstack/react-router";
 import { MyTaskSubmission } from "@/features/academic/components/TaskSubmissions";
+import { roomLabel } from "@/lib/room-label";
 
 const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const selectClass = "h-9 w-full rounded-md border border-border bg-background px-2 text-sm";
@@ -110,7 +111,7 @@ function LessonDetailBody({
         <DialogTitle>{detail.subjectName}</DialogTitle>
         <DialogDescription>
           {WEEKDAYS[detail.weekday]} · {detail.startsAt}–{detail.endsAt} · {detail.className}
-          {detail.room && !online ? ` · Sala ${detail.room}` : ""}
+          {detail.room && !online ? ` · ${roomLabel(detail.room)}` : ""}
         </DialogDescription>
       </DialogHeader>
 

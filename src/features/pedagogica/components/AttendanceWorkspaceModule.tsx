@@ -174,22 +174,28 @@ export function AttendanceWorkspaceModule({
 
         {presenceSummary && !viewerIsTeacher && sessions.length > 0 ? (
           <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              Professores na sala:{" "}
-              <strong className="text-success">
-                {presenceSummary.confirmed + presenceSummary.call_only}
-              </strong>
-            </span>
-            <span>
-              Atrasados: <strong className="text-warning-strong">{presenceSummary.late}</strong>
-            </span>
-            <span>
-              Por confirmar:{" "}
-              <strong className="text-warning-strong">{presenceSummary.awaiting}</strong>
-            </span>
-            <span>
-              Sem presença: <strong className="text-destructive">{presenceSummary.missing}</strong>
-            </span>
+            {/* Só o que tem casos: zeros a cores eram ruído. */}
+            {[
+              {
+                label: "Professores na sala",
+                value: presenceSummary.confirmed + presenceSummary.call_only,
+                tone: "text-success",
+                always: true,
+              },
+              { label: "Atrasados", value: presenceSummary.late, tone: "text-warning-strong" },
+              {
+                label: "Por confirmar",
+                value: presenceSummary.awaiting,
+                tone: "text-warning-strong",
+              },
+              { label: "Sem presença", value: presenceSummary.missing, tone: "text-destructive" },
+            ]
+              .filter((item) => item.always || item.value > 0)
+              .map((item) => (
+                <span key={item.label}>
+                  {item.label}: <strong className={item.tone}>{item.value}</strong>
+                </span>
+              ))}
           </p>
         ) : null}
         {sessionsQuery.isLoading ? (
@@ -242,6 +248,7 @@ export function AttendanceWorkspaceModule({
                       <TeacherPresenceLine
                         session={sess}
                         teacherName={viewerIsTeacher ? null : sess.teacher_name}
+                        self={viewerIsTeacher}
                       />
                       {viewerIsTeacher ? (
                         <TeacherCheckinButton

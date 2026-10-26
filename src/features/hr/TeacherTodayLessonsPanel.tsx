@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckSquare, DoorOpen, RefreshCw } from "lucide-react";
+import { CheckSquare } from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { todayInLuanda } from "@/features/calendar/dates";
@@ -15,6 +15,7 @@ import {
   readRememberedPresenceMode,
   rememberPresenceMode,
 } from "@/features/pedagogica/presence-scan-queue";
+import { roomLabel } from "@/lib/room-label";
 
 const time = (value: string | null | undefined) => (value ? String(value).slice(0, 5) : "");
 
@@ -30,6 +31,8 @@ export function TeacherTodayLessonsPanel() {
   const sessionsQuery = useQuery({
     queryKey: ["teacher-attendance-sessions", today],
     queryFn: () => listTeacherAttendanceSessions({ data: { date: today } }),
+    // Sem botão «Actualizar»: a lista refresca sozinha.
+    refetchInterval: 60_000,
   });
   const sessions = sessionsQuery.data?.sessions ?? [];
   const presenceMode = sessionsQuery.data?.presenceMode ?? "button";
@@ -49,19 +52,10 @@ export function TeacherTodayLessonsPanel() {
       title="Aulas de hoje"
       description={
         presenceMode === "qr"
-          ? "No início de cada aula, leia o QR da escola e faça a chamada dos alunos."
-          : "No início de cada aula, toque «Estou na sala» e faça a chamada dos alunos. Concluir a chamada também confirma a sua presença."
-      }
-      action={
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1"
-          onClick={() => void sessionsQuery.refetch()}
-          disabled={sessionsQuery.isFetching}
-        >
-          <RefreshCw className="size-3.5" /> Actualizar
-        </Button>
+          ? "No início de cada aula, leia o QR da escola e faça a chamada."
+          : presenceMode === "off"
+            ? "Faça a chamada dos alunos em cada aula."
+            : "No início de cada aula, toque «Estou na sala» e faça a chamada."
       }
     >
       {showScanner ? (
@@ -85,8 +79,7 @@ export function TeacherTodayLessonsPanel() {
         </p>
       ) : sessions.length === 0 ? (
         <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-          Sem aulas suas no horário de hoje. Se devia ter, confirme com a Direcção Pedagógica que a
-          sua conta está ligada à ficha de professor e que o horário está publicado.
+          Sem aulas suas hoje. Se devia ter, fale com a Direcção Pedagógica.
         </p>
       ) : (
         <ul className="divide-y divide-border">
@@ -107,11 +100,11 @@ export function TeacherTodayLessonsPanel() {
                     <span className="font-normal text-muted-foreground">
                       {" "}
                       · {sess.subject_name}
-                      {sess.room ? ` · Sala ${sess.room}` : ""}
+                      {sess.room ? ` · ${roomLabel(sess.room)}` : ""}
                     </span>
                   </p>
                   {presenceEnabled ? (
-                    <TeacherPresenceLine session={sess} />
+                    <TeacherPresenceLine session={sess} self />
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       {sess.status === "completed" ? "Chamada feita" : "Chamada por fazer"}
@@ -120,7 +113,8 @@ export function TeacherTodayLessonsPanel() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {presenceEnabled ? (
+                {/* Com o QR, o leitor já está no topo deste painel. */}
+                {presenceEnabled && !(presenceMode === "qr" && showScanner) ? (
                   <TeacherCheckinButton session={sess} mode={presenceMode} className="h-9" />
                 ) : null}
                 <Button
@@ -141,12 +135,6 @@ export function TeacherTodayLessonsPanel() {
           ))}
         </ul>
       )}
-      {presenceEnabled && sessions.length > 0 ? (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <DoorOpen className="size-3.5" aria-hidden /> Pode confirmar a partir de 15 minutos antes
-          do início e até ao fim da aula{presenceMode === "qr" ? ", lendo o QR da escola" : ""}.
-        </p>
-      ) : null}
       {callSessionId ? (
         <AttendanceCallDialog
           open={callOpen}

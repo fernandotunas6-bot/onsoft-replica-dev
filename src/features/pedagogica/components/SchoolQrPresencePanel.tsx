@@ -802,22 +802,11 @@ function PresenceScansReview() {
       description="As leituras com dúvidas ficam aqui para a Direcção decidir."
       icon={ScanLine}
       action={
-        <div className="flex items-center gap-2">
-          {pending.length ? (
-            <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning-strong">
-              {pending.length} por rever
-            </span>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Actualizar leituras"
-            onClick={() => void scans.refetch()}
-          >
-            <RefreshCw className={`size-4 ${scans.isFetching ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
+        pending.length ? (
+          <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning-strong">
+            {pending.length} por rever
+          </span>
+        ) : undefined
       }
     >
       {rows.length === 0 ? (

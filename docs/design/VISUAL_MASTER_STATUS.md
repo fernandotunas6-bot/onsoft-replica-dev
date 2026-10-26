@@ -235,3 +235,11 @@ Ver»). O resumo da semana tem «X de Y aulas» e etiquetas só para o que preci
 por aula do RH fica recolhido no fim da página. App: sem título repetido no cartão, sem as três
 dicas no fundo, e a sala aparece como vem do horário («Sala 12», não «Sala Sala 12»). A página
 da Direcção ficou com cerca de metade da altura a 1440 px.
+
+Segunda passagem (26/10): portal do professor sem o painel do QR do RH quando o professor não
+tem aulas de hora/aula (o atalho da agenda continua a abrir a chamada); em modo QR, sem o botão
+«Ler QR da escola» repetido em cada aula (o leitor está no topo do painel); sem botões
+«Actualizar» (as listas refrescam sozinhas a cada minuto); o próprio professor lê «Na sala» em
+vez de «Professor na sala», sem o método; o resumo de Pedagógica → Presenças mostra só as
+categorias com casos; salas pelo `roomLabel` partilhado («12» → «Sala 12», «Sala 4» e
+«Laboratório» ficam), também na app.

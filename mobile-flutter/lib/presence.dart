@@ -369,6 +369,12 @@ Future<({int sent, List<String> refused})> flushPresenceQueue(
   return (sent: sent, refused: refused);
 }
 
+/// "3" → "Sala 3"; nomes que já dizem o que são ("Sala 3", "Laboratório") ficam.
+String roomLabel(String room) {
+  final value = room.trim();
+  return RegExp(r'^\d+[A-Za-z]?$').hasMatch(value) ? 'Sala $value' : value;
+}
+
 /// UUID v4 para identificar o envio (o servidor ignora repetições).
 String newOpId([Random? random]) {
   final r = random ?? Random.secure();
