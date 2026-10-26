@@ -115,6 +115,15 @@ filtrado por essa turma. Com a turma na URL, o filtro de turma segue a URL; esco
 limpar os filtros actualiza a URL. Uma turma que a escola não devolve não filtra nada. Sem estilos
 novos.
 
+**26/10/2026 — SIGA Context Engine (página do ficheiro):** `/arquivos/<id>` mostra o ficheiro
+(tipo, tamanho, título, categoria, data, código, área, acesso, o nível da conta e o
+proprietário), «Abrir» e «Descarregar» a quem pode abrir o conteúdo, a turma e o aluno a que
+está ligado e a auditoria. O painel de detalhes dos Arquivos ganha «Abrir a página do
+ficheiro» (fora do selector de ficheiros). A sidebar mostra o menu do ficheiro («Voltar»,
+`Ficheiro · …`, «Detalhes e auditoria», «Todos os arquivos» e, quando o servidor devolve a
+ligação, «Pasta da turma», «Documentos do aluno» e «Ficha do aluno»). Renomear, mover, mudar o
+acesso e apagar continuam na lista. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
