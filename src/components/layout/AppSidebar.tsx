@@ -41,7 +41,12 @@ import { getPortalNavigation } from "@/features/auth/portal-engine";
 import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosystem-urls";
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
-import { ContextEntityNav, useEntityNavigation } from "./ContextEntityNav";
+import {
+  ContextEntityNav,
+  ResumeContextLink,
+  useEntityNavigation,
+  useResumeNavigation,
+} from "./ContextEntityNav";
 import {
   NAV_DEPTH_CLASS,
   NAV_ROW_BASE,
@@ -184,6 +189,8 @@ export function AppSidebar({
   // o menu dessa entidade; «Voltar» e «Todas as áreas» repõem o módulo.
   const entityNavigation = useEntityNavigation(pathname, locationSearch);
   const entityActive = contextual && entityNavigation !== null;
+  // Sem turma aberta na área académica: retomar a turma ou disciplina onde estava.
+  const resumeLink = useResumeNavigation(pathname, locationSearch, contextual && !entityActive);
   const displayedGroups = entityActive ? [] : contextual && context ? [context] : generalGroups;
 
   return (
@@ -413,6 +420,9 @@ export function AppSidebar({
               areaTitle={context?.title ?? null}
               collapsed={collapsed}
             />
+          ) : null}
+          {!entityActive && resumeLink ? (
+            <ResumeContextLink link={resumeLink} collapsed={collapsed} />
           ) : null}
           {contextual &&
           pathname.startsWith("/pedagogica") &&

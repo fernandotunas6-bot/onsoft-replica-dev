@@ -184,8 +184,11 @@ da URL é recusada.
   recentes do dispositivo; os favoritos ficam. Um destino que a conta deixou de poder abrir
   (`canAccessPath` com papel, permissões e plano) não se oferece, e abrir um destino passa
   sempre pela página, que valida no servidor.
-- Memória de contexto: por utilizador e escola, só ids de entrada, revalidada pelo lookup
-  (`resolveContext` já aceita `memory`). Ainda não ligada.
+- Memória de contexto (`resume-context.ts`, `useResumeNavigation`): na área académica sem
+  turma aberta, a sidebar oferece «Continuar em ‹turma› · ‹disciplina›», o destino recente mais
+  novo que abria uma turma ou disciplina. Dos recentes (por utilizador e escola) só saem os ids;
+  o nome e a confirmação vêm da árvore académica do servidor, e uma turma que o servidor já não
+  devolve não se oferece.
 
 ## 8. Segurança multi-tenant
 
@@ -211,7 +214,7 @@ da URL é recusada.
 | 6–7 Restantes       | Ausente                                                      |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                                      | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                                      | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
-| 10 Revisão          | Parcial                                                      | Lint, TypeScript e suite completa passam (702 ficheiros); Playwright pendente                                                                                                                  |
+| 10 Revisão          | Parcial                                                      | Lint, TypeScript e suite completa passam (703 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
 
@@ -224,7 +227,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma ou professor não devolvidos pelo servidor ignorados                      | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (702 ficheiros, 4902 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (703 ficheiros, 4909 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 

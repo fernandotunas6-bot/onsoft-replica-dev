@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentType, ComponentPropsWithRef, ReactNode } from "react";
 import { applyAppearance, type AppearanceState } from "@/lib/appearance";
+import { navMemoryOwner, touchRecentNav } from "@/lib/navigation-memory";
 import "./_harness";
 
 /**
@@ -722,6 +723,50 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
     renderSidebar();
     expect(screen.queryByRole("link", { name: "Professor responsável" })).toBeNull();
+  });
+
+  it("de volta à área sem turma, oferece continuar na disciplina onde estava", () => {
+    academic.tree = tree();
+    touchRecentNav(navMemoryOwner("admin@escola.ao", "school-a"), {
+      path: "/pedagogica",
+      label: "Pedagógica",
+      search: `tab=notas&turma=${TURMA_A}&disciplina=${MATEMATICA}`,
+    });
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "turmas" };
+    renderSidebar();
+    const resume = screen.getByRole("link", { name: "Continuar em Turma A · Matemática" });
+    expect(JSON.parse(resume.getAttribute("data-search") ?? "null")).toEqual({
+      tab: "notas",
+      turma: TURMA_A,
+      disciplina: MATEMATICA,
+    });
+  });
+
+  it("não oferece continuar numa turma que o servidor já não devolve", () => {
+    academic.tree = tree();
+    touchRecentNav(navMemoryOwner("admin@escola.ao", "school-a"), {
+      path: "/pedagogica",
+      label: "Pedagógica",
+      search: `tab=notas&turma=${TURMA_B}`,
+    });
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "turmas" };
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: /^Continuar em/ })).toBeNull();
+  });
+
+  it("os recentes de outra escola não se oferecem", () => {
+    academic.tree = tree();
+    touchRecentNav(navMemoryOwner("admin@escola.ao", "school-b"), {
+      path: "/pedagogica",
+      label: "Pedagógica",
+      search: `tab=notas&turma=${TURMA_A}`,
+    });
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "turmas" };
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: /^Continuar em/ })).toBeNull();
   });
 
   it("recolhida, mantém os destinos com nome acessível", () => {

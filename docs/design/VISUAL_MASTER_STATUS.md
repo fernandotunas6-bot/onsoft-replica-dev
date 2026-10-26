@@ -81,6 +81,11 @@ servidor o devolve. Sem estilos novos.
 leva à ficha, aos trabalhos e ao horário da turma da matrícula (só Administração e Secretaria).
 A turma vem da ficha que a página leu do servidor, nunca da URL. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (continuar onde estava):** de volta à área académica sem turma
+aberta, a sidebar mostra uma linha «Continuar em 10.ª A · Matemática» (ícone de histórico), que
+reabre a turma ou disciplina onde a conta estava, com os filtros dessa página. Só aparece se o
+servidor ainda devolve a turma. Sem estilos novos (a mesma linha das entradas do menu).
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

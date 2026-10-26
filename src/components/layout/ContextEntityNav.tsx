@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, History } from "lucide-react";
+import { canAccessPath } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useTenant } from "@/features/saas/tenant-context";
@@ -30,7 +31,9 @@ import {
   type EntityNavigation,
 } from "@/features/intelligence/entity-navigation";
 import type { ContextFrame, ResolvedContext } from "@/features/intelligence/types";
+import { navMemoryOwner, readRecentNav } from "@/lib/navigation-memory";
 import { cn } from "@/lib/utils";
+import { pickResumeTarget } from "@/features/intelligence/resume-context";
 import { NavLinkRow, NavSubheader } from "./NavItem";
 
 /**
@@ -149,6 +152,85 @@ export function useEntityNavigation(
     pathname,
     search,
   ]);
+}
+
+export type ResumeLink = {
+  to: string;
+  search: Record<string, string>;
+  label: string;
+};
+
+/**
+ * Memória de contexto: na área académica sem turma aberta, a turma ou
+ * disciplina onde a conta estava, se o servidor ainda a devolve. Os recentes
+ * são por utilizador e escola; o nome vem da árvore académica do servidor.
+ */
+export function useResumeNavigation(
+  pathname: string,
+  search: Record<string, unknown>,
+  enabled: boolean,
+): ResumeLink | null {
+  const account = useCurrentAccount();
+  const { selectedYearId } = useSchoolSettings();
+  const { activePlan } = useTenant();
+  const staff = ENTITY_MENU_ROLES.has(account.role);
+  const owner = navMemoryOwner(account.id || account.email || "anon", account.schoolId);
+  // Lê os recentes antes de a página actual entrar neles (o AppShell grava depois).
+  const target = useMemo(() => {
+    if (!enabled || !staff) return null;
+    if (!pathname.startsWith("/pedagogica") && !pathname.startsWith("/planos-aula")) return null;
+    return pickResumeTarget(readRecentNav(owner), { path: pathname, search });
+  }, [enabled, staff, pathname, search, owner]);
+  const { tree, schoolId } = useAcademicNavTree({ enabled: target !== null });
+
+  return useMemo(() => {
+    if (!target || !schoolId) return null;
+    if (!canAccessPath(target.path, account.role, account.grants, activePlan)) return null;
+    const { context } = resolveContext({
+      base: {
+        userId: account.id,
+        role: account.role,
+        grants: account.grants,
+        pathname: target.path,
+        focusedEntity: null,
+      },
+      schoolId,
+      academicYearId: selectedYearId ?? null,
+      route: target.candidates,
+      lookup: academicContextLookup(tree, schoolId),
+    });
+    // Só retoma o que o servidor confirmou por inteiro (turma e, se havia, disciplina).
+    if (context.trail.length !== target.candidates.length) return null;
+    return {
+      to: target.path,
+      search: target.search,
+      label: context.trail.map((frame) => frame.label).join(" · "),
+    };
+  }, [
+    target,
+    schoolId,
+    tree,
+    account.id,
+    account.role,
+    account.grants,
+    activePlan,
+    selectedYearId,
+  ]);
+}
+
+export function ResumeContextLink({ link, collapsed }: { link: ResumeLink; collapsed: boolean }) {
+  return (
+    <div data-context-resume="">
+      <NavLinkRow
+        to={link.to}
+        search={link.search}
+        label={`Continuar em ${link.label}`}
+        icon={History}
+        collapsed={collapsed}
+        active={false}
+      />
+    </div>
+  );
 }
 
 function EntityHeader({ trail, collapsed }: { trail: ContextFrame[]; collapsed: boolean }) {
