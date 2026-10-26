@@ -125,6 +125,16 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/arquivos", { pessoa: ALUNO })).toEqual([]);
   });
 
+  it("nos relatórios académicos, a turma abre o contexto da turma e a disciplina não entra", () => {
+    expect(routeContextCandidates("/relatorios/academicos", { turma: TURMA_A })).toEqual([
+      { type: "class", id: TURMA_A },
+    ]);
+    expect(
+      routeContextCandidates("/relatorios/academicos", { turma: TURMA_A, disciplina: MATEMATICA }),
+    ).toEqual([{ type: "class", id: TURMA_A }]);
+    expect(routeContextCandidates("/relatorios/academicos", { turma: "10A" })).toEqual([]);
+  });
+
   it("nos trabalhos, a turma e a disciplina abrem o contexto, como nos planos", () => {
     expect(routeContextCandidates("/pedagogica/trabalhos", { turma: TURMA_A })).toEqual([
       { type: "class", id: TURMA_A },

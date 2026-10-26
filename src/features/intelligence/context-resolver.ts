@@ -69,8 +69,9 @@ export const CLASS_SEARCH_ROUTES: ReadonlySet<string> = new Set([
   "/pedagogica",
   "/planos-aula",
   "/pedagogica/trabalhos",
-  // Os ficheiros estão por turma: `/arquivos` não aceita disciplina.
+  // Os ficheiros e os relatórios académicos estão por turma: não aceitam disciplina.
   "/arquivos",
+  "/relatorios/academicos",
 ]);
 const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set([
   "/pedagogica",

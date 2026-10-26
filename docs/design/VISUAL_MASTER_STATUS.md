@@ -102,6 +102,19 @@ aluno. A sidebar mostra o menu da fatura («Voltar», `Fatura · FT-…`, «Deta
 as faturas» e, a quem abre fichas de alunos, o financeiro e a ficha do aluno). Receber e anular
 continuam na lista. Evidência: capturas a 1440 e 390 px sem scroll horizontal. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (cobranças na fatura):** a página da fatura mostra, à Tesouraria
+e à Administração, as cobranças electrónicas dessa fatura (Multicaixa Express ou referência), da
+mais recente para a mais antiga, com o estado do registo (`StatusBadge`), a referência, a última
+mensagem do fornecedor e o recibo, quando já existe. Uma cobrança não conta como paga antes de o
+fornecedor a confirmar. A Secretaria lê a fatura sem esta secção (o servidor nem a pede). Sem estilos
+novos.
+
+**26/10/2026 — SIGA Context Engine (relatórios da turma):** o menu da turma e da disciplina ganha
+«Relatórios da turma» (grupo Acompanhamento), que abre `/relatorios/academicos?turma=<id>` já
+filtrado por essa turma. Com a turma na URL, o filtro de turma segue a URL; escolher outra turma ou
+limpar os filtros actualiza a URL. Uma turma que a escola não devolve não filtra nada. Sem estilos
+novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

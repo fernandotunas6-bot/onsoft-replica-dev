@@ -51,6 +51,7 @@ describe("getContextEntries", () => {
       "subject.grades",
       "academic.attendance",
       "class.timetable",
+      "class.reports",
       "academic.lesson-plans",
       "academic.tasks",
       "academic.files",
@@ -67,6 +68,7 @@ describe("getContextEntries", () => {
       "class.grades",
       "class.attendance",
       "class.timetable",
+      "class.reports",
       "academic.lesson-plans",
       "academic.tasks",
       "academic.files",
@@ -113,6 +115,7 @@ describe("getContextEntries", () => {
       "subject.grades",
       "academic.attendance",
       "class.timetable",
+      "class.reports",
       "academic.lesson-plans",
       "academic.tasks",
     ]);
@@ -169,6 +172,12 @@ describe("links e entrada activa", () => {
     // Os ficheiros estão por turma: da disciplina abre-se a pasta da turma.
     const files = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "academic.files")!;
     expect(contextEntryLink(files, ctx)).toEqual({ to: "/arquivos", search: { turma: TURMA_A } });
+    // Os relatórios académicos filtram por turma: da disciplina abrem-se os da turma.
+    const reports = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.reports")!;
+    expect(contextEntryLink(reports, ctx)).toEqual({
+      to: "/relatorios/academicos",
+      search: { turma: TURMA_A },
+    });
     // A ficha da turma tem página própria; os alunos são uma secção dela.
     const profile = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.profile")!;
     expect(contextEntryLink(profile, ctx)).toEqual({

@@ -159,6 +159,19 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 25,
   },
   {
+    // Os relatórios académicos filtram por turma: da disciplina abrem-se os da turma.
+    id: "class.reports",
+    label: "Relatórios da turma",
+    icon: moduleIcons.academicReports,
+    group: "Acompanhamento",
+    contexts: ["class", "subject-offering"],
+    to: "/relatorios/academicos",
+    search: (trail) => ({ turma: academicIdsFromTrail(trail).turma }),
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 27,
+  },
+  {
     id: "academic.lesson-plans",
     label: "Planos de aula",
     icon: moduleIcons.lessonPlans,

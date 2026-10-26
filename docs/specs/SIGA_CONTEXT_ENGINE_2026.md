@@ -89,8 +89,9 @@ da URL é recusada.
 1. `useEntityNavigation(pathname, search)` só actua para **Administrador, Secretaria e
    Professor** (as entradas são de gestão da turma; aluno e encarregado vêem o que é seu
    pelo portal, e as regras de rota deixam-nos abrir `/pedagogica` e `/planos-aula`).
-2. Lê `routeContextCandidates`: `?turma=` em `/pedagogica`, `/planos-aula` e `/arquivos`;
-   `?disciplina=` só nas duas primeiras (os ficheiros estão por turma). Sem turma na URL
+2. Lê `routeContextCandidates`: `?turma=` em `/pedagogica`, `/planos-aula`,
+   `/pedagogica/trabalhos`, `/arquivos` e `/relatorios/academicos`; `?disciplina=` só nas três
+   primeiras (os ficheiros e os relatórios estão por turma). Sem turma na URL
    não pede nada.
 3. `useAcademicNavTree` devolve as turmas e disciplinas da conta (professor: as suas
    atribuições; equipa: as da escola e ano). Mesmas chaves de query que a árvore
@@ -131,10 +132,11 @@ da URL é recusada.
 | Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora                                          |
 | Trabalhos                              | `/pedagogica/trabalhos?turma&disciplina`            | Implementado — lista da turma ou da disciplina (em curso e prazo terminado); criam-se no detalhe da aula; entregas na #335        |
 | Horário da turma                       | `/pedagogica?tab=horarios&turma`                    | Implementado — turma e disciplina abrem o horário da turma (`ScheduleWorkspace`)                                                  |
+| Relatórios da turma                    | `/relatorios/academicos?turma`                      | Implementado — turma e disciplina abrem os relatórios académicos filtrados pela turma; o filtro de turma segue a URL              |
 | Alunos da turma                        | `/pedagogica/turmas/$classGroupId?secao=alunos`     | Implementado — a turma tem página própria (decisão do proprietário, 25/10/2026), com «Ficha da turma» e «Alunos da turma» no menu |
 | Professor responsável                  | `/professores/$teacherId`                           | Implementado — na disciplina, quando o servidor devolve o professor dela (`class_subjects.teacher_id`)                            |
 | Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                                                                  |
-| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula`, `/pedagogica/trabalhos`, `/arquivos`                                                |
+| Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula`, `/pedagogica/trabalhos`, `/arquivos`, `/relatorios/academicos`                      |
 
 ### 5.2 Aluno (prioridade 2)
 
@@ -233,7 +235,7 @@ da URL é recusada.
 | 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno/professor)** | `ContextEntityNav`; 17 testes de sidebar + 7 de lookup + 15 do professor; breadcrumb com 9 testes                                                                                              |
 | 4 Disciplina piloto | Parcial                                                      | Trabalhos da turma e da disciplina (`/pedagogica/trabalhos`); faltam as entregas (#335) e validação em staging                                                                                 |
 | 5 Aluno piloto      | **Implementado (desktop)**                                   | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
-| 6 Financeiro/docs   | Parcial                                                      | Financeiro do aluno com todas as faturas e a dívida; página e menu da fatura (`/faturas/$invoiceId`); faltam cobranças, reembolsos e o contexto do ficheiro em Arquivos                        |
+| 6 Financeiro/docs   | Parcial                                                      | Financeiro do aluno com todas as faturas e a dívida; página e menu da fatura (`/faturas/$invoiceId`) com as cobranças Multicaixa; faltam reembolsos e o contexto do ficheiro em Arquivos       |
 | 7 Restantes         | Ausente                                                      |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                                      | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
 | 9 Optimização       | Parcial                                                      | Bundle medido (§7): JS inicial sem alteração, +4,2 KB gzip na `AppShell`; regressão no bloco partilhado encontrada e corrigida; faltam renderizações e tempos em aparelho                      |
