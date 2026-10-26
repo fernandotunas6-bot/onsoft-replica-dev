@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { handleSessionExpired, isSessionError } from "@/lib/session-expiry";
@@ -16,16 +16,24 @@ type RouteErrorScreenProps = {
 /** Ecrã de erro em português. `fullPage` cobre falhas da raiz; o modo compacto fica no conteúdo da rota. */
 export function RouteErrorScreen({ error, reset, fullPage = false }: RouteErrorScreenProps) {
   const router = useRouter();
-  const sessionExpired = isSessionError(error);
+  // Um 401 com a sessão ainda válida (rede, token por renovar) fica como erro normal.
+  const [aliveFor, setAliveFor] = useState<Error | null>(null);
+  const sessionExpired = isSessionError(error) && aliveFor !== error;
   const staleBuild = !sessionExpired && isStaleBuildError(error);
   useEffect(() => {
     if (sessionExpired) {
-      handleSessionExpired();
-      return;
+      let active = true;
+      void handleSessionExpired(error).then((signedOut) => {
+        if (active && !signedOut) setAliveFor(error);
+      });
+      return () => {
+        active = false;
+      };
     }
-    if (staleBuild && recoverFromStaleBuild(error)) return;
+    if (staleBuild && recoverFromStaleBuild(error)) return undefined;
     console.error(error);
     reportLovableError(error, { boundary: fullPage ? "siga_root" : "siga_route" });
+    return undefined;
   }, [error, fullPage, sessionExpired, staleBuild]);
 
   if (staleBuild) {

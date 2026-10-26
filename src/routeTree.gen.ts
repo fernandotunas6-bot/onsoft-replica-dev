@@ -137,6 +137,7 @@ import { Route as ApiSaasTenantsLookupRouteImport } from './routes/api/saas/tena
 import { Route as ApiSaasTenantsStatusRouteImport } from './routes/api/saas/tenants.status'
 import { Route as ApiSaasTenantsSubscriptionRouteImport } from './routes/api/saas/tenants.subscription'
 import { Route as ApiSaasUsageSyncRouteImport } from './routes/api/saas/usage.sync'
+import { Route as PedagogicaTurmasTurmaIdRenovarRouteImport } from './routes/pedagogica_.turmas.$turmaId_.renovar'
 import { Route as ApiFinanceGatewayUnitelConfirmRouteImport } from './routes/api/finance/gateway.unitel.confirm'
 
 const IndexRoute = IndexRouteImport.update({
@@ -806,6 +807,12 @@ const ApiSaasUsageSyncRoute = ApiSaasUsageSyncRouteImport.update({
   path: '/api/saas/usage/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedagogicaTurmasTurmaIdRenovarRoute =
+  PedagogicaTurmasTurmaIdRenovarRouteImport.update({
+    id: '/pedagogica_/turmas/$turmaId_/renovar',
+    path: '/pedagogica/turmas/$turmaId/renovar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiFinanceGatewayUnitelConfirmRoute =
   ApiFinanceGatewayUnitelConfirmRouteImport.update({
     id: '/api/finance/gateway/unitel/confirm',
@@ -942,6 +949,7 @@ export interface FileRoutesByFullPath {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/pedagogica/turmas/$turmaId/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 export interface FileRoutesByTo {
@@ -1073,6 +1081,7 @@ export interface FileRoutesByTo {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/pedagogica/turmas/$turmaId/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 export interface FileRoutesById {
@@ -1205,6 +1214,7 @@ export interface FileRoutesById {
   '/api/saas/tenants/status': typeof ApiSaasTenantsStatusRoute
   '/api/saas/tenants/subscription': typeof ApiSaasTenantsSubscriptionRoute
   '/api/saas/usage/sync': typeof ApiSaasUsageSyncRoute
+  '/pedagogica_/turmas/$turmaId_/renovar': typeof PedagogicaTurmasTurmaIdRenovarRoute
   '/api/finance/gateway/unitel/confirm': typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 export interface FileRouteTypes {
@@ -1338,6 +1348,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/pedagogica/turmas/$turmaId/renovar'
     | '/api/finance/gateway/unitel/confirm'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1469,6 +1480,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/pedagogica/turmas/$turmaId/renovar'
     | '/api/finance/gateway/unitel/confirm'
   id:
     | '__root__'
@@ -1600,6 +1612,7 @@ export interface FileRouteTypes {
     | '/api/saas/tenants/status'
     | '/api/saas/tenants/subscription'
     | '/api/saas/usage/sync'
+    | '/pedagogica_/turmas/$turmaId_/renovar'
     | '/api/finance/gateway/unitel/confirm'
   fileRoutesById: FileRoutesById
 }
@@ -1694,6 +1707,7 @@ export interface RootRouteChildren {
   ApiSaasSitePostsRoute: typeof ApiSaasSitePostsRoute
   ApiSaasSiteShowcaseRoute: typeof ApiSaasSiteShowcaseRoute
   ApiSaasUsageSyncRoute: typeof ApiSaasUsageSyncRoute
+  PedagogicaTurmasTurmaIdRenovarRoute: typeof PedagogicaTurmasTurmaIdRenovarRoute
   ApiFinanceGatewayUnitelConfirmRoute: typeof ApiFinanceGatewayUnitelConfirmRoute
 }
 
@@ -2595,6 +2609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSaasUsageSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedagogica_/turmas/$turmaId_/renovar': {
+      id: '/pedagogica_/turmas/$turmaId_/renovar'
+      path: '/pedagogica/turmas/$turmaId/renovar'
+      fullPath: '/pedagogica/turmas/$turmaId/renovar'
+      preLoaderRoute: typeof PedagogicaTurmasTurmaIdRenovarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/finance/gateway/unitel/confirm': {
       id: '/api/finance/gateway/unitel/confirm'
       path: '/api/finance/gateway/unitel/confirm'
@@ -2905,6 +2926,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSaasSitePostsRoute: ApiSaasSitePostsRoute,
   ApiSaasSiteShowcaseRoute: ApiSaasSiteShowcaseRoute,
   ApiSaasUsageSyncRoute: ApiSaasUsageSyncRoute,
+  PedagogicaTurmasTurmaIdRenovarRoute: PedagogicaTurmasTurmaIdRenovarRoute,
   ApiFinanceGatewayUnitelConfirmRoute: ApiFinanceGatewayUnitelConfirmRoute,
 }
 export const routeTree = rootRouteImport

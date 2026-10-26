@@ -24,6 +24,7 @@ import {
 } from "@/features/lesson-plans/LessonPlanModal";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { NO_CLASS_SUBJECTS, subjectsOfClass } from "@/features/academic/pauta-subjects";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
@@ -94,6 +95,12 @@ function LessonPlansPage() {
   const subjects = useMemo(
     () => (workspaceQuery.data?.subjects ?? []).map((row) => ({ id: row.id, name: row.name })),
     [workspaceQuery.data],
+  );
+  const classSubjects = workspaceQuery.data?.classSubjects ?? NO_CLASS_SUBJECTS;
+  // Com uma turma no filtro, a disciplina mostra só as dessa turma.
+  const filterSubjects = useMemo(
+    () => (filters.turma ? subjectsOfClass(subjects, classSubjects, filters.turma) : subjects),
+    [subjects, classSubjects, filters.turma],
   );
 
   const plansQuery = useQuery({
@@ -206,7 +213,19 @@ function LessonPlansPage() {
         <ListFilterBar
           values={filters}
           activeCount={activeCount}
-          onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
+          onChange={(name, value) => {
+            setFilter(name as keyof typeof filters, value);
+            if (
+              name === "turma" &&
+              value &&
+              filters.disciplina &&
+              !subjectsOfClass(subjects, classSubjects, value).some(
+                (subject) => subject.id === filters.disciplina,
+              )
+            ) {
+              setFilter("disciplina", "");
+            }
+          }}
           onReset={resetFilters}
           fields={[
             { name: "q", placeholder: "Pesquisar por título…", "aria-label": "Pesquisar" },
@@ -214,9 +233,9 @@ function LessonPlansPage() {
               name: "turma",
               type: "select",
               label: "Turma",
-              // Sem a opção vazia, o select mostrava a primeira turma com a lista inteira.
+              // Sem a opção vazia, o select mostrava a primeira turma com o filtro desligado.
               options: [
-                { value: "", label: "Todas as turmas" },
+                { value: "", label: "Todas" },
                 ...classGroups.map((group) => ({ value: group.id, label: group.name })),
               ],
             },
@@ -225,8 +244,8 @@ function LessonPlansPage() {
               type: "select",
               label: "Disciplina",
               options: [
-                { value: "", label: "Todas as disciplinas" },
-                ...subjects.map((subject) => ({ value: subject.id, label: subject.name })),
+                { value: "", label: "Todas" },
+                ...filterSubjects.map((subject) => ({ value: subject.id, label: subject.name })),
               ],
             },
             {
@@ -234,7 +253,7 @@ function LessonPlansPage() {
               type: "select",
               label: "Trimestre",
               options: [
-                { value: "", label: "Todos os trimestres" },
+                { value: "", label: "Todos" },
                 { value: "1", label: "1º Trimestre" },
                 { value: "2", label: "2º Trimestre" },
                 { value: "3", label: "3º Trimestre" },
@@ -366,6 +385,7 @@ function LessonPlansPage() {
         onOpenChange={setModalOpen}
         classGroups={classGroups}
         subjects={subjects}
+        classSubjects={classSubjects}
         initial={editing}
         {...(filters.turma ? { defaultClassGroupId: filters.turma } : {})}
         {...(filters.disciplina ? { defaultSubjectId: filters.disciplina } : {})}
