@@ -45,7 +45,7 @@ const luandaRow: GeoRow = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.insights");
+  const mod = await import("@/routes/alumni_.insights");
   return routeComponentOf(mod);
 }
 

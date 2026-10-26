@@ -13,7 +13,7 @@ import { safeHref } from "@/lib/safe-url";
 
 type AdminPortfolioItem = Awaited<ReturnType<typeof listAlumniPortfolioAdmin>>[number];
 
-export const Route = createFileRoute("/alumni/$alumniId/portfolio")({
+export const Route = createFileRoute("/alumni_/$alumniId_/portfolio")({
   head: () => ({ meta: [{ title: "Portfólio Alumni 360º · SIGA" }] }),
   component: AlumniPortfolio360Page,
 });

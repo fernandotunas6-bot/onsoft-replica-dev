@@ -338,11 +338,11 @@ Testes existentes inventariados (a presença do ficheiro não afirma execução 
 
 ## Fontes e navegação
 
-- [financeiro.rh.faltas.tsx](../../../src/routes/financeiro.rh.faltas.tsx)
-- [financeiro.rh.folha.tsx](../../../src/routes/financeiro.rh.folha.tsx)
-- [financeiro.rh.pagamentos.tsx](../../../src/routes/financeiro.rh.pagamentos.tsx)
-- [financeiro.rh.presenca.tsx](../../../src/routes/financeiro.rh.presenca.tsx)
-- [financeiro.rh.tsx](../../../src/routes/financeiro.rh.tsx)
+- [financeiro.rh.faltas.tsx](../../../src/routes/financeiro_.rh_.faltas.tsx)
+- [financeiro.rh.folha.tsx](../../../src/routes/financeiro_.rh_.folha.tsx)
+- [financeiro.rh.pagamentos.tsx](../../../src/routes/financeiro_.rh_.pagamentos.tsx)
+- [financeiro.rh.presenca.tsx](../../../src/routes/financeiro_.rh_.presenca.tsx)
+- [financeiro.rh.tsx](../../../src/routes/financeiro_.rh.tsx)
 - [professor.presenca.tsx](../../../src/routes/professor.presenca.tsx)
 - [schemas.ts](../../../src/features/hr/schemas.ts)
 - [server.ts](../../../src/features/hr/server.ts)

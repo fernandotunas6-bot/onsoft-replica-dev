@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listAlumniEvents } from "@/features/alumni/server";
 import { toIcsTimedCalendar } from "@/features/calendar/ics";
 
-export const Route = createFileRoute("/alumni/calendar")({
+export const Route = createFileRoute("/alumni_/calendar")({
   head: () => ({ meta: [{ title: "Calendário Alumni · SIGA" }] }),
   component: AlumniCalendarPage,
 });

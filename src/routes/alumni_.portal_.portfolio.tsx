@@ -20,7 +20,7 @@ import {
 import { getMyAlumniEducationHistory } from "@/features/alumni/education-history";
 import { safeHref } from "@/lib/safe-url";
 
-export const Route = createFileRoute("/alumni/portal/portfolio")({
+export const Route = createFileRoute("/alumni_/portal_/portfolio")({
   head: () => ({ meta: [{ title: "Meu Portfólio Alumni · SIGA" }] }),
   component: AlumniPortfolioPage,
 });

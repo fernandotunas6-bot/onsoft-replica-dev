@@ -31,7 +31,7 @@ import {
   upsertAlumniSurvey,
 } from "@/features/alumni/operations";
 
-export const Route = createFileRoute("/alumni/operations")({
+export const Route = createFileRoute("/alumni_/operations")({
   head: () => ({ meta: [{ title: "Operações Alumni · SIGA" }] }),
   component: AlumniOperationsPage,
 });
