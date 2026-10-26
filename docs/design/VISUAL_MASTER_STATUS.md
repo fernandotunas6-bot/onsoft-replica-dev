@@ -77,6 +77,10 @@ turma ganha «Presenças», que abre as aulas do dia só dessa turma (o título 
 da disciplina ganha «Professor responsável», que abre o perfil de quem a dá nessa turma quando o
 servidor o devolve. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (turma do aluno):** no menu do aluno, o grupo «Turma do aluno»
+leva à ficha, aos trabalhos e ao horário da turma da matrícula (só Administração e Secretaria).
+A turma vem da ficha que a página leu do servidor, nunca da URL. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

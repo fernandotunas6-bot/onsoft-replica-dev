@@ -345,6 +345,10 @@ function StudentDetail() {
       label: profileData.student.full_name,
       schoolId: profileData.student.school_id,
       data: relationsSnapshot,
+      // A turma da matrícula, lida do servidor com a ficha: o menu do aluno leva a ela.
+      ...(profileData.student.class_group_id
+        ? { relations: { class: profileData.student.class_group_id } }
+        : {}),
     };
   }, [profileData, relationsSnapshot]);
   useDeclareEntityFocus(focusedStudentEntity);

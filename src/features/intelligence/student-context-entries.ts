@@ -10,7 +10,8 @@ import type { ContextFrame } from "./types";
 /**
  * Entradas do contexto Aluno: as secções da ficha `/alunos/<id>`, cada uma com
  * URL própria (`?secao=`). «Ficha completa» é a página de sempre. Comunicação entra
- * quando tiver conteúdo na ficha.
+ * quando tiver conteúdo na ficha. Com a turma da matrícula, o menu leva também à
+ * turma, aos trabalhos e ao horário dela (a turma passa a ser o contexto).
  */
 
 /** O aluno mais interior do caminho; o tipo do contexto garante que existe. */
@@ -35,6 +36,23 @@ const base = {
   module: "pessoas",
 } satisfies Partial<ContextNavEntry>;
 
+/** A turma da matrícula, que a ficha leu do servidor com o aluno. */
+function studentClassId(trail: ContextFrame[]): string | undefined {
+  return [...trail].reverse().find((frame) => frame.type === "student")?.relations?.class;
+}
+
+/**
+ * Da ficha para a turma: só para a secretaria e a direcção, que vêem todas as
+ * turmas da escola; o professor chega às suas pelo menu académico.
+ */
+const classBase = {
+  group: "Turma do aluno",
+  contexts: ["student"],
+  module: "pedagogica",
+  roles: ["Administrador", "Secretaria"],
+  available: (trail: ContextFrame[]) => Boolean(studentClassId(trail)),
+} satisfies Partial<ContextNavEntry>;
+
 export const STUDENT_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
   { ...base, id: "student.overview", label: "Ficha completa", icon: moduleIcons.profile, order: 0 },
   ...STUDENT_SECTIONS.map((section, index): ContextNavEntry => ({
@@ -46,4 +64,31 @@ export const STUDENT_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     allow: (role, grants) => canReadStudentSection(section.id, role, grants),
     order: (index + 1) * 10,
   })),
+  {
+    ...classBase,
+    id: "student.class",
+    label: "Ficha da turma",
+    icon: moduleIcons.classes,
+    to: "/pedagogica/turmas/$classGroupId",
+    path: (trail) => `/pedagogica/turmas/${studentClassId(trail) ?? ""}`,
+    order: 100,
+  },
+  {
+    ...classBase,
+    id: "student.class-tasks",
+    label: "Trabalhos da turma",
+    icon: moduleIcons.classTasks,
+    to: "/pedagogica/trabalhos",
+    search: (trail) => ({ turma: studentClassId(trail) }),
+    order: 110,
+  },
+  {
+    ...classBase,
+    id: "student.class-timetable",
+    label: "Horário da turma",
+    icon: moduleIcons.schedule,
+    to: "/pedagogica",
+    search: (trail) => ({ tab: "horarios", turma: studentClassId(trail) }),
+    order: 120,
+  },
 ];

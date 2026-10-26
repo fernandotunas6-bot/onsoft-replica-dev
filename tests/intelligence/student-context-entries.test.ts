@@ -49,6 +49,30 @@ describe("entradas do contexto Aluno", () => {
     ]);
   });
 
+  it("com a turma da matrícula, a secretaria passa à turma, aos trabalhos e ao horário dela", () => {
+    const TURMA = "11111111-1111-4111-8111-111111111111";
+    const withClass: ContextFrame = { ...studentFrame, relations: { class: TURMA } };
+    const ctx = context("Secretaria", [withClass]);
+    const entries = getContextEntries(ctx, STUDENT_CONTEXT_ENTRIES);
+    const links = entries
+      .filter((entry) => entry.group === "Turma do aluno")
+      .map((entry) => contextEntryLink(entry, ctx));
+    expect(links).toEqual([
+      { to: `/pedagogica/turmas/${TURMA}`, search: {} },
+      { to: "/pedagogica/trabalhos", search: { turma: TURMA } },
+      { to: "/pedagogica", search: { tab: "horarios", turma: TURMA } },
+    ]);
+    // Sem turma na matrícula, nada; e só a secretaria e a direcção.
+    expect(
+      ids(getContextEntries(context("Secretaria", [studentFrame]), STUDENT_CONTEXT_ENTRIES)),
+    ).not.toContain("student.class");
+    for (const role of ["Professor", "Encarregado", "Aluno", "Tesouraria"]) {
+      expect(
+        ids(getContextEntries(context(role, [withClass]), STUDENT_CONTEXT_ENTRIES)),
+      ).not.toContain("student.class");
+    }
+  });
+
   it("o encarregado não vê o financeiro nem os documentos", () => {
     expect(
       ids(getContextEntries(context("Encarregado", [studentFrame]), STUDENT_CONTEXT_ENTRIES)),

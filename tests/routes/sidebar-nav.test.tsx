@@ -139,6 +139,7 @@ const focus = vi.hoisted(() => ({
     id: string;
     label: string;
     schoolId: string;
+    relations?: { class?: string };
   },
 }));
 // Professores que o servidor devolveria à escola (horário de um professor).
@@ -773,6 +774,22 @@ describe("AppSidebar — menu do aluno (Context Engine, piloto Aluno)", () => {
     expect(active?.textContent).toContain("Financeiro");
     // Não pede turmas nem disciplinas: o aluno vem da ficha que a página leu.
     expect(document.body.innerHTML).not.toContain(OUTRO);
+  });
+
+  it("com a turma da matrícula lida pela ficha, o menu leva à turma do aluno", () => {
+    const TURMA = "11111111-1111-4111-8111-111111111111";
+    papel = "Secretaria";
+    focus.entity = { ...ana, relations: { class: TURMA } };
+    currentPathname = `/alunos/${ANA}`;
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Aluno: Ana Silva" });
+    expect(section.textContent).toContain("Turma do aluno");
+    expect(linksTo(`/pedagogica/turmas/${TURMA}`)).toEqual([
+      { label: "Ficha da turma", search: {} },
+    ]);
+    expect(linksTo("/pedagogica/trabalhos")).toEqual([
+      { label: "Trabalhos da turma", search: { turma: TURMA } },
+    ]);
   });
 
   it("sem secção, a ficha completa fica marcada", () => {

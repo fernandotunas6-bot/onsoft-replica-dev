@@ -236,7 +236,13 @@ export function resolveContext(input: ResolveContextInput): ResolveContextResult
 export function focusContextLookup(focus: EntityFocus | null | undefined): ContextLookup {
   return (candidate) =>
     focus && sameCandidate(focus, candidate)
-      ? { type: focus.type, id: focus.id, label: focus.label, schoolId: focus.schoolId }
+      ? {
+          type: focus.type,
+          id: focus.id,
+          label: focus.label,
+          schoolId: focus.schoolId,
+          ...(focus.relations ? { relations: focus.relations } : {}),
+        }
       : null;
 }
 

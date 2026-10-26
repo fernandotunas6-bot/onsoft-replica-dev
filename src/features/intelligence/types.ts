@@ -15,6 +15,8 @@ export interface EntityFocus<T = unknown> {
   label: string;
   schoolId: string;
   data: T;
+  /** Entidades ligadas que a página leu do servidor com esta (a turma do aluno). */
+  relations?: ContextFrame["relations"];
 }
 
 export interface AppContext {

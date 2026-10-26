@@ -138,17 +138,18 @@ da URL é recusada.
 
 ### 5.2 Aluno (prioridade 2)
 
-| Função                           | Destino                                                                                | Estado                                                                                                                                       |
-| -------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rota reconhecida pelo resolvedor | `/alunos/$studentId`                                                                   | Implementado (#332)                                                                                                                          |
-| Lookup e entradas do aluno       | foco da ficha + `student-context-entries.ts`                                           | Implementado (fase 5)                                                                                                                        |
-| Menu do aluno na sidebar         | `ContextEntityNav`                                                                     | Implementado (desktop; só a equipa)                                                                                                          |
-| Ficha por secção                 | `/alunos/$studentId?secao=identificacao\|academico\|financeiro\|documentos\|historico` | Implementado                                                                                                                                 |
-| Histórico                        | `/alunos/$studentId?secao=historico`                                                   | Implementado — um bloco por ano lectivo, com média, situação e médias por disciplina (o motor da Pauta Final); só Administração e Secretaria |
-| Comunicação                      | —                                                                                      | Ausente — a ficha não mostra esse conteúdo                                                                                                   |
-| Faturas e documentos do aluno    | `/faturas`, `/documentos`                                                              | Parcial — sem filtro por aluno na URL; na ficha, secções Financeiro e Documentos                                                             |
-| Relações no painel direito       | `students/student-relation-map`                                                        | Implementado                                                                                                                                 |
-| Botões de gestão da ficha        | foto, turma, estado, anular, editar, encarregados, presença                            | Implementado — só a quem grava em Pessoas (o guarda do servidor); o encarregado não os vê                                                    |
+| Função                           | Destino                                                                                             | Estado                                                                                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rota reconhecida pelo resolvedor | `/alunos/$studentId`                                                                                | Implementado (#332)                                                                                                                          |
+| Lookup e entradas do aluno       | foco da ficha + `student-context-entries.ts`                                                        | Implementado (fase 5)                                                                                                                        |
+| Menu do aluno na sidebar         | `ContextEntityNav`                                                                                  | Implementado (desktop; só a equipa)                                                                                                          |
+| Ficha por secção                 | `/alunos/$studentId?secao=identificacao\|academico\|financeiro\|documentos\|historico`              | Implementado                                                                                                                                 |
+| Histórico                        | `/alunos/$studentId?secao=historico`                                                                | Implementado — um bloco por ano lectivo, com média, situação e médias por disciplina (o motor da Pauta Final); só Administração e Secretaria |
+| Turma do aluno                   | `/pedagogica/turmas/$classGroupId`, `/pedagogica/trabalhos?turma`, `/pedagogica?tab=horarios&turma` | Implementado — a turma da matrícula vem da ficha lida no servidor (relação do aluno); só Administração e Secretaria                          |
+| Comunicação                      | —                                                                                                   | Ausente — a ficha não mostra esse conteúdo                                                                                                   |
+| Faturas e documentos do aluno    | `/faturas`, `/documentos`                                                                           | Parcial — sem filtro por aluno na URL; na ficha, secções Financeiro e Documentos                                                             |
+| Relações no painel direito       | `students/student-relation-map`                                                                     | Implementado                                                                                                                                 |
+| Botões de gestão da ficha        | foto, turma, estado, anular, editar, encarregados, presença                                         | Implementado — só a quem grava em Pessoas (o guarda do servidor); o encarregado não os vê                                                    |
 
 ### 5.3 Restantes contextos
 
@@ -223,7 +224,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma ou professor não devolvidos pelo servidor ignorados                      | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (702 ficheiros, 4900 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (702 ficheiros, 4902 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 
