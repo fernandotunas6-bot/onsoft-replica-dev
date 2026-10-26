@@ -55,6 +55,12 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Renovação de matrícula para o ano seguinte (2026-10-25): grava matrículas
+  // por placeStudentInClass, que recebe o cliente privilegiado (como
+  // enrollStudentInClass em students/server.ts) e mantém a RPC enroll_student,
+  // o 2FA e o histórico de estado. Guarda Administrador/Secretaria; todas as
+  // leituras filtram pela escola da membership.
+  "src/features/academic/year-rollover-server.ts",
   // Sessões de caixa (2026-10-24): as tabelas nascem sem políticas e sem
   // privilégios para authenticated; escrevem-se só pelas RPC (sessão do
   // utilizador, AAL2). A leitura do estado corre aqui, depois da guarda de
