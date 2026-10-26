@@ -393,11 +393,15 @@ export function AttendanceCallDialog({
             </div>
 
             {/* PRESENÇA DO PROFESSOR NA SALA (quando a escola já tem a funcionalidade) */}
-            {data?.session.presence_enabled ? (
+            {data?.session.presence_enabled && data.session.presence_mode !== "off" ? (
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2">
                 <TeacherPresenceLine session={data.session} />
                 {data.session.viewer_is_session_teacher ? (
-                  <TeacherCheckinButton session={data.session} className="h-8" />
+                  <TeacherCheckinButton
+                    session={data.session}
+                    mode={data.session.presence_mode}
+                    className="h-8"
+                  />
                 ) : data.session.viewer_can_register_presence ? (
                   <TeacherPresenceManualRegister session={data.session} />
                 ) : null}

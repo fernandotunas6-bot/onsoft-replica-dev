@@ -60,6 +60,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,
   // na janela da aula, ou a Direcção/Secretaria com motivo.
   "src/features/pedagogica/teacher-presence-server.ts",
+  // QR da escola (2026-10-26): siga_school_presence_settings guarda o segredo que
+  // assina o QR e siga_teacher_presence_scans a assiduidade do pessoal; as duas
+  // nascem com FORCE RLS e sem privilégios para authenticated. Aqui decide-se quem:
+  // a Direcção vê e decide, o professor só regista a sua leitura.
+  "src/features/pedagogica/school-qr-server.ts",
   // Entregas de trabalhos (2026-10-25): siga_class_task_submissions nasce sem
   // políticas e sem privilégios para authenticated (trabalhos de menores), por
   // isso só o service role a lê. Aqui decide-se o âmbito: professor da

@@ -14,6 +14,11 @@ import {
   type TeacherCheckinMethod,
   type TeacherPresenceFields,
 } from "@/features/pedagogica/teacher-presence";
+import {
+  PRESENCE_MODE_OFF_MESSAGE,
+  PRESENCE_MODE_QR_MESSAGE,
+  loadSchoolPresenceMode,
+} from "@/features/pedagogica/school-presence-mode";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -112,6 +117,14 @@ export const confirmTeacherLessonPresence = createServerFn({ method: "POST" })
     const today = schoolTodayIso(now);
     const nowTime = nowTimeInLuanda(now);
     const note = data.note?.trim() || null;
+
+    // Modo da escola: com o QR obrigatório, o professor só entra lendo o QR (a
+    // Direcção continua a poder registar com motivo); desligado, ninguém regista.
+    const mode = await loadSchoolPresenceMode(db, schoolId);
+    if (mode === "off") throw new Error(PRESENCE_MODE_OFF_MESSAGE);
+    if (mode === "qr" && isTeacher && data.action === "check_in") {
+      throw new Error(PRESENCE_MODE_QR_MESSAGE);
+    }
 
     if (isTeacher) {
       const linked = await resolveUserLinkedEntities(db, schoolId, context.userId);

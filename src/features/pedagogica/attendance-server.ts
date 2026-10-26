@@ -25,6 +25,7 @@ import {
   type TeacherPresenceFields,
 } from "@/features/pedagogica/teacher-presence";
 import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-server";
+import { loadSchoolPresenceMode } from "@/features/pedagogica/school-presence-mode";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -219,6 +220,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
           date: today,
           pendingCount: 0,
           presenceEnabled: null,
+          presenceMode: "button" as const,
           viewerIsTeacher: membership.appRole === "Professor",
         };
       classSubjectQuery = classSubjectQuery.eq("teacher_id", linked.teacher_id);
@@ -238,6 +240,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
         date: today,
         pendingCount: 0,
         presenceEnabled: null,
+        presenceMode: "button" as const,
         viewerIsTeacher: membership.appRole === "Professor",
       };
     }
@@ -446,6 +449,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       date: today,
       pendingCount,
       presenceEnabled,
+      presenceMode: await loadSchoolPresenceMode(db, membership.schoolId),
       viewerIsTeacher: membership.appRole === "Professor",
     };
   });
@@ -700,6 +704,7 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
         viewer_is_session_teacher: viewerIsSessionTeacher,
         viewer_can_register_presence:
           membership.appRole === "Administrador" || membership.appRole === "Secretaria",
+        presence_mode: await loadSchoolPresenceMode(db, membership.schoolId),
       },
       students: studentsList,
       totalCount: studentsList.length,
@@ -877,10 +882,13 @@ export const submitAttendanceCallBatch = createServerFn({ method: "POST" })
         // Concluir a chamada no dia da aula também confirma que o professor esteve na
         // sala, se ainda não o tinha feito. Um envio offline que chega mais tarde não
         // conta: a hora de chegada ao servidor não é a hora da aula.
+        // Só no modo «botão»: com o QR obrigatório a presença vem da leitura do QR, e
+        // desligada não se regista.
         if (
           membership.appRole === "Professor" &&
           !offlineOpId &&
-          String(session.lesson_date) === schoolTodayIso()
+          String(session.lesson_date) === schoolTodayIso() &&
+          (await loadSchoolPresenceMode(db, membership.schoolId)) === "button"
         ) {
           try {
             await recordTeacherCheckin(db, {

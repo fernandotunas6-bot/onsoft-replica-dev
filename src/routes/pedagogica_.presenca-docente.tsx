@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { TeacherQrIssuerPanel } from "@/features/hr/TeacherQrIssuerPanel";
+import { SchoolQrPresencePanel } from "@/features/pedagogica/components/SchoolQrPresencePanel";
 
 export const Route = createFileRoute("/pedagogica_/presenca-docente")({
   head: () => ({
@@ -10,7 +11,8 @@ export const Route = createFileRoute("/pedagogica_/presenca-docente")({
       { title: "Presença Docente · Pedagógica · SIGA" },
       {
         name: "description",
-        content: "Emissão segura de QR por aula para entrada e saída dos professores.",
+        content:
+          "QR da escola para confirmar a presença dos professores, com zona GPS e funcionamento sem internet.",
       },
     ],
   }),
@@ -24,7 +26,7 @@ function TeacherQrIssuerPage() {
         <PageHeader
           group="Académico"
           title="Presença dos professores"
-          description="A Direcção Pedagógica sincroniza o horário publicado e apresenta na sala o QR temporário da aula."
+          description="A Direcção mostra o QR da escola e cada professor lê-o no telemóvel antes da aula. Funciona sem internet e trava leituras feitas longe da escola."
           actions={
             <Button asChild variant="outline">
               <Link to="/pedagogica" search={{ tab: "horarios" }}>
@@ -33,6 +35,7 @@ function TeacherQrIssuerPage() {
             </Button>
           }
         />
+        <SchoolQrPresencePanel />
         <TeacherQrIssuerPanel />
       </div>
     </AppShell>

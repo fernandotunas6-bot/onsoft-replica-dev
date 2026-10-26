@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckSquare, DoorOpen, RefreshCw } from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
@@ -10,6 +10,11 @@ import {
   TeacherCheckinButton,
   TeacherPresenceLine,
 } from "@/features/pedagogica/components/TeacherLessonPresence";
+import { TeacherSchoolQrScanner } from "@/features/pedagogica/components/TeacherSchoolQrScanner";
+import {
+  readRememberedPresenceMode,
+  rememberPresenceMode,
+} from "@/features/pedagogica/presence-scan-queue";
 
 const time = (value: string | null | undefined) => (value ? String(value).slice(0, 5) : "");
 
@@ -27,13 +32,26 @@ export function TeacherTodayLessonsPanel() {
     queryFn: () => listTeacherAttendanceSessions({ data: { date: today } }),
   });
   const sessions = sessionsQuery.data?.sessions ?? [];
-  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true;
+  const presenceMode = sessionsQuery.data?.presenceMode ?? "button";
+  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true && presenceMode !== "off";
   const presenceMissing = sessionsQuery.data?.presenceEnabled === false;
+  const loadedMode = sessionsQuery.data?.presenceMode;
+  const [rememberedMode, setRememberedMode] = useState<string | null>(null);
+  useEffect(() => {
+    if (loadedMode) rememberPresenceMode(loadedMode);
+    else setRememberedMode(readRememberedPresenceMode());
+  }, [loadedMode]);
+  // Sem rede a lista não carrega, mas o leitor continua a guardar leituras.
+  const showScanner = loadedMode ? loadedMode === "qr" : rememberedMode === "qr";
 
   return (
     <Panel
       title="Aulas de hoje"
-      description="No início de cada aula, toque «Estou na sala» e faça a chamada dos alunos. Concluir a chamada também confirma a sua presença."
+      description={
+        presenceMode === "qr"
+          ? "No início de cada aula, leia o QR da escola e faça a chamada dos alunos."
+          : "No início de cada aula, toque «Estou na sala» e faça a chamada dos alunos. Concluir a chamada também confirma a sua presença."
+      }
       action={
         <Button
           variant="outline"
@@ -46,6 +64,11 @@ export function TeacherTodayLessonsPanel() {
         </Button>
       }
     >
+      {showScanner ? (
+        <div className="mb-4">
+          <TeacherSchoolQrScanner />
+        </div>
+      ) : null}
       {presenceMissing ? (
         <p className="mb-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-muted-foreground">
           A confirmação de presença na sala ainda não está activa nesta escola. A chamada dos alunos
@@ -97,7 +120,9 @@ export function TeacherTodayLessonsPanel() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {presenceEnabled ? <TeacherCheckinButton session={sess} className="h-9" /> : null}
+                {presenceEnabled ? (
+                  <TeacherCheckinButton session={sess} mode={presenceMode} className="h-9" />
+                ) : null}
                 <Button
                   type="button"
                   size="sm"
@@ -119,7 +144,7 @@ export function TeacherTodayLessonsPanel() {
       {presenceEnabled && sessions.length > 0 ? (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
           <DoorOpen className="size-3.5" aria-hidden /> Pode confirmar a partir de 15 minutos antes
-          do início e até ao fim da aula.
+          do início e até ao fim da aula{presenceMode === "qr" ? ", lendo o QR da escola" : ""}.
         </p>
       ) : null}
       {callSessionId ? (

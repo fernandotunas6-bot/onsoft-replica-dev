@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Clock, DoorOpen, LogOut, UserCheck, UserX } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { AlertCircle, Clock, DoorOpen, LogOut, QrCode, UserCheck, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/lib/toast";
@@ -18,6 +19,7 @@ import {
   teacherCheckinWindow,
   type TeacherPresenceState,
 } from "@/features/pedagogica/teacher-presence";
+import type { SchoolPresenceMode } from "@/features/pedagogica/school-qr";
 
 const TONE: Record<TeacherPresenceState, string> = {
   confirmed: "text-success",
@@ -114,20 +116,23 @@ function useConfirmPresence(onDone?: () => void) {
 
 /**
  * Botão do professor: «Estou na sala» na janela da aula e, depois, «Terminar aula».
+ * Com o QR obrigatório na escola, em vez do «Estou na sala» leva a «Ler QR da escola».
  * Fora da janela não aparece nada (o estado já diz o que se passa).
  */
 export function TeacherCheckinButton({
   session,
+  mode = "button",
   size = "sm",
   className = "",
 }: {
   session: LessonPresenceSession;
+  mode?: SchoolPresenceMode;
   size?: "sm" | "default";
   className?: string;
 }) {
   const confirm = useConfirmPresence();
   const presence = session.teacher_presence;
-  if (session.status === "cancelled") return null;
+  if (session.status === "cancelled" || mode === "off") return null;
   const today = todayInLuanda();
   if (presence?.teacher_checked_in_at) {
     if (presence.teacher_checked_out_at || session.lesson_date !== today) return null;
@@ -152,6 +157,19 @@ export function TeacherCheckinButton({
     nowTime: nowTimeInLuanda(),
   });
   if (window !== "open") return null;
+  if (mode === "qr") {
+    return (
+      <Button
+        asChild
+        size={size}
+        className={`gap-1.5 text-xs font-semibold touch-manipulation ${className}`}
+      >
+        <Link to="/professor/presenca" hash="ler-qr">
+          <QrCode className="size-3.5" /> Ler QR da escola
+        </Link>
+      </Button>
+    );
+  }
   return (
     <Button
       type="button"

@@ -86,7 +86,8 @@ export function AttendanceWorkspaceModule({
     [sessionsQuery.data?.sessions],
   );
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
-  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true;
+  const presenceMode = sessionsQuery.data?.presenceMode ?? "button";
+  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true && presenceMode !== "off";
   const viewerIsTeacher = sessionsQuery.data?.viewerIsTeacher === true;
   const presenceSummary = presenceEnabled ? summarizeTeacherPresence(sessions) : null;
   const historyRecords = historyQuery.data?.records ?? [];
@@ -243,7 +244,11 @@ export function AttendanceWorkspaceModule({
                         teacherName={viewerIsTeacher ? null : sess.teacher_name}
                       />
                       {viewerIsTeacher ? (
-                        <TeacherCheckinButton session={sess} className="h-8 w-full" />
+                        <TeacherCheckinButton
+                          session={sess}
+                          mode={presenceMode}
+                          className="h-8 w-full"
+                        />
                       ) : (
                         <TeacherPresenceManualRegister session={sess} />
                       )}

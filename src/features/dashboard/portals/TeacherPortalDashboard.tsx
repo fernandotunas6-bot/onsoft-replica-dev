@@ -72,7 +72,8 @@ export function TeacherPortalDashboard() {
 
   const sessions = sessionsQuery.data?.sessions ?? [];
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
-  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true;
+  const presenceMode = sessionsQuery.data?.presenceMode ?? "button";
+  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true && presenceMode !== "off";
   const teacherClasses = workspaceQuery.data?.classGroups ?? [];
   const nextLesson = pickNextLesson(sessions, nowTimeInLuanda());
 
@@ -102,7 +103,11 @@ export function TeacherPortalDashboard() {
       <PortalHeader
         eyebrow={`Portal do Professor · ${selectedYearLabel}`}
         title={`${greetingFor()}, Professor ${firstName}`}
-        subtitle="No início de cada aula, toque «Estou na sala» e faça a chamada dos alunos."
+        subtitle={
+          presenceMode === "qr"
+            ? "No início de cada aula, leia o QR da escola e faça a chamada dos alunos."
+            : "No início de cada aula, toque «Estou na sala» e faça a chamada dos alunos."
+        }
         actions={
           <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs font-medium">
             <Link to="/professor/presenca">
@@ -136,7 +141,9 @@ export function TeacherPortalDashboard() {
             <TeacherPresenceLine session={nextLesson} className="w-full sm:w-auto" />
           ) : null}
           <div className="flex flex-wrap gap-2">
-            {presenceEnabled ? <TeacherCheckinButton session={nextLesson} /> : null}
+            {presenceEnabled ? (
+              <TeacherCheckinButton session={nextLesson} mode={presenceMode} />
+            ) : null}
             <Button size="sm" className="gap-1.5 text-xs" onClick={() => openCall(nextLesson.id)}>
               <CheckSquare className="size-3.5" /> Fazer chamada
             </Button>
@@ -218,7 +225,7 @@ export function TeacherPortalDashboard() {
                   </div>
                   <div className="flex items-center gap-1">
                     {presenceEnabled ? (
-                      <TeacherCheckinButton session={sess} className="h-8" />
+                      <TeacherCheckinButton session={sess} mode={presenceMode} className="h-8" />
                     ) : null}
                     <Button
                       type="button"
