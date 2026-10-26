@@ -59,6 +59,8 @@ export const listStudentAccounts = createServerFn({ method: "GET" })
         .eq("school_id", schoolId)
         .eq("status", "active")
         .order("starts_on", { ascending: false })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
         .limit(1)
         .maybeSingle(),
       db.from("schools").select("public_code").eq("id", schoolId).maybeSingle(),
@@ -369,7 +371,7 @@ async function assertStudentOnlyAccount(db: Db, schoolId: string, userId: string
   }
   const { data: roles, error: roleError } = await db
     .from("member_roles")
-    .select("roles(code)")
+    .select("roles!member_roles_school_id_role_id_fkey(code)")
     .in(
       "membership_id",
       rows.map((row) => str(row.id)),
