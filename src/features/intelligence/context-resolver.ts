@@ -69,9 +69,11 @@ export const CLASS_SEARCH_ROUTES: ReadonlySet<string> = new Set([
   "/pedagogica",
   "/planos-aula",
   "/pedagogica/trabalhos",
-  // Os ficheiros e os relatórios académicos estão por turma: não aceitam disciplina.
+  // Os ficheiros, os relatórios académicos e os alunos em risco estão por turma:
+  // não aceitam disciplina.
   "/arquivos",
   "/relatorios/academicos",
+  "/pedagogica/risco",
 ]);
 const SUBJECT_SEARCH_ROUTES: ReadonlySet<string> = new Set([
   "/pedagogica",
@@ -93,9 +95,15 @@ export function routeContextCandidates(
   pathname: string,
   search: Record<string, unknown> = {},
 ): ContextCandidate[] {
-  const [, first, second, extra, more] = pathname.split("/");
-  // A ficha da turma (`/pedagogica/turmas/$classGroupId`).
-  if (first === "pedagogica" && second === "turmas" && more === undefined) {
+  const [, first, second, extra, more, rest] = pathname.split("/");
+  // A ficha da turma (`/pedagogica/turmas/$classGroupId`) e a renovação das
+  // matrículas dela (`/pedagogica/turmas/$turmaId/renovar`).
+  if (
+    first === "pedagogica" &&
+    second === "turmas" &&
+    rest === undefined &&
+    (more === undefined || more === "renovar")
+  ) {
     return extra && UUID.test(extra) ? [{ type: "class", id: extra }] : [];
   }
   if (extra === undefined && second && UUID.test(second)) {

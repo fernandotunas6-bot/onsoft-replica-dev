@@ -52,6 +52,7 @@ describe("getContextEntries", () => {
       "academic.attendance",
       "class.timetable",
       "class.reports",
+      "class.risk",
       "academic.lesson-plans",
       "academic.tasks",
       "academic.files",
@@ -69,6 +70,7 @@ describe("getContextEntries", () => {
       "class.attendance",
       "class.timetable",
       "class.reports",
+      "class.risk",
       "academic.lesson-plans",
       "academic.tasks",
       "academic.files",
@@ -116,9 +118,32 @@ describe("getContextEntries", () => {
       "academic.attendance",
       "class.timetable",
       "class.reports",
+      "class.risk",
       "academic.lesson-plans",
       "academic.tasks",
     ]);
+  });
+
+  it("«Renovar matrículas» é da turma e só de quem grava em Pessoas na secretaria", () => {
+    const ids = (role: string, trail: ContextFrame[], grants = {}) =>
+      getContextEntries(context(role, trail, grants), ACADEMIC_CONTEXT_ENTRIES).map((e) => e.id);
+    expect(ids("Secretaria", [classFrame])).toContain("class.renewal");
+    expect(ids("Administrador", [classFrame])).toContain("class.renewal");
+    // Na disciplina não: a renovação é da turma inteira.
+    expect(ids("Secretaria", [classFrame, subjectFrame])).not.toContain("class.renewal");
+    expect(ids("Professor", [classFrame])).not.toContain("class.renewal");
+    expect(ids("Secretaria", [classFrame], { pessoas: "Leitura" })).not.toContain("class.renewal");
+    const ctx = context("Secretaria", [classFrame]);
+    const renewal = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.renewal")!;
+    expect(contextEntryLink(renewal, ctx)).toEqual({
+      to: `/pedagogica/turmas/${TURMA_A}/renovar`,
+      search: {},
+    });
+    const risk = ACADEMIC_CONTEXT_ENTRIES.find((e) => e.id === "class.risk")!;
+    expect(contextEntryLink(risk, context("Professor", [classFrame, subjectFrame]))).toEqual({
+      to: "/pedagogica/risco",
+      search: { turma: TURMA_A },
+    });
   });
 
   it("não mostra nada sem contexto de entidade", () => {

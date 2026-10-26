@@ -109,6 +109,23 @@ describe("entradas do contexto Aluno", () => {
     ]);
   });
 
+  it("a administração recebe pagamentos do aluno na lista de faturas; a secretaria não", () => {
+    const admin = context("Administrador", [studentFrame]);
+    const invoices = getContextEntries(admin, STUDENT_CONTEXT_ENTRIES).find(
+      (entry) => entry.id === "student.invoices",
+    );
+    expect(invoices && contextEntryLink(invoices, admin)).toEqual({
+      to: "/faturas",
+      search: { aluno: ANA },
+    });
+    // `/faturas` é da Administração e da Tesouraria.
+    expect(
+      getContextEntries(context("Secretaria", [studentFrame]), STUDENT_CONTEXT_ENTRIES).map(
+        (entry) => entry.id,
+      ),
+    ).not.toContain("student.invoices");
+  });
+
   it("marca a secção aberta, e a ficha completa quando não há secção", () => {
     const ctx = context("Secretaria", [studentFrame]);
     const entries = getContextEntries(ctx, STUDENT_CONTEXT_ENTRIES);
