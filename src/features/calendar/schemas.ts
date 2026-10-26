@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { civilDateSchema } from "./agenda-schemas";
 
 export const calendarCategoryOptions = [
   "academic",
@@ -51,11 +52,7 @@ export const listCalendarEventsInputSchema = z.object({
 export type ListCalendarEventsInput = z.infer<typeof listCalendarEventsInputSchema>;
 
 export const listDayAgendaLessonsInputSchema = z.object({
-  date: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  date: civilDateSchema.optional(),
   limit: z.number().int().min(1).max(40).default(24),
 });
 export type ListDayAgendaLessonsInput = z.infer<typeof listDayAgendaLessonsInputSchema>;

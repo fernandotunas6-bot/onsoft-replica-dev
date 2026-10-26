@@ -350,7 +350,7 @@ export const listSchoolShifts = createServerFn({ method: "GET" })
       .is("deleted_at", null)
       .order("starts_at", { ascending: true });
 
-    if (error) return [];
+    if (error) throw publicDatabaseError(error, "Não foi possível ler os turnos da escola.");
     return data ?? [];
   });
 
@@ -896,184 +896,20 @@ export const publishAcademicSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => publishAcademicScheduleInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterForWrite(
-      "pedagogica",
-      context.supabase,
-      context.userId,
-      ["Administrador", "Secretaria"],
-    );
-    const db = await loadSgaAdminClient();
-
-    // O ano lectivo é o da turma, não o que o cliente diz.
-    const { data: classGroup, error: classGroupError } = await db
-      .from("class_groups")
-      .select("id, academic_year_id")
-      .eq("id", data.classGroupId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (classGroupError) {
-      throw publicDatabaseError(classGroupError, "Não foi possível validar a turma.");
-    }
-    if (!classGroup) throw new Error("Turma não encontrada nesta escola.");
-    if (String(classGroup.academic_year_id) !== data.academicYearId) {
-      throw new Error("A turma não pertence ao ano lectivo indicado.");
-    }
-
-    // A publicação é uma operação de fecho: não pode criar uma versão que
-    // ignore a carga semanal previamente configurada para a turma.
-    const { data: classSubjects, error: classSubjectsError } = await db
-      .from("class_subjects")
-      .select("id, weekly_periods")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .eq("status", "active");
-    if (classSubjectsError) {
-      throw publicDatabaseError(classSubjectsError, "Não foi possível validar a carga semanal.");
-    }
-    if (!classSubjects || classSubjects.length === 0) {
-      throw new Error("Associe disciplinas activas à turma antes de publicar o horário.");
-    }
-
-    const classSubjectIds = classSubjects.map((item) => item.id);
-    const { data: slots, error: slotsError } = await db
-      .from("timetable_slots")
-      .select("class_subject_id")
-      .eq("school_id", membership.schoolId)
-      .in("class_subject_id", classSubjectIds)
-      .eq("status", "active");
-    if (slotsError) {
-      throw publicDatabaseError(slotsError, "Não foi possível validar os slots do horário.");
-    }
-
-    const plannedByClassSubject = new Map<string, number>();
-    for (const slot of slots ?? []) {
-      plannedByClassSubject.set(
-        String(slot.class_subject_id),
-        (plannedByClassSubject.get(String(slot.class_subject_id)) ?? 0) + 1,
-      );
-    }
-    const invalidWorkload = classSubjects.filter((item) => {
-      const required = Number(item.weekly_periods);
-      return !Number.isSafeInteger(required) || required <= 0;
-    });
-    if (invalidWorkload.length > 0) {
-      throw new Error(
-        `Configure uma carga semanal válida para ${invalidWorkload.length} disciplina(s) antes de publicar.`,
-      );
-    }
-    const mismatchedWorkload = classSubjects.filter(
-      (item) => (plannedByClassSubject.get(String(item.id)) ?? 0) !== Number(item.weekly_periods),
-    );
-    if (mismatchedWorkload.length > 0) {
-      throw new Error(
-        `Existem ${mismatchedWorkload.length} disciplina(s) com tempos semanais em falta ou em excesso. Corrija antes de publicar.`,
-      );
-    }
-    if ((slots ?? []).length === 0) {
-      throw new Error("Adicione pelo menos uma aula activa antes de publicar o horário.");
-    }
-
-    // 1. Versão nova = maior número + 1. Contar as linhas repetia um número
-    // (chave única `academic_schedules_version_key`) quando uma versão era apagada.
-    const { data: lastVersion, error: lastVersionError } = await db
-      .from("academic_schedules")
-      .select("version_number")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .order("version_number", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (lastVersionError) {
-      throw publicDatabaseError(lastVersionError, "Não foi possível ler as versões do horário.");
-    }
-    const nextVersion = Number(lastVersion?.version_number ?? 0) + 1;
-    const { data: schedule, error: schedError } = await db
-      .from("academic_schedules")
-      .insert({
-        school_id: membership.schoolId,
-        academic_year_id: data.academicYearId,
-        class_group_id: data.classGroupId,
-        version_number: nextVersion,
-        name: data.name ?? `Horário V${nextVersion}`,
-        status: "published",
-        valid_from: data.validFrom ?? schoolTodayIso(),
-        valid_to: data.validTo ?? null,
-        published_at: new Date().toISOString(),
-        published_by: context.userId,
-        created_by: context.userId,
-        updated_by: context.userId,
-      })
-      .select("*")
-      .single();
-
-    if (schedError) {
-      throw publicDatabaseError(schedError, "Não foi possível publicar o horário.");
-    }
-    if (!schedule) {
-      throw new Error("Não foi possível publicar o horário.");
-    }
-
-    // Só uma versão publicada por turma: as anteriores passam a arquivo.
-    const { error: archiveError } = await db
-      .from("academic_schedules")
-      .update({ status: "archived", updated_by: context.userId })
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .eq("status", "published")
-      .neq("id", schedule.id);
-    if (archiveError) {
-      throw publicDatabaseError(
-        archiveError,
-        "Horário publicado, mas a versão anterior não foi arquivada.",
-      );
-    }
-
-    // 2. Associar slots ativos da turma a esta versão de horário
-    if (classSubjects.length > 0) {
-      const csIds = classSubjectIds;
-      const { error: linkError } = await db
-        .from("timetable_slots")
-        .update({ schedule_id: schedule.id, updated_by: context.userId })
-        .eq("school_id", membership.schoolId)
-        .in("class_subject_id", csIds)
-        .eq("status", "active");
-      if (linkError) {
-        throw publicDatabaseError(
-          linkError,
-          "Horário publicado, mas não foi possível associar as aulas à versão publicada.",
-        );
-      }
-    }
-
-    // 3. Sincronizar com Calendário / Presenças se solicitado
-    let generatedSessions = 0;
-    if (data.syncToCalendar) {
-      const { syncAcademicAgendaToSessions } = await import("@/features/calendar/agenda-sessions");
-      generatedSessions = await syncAcademicAgendaToSessions({
-        db,
-        schoolId: membership.schoolId,
-        classGroupId: data.classGroupId,
-        academicYearId: data.academicYearId,
-        userId: context.userId,
-        context,
-      });
-    }
-
-    // Avisar professores e alunos da turma (configurável; nunca falha a publicação).
-    const { notifySchedulePublished } = await import("./timetable-lessons");
-    const notified = await notifySchedulePublished(db, {
-      schoolId: membership.schoolId,
-      classGroupId: data.classGroupId,
-      validFrom: data.validFrom ?? null,
-      scheduleId: String(schedule.id),
-    });
-
-    return { schedule, generatedSessions, notified, success: true };
+    const { publishAcademicScheduleForRequest } = await import("./schedule-publication");
+    return publishAcademicScheduleForRequest(data, context);
   });
 
-// ---------------------------------------------------------------------------
-// 10. SINCRONIZAÇÃO HORÁRIO -> SESSÕES / CALENDÁRIO
-// ---------------------------------------------------------------------------
+export const syncPublishedAcademicSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ classGroupId: z.string().guid(), academicYearId: z.string().guid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { resyncAcademicScheduleForRequest } = await import("./schedule-publication");
+    return resyncAcademicScheduleForRequest(data, context);
+  });
+
 // ---------------------------------------------------------------------------
 // 11. PAINEL "AGORA NA ESCOLA" & RECOMENDAÇÕES INTELIGENTES
 // ---------------------------------------------------------------------------

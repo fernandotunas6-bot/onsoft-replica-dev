@@ -19,6 +19,9 @@ import { resolveUserLinkedEntities } from "@/features/auth/server";
 import { schoolTodayIso } from "@/lib/school-date";
 import { LOCKED_SHEET_STATUSES } from "@/features/academic/sga-grades";
 import { loadShareableSchoolFile, signChatAttachmentFile } from "@/features/arquivos/server";
+import { loadAcademicAgendaForRequest } from "@/features/calendar/agenda-server";
+import { civilDateSchema } from "@/features/calendar/agenda-schemas";
+import { addDaysIso } from "@/features/calendar/dates";
 
 export const attendanceStatusEnum = z.enum([
   "present",
@@ -32,7 +35,7 @@ export const attendanceStatusEnum = z.enum([
 export type AttendanceStatus = z.infer<typeof attendanceStatusEnum>;
 
 export const listTeacherAttendanceSessionsInputSchema = z.object({
-  date: z.string().optional(), // YYYY-MM-DD
+  date: civilDateSchema.optional(),
   classGroupId: z.string().guid().optional(),
 });
 
@@ -190,8 +193,6 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
 
     const today = data.date || schoolTodayIso();
-    const dateObj = new Date(`${today}T12:00:00Z`);
-    const weekday = dateObj.getDay(); // 0 = Domingo, 1 = Segunda...
 
     // Leituras por páginas e com os `.in(...)` em lotes: a direcção vê as disciplinas
     // de todas as turmas, e com ~200 a lista passava o tamanho do URL — o erro era
@@ -223,13 +224,22 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       return { sessions: [], date: today, pendingCount: 0 };
     }
 
-    const { data: slots } = await reads
-      .from("timetable_slots")
-      .select("id, class_subject_id, weekday, starts_at, ends_at, room")
-      .in("class_subject_id", classSubjectIds)
-      .eq("weekday", weekday)
-      .eq("status", "active")
-      .order("starts_at");
+    const agenda = await loadAcademicAgendaForRequest(
+      { start: today, end: addDaysIso(today, 1), classGroupId: data.classGroupId },
+      context,
+    );
+    const slots = agenda
+      .filter((event) => event.extendedProps.source === "lesson" && !!event.end)
+      .map((event) => ({
+        id: event.extendedProps.sourceId.split("@")[0],
+        class_subject_id: event.extendedProps.classSubjectId!,
+        academic_year_id: event.extendedProps.academicYearId,
+        starts_at: event.start.slice(11, 19),
+        ends_at: event.end!.slice(11, 19),
+        room: event.extendedProps.room ?? null,
+      }))
+      .filter((slot) => classSubjectIds.includes(slot.class_subject_id));
+    if (!slots.length) return { sessions: [], date: today, pendingCount: 0 };
 
     const classGroupIds = [
       ...new Set((classSubjects ?? []).map((cs: { class_group_id: string }) => cs.class_group_id)),
@@ -238,10 +248,24 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       ...new Set((classSubjects ?? []).map((cs: { subject_id: string }) => cs.subject_id)),
     ];
 
-    const [{ data: groups }, { data: subjects }] = await Promise.all([
-      reads.from("class_groups").select("id, name").in("id", classGroupIds),
-      reads.from("subjects").select("id, name").in("id", subjectIds),
-    ]);
+    const [{ data: groups, error: groupError }, { data: subjects, error: subjectError }] =
+      await Promise.all([
+        reads
+          .from("class_groups")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", classGroupIds),
+        reads
+          .from("subjects")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", subjectIds),
+      ]);
+    if (groupError || subjectError)
+      throw publicDatabaseError(
+        groupError ?? subjectError!,
+        "Não foi possível carregar as aulas do dia.",
+      );
 
     const groupMap = new Map(
       (groups ?? []).map((g: { id: string; name: string }) => [g.id, g.name]),
@@ -260,13 +284,22 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       ),
     );
 
-    const { data: existingSessions } = await reads
+    const { data: existingSessions, error: sessionsError } = await reads
       .from("siga_attendance_sessions")
       .select(
         "id, class_group_id, subject_id, timetable_slot_id, lesson_date, status, starts_at, ends_at",
       )
       .eq("school_id", membership.schoolId)
+      .in(
+        "timetable_slot_id",
+        slots.map((slot) => slot.id),
+      )
       .eq("lesson_date", today);
+    if (sessionsError)
+      throw publicDatabaseError(
+        sessionsError,
+        "Não foi possível verificar as sessões de presença.",
+      );
 
     const sessionBySlotMap = new Map<string, { id: string; status: string }>(
       (existingSessions ?? [])
@@ -284,42 +317,43 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
         csMap.has(slot.class_subject_id) && !sessionBySlotMap.has(slot.id),
     );
     if (missing.length) {
-      let { data: created, error: createError } = await db
-        .from("siga_attendance_sessions")
-        .insert(
-          missing.map((slot) => {
-            const cs = csMap.get(slot.class_subject_id)!;
-            return {
-              school_id: membership.schoolId,
-              class_group_id: cs.class_group_id,
-              subject_id: cs.subject_id,
-              teacher_id: cs.teacher_id,
-              timetable_slot_id: slot.id,
-              lesson_date: today,
-              starts_at: slot.starts_at,
-              ends_at: slot.ends_at,
-              status: "pending",
-              created_by: context.userId,
-            };
-          }),
-        )
-        .select("id, status, timetable_slot_id");
-      // Outro pedido criou-as entretanto (índice único por escola, aula e dia,
-      // migração 20260929230000): lêem-se as que ficaram.
-      if (createError?.code === "23505") {
-        ({ data: created, error: createError } = await reads
-          .from("siga_attendance_sessions")
-          .select("id, status, timetable_slot_id")
-          .eq("school_id", membership.schoolId)
-          .eq("lesson_date", today)
-          .in(
-            "timetable_slot_id",
-            missing.map((slot) => slot.id),
-          ));
-      }
+      const { error: createError } = await db.from("siga_attendance_sessions").upsert(
+        missing.map((slot) => {
+          const cs = csMap.get(slot.class_subject_id)!;
+          return {
+            school_id: membership.schoolId,
+            academic_year_id: slot.academic_year_id,
+            class_group_id: cs.class_group_id,
+            subject_id: cs.subject_id,
+            teacher_id: cs.teacher_id,
+            timetable_slot_id: slot.id,
+            lesson_date: today,
+            starts_at: slot.starts_at,
+            ends_at: slot.ends_at,
+            status: "pending",
+            created_by: context.userId,
+          };
+        }),
+        { onConflict: "school_id,timetable_slot_id,lesson_date", ignoreDuplicates: true },
+      );
       if (createError) {
         throw publicDatabaseError(createError, "Não foi possível preparar as aulas do dia.");
       }
+      // Inclui as sessões que outro pedido criou entretanto, sem as actualizar.
+      const { data: created, error: confirmError } = await reads
+        .from("siga_attendance_sessions")
+        .select("id, status, timetable_slot_id")
+        .eq("school_id", membership.schoolId)
+        .eq("lesson_date", today)
+        .in(
+          "timetable_slot_id",
+          missing.map((slot) => slot.id),
+        );
+      if (confirmError)
+        throw publicDatabaseError(
+          confirmError,
+          "Não foi possível confirmar as sessões de presença.",
+        );
       for (const row of (created ?? []) as Array<{
         id: string;
         status: string;
@@ -350,6 +384,10 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       if (!cs) continue;
 
       const existing = sessionBySlotMap.get(slot.id);
+      if (!existing)
+        throw new Error(
+          "Não foi possível confirmar a sessão de presença. Volte a carregar as aulas.",
+        );
       const sessionId = existing?.id;
       const status: "pending" | "completed" | "cancelled" =
         (existing?.status as "pending" | "completed" | "cancelled" | undefined) ?? "pending";

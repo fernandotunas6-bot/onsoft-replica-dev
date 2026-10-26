@@ -6,7 +6,7 @@ type ProposedSlot = Pick<
   "class_group_id" | "teacher_id" | "room_id" | "weekday" | "starts_at" | "ends_at"
 >;
 
-function seconds(value: string): number {
+export function scheduleTimeSeconds(value: string): number {
   const match = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
   if (!match) throw new Error("Introduza uma hora válida no formato HH:mm.");
   const hours = Number(match[1]);
@@ -18,11 +18,16 @@ function seconds(value: string): number {
   return hours * 3600 + minutes * 60 + secs;
 }
 
+/** Mostrar HH:mm por omissão, preservando segundos não nulos. */
+export function scheduleTimeLabel(value: string): string {
+  return scheduleTimeSeconds(value) % 60 === 0 ? value.slice(0, 5) : value.slice(0, 8);
+}
+
 export function assertValidScheduleTime(weekday: number, startsAt: string, endsAt: string): void {
   if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) {
     throw new Error("Seleccione um dia válido da semana.");
   }
-  if (seconds(endsAt) <= seconds(startsAt)) {
+  if (scheduleTimeSeconds(endsAt) <= scheduleTimeSeconds(startsAt)) {
     throw new Error("A hora de fim deve ser posterior à hora de início.");
   }
 }

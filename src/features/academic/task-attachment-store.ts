@@ -1,3 +1,4 @@
+import { readInChunks } from "@/integrations/supabase/read-all-pages";
 /**
  * Guardar e ler os anexos das entregas no arquivo da escola (`siga_files`, bucket
  * privado `siga-files`). Só o servidor escreve: o bucket não aceita envios de
@@ -109,12 +110,14 @@ export async function loadAttachmentInfo(
   const ids = [...new Set(fileIds.filter((id): id is string => Boolean(id)))];
   const result = new Map<string, AttachmentInfo>();
   if (!ids.length) return result;
-  const { data, error } = await db
-    .from("siga_files")
-    .select("id, name, mime, size_bytes")
-    .eq("school_id", schoolId)
-    .in("id", ids)
-    .is("deleted_at", null);
+  const { data, error } = await readInChunks(ids, (chunk) =>
+    db
+      .from("siga_files")
+      .select("id, name, mime, size_bytes")
+      .eq("school_id", schoolId)
+      .in("id", chunk)
+      .is("deleted_at", null),
+  );
   if (error) throw publicDatabaseError(error, "Não foi possível ler os anexos.");
   for (const row of (data ?? []) as Row[]) {
     result.set(String(row.id), {

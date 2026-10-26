@@ -4,6 +4,7 @@
  * servidor, confere a assinatura do plano visto e muda cada aluno pela regra
  * única de colocação (`placeStudentInClass`: 2FA, gatilho de lotação, histórico).
  */
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -241,12 +242,17 @@ async function loadPlan(
   if (enrollmentIds.length) {
     const reads = await Promise.all(
       RECORD_TABLES.map((table) =>
-        db
-          .from(table)
-          .select("enrollment_id")
-          .eq("school_id", schoolId)
-          .in("enrollment_id", enrollmentIds)
-          .limit(5000),
+        readInChunks(enrollmentIds, (chunk) =>
+          readAllPages((from, to) =>
+            db
+              .from(table)
+              .select("id, enrollment_id")
+              .eq("school_id", schoolId)
+              .in("enrollment_id", chunk)
+              .order("id")
+              .range(from, to),
+          ),
+        ),
       ),
     );
     for (const read of reads) {
@@ -255,6 +261,48 @@ async function loadPlan(
       }
       for (const row of (read.data ?? []) as Row[]) withRecords.add(str(row.enrollment_id));
     }
+  }
+
+  // A chamada actual liga aluno à sessão, não directamente à matrícula.
+  // Ler todas as páginas: um limite silencioso podia deixar presenças desprotegidas.
+  const sessions = await readInChunks(groupIds, (chunk) =>
+    readAllPages((from, to) =>
+      db
+        .from("siga_attendance_sessions")
+        .select("id, class_group_id")
+        .eq("school_id", schoolId)
+        .eq("academic_year_id", year.id)
+        .in("class_group_id", chunk)
+        .order("id")
+        .range(from, to),
+    ),
+  );
+  if (sessions.error)
+    throw publicDatabaseError(sessions.error, "Não foi possível confirmar as chamadas.");
+  const groupOfSession = new Map(
+    sessions.data.map((row) => [str(row.id), str(row.class_group_id)]),
+  );
+  const attendance = await readInChunks([...groupOfSession.keys()], (chunk) =>
+    readAllPages((from, to) =>
+      db
+        .from("siga_attendance_records")
+        .select("id, student_id, session_id")
+        .eq("school_id", schoolId)
+        .in("session_id", chunk)
+        .order("id")
+        .range(from, to),
+    ),
+  );
+  if (attendance.error)
+    throw publicDatabaseError(attendance.error, "Não foi possível confirmar as presenças.");
+  const attended = new Set(
+    attendance.data.map(
+      (row) => `${str(row.student_id)}|${groupOfSession.get(str(row.session_id))}`,
+    ),
+  );
+  for (const row of enrollmentRows) {
+    if (attended.has(`${str(row.student_id)}|${str(row.class_group_id)}`))
+      withRecords.add(str(row.id));
   }
 
   const studentOf = new Map(((students ?? []) as Row[]).map((row) => [str(row.id), row]));
@@ -342,6 +390,7 @@ export const applyClassOrganization = createServerFn({ method: "POST" })
         await placeStudentInClass(db, context.supabase, {
           schoolId: membership.schoolId,
           studentId: move.studentId,
+          reorganizeFromClassId: move.from,
           classGroupId: move.to,
           academicYearId: yearId,
           userId: context.userId,

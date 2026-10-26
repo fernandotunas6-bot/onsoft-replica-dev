@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Row = Record<string, unknown>;
 let tables: Record<string, Row[]> = {};
+let failStudent: string | null = null;
 let claims: Record<string, unknown> = { aal: "aal2" };
 const placed: Array<{ studentId: string; classGroupId: string }> = [];
 const S = "00000000-0000-0000-0000-00000000000a";
@@ -10,10 +11,18 @@ const LEVEL = "00000000-0000-0000-0000-0000000000c7";
 function memoryDb() {
   return {
     from(table: string) {
+      let range: [number, number] | null = null;
       const filters: Array<(row: Row) => boolean> = [];
-      const rows = () => (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
+      const rows = () => {
+        const all = (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
+        return range ? all.slice(range[0], range[1] + 1) : all;
+      };
       const chain = {
         select: () => chain,
+        range: (from: number, to: number) => {
+          range = [from, to];
+          return chain;
+        },
         order: () => chain,
         limit: () => chain,
         eq: (column: string, value: unknown) => {
@@ -45,6 +54,10 @@ vi.mock("@/features/students/enrollment-core", () => ({
   ENROLLMENT_2FA_MESSAGE: "Matricular e mudar de turma exigem 2FA.",
   // A regra única de colocação: aqui só se regista a ordem e se aplica à base.
   placeStudentInClass: async (_db: unknown, _session: unknown, input: Row) => {
+    if (input.studentId === failStudent) {
+      failStudent = null;
+      throw new Error("Falha temporária");
+    }
     placed.push({ studentId: String(input.studentId), classGroupId: String(input.classGroupId) });
     const enrollment = tables.enrollments!.find((row) => row.student_id === input.studentId)!;
     enrollment.class_group_id = input.classGroupId;
@@ -143,6 +156,7 @@ function seed(
 
 beforeEach(() => {
   claims = { aal: "aal2" };
+  failStudent = null;
   placed.length = 0;
 });
 
@@ -221,5 +235,43 @@ describe("organizar turmas no servidor", () => {
       }),
     ).rejects.toThrow("mudaram desde a pré-visualização");
     expect(placed).toEqual([]);
+  });
+  it("protege quem só tem presença no sistema actual, na turma e ano certos", async () => {
+    seed([student(1, "2012-01-01", "cA"), student(2, "2014-01-01", "cB")]);
+    tables.siga_attendance_sessions = [
+      { id: "sess", school_id: S, academic_year_id: "y1", class_group_id: "cA" },
+      { id: "other-year", school_id: S, academic_year_id: "old", class_group_id: "cB" },
+    ];
+    tables.siga_attendance_records = [
+      { id: "rec", school_id: S, student_id: "s1", session_id: "sess" },
+      { id: "rec-old", school_id: S, student_id: "s2", session_id: "other-year" },
+    ];
+    const plan = await server.previewClassOrganization({
+      data: { gradeLevelId: LEVEL, shift: "morning" },
+    });
+    expect(plan.lines.find((l) => l.studentId === "s1")?.status).toBe("records");
+    expect(plan.lines.find((l) => l.studentId === "s2")?.status).not.toBe("records");
+  });
+  it("um lote parcial pode ser retomado sem repetir as mudanças concluídas", async () => {
+    seed([
+      student(1, "2012-01-01", "cA"),
+      student(2, "2012-02-01", "cA"),
+      student(3, "2014-01-01", "cB"),
+    ]);
+    const scope = { gradeLevelId: LEVEL, shift: "morning" };
+    const first = await server.previewClassOrganization({ data: scope });
+    failStudent = "s3";
+    const partial = await server.applyClassOrganization({
+      data: { ...scope, signature: first.signature },
+    });
+    expect(partial.moved).toBe(1);
+    expect(partial.failed).toHaveLength(1);
+    const retry = await server.previewClassOrganization({ data: scope });
+    expect(
+      (await server.applyClassOrganization({ data: { ...scope, signature: retry.signature } }))
+        .failed,
+    ).toEqual([]);
+    expect(placed.filter((p) => p.studentId === "s1")).toHaveLength(1);
+    expect(placed.filter((p) => p.studentId === "s3")).toHaveLength(1);
   });
 });

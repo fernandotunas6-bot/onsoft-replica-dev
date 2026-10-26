@@ -24,9 +24,9 @@ describe("regras de transição por ciclo", () => {
     expect(decidePromotionStatus(9, 3, "ii_ciclo")).toBe("ADMITIDO A EXAME");
     expect(decidePromotionStatus(8.9, 0, "ii_ciclo")).toBe("NÃO TRANSITA");
     // Técnico: PAP.
-    expect(decidePromotionStatus(12, 2, "tecnico")).toBe("APTO (PAP)");
+    expect(decidePromotionStatus(12, 2, "tecnico", 15)).toBe("APTO (PAP)");
     expect(decidePromotionStatus(12, 2, "tecnico", 8)).toBe("NÃO APTO (PAP)");
-    expect(decidePromotionStatus(12, 3, "tecnico")).toBe("NÃO TRANSITA");
+    expect(decidePromotionStatus(12, 3, "tecnico", 15)).toBe("NÃO TRANSITA");
     // Adultos e superior seguem o I Ciclo.
     expect(decidePromotionStatus(12, 3, "adultos")).toBe("NÃO TRANSITA");
   });

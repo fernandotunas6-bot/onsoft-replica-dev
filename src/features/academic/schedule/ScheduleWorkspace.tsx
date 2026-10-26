@@ -1,4 +1,6 @@
+import type { ProposalShift } from "./utils/proposalGrid";
 import { LessonReminderSettingsDialog } from "./LessonReminderSettingsDialog";
+import { ScheduleToolsPanel, type ApplyProposalResult } from "./ScheduleToolsPanel";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -77,7 +79,11 @@ export function ScheduleWorkspace({
   onUpdateSlot,
   onDeleteSlot,
   onPublishSchedule,
+  yearEndsOn,
+  onCreateSlots,
+  proposalShifts = [],
 }: {
+  proposalShifts?: ProposalShift[];
   activeYearLabel: string;
   activeYearId?: string;
   canManage: boolean;
@@ -93,6 +99,10 @@ export function ScheduleWorkspace({
   onUpdateSlot: (input: ScheduleSlotUpdate) => Promise<void>;
   onDeleteSlot: (slotId: string) => Promise<void>;
   onPublishSchedule?: (classGroupId: string) => Promise<{ notified?: number } | void>;
+  /** Último dia do ano lectivo: até onde o calendário exportado repete as aulas. */
+  yearEndsOn?: string | null;
+  /** Grava várias aulas (proposta automática), cada uma pelas validações do servidor. */
+  onCreateSlots?: (lessons: ScheduleSlotInput[]) => Promise<ApplyProposalResult>;
 }) {
   const [viewMode, setViewMode] = useState<"turma" | "professor" | "sala">("turma");
   const [classGroupId, setClassGroupId] = useState("");
@@ -931,6 +941,31 @@ export function ScheduleWorkspace({
           </TableBody>
         </Table>
       </div>
+      {scheduleAvailable && classGroups.length > 0 ? (
+        <div className="mt-4">
+          <ScheduleToolsPanel
+            proposalShifts={proposalShifts}
+            slots={slots}
+            visibleSlots={visibleSlots}
+            viewLabel={
+              viewMode === "turma"
+                ? (selectedClassGroup?.name ?? "turma")
+                : viewMode === "professor"
+                  ? (selectedTeacher?.name ?? "professor")
+                  : (selectedRoom?.name ?? "sala")
+            }
+            classGroups={classGroups}
+            subjects={subjects}
+            classSubjects={classSubjects}
+            rooms={rooms}
+            teachers={teachers}
+            selectedClassGroupId={selectedClassGroupId}
+            canManage={canManage}
+            yearEndsOn={yearEndsOn}
+            onApplyProposal={canManage ? onCreateSlots : undefined}
+          />
+        </div>
+      ) : null}
     </Panel>
   );
 }

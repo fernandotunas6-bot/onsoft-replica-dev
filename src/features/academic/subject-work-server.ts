@@ -4,6 +4,7 @@
  * entrega. O detalhe da aula só mostra os que ainda estão por fazer; o histórico
  * vive aqui. Leitura apenas: entregar continua em `submitTaskWork`.
  */
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -119,29 +120,40 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
     );
     if (!groupOfClassSubject.size) return base;
 
-    const { data: tasks, error: taskError } = await db
-      .from("siga_class_tasks")
-      .select(
-        "id, class_subject_id, kind, title, description, due_on, status, accepts_late, assessment_item_id, created_at",
-      )
-      .eq("school_id", schoolId)
-      .in("class_subject_id", [...groupOfClassSubject.keys()])
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const { data: tasks, error: taskError } = await readInChunks(
+      [...groupOfClassSubject.keys()],
+      (chunk) =>
+        readAllPages((from, to) =>
+          db
+            .from("siga_class_tasks")
+            .select(
+              "id, class_subject_id, kind, title, description, due_on, status, accepts_late, assessment_item_id, created_at",
+            )
+            .eq("school_id", schoolId)
+            .in("class_subject_id", chunk)
+            .order("id")
+            .range(from, to),
+        ),
+    );
     if (taskError) throw publicDatabaseError(taskError, "Não foi possível ler os trabalhos.");
     const taskRows = (tasks ?? []) as Row[];
     if (!taskRows.length) return base;
 
     const enrollmentIds = [...new Set(enrollmentOfGroup.values())];
-    const { data: submissions, error: subError } = await db
-      .from("siga_class_task_submissions")
-      .select(SUBMISSION_COLUMNS)
-      .eq("school_id", schoolId)
-      .in(
-        "task_id",
-        taskRows.map((row) => str(row.id)),
-      )
-      .in("enrollment_id", enrollmentIds);
+    const { data: submissions, error: subError } = await readInChunks(
+      taskRows.map((row) => str(row.id)),
+      (chunk) =>
+        readAllPages((from, to) =>
+          db
+            .from("siga_class_task_submissions")
+            .select(SUBMISSION_COLUMNS)
+            .eq("school_id", schoolId)
+            .in("task_id", chunk)
+            .in("enrollment_id", enrollmentIds)
+            .order("id")
+            .range(from, to),
+        ),
+    );
     if (subError) throw publicDatabaseError(subError, "Não foi possível ler as entregas.");
     const submissionRows = (submissions ?? []) as unknown as Array<
       SubmissionRow & { task_id: string }

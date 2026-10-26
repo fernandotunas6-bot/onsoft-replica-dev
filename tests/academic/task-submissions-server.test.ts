@@ -9,6 +9,7 @@ let tenantBlocked = false;
 let storedObjects: Record<string, unknown> = {};
 let failSubmissionInsert = false;
 const writeAssessmentScores = vi.fn();
+const returnSubmissionRpc = vi.fn();
 const assertCanStoreBytes = vi.fn();
 const notifyTaskReturned = vi.fn();
 
@@ -20,6 +21,8 @@ function memoryDb() {
       let patch: Row | null = null;
       let inserted: Row | null = null;
       let removing = false;
+      let range: [number, number] | null = null;
+      let orderedBy: string | null = null;
       const rows = () => (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
       const run = () => {
         if (removing) {
@@ -44,13 +47,25 @@ function memoryDb() {
           });
           return { data: null, error: null };
         }
-        const found = rows();
+        let found = rows();
+        if (orderedBy)
+          found = [...found].sort((a, b) =>
+            String(a[orderedBy!]).localeCompare(String(b[orderedBy!])),
+          );
+        if (range) found = found.slice(range[0], range[1] + 1);
         if (patch) for (const row of found) Object.assign(row, patch);
         return { data: found, error: null };
       };
       const chain = {
         select: () => chain,
-        order: () => chain,
+        order: (column: string) => {
+          orderedBy = column;
+          return chain;
+        },
+        range: (from: number, to: number) => {
+          range = [from, to];
+          return chain;
+        },
         limit: () => chain,
         eq: (column: string, value: unknown) => {
           filters.push((row) => row[column] === value);
@@ -87,6 +102,7 @@ function memoryDb() {
       };
       return chain;
     },
+    rpc: (...args: unknown[]) => returnSubmissionRpc(...args),
     storage: {
       from: (bucket: string) => ({
         upload: async (path: string, body: unknown) => {
@@ -175,6 +191,23 @@ beforeEach(() => {
   failSubmissionInsert = false;
   assertCanStoreBytes.mockReset();
   notifyTaskReturned.mockReset();
+  returnSubmissionRpc.mockReset();
+  returnSubmissionRpc.mockImplementation(async (_name: string, input: Row) => {
+    const row = tables.siga_class_task_submissions?.find((r) => r.id === input.p_submission_id);
+    if (!row || row.status !== "submitted")
+      return { data: null, error: { message: "Esta entrega já foi devolvida ou não existe." } };
+    const task = tables.siga_class_tasks?.find((t) => t.id === input.p_task_id);
+    Object.assign(row, {
+      status: "returned",
+      grade: input.p_grade,
+      feedback: input.p_feedback,
+      returned_at: new Date().toISOString(),
+    });
+    return {
+      data: { pauta: Boolean(task?.assessment_item_id) && input.p_grade != null, changed: true },
+      error: null,
+    };
+  });
   writeAssessmentScores.mockReset();
   writeAssessmentScores.mockResolvedValue({ saved: 1 });
   tables = {
@@ -336,7 +369,10 @@ describe("entregas no servidor", () => {
     const submissionId = String(tables.siga_class_task_submissions![0]!.id);
 
     // A pauta recusa (ex.: período fechado): a entrega fica por devolver.
-    writeAssessmentScores.mockRejectedValueOnce(new Error("O 1º trimestre está fechado."));
+    returnSubmissionRpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: "O período está fechado." },
+    });
     await expect(
       server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
     ).rejects.toThrow("fechado");
@@ -345,11 +381,13 @@ describe("entregas no servidor", () => {
     expect(
       await server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 15 } }),
     ).toEqual({ ok: true, pauta: true });
-    expect(writeAssessmentScores).toHaveBeenLastCalledWith(expect.anything(), {
-      schoolId: S,
-      userId: "u1",
-      itemId: ITEM,
-      rows: [{ enrollmentId: E1, score: 15 }],
+    expect(returnSubmissionRpc).toHaveBeenLastCalledWith("siga_return_task_submission_atomic", {
+      p_school_id: S,
+      p_actor_user_id: "u1",
+      p_task_id: TASK,
+      p_submission_id: submissionId,
+      p_grade: 15,
+      p_feedback: null,
     });
     expect(tables.siga_class_task_submissions![0]!.status).toBe("returned");
     // Só depois de devolvida (a tentativa recusada pela pauta não avisou ninguém).
@@ -574,5 +612,47 @@ describe("entregas no servidor", () => {
     await expect(server.syncTaskGradesToPauta({ data: { taskId: TASK } })).rejects.toThrow(
       "Só o professor desta disciplina",
     );
+  });
+  it("sincroniza mais de 80 notas numa única transacção e propaga a recusa do lote", async () => {
+    membership = { schoolId: S, appRole: "Administrador" };
+    tables.siga_class_tasks![0]!.assessment_item_id = ITEM;
+    tables.siga_class_task_submissions = Array.from({ length: 81 }, (_, i) => ({
+      id: `submission-${i}`,
+      school_id: S,
+      task_id: TASK,
+      enrollment_id: `enrollment-${i}`,
+      attempt: 1,
+      status: "returned",
+      grade: 12,
+    }));
+    writeAssessmentScores.mockRejectedValue(new Error("Pauta homologada"));
+    await expect(server.syncTaskGradesToPauta({ data: { taskId: TASK } })).rejects.toThrow(
+      "Pauta homologada",
+    );
+    expect(writeAssessmentScores).toHaveBeenCalledTimes(1);
+    expect(writeAssessmentScores.mock.calls[0]![1].rows).toHaveLength(81);
+  });
+
+  it("lê a tentativa mais recente após a primeira página antes de sincronizar", async () => {
+    membership = { schoolId: S, appRole: "Administrador" };
+    tables.siga_class_tasks![0]!.assessment_item_id = ITEM;
+    tables.siga_class_task_submissions = Array.from({ length: 1001 }, (_, i) => ({
+      id: String(i).padStart(6, "0"),
+      school_id: S,
+      task_id: TASK,
+      enrollment_id: E1,
+      attempt: i + 1,
+      status: "returned",
+      grade: i === 1000 ? 17 : 10,
+    }));
+    expect(await server.syncTaskGradesToPauta({ data: { taskId: TASK } })).toEqual({ saved: 1 });
+    expect(writeAssessmentScores.mock.calls[0]![1].rows).toEqual([{ enrollmentId: E1, score: 17 }]);
+  });
+
+  it("sem entregas devolvidas não chama a escrita da pauta", async () => {
+    membership = { schoolId: S, appRole: "Administrador" };
+    tables.siga_class_tasks![0]!.assessment_item_id = ITEM;
+    expect(await server.syncTaskGradesToPauta({ data: { taskId: TASK } })).toEqual({ saved: 0 });
+    expect(writeAssessmentScores).not.toHaveBeenCalled();
   });
 });

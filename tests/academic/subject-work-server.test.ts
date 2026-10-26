@@ -9,10 +9,18 @@ let visibleStudent: string | null = "st1";
 function memoryDb() {
   return {
     from(table: string) {
+      let range: [number, number] | null = null;
       const filters: Array<(row: Row) => boolean> = [];
-      const rows = () => (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
+      const rows = () => {
+        const all = (tables[table] ?? []).filter((row) => filters.every((f) => f(row)));
+        return range ? all.slice(range[0], range[1] + 1) : all;
+      };
       const chain = {
         select: () => chain,
+        range: (from: number, to: number) => {
+          range = [from, to];
+          return chain;
+        },
         order: () => chain,
         limit: () => chain,
         eq: (column: string, value: unknown) => {
@@ -198,5 +206,14 @@ describe("trabalhos da disciplina (aluno e encarregado)", () => {
       state: "overdue",
       archived: false,
     });
+  });
+  it("preserva trabalhos e tentativas para além da primeira página", async () => {
+    tables.siga_class_tasks = Array.from({ length: 1201 }, (_, i) => task(`t${i}`));
+    tables.siga_class_task_submissions = Array.from({ length: 1201 }, (_, i) =>
+      submission(`t${i}`, 1),
+    );
+    const result = await getMySubjectWork({ data: { subjectId: SUBJECT } });
+    expect(result.tasks).toHaveLength(1201);
+    expect(result.tasks.find((t) => t.id === "t1200")?.attempts).toHaveLength(1);
   });
 });

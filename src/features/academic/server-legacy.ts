@@ -1,3 +1,4 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-link";
 import { createServerFn } from "@tanstack/react-start";
@@ -244,24 +245,38 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const filteredGroupIds = (groups.data ?? []).map((group: { id: string }) => group.id);
 
     const classSubjectsChain = (async () => {
-      const { data: classSubjectsData } = filteredGroupIds.length
-        ? await db
-            .from("class_subjects")
-            .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
-            .in("class_group_id", filteredGroupIds)
-            .eq("status", "active")
-        : { data: [] as Array<Record<string, unknown>> };
+      const { data: classSubjectsData, error: classSubjectsError } = filteredGroupIds.length
+        ? await readInChunks(filteredGroupIds, (chunk) =>
+            readAllPages((from, to) =>
+              db
+                .from("class_subjects")
+                .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
+                .eq("school_id", membership.schoolId)
+                .in("class_group_id", chunk)
+                .eq("status", "active")
+                .order("id")
+                .range(from, to),
+            ),
+          )
+        : { data: [] as Array<Record<string, unknown>>, error: null };
+      if (classSubjectsError)
+        throw publicDatabaseError(classSubjectsError, "Não foi possível carregar as atribuições.");
       const ids = (classSubjectsData ?? []).map((row: Record<string, unknown>) =>
         String(row["id"]),
       );
       const { data: slots, error: slotsError } = ids.length
-        ? await db
-            .from("timetable_slots")
-            .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
-            .in("class_subject_id", ids)
-            .eq("status", "active")
-            .order("starts_at")
-            .limit(500)
+        ? await readInChunks(ids, (chunk) =>
+            readAllPages((from, to) =>
+              db
+                .from("timetable_slots")
+                .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
+                .eq("school_id", membership.schoolId)
+                .in("class_subject_id", chunk)
+                .eq("status", "active")
+                .order("id")
+                .range(from, to),
+            ),
+          )
         : { data: [] as Array<Record<string, unknown>>, error: null };
       return { data: classSubjectsData, timetableSlots: slots, scheduleError: slotsError };
     })();

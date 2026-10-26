@@ -1,3 +1,4 @@
+import { academicWriteRpcClient } from "@/integrations/supabase/academic-write-rpcs";
 /**
  * Gravar notas de uma avaliação (siga_assessment_scores), com as regras da pauta:
  * cotação máxima, período aberto, pauta não homologada, alunos da turma, histórico
@@ -8,7 +9,6 @@
  */
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
-import { recordAuditBatch } from "@/features/audit/record-audit";
 import { pedagogySettingsSchema } from "@/features/school/schemas";
 import { reportSigaError } from "@/lib/ops-report";
 import { assertAssessmentTermNotLocked } from "./sga-grades";
@@ -33,7 +33,10 @@ export async function assertTermOpen(db: Db, schoolId: string, term: number) {
   // Sem conseguir ler os períodos fechados, não se grava (antes contava como aberto).
   if (error)
     throw publicDatabaseError(error, "Não foi possível confirmar se o período está aberto.");
-  const pedagogy = pedagogySettingsSchema.safeParse(data?.value ?? {}).data;
+  const parsed = pedagogySettingsSchema.safeParse(data?.value ?? {});
+  if (!parsed.success)
+    throw new Error("A configuração pedagógica é inválida. Reveja-a antes de lançar notas.");
+  const pedagogy = parsed.data;
   if (pedagogy?.closedTerms.includes(term as 1 | 2 | 3)) {
     throw new Error(
       `O ${term}º trimestre está fechado. O director pode reabrir a pauta em Configurações → Pedagógico.`,
@@ -78,9 +81,7 @@ export async function writeAssessmentScores(
     Number(item.term),
   );
 
-  // 1 SELECT para todos os alunos do lote + 1 INSERT em lote (novos) + updates em
-  // paralelo — substitui o anterior select+insert/update sequencial por aluno, que
-  // tornava lançar notas de uma turma inteira em dezenas de idas e vindas à base.
+  // Validar o âmbito antes da RPC; a transacção repete a verificação sob locks.
   const enrollmentIds = input.rows.map((row) => row.enrollmentId);
   // Só alunos da turma da avaliação. Para o professor a base já o exige (gatilho
   // `enforce_teacher_assessment_score_scope`); para a Administração e a
@@ -97,52 +98,19 @@ export async function writeAssessmentScores(
   if ((classEnrollments ?? []).length !== new Set(enrollmentIds).size) {
     throw new Error("Há alunos que não são da turma desta avaliação.");
   }
-  const { data: existingRows, error: existingError } = await db
-    .from("siga_assessment_scores")
-    .select("id, score, enrollment_id")
-    .eq("item_id", input.itemId)
-    .in("enrollment_id", enrollmentIds);
-  if (existingError) {
-    throw publicDatabaseError(existingError, "Não foi possível verificar as notas existentes.");
-  }
-  const existingByEnrollment = new Map(
-    (existingRows ?? []).map((row) => [row.enrollment_id, row] as const),
+  // A RPC volta a validar e grava o lote e a auditoria numa só transacção.
+  // Não usar fallback por passos se a migração ainda não estiver instalada.
+  const { data: saved, error } = await academicWriteRpcClient(db).rpc(
+    "siga_write_assessment_scores_atomic",
+    {
+      p_school_id: input.schoolId,
+      p_actor_user_id: input.userId,
+      p_item_id: input.itemId,
+      p_rows: input.rows,
+    },
   );
-  const toInsert = input.rows.filter((row) => !existingByEnrollment.has(row.enrollmentId));
-  const toUpdate = input.rows.filter((row) => existingByEnrollment.has(row.enrollmentId));
-
-  const [insertResult, ...updateResults] = await Promise.all([
-    toInsert.length
-      ? db.from("siga_assessment_scores").insert(
-          toInsert.map((row) => ({
-            school_id: input.schoolId,
-            item_id: input.itemId,
-            enrollment_id: row.enrollmentId,
-            score: row.score,
-            recorded_by: input.userId,
-          })),
-        )
-      : Promise.resolve({ error: null }),
-    ...toUpdate.map((row) => {
-      const existing = existingByEnrollment.get(row.enrollmentId)!;
-      return db
-        .from("siga_assessment_scores")
-        .update({
-          previous_score: existing.score,
-          score: row.score,
-          recorded_by: input.userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .eq("school_id", input.schoolId);
-    }),
-  ]);
-  // Lançar notas é a escrita de maior consequência do sistema. Sem registo,
-  // um lote que falha a meio — uns alunos gravados, outros não — chega ao
-  // professor como uma mensagem genérica e não deixa rasto nenhum.
-  const failure = insertResult.error ?? updateResults.find((result) => result.error)?.error;
-  if (failure) {
-    reportSigaError("assessment.score.write_failed", failure, {
+  if (error) {
+    reportSigaError("assessment.score.write_failed", error, {
       module: "academic",
       action: "score.upsert",
       school_id: input.schoolId,
@@ -150,32 +118,20 @@ export async function writeAssessmentScores(
       user_id: input.userId,
       count: input.rows.length,
     });
+    if (error.code === "PGRST202" || error.code === "42883") {
+      throw new Error(
+        "A gravação segura das notas requer a actualização académica da base de dados.",
+      );
+    }
+    throw publicDatabaseError(
+      error,
+      "Não foi possível lançar as notas. Nenhuma nota deste lote foi alterada.",
+    );
   }
-  if (insertResult.error)
-    throw publicDatabaseError(insertResult.error, "Não foi possível lançar as notas.");
-  for (const result of updateResults) {
-    if (result.error)
-      throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
+  if (typeof saved !== "number" || saved !== input.rows.length) {
+    throw new Error(
+      "Não foi possível confirmar o lote de notas. Actualize a pauta antes de repetir.",
+    );
   }
-  // A tabela só guarda a nota anterior: uma nota mudada duas vezes perdia a
-  // original. Cada alteração de uma nota já lançada fica em audit_logs.
-  await recordAuditBatch(
-    toUpdate
-      .map((row) => ({ row, existing: existingByEnrollment.get(row.enrollmentId)! }))
-      .filter(({ row, existing }) => Number(existing.score) !== Number(row.score))
-      .map(({ row, existing }) => ({
-        schoolId: input.schoolId,
-        actorUserId: input.userId,
-        action: "grades.assessment_score_changed",
-        entityType: "siga_assessment_scores",
-        entityId: existing.id,
-        metadata: {
-          item_id: input.itemId,
-          enrollment_id: row.enrollmentId,
-          from: existing.score,
-          to: row.score,
-        },
-      })),
-  );
-  return { saved: input.rows.length };
+  return { saved };
 }

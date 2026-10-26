@@ -23,7 +23,11 @@ export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
 // sessões de caixa do #283 (20261024110000) saíram daqui a 25/10: confirmadas as oito em
 // produção por consulta directa a `information_schema.routines`, depois de a produção ter
 // sido recapturada por este ciclo.
-export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([]);
+export const FUNCOES_ESPERA_MIGRACAO = new Set<string>([
+  "siga_write_assessment_scores_atomic",
+  "siga_return_task_submission_atomic",
+  "siga_reorganize_enrollment_guarded",
+]);
 
 /**
  * Valores de estado que o código escreve ou filtra e o CHECK da produção ainda não

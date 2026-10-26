@@ -26,41 +26,41 @@ export async function syncAcademicAgendaToSessions({
     context,
   );
   // Mesmas ocorrências da agenda: versão publicada, validade, períodos, feriados
-  // e interrupções. A consulta GET nunca cria sessões; só a publicação o faz.
+  // e interrupções. Só a publicação/ressincronização autorizada escreve aqui.
   const lessons = agenda.filter((event) => event.extendedProps.source === "lesson");
   if (!lessons.length) return 0;
-  const slotId = (sourceId: string) => sourceId.split("@")[0];
-  const slotIds = [...new Set(lessons.map((event) => slotId(event.extendedProps.sourceId)))];
-  const { data: existing, error: readError } = await db
-    .from("siga_attendance_sessions")
-    .select("timetable_slot_id, lesson_date")
-    .eq("school_id", schoolId)
-    .in("timetable_slot_id", slotIds)
-    .gte("lesson_date", start)
-    .lt("lesson_date", end);
-  if (readError)
-    throw publicDatabaseError(readError, "Não foi possível verificar as sessões de presença.");
-  const keys = new Set(
-    (existing ?? []).map((row) => `${row.timetable_slot_id}@${row.lesson_date}`),
-  );
-  const candidates = lessons
-    .filter((event) => !keys.has(event.extendedProps.sourceId))
-    .map((event) => ({
-      school_id: schoolId,
-      academic_year_id: academicYearId,
-      class_group_id: classGroupId,
-      subject_id: event.extendedProps.subjectId!,
-      teacher_id: event.extendedProps.teacherId ?? null,
-      timetable_slot_id: slotId(event.extendedProps.sourceId),
-      lesson_date: event.start.slice(0, 10),
-      starts_at: event.start.slice(11, 16),
-      ends_at: event.end!.slice(11, 16),
-      status: "pending",
-      created_by: userId,
-    }));
-  if (!candidates.length) return 0;
-  const { error } = await db.from("siga_attendance_sessions").insert(candidates);
-  if (error)
-    throw publicDatabaseError(error, "Não foi possível sincronizar as sessões de presença.");
-  return candidates.length;
+  const candidates = lessons.map((event) => ({
+    school_id: schoolId,
+    academic_year_id: academicYearId,
+    class_group_id: classGroupId,
+    subject_id: event.extendedProps.subjectId!,
+    teacher_id: event.extendedProps.teacherId ?? null,
+    timetable_slot_id: event.extendedProps.sourceId.split("@")[0],
+    lesson_date: event.start.slice(0, 10),
+    starts_at: event.start.slice(11, 16),
+    ends_at: event.end!.slice(11, 16),
+    status: "pending",
+    created_by: userId,
+  }));
+  let inserted = 0;
+  // ON CONFLICT DO NOTHING usa o índice único já existente em produção.
+  // Dois pedidos simultâneos não duplicam sessões nem substituem uma chamada.
+  // Lotes limitam o corpo HTTP; count evita truncar a contagem pela paginação.
+  for (let offset = 0; offset < candidates.length; offset += 500) {
+    const { error, count } = await db
+      .from("siga_attendance_sessions")
+      .upsert(candidates.slice(offset, offset + 500), {
+        onConflict: "school_id,timetable_slot_id,lesson_date",
+        ignoreDuplicates: true,
+        count: "exact",
+      });
+    if (error)
+      throw publicDatabaseError(error, "Não foi possível sincronizar as sessões de presença.");
+    if (count === null)
+      throw new Error(
+        "Não foi possível confirmar a contagem das sessões sincronizadas. Volte a sincronizar.",
+      );
+    inserted += count;
+  }
+  return inserted;
 }

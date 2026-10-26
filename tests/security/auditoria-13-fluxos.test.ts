@@ -59,7 +59,7 @@ describe("notas e cotação da avaliação", () => {
     const body = write.slice(write.indexOf("export async function writeAssessmentScores"));
     expect(body).toContain('.select("id, term, class_group_id, max_score")');
     expect(body.indexOf("row.score > maxScore")).toBeLessThan(
-      body.indexOf('from("siga_assessment_scores")'),
+      body.indexOf('"siga_write_assessment_scores_atomic"'),
     );
   });
 

@@ -78,6 +78,11 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // Primeira senha: só a própria conta (context.userId) e só com o sinal
   // must_change_password, que vive em app_metadata (só o servidor escreve).
   "src/features/auth/first-password-server.ts",
+  // Publicação do horário: o RPC publish_academic_schedule_atomic é SECURITY
+  // INVOKER e executável só por service_role. O servidor verifica escola,
+  // Administrador/Secretaria, grant pedagógico e AAL2 antes de o chamar;
+  // sincronização lê também as tabelas de agenda reservadas ao servidor.
+  "src/features/academic/schedule-publication.ts",
   // Sessões de caixa (2026-10-24): as tabelas nascem sem políticas e sem
   // privilégios para authenticated; escrevem-se só pelas RPC (sessão do
   // utilizador, AAL2). A leitura do estado corre aqui, depois da guarda de
