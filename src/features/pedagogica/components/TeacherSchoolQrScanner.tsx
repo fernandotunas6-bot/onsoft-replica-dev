@@ -269,9 +269,9 @@ export function TeacherSchoolQrScanner() {
       </div>
 
       <div className={scanning ? "mt-4" : "hidden"}>
-        <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-2xl bg-black">
+        <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-2xl bg-foreground">
           <video ref={videoRef} className="size-full object-cover" playsInline muted />
-          <div className="pointer-events-none absolute inset-[12%] rounded-2xl border-4 border-white/80" />
+          <div className="pointer-events-none absolute inset-[12%] rounded-2xl border-4 border-background/80" />
         </div>
         <canvas ref={canvasRef} className="hidden" />
       </div>

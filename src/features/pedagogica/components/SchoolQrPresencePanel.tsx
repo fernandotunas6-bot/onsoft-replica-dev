@@ -254,6 +254,7 @@ function SchoolPresenceSettingsForm({
                   <input
                     type="radio"
                     name="presence-mode"
+                    aria-label={SCHOOL_PRESENCE_MODE_LABELS[value]}
                     value={value}
                     checked={mode === value}
                     onChange={() => setMode(value)}
@@ -565,10 +566,12 @@ function SchoolQrKiosk({ onClose }: { onClose: () => void }) {
 
       {dayKey && image ? (
         <div className="flex flex-col items-center gap-3">
-          <img
-            src={image}
-            alt="QR de presença da escola"
-            className="size-[min(70vw,60vh)] rounded-2xl border bg-white p-2 shadow-sm"
+          {/* Fundo em CSS: troca de 30 em 30 s sem piscar (o PNG já traz a margem branca). */}
+          <div
+            role="img"
+            aria-label="QR de presença da escola"
+            className="size-[min(70vw,60vh)] rounded-2xl border bg-background bg-contain bg-center bg-no-repeat p-2 shadow-sm"
+            style={{ backgroundImage: `url(${image})` }}
           />
           <div className="h-1.5 w-[min(70vw,60vh)] overflow-hidden rounded-full bg-muted">
             <div
@@ -627,15 +630,20 @@ function PrintableQrButton({ disabled }: { disabled: boolean }) {
       popup.document.write(`<!doctype html><html lang="pt"><head><meta charset="utf-8">
 <title>QR de presença · ${fmt(result.monday)}</title>
 <style>body{font-family:system-ui,sans-serif;text-align:center;padding:32px;color:#111}
-img{width:80%;max-width:640px}h1{margin:0 0 8px;font-size:28px}p{margin:6px 0;font-size:16px}
+#qr img{width:80%;max-width:640px}h1{margin:0 0 8px;font-size:28px}p{margin:6px 0;font-size:16px}
 .small{color:#555;font-size:13px}</style></head><body>
 <h1>Presença dos professores</h1>
 <p>Válido de ${fmt(result.monday)} a ${fmt(result.sunday)}</p>
-<img src="${result.image}" alt="QR de presença">
+<div id="qr"></div>
 <p>Abra o SIGA no telemóvel → <strong>Ler QR da escola</strong>.</p>
 <p class="small">Só vale dentro da escola (localização). Fotografias deste QR fora da escola ficam para a Direcção rever.</p>
-<script>window.onload=function(){window.print()}</script></body></html>`);
+<script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`);
       popup.document.close();
+      // Imagem pelo DOM (impressa como conteúdo, ao contrário de um fundo CSS).
+      const qr = popup.document.createElement("img");
+      qr.src = result.image;
+      qr.alt = "QR de presença";
+      popup.document.getElementById("qr")?.appendChild(qr);
     },
     onError: (error) =>
       toast.error("Não foi possível gerar o QR impresso", {
