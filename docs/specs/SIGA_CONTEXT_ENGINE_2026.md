@@ -190,6 +190,23 @@ da URL é recusada.
   novo que abria uma turma ou disciplina. Dos recentes (por utilizador e escola) só saem os ids;
   o nome e a confirmação vêm da árvore académica do servidor, e uma turma que o servidor já não
   devolve não se oferece.
+- Medição do bundle (26/10/2026, `vite build --mode production`, gzip nível 9; base = ponto
+  de partida da PR no `main`, `a6d8f53`):
+  - JS inicial (entrada `client` e o que importa estaticamente): 189,6 KB gzip nos dois, sem
+    alteração. O motor, as entradas e o menu não estão no carregamento inicial.
+  - Código da `AppShell` (comum às páginas autenticadas): 45,9 → 50,1 KB gzip (+4,2 KB), com
+    o resolvedor, as entradas de turma, disciplina, aluno, professor e fatura, o menu e o
+    «Continuar». A memória por escola acrescenta 1,0 KB a `use-sign-out` e o contexto activo
+    0,3 KB.
+  - As páginas novas são blocos próprios, carregados só ao abri-las: ficha da turma 6,6 KB,
+    fatura 2,3 KB, trabalhos 1,7 KB; `/pedagogica` desce 4,2 KB (a ficha da turma saiu dela).
+  - A primeira medição mostrou que a ficha da turma ia para o bloco partilhado `index` (+9,6
+    KB em todas as páginas), porque a configuração da rota importava `TURMA_SECTIONS` do
+    componente. As secções passaram para `turma-sections.ts` e o `index` fica em +0,6 KB.
+  - Total de JS: 1979 → 1995 KB gzip (+0,8 %).
+- Pedidos: o menu não faz pedidos novos. Turmas e disciplinas usam as chaves da árvore
+  académica; o professor só se pede com `?professor=`; aluno e fatura vêm da leitura que a
+  página já faz. A ficha do aluno deixou de pedir as faturas a quem o servidor as recusa.
 
 ## 8. Segurança multi-tenant
 
@@ -201,6 +218,10 @@ da URL é recusada.
 - O aluno da URL só entra no caminho depois de a ficha o ler do servidor na escola activa.
 - Recentes e favoritos são por escola: uma conta com duas escolas não vê na segunda os
   destinos (com ids de alunos ou turmas) da primeira.
+- A fatura só abre se `getInvoiceDetail` a devolver na escola activa (filtro por escola em
+  fatura, contrato, matrícula e recibos); o aluno dela vem dessa leitura. O menu da fatura é
+  da Administração e da Tesouraria, e o financeiro e a ficha do aluno só aparecem a quem abre
+  fichas de alunos.
 - Nenhuma alteração a SQL, RLS ou permissões.
 
 ## 9. Estado das fases
@@ -212,9 +233,10 @@ da URL é recusada.
 | 3 Sidebar           | **Implementado (desktop, turma/disciplina/aluno/professor)** | `ContextEntityNav`; 17 testes de sidebar + 7 de lookup + 15 do professor; breadcrumb com 9 testes                                                                                              |
 | 4 Disciplina piloto | Parcial                                                      | Trabalhos da turma e da disciplina (`/pedagogica/trabalhos`); faltam as entregas (#335) e validação em staging                                                                                 |
 | 5 Aluno piloto      | **Implementado (desktop)**                                   | Secções com URL própria (24 testes de regras e entradas, 13 de render); capturas a 1440/390 px com dados fictícios; falta sessão autenticada                                                   |
-| 6–7 Restantes       | Ausente                                                      |                                                                                                                                                                                                |
+| 6 Financeiro/docs   | Parcial                                                      | Financeiro do aluno com todas as faturas e a dívida; página e menu da fatura (`/faturas/$invoiceId`); faltam cobranças, reembolsos e o contexto do ficheiro em Arquivos                        |
+| 7 Restantes         | Ausente                                                      |                                                                                                                                                                                                |
 | 8 Desktop/mobile    | Parcial                                                      | Sidebar (expandida e recolhida) e hub «Mais» testados em jsdom (8 testes do hub); capturas a 1440 e 390 px com dados fictícios; falta validar em aparelhos e nas larguras 767/768/1023/1024 px |
-| 9 Optimização       | Parcial                                                      | Sem pedidos novos (mesma chave); medições por fazer                                                                                                                                            |
+| 9 Optimização       | Parcial                                                      | Bundle medido (§7): JS inicial sem alteração, +4,2 KB gzip na `AppShell`; regressão no bloco partilhado encontrada e corrigida; faltam renderizações e tempos em aparelho                      |
 | 10 Revisão          | Parcial                                                      | Lint, TypeScript e suite completa passam (703 ficheiros); Playwright pendente                                                                                                                  |
 
 ## 10. Testes de aceitação
@@ -256,6 +278,5 @@ abrir a entrada perde o contexto).
   aparelhos.
 - Presenças e Materiais estão cobertos em jsdom e em capturas com dados fictícios; falta
   confirmar numa sessão autenticada que a chamada e a pasta da turma abrem com dados reais.
-- A memória de contexto não está ligada.
 - Referências externas (Moodle, Canvas, Linear, Jira, Salesforce, Notion, VS Code, Odoo,
   ClickUp) inspiram os princípios; nada foi copiado.

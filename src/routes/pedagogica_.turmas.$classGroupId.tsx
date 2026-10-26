@@ -11,10 +11,8 @@ import {
   listRooms,
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
-import {
-  TURMA_SECTIONS,
-  TurmaProfileModal,
-} from "@/features/academic/components/TurmaProfileModal";
+import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
+import { TURMA_SECTIONS } from "@/features/academic/turma-sections";
 import { canWriteModule } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";

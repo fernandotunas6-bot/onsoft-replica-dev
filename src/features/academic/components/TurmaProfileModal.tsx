@@ -37,15 +37,11 @@ import { mapClassGroupToSnapshot } from "@/features/intelligence/classes/class-r
 import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { safeHref } from "@/lib/safe-url";
+import { isTurmaSection, type TurmaSection } from "../turma-sections";
 
 type SalaOption = { id: string; name: string; capacity: number | null };
 
-/** As secções da ficha da turma; na página, `?secao=`. */
-export const TURMA_SECTIONS = ["resumo", "alunos", "disciplinas", "horario", "avaliacoes"] as const;
-export type TurmaSection = (typeof TURMA_SECTIONS)[number];
-export function isTurmaSection(value: unknown): value is TurmaSection {
-  return typeof value === "string" && (TURMA_SECTIONS as readonly string[]).includes(value);
-}
+export { TURMA_SECTIONS, isTurmaSection, type TurmaSection } from "../turma-sections";
 
 const weekdayLabels = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const shiftLabelMap: Record<string, string> = {
