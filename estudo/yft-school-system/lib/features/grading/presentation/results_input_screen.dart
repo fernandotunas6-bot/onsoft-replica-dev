@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/models/subject.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/repositories/grades_repository.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
 
 class ResultsInputScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? extraArgs;
@@ -21,6 +22,9 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
   late final String studentId;
   late final String classId;
   late final String term;
+
+  /// Ano lectivo escolhido; null = o actual da escola.
+  late final String? academicYear;
 
   bool _loading = true;
   String? _loadError;
@@ -38,6 +42,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
     studentId = widget.extraArgs?['studentId'] as String? ?? '';
     classId = widget.extraArgs?['className'] as String? ?? '';
     term = widget.extraArgs?['term'] as String? ?? '';
+    academicYear = widget.extraArgs?['academicYear'] as String?;
     WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
@@ -75,6 +80,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       final gradeMap = await ref.read(gradesRepositoryProvider).getGradesForStudent(
             studentId: studentId,
             term: term,
+            academicYear: academicYear,
           );
 
       if (!mounted) return;
@@ -158,6 +164,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       await ref.read(gradesRepositoryProvider).saveGrades(
             studentId: studentId,
             term: term,
+            academicYear: academicYear,
             grades: rows,
           );
       if (!mounted) return;
@@ -167,14 +174,23 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             'Notas guardadas',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     } on DioException catch (e) {
       if (!mounted) return;
-      final msg = e.response?.data is Map<String, dynamic>
-          ? (e.response!.data['error'] as String? ?? '$e')
-          : '$e';
+      final serverMsg = e.response?.data is Map<String, dynamic>
+          ? e.response!.data['error'] as String? ?? ''
+          : '';
+      final msg = switch (e.response?.statusCode) {
+        403 when serverMsg.contains('class') =>
+          'Só pode lançar notas aos alunos das turmas onde dá aulas.',
+        403 => 'A escola não permite que os professores lancem notas. '
+            'Peça à direcção para activar esta opção.',
+        404 => 'Este aluno já não existe na escola.',
+        400 => 'Verifique as notas: há valores fora do limite.',
+        _ => 'Não foi possível guardar. Verifique a ligação.',
+      };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: AppColors.error),
       );
@@ -209,6 +225,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
         actions: [
           if (!isReadOnly)
             IconButton(
+              tooltip: 'Guardar notas',
               icon: _saveBusy
                   ? const SizedBox(
                       width: 22,
@@ -228,19 +245,19 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: AppColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.3),
+                  color: AppColors.warning.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(LucideIcons.lock, size: 18, color: Colors.orange.shade700),
+                  Icon(LucideIcons.lock, size: 18, color: AppColors.warning),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Só leitura: active «Permitir que os professores lancem notas» em Segurança.',
+                      'Só leitura: o admin pode activar «Professores lançam notas» em Segurança.',
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.secondary,
@@ -271,7 +288,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     LucideIcons.clipboardSignature,
                     color: AppColors.secondary,
                   ),
@@ -290,8 +307,8 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        term,
-                        style: const TextStyle(
+                        [termLabel(term), ?academicYear].join(' · '),
+                        style: TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 13,
                         ),
@@ -318,7 +335,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                         ),
                       )
                     : _subjects.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
                               'Esta turma não tem disciplinas.',
                               style: TextStyle(color: AppColors.textSecondary),
@@ -377,7 +394,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             children: [
               Expanded(
                 child: _buildGradeInputBox(
-                  'Nota de frequência (30)',
+                  'Avaliação contínua (30)',
                   classCtrl,
                   isReadOnly,
                 ),
@@ -385,7 +402,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildGradeInputBox(
-                  'Nota do exame (70)',
+                  'Exame (70)',
                   examCtrl,
                   isReadOnly,
                 ),
@@ -393,7 +410,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
               const SizedBox(width: 16),
               Column(
                 children: [
-                  const Text(
+                  Text(
                     'Total',
                     style: TextStyle(
                       fontSize: 11,
@@ -411,7 +428,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
                     ),
                     child: Text(
                       _total(classCtrl.text, examCtrl.text),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: AppColors.secondary,
                       ),
@@ -441,7 +458,7 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             color: AppColors.textSecondary,
           ),
@@ -461,6 +478,9 @@ class _ResultsInputScreenState extends ConsumerState<ResultsInputScreen> {
             enabled: !isReadOnly,
             decoration: const InputDecoration(
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
               hintText: '0',
             ),
             style: TextStyle(

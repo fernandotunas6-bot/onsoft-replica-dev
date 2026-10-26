@@ -14,6 +14,8 @@ export type EntityType =
   | "employee"
   /** Um ficheiro dos Arquivos da escola activa (contexto Documentos e Arquivos). */
   | "file"
+  /** Um comunicado da escola activa (contexto Comunicações). */
+  | "announcement"
   /** Um trabalho (tarefa) de uma disciplina numa turma: fica debaixo da disciplina. */
   | "task"
   /** Uma pasta dos Arquivos da escola activa (`/arquivos?pasta=`). */

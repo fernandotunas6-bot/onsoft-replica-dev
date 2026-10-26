@@ -49,6 +49,7 @@ import { Route as AuthEmailChangeRouteImport } from './routes/auth.email-change'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth.magic-link'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as CalendarioIcsRouteImport } from './routes/calendario.ics'
+import { Route as ComunicacoesAnnouncementIdRouteImport } from './routes/comunicacoes_.$announcementId'
 import { Route as ConfiguracoesAssinaturaRouteImport } from './routes/configuracoes_.assinatura'
 import { Route as ConfiguracoesBoasVindasRouteImport } from './routes/configuracoes_.boas-vindas'
 import { Route as ConfiguracoesDiagnosticoRouteImport } from './routes/configuracoes_.diagnostico'
@@ -80,6 +81,11 @@ import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
+import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/attendance'
+import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
+import { Route as ApiMobileGradesRouteImport } from './routes/api/mobile/grades'
+import { Route as ApiMobileLoginRouteImport } from './routes/api/mobile/login'
+import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profile'
 import { Route as ApiSaasAuditLogsRouteImport } from './routes/api/saas/audit-logs'
 import { Route as ApiSaasBillingProofsRouteImport } from './routes/api/saas/billing-proofs'
 import { Route as ApiSaasDomainsRouteImport } from './routes/api/saas/domains'
@@ -350,6 +356,12 @@ const CalendarioIcsRoute = CalendarioIcsRouteImport.update({
   path: '/ics',
   getParentRoute: () => CalendarioRoute,
 } as any)
+const ComunicacoesAnnouncementIdRoute =
+  ComunicacoesAnnouncementIdRouteImport.update({
+    id: '/comunicacoes_/$announcementId',
+    path: '/comunicacoes/$announcementId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConfiguracoesAssinaturaRoute = ConfiguracoesAssinaturaRouteImport.update({
   id: '/configuracoes_/assinatura',
   path: '/configuracoes/assinatura',
@@ -506,6 +518,31 @@ const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
 const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
   id: '/api/cron/saas-lifecycle',
   path: '/api/cron/saas-lifecycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileAttendanceRoute = ApiMobileAttendanceRouteImport.update({
+  id: '/api/mobile/attendance',
+  path: '/api/mobile/attendance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileChatRoute = ApiMobileChatRouteImport.update({
+  id: '/api/mobile/chat',
+  path: '/api/mobile/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileGradesRoute = ApiMobileGradesRouteImport.update({
+  id: '/api/mobile/grades',
+  path: '/api/mobile/grades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileLoginRoute = ApiMobileLoginRouteImport.update({
+  id: '/api/mobile/login',
+  path: '/api/mobile/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileProfileRoute = ApiMobileProfileRouteImport.update({
+  id: '/api/mobile/profile',
+  path: '/api/mobile/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSaasAuditLogsRoute = ApiSaasAuditLogsRouteImport.update({
@@ -916,6 +953,7 @@ export interface FileRoutesByFullPath {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
@@ -948,6 +986,11 @@ export interface FileRoutesByFullPath {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
+  '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1057,6 +1100,7 @@ export interface FileRoutesByTo {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes/diagnostico': typeof ConfiguracoesDiagnosticoRoute
@@ -1089,6 +1133,11 @@ export interface FileRoutesByTo {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
+  '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1199,6 +1248,7 @@ export interface FileRoutesById {
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/calendario/ics': typeof CalendarioIcsRoute
+  '/comunicacoes_/$announcementId': typeof ComunicacoesAnnouncementIdRoute
   '/configuracoes_/assinatura': typeof ConfiguracoesAssinaturaRoute
   '/configuracoes_/boas-vindas': typeof ConfiguracoesBoasVindasRoute
   '/configuracoes_/diagnostico': typeof ConfiguracoesDiagnosticoRoute
@@ -1231,6 +1281,11 @@ export interface FileRoutesById {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
+  '/api/mobile/chat': typeof ApiMobileChatRoute
+  '/api/mobile/grades': typeof ApiMobileGradesRoute
+  '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/saas/audit-logs': typeof ApiSaasAuditLogsRoute
   '/api/saas/billing-proofs': typeof ApiSaasBillingProofsRoute
   '/api/saas/domains': typeof ApiSaasDomainsRouteWithChildren
@@ -1342,6 +1397,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes/$announcementId'
     | '/configuracoes/assinatura'
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
@@ -1374,6 +1430,11 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/attendance'
+    | '/api/mobile/chat'
+    | '/api/mobile/grades'
+    | '/api/mobile/login'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1483,6 +1544,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes/$announcementId'
     | '/configuracoes/assinatura'
     | '/configuracoes/boas-vindas'
     | '/configuracoes/diagnostico'
@@ -1515,6 +1577,11 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/attendance'
+    | '/api/mobile/chat'
+    | '/api/mobile/grades'
+    | '/api/mobile/login'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1624,6 +1691,7 @@ export interface FileRouteTypes {
     | '/auth/magic-link'
     | '/auth/reset-password'
     | '/calendario/ics'
+    | '/comunicacoes_/$announcementId'
     | '/configuracoes_/assinatura'
     | '/configuracoes_/boas-vindas'
     | '/configuracoes_/diagnostico'
@@ -1656,6 +1724,11 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/attendance'
+    | '/api/mobile/chat'
+    | '/api/mobile/grades'
+    | '/api/mobile/login'
+    | '/api/mobile/profile'
     | '/api/saas/audit-logs'
     | '/api/saas/billing-proofs'
     | '/api/saas/domains'
@@ -1765,6 +1838,7 @@ export interface RootRouteChildren {
   AuthEmailChangeRoute: typeof AuthEmailChangeRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  ComunicacoesAnnouncementIdRoute: typeof ComunicacoesAnnouncementIdRoute
   ConfiguracoesAssinaturaRoute: typeof ConfiguracoesAssinaturaRoute
   ConfiguracoesBoasVindasRoute: typeof ConfiguracoesBoasVindasRoute
   ConfiguracoesDiagnosticoRoute: typeof ConfiguracoesDiagnosticoRoute
@@ -1797,6 +1871,11 @@ export interface RootRouteChildren {
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
+  ApiMobileAttendanceRoute: typeof ApiMobileAttendanceRoute
+  ApiMobileChatRoute: typeof ApiMobileChatRoute
+  ApiMobileGradesRoute: typeof ApiMobileGradesRoute
+  ApiMobileLoginRoute: typeof ApiMobileLoginRoute
+  ApiMobileProfileRoute: typeof ApiMobileProfileRoute
   ApiSaasAuditLogsRoute: typeof ApiSaasAuditLogsRoute
   ApiSaasBillingProofsRoute: typeof ApiSaasBillingProofsRoute
   ApiSaasDomainsRoute: typeof ApiSaasDomainsRouteWithChildren
@@ -2132,6 +2211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarioIcsRouteImport
       parentRoute: typeof CalendarioRoute
     }
+    '/comunicacoes_/$announcementId': {
+      id: '/comunicacoes_/$announcementId'
+      path: '/comunicacoes/$announcementId'
+      fullPath: '/comunicacoes/$announcementId'
+      preLoaderRoute: typeof ComunicacoesAnnouncementIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/configuracoes_/assinatura': {
       id: '/configuracoes_/assinatura'
       path: '/configuracoes/assinatura'
@@ -2347,6 +2433,41 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/saas-lifecycle'
       fullPath: '/api/cron/saas-lifecycle'
       preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/attendance': {
+      id: '/api/mobile/attendance'
+      path: '/api/mobile/attendance'
+      fullPath: '/api/mobile/attendance'
+      preLoaderRoute: typeof ApiMobileAttendanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/chat': {
+      id: '/api/mobile/chat'
+      path: '/api/mobile/chat'
+      fullPath: '/api/mobile/chat'
+      preLoaderRoute: typeof ApiMobileChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/grades': {
+      id: '/api/mobile/grades'
+      path: '/api/mobile/grades'
+      fullPath: '/api/mobile/grades'
+      preLoaderRoute: typeof ApiMobileGradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/login': {
+      id: '/api/mobile/login'
+      path: '/api/mobile/login'
+      fullPath: '/api/mobile/login'
+      preLoaderRoute: typeof ApiMobileLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/profile': {
+      id: '/api/mobile/profile'
+      path: '/api/mobile/profile'
+      fullPath: '/api/mobile/profile'
+      preLoaderRoute: typeof ApiMobileProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saas/audit-logs': {
@@ -2976,6 +3097,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthEmailChangeRoute: AuthEmailChangeRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  ComunicacoesAnnouncementIdRoute: ComunicacoesAnnouncementIdRoute,
   ConfiguracoesAssinaturaRoute: ConfiguracoesAssinaturaRoute,
   ConfiguracoesBoasVindasRoute: ConfiguracoesBoasVindasRoute,
   ConfiguracoesDiagnosticoRoute: ConfiguracoesDiagnosticoRoute,
@@ -3008,6 +3130,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
+  ApiMobileAttendanceRoute: ApiMobileAttendanceRoute,
+  ApiMobileChatRoute: ApiMobileChatRoute,
+  ApiMobileGradesRoute: ApiMobileGradesRoute,
+  ApiMobileLoginRoute: ApiMobileLoginRoute,
+  ApiMobileProfileRoute: ApiMobileProfileRoute,
   ApiSaasAuditLogsRoute: ApiSaasAuditLogsRoute,
   ApiSaasBillingProofsRoute: ApiSaasBillingProofsRoute,
   ApiSaasDomainsRoute: ApiSaasDomainsRouteWithChildren,

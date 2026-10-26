@@ -194,6 +194,14 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates("/arquivos", { pasta: "x" })).toEqual([]);
     expect(routeContextCandidates("/arquivos/certidao.pdf")).toEqual([]);
   });
+
+  it("reconhece a página do comunicado, só com um uuid", () => {
+    expect(routeContextCandidates(`/comunicacoes/${ALUNO}`)).toEqual([
+      { type: "announcement", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/comunicacoes/novo")).toEqual([]);
+    expect(routeContextCandidates("/comunicacoes")).toEqual([]);
+  });
 });
 
 describe("parseSubjectOfferingId", () => {

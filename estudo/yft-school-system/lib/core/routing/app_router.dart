@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/student.dart';
 import 'package:yft_school_system/features/auth/presentation/forgot_password_screen.dart';
 import 'package:yft_school_system/features/auth/presentation/login_screen.dart';
 import 'package:yft_school_system/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:yft_school_system/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:yft_school_system/features/splash/presentation/splash_screen.dart';
 import 'package:yft_school_system/features/staff/presentation/teacher_registration_screen.dart';
 import 'package:yft_school_system/features/staff/presentation/student_details_screen.dart';
@@ -27,6 +28,7 @@ import 'package:yft_school_system/features/staff/presentation/student_detail_vie
 import 'package:yft_school_system/features/reports/presentation/ward_profile_screen.dart';
 import 'package:yft_school_system/features/reports/presentation/parent_wards_screen.dart';
 import 'package:yft_school_system/features/reports/presentation/result_card_screen.dart';
+import 'package:yft_school_system/features/reports/presentation/ward_attendance_screen.dart';
 import 'package:yft_school_system/features/finance/presentation/payment_history_screen.dart';
 import 'package:yft_school_system/features/dashboard/presentation/notices_screen.dart';
 import 'package:yft_school_system/features/academics/presentation/class_setup_screen.dart';
@@ -43,6 +45,16 @@ import 'package:yft_school_system/features/finance/presentation/log_payment_scre
 import 'package:yft_school_system/features/grading/presentation/total_attendance_screen.dart';
 
 import 'package:yft_school_system/features/finance/presentation/parent_receipts_screen.dart';
+import 'package:yft_school_system/features/calendar/presentation/calendar_screen.dart';
+import 'package:yft_school_system/features/messages/presentation/conversations.dart';
+import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
+import 'package:yft_school_system/features/profile/presentation/appearance_screen.dart';
+import 'package:yft_school_system/features/subjects/presentation/subjects_screen.dart';
+import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:yft_school_system/core/sga/sga_providers.dart';
+import 'package:yft_school_system/features/grading/presentation/sga_attendance_screen.dart';
+import 'package:yft_school_system/features/grading/presentation/sga_grades_screen.dart';
+import 'package:yft_school_system/features/profile/presentation/sga_portal_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -51,16 +63,29 @@ final appRouter = GoRouter(
   initialLocation: '/',
   // Sem sessão Firebase, só as páginas públicas abrem; o resto vai ao login.
   redirect: (context, state) {
-    const public = {'/', '/login', '/forgot-password'};
+    const public = {
+      '/',
+      '/bem-vindo',
+      '/login',
+      '/forgot-password',
+      '/help-support',
+    };
     if (public.contains(state.matchedLocation)) return null;
     try {
-      return FirebaseAuth.instance.currentUser == null ? '/login' : null;
+      final signedIn = sgaMode
+          ? appSgaSession.signedIn
+          : FirebaseAuth.instance.currentUser != null;
+      return signedIn ? null : '/login';
     } catch (_) {
       return '/login'; // Firebase não inicializado
     }
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/bem-vindo',
+      builder: (context, state) => const OnboardingScreen(),
+    ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
       path: '/forgot-password',
@@ -69,6 +94,28 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/dashboard',
       builder: (context, state) => const DashboardScreen(),
+    ),
+    // Separadores da barra inferior.
+    GoRoute(
+      path: '/disciplinas',
+      builder: (context, state) => const SubjectsScreen(),
+    ),
+    GoRoute(
+      path: '/calendario',
+      builder: (context, state) => const CalendarScreen(),
+    ),
+    GoRoute(
+      path: '/mensagens',
+      builder: (context, state) => const MessagesScreen(),
+    ),
+    GoRoute(
+      path: '/conversa/:id',
+      builder: (context, state) =>
+          ChatScreen(conversationId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/aparencia',
+      builder: (context, state) => const AppearanceScreen(),
     ),
     GoRoute(
       path: '/register-teacher',
@@ -102,7 +149,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/attendance',
-      builder: (context, state) => const AttendanceScreen(),
+      // Modo SIGA: a chamada por aula do SIGA (rotas /api/mobile do portal).
+      builder: (context, state) =>
+          sgaMode ? const SgaAttendanceScreen() : const AttendanceScreen(),
     ),
 
     GoRoute(
@@ -129,11 +178,17 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/result-card',
-      builder: (context, state) => const ResultCardScreen(),
+      builder: (context, state) => ResultCardScreen(
+        initialWardId: state.extra is String ? state.extra as String : null,
+      ),
     ),
     GoRoute(
       path: '/payment-history',
       builder: (context, state) => const PaymentHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/portal-siga',
+      builder: (context, state) => const SgaPortalScreen(),
     ),
     GoRoute(
       path: '/notices',
@@ -167,7 +222,9 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/results-setup',
-      builder: (context, state) => const ResultsSetupScreen(),
+      // Modo SIGA: lançamento MAC/NPP/NPT por turma e disciplina (no SIGA).
+      builder: (context, state) =>
+          sgaMode ? const SgaGradesScreen() : const ResultsSetupScreen(),
     ),
     GoRoute(
       path: '/results-input',
@@ -206,6 +263,12 @@ final appRouter = GoRouter(
         final id = state.uri.queryParameters['student'];
         return LogPaymentScreen(initialStudentId: id);
       },
+    ),
+    GoRoute(
+      path: '/ward-attendance',
+      builder: (context, state) => WardAttendanceScreen(
+        initialWardId: state.extra is String ? state.extra as String : null,
+      ),
     ),
     GoRoute(
       path: '/total-attendance',

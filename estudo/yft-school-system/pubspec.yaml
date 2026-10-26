@@ -37,6 +37,10 @@ dependencies:
   dio: ^5.9.2
   google_fonts: ^8.0.2
   flutter_secure_storage: ^10.0.0
+  # hCaptcha na entrada do modo SIGA (versão web): ver lib/core/sga/captcha_box_web.dart.
+  web: ^1.1.1
+  # hCaptcha na entrada do modo SIGA (Android/iOS): ver lib/core/sga/captcha_box_mobile.dart.
+  webview_flutter: ^4.14.1
   lucide_icons: ^0.257.0
   flutter_animate: ^4.5.2
   flutter_svg: ^2.0.10+1
@@ -68,6 +72,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Outfit embutida: o google_fonts usa estes ficheiros antes da rede, por isso
+  # a letra certa aparece logo, mesmo sem internet. Licença: OFL.txt.
+  assets:
+    - assets/google_fonts/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

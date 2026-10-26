@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "uid": "q-adm",
+      "name": "Direcção",
+      "role": "admin",
+      "photo_url": null,
+      "subjects_text": null,
+      "wards": null
+    },
+    {
+      "uid": "q-par",
+      "name": "Mariana Silva",
+      "role": "parent",
+      "photo_url": null,
+      "subjects_text": null,
+      "wards": "Ana Silva"
+    }
+  ]
+}

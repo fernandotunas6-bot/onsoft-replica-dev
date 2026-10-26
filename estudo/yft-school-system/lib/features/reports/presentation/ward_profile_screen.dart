@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -7,6 +8,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class WardProfileScreen extends ConsumerWidget {
   final Student? ward;
@@ -63,25 +65,25 @@ class WardProfileScreen extends ConsumerWidget {
       final isCleared = w.isCleared;
       final hasDebt = w.hasDebt;
       final balanceText = hasDebt
-          ? 'Em dívida: $currency ${w.balance.abs().toStringAsFixed(2)}'
+          ? 'Em dívida: ${formatMoneyDisplay(currency, w.balance.abs())}'
           : isCleared
-              ? 'Propinas regularizadas'
-              : 'Saldo credor: $currency ${w.balance.toStringAsFixed(2)}';
+              ? 'Propinas em dia'
+              : 'Saldo a favor: ${formatMoneyDisplay(currency, w.balance)}';
       final balanceColor = hasDebt
           ? AppColors.error
-          : (isCleared ? Colors.green : Colors.blueAccent);
+          : (isCleared ? AppColors.success : AppColors.primary);
 
       final statusHint = hasDebt
-          ? 'Regularize as propinas em dívida para evitar interrupções.'
+          ? 'Regularize as propinas em dívida.'
           : isCleared
-              ? 'A conta está em dia.'
-              : 'Este crédito será usado em propinas futuras.';
+              ? 'Está tudo regularizado.'
+              : 'Este crédito abate às próximas propinas.';
 
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text(
-            'Perfil do educando',
+            'Educando',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           backgroundColor: Colors.transparent,
@@ -106,8 +108,8 @@ class WardProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  w.className ?? 'Sem turma atribuída',
-                  style: const TextStyle(
+                  w.className ?? 'Sem turma',
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 16,
                   ),
@@ -134,11 +136,14 @@ class WardProfileScreen extends ConsumerWidget {
                         children: [
                           Icon(LucideIcons.wallet, color: balanceColor),
                           const SizedBox(width: 12),
-                          const Text(
-                            'Situação financeira',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                          const Expanded(
+                            child: Text(
+                              'Situação financeira',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -155,7 +160,7 @@ class WardProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Text(
                         statusHint,
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -173,45 +178,28 @@ class WardProfileScreen extends ConsumerWidget {
                   children: [
                     _actionCard(
                       icon: LucideIcons.fileSpreadsheet,
-                      title: 'Boletins',
+                      title: 'Boletins\nescolares',
                       color: AppColors.primary,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('A abrir os boletins...'),
-                          ),
-                        );
-                      },
+                      onTap: () => context.push('/result-card', extra: w.id),
                     ),
                     _actionCard(
                       icon: LucideIcons.receipt,
-                      title: 'Recibos',
+                      title: 'Recibos de\npagamento',
                       color: Colors.teal,
                       onTap: () => context.push('/parent-receipts'),
                     ),
                     _actionCard(
                       icon: LucideIcons.calendarCheck,
                       title: 'Histórico de\npresenças',
-                      color: Colors.orange,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('A abrir as presenças...'),
-                          ),
-                        );
-                      },
+                      color: AppColors.warning,
+                      onTap: () =>
+                          context.push('/ward-attendance', extra: w.id),
                     ),
                     _actionCard(
                       icon: LucideIcons.heartPulse,
-                      title: 'Dados\nmédicos',
+                      title: 'Ficha\nmédica',
                       color: AppColors.error,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('A abrir os dados médicos...'),
-                          ),
-                        );
-                      },
+                      onTap: () => _showMedical(context, w),
                     ),
                   ],
                 ),
@@ -226,30 +214,61 @@ class WardProfileScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Perfil do educando',
+          'Educando',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
       ),
-      body: Center(
+      body: const EmptyHint(
+        icon: LucideIcons.user,
+        message: 'Perfil do educando indisponível.',
+      ),
+    );
+  }
+}
+
+/// Ficha médica: o que a escola registou na admissão.
+void _showMedical(BuildContext context, Student w) {
+  String v(String? s) => (s == null || s.trim().isEmpty) ? '—' : s.trim();
+  Widget row(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        const SizedBox(height: 2),
+        Text(value, style: TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+      ],
+    ),
+  );
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              LucideIcons.user,
-              size: 56,
-              color: AppColors.textSecondary.withValues(alpha: 0.3),
+            Text(
+              'Ficha médica',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Perfil do educando indisponível.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            row('Grupo sanguíneo', v(w.bloodGroup)),
+            row('Notas médicas', v(w.medicalNotes)),
+            row('Contacto de emergência', v(w.emergencyContactName)),
+            row('Telefone de emergência', v(w.emergencyContactPhone)),
+            Text(
+              'Para corrigir estes dados, fale com a secretaria da escola.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
