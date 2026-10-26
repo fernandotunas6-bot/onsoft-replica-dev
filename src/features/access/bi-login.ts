@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeAngolaIdentity, validateAngolaBi } from "@/lib/angola-identity";
 import { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { pickUnambiguousLinkedAuthUserId } from "./bi-identity";
 
 export const signInWithIdentifierInputSchema = z.object({
   identifier: z.string().trim().min(3).max(100),
@@ -103,7 +104,6 @@ export async function resolveBiOrEmailToUserEmail(identifier: string): Promise<s
   // NÃO é a fonte de verdade do email de autenticação: é editável na Secretaria.
   // Só aceitamos um user_id explicitamente ligado; vários user_id são ambíguos.
   // Resolução do email é sempre pela conta auth.users no servidor.
-  const { pickUnambiguousLinkedAuthUserId } = await import("./bi-identity");
   const authEmailForRows = async (rows: Array<{ user_id: string | null }> | null) => {
     // Um resultado truncado poderia esconder outra conta ligada.
     if (!rows?.length || rows.length >= 21) return null;
