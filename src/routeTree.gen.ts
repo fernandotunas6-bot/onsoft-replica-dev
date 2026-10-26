@@ -62,7 +62,9 @@ import { Route as PedagogicaPresencaDocenteRouteImport } from './routes/pedagogi
 import { Route as PedagogicaRiscoRouteImport } from './routes/pedagogica_.risco'
 import { Route as PedagogicaSuperiorRouteImport } from './routes/pedagogica_.superior'
 import { Route as PessoasIndexRouteImport } from './routes/pessoas/index'
+import { Route as PessoasPersonIdRouteImport } from './routes/pessoas/$personId'
 import { Route as PessoasAcessosAlunosRouteImport } from './routes/pessoas/acessos-alunos'
+import { Route as PessoasNovoRouteImport } from './routes/pessoas/novo'
 import { Route as PessoasOrganizarTurmasRouteImport } from './routes/pessoas/organizar-turmas'
 import { Route as ProfessorPresencaRouteImport } from './routes/professor.presenca'
 import { Route as ProfessoresTeacherIdRouteImport } from './routes/professores/$teacherId'
@@ -101,6 +103,7 @@ import { Route as PedagogicaPautasSuperiorImprimirRouteImport } from './routes/p
 import { Route as PedagogicaSuperiorCertificadoRouteImport } from './routes/pedagogica_.superior_.certificado'
 import { Route as PedagogicaSuperiorHistoricoRouteImport } from './routes/pedagogica_.superior_.historico'
 import { Route as PedagogicaTarefasTaskIdRouteImport } from './routes/pedagogica_.tarefas.$taskId'
+import { Route as PedagogicaTurmasTurmaIdRouteImport } from './routes/pedagogica_.turmas.$turmaId'
 import { Route as AlumniPortalPortfolioEducationRouteImport } from './routes/alumni_.portal_.portfolio_.education'
 import { Route as AlumniPortalPortfolioPrintRouteImport } from './routes/alumni_.portal_.portfolio_.print'
 import { Route as AlumniPortalPortfolioShowcaseRouteImport } from './routes/alumni_.portal_.portfolio_.showcase'
@@ -410,9 +413,19 @@ const PessoasIndexRoute = PessoasIndexRouteImport.update({
   path: '/pessoas/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PessoasPersonIdRoute = PessoasPersonIdRouteImport.update({
+  id: '/pessoas/$personId',
+  path: '/pessoas/$personId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PessoasAcessosAlunosRoute = PessoasAcessosAlunosRouteImport.update({
   id: '/pessoas/acessos-alunos',
   path: '/pessoas/acessos-alunos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PessoasNovoRoute = PessoasNovoRouteImport.update({
+  id: '/pessoas/novo',
+  path: '/pessoas/novo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PessoasOrganizarTurmasRoute = PessoasOrganizarTurmasRouteImport.update({
@@ -608,6 +621,11 @@ const PedagogicaSuperiorHistoricoRoute =
 const PedagogicaTarefasTaskIdRoute = PedagogicaTarefasTaskIdRouteImport.update({
   id: '/pedagogica_/tarefas/$taskId',
   path: '/pedagogica/tarefas/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PedagogicaTurmasTurmaIdRoute = PedagogicaTurmasTurmaIdRouteImport.update({
+  id: '/pedagogica_/turmas/$turmaId',
+  path: '/pedagogica/turmas/$turmaId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlumniPortalPortfolioEducationRoute =
@@ -878,7 +896,9 @@ export interface FileRoutesByFullPath {
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pessoas/$personId': typeof PessoasPersonIdRoute
   '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
+  '/pessoas/novo': typeof PessoasNovoRoute
   '/pessoas/organizar-turmas': typeof PessoasOrganizarTurmasRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -919,6 +939,7 @@ export interface FileRoutesByFullPath {
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/pedagogica/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
+  '/pedagogica/turmas/$turmaId': typeof PedagogicaTurmasTurmaIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1011,7 +1032,9 @@ export interface FileRoutesByTo {
   '/pedagogica/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica/risco': typeof PedagogicaRiscoRoute
   '/pedagogica/superior': typeof PedagogicaSuperiorRoute
+  '/pessoas/$personId': typeof PessoasPersonIdRoute
   '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
+  '/pessoas/novo': typeof PessoasNovoRoute
   '/pessoas/organizar-turmas': typeof PessoasOrganizarTurmasRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -1052,6 +1075,7 @@ export interface FileRoutesByTo {
   '/pedagogica/superior/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica/superior/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/pedagogica/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
+  '/pedagogica/turmas/$turmaId': typeof PedagogicaTurmasTurmaIdRoute
   '/alumni/portal/portfolio/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni/portal/portfolio/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni/portal/portfolio/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1145,7 +1169,9 @@ export interface FileRoutesById {
   '/pedagogica_/presenca-docente': typeof PedagogicaPresencaDocenteRoute
   '/pedagogica_/risco': typeof PedagogicaRiscoRoute
   '/pedagogica_/superior': typeof PedagogicaSuperiorRoute
+  '/pessoas/$personId': typeof PessoasPersonIdRoute
   '/pessoas/acessos-alunos': typeof PessoasAcessosAlunosRoute
+  '/pessoas/novo': typeof PessoasNovoRoute
   '/pessoas/organizar-turmas': typeof PessoasOrganizarTurmasRoute
   '/professor/presenca': typeof ProfessorPresencaRoute
   '/professores/$teacherId': typeof ProfessoresTeacherIdRoute
@@ -1186,6 +1212,7 @@ export interface FileRoutesById {
   '/pedagogica_/superior_/certificado': typeof PedagogicaSuperiorCertificadoRoute
   '/pedagogica_/superior_/historico': typeof PedagogicaSuperiorHistoricoRoute
   '/pedagogica_/tarefas/$taskId': typeof PedagogicaTarefasTaskIdRoute
+  '/pedagogica_/turmas/$turmaId': typeof PedagogicaTurmasTurmaIdRoute
   '/alumni_/portal_/portfolio_/education': typeof AlumniPortalPortfolioEducationRoute
   '/alumni_/portal_/portfolio_/print': typeof AlumniPortalPortfolioPrintRoute
   '/alumni_/portal_/portfolio_/showcase': typeof AlumniPortalPortfolioShowcaseRoute
@@ -1280,7 +1307,9 @@ export interface FileRouteTypes {
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pessoas/$personId'
     | '/pessoas/acessos-alunos'
+    | '/pessoas/novo'
     | '/pessoas/organizar-turmas'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1321,6 +1350,7 @@ export interface FileRouteTypes {
     | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
     | '/pedagogica/tarefas/$taskId'
+    | '/pedagogica/turmas/$turmaId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1413,7 +1443,9 @@ export interface FileRouteTypes {
     | '/pedagogica/presenca-docente'
     | '/pedagogica/risco'
     | '/pedagogica/superior'
+    | '/pessoas/$personId'
     | '/pessoas/acessos-alunos'
+    | '/pessoas/novo'
     | '/pessoas/organizar-turmas'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1454,6 +1486,7 @@ export interface FileRouteTypes {
     | '/pedagogica/superior/certificado'
     | '/pedagogica/superior/historico'
     | '/pedagogica/tarefas/$taskId'
+    | '/pedagogica/turmas/$turmaId'
     | '/alumni/portal/portfolio/education'
     | '/alumni/portal/portfolio/print'
     | '/alumni/portal/portfolio/showcase'
@@ -1546,7 +1579,9 @@ export interface FileRouteTypes {
     | '/pedagogica_/presenca-docente'
     | '/pedagogica_/risco'
     | '/pedagogica_/superior'
+    | '/pessoas/$personId'
     | '/pessoas/acessos-alunos'
+    | '/pessoas/novo'
     | '/pessoas/organizar-turmas'
     | '/professor/presenca'
     | '/professores/$teacherId'
@@ -1587,6 +1622,7 @@ export interface FileRouteTypes {
     | '/pedagogica_/superior_/certificado'
     | '/pedagogica_/superior_/historico'
     | '/pedagogica_/tarefas/$taskId'
+    | '/pedagogica_/turmas/$turmaId'
     | '/alumni_/portal_/portfolio_/education'
     | '/alumni_/portal_/portfolio_/print'
     | '/alumni_/portal_/portfolio_/showcase'
@@ -1679,7 +1715,9 @@ export interface RootRouteChildren {
   PedagogicaPresencaDocenteRoute: typeof PedagogicaPresencaDocenteRoute
   PedagogicaRiscoRoute: typeof PedagogicaRiscoRoute
   PedagogicaSuperiorRoute: typeof PedagogicaSuperiorRoute
+  PessoasPersonIdRoute: typeof PessoasPersonIdRoute
   PessoasAcessosAlunosRoute: typeof PessoasAcessosAlunosRoute
+  PessoasNovoRoute: typeof PessoasNovoRoute
   PessoasOrganizarTurmasRoute: typeof PessoasOrganizarTurmasRoute
   ProfessorPresencaRoute: typeof ProfessorPresencaRoute
   ProfessoresTeacherIdRoute: typeof ProfessoresTeacherIdRoute
@@ -1720,6 +1758,7 @@ export interface RootRouteChildren {
   PedagogicaSuperiorCertificadoRoute: typeof PedagogicaSuperiorCertificadoRoute
   PedagogicaSuperiorHistoricoRoute: typeof PedagogicaSuperiorHistoricoRoute
   PedagogicaTarefasTaskIdRoute: typeof PedagogicaTarefasTaskIdRoute
+  PedagogicaTurmasTurmaIdRoute: typeof PedagogicaTurmasTurmaIdRoute
   AlumniPortalPortfolioEducationRoute: typeof AlumniPortalPortfolioEducationRoute
   AlumniPortalPortfolioPrintRoute: typeof AlumniPortalPortfolioPrintRoute
   AlumniPortalPortfolioShowcaseRoute: typeof AlumniPortalPortfolioShowcaseRoute
@@ -2117,11 +2156,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PessoasIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pessoas/$personId': {
+      id: '/pessoas/$personId'
+      path: '/pessoas/$personId'
+      fullPath: '/pessoas/$personId'
+      preLoaderRoute: typeof PessoasPersonIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pessoas/acessos-alunos': {
       id: '/pessoas/acessos-alunos'
       path: '/pessoas/acessos-alunos'
       fullPath: '/pessoas/acessos-alunos'
       preLoaderRoute: typeof PessoasAcessosAlunosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pessoas/novo': {
+      id: '/pessoas/novo'
+      path: '/pessoas/novo'
+      fullPath: '/pessoas/novo'
+      preLoaderRoute: typeof PessoasNovoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pessoas/organizar-turmas': {
@@ -2388,6 +2441,13 @@ declare module '@tanstack/react-router' {
       path: '/pedagogica/tarefas/$taskId'
       fullPath: '/pedagogica/tarefas/$taskId'
       preLoaderRoute: typeof PedagogicaTarefasTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pedagogica_/turmas/$turmaId': {
+      id: '/pedagogica_/turmas/$turmaId'
+      path: '/pedagogica/turmas/$turmaId'
+      fullPath: '/pedagogica/turmas/$turmaId'
+      preLoaderRoute: typeof PedagogicaTurmasTurmaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alumni_/portal_/portfolio_/education': {
@@ -2826,7 +2886,9 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaPresencaDocenteRoute: PedagogicaPresencaDocenteRoute,
   PedagogicaRiscoRoute: PedagogicaRiscoRoute,
   PedagogicaSuperiorRoute: PedagogicaSuperiorRoute,
+  PessoasPersonIdRoute: PessoasPersonIdRoute,
   PessoasAcessosAlunosRoute: PessoasAcessosAlunosRoute,
+  PessoasNovoRoute: PessoasNovoRoute,
   PessoasOrganizarTurmasRoute: PessoasOrganizarTurmasRoute,
   ProfessorPresencaRoute: ProfessorPresencaRoute,
   ProfessoresTeacherIdRoute: ProfessoresTeacherIdRoute,
@@ -2867,6 +2929,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedagogicaSuperiorCertificadoRoute: PedagogicaSuperiorCertificadoRoute,
   PedagogicaSuperiorHistoricoRoute: PedagogicaSuperiorHistoricoRoute,
   PedagogicaTarefasTaskIdRoute: PedagogicaTarefasTaskIdRoute,
+  PedagogicaTurmasTurmaIdRoute: PedagogicaTurmasTurmaIdRoute,
   AlumniPortalPortfolioEducationRoute: AlumniPortalPortfolioEducationRoute,
   AlumniPortalPortfolioPrintRoute: AlumniPortalPortfolioPrintRoute,
   AlumniPortalPortfolioShowcaseRoute: AlumniPortalPortfolioShowcaseRoute,

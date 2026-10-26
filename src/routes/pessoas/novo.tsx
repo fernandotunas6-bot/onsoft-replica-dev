@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -19,18 +20,34 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ModalShell, ModalHeader } from "@/components/ui/modal-system";
+import { IconChip } from "@/components/ui/icon-chip";
 import { createPerson, findPersonDuplicates, searchPeople } from "@/features/people/server";
 import { personRelationshipTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 import { angolaProvinces } from "@/lib/angola-territory";
+
+export const Route = createFileRoute("/pessoas/novo")({
+  head: () => ({
+    meta: [
+      { title: "Nova Pessoa · SIGA" },
+      {
+        name: "description",
+        content: "Cadastro único universal: identificação, contactos, documentos e vínculos.",
+      },
+      { property: "og:title", content: "Nova Pessoa · SIGA" },
+      { property: "og:type", content: "website" },
+    ],
+  }),
+  component: PersonWizardPage,
+});
 
 type PersonRole = (typeof personRoleOptions)[number];
 type RelationshipType = (typeof personRelationshipTypeOptions)[number];
@@ -65,15 +82,8 @@ function firstReadableErrorMessage(err: unknown): string {
   return err.message || "Não foi possível criar a pessoa.";
 }
 
-export function PersonWizardModal({
-  open,
-  onOpenChange,
-  onPersonCreated,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onPersonCreated?: (personId: string, action?: "enroll" | "view" | "close") => void;
-}) {
+function PersonWizardPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
@@ -145,29 +155,11 @@ export function PersonWizardModal({
     };
   }, [guardianQuery, selectedGuardian]);
 
-  const resetForm = () => {
-    setStep(1);
-    setFullName("");
-    setPreferredName("");
-    setBirthDate("");
-    setSex("M");
-    setNifOrBi("");
-    setPhonePrimary("");
-    setPhoneAlt("");
-    setEmail("");
-    setProvince("");
-    setMunicipality("");
-    setCommune("");
-    setAddress("");
-    setDocType("bi");
-    setDocNumber("");
-    setRoles(["aluno"]);
-    setCreatedPersonId(null);
-    setDuplicateCheck([]);
-    setGuardianQuery("");
-    setGuardianResults([]);
-    setSelectedGuardian(null);
-    setGuardianRelationship("encarregado");
+  const goToList = () => void navigate({ to: "/pessoas" });
+  const goToProfile = (personId: string) =>
+    void navigate({ to: "/pessoas/$personId", params: { personId } });
+  const goEnroll = (personId: string) => {
+    window.location.href = `/alunos?action=matricular&personId=${personId}`;
   };
 
   const handleNextStep1 = async () => {
@@ -266,16 +258,8 @@ export function PersonWizardModal({
           : undefined;
 
   return (
-    <ModalShell
-      open={open}
-      onOpenChange={(val) => {
-        if (!val) resetForm();
-        onOpenChange(val);
-      }}
-      size="2xl"
-      hasUnsavedChanges={hasUnsavedChanges}
-    >
-      <div className="relative flex h-full min-h-[78vh] flex-col lg:pl-[38%]">
+    <AppShell>
+      <div className="relative flex min-h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft lg:pl-[38%]">
         <aside className="absolute inset-y-0 left-0 hidden w-[38%] overflow-hidden border-r border-border bg-muted/20 lg:block">
           <EducationWorkflowVisual
             scene={visualScene}
@@ -287,24 +271,38 @@ export function PersonWizardModal({
             }
           />
         </aside>
-        <ModalHeader
-          icon={UserPlus}
-          title="Nova Pessoa — Núcleo de Identidade"
-          subtitle={`Passo ${step} de 7: Cadastro único universal transparente.`}
-          onClose={() => {
-            if (
-              hasUnsavedChanges &&
-              !window.confirm("Existem alterações não guardadas. Fechar sem guardar?")
-            ) {
-              return;
-            }
-            resetForm();
-            onOpenChange(false);
-          }}
-        />
+
+        <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <IconChip icon={UserPlus} tone="primary" size="md" label="Nova pessoa" />
+            <div className="min-w-0">
+              <h1 className="truncate font-display text-lg font-bold">
+                Nova Pessoa — Núcleo de Identidade
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Passo {step} de 7: Cadastro único universal transparente.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                hasUnsavedChanges &&
+                !window.confirm("Existem alterações não guardadas. Sair sem guardar?")
+              ) {
+                return;
+              }
+              goToList();
+            }}
+            aria-label="Fechar"
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
 
         <div className="border-b border-border bg-card px-6 py-2">
-          {/* PROGRESSO EM PASSOS */}
           <div className="flex items-center justify-between gap-1 overflow-x-auto text-[11px] font-semibold text-muted-foreground">
             {[
               "Identificação",
@@ -321,11 +319,11 @@ export function PersonWizardModal({
               return (
                 <span
                   key={label}
-                  className={`flex items-center gap-1 shrink-0 px-2 py-1 rounded-full ${
+                  className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 ${
                     active
-                      ? "bg-primary text-primary-foreground font-bold"
+                      ? "bg-primary font-bold text-primary-foreground"
                       : done
-                        ? "bg-primary/10 text-primary font-medium"
+                        ? "bg-primary/10 font-medium text-primary"
                         : "bg-secondary text-muted-foreground"
                   }`}
                 >
@@ -337,19 +335,17 @@ export function PersonWizardModal({
           </div>
         </div>
 
-        {/* CORPO DO WIZARD */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-6 bg-secondary/10 space-y-4">
-          {/* PASSO 1: IDENTIFICAÇÃO */}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-secondary/10 p-6">
           {step === 1 ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-                <h4 className="text-sm font-bold flex items-center gap-2">
+              <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+                <h4 className="flex items-center gap-2 text-sm font-bold">
                   <IdCard className="size-4 text-primary" />
                   Identificação Pessoal
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="sm:col-span-2 space-y-1.5">
+                <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="wiz_fullname">Nome Completo *</Label>
                     <Input
                       id="wiz_fullname"
@@ -408,13 +404,11 @@ export function PersonWizardModal({
             </div>
           ) : null}
 
-          {/* PASSO 2: CONTACTOS */}
           {step === 2 ? (
             <div className="space-y-4">
-              {/* ALERTA DE DUPLICADOS */}
               {duplicateCheck.length > 0 ? (
-                <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-warning font-bold text-sm">
+                <div className="space-y-3 rounded-xl border border-warning/40 bg-warning/10 p-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-warning">
                     <AlertTriangle className="size-4 shrink-0" />
                     Encontrámos correspondências de pessoas já cadastradas:
                   </div>
@@ -439,11 +433,7 @@ export function PersonWizardModal({
                             variant="outline"
                             size="sm"
                             className="h-7 gap-1 text-[11px]"
-                            onClick={() => {
-                              onOpenChange(false);
-                              resetForm();
-                              onPersonCreated?.(dup.id, "view");
-                            }}
+                            onClick={() => goToProfile(dup.id)}
                           >
                             <ExternalLink className="size-3" /> Ver ficha
                           </Button>
@@ -458,13 +448,13 @@ export function PersonWizardModal({
                 </div>
               ) : null}
 
-              <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-                <h4 className="text-sm font-bold flex items-center gap-2">
+              <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+                <h4 className="flex items-center gap-2 text-sm font-bold">
                   <Phone className="size-4 text-primary" />
                   Contactos e Localização
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="wiz_phone">Telefone Principal (Angola +244)</Label>
                     <AngolaPhoneField
@@ -479,7 +469,7 @@ export function PersonWizardModal({
                     <AngolaPhoneField id="wiz_phone_alt" value={phoneAlt} onChange={setPhoneAlt} />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1.5">
+                  <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="wiz_email">Correio Eletrónico (E-mail)</Label>
                     <Input
                       id="wiz_email"
@@ -545,15 +535,14 @@ export function PersonWizardModal({
             </div>
           ) : null}
 
-          {/* PASSO 3: DOCUMENTOS */}
           {step === 3 ? (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-              <h4 className="text-sm font-bold flex items-center gap-2">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h4 className="flex items-center gap-2 text-sm font-bold">
                 <FileCheck className="size-4 text-primary" />
                 Documento de Identificação Civil Principal
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="wiz_doctype">Tipo de Documento</Label>
                   <select
@@ -584,10 +573,9 @@ export function PersonWizardModal({
             </div>
           ) : null}
 
-          {/* PASSO 4: RELAÇÕES */}
           {step === 4 ? (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-              <h4 className="text-sm font-bold flex items-center gap-2">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h4 className="flex items-center gap-2 text-sm font-bold">
                 <Users className="size-4 text-primary" />
                 Relações Familiares & Encarregados
               </h4>
@@ -697,10 +685,9 @@ export function PersonWizardModal({
             </div>
           ) : null}
 
-          {/* PASSO 5: ATRIBUIÇÃO DE VÍNCULOS */}
           {step === 5 ? (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-              <h4 className="text-sm font-bold flex items-center gap-2">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h4 className="flex items-center gap-2 text-sm font-bold">
                 <GraduationCap className="size-4 text-primary" />
                 Atribuição de Papéis e Vínculos Iniciais
               </h4>
@@ -709,7 +696,7 @@ export function PersonWizardModal({
                 iniciais:
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
                 {(
                   [
                     { key: "aluno", label: "Aluno (Candidato a Matrícula)" },
@@ -722,7 +709,7 @@ export function PersonWizardModal({
                 ).map((r) => (
                   <label
                     key={r.key}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-border bg-secondary/20 hover:bg-secondary/40 cursor-pointer text-xs font-medium"
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-secondary/20 p-3 text-xs font-medium hover:bg-secondary/40"
                   >
                     <Checkbox
                       checked={roles.includes(r.key)}
@@ -735,46 +722,44 @@ export function PersonWizardModal({
             </div>
           ) : null}
 
-          {/* PASSO 6: REVISÃO INTELIGENTE */}
           {step === 6 ? (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-              <h4 className="text-sm font-bold flex items-center gap-2">
+            <div className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h4 className="flex items-center gap-2 text-sm font-bold">
                 <ShieldCheck className="size-4 text-primary" />
                 Revisão dos Dados Antes de Gravar
               </h4>
 
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs divide-y divide-border sm:divide-y-0">
+              <dl className="grid grid-cols-1 gap-4 divide-y divide-border text-xs sm:grid-cols-2 sm:divide-y-0">
                 <div>
                   <dt className="text-muted-foreground">Nome Completo</dt>
-                  <dd className="font-bold text-sm mt-0.5">{fullName}</dd>
+                  <dd className="mt-0.5 text-sm font-bold">{fullName}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Nascimento / Sexo</dt>
-                  <dd className="font-bold text-sm mt-0.5">
+                  <dd className="mt-0.5 text-sm font-bold">
                     {birthDate || "—"} ({sex})
                   </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Telefone Principal</dt>
-                  <dd className="font-bold text-sm mt-0.5">{phonePrimary || "—"}</dd>
+                  <dd className="mt-0.5 text-sm font-bold">{phonePrimary || "—"}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Vínculos Escolhidos</dt>
-                  <dd className="font-bold text-sm mt-0.5">{roles.join(", ") || "Nenhum"}</dd>
+                  <dd className="mt-0.5 text-sm font-bold">{roles.join(", ") || "Nenhum"}</dd>
                 </div>
               </dl>
             </div>
           ) : null}
 
-          {/* PASSO 7: CONCLUSÃO E AÇÕES RÁPIDAS */}
           {step === 7 ? (
-            <div className="rounded-xl border border-primary/30 bg-primary/10 p-6 text-center space-y-4 shadow-sm">
-              <CheckCircle2 className="size-12 text-primary mx-auto" />
+            <div className="space-y-4 rounded-xl border border-primary/30 bg-primary/10 p-6 text-center shadow-sm">
+              <CheckCircle2 className="mx-auto size-12 text-primary" />
               <div>
                 <h4 className="text-lg font-extrabold text-foreground">
                   Pessoa Cadastrada com Sucesso!
                 </h4>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {fullName} foi inserida no núcleo de dados do SIGA.
                 </p>
               </div>
@@ -783,10 +768,7 @@ export function PersonWizardModal({
                 {roles.includes("aluno") && createdPersonId ? (
                   <Button
                     type="button"
-                    onClick={() => {
-                      onOpenChange(false);
-                      onPersonCreated?.(createdPersonId, "enroll");
-                    }}
+                    onClick={() => goEnroll(createdPersonId)}
                     className="gap-2 shadow-sm"
                   >
                     <GraduationCap className="size-4" />
@@ -797,24 +779,14 @@ export function PersonWizardModal({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      onOpenChange(false);
-                      onPersonCreated?.(createdPersonId, "view");
-                    }}
+                    onClick={() => goToProfile(createdPersonId)}
                     className="gap-2"
                   >
                     <UserCheck className="size-4" />
                     Abrir Perfil 360°
                   </Button>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    onOpenChange(false);
-                    resetForm();
-                  }}
-                >
+                <Button type="button" variant="ghost" onClick={goToList}>
                   Concluir
                 </Button>
               </div>
@@ -822,9 +794,8 @@ export function PersonWizardModal({
           ) : null}
         </div>
 
-        {/* RODAPÉ E NAVEGAÇÃO DO WIZARD */}
         {step < 7 ? (
-          <div className="border-t border-border bg-card px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center justify-between border-t border-border bg-card px-6 py-4">
             <Button
               type="button"
               variant="outline"
@@ -841,6 +812,7 @@ export function PersonWizardModal({
               <Button
                 type="button"
                 size="sm"
+                disabled={checkingDuplicates}
                 onClick={step === 1 ? handleNextStep1 : () => setStep((s) => Math.min(6, s + 1))}
                 className="gap-1.5"
               >
@@ -861,6 +833,6 @@ export function PersonWizardModal({
           </div>
         ) : null}
       </div>
-    </ModalShell>
+    </AppShell>
   );
 }
