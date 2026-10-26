@@ -165,3 +165,13 @@ people (cadastro permanente)
 ## 10. PROMPT MASTER para o agente responsável
 
 > Trabalha **exclusivamente no SIGA Plus já existente**, na PR dedicada. Primeiro lê os módulos reais citados neste documento e o estado do `main` e das PRs abertas. Não reescrevas AuthGate, não dupliques tabelas de Pessoas/Alunos nem cries outra sidebar. Corrige o login de alunos por ID/BI com senha Supabase Auth e isolamento por escola; usa os dados existentes como fonte única. Implementa as páginas contextuais para preparar matrículas e simular turma A–Z por data de nascimento — os mais novos primeiro, dentro do mesmo ano/classe/curso/turno — com lotação e excepções legais. Preserva a pessoa e o ID ao mudar o ano, cria apenas matrícula anual nova e conserva o histórico imutável. Revê `suggestTargetGroup` quando a política etária estiver activada. Garante ID escolar em listas, turmas e exportações. Toda escrita exige validação no servidor e no banco, AAL2 quando requerido, auditoria, atomicidade e testes entre tenants. Uma página deve ter uma função principal, visual premium SIGA Plus, contexto/sidebar existentes, sem modais extensos. Apresenta provas de testes, falhas conhecidas, migrações pendentes e não fundas na `main` ou em produção sem gates.
+
+## Guias vinculativos versionados nesta PR
+
+- **Skill do agente:** `.cursor/skills/siga-alunos-ano-lectivo/SKILL.md`.
+- **Prompt Master completo:** `.cursor/skills/siga-alunos-ano-lectivo/references/PROMPT_MASTER.md`.
+- **Estrutura visual e wireframes contextuais:** `docs/design/STUDENT_LOGIN_CLASSES_CONTEXTUAL_UI_2026-10-26.md`.
+- **Entrada canónica para agentes:** `AGENTS.md`.
+
+Documentos complementares ao contrato visual global; qualquer agente deve lê-los antes de alterar login de alunos, Pessoas, renovação ou turmas. Os wireframes mostram funcionalidades **propostas** e não constituem prova de páginas já implementadas.
+
