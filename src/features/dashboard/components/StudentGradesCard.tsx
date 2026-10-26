@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { PieChart } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ChevronRight, PieChart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InlineLoading } from "@/components/ui/inline-loading";
 import { getMyStudentGrades, type StudentGradeReport } from "@/features/academic/student-grades";
@@ -9,6 +10,7 @@ import {
   type PassOutlook,
   type SubjectYearReport,
 } from "@/features/academic/student-grade-report";
+import { GradeMeter } from "@/features/academic/components/GradeMeter";
 import { cn } from "@/lib/utils";
 
 const fmt = (value: number | null | undefined) => (value == null ? "—" : value.toFixed(1));
@@ -112,7 +114,9 @@ export function StudentGradesCard({ studentId }: { studentId?: string | null }) 
                 <tbody className="divide-y divide-border">
                   {year.subjects.map((subject) => (
                     <tr key={subject.subjectId}>
-                      <td className="py-2.5 pr-3">{subject.subjectName}</td>
+                      <td className="py-2.5 pr-3">
+                        <SubjectLink subject={subject} studentId={studentId} />
+                      </td>
                       {subject.terms.map((t, i) => (
                         <td key={i} className="py-2.5 px-2 text-right tabular-nums">
                           <Score value={t?.mt ?? null} passing={subject.passing} />
@@ -202,7 +206,7 @@ export function StudentGradesCard({ studentId }: { studentId?: string | null }) 
                     return (
                       <tr key={subject.subjectId}>
                         <td className="py-2.5 pr-3">
-                          {subject.subjectName}
+                          <SubjectLink subject={subject} studentId={studentId} />
                           {t?.provisional && t.mt != null ? (
                             <span className="ml-1.5 text-xs text-muted-foreground">provisória</span>
                           ) : null}
@@ -245,39 +249,43 @@ const OUTLOOK_TONE: Record<PassOutlook["kind"], string> = {
   unreachable: "text-destructive/85",
 };
 
-/** Barra 0–20 com a marca da aprovação; o texto diz o que falta. */
+/** Abre a página da disciplina: notas até 20 e o histórico dos trabalhos. */
+function SubjectLink({
+  subject,
+  studentId,
+}: {
+  subject: SubjectYearReport;
+  studentId?: string | null;
+}) {
+  return (
+    <Link
+      to="/pedagogica/disciplinas/$subjectId"
+      params={{ subjectId: subject.subjectId }}
+      search={studentId ? { aluno: studentId } : {}}
+      className="group inline-flex items-center gap-1 rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {subject.subjectName}
+      <ChevronRight
+        className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        aria-hidden
+      />
+    </Link>
+  );
+}
+
+/** Barra 0–20: vermelha abaixo da aprovação, verde a partir dela; o texto diz o que falta. */
 function PassProgress({ subject }: { subject: SubjectYearReport }) {
-  const value = subject.finalAverage ?? 0;
-  const pct = Math.max(0, Math.min(100, (value / 20) * 100));
-  const passPct = Math.max(0, Math.min(100, (subject.passing / 20) * 100));
-  const below = subject.finalAverage != null && subject.finalAverage < subject.passing;
   const tone =
     subject.outlook.kind === "complete" && !subject.outlook.passed
       ? "text-destructive/85"
       : OUTLOOK_TONE[subject.outlook.kind];
   return (
     <div className="min-w-[160px] space-y-1">
-      <div
-        className="relative h-1.5 rounded-full bg-muted"
-        role="meter"
-        aria-valuemin={0}
-        aria-valuemax={20}
-        aria-valuenow={subject.finalAverage ?? undefined}
-        aria-label={`Média final ${fmt(subject.finalAverage)} de 20; aprovação a partir de ${subject.passing}`}
-      >
-        <div
-          className={cn(
-            "absolute inset-y-0 left-0 rounded-full",
-            below ? "bg-destructive/50" : "bg-primary/60",
-          )}
-          style={{ width: `${pct}%` }}
-        />
-        <div
-          className="absolute -top-0.5 h-2.5 w-px bg-foreground/40"
-          style={{ left: `${passPct}%` }}
-          aria-hidden
-        />
-      </div>
+      <GradeMeter
+        value={subject.finalAverage}
+        passing={subject.passing}
+        label={`Média final ${fmt(subject.finalAverage)} de 20; aprovação a partir de ${subject.passing}`}
+      />
       <p className={cn("text-xs leading-snug", tone)}>{outlookLabel(subject.outlook)}</p>
     </div>
   );

@@ -55,7 +55,8 @@ describe("notas e cotação da avaliação", () => {
   const legacy = read("src/features/academic/server-legacy.ts");
 
   it("nenhuma nota passa a cotação da avaliação", () => {
-    const body = fnBody(legacy, "upsertAssessmentScores");
+    const write = read("src/features/academic/assessment-score-write.ts");
+    const body = write.slice(write.indexOf("export async function writeAssessmentScores"));
     expect(body).toContain('.select("id, term, class_group_id, max_score")');
     expect(body.indexOf("row.score > maxScore")).toBeLessThan(
       body.indexOf('from("siga_assessment_scores")'),
