@@ -8,14 +8,22 @@ name: Estudo — YFT (APK Android)
 # botões dele ligam a releases/latest/download/<nome>.
 #
 # Variável:
-#   YFT_GOOGLE_SERVICES_JSON   conteúdo do google-services.json da app Android
-#                              ao.onsoft.sigaplus no Firebase siga-plus-integracoes
-#                              (valores públicos; fora do Git por regra do projecto)
+#   YFT_GOOGLE_SERVICES_JSON   opcional: o google-services.json da app Android
+#                              ao.onsoft.sigaplus no Firebase siga-plus-integracoes,
+#                              quando estiver registada. Sem ele, o login usa as
+#                              opções em Dart (lib/firebase_options.dart)
 #   YFT_API_BASE_URL           opcional; por omissão o Worker de teste do YFT
 # Segredos (para publicar; sem eles o APK sai assinado com a chave de depuração):
 #   ANDROID_KEYSTORE_BASE64    o .jks da chave de upload, em base64
 #   ANDROID_KEYSTORE_PASSWORD  a palavra-passe da chave (PKCS12: a mesma no ficheiro e na chave)
 on:
+  # Nos PRs que mexem na app Android: só constrói (versão 0.0.0), nunca publica.
+  pull_request:
+    paths:
+      - "estudo/yft-school-system/android/**"
+      - "estudo/yft-school-system/lib/**"
+      - "estudo/yft-school-system/pubspec.*"
+      - ".github/workflows/estudo-yft-android.yml"
   workflow_dispatch:
     inputs:
       versao:
@@ -28,7 +36,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: yft-android
+  group: yft-android-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   apk:
@@ -38,8 +46,8 @@ jobs:
         working-directory: estudo/yft-school-system
     env:
       API_BASE_URL: ${{ vars.YFT_API_BASE_URL || 'https://siga-yft.valentinocanguele.workers.dev' }}
-      VERSAO: ${{ inputs.versao }}
-      PUBLICAR: ${{ inputs.publicar }}
+      VERSAO: ${{ inputs.versao || '0.0.0' }}
+      PUBLICAR: ${{ inputs.publicar || false }}
     steps:
       - uses: actions/checkout@v4
 
@@ -63,15 +71,15 @@ jobs:
           channel: stable
           cache: true
 
-      # No Android, main.dart inicializa o Firebase a partir do google-services.json
-      # nativo: sem ele o Gradle pára, e com o pacote errado o login falha.
-      - name: Firebase Android (google-services.json)
+      # Com o google-services.json, main.dart usa a configuração nativa; sem ele, as
+      # opções em Dart. Se existir, tem de ser do projecto e do pacote certos.
+      - name: Firebase Android (google-services.json, opcional)
         env:
           GOOGLE_SERVICES_JSON: ${{ vars.YFT_GOOGLE_SERVICES_JSON }}
         run: |
           if [ -z "$GOOGLE_SERVICES_JSON" ]; then
-            echo "::error::Falta a variável YFT_GOOGLE_SERVICES_JSON (Firebase → siga-plus-integracoes → app Android ao.onsoft.sigaplus)."
-            exit 1
+            echo "Sem google-services.json: o login usa as opções em Dart."
+            exit 0
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           node -e '
@@ -124,12 +132,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: siga-plus-android-${{ inputs.versao }}
+          name: siga-plus-android-${{ inputs.versao || 'pr' }}
           path: estudo/yft-school-system/dist/
           retention-days: 14
 
       - name: Publicar na release «android»
-        if: inputs.publicar
+        if: github.event_name == 'workflow_dispatch' && inputs.publicar
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}

@@ -8,15 +8,23 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Android: [DEFAULT] comes from google-services.json. Passing
-  // DefaultFirebaseOptions here throws duplicate-app if they differ slightly
-  // from the native config (common after swapping google-services.json).
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    await Firebase.initializeApp();
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
+  await _initFirebase();
   runApp(const ProviderScope(child: AppRoot()));
+}
+
+Future<void> _initFirebase() async {
+  // Android: com google-services.json, o [DEFAULT] nativo manda, e passar
+  // DefaultFirebaseOptions aqui dava duplicate-app se diferissem. Sem ele (o
+  // build actual), a inicialização nativa falha e valem as opções em Dart.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    try {
+      await Firebase.initializeApp();
+      return;
+    } catch (_) {
+      // Sem configuração nativa: segue para as opções em Dart.
+    }
+  }
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 }

@@ -2,9 +2,6 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
@@ -66,4 +63,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// FlutterFire: só com o google-services.json (fora do Git). Sem ele, a app usa as
+// opções em Dart de lib/firebase_options.dart.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

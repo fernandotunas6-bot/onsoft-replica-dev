@@ -54,13 +54,16 @@ class DefaultFirebaseOptions {
     measurementId: 'G-N96MTKG3BT',
   );
 
+  // Android sem app registada no Firebase: usa a app web do mesmo projecto. Chega
+  // para o login por e-mail/senha (a apiKey não tem restrição por origem:
+  // verificado a 26/10/2026). Ao registar ao.onsoft.sigaplus, o
+  // google-services.json passa à frente (ver main.dart) sem mudar este ficheiro.
   static const FirebaseOptions android = FirebaseOptions(
-    // Replace with your values: flutterfire configure
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'your-project-id',
-    storageBucket: 'your-project.firebasestorage.app',
+    apiKey: 'AIzaSyCp175R-OFSlPmBG3UF8Vj3an_qNEGNbUk',
+    appId: '1:65146690021:web:fb8d6a455a432e858cf70c',
+    messagingSenderId: '65146690021',
+    projectId: 'siga-plus-integracoes',
+    storageBucket: 'siga-plus-integracoes.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
