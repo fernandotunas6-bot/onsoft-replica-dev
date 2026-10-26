@@ -34,6 +34,7 @@ export type SubjectWorkTask = {
   kind: string;
   description: string | null;
   dueOn: string | null;
+  /** Já não recebe entregas: arquivado, ou de uma matrícula que já não está activa. */
   archived: boolean;
   acceptsLate: boolean;
   countsForPauta: boolean;
@@ -81,7 +82,7 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
     // Todas as matrículas (anos anteriores incluídos): o histórico não se perde.
     const { data: enrollments, error: enrollmentError } = await db
       .from("enrollments")
-      .select("id, class_group_id")
+      .select("id, class_group_id, status")
       .eq("school_id", schoolId)
       .eq("student_id", studentId)
       .neq("status", "cancelled");
@@ -90,6 +91,13 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
     }
     const enrollmentOfGroup = new Map(
       ((enrollments ?? []) as Row[]).map((row) => [str(row.class_group_id), str(row.id)]),
+    );
+    // Só se entrega na matrícula activa (submitTaskWork): um trabalho de um ano já
+    // fechado que ficou por entregar é «não entregue», não «atrasado».
+    const activeEnrollments = new Set(
+      ((enrollments ?? []) as Row[])
+        .filter((row) => str(row.status) === "active")
+        .map((row) => str(row.id)),
     );
     const membership = await resolveSgaMembershipAdmin(context.userId);
     const base = {
@@ -161,16 +169,23 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
       const latest = latestByEnrollment(rows).get(enrollmentId ?? "") ?? null;
       const dueOn = task.due_on ? str(task.due_on) : null;
       const acceptsLate = task.accepts_late !== false;
+      const open = activeEnrollments.has(enrollmentId ?? "") && str(task.status) === "published";
       return {
         id: str(task.id),
         title: str(task.title),
         kind: str(task.kind) || "outra",
         description: task.description ? str(task.description) : null,
         dueOn,
-        archived: str(task.status) !== "published",
+        archived: !open,
         acceptsLate,
         countsForPauta: Boolean(task.assessment_item_id),
-        state: taskState({ taskStatus: str(task.status), dueOn, acceptsLate, latest, today }),
+        state: taskState({
+          taskStatus: open ? "published" : "archived",
+          dueOn,
+          acceptsLate,
+          latest,
+          today,
+        }),
         latest: studentView(latest),
         attempts: [...rows].sort((a, b) => b.attempt - a.attempt).map((row) => studentView(row)!),
       };

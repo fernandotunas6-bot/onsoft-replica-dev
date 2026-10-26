@@ -163,7 +163,8 @@ describe("página da disciplina", () => {
   it("o atrasado abre logo com o formulário de entrega; o devolvido não o mostra", async () => {
     subjectWork.mockResolvedValue(WORK);
     wrap();
-    expect(await screen.findByLabelText("O meu trabalho")).toBeTruthy();
+    // Três pedidos em cadeia (notas, trabalhos, a entrega): margem para máquinas lentas.
+    expect(await screen.findByLabelText("O meu trabalho", {}, { timeout: 5000 })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Ensaio/ }));
     expect(screen.getAllByLabelText("O meu trabalho")).toHaveLength(1);
   });

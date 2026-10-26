@@ -10,6 +10,7 @@ let storedObjects: Record<string, unknown> = {};
 let failSubmissionInsert = false;
 const writeAssessmentScores = vi.fn();
 const assertCanStoreBytes = vi.fn();
+const notifyTaskReturned = vi.fn();
 
 /** Base em memória com o que este módulo usa: leituras, insert e update. */
 function memoryDb() {
@@ -120,6 +121,9 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
     return membership;
   },
 }));
+vi.mock("@/features/academic/task-notify", () => ({
+  notifyTaskReturned: (...args: unknown[]) => notifyTaskReturned(...args),
+}));
 vi.mock("@/features/saas/tenant-limits-server", () => ({
   assertCanStoreBytesForSchool: (...args: unknown[]) => assertCanStoreBytes(...args),
 }));
@@ -170,6 +174,7 @@ beforeEach(() => {
   storedObjects = {};
   failSubmissionInsert = false;
   assertCanStoreBytes.mockReset();
+  notifyTaskReturned.mockReset();
   writeAssessmentScores.mockReset();
   writeAssessmentScores.mockResolvedValue({ saved: 1 });
   tables = {
@@ -347,6 +352,18 @@ describe("entregas no servidor", () => {
       rows: [{ enrollmentId: E1, score: 15 }],
     });
     expect(tables.siga_class_task_submissions![0]!.status).toBe("returned");
+    // Só depois de devolvida (a tentativa recusada pela pauta não avisou ninguém).
+    expect(notifyTaskReturned).toHaveBeenCalledTimes(1);
+    expect(notifyTaskReturned).toHaveBeenCalledWith(expect.anything(), {
+      schoolId: S,
+      taskId: TASK,
+      taskTitle: "Resumo",
+      subjectId: "mat",
+      enrollmentId: E1,
+      grade: 15,
+      feedback: null,
+      toPauta: true,
+    });
   });
 
   it("sem nota, ou sem avaliação ligada, a pauta não é tocada", async () => {
@@ -510,5 +527,52 @@ describe("entregas no servidor", () => {
     // Ficheiro apagado nos Arquivos: deixa de abrir.
     tables.siga_files![0]!.deleted_at = "2026-11-01T00:00:00Z";
     await expect(open()).rejects.toThrow("já não existe");
+  });
+
+  it("o professor regista a entrega em papel com a foto do caderno", async () => {
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t1";
+    const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]).toString("base64");
+    await server.recordPaperSubmission({
+      data: {
+        taskId: TASK,
+        enrollmentId: E1,
+        attachment: { name: "IMG_0001.jpg", contentType: "image/jpeg", base64: jpg },
+      },
+    });
+    const [sub] = tables.siga_class_task_submissions!;
+    const [file] = tables.siga_files!;
+    expect(sub).toMatchObject({ on_paper: true, file_id: file!.id });
+    expect(file).toMatchObject({ owner_user_id: "u1", mime: "image/jpeg", name: "IMG_0001.jpg" });
+    // O aluno vê a foto da sua entrega.
+    membership = { schoolId: S, appRole: "Aluno" };
+    const mine = await server.getMyTaskSubmission({ data: { taskId: TASK } });
+    expect(mine.submission).toMatchObject({ onPaper: true, file: { name: "IMG_0001.jpg" } });
+  });
+
+  it("ligada à pauta depois de devolver: as notas já devolvidas vão para a pauta", async () => {
+    await server.submitTaskWork({ data: { taskId: TASK, body: "v1" } });
+    membership = { schoolId: S, appRole: "Professor" };
+    ownTeacher = "t1";
+    const submissionId = String(tables.siga_class_task_submissions![0]!.id);
+    await server.returnTaskSubmission({ data: { taskId: TASK, submissionId, grade: 14 } });
+    expect(writeAssessmentScores).not.toHaveBeenCalled();
+
+    await expect(server.syncTaskGradesToPauta({ data: { taskId: TASK } })).rejects.toThrow(
+      "Ligue primeiro",
+    );
+    await server.linkTaskAssessment({ data: { taskId: TASK, itemId: ITEM } });
+    expect(await server.syncTaskGradesToPauta({ data: { taskId: TASK } })).toEqual({ saved: 1 });
+    expect(writeAssessmentScores).toHaveBeenCalledWith(expect.anything(), {
+      schoolId: S,
+      userId: "u1",
+      itemId: ITEM,
+      rows: [{ enrollmentId: E1, score: 14 }],
+    });
+
+    ownTeacher = "t9";
+    await expect(server.syncTaskGradesToPauta({ data: { taskId: TASK } })).rejects.toThrow(
+      "Só o professor desta disciplina",
+    );
   });
 });

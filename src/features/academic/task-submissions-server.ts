@@ -25,6 +25,7 @@ import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { writeAssessmentScores } from "./assessment-score-write";
 import { TASK_KINDS } from "./lesson-messages";
 import { ownTeacherId } from "./own-teacher";
+import { notifyTaskReturned } from "./task-notify";
 import {
   decideSubmission,
   latestByEnrollment,
@@ -270,6 +271,36 @@ export const linkTaskAssessment = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Professor/direcção: leva à pauta as notas das entregas já devolvidas, quando a
+ * tarefa foi ligada à avaliação depois de devolver. A última tentativa de cada
+ * aluno, se devolvida com nota; mesmas regras do lançamento.
+ */
+export const syncTaskGradesToPauta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => z.object({ taskId: z.string().guid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { db, schoolId, task } = await requireTaskManager(context.userId, data.taskId, "write");
+    const itemId = str(task.assessment_item_id);
+    if (!itemId) throw new Error("Ligue primeiro a tarefa a uma avaliação da pauta.");
+    const rows = [...latestByEnrollment(await readSubmissions(db, schoolId, data.taskId)).values()]
+      .filter((row) => row.status === "returned" && row.grade != null)
+      .map((row) => ({ enrollmentId: row.enrollment_id, score: Number(row.grade) }));
+    let saved = 0;
+    // Em lotes, como o lançamento da pauta (80 alunos por pedido).
+    for (let i = 0; i < rows.length; i += 80) {
+      saved += (
+        await writeAssessmentScores(db, {
+          schoolId,
+          userId: context.userId,
+          itemId,
+          rows: rows.slice(i, i + 80),
+        })
+      ).saved;
+    }
+    return { saved };
+  });
+
 /** Professor/direcção: título, tipo, descrição, prazo, atrasos e arquivar/reabrir. */
 export const updateTaskSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -308,11 +339,26 @@ export const updateTaskSettings = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const attachmentInput = z.object({
+  name: z.string().max(255),
+  contentType: z.enum(ATTACHMENT_TYPES as [string, ...string[]], {
+    message: "Envie um PDF ou uma imagem (JPG, PNG, WebP).",
+  }),
+  base64: z.string().min(1).max(MAX_ATTACHMENT_BASE64, "O anexo deve ter no máximo 5 MB."),
+});
+
 /** Professor: o aluno entregou em papel (primário, sem plataforma em casa). */
 export const recordPaperSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z.object({ taskId: z.string().guid(), enrollmentId: z.string().guid() }).parse(input),
+    z
+      .object({
+        taskId: z.string().guid(),
+        enrollmentId: z.string().guid(),
+        // A foto do trabalho em papel, tirada pelo professor ao recebê-lo.
+        attachment: attachmentInput.optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { db, schoolId, task, classSubject } = await requireTaskManager(
@@ -342,6 +388,17 @@ export const recordPaperSubmission = createServerFn({ method: "POST" })
       now,
     });
     if (!decision.ok) throw new Error(decision.reason);
+    const stored = data.attachment
+      ? await storeTaskAttachment(db, {
+          schoolId,
+          userId: context.userId,
+          taskId: data.taskId,
+          enrollmentId: data.enrollmentId,
+          classGroupId: str(classSubject.class_group_id) || null,
+          title: str(task.title),
+          upload: data.attachment as Parameters<typeof storeTaskAttachment>[1]["upload"],
+        })
+      : null;
     const { error } = await db.from("siga_class_task_submissions").insert({
       school_id: schoolId,
       task_id: data.taskId,
@@ -349,11 +406,13 @@ export const recordPaperSubmission = createServerFn({ method: "POST" })
       attempt: decision.attempt,
       status: "submitted",
       on_paper: true,
+      file_id: stored?.fileId ?? null,
       submitted_at: now,
       is_late: decision.late,
       created_by: context.userId,
       updated_by: context.userId,
     });
+    if (error && stored) await discardTaskAttachment(db, schoolId, stored);
     if (error) throw publicDatabaseError(error, "Não foi possível registar a entrega.");
     return { attempt: decision.attempt };
   });
@@ -372,7 +431,11 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { db, schoolId, task } = await requireTaskManager(context.userId, data.taskId, "write");
+    const { db, schoolId, task, classSubject } = await requireTaskManager(
+      context.userId,
+      data.taskId,
+      "write",
+    );
     const { data: current, error: currentError } = await db
       .from("siga_class_task_submissions")
       .select("id, enrollment_id, status")
@@ -414,6 +477,16 @@ export const returnTaskSubmission = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível devolver a entrega.");
     if (!updated) throw new Error("Esta entrega já foi devolvida ou não existe.");
+    await notifyTaskReturned(db, {
+      schoolId,
+      taskId: data.taskId,
+      taskTitle: str(task.title),
+      subjectId: str(classSubject.subject_id),
+      enrollmentId: str(current.enrollment_id),
+      grade: data.grade ?? null,
+      feedback: data.feedback || null,
+      toPauta,
+    });
     return { ok: true, pauta: toPauta };
   });
 
@@ -459,14 +532,6 @@ export const getMyTaskSubmission = createServerFn({ method: "GET" })
       dueOn: task.due_on ? str(task.due_on) : null,
     };
   });
-
-const attachmentInput = z.object({
-  name: z.string().max(255),
-  contentType: z.enum(ATTACHMENT_TYPES as [string, ...string[]], {
-    message: "Envie um PDF ou uma imagem (JPG, PNG, WebP).",
-  }),
-  base64: z.string().min(1).max(MAX_ATTACHMENT_BASE64, "O anexo deve ter no máximo 5 MB."),
-});
 
 /** Aluno: entrega (ou reenvia, até o professor devolver), com texto, anexo ou os dois. */
 export const submitTaskWork = createServerFn({ method: "POST" })

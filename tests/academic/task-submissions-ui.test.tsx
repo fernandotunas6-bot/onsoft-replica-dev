@@ -21,6 +21,7 @@ const server = {
   getMyTaskSubmission: vi.fn(),
   submitTaskWork: vi.fn(),
   openTaskSubmissionFile: vi.fn(),
+  syncTaskGradesToPauta: vi.fn(),
 };
 vi.mock("@/features/academic/task-submissions-server", () => ({
   listTaskSubmissions: (a: unknown) => server.listTaskSubmissions(a),
@@ -31,6 +32,7 @@ vi.mock("@/features/academic/task-submissions-server", () => ({
   getMyTaskSubmission: (a: unknown) => server.getMyTaskSubmission(a),
   submitTaskWork: (a: unknown) => server.submitTaskWork(a),
   openTaskSubmissionFile: (a: unknown) => server.openTaskSubmissionFile(a),
+  syncTaskGradesToPauta: (a: unknown) => server.syncTaskGradesToPauta(a),
 }));
 
 const { TaskSubmissionsPanel, MyTaskSubmission } =
@@ -293,6 +295,70 @@ describe("entregas: professor", () => {
     const attempts = screen.getByRole("list", { name: "Tentativas de Ana Silva" });
     expect(attempts.textContent).toContain("1.ª tentativa");
     expect(attempts.textContent).toContain("Primeira versão");
+  });
+
+  it("papel com foto: a foto vai com o registo da entrega", async () => {
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: null,
+      acceptsLate: true,
+      assessment: null,
+      assessmentOptions: [],
+      lines: [
+        { enrollmentId: "e2", studentName: "Bia", submission: null, attempts: 0, pautaScore: null },
+      ],
+    });
+    server.recordPaperSubmission.mockResolvedValue({ attempt: 1 });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+    const input = await screen.findByLabelText("Foto do trabalho em papel de Bia");
+    fireEvent.change(input, {
+      target: { files: [new File(["%PDF-1.4"], "folha.pdf", { type: "application/pdf" })] },
+    });
+    await waitFor(() =>
+      expect(server.recordPaperSubmission).toHaveBeenCalledWith({
+        data: {
+          taskId: TASK,
+          enrollmentId: "e2",
+          attachment: {
+            name: "folha.pdf",
+            contentType: "application/pdf",
+            base64: btoa("%PDF-1.4"),
+          },
+        },
+      }),
+    );
+  });
+
+  it("notas devolvidas antes de ligar à pauta: um botão leva-as à pauta", async () => {
+    const item = {
+      id: "00000000-0000-0000-0000-0000000000a1",
+      name: "Trabalho 1",
+      term: 1,
+      maxScore: 20,
+    };
+    const returned = (grade: number) => submission({ status: "returned", grade });
+    server.listTaskSubmissions.mockResolvedValue({
+      ...TASK_META,
+      dueOn: null,
+      acceptsLate: true,
+      assessment: item,
+      assessmentOptions: [item],
+      lines: [
+        // Na pauta com a mesma nota: não conta.
+        { enrollmentId: "e1", studentName: "Ana", submission: returned(15), attempts: 1, pautaScore: 15 },
+        // Nota 0 sem nota na pauta: conta (Number(null) também é 0).
+        { enrollmentId: "e2", studentName: "Bia", submission: returned(0), attempts: 1, pautaScore: null },
+        { enrollmentId: "e3", studentName: "Caio", submission: returned(12), attempts: 1, pautaScore: 9 },
+      ],
+    });
+    server.syncTaskGradesToPauta.mockResolvedValue({ saved: 2 });
+    wrap(<TaskSubmissionsPanel taskId={TASK} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Lançar na pauta as 2 notas já devolvidas" }),
+    );
+    await waitFor(() =>
+      expect(server.syncTaskGradesToPauta).toHaveBeenCalledWith({ data: { taskId: TASK } }),
+    );
   });
 
   it("sem permissão: mostra o motivo do servidor", async () => {

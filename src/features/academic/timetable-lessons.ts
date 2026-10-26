@@ -50,8 +50,11 @@ export type LessonDetail = {
   weekday: number;
   startsAt: string;
   endsAt: string;
-  /** Para o aluno abrir a disciplina, com o histórico de todos os trabalhos. */
-  subjectId: string;
+  /**
+   * Para o aluno (ou o encarregado) abrir a disciplina, com o histórico dos
+   * trabalhos. Null para o pessoal: a página da disciplina é da família.
+   */
+  subjectId: string | null;
   subjectName: string;
   className: string;
   room: string | null;
@@ -192,7 +195,7 @@ export const getLessonDetail = createServerFn({ method: "GET" })
       weekday: Number(slot.weekday),
       startsAt: String(slot.starts_at ?? "").slice(0, 5),
       endsAt: String(slot.ends_at ?? "").slice(0, 5),
-      subjectId: String(classSubject.subject_id ?? ""),
+      subjectId: isStaff ? null : String(classSubject.subject_id ?? "") || null,
       subjectName: subjectRes.data?.name ? String(subjectRes.data.name) : "Disciplina",
       className: groupRes.data?.name ? String(groupRes.data.name) : "Turma",
       room: roomRes.data?.name ? String(roomRes.data.name) : (slot.room ?? null),

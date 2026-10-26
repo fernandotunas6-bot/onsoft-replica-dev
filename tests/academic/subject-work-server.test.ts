@@ -183,4 +183,20 @@ describe("trabalhos da disciplina (aluno e encarregado)", () => {
     tables.subjects = [];
     expect((await getMySubjectWork({ data: { subjectId: SUBJECT } })).subjectName).toBe("");
   });
+
+  it("trabalho de um ano já fechado, por entregar: não entregue, nunca «atrasado»", async () => {
+    tables.siga_class_tasks!.push(
+      task("t-old-open", { class_subject_id: "cs-old", status: "published", due_on: "2025-05-01" }),
+    );
+    const work = await getMySubjectWork({ data: { subjectId: SUBJECT } });
+    const old = work.tasks.find((t) => t.id === "t-old-open")!;
+    expect(old).toMatchObject({ state: "missed", archived: true });
+    // Vai para o fim: não pede acção.
+    expect(work.tasks.at(-1)!.id).toBe("t-old-open");
+    // O da matrícula activa continua a pedir.
+    expect(work.tasks.find((t) => t.id === "t-overdue")).toMatchObject({
+      state: "overdue",
+      archived: false,
+    });
+  });
 });

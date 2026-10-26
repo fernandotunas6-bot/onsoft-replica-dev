@@ -33,6 +33,7 @@ import {
   recordPaperSubmission,
   returnTaskSubmission,
   submitTaskWork,
+  syncTaskGradesToPauta,
   updateTaskSettings,
   type TaskAssessmentOption,
   type TaskSubmissionLine,
@@ -394,6 +395,17 @@ function TaskSettings({
         taskId={taskId}
         current={data.assessment}
         options={data.assessmentOptions ?? []}
+        // Devolvidas com nota que a pauta ainda não tem (ou tem outra).
+        pending={
+          (data.lines ?? []).filter(
+            (line) =>
+              line.submission?.status === "returned" &&
+              line.submission.grade != null &&
+              // Nota 0 sem nota na pauta: Number(null) é 0 e contava como lançada.
+              (line.pautaScore == null ||
+                Number(line.pautaScore) !== Number(line.submission.grade)),
+          ).length
+        }
         queryKey={queryKey}
       />
     </section>
@@ -420,14 +432,26 @@ function AssessmentLink({
   taskId,
   current,
   options,
+  pending,
   queryKey,
 }: {
   taskId: string;
   current: TaskAssessmentOption | null;
   options: TaskAssessmentOption[];
+  pending: number;
   queryKey: unknown[];
 }) {
   const queryClient = useQueryClient();
+  const sync = useMutation({
+    mutationFn: () => syncTaskGradesToPauta({ data: { taskId } }),
+    onSuccess: (result) => {
+      toast.success(
+        result.saved === 1 ? "1 nota lançada na pauta." : `${result.saved} notas lançadas na pauta.`,
+      );
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível lançar na pauta.")),
+  });
   const link = useMutation({
     mutationFn: (itemId: string | null) => linkTaskAssessment({ data: { taskId, itemId } }),
     onSuccess: (_result, itemId) => {
@@ -471,6 +495,21 @@ function AssessmentLink({
           A nota de cada entrega devolvida fica em «{current.name}», com as regras da pauta.
         </p>
       ) : null}
+      {current && pending > 0 ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-1 h-8 gap-1.5 text-xs"
+          disabled={sync.isPending}
+          onClick={() => sync.mutate()}
+        >
+          <Star className="size-3.5" aria-hidden />
+          {pending === 1
+            ? "Lançar na pauta a nota já devolvida"
+            : `Lançar na pauta as ${pending} notas já devolvidas`}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -500,13 +539,32 @@ function SubmissionLine({
   const queryClient = useQueryClient();
   const [grading, setGrading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const paperPhoto = useRef<HTMLInputElement>(null);
   const [grade, setGrade] = useState("");
   const [feedback, setFeedback] = useState("");
   const refresh = () => queryClient.invalidateQueries({ queryKey });
   const paper = useMutation({
-    mutationFn: () => recordPaperSubmission({ data: { taskId, enrollmentId: line.enrollmentId } }),
-    onSuccess: () => {
-      toast.success("Entrega em papel registada.");
+    mutationFn: (photo?: PreparedAttachment) =>
+      recordPaperSubmission({
+        data: {
+          taskId,
+          enrollmentId: line.enrollmentId,
+          ...(photo
+            ? {
+                attachment: {
+                  name: photo.name,
+                  contentType: photo.contentType,
+                  base64: photo.base64,
+                },
+              }
+            : {}),
+        },
+      }),
+    onSuccess: (_result, photo) => {
+      toast.success(
+        photo ? "Entrega em papel registada, com a foto." : "Entrega em papel registada.",
+      );
       void refresh();
     },
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível registar.")),
@@ -585,10 +643,47 @@ function SubmissionLine({
             variant="ghost"
             className="h-7 text-xs"
             disabled={paper.isPending}
-            onClick={() => paper.mutate()}
+            onClick={() => paper.mutate(undefined)}
           >
             Entregou em papel
           </Button>
+        ) : null}
+        {!sub ? (
+          <>
+            <input
+              ref={paperPhoto}
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,image/webp"
+              capture="environment"
+              className="sr-only"
+              tabIndex={-1}
+              aria-label={`Foto do trabalho em papel de ${line.studentName}`}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                setPreparingPhoto(true);
+                try {
+                  paper.mutate(await prepareAttachment(file));
+                } catch (error) {
+                  toast.error(publicErrorMessage(error, "Não foi possível usar este ficheiro."));
+                } finally {
+                  setPreparingPhoto(false);
+                }
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 text-xs"
+              disabled={paper.isPending || preparingPhoto}
+              onClick={() => paperPhoto.current?.click()}
+            >
+              <Camera className="size-3.5" aria-hidden />
+              {preparingPhoto ? "A preparar…" : "Papel com foto"}
+            </Button>
+          </>
         ) : null}
         {sub?.status === "submitted" && !grading ? (
           <Button
@@ -770,6 +865,7 @@ export function MyTaskSubmission({
             type="file"
             accept="application/pdf,image/jpeg,image/png,image/webp"
             className="sr-only"
+            tabIndex={-1}
             aria-label="Anexar foto ou PDF"
             onChange={(event) => {
               void pick(event.target.files?.[0]);
@@ -782,8 +878,9 @@ export function MyTaskSubmission({
             accept="image/*"
             capture="environment"
             className="sr-only"
+            // Os botões visíveis («Anexar», «Tirar foto») accionam estes campos.
             tabIndex={-1}
-            aria-hidden
+            aria-label="Tirar foto do trabalho"
             onChange={(event) => {
               void pick(event.target.files?.[0]);
               event.target.value = "";
