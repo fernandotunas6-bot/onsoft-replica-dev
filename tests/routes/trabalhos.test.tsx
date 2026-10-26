@@ -75,6 +75,8 @@ describe("/pedagogica/trabalhos", () => {
     expect(screen.getByRole("region", { name: "Prazo terminado" })).toBeDefined();
     expect(screen.getByText("Trabalho · Língua Portuguesa")).toBeDefined();
     expect(screen.getByText("Entrega até 30/10/2026")).toBeDefined();
+    // Cada trabalho leva às suas entregas (`/pedagogica/tarefas/<id>`).
+    expect(screen.getAllByText("Ver entregas")).toHaveLength(2);
   });
 
   it("com disciplina, pede só essa e não repete o nome dela em cada trabalho", async () => {

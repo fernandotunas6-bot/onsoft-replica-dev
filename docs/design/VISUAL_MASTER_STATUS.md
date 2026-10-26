@@ -122,6 +122,11 @@ mostra todas as faturas de um aluno, com «Faturas de ‹nome› · processo …
 faturas»; chega-se lá por «Faturas do aluno» no menu da fatura (a tesouraria, que não abre fichas)
 e por «Receber pagamentos» no menu do aluno (Administração). Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (entregas dos trabalhos):** com as entregas no main (#336),
+cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedagogica/tarefas/<id>`
+(a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
+estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
