@@ -122,10 +122,28 @@ mostra todas as faturas de um aluno, com «Faturas de ‹nome› · processo …
 faturas»; chega-se lá por «Faturas do aluno» no menu da fatura (a tesouraria, que não abre fichas)
 e por «Receber pagamentos» no menu do aluno (Administração). Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (página do ficheiro):** `/arquivos/<id>` mostra o ficheiro
+(tipo, tamanho, título, categoria, data, código, área, acesso, o nível da conta e o
+proprietário), «Abrir» e «Descarregar» a quem pode abrir o conteúdo, a turma e o aluno a que
+está ligado e a auditoria. O painel de detalhes dos Arquivos ganha «Abrir a página do
+ficheiro» (fora do selector de ficheiros). A sidebar mostra o menu do ficheiro («Voltar»,
+`Ficheiro · …`, «Detalhes e auditoria», «Todos os arquivos» e, quando o servidor devolve a
+ligação, «Pasta da turma», «Documentos do aluno» e «Ficha do aluno»). Renomear, mover, mudar o
+acesso e apagar continuam na lista. Sem estilos novos.
+
 **26/10/2026 — SIGA Context Engine (entregas dos trabalhos):** com as entregas no main (#336),
 cada trabalho de `/pedagogica/trabalhos` tem «Ver entregas», que abre `/pedagogica/tarefas/<id>`
 (a turma inteira, com devolver e nota). A ligação tem 44 px de altura no telemóvel e o mesmo
 estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
+
+**26/10/2026 — SIGA Context Engine (ficha do funcionário):** `/financeiro/rh/funcionarios` lista
+os vínculos laborais (nome, número, cargo, departamento, tipo e estado), com procura, e cada linha
+abre `/financeiro/rh/funcionarios/<id>`: o vínculo, o professor da mesma pessoa, os contratos, as
+faltas (com as que estão por rever) e os recibos de vencimento por folha, cada secção com a
+ligação para a página do RH onde se trabalha sobre ela. O hub do RH ganha «Funcionários». A
+sidebar mostra o menu do funcionário («Voltar», `Funcionário · …`, a ficha, todos os
+funcionários, rever faltas, folha, alterações salariais e o perfil do professor), e o menu do
+professor ganha «Ficha de RH» (Administração). Linhas da lista com 56 px; sem estilos novos.
 
 **26/10/2026 — SIGA Context Engine (página do comunicado):** cada comunicado abre
 `/comunicacoes/<id>` com o texto inteiro (as quebras de linha mantêm-se), o estado, o público, o
@@ -148,6 +166,14 @@ telemóvel. Sem estilos novos.
 turma é a página `/pedagogica/turmas/<id>` do main (tudo numa página, sem o modal). A #332 deixa
 a sua versão e acrescenta só `?secao=`: «Alunos da turma» e as outras entradas do menu levam à
 secção, que ganhou um id e um título ligado (`aria-labelledby`). Sem estilos novos.
+
+**26/10/2026 — RH e Alumni abrem a sua página:** `/financeiro/rh` e as suas páginas (folha,
+salários, pagamentos, presença, faltas) estavam definidas dentro de `/financeiro`, e as do Alumni
+dentro de `/alumni`. A página de cima não tem `<Outlet />`, por isso estes endereços mostravam o
+Caixa ou o painel do Alumni. Os ficheiros passaram a `financeiro_.rh_.*.tsx` e `alumni_.*.tsx`:
+os endereços são os mesmos e cada página mostra o seu ecrã, sem estilos novos.
+`tests/routes/route-nesting-contract.test.ts` falha se uma página voltar a ficar dentro de outra
+sem `<Outlet />`.
 
 ## Diagnóstico por prioridade
 

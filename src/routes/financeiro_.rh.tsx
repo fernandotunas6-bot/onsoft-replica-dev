@@ -31,7 +31,7 @@ function payrollRunBadge(status: string) {
   return PAYROLL_RUN_BADGE[status] ?? { status: "pending" as const, label: status };
 }
 
-export const Route = createFileRoute("/financeiro/rh")({
+export const Route = createFileRoute("/financeiro_/rh")({
   head: () => ({
     meta: [
       { title: "RH e Folha Salarial · SIGA" },
@@ -85,6 +85,9 @@ function HrPayrollPage() {
             <div className="flex flex-wrap gap-2">
               <Button asChild>
                 <Link to="/financeiro/rh/folha">Processar folha</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/financeiro/rh/funcionarios">Funcionários</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link to="/financeiro/rh/salarios">Alterações salariais</Link>

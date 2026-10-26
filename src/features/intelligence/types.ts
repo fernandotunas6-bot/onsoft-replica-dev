@@ -10,6 +10,10 @@ export type EntityType =
   | "subject-offering"
   /** Uma fatura da escola activa (contexto financeiro). */
   | "invoice"
+  /** Um vínculo laboral (funcionário) da escola activa (contexto RH). */
+  | "employee"
+  /** Um ficheiro dos Arquivos da escola activa (contexto Documentos e Arquivos). */
+  | "file"
   /** Um comunicado da escola activa (contexto Comunicações). */
   | "announcement";
 

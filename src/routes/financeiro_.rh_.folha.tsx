@@ -25,7 +25,7 @@ import {
 } from "@/features/hr/payroll";
 import { kwanza } from "@/lib/currency";
 
-export const Route = createFileRoute("/financeiro/rh/folha")({
+export const Route = createFileRoute("/financeiro_/rh_/folha")({
   head: () => ({ meta: [{ title: "Processamento da Folha · RH · SIGA" }] }),
   component: PayrollOperationsPage,
 });

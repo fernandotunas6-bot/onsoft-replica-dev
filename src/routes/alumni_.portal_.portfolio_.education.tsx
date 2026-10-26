@@ -15,7 +15,7 @@ import {
   saveMyAlumniEducationStage,
 } from "@/features/alumni/education-history";
 
-export const Route = createFileRoute("/alumni/portal/portfolio/education")({
+export const Route = createFileRoute("/alumni_/portal_/portfolio_/education")({
   head: () => ({ meta: [{ title: "Percurso Educacional · Portfólio SIGA" }] }),
   component: AlumniPortfolioEducationPage,
 });

@@ -176,6 +176,14 @@ describe("routeContextCandidates", () => {
     expect(routeContextCandidates(`/faturas/${ALUNO}`)).toEqual([{ type: "invoice", id: ALUNO }]);
     expect(routeContextCandidates("/faturas/FT-2026-0311")).toEqual([]);
     expect(routeContextCandidates("/faturas")).toEqual([]);
+    expect(routeContextCandidates(`/financeiro/rh/funcionarios/${ALUNO}`)).toEqual([
+      { type: "employee", id: ALUNO },
+    ]);
+    expect(routeContextCandidates("/financeiro/rh/funcionarios/F-012")).toEqual([]);
+    expect(routeContextCandidates("/financeiro/rh/funcionarios")).toEqual([]);
+    expect(routeContextCandidates(`/financeiro/rh/funcionarios/${ALUNO}/extra`)).toEqual([]);
+    expect(routeContextCandidates(`/arquivos/${ALUNO}`)).toEqual([{ type: "file", id: ALUNO }]);
+    expect(routeContextCandidates("/arquivos/certidao.pdf")).toEqual([]);
   });
 
   it("reconhece a página do comunicado, só com um uuid", () => {

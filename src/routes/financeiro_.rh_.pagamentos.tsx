@@ -31,7 +31,7 @@ import {
 } from "@/features/hr/payments";
 import { kwanza } from "@/lib/currency";
 
-export const Route = createFileRoute("/financeiro/rh/pagamentos")({
+export const Route = createFileRoute("/financeiro_/rh_/pagamentos")({
   head: () => ({ meta: [{ title: "Ordens de Pagamento · RH · SIGA" }] }),
   component: PayrollPaymentsPage,
 });

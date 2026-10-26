@@ -23,7 +23,7 @@ import {
 } from "@/features/alumni/admin-tools";
 import { schoolTodayIso } from "@/lib/school-date";
 
-export const Route = createFileRoute("/alumni/insights")({
+export const Route = createFileRoute("/alumni_/insights")({
   head: () => ({ meta: [{ title: "Insights Alumni · SIGA" }] }),
   component: AlumniInsightsPage,
 });

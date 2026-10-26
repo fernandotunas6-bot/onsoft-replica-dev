@@ -16,7 +16,7 @@ import { kwanza } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import { toastActionError } from "@/lib/action-error-toast";
 
-export const Route = createFileRoute("/financeiro/rh/faltas")({
+export const Route = createFileRoute("/financeiro_/rh_/faltas")({
   head: () => ({
     meta: [
       { title: "Faltas e Assiduidade · SIGA" },
