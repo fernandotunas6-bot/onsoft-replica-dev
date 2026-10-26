@@ -46,6 +46,11 @@ export interface ContextNavEntry {
    * aluno segue o servidor, que o deixa à Secretaria). Também só estreita.
    */
   allow?: (role: string, grants: ModuleGrantMap) => boolean;
+  /**
+   * Disponibilidade pelo caminho: uma entrada que abre uma relação (o professor
+   * da disciplina) só aparece quando o servidor a devolveu.
+   */
+  available?: (trail: ContextFrame[]) => boolean;
 }
 
 export type ContextLink = { to: string; search: ContextSearch };
@@ -68,6 +73,7 @@ export function getContextEntries(
         entry.contexts.includes(inner.type) &&
         (!entry.roles || (entry.roles as readonly string[]).includes(context.role)) &&
         (!entry.allow || entry.allow(context.role, context.grants)) &&
+        (!entry.available || entry.available(context.trail)) &&
         canAccessPath(entry.to, context.role, context.grants, plan) &&
         canReadModule(context.role, entry.module, context.grants),
     )

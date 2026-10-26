@@ -42,6 +42,7 @@ export function AttendanceWorkspaceModule({
   initialDate,
   teacherId,
   teacherName,
+  classGroupName,
 }: {
   initialClassGroupId?: string | undefined;
   initialSubjectId?: string | undefined;
@@ -49,8 +50,11 @@ export function AttendanceWorkspaceModule({
   /** O professor da URL (`?professor=`, sem turma): só as aulas dele. */
   teacherId?: string | undefined;
   teacherName?: string | undefined;
+  /** Nome da turma da URL, para o título das aulas do dia. */
+  classGroupName?: string | undefined;
 } = {}) {
-  // A turma da URL manda sobre o professor, como no horário.
+  // A turma da URL manda sobre o professor, como no horário, e as aulas do dia
+  // ficam só as dessa turma (menu da turma e da disciplina).
   const lessonsTeacherId = initialClassGroupId ? undefined : teacherId;
   const [selectedDate, setSelectedDate] = useState(initialDate ?? todayInLuanda());
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -73,12 +77,18 @@ export function AttendanceWorkspaceModule({
   }, [initialDate]);
 
   const sessionsQuery = useQuery({
-    queryKey: ["teacher-attendance-sessions", selectedDate, lessonsTeacherId ?? "todos"],
+    queryKey: [
+      "teacher-attendance-sessions",
+      selectedDate,
+      lessonsTeacherId ?? "todos",
+      initialClassGroupId ?? "todas",
+    ],
     queryFn: () =>
       listTeacherAttendanceSessions({
         data: {
           date: selectedDate,
           ...(lessonsTeacherId ? { teacherId: lessonsTeacherId } : {}),
+          ...(initialClassGroupId ? { classGroupId: initialClassGroupId } : {}),
         },
       }),
   });
@@ -176,6 +186,10 @@ export function AttendanceWorkspaceModule({
           {lessonsTeacherId ? (
             <span className="font-medium text-muted-foreground">
               · {teacherName ?? "este professor"}
+            </span>
+          ) : initialClassGroupId ? (
+            <span className="font-medium text-muted-foreground">
+              · {classGroupName ?? "esta turma"}
             </span>
           ) : null}
         </h3>

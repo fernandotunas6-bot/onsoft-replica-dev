@@ -129,7 +129,8 @@ export function routeContextCandidates(
 const sameCandidate = (a: ContextCandidate, b: ContextCandidate) =>
   a.type === b.type && a.id === b.id;
 
-const toFrame = ({ type, id, label }: ContextFrame): ContextFrame => ({ type, id, label });
+const toFrame = ({ type, id, label, relations }: ContextFrame): ContextFrame =>
+  relations ? { type, id, label, relations } : { type, id, label };
 
 export function contextKey(
   schoolId: string,

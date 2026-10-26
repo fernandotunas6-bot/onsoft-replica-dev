@@ -73,6 +73,7 @@ export function useAcademicNavTree({ enabled }: { enabled: boolean }): {
             courseName: group.course_name,
             subjectId: row.subject_id,
             subjectName: row.subject_name,
+            teacherId: row.teacher_id,
           });
         }
       } else if (subjects.length > 0 && !isClassTeacherLevel(group.grade_name)) {

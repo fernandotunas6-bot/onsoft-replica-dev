@@ -125,13 +125,14 @@ da URL é recusada.
 | Menu da entidade na sidebar            | `ContextEntityNav`                                  | Implementado (fase 3)                                                                                                             |
 | Avaliações e notas / pauta             | `/pedagogica?tab=notas&turma&disciplina&pauta=1`    | Implementado                                                                                                                      |
 | Pauta da turma                         | `/pedagogica?tab=notas&turma&pauta=1`               | Implementado                                                                                                                      |
-| Presenças                              | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — só na disciplina: com a turma sozinha o separador não filtra                                                       |
+| Presenças                              | `/pedagogica?tab=presencas&turma[&disciplina]`      | Implementado — na turma, as aulas do dia dessa turma; na disciplina, abre a chamada dessa aula                                    |
 | Planos de aula                         | `/planos-aula?turma&disciplina`                     | Implementado                                                                                                                      |
 | Materiais e ficheiros                  | `/arquivos?turma`                                   | Implementado — turma e disciplina abrem a pasta da turma (`arquivos` com «Nenhum» tira-a)                                         |
 | Chamada do professor                   | `/pedagogica?tab=presencas&turma&disciplina`        | Implementado — «Presenças» da disciplina abre a chamada; `/professor/presenca` fica fora                                          |
 | Trabalhos                              | `/pedagogica/trabalhos?turma&disciplina`            | Implementado — lista da turma ou da disciplina (em curso e prazo terminado); criam-se no detalhe da aula; entregas na #335        |
 | Horário da turma                       | `/pedagogica?tab=horarios&turma`                    | Implementado — turma e disciplina abrem o horário da turma (`ScheduleWorkspace`)                                                  |
 | Alunos da turma                        | `/pedagogica/turmas/$classGroupId?secao=alunos`     | Implementado — a turma tem página própria (decisão do proprietário, 25/10/2026), com «Ficha da turma» e «Alunos da turma» no menu |
+| Professor responsável                  | `/professores/$teacherId`                           | Implementado — na disciplina, quando o servidor devolve o professor dela (`class_subjects.teacher_id`)                            |
 | Visão geral da disciplina, reclamações | —                                                   | Ausente; não se criam páginas para encher o menu                                                                                  |
 | Breadcrumb contextual no `PageHeader`  | `context-breadcrumb.ts` via `ActiveContextProvider` | Implementado — `/pedagogica`, `/planos-aula`, `/pedagogica/trabalhos`, `/arquivos`                                                |
 
@@ -222,7 +223,7 @@ da URL é recusada.
 | E URL directa                  | Menu, secção e breadcrumb restaurados a partir da URL                                                  | E2E                  |
 | F Segurança                    | IDs não-UUID ignorados; turma ou professor não devolvidos pelo servidor ignorados                      | Testes de servidor   |
 | G Dispositivos                 | Recolhida; hub «Mais» no telemóvel                                                                     | Aparelhos reais      |
-| H Regressão                    | Suite completa passa (702 ficheiros, 4894 testes)                                                      | Playwright           |
+| H Regressão                    | Suite completa passa (702 ficheiros, 4900 testes)                                                      | Playwright           |
 
 ## 11. Como estender
 

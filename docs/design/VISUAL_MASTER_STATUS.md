@@ -72,6 +72,11 @@ para onde a página leva. O menu do professor ganha «Trabalhos criados»
 a disciplina. Sem estilos novos; capturas com dados fictícios a 1440 e 390 px, sem scroll
 horizontal.
 
+**26/10/2026 — SIGA Context Engine (presenças da turma e professor da disciplina):** o menu da
+turma ganha «Presenças», que abre as aulas do dia só dessa turma (o título diz o nome dela), e o
+da disciplina ganha «Professor responsável», que abre o perfil de quem a dá nessa turma quando o
+servidor o devolve. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |

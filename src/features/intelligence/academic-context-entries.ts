@@ -47,6 +47,12 @@ function classProfilePath(trail: ContextFrame[]): string {
   return `/pedagogica/turmas/${academicIdsFromTrail(trail).turma ?? ""}`;
 }
 
+/** O professor da disciplina do caminho, quando o servidor o devolveu com ela. */
+function subjectTeacherId(trail: ContextFrame[]): string | undefined {
+  const subject = [...trail].reverse().find((frame) => frame.type === "subject-offering");
+  return subject?.relations?.teacher;
+}
+
 export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
   {
     id: "class.profile",
@@ -74,6 +80,21 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 5,
   },
   {
+    // O perfil do professor que dá a disciplina nesta turma (disciplinas, turmas e
+    // horário dele). Só aparece quando a disciplina tem professor atribuído.
+    id: "subject.teacher",
+    label: "Professor responsável",
+    icon: moduleIcons.profile,
+    group: "Turma",
+    contexts: ["subject-offering"],
+    to: "/professores/$teacherId",
+    path: (trail) => `/professores/${subjectTeacherId(trail) ?? ""}`,
+    available: (trail) => Boolean(subjectTeacherId(trail)),
+    module: "pessoas",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 7,
+  },
+  {
     id: "subject.grades",
     label: "Avaliações e notas",
     icon: moduleIcons.grades,
@@ -98,9 +119,20 @@ export const ACADEMIC_CONTEXT_ENTRIES: readonly ContextNavEntry[] = [
     order: 10,
   },
   {
-    // Com turma e disciplina, o separador abre a chamada dessa aula. Só com a
-    // turma não filtra por ela (AttendanceWorkspaceModule), por isso não entra
-    // no menu da turma.
+    // Só com a turma, as aulas do dia dessa turma, cada uma com a chamada.
+    id: "class.attendance",
+    label: "Presenças",
+    icon: moduleIcons.attendance,
+    group: "Acompanhamento",
+    contexts: ["class"],
+    to: "/pedagogica",
+    search: (trail) => ({ tab: "presencas", turma: academicIdsFromTrail(trail).turma }),
+    module: "pedagogica",
+    roles: ACADEMIC_STAFF_ROLES,
+    order: 20,
+  },
+  {
+    // Com turma e disciplina, o separador abre a chamada dessa aula.
     id: "academic.attendance",
     label: "Presenças",
     icon: moduleIcons.attendance,

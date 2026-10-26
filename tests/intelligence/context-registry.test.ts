@@ -59,17 +59,47 @@ describe("getContextEntries", () => {
 
   it("separa as entradas da turma das da disciplina", () => {
     const entries = getContextEntries(context("Professor", [classFrame]), ACADEMIC_CONTEXT_ENTRIES);
-    // Só com a turma, o separador de presenças não filtra por ela: a entrada fica
-    // na disciplina, onde abre a chamada dessa aula.
+    // Só com a turma, as presenças são as aulas do dia dessa turma; na disciplina
+    // abrem a chamada dessa aula.
     expect(entries.map((e) => e.id)).toEqual([
       "class.profile",
       "class.students",
       "class.grades",
+      "class.attendance",
       "class.timetable",
       "academic.lesson-plans",
       "academic.tasks",
       "academic.files",
     ]);
+  });
+
+  it("«Professor responsável» só aparece quando a disciplina tem professor devolvido", () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    const withTeacher: ContextFrame = { ...subjectFrame, relations: { teacher: PROF } };
+    const ctx = context("Secretaria", [classFrame, withTeacher]);
+    const entries = getContextEntries(ctx, ACADEMIC_CONTEXT_ENTRIES);
+    const teacher = entries.find((e) => e.id === "subject.teacher");
+    expect(teacher && contextEntryLink(teacher, ctx)).toEqual({
+      to: `/professores/${PROF}`,
+      search: {},
+    });
+    expect(findActiveContextEntry(entries, ctx, `/professores/${PROF}`, {})).toBe(
+      "subject.teacher",
+    );
+    // Sem a relação (disciplina sem professor, ou o professor da conta), não aparece.
+    expect(
+      getContextEntries(
+        context("Secretaria", [classFrame, subjectFrame]),
+        ACADEMIC_CONTEXT_ENTRIES,
+      ).map((e) => e.id),
+    ).not.toContain("subject.teacher");
+    // Nem «Nenhum» em Pessoas: o perfil do professor é dessa área.
+    expect(
+      getContextEntries(
+        context("Secretaria", [classFrame, withTeacher], { pessoas: "Nenhum" }),
+        ACADEMIC_CONTEXT_ENTRIES,
+      ).map((e) => e.id),
+    ).not.toContain("subject.teacher");
   });
 
   it("«Nenhum» em Arquivos tira os materiais, e só eles", () => {

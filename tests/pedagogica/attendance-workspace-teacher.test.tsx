@@ -62,10 +62,22 @@ describe("presenças de um professor", () => {
     );
   });
 
-  it("a turma da URL manda sobre o professor", async () => {
+  it("a turma da URL manda sobre o professor: só as aulas dessa turma", async () => {
     renderModule({ teacherId: PROF, initialClassGroupId: TURMA });
     await waitFor(() =>
-      expect(server.sessions).toHaveBeenCalledWith({ data: { date: "2026-10-26" } }),
+      expect(server.sessions).toHaveBeenCalledWith({
+        data: { date: "2026-10-26", classGroupId: TURMA },
+      }),
     );
+  });
+
+  it("com a turma, o título das aulas do dia diz o nome dela", async () => {
+    renderModule({ initialClassGroupId: TURMA, classGroupName: "10.ª A" });
+    await waitFor(() =>
+      expect(server.sessions).toHaveBeenCalledWith({
+        data: { date: "2026-10-26", classGroupId: TURMA },
+      }),
+    );
+    expect(screen.getByText("· 10.ª A")).toBeDefined();
   });
 });

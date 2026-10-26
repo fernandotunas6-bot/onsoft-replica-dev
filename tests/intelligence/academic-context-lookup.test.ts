@@ -51,6 +51,34 @@ function resolve(search: Record<string, unknown>, schoolId: string | null = SCHO
 }
 
 describe("academicContextLookup", () => {
+  it("leva o professor que o servidor devolveu com a disciplina para o caminho", () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    const withTeacher: AcademicNavBranch[] = [
+      {
+        ...tree[0]!,
+        classes: [
+          {
+            ...tree[0]!.classes[0]!,
+            subjects: [{ id: MATEMATICA, name: "Matemática", teacherId: PROF }],
+          },
+        ],
+      },
+    ];
+    const { context } = resolveContext({
+      base,
+      schoolId: SCHOOL_A,
+      academicYearId: null,
+      route: routeContextCandidates("/pedagogica", { turma: TURMA_A, disciplina: MATEMATICA }),
+      lookup: academicContextLookup(withTeacher, SCHOOL_A),
+    });
+    expect(context.trail.at(-1)?.relations).toEqual({ teacher: PROF });
+    // A turma não tem professor próprio; sem professor atribuído, nenhuma relação.
+    expect(context.trail[0]?.relations).toBeUndefined();
+    expect(
+      resolve({ turma: TURMA_A, disciplina: MATEMATICA }).context.trail.at(-1)?.relations,
+    ).toBeUndefined();
+  });
+
   it("dá o caminho Turma → Disciplina com rótulos do servidor", () => {
     const { context, source, refused } = resolve({ turma: TURMA_A, disciplina: MATEMATICA });
     expect(source).toBe("route");

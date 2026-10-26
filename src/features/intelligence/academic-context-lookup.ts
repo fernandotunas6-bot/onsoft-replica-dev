@@ -32,6 +32,7 @@ export function academicContextLookup(
         label: subject.name,
         schoolId,
         parent: { type: "class", id: turma.id },
+        ...(subject.teacherId ? { relations: { teacher: subject.teacherId } } : {}),
       };
     }
     return null;

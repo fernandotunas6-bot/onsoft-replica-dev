@@ -1416,6 +1416,7 @@ function PedagogicaPage() {
                   teacherName={
                     teachers.find((teacher) => teacher.id === professorFromSearch)?.full_name
                   }
+                  classGroupName={classGroups.find((group) => group.id === turmaFromSearch)?.name}
                 />
               </LazyTab>
             )}

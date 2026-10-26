@@ -31,6 +31,11 @@ export interface ContextFrame {
   id: string;
   /** Vem sempre de uma leitura validada no servidor, nunca da URL. */
   label: string;
+  /**
+   * Entidades ligadas que o servidor devolveu com esta (o professor de uma
+   * disciplina na turma). Só ids lidos do servidor, como o rótulo.
+   */
+  relations?: Readonly<Partial<Record<EntityType, string>>>;
 }
 
 /**

@@ -674,8 +674,11 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     expect(
       linksTo("/arquivos").find((link) => link.label === "Materiais e ficheiros")?.search,
     ).toEqual({ turma: TURMA_A });
-    // Só com a turma, as presenças não entram: o separador não filtra pela turma.
-    expect(within(section).queryByRole("link", { name: /Presenças/ })).toBeNull();
+    // Só com a turma, as presenças são as aulas do dia dessa turma.
+    expect(linksTo("/pedagogica").find((link) => link.label === "Presenças")?.search).toEqual({
+      tab: "presencas",
+      turma: TURMA_A,
+    });
   });
 
   it("nos trabalhos da disciplina: «Trabalhos» marcado e voltar à lista de turmas", () => {
@@ -693,6 +696,31 @@ describe("AppSidebar — menu da entidade (Context Engine, opção A)", () => {
     ]);
     const back = linksTo("/pedagogica").find((link) => link.label.startsWith("Voltar"));
     expect(back?.search).toEqual({ tab: "turmas" });
+  });
+
+  it("na disciplina com professor atribuído, «Professor responsável» abre o perfil dele", () => {
+    const PROF = "66666666-6666-4666-8666-666666666666";
+    academic.tree = tree().map((branch) => ({
+      ...branch,
+      classes: branch.classes.map((turma) => ({
+        ...turma,
+        subjects: [{ id: MATEMATICA, name: "Matemática", teacherId: PROF }],
+      })),
+    }));
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
+    renderSidebar();
+    expect(linksTo(`/professores/${PROF}`)).toEqual([
+      { label: "Professor responsável", search: {} },
+    ]);
+  });
+
+  it("sem professor atribuído, a disciplina não oferece «Professor responsável»", () => {
+    academic.tree = tree();
+    currentPathname = "/pedagogica";
+    currentSearch = { tab: "notas", turma: TURMA_A, disciplina: MATEMATICA };
+    renderSidebar();
+    expect(screen.queryByRole("link", { name: "Professor responsável" })).toBeNull();
   });
 
   it("recolhida, mantém os destinos com nome acessível", () => {
