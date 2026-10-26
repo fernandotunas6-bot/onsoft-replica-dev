@@ -21,18 +21,24 @@ void main() async {
     final license = await rootBundle.loadString('assets/google_fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(['google_fonts'], license);
   });
-  // Android: [DEFAULT] comes from google-services.json. Passing
-  // DefaultFirebaseOptions here throws duplicate-app if they differ slightly
-  // from the native config (common after swapping google-services.json).
   // No modo SIGA a conta é a do Supabase do SIGA: o Firebase não arranca.
-  if (!sgaMode) {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+  if (!sgaMode) await _initFirebase();
+  runApp(const ProviderScope(child: AppRoot()));
+}
+
+Future<void> _initFirebase() async {
+  // Android: com google-services.json, o [DEFAULT] nativo manda, e passar
+  // DefaultFirebaseOptions aqui dava duplicate-app se diferissem. Sem ele (o
+  // build actual), a inicialização nativa falha e valem as opções em Dart.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    try {
       await Firebase.initializeApp();
-    } else {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      return;
+    } catch (_) {
+      // Sem configuração nativa: segue para as opções em Dart.
     }
   }
-  runApp(const ProviderScope(child: AppRoot()));
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 }
