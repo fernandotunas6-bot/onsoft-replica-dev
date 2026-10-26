@@ -30,6 +30,8 @@ export type FinalOutcome = "pass" | "fail" | null;
 export type RolloverStudent = {
   studentId: string;
   name: string;
+  /** Número visível do aluno, quando está disponível. */
+  studentNumber?: string;
   studentStatus: string | null;
   /** Texto gravado no histórico («Transitou», «Não transitou», «Incompleto»…). */
   outcome: string | null;
@@ -40,6 +42,7 @@ export type RolloverStudent = {
 export type RolloverLine = {
   studentId: string;
   name: string;
+  studentNumber?: string;
   outcome: FinalOutcome;
   action: "enroll" | "already" | "skip";
   targetClassGroupId: string | null;
@@ -137,6 +140,7 @@ export function planRenewal(input: {
       ): RolloverLine => ({
         studentId: student.studentId,
         name: student.name,
+        ...(student.studentNumber ? { studentNumber: student.studentNumber } : {}),
         outcome,
         action,
         targetClassGroupId,

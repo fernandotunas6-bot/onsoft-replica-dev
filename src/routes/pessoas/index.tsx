@@ -1,8 +1,9 @@
 import { useDeferredValue, useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import {
+  ArrowDownAZ,
   Download,
   FileBadge,
   FileDown,
@@ -11,6 +12,7 @@ import {
   FolderOpen,
   GitMerge,
   GraduationCap,
+  KeyRound,
   Pencil,
   Trash2,
   User,
@@ -73,8 +75,6 @@ import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { EntityAvatar, EntityList, type EntityListItem } from "@/components/mobile/EntityList";
 import { EntityListSkeleton } from "@/components/mobile/skeletons";
 import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
-import { PersonProfile360Modal } from "@/features/people/components/PersonProfile360Modal";
-import { PersonWizardModal } from "@/features/people/components/PersonWizardModal";
 import { angolaProvinces } from "@/lib/angola-territory";
 
 export const Route = createFileRoute("/pessoas/")({
@@ -139,10 +139,9 @@ function PeoplePage() {
     "pessoas",
     pessoasFilterDefaults,
   );
+  const navigate = useNavigate();
   const deferredQuery = useDeferredValue(filters.q.trim());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [profile360Id, setProfile360Id] = useState<string | null>(null);
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
@@ -335,6 +334,16 @@ function PeoplePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <DocHelpButton title="Navegação — Pessoas e permissões" />
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/pessoas/organizar-turmas">
+                <ArrowDownAZ className="size-4" /> Organizar turmas
+              </Link>
+            </Button>
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/pessoas/acessos-alunos">
+                <KeyRound className="size-4" /> Acessos dos alunos
+              </Link>
+            </Button>
             <Button
               variant="outline"
               className="gap-2"
@@ -407,8 +416,10 @@ function PeoplePage() {
                 </Button>
               )}
             />
-            <Button className="gap-2 shadow-sm" onClick={() => setWizardOpen(true)}>
-              <UserPlus className="size-4" /> Nova Pessoa
+            <Button className="gap-2 shadow-sm" asChild>
+              <Link to="/pessoas/novo">
+                <UserPlus className="size-4" /> Nova Pessoa
+              </Link>
             </Button>
             <QuickFormModal
               title="Mesclar duplicado"
@@ -859,7 +870,8 @@ function PeoplePage() {
                         photoUrl={typeof row.photo_url === "string" ? row.photo_url : null}
                       />
                     ),
-                    onSelect: () => setProfile360Id(row.id),
+                    onSelect: () =>
+                      void navigate({ to: "/pessoas/$personId", params: { personId: row.id } }),
                   }))}
                 />
               )
@@ -919,12 +931,20 @@ function PeoplePage() {
                         <TableRow
                           key={row.id}
                           className="cursor-pointer transition-colors hover:bg-secondary/50"
-                          onClick={() => setProfile360Id(row.id)}
+                          onClick={() =>
+                            void navigate({
+                              to: "/pessoas/$personId",
+                              params: { personId: row.id },
+                            })
+                          }
                           tabIndex={0}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              setProfile360Id(row.id);
+                              void navigate({
+                                to: "/pessoas/$personId",
+                                params: { personId: row.id },
+                              });
                             }
                           }}
                         >
@@ -1351,31 +1371,6 @@ function PeoplePage() {
           />
         </div>
       </ModalShell>
-
-      <PersonWizardModal
-        open={wizardOpen}
-        onOpenChange={setWizardOpen}
-        onPersonCreated={(personId, action) => {
-          if (action === "view") {
-            setProfile360Id(personId);
-          } else if (action === "enroll") {
-            window.location.href = `/alunos?action=matricular&personId=${personId}`;
-          }
-        }}
-      />
-
-      <PersonProfile360Modal
-        personId={profile360Id}
-        open={Boolean(profile360Id)}
-        onOpenChange={(val) => {
-          if (!val) setProfile360Id(null);
-        }}
-        onAction={(action, person) => {
-          if (action === "enroll") {
-            window.location.href = `/alunos?action=matricular&personId=${person.id}`;
-          }
-        }}
-      />
     </AppShell>
   );
 }

@@ -42,7 +42,6 @@ import { StudentTimetableCard } from "@/features/dashboard/components/StudentTim
 import { StudentAttendanceCard } from "@/features/dashboard/components/StudentAttendanceCard";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { ClassGroupSheet, SEM_SALA } from "@/features/academic/ClassGroupSheet";
-import { TurmaProfileModal } from "@/features/academic/components/TurmaProfileModal";
 import { GradePautaSheet } from "@/features/academic/GradePautaSheet";
 import { documentValidationCode } from "@/features/academic/assessment-views";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -273,7 +272,6 @@ function PedagogicaPage() {
   );
   const [bootstrapping, setBootstrapping] = useState(false);
   const [assessmentOpen, setAssessmentOpen] = useState(false);
-  const [openTurmaId, setOpenTurmaId] = useState<string | null>(null);
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "pedagogica",
     pedagogicaFilterDefaults,
@@ -1079,7 +1077,9 @@ function PedagogicaPage() {
               workspace={workspace}
               teacherNameById={teacherNameById}
               canvasWork={canvasWork}
-              onOpenTurma={(id) => setOpenTurmaId(id)}
+              onOpenTurma={(id) =>
+                void navigate({ to: "/pedagogica/turmas/$turmaId", params: { turmaId: id } })
+              }
             />
           </TabsContent>
 
@@ -1505,19 +1505,6 @@ function PedagogicaPage() {
           initialSubjectId={disciplinaFromSearch}
         />
       </Suspense>
-
-      <TurmaProfileModal
-        open={Boolean(openTurmaId)}
-        onOpenChange={(next) => {
-          if (!next) setOpenTurmaId(null);
-        }}
-        classGroupId={openTurmaId}
-        workspace={workspace}
-        teacherOptions={teacherOptions}
-        teacherIds={teachers.map((teacher) => teacher.id)}
-        salas={activeClassrooms}
-        onRefresh={refreshAcademic}
-      />
     </AppShell>
   );
 }

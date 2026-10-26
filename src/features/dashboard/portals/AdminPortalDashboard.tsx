@@ -677,14 +677,14 @@ export function AdminPortalDashboard({
               key={s.label}
               to={s.href}
               {...(s.search ? { search: s.search } : {})}
-              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer"
+              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               {card}
             </Link>
           ) : (
             <div
               key={s.label}
-              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               {card}
             </div>
@@ -696,7 +696,7 @@ export function AdminPortalDashboard({
         {miniStats.map((s) => (
           <div
             key={s.label}
-            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
           >
             <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
             <div>
