@@ -28,6 +28,12 @@ capturas do componente real com o servidor simulado (dados da turma DH26-10A) a
 Falta: validar em dispositivo físico e dentro do portal autenticado, depois de
 correr `supabase/SEED_DEMO_HORARIOS_2026.sql`.
 
+**26/10/2026 — funções de horários (Fase 6, Académico/Professores): `implementado`.**
+Ferramentas do horário na Pedagógica (análise, disponibilidade, exportação, proposta
+automática) em página, por separadores, sem modais novos; no portal, semanas, próxima aula,
+feriados, legenda com destaque, exportar e imprimir. Evidência e limites em
+[HORARIOS_2026.md](../specs/HORARIOS_2026.md). Falta a validação em dispositivo físico.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
