@@ -48,7 +48,8 @@ type RecordRead = PromiseLike<{
  * Os `ids` com pelo menos uma linha. O PostgREST não faz DISTINCT e um aluno com
  * centenas de presenças enche a página sozinho: cada passagem tira do filtro quem
  * já apareceu. Se as passagens acabarem com a página ainda cheia, quem falta conta
- * como «com registos» — na dúvida, o aluno fica onde está.
+ * como «com registos» — na dúvida, o aluno fica onde está. (`readAllPages` leria
+ * todas as presenças; aqui só interessa quem tem alguma.)
  */
 async function idsWithRows(
   read: (remaining: string[]) => RecordRead,
