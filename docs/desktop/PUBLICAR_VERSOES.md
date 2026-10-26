@@ -69,6 +69,7 @@ não se deve contar com essa segunda barreira.
 | v1.3.0 (25/10/2026)             | Rascunho, **nunca publicada**                                                                         | Não. Ficou para trás de propósito: publicá-la obrigava as escolas a reinstalar duas vezes |
 | v1.3.1 (26/10/2026)             | **Publicada** a 26/10, 15:30 UTC; Tauri 2.12.5; as 10 entradas do `latest.json` assinadas com a chave | **Sim**: a primeira. As seguintes chegam pelo botão «Instalar e reiniciar»                |
 | v1.3.2 (26/10/2026)             | **Publicada** a 26/10, 19:53 UTC: ícone novo (o «S» da web) em vez do capelo amarelo                  | Sim: as 1.3.1 instaladas recebem o aviso «Instalar e reiniciar»                           |
+| v1.3.3 (26/10/2026)             | Preparada: o aviso do Safari antigo diz o que falta e deixa «Continuar mesmo assim»                   | Sim. Num Mac preso no aviso, instalar à mão o .dmg de /transferir                         |
 
 Na construção da v1.3.1 (run 40343925848), o macOS ficou na fila até o GitHub o
 cancelar por falta de máquinas («not acquired by Runner… even after multiple

@@ -16,6 +16,7 @@ function run({ colorMix = true, ua = MAC_UA, tauri = false } = {}) {
 }
 
 afterEach(() => {
+  sessionStorage.clear();
   document.getElementById("siga-browser-check")?.remove();
   document.documentElement.removeAttribute("data-siga-browser");
   vi.unstubAllGlobals();
@@ -49,6 +50,24 @@ describe("verificação do navegador (motores antigos)", () => {
     expect(detail).toMatch(/^Motor encontrado: /);
     expect(detail).toContain("macOS 11.7.10");
     expect(overlay?.textContent).toContain("portal-siga.com");
+  });
+
+  it("diz o que falta e a versão que o Safari anuncia", () => {
+    const overlay = run({
+      colorMix: false,
+      ua: `${MAC_UA} Version/17.0 Safari/605.1.15`,
+    });
+    const detail = overlay?.querySelector("#siga-browser-check-detail")?.textContent ?? "";
+    expect(detail).toContain("Falta: cores com color-mix()");
+    expect(detail).toContain("Safari 17.0");
+  });
+
+  it("«Continuar mesmo assim» fecha o aviso e não volta nesta sessão", () => {
+    const overlay = run({ colorMix: false });
+    overlay?.querySelector<HTMLButtonElement>("#siga-browser-check-continue")?.click();
+    expect(document.getElementById("siga-browser-check")).toBeNull();
+    expect(document.documentElement.hasAttribute("data-siga-browser")).toBe(false);
+    expect(run({ colorMix: false })).toBeNull();
   });
 
   it("noutro navegador antigo sugere actualizar ou usar outro", () => {
