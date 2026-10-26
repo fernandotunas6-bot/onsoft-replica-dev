@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { canAccessPath } from "@/features/auth/access-policy";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { gatewayChargeState } from "@/features/finance/payment-states";
 import {
   createInvoiceCharge,
@@ -94,6 +97,9 @@ export function ChargeInvoiceButton(props: {
 
 export function AppyPayPanel() {
   const qc = useQueryClient();
+  const account = useCurrentAccount();
+  // Cada cobrança leva à sua fatura (recibos e cobranças), para quem abre as faturas.
+  const canOpenInvoices = canAccessPath("/faturas", account.role, account.grants);
   const status = useAppyPayStatus();
   const list = useServerFn(listGatewayCharges);
   const reconcile = useServerFn(reconcileOpenCharges);
@@ -157,6 +163,15 @@ export function AppyPayPanel() {
                   {c.receipt_number ? ` · recibo ${c.receipt_number}` : ""}
                   {c.status_message && c.status !== "paid" ? ` · ${c.status_message}` : ""}
                 </p>
+                {canOpenInvoices && c.invoice_id ? (
+                  <Link
+                    to="/faturas/$invoiceId"
+                    params={{ invoiceId: c.invoice_id }}
+                    className="inline-flex min-h-11 items-center text-xs font-semibold text-primary hover:underline sm:min-h-0"
+                  >
+                    Ver fatura
+                  </Link>
+                ) : null}
               </div>
               <div className="text-right">
                 <p className="font-medium">{kz(c.amount)}</p>

@@ -132,6 +132,11 @@ estilo da de «Entregas» no detalhe da aula. Sem estilos novos.
 acções. Na página da fatura abria vazio; fica só «Mensagens», e o menu da fatura na sidebar leva
 às páginas ligadas. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (cobranças → fatura):** em Bancos e Conciliação, cada cobrança
+AppyPay tem «Ver fatura», que abre `/faturas/<id>` com os recibos e as cobranças dessa fatura. Só
+aparece a quem abre as faturas (Administração e Tesouraria). A ligação tem 44 px de altura no
+telemóvel. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
