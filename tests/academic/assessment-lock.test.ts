@@ -100,7 +100,8 @@ describe("avaliações: âmbito do professor e período fechado", () => {
   });
 
   it("notas das avaliações: período aberto e pauta não oficial", () => {
-    const scores = legacy.slice(legacy.indexOf("export const upsertAssessmentScores"));
+    const write = readFileSync("src/features/academic/assessment-score-write.ts", "utf8");
+    const scores = write.slice(write.indexOf("export async function writeAssessmentScores"));
     expect(scores.indexOf("assertAssessmentTermNotLocked")).toBeGreaterThan(-1);
     expect(scores.indexOf("assertAssessmentTermNotLocked")).toBeLessThan(
       scores.indexOf('from("siga_assessment_scores")'),

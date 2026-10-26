@@ -55,6 +55,11 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Entregas de trabalhos (2026-10-25): siga_class_task_submissions nasce sem
+  // políticas e sem privilégios para authenticated (trabalhos de menores), por
+  // isso só o service role a lê. Aqui decide-se o âmbito: professor da
+  // disciplina ou direcção; aluno na sua matrícula activa; encarregado só lê.
+  "src/features/academic/task-submissions-server.ts",
   // Renovação de matrícula para o ano seguinte (2026-10-25): grava matrículas
   // por placeStudentInClass, que recebe o cliente privilegiado (como
   // enrollStudentInClass em students/server.ts) e mantém a RPC enroll_student,
