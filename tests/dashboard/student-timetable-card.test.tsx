@@ -15,7 +15,14 @@ vi.mock("@/features/dashboard/components/LessonDetailDialog", () => ({
   LessonDetailDialog: ({ slotId }: { slotId: string | null }) =>
     slotId ? <div data-testid="lesson-detail">{slotId}</div> : null,
 }));
-vi.mock("@/features/calendar/dates", () => ({ todayInLuanda: () => "2026-10-27" }));
+vi.mock("@/features/calendar/dates", async (original) => ({
+  ...(await original<object>()),
+  todayInLuanda: () => "2026-10-27",
+}));
+const download = vi.fn();
+vi.mock("@/features/academic/schedule/utils/exporters", () => ({
+  downloadTextFile: (...args: unknown[]) => download(...args),
+}));
 
 const lesson = (slotId: string, startsAt: string, endsAt: string, subjectName: string) => ({
   slotId,
@@ -49,6 +56,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  download.mockReset();
   vi.useRealTimers();
   studentTimetable.mockReset();
   teacherTimetable.mockReset();
@@ -63,7 +71,9 @@ async function renderCard(variant: "student" | "teacher" = "student") {
       <StudentTimetableCard variant={variant} />
     </QueryClientProvider>,
   );
-  await waitFor(() => expect(screen.getAllByText("Matemática").length).toBe(2));
+  await waitFor(() =>
+    expect(screen.getAllByRole("button", { name: /^Matemática, / }).length).toBe(2),
+  );
 }
 
 const column = (weekday: string) =>
@@ -124,5 +134,63 @@ describe("horário da semana", { timeout: 30_000 }, () => {
     expect(screen.getByText("O meu horário")).toBeDefined();
     expect(screen.getAllByText("10ª A").length).toBeGreaterThan(0);
     expect(screen.queryByText("Helena Sapalo")).toBeNull();
+  });
+
+  it("mostra a aula a decorrer e a próxima com o tempo que falta", async () => {
+    await renderCard();
+    expect(screen.getByRole("status").textContent).toBe("Agora: Física até às 09:25 · Sala D101");
+  });
+
+  it("muda de semana pedindo a segunda-feira ao servidor e assinala o feriado", async () => {
+    await renderCard();
+    fireEvent.click(screen.getByRole("button", { name: "Semana seguinte" }));
+    await waitFor(() =>
+      expect(studentTimetable).toHaveBeenLastCalledWith({ data: { weekStart: "2026-11-02" } }),
+    );
+    // 2 de Novembro: Dia dos Finados.
+    const holidays = await screen.findByRole("list", { name: "Feriados desta semana" });
+    expect(holidays.textContent).toContain("Segunda 2: Dia dos Finados — sem aulas");
+    // Fora da semana corrente não há «agora» nem «hoje».
+    expect(screen.queryByRole("status")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Esta semana" }));
+    await waitFor(() => expect(screen.getByRole("status")).toBeDefined());
+  });
+
+  it("destaca uma disciplina e esbate as outras", async () => {
+    await renderCard();
+    const legend = screen.getByRole("group", { name: "Destacar disciplina" });
+    fireEvent.click(within(legend).getByRole("button", { name: /Matemática/ }));
+    expect(screen.getByRole("button", { name: /Física, 08:40 às 09:25/ }).className).toMatch(
+      /opacity-30/,
+    );
+    expect(
+      screen.getByRole("button", { name: /Matemática, 09:45 às 10:30/ }).className,
+    ).not.toMatch(/opacity-30/);
+  });
+
+  it("exporta a semana com as datas certas para o calendário do telemóvel", async () => {
+    await renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /Calendário/ }));
+    const [fileName, ics] = download.mock.calls[0]!;
+    expect(fileName).toBe("horario-semana-2026-10-26.ics");
+    // Terça 27/10, 08:40 em Luanda = 07:40 UTC.
+    expect(ics).toContain("DTSTART:20261027T074000Z");
+    expect(ics).toContain("SUMMARY:Física");
+  });
+
+  it("imprime só a grelha numa janela própria", async () => {
+    await renderCard();
+    const written: string[] = [];
+    const fakeWindow = {
+      document: { write: (html: string) => written.push(html), close: vi.fn() },
+      focus: vi.fn(),
+      print: vi.fn(),
+    };
+    const open = vi.spyOn(window, "open").mockReturnValue(fakeWindow as never);
+    fireEvent.click(screen.getByRole("button", { name: /Imprimir/ }));
+    expect(fakeWindow.print).toHaveBeenCalledOnce();
+    expect(written[0]).toContain("<h1>Horário da semana · 10ª A</h1>");
+    expect(written[0]).toContain("<strong>Física</strong>");
+    open.mockRestore();
   });
 });
