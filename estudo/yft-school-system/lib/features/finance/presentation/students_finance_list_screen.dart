@@ -29,9 +29,9 @@ class _StudentsFinanceListScreenState
   }
 
   String _statusOf(Student s) {
-    if (s.balance < 0) return 'Owing';
-    if (s.balance > 0) return 'Credit';
-    return 'Paid';
+    if (s.balance < 0) return 'Em dívida';
+    if (s.balance > 0) return 'Crédito';
+    return 'Regularizado';
   }
 
   /// Os filtros guardam o valor em inglês; mostra-se em português.
@@ -44,7 +44,7 @@ class _StudentsFinanceListScreenState
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Owing':
+      case 'Em dívida':
         return AppColors.error;
       case 'Paid':
         return AppColors.success;
@@ -109,7 +109,7 @@ class _StudentsFinanceListScreenState
 
           final filteredList = allStudents.where((s) {
             final status = _statusOf(s);
-            final matchesStatus = _filter == 'All' || _filter == status;
+            final matchesStatus = _filter == 'Todos' || _filter == status;
             final displayClass = s.className ?? classNames[s.classId] ?? '';
             final matchesClass =
                 _classFilter == 'Todas as turmas' || displayClass == _classFilter;
@@ -190,7 +190,7 @@ class _StudentsFinanceListScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
-                  children: ['All', 'Paid', 'Credit', 'Owing'].map((filter) {
+                  children: ['Todos', 'Regularizado', 'Crédito', 'Em dívida'].map((filter) {
                     final isSelected = _filter == filter;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),

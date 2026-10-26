@@ -45,6 +45,7 @@ import { FileBrowserNav } from "./FileBrowserNav";
 import { FileBrowserGrid } from "./FileBrowserGrid";
 import { FileBrowserTable } from "./FileBrowserTable";
 import { FileUploadInquiryModal, type UploadInquiryResult } from "./FileUploadInquiry";
+import type { ExistingSchoolFileLocation } from "./find-existing";
 import {
   canAccessFileContent,
   canManageSystemFile,
@@ -83,6 +84,11 @@ import { isImageFileKind, resolveFileBlob, resolveFileUrl } from "./resolve-file
 import { schoolFileShareText } from "./share-text";
 import { assertVerifiedSchoolStorage } from "./storage-policy";
 import {
+  prepareSchoolUpload,
+  remainingSchoolUploads,
+  type PreparedSchoolUpload,
+} from "./upload-recovery";
+import {
   fileCategoryOptions,
   fileKindOptions,
   fileVisibilityOptions,
@@ -91,6 +97,7 @@ import {
 import {
   createSchoolFolder,
   deleteSchoolFile,
+  findExistingSchoolFiles,
   listArquivosClassOptions,
   listArquivosUserOptions,
   listFolderTrail,
@@ -169,16 +176,22 @@ function blankAudit(
   };
 }
 
-async function openRecord(file: SchoolFileRecord) {
+async function openRecord(
+  file: SchoolFileRecord,
+  viewer: { schoolId: string | null; ownerUserId: string },
+) {
   if (file.isFolder) return;
-  const url = await resolveFileUrl(file);
+  const url = await resolveFileUrl(file, viewer);
   window.open(url, "_blank", "noopener,noreferrer");
   void logSchoolFileEvent({ data: { id: file.id, action: "opened" } }).catch(() => undefined);
 }
 
-async function downloadRecord(file: SchoolFileRecord) {
+async function downloadRecord(
+  file: SchoolFileRecord,
+  viewer: { schoolId: string | null; ownerUserId: string },
+) {
   if (file.isFolder) throw new Error("Pastas não se descarregam.");
-  const blob = await resolveFileBlob(file);
+  const blob = await resolveFileBlob(file, viewer);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -197,6 +210,7 @@ export function FileBrowser({
   acceptKinds,
   classGroupId,
   initialClassGroupId,
+  uploadClassGroupId,
   initialRelatedPersonId,
   onPick,
 }: {
@@ -205,15 +219,28 @@ export function FileBrowser({
   acceptKinds?: readonly FileKind[] | undefined;
   classGroupId?: string;
   initialClassGroupId?: string;
+  /** Destino dos uploads do selector; não filtra os ficheiros disponíveis. */
+  uploadClassGroupId?: string;
   initialRelatedPersonId?: string;
   onPick?: (file: SchoolFileRecord) => void;
 }) {
   const account = useCurrentAccount();
+  const localFileViewer = useMemo(
+    () => ({ schoolId: account.schoolId, ownerUserId: account.id }),
+    [account.schoolId, account.id],
+  );
   const queryClient = useQueryClient();
   const installed = useInstalledIntegrations();
   const prefs = readFilesPrefs(account.role);
   const areas = visibleAreasForRole(account.role);
-  const writableAreas = writableAreasForRole(account.role);
+  const writableAreas = useMemo(
+    () =>
+      uploadClassGroupId &&
+      (account.role === "Professor" || canWriteFileArea(account.role, "escola"))
+        ? (["escola"] as FileArea[])
+        : writableAreasForRole(account.role),
+    [account.role, uploadClassGroupId],
+  );
   const lockedClassId = classGroupId ?? null;
   const [area, setArea] = useState<FileArea>(
     initialArea && areas.includes(initialArea) ? initialArea : prefs.defaultArea,
@@ -228,10 +255,12 @@ export function FileBrowser({
   const [uploading, setUploading] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(prefs.viewMode);
   const [sortBy, setSortBy] = useState<"name" | "date" | "size">(prefs.sortBy);
-  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const uploadAttemptsRef = useRef(new WeakMap<File, PreparedSchoolUpload>());
   const [folderId, setFolderId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [moveOpen, setMoveOpen] = useState(false);
@@ -258,6 +287,12 @@ export function FileBrowser({
     ? acceptKinds.map((kind) => fileKindMeta[kind].accept).join(",")
     : fileAcceptAttr;
   const activeClassId = lockedClassId ?? (classFilter !== "all" ? classFilter : undefined);
+  const hasAdvancedFilters =
+    categoryFilter !== "all" ||
+    relatedUserFilter !== "all" ||
+    kindFilter !== "all" ||
+    ownershipFilter !== "all" ||
+    needsOrganizeOnly;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query), 220);
@@ -278,13 +313,13 @@ export function FileBrowser({
   }, [account.role, sortBy, viewMode]);
 
   const classesQuery = useQuery({
-    queryKey: ["arquivos", "class-options"],
+    queryKey: ["arquivos", "class-options", account.schoolId, account.id, account.role],
     queryFn: () => listArquivosClassOptions(),
     staleTime: 60_000,
   });
 
   const usersQuery = useQuery({
-    queryKey: ["arquivos", "user-options"],
+    queryKey: ["arquivos", "user-options", account.schoolId, account.id, account.role],
     queryFn: () => listArquivosUserOptions(),
     staleTime: 60_000,
   });
@@ -293,6 +328,9 @@ export function FileBrowser({
     queryKey: [
       "arquivos",
       "list",
+      account.schoolId,
+      account.id,
+      account.role,
       area,
       debouncedQuery,
       activeClassId ?? "all",
@@ -317,14 +355,44 @@ export function FileBrowser({
     staleTime: 30_000,
   });
 
+  // Pesquisa em toda a escola, não só nos 48 ficheiros da pasta visível.
+  // A correspondência é indicativa; nunca trata nome+tamanho como hash de conteúdo.
+  const existingFilesQuery = useQuery({
+    queryKey: [
+      "arquivos",
+      "existing-preupload",
+      account.schoolId,
+      remoteQuery.data?.schoolId,
+      account.id,
+      account.role,
+      pendingFiles.map((file) => `${file.name}:${file.size}`).join("|"),
+    ],
+    enabled: pendingFiles.length > 0 && Boolean(remoteQuery.data?.schoolId),
+    queryFn: async () => {
+      const names = [...new Set(pendingFiles.map((file) => file.name))];
+      const batches: string[][] = [];
+      for (let index = 0; index < names.length; index += 40) {
+        batches.push(names.slice(index, index + 40));
+      }
+      const results = await Promise.all(
+        batches.map((namesBatch) => findExistingSchoolFiles({ data: { names: namesBatch } })),
+      );
+      return {
+        matches: results.flatMap((result) => result.matches),
+        incomplete: results.some((result) => result.incomplete),
+      };
+    },
+    staleTime: 10_000,
+  });
+
   const trailQuery = useQuery({
-    queryKey: ["arquivos", "trail", folderId ?? "root"],
+    queryKey: ["arquivos", "trail", account.schoolId, account.id, account.role, folderId ?? "root"],
     queryFn: () => listFolderTrail({ data: { folderId } }),
     staleTime: 30_000,
   });
 
   const foldersQuery = useQuery({
-    queryKey: ["arquivos", "folders", area],
+    queryKey: ["arquivos", "folders", account.schoolId, account.id, account.role, area],
     enabled: moveOpen,
     queryFn: () => listSchoolFiles({ data: { area, limit: 48 } }),
     staleTime: 15_000,
@@ -409,7 +477,15 @@ export function FileBrowser({
     [account.id, account.role, files],
   );
   const previewsQuery = useQuery({
-    queryKey: ["arquivos", "previews", imagePreviewIds.join(",")],
+    queryKey: [
+      "arquivos",
+      "previews",
+      account.schoolId,
+      remoteQuery.data?.schoolId,
+      account.id,
+      account.role,
+      imagePreviewIds.join(","),
+    ],
     enabled: imagePreviewIds.length > 0,
     queryFn: () => signSchoolFiles({ data: { ids: imagePreviewIds } }),
     staleTime: 5 * 60_000,
@@ -446,7 +522,7 @@ export function FileBrowser({
     }
     let cancelled = false;
     let objectUrl: string | null = null;
-    void resolveFileUrl(selected)
+    void resolveFileUrl(selected, localFileViewer)
       .then((url) => {
         if (cancelled) {
           if (url.startsWith("blob:")) URL.revokeObjectURL(url);
@@ -462,7 +538,9 @@ export function FileBrowser({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [account.id, account.role, detailsOpen, selected]);
+  }, [account.id, account.role, detailsOpen, localFileViewer, selected]);
+
+  const reportFileError = (error: Error) => toast.error(error.message);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -480,15 +558,17 @@ export function FileBrowser({
           onPick(selected);
         } else if (!canAccessFileContent(selected, account.id, account.role)) {
           toast.error(SYSTEM_LOCKED_MSG);
-        } else void openRecord(selected).catch((error) => toast.error(error.message));
+        } else {
+          void openRecord(selected, localFileViewer).catch(reportFileError);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [account.id, account.role, onPick, pickMode, selected]);
+  }, [account.id, account.role, localFileViewer, onPick, pickMode, selected]);
 
   const activityQuery = useQuery({
-    queryKey: ["arquivos", "activity", selected?.id],
+    queryKey: ["arquivos", "activity", account.schoolId, account.id, account.role, selected?.id],
     enabled: Boolean(selected && detailsOpen),
     queryFn: () => listSchoolFileActivity({ data: { id: selected!.id, limit: 20 } }),
     staleTime: 15_000,
@@ -556,7 +636,7 @@ export function FileBrowser({
         },
       });
       if (created.storage === "local" || !created.record) {
-        await saveLocalFolder(created.record ?? record);
+        await saveLocalFolder(created.record ?? record, localFileViewer);
       }
       toast.success("Pasta criada");
       await refresh();
@@ -572,15 +652,27 @@ export function FileBrowser({
     setMoveOpen(false);
     if (!ids.length) return;
     try {
-      for (const id of ids) {
-        await patchLocalFileMeta(id, { parentId });
+      const selected = files.filter((file) => ids.includes(file.id));
+      if (selected.length !== ids.length) {
+        throw new Error("A selecção de ficheiros mudou. Actualize a pasta e tente novamente.");
       }
-      const result = await moveSchoolFiles({
-        data: { ids, parentId, area },
-      });
-      toast[result.localOnly ? "message" : "success"](
-        result.localOnly ? "Movido neste dispositivo" : `${ids.length} item(ns) movido(s)`,
-      );
+      const remoteIds = selected
+        .filter((file) => file.storageBackend === "sga")
+        .map((file) => file.id);
+      // Nunca actualizar primeiro o IndexedDB: o servidor pode rejeitar um
+      // movimento inválido, e a interface ficaria com uma pasta falsa.
+      if (remoteIds.length) {
+        const result = await moveSchoolFiles({
+          data: { ids: remoteIds, parentId, area },
+        });
+        if (result.localOnly || result.moved !== remoteIds.length) {
+          throw new Error("O movimento não foi confirmado no arquivo da escola.");
+        }
+      }
+      for (const id of ids) {
+        await patchLocalFileMeta(id, { parentId }, localFileViewer);
+      }
+      toast.success(`${ids.length} item(ns) movido(s)`);
       setSelectedIds(new Set());
       await refresh();
     } catch (error) {
@@ -620,6 +712,33 @@ export function FileBrowser({
     const schoolId = remoteQuery.data?.schoolId;
     const files = pendingFiles;
     const targetArea = meta.area;
+    const targetClassGroupId = uploadClassGroupId ?? activeClassId;
+    if (uploadClassGroupId && (targetArea !== "escola" || meta.visibility !== "school")) {
+      toast.error("Materiais da turma devem ser partilhados na área Escola.");
+      return;
+    }
+    if (
+      targetClassGroupId &&
+      ((targetArea !== "escola" && targetArea !== "publico") || meta.visibility === "private")
+    ) {
+      toast.error("Materiais de turma exigem uma área escolar partilhável.");
+      return;
+    }
+    if (targetClassGroupId) {
+      try {
+        // Confirmar a atribuição ANTES do envio para evitar blobs órfãos.
+        await listSchoolFiles({
+          data: { area: targetArea, classGroupId: targetClassGroupId, limit: 1 },
+        });
+      } catch (error) {
+        toast.error("Não foi possível validar a turma para o envio.", {
+          description: error instanceof Error ? error.message : "Confirme a atribuição docente.",
+        });
+        return;
+      }
+    }
+    // Trocar a área invalida a pasta actualmente seleccionada.
+    const targetFolderId = targetArea === area ? folderId : null;
     if (!files.length) return;
     if (!schoolId) {
       toast.error("Escola indisponível. Inicie sessão novamente.");
@@ -651,11 +770,39 @@ export function FileBrowser({
     // desaparecia ao limpar os dados do site ou ao abrir noutro computador. Quem
     // ficar por aqui tem de ser dito em voz alta.
     const ficaramNesteBrowser: string[] = [];
+    let completedFiles = 0;
     try {
       if (targetArea !== area) setArea(targetArea);
       for (const file of files) {
         const kind = kindFromFile(file.name, file.type);
-        if (!kind) continue;
+        if (!kind) {
+          completedFiles += 1;
+          continue;
+        }
+        const previous = uploadAttemptsRef.current.get(file);
+        const id = previous?.id ?? crypto.randomUUID();
+        const attempt = prepareSchoolUpload(uploadAttemptsRef.current, file, {
+          id,
+          schoolId,
+          area: targetArea,
+          ownerUserId: account.id,
+          parentId: targetFolderId,
+          classGroupId: targetClassGroupId ?? null,
+          relatedPersonId: meta.relatedPersonId ?? null,
+          relatedUserId: meta.relatedUserId || account.id,
+          visibility: meta.visibility,
+          storagePath: localStoragePath({
+            schoolId,
+            area: targetArea,
+            ownerUserId: account.id,
+            id,
+            name: file.name,
+          }),
+        });
+        const storagePath = attempt.storagePath;
+        let backend: "sga" | "local" = attempt.uploaded ? "sga" : "local";
+        // A rampa só inicia depois da validação do destino; um erro de
+        // contexto não pode deixar um intervalo de progresso activo.
         // O SDK do Storage não expõe progresso real: aproximamos com uma rampa
         // que abranda perto dos 90% e só fecha em 100% quando o envio termina.
         const ramp = setInterval(() => {
@@ -668,21 +815,18 @@ export function FileBrowser({
             };
           });
         }, 180);
-        const id = crypto.randomUUID();
-        const storagePath = localStoragePath({
-          schoolId,
-          area: targetArea,
-          ownerUserId: account.id,
-          id,
-          name: file.name,
-        });
-        let backend: "sga" | "local" = "local";
         try {
-          const { error } = await supabase.storage
-            .from(FILES_BUCKET)
-            .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
-          if (error) ficaramNesteBrowser.push(file.name);
-          else backend = "sga";
+          if (!attempt.uploaded) {
+            const { error } = await supabase.storage
+              .from(FILES_BUCKET)
+              .upload(storagePath, file, { upsert: false, cacheControl: "3600" });
+            if (error) {
+              ficaramNesteBrowser.push(file.name);
+            } else {
+              attempt.uploaded = true;
+              backend = "sga";
+            }
+          }
         } catch {
           ficaramNesteBrowser.push(file.name);
         } finally {
@@ -704,10 +848,10 @@ export function FileBrowser({
           visibility: meta.visibility,
           storageBackend: backend,
           storagePath,
-          classGroupId: activeClassId ?? null,
+          classGroupId: targetClassGroupId ?? null,
           createdAt: new Date().toISOString(),
           ...blankAudit(account.name),
-          parentId: folderId,
+          parentId: targetFolderId,
           isFolder: false,
           title: meta.title ?? file.name,
           description: meta.description || null,
@@ -720,29 +864,38 @@ export function FileBrowser({
           lastActionByAvatarUrl: account.avatarUrl,
         };
         if (backend === "local") {
-          await saveLocalFile({ record, blob: file });
+          await saveLocalFile({
+            record,
+            blob: file,
+            viewer: localFileViewer,
+          });
         }
-        const registered = await registerSchoolFile({
-          data: {
-            id,
-            name: record.name,
-            mime: record.mime,
-            sizeBytes: record.sizeBytes,
-            area: record.area,
-            visibility: record.visibility,
-            storagePath: record.storagePath,
-            storageBackend: backend,
-            classGroupId: activeClassId,
-            parentId: folderId,
-            title: record.title ?? undefined,
-            description: record.description ?? undefined,
-            category: record.category ?? undefined,
-            documentDate: record.documentDate ?? undefined,
-            referenceCode: record.referenceCode ?? undefined,
-            relatedUserId: record.relatedUserId,
-            relatedPersonId: record.relatedPersonId,
-          },
-        });
+        // Offline mantém metadados e blob apenas no IndexedDB do utilizador.
+        // Só pedidos cujo blob existe no Storage podem criar registos partilháveis.
+        const registered =
+          backend === "local"
+            ? { storage: "local" as const, record: null }
+            : await registerSchoolFile({
+                data: {
+                  id,
+                  name: record.name,
+                  mime: record.mime,
+                  sizeBytes: record.sizeBytes,
+                  area: record.area,
+                  visibility: record.visibility,
+                  storagePath: record.storagePath,
+                  storageBackend: backend,
+                  classGroupId: targetClassGroupId,
+                  parentId: targetFolderId,
+                  title: record.title ?? undefined,
+                  description: record.description ?? undefined,
+                  category: record.category ?? undefined,
+                  documentDate: record.documentDate ?? undefined,
+                  referenceCode: record.referenceCode ?? undefined,
+                  relatedUserId: record.relatedUserId,
+                  relatedPersonId: record.relatedPersonId,
+                },
+              });
         assertVerifiedSchoolStorage(
           { area: targetArea, visibility: meta.visibility, relatedPersonId: meta.relatedPersonId },
           backend,
@@ -753,9 +906,17 @@ export function FileBrowser({
             ? { ...record, storageBackend: "local" }
             : record;
         if (registered.storage === "local" && backend === "sga") {
-          await saveLocalFile({ record: storedRecord, blob: file });
+          await saveLocalFile({
+            record: storedRecord,
+            blob: file,
+            viewer: localFileViewer,
+          });
           ficaramNesteBrowser.push(file.name);
         }
+        // O registo ficou concluído; nunca reenviar este ficheiro se
+        // a aplicação da fotografia ou o refresh falhar mais tarde.
+        completedFiles += 1;
+        uploadAttemptsRef.current.delete(file);
         if (
           meta.category === "foto" &&
           meta.relatedPersonId &&
@@ -796,8 +957,15 @@ export function FileBrowser({
       }
       await refresh();
     } catch (error) {
-      toast.error("Não foi possível guardar", {
-        description: error instanceof Error ? error.message : "Tente novamente.",
+      const remaining = remainingSchoolUploads(files, completedFiles);
+      setPendingFiles(remaining);
+      toast.error("Não foi possível concluir todos os envios", {
+        description:
+          (error instanceof Error ? error.message : "Erro ao guardar.") +
+          (remaining.length
+            ? ` ${remaining.length} ficheiro(s) continuam seleccionados para retomar sem repetir os concluídos.`
+            : " Os ficheiros já foram registados; actualize a lista."),
+        duration: 10000,
       });
     } finally {
       setUploading(false);
@@ -817,17 +985,6 @@ export function FileBrowser({
     const target = organizeTarget;
     setOrganizeTarget(null);
     try {
-      await patchLocalFileMeta(target.id, {
-        area: meta.area,
-        visibility: meta.visibility,
-        title: meta.title ?? target.name,
-        description: meta.description || null,
-        category: meta.category ?? "outro",
-        documentDate: meta.documentDate || null,
-        referenceCode: meta.referenceCode || null,
-        relatedUserId: meta.relatedUserId ?? null,
-        relatedPersonId: meta.relatedPersonId ?? null,
-      });
       const result = await updateSchoolFileMeta({
         data: {
           id: target.id,
@@ -842,6 +999,21 @@ export function FileBrowser({
           area: meta.area,
         },
       });
+      await patchLocalFileMeta(
+        target.id,
+        {
+          area: meta.area,
+          visibility: meta.visibility,
+          title: meta.title ?? target.name,
+          description: meta.description || null,
+          category: meta.category ?? "outro",
+          documentDate: meta.documentDate || null,
+          referenceCode: meta.referenceCode || null,
+          relatedUserId: meta.relatedUserId ?? null,
+          relatedPersonId: meta.relatedPersonId ?? null,
+        },
+        localFileViewer,
+      );
       if (meta.area !== area) setArea(meta.area);
       if (
         meta.category === "foto" &&
@@ -885,8 +1057,8 @@ export function FileBrowser({
       return;
     }
     try {
-      await deleteLocalFile(selected.id);
       await deleteSchoolFile({ data: { id: selected.id } });
+      await deleteLocalFile(selected.id, localFileViewer);
       setSelectedId(null);
       toast.success("Ficheiro removido");
       await refresh();
@@ -902,8 +1074,8 @@ export function FileBrowser({
     const next = window.prompt("Novo nome do ficheiro", selected.name)?.trim();
     if (!next || next === selected.name) return;
     try {
-      await patchLocalFileMeta(selected.id, { name: next });
       const result = await renameSchoolFile({ data: { id: selected.id, name: next } });
+      await patchLocalFileMeta(selected.id, { name: next }, localFileViewer);
       toast[result.localOnly ? "message" : "success"](
         result.localOnly ? "Renomeado neste dispositivo" : "Ficheiro renomeado",
       );
@@ -918,10 +1090,10 @@ export function FileBrowser({
   const changeVisibility = async (visibility: SchoolFileRecord["visibility"]) => {
     if (!selected || myAccess === "view") return;
     try {
-      await patchLocalFileMeta(selected.id, { visibility });
       const result = await setSchoolFileVisibility({
         data: { id: selected.id, visibility },
       });
+      await patchLocalFileMeta(selected.id, { visibility }, localFileViewer);
       if (result.localOnly) {
         toast.message("Nível guardado neste dispositivo", {
           description: "Aplique o SQL premium para sincronizar a auditoria na escola.",
@@ -1023,18 +1195,16 @@ export function FileBrowser({
             ) : null}
           </nav>
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="mr-1 hidden text-xs text-muted-foreground sm:block">
-              {account.role} · a trabalhar
-            </p>
+            <p className="mr-1 hidden text-xs text-muted-foreground sm:block">{account.role}</p>
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="Organizar"
             >
-              <option value="date">Organizar · data</option>
-              <option value="name">Organizar · nome</option>
-              <option value="size">Organizar · tamanho</option>
+              <option value="date">Data</option>
+              <option value="name">Nome</option>
+              <option value="size">Tamanho</option>
             </select>
             <Button
               type="button"
@@ -1108,7 +1278,7 @@ export function FileBrowser({
                   toast.error(SYSTEM_LOCKED_MSG);
                   return;
                 }
-                void downloadRecord(selected).catch((error) => toast.error(error.message));
+                void downloadRecord(selected, localFileViewer).catch(reportFileError);
               }}
             >
               <Download className="size-3.5" />
@@ -1186,7 +1356,7 @@ export function FileBrowser({
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={`Procurar nome ou ID (${documentCodeSearchHint()})`}
+                  placeholder="Procurar ficheiros"
                   className="h-9 pl-9"
                   aria-label="Procurar arquivo por nome ou ID"
                 />
@@ -1210,36 +1380,15 @@ export function FileBrowser({
                   ))}
                 </select>
               ) : null}
-              <select
-                value={categoryFilter}
-                onChange={(event) =>
-                  setCategoryFilter(
-                    event.target.value as (typeof fileCategoryOptions)[number] | "all",
-                  )
-                }
-                className="h-9 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm"
-                aria-label="Filtrar por categoria"
+              <Button
+                type="button"
+                size="sm"
+                variant={showAdvancedFilters ? "secondary" : "ghost"}
+                aria-expanded={showAdvancedFilters}
+                onClick={() => setShowAdvancedFilters((value) => !value)}
               >
-                <option value="all">Todas categorias</option>
-                {fileCategoryOptions.map((value) => (
-                  <option key={value} value={value}>
-                    {fileCategoryMeta[value].label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={relatedUserFilter}
-                onChange={(event) => setRelatedUserFilter(event.target.value)}
-                className="h-9 max-w-[12rem] rounded-md border border-input bg-background px-2 text-sm"
-                aria-label="Filtrar por utilizador relacionado"
-              >
-                <option value="all">Qualquer utilizador</option>
-                {(usersQuery.data?.users ?? []).map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
+                Filtros{hasAdvancedFilters ? " •" : ""}
+              </Button>
               {canUpload ? (
                 <>
                   <Button
@@ -1265,10 +1414,14 @@ export function FileBrowser({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => void createFolder()} className="gap-2">
-                        <FolderPlus className="size-4 text-warning" /> Nova Pasta
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
+                      {canWrite ? (
+                        <>
+                          <DropdownMenuItem onClick={() => void createFolder()} className="gap-2">
+                            <FolderPlus className="size-4 text-warning" /> Nova Pasta
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      ) : null}
                       <DropdownMenuItem onClick={() => inputRef.current?.click()} className="gap-2">
                         <Upload className="size-4 text-primary" /> Carregar Ficheiros
                       </DropdownMenuItem>
@@ -1309,81 +1462,117 @@ export function FileBrowser({
                 </>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
-              <button
-                type="button"
-                onClick={() => setKindFilter("all")}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  kindFilter === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Todos
-              </button>
-              {kindChoices.map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  onClick={() => setKindFilter(kind)}
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                    kindFilter === kind
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {fileKindMeta[kind].label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setNeedsOrganizeOnly((value) => !value)}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  needsOrganizeOnly
-                    ? "bg-warning text-warning-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Por organizar{disorganizedCount ? ` · ${disorganizedCount}` : ""}
-              </button>
-              <button
-                type="button"
-                onClick={() => setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  ownershipFilter === "mine"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Meus
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setOwnershipFilter((value) => (value === "system" ? "all" : "system"))
-                }
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                  ownershipFilter === "system"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Sistema
-              </button>
-            </div>
+            {showAdvancedFilters ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={categoryFilter}
+                    onChange={(event) =>
+                      setCategoryFilter(
+                        event.target.value as (typeof fileCategoryOptions)[number] | "all",
+                      )
+                    }
+                    className="h-9 max-w-[11rem] rounded-md border border-input bg-background px-2 text-sm"
+                    aria-label="Filtrar por categoria"
+                  >
+                    <option value="all">Todas categorias</option>
+                    {fileCategoryOptions.map((value) => (
+                      <option key={value} value={value}>
+                        {fileCategoryMeta[value].label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={relatedUserFilter}
+                    onChange={(event) => setRelatedUserFilter(event.target.value)}
+                    className="h-9 max-w-[12rem] rounded-md border border-input bg-background px-2 text-sm"
+                    aria-label="Filtrar por utilizador relacionado"
+                  >
+                    <option value="all">Qualquer utilizador</option>
+                    {(usersQuery.data?.users ?? []).map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
+                  <button
+                    type="button"
+                    onClick={() => setKindFilter("all")}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      kindFilter === "all"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {kindChoices.map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => setKindFilter(kind)}
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                        kindFilter === kind
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {fileKindMeta[kind].label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setNeedsOrganizeOnly((value) => !value)}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      needsOrganizeOnly
+                        ? "bg-warning text-warning-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Por organizar{disorganizedCount ? ` · ${disorganizedCount}` : ""}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOwnershipFilter((value) => (value === "mine" ? "all" : "mine"))
+                    }
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      ownershipFilter === "mine"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Meus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOwnershipFilter((value) => (value === "system" ? "all" : "system"))
+                    }
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                      ownershipFilter === "system"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    Sistema
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className={cn("relative min-h-0 flex-1 overflow-auto p-0")}>
             {localOnly ? (
               <p className="m-4 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                Tabela SGA ainda não aplicada. Os ficheiros ficam neste dispositivo até correr{" "}
-                <code className="text-[11px]">APPLY_ENROLLMENT_AND_PREMIUM.sql</code> (inclui{" "}
-                <code className="text-[11px]">siga_file_events</code>). <SqlChecklistLink />
+                Ficheiros apenas neste dispositivo. <SqlChecklistLink />
               </p>
             ) : null}
             {remoteQuery.isLoading ? (
@@ -1408,7 +1597,7 @@ export function FileBrowser({
                 onSelectId={(id) => setSelectedId(id)}
                 onToggleSelect={(id, checked) => toggleSelect(id, checked)}
                 onOpenRecord={(file) => {
-                  void openRecord(file).catch((error) => toast.error(error.message));
+                  void openRecord(file, localFileViewer).catch(reportFileError);
                 }}
                 onFolderDoubleClick={(folderId) => {
                   setFolderId(folderId);
@@ -1428,7 +1617,7 @@ export function FileBrowser({
                 onSelectId={(id) => setSelectedId(id)}
                 onToggleSelect={(id, checked) => toggleSelect(id, checked)}
                 onOpenRecord={(file) => {
-                  void openRecord(file).catch((error) => toast.error(error.message));
+                  void openRecord(file, localFileViewer).catch(reportFileError);
                 }}
                 onFolderDoubleClick={(folderId) => {
                   setFolderId(folderId);
@@ -1483,7 +1672,7 @@ export function FileBrowser({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void downloadRecord(selected).catch((error) => toast.error(error.message));
+                      void downloadRecord(selected, localFileViewer).catch(reportFileError);
                     }}
                   >
                     <Download className="size-4" />
@@ -1507,7 +1696,7 @@ export function FileBrowser({
                         toast.error(SYSTEM_LOCKED_MSG);
                         return;
                       }
-                      void openRecord(selected).catch((error) => toast.error(error.message));
+                      void openRecord(selected, localFileViewer).catch(reportFileError);
                     }}
                   >
                     Abrir
@@ -1568,6 +1757,28 @@ export function FileBrowser({
             : undefined
         }
         lockRelatedPerson={Boolean(initialRelatedPersonId)}
+        currentFolderId={folderId}
+        existingMatches={existingFilesQuery.data?.matches ?? []}
+        checkingExisting={
+          Boolean(remoteQuery.data?.schoolId) &&
+          (existingFilesQuery.isPending || existingFilesQuery.isFetching)
+        }
+        existingCheckError={
+          existingFilesQuery.isError || (remoteQuery.isError && !remoteQuery.data?.schoolId)
+        }
+        existingCheckIncomplete={existingFilesQuery.data?.incomplete ?? false}
+        onShowExisting={(match: ExistingSchoolFileLocation) => {
+          setPendingFiles([]);
+          setArea(match.area);
+          setFolderId(match.parentId);
+          setKindFilter("all");
+          setOwnershipFilter("all");
+          setCategoryFilter("all");
+          setRelatedUserFilter("all");
+          if (!lockedClassId) setClassFilter("all");
+          setQuery(match.name);
+          setSelectedId(match.id);
+        }}
         onCancel={() => setPendingFiles([])}
         onConfirm={(meta) => void commitUpload(meta)}
       />

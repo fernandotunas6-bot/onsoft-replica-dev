@@ -23,12 +23,14 @@ import {
   type LessonPlanFormInitial,
 } from "@/features/lesson-plans/LessonPlanModal";
 import { SqlChecklistLink } from "@/components/ui/sql-checklist-link";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { NO_CLASS_SUBJECTS, subjectsOfClass } from "@/features/academic/pauta-subjects";
 
 const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 
 const planosSearchSchema = z.object({
-  turma: z.string().uuid().optional().catch(undefined),
-  disciplina: z.string().uuid().optional().catch(undefined),
+  turma: z.string().guid().optional().catch(undefined),
+  disciplina: z.string().guid().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/planos-aula")({
@@ -65,6 +67,10 @@ function LessonPlansPage() {
     filterDefaults,
   );
   const queryClient = useQueryClient();
+  const account = useCurrentAccount();
+  // Alunos e encarregados vêem os planos publicados; criar, editar e remover é do
+  // corpo docente (o servidor já recusava, mas os botões apareciam).
+  const canEditPlans = ["Administrador", "Secretaria", "Professor"].includes(account.role);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<LessonPlanFormInitial | null>(null);
 
@@ -87,6 +93,12 @@ function LessonPlansPage() {
   const subjects = useMemo(
     () => (workspaceQuery.data?.subjects ?? []).map((row) => ({ id: row.id, name: row.name })),
     [workspaceQuery.data],
+  );
+  const classSubjects = workspaceQuery.data?.classSubjects ?? NO_CLASS_SUBJECTS;
+  // Com uma turma no filtro, a disciplina mostra só as dessa turma.
+  const filterSubjects = useMemo(
+    () => (filters.turma ? subjectsOfClass(subjects, classSubjects, filters.turma) : subjects),
+    [subjects, classSubjects, filters.turma],
   );
 
   const plansQuery = useQuery({
@@ -163,16 +175,18 @@ function LessonPlansPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Área Pedagógica"
+          group="Académico"
           title="Planos de Aula"
           description="Título, conteúdo e estrutura de avaliações/provas por turma, disciplina e trimestre — modelo angolano."
           actions={
             <>
               <SqlDocHelpButton />
               <DocHelpButton title="Navegação — Planos de Aula" />
-              <Button className="gap-2" onClick={openCreate} disabled={!classGroups.length}>
-                <Plus className="size-4" /> Novo plano
-              </Button>
+              {canEditPlans ? (
+                <Button className="gap-2" onClick={openCreate} disabled={!classGroups.length}>
+                  <Plus className="size-4" /> Novo plano
+                </Button>
+              ) : null}
             </>
           }
         />
@@ -180,7 +194,19 @@ function LessonPlansPage() {
         <ListFilterBar
           values={filters}
           activeCount={activeCount}
-          onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
+          onChange={(name, value) => {
+            setFilter(name as keyof typeof filters, value);
+            if (
+              name === "turma" &&
+              value &&
+              filters.disciplina &&
+              !subjectsOfClass(subjects, classSubjects, value).some(
+                (subject) => subject.id === filters.disciplina,
+              )
+            ) {
+              setFilter("disciplina", "");
+            }
+          }}
           onReset={resetFilters}
           fields={[
             { name: "q", placeholder: "Pesquisar por título…", "aria-label": "Pesquisar" },
@@ -188,19 +214,27 @@ function LessonPlansPage() {
               name: "turma",
               type: "select",
               label: "Turma",
-              options: classGroups.map((group) => ({ value: group.id, label: group.name })),
+              // Sem a opção vazia, o select mostrava a primeira turma com o filtro desligado.
+              options: [
+                { value: "", label: "Todas" },
+                ...classGroups.map((group) => ({ value: group.id, label: group.name })),
+              ],
             },
             {
               name: "disciplina",
               type: "select",
               label: "Disciplina",
-              options: subjects.map((subject) => ({ value: subject.id, label: subject.name })),
+              options: [
+                { value: "", label: "Todas" },
+                ...filterSubjects.map((subject) => ({ value: subject.id, label: subject.name })),
+              ],
             },
             {
               name: "trimestre",
               type: "select",
               label: "Trimestre",
               options: [
+                { value: "", label: "Todos" },
                 { value: "1", label: "1º Trimestre" },
                 { value: "2", label: "2º Trimestre" },
                 { value: "3", label: "3º Trimestre" },
@@ -222,7 +256,11 @@ function LessonPlansPage() {
             icon={BookOpenCheck}
             firstUse
             title="Ainda não há planos de aula"
-            description="Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
+            description={
+              canEditPlans
+                ? "Crie um plano com a estrutura de avaliações e provas para alimentar o Centro de Avaliação."
+                : "Os planos aparecem aqui quando os professores os publicarem."
+            }
             compact
           />
         ) : null}
@@ -279,24 +317,26 @@ function LessonPlansPage() {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-auto flex justify-end gap-1.5 border-t border-border pt-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5"
-                        onClick={() => openEdit(plan)}
-                      >
-                        <Pencil className="size-3.5" /> Editar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5 text-destructive hover:text-destructive"
-                        onClick={() => remove(plan)}
-                      >
-                        <Trash2 className="size-3.5" /> Remover
-                      </Button>
-                    </div>
+                    {canEditPlans ? (
+                      <div className="mt-auto flex justify-end gap-1.5 border-t border-border pt-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5"
+                          onClick={() => openEdit(plan)}
+                        >
+                          <Pencil className="size-3.5" /> Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5 text-destructive hover:text-destructive"
+                          onClick={() => remove(plan)}
+                        >
+                          <Trash2 className="size-3.5" /> Remover
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -310,6 +350,7 @@ function LessonPlansPage() {
         onOpenChange={setModalOpen}
         classGroups={classGroups}
         subjects={subjects}
+        classSubjects={classSubjects}
         initial={editing}
         {...(filters.turma ? { defaultClassGroupId: filters.turma } : {})}
         {...(filters.disciplina ? { defaultSubjectId: filters.disciplina } : {})}

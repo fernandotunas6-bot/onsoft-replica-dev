@@ -55,7 +55,9 @@ describe("escritas de uma escola bloqueada", () => {
   it("suspensa, em atraso, arquivada ou com falha de criação não grava", async () => {
     for (const status of ["suspended", "past_due", "archived", "provisioning_failed"]) {
       tenant = { status, subscription_status: "active", trial_ends_at: null };
-      await expect(assertTenantAllowsWrites("s1", NOW)).rejects.toThrow(/suspensa/);
+      await expect(assertTenantAllowsWrites("s1", NOW)).rejects.toThrow(
+        status === "past_due" ? /em atraso/ : /suspensa/,
+      );
     }
   });
 
@@ -105,5 +107,12 @@ describe("escritas de uma escola bloqueada", () => {
       const source = readFileSync(`src/features/hr/${file}.ts`, "utf8");
       expect(source).toMatch(/assertModuleNotBlocked\([^)]*"financeiro",\s*(mode|"write")\)/);
     }
+  });
+
+  it("os atalhos da pesquisa (definição da escola) gravam pelo guarda de escrita", () => {
+    const source = readFileSync("src/features/spotlight/server.ts", "utf8");
+    const fn = source.slice(source.indexOf("export const saveSpotlightOverrides"));
+    expect(fn).toMatch(/requireSgaWriterForWrite\("gestao"/);
+    expect(source).not.toMatch(/requireSgaWriter\(/);
   });
 });

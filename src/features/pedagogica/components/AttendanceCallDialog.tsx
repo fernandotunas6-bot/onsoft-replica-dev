@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { numberMatches } from "@/features/education-catalog/identifiers";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { z } from "zod";
-import { sendOrQueue } from "@/lib/offline/outbox";
+import { OUTBOX_UNCERTAIN_MESSAGE, sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { toast } from "@/lib/toast";
 import {
   Check,
@@ -178,13 +180,21 @@ export function AttendanceCallDialog({
       return sendOrQueue("attendance.submit", input.data, {
         label,
         userId: await currentUserId(),
+        schoolId: readStoredActiveSchool(),
       });
     },
     onSuccess: (outcome) => {
       if (outcome.queued) {
-        toast.info("Chamada guardada neste computador", {
-          description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
-        });
+        if (outcome.requiresVerification) {
+          toast.warning("Chamada sem confirmação do servidor", {
+            description: OUTBOX_UNCERTAIN_MESSAGE,
+            duration: Infinity,
+          });
+        } else {
+          toast.info("Chamada guardada neste computador", {
+            description: "Sem ligação ao servidor. É enviada sozinha quando a Internet voltar.",
+          });
+        }
         onOpenChange(false);
         return;
       }
@@ -300,7 +310,7 @@ export function AttendanceCallDialog({
     .filter((st) =>
       search
         ? st.full_name.toLowerCase().includes(search.toLowerCase()) ||
-          st.student_number.toLowerCase().includes(search.toLowerCase())
+          numberMatches(st.student_number, search)
         : true,
     )
     .filter((st) => statusFilter === "all" || statusOf(st.student_id) === statusFilter)

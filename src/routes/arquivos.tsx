@@ -7,8 +7,8 @@ import { InstalledModuleTools } from "@/features/integrations/InstalledModuleToo
 import { FileBrowser } from "@/features/arquivos/FileBrowser";
 
 const arquivosSearchSchema = z.object({
-  turma: z.string().uuid().optional(),
-  pessoa: z.string().uuid().optional(),
+  turma: z.string().guid().optional(),
+  pessoa: z.string().guid().optional(),
 });
 
 export const Route = createFileRoute("/arquivos")({
@@ -32,7 +32,7 @@ function ArquivosPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Aplicativos"
+          group="Gestão e Comunicação"
           title="Arquivos"
           description="Biblioteca no estilo Google Drive & Moodle: gestão de documentos pedagógicos, carregamento sem burocracia, pastas por turma, miniaturas em tempo real e auditoria institucional."
           actions={

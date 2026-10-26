@@ -32,18 +32,35 @@ vi.mock("@/features/academic/use-passing-value", () => ({
     engine: null,
   }),
 }));
-vi.mock("@/features/auth/use-school-settings", () => ({
-  useSchoolSettings: () => ({
-    selectedTerm: { id: "t1", sequence: 1 },
-    terms: [
-      { id: "t1", sequence: 1 },
-      { id: "t2", sequence: 2 },
-      { id: "t3", sequence: 3 },
-    ],
-    setSelectedTermId: vi.fn(),
-    school: null,
-  }),
-}));
+let liveTermSync = false;
+let termUpdates = 0;
+let selectGlobalTerm: ((id: string) => void) | null = null;
+
+vi.mock("@/features/auth/use-school-settings", async () => {
+  const { useState, useCallback } = await import("react");
+  const terms = [
+    { id: "t1", sequence: 1 },
+    { id: "t2", sequence: 2 },
+    { id: "t3", sequence: 3 },
+  ];
+  return {
+    useSchoolSettings: () => {
+      const [sequence, setSequence] = useState(1);
+      const selectTerm = useCallback((id: string) => {
+        if (!liveTermSync) return;
+        if (++termUpdates > 15) throw new Error("Períodos em ciclo de actualização");
+        setSequence(Number(id.slice(1)));
+      }, []);
+      selectGlobalTerm = selectTerm;
+      return {
+        selectedTerm: { id: `t${sequence}`, sequence },
+        terms,
+        setSelectedTermId: selectTerm,
+        school: null,
+      };
+    },
+  };
+});
 vi.mock("@/features/integrations/use-installed-integrations", () => ({
   useInstalledIntegrations: () => ({ hasCapability: () => false }),
 }));
@@ -124,6 +141,9 @@ const rowOf = (student: string) => {
 };
 
 beforeEach(() => {
+  liveTermSync = false;
+  termUpdates = 0;
+  selectGlobalTerm = null;
   try {
     window.localStorage.clear();
   } catch {
@@ -140,6 +160,79 @@ afterEach(() => {
 });
 
 describe("Centro de Avaliação — lançamento de notas", () => {
+  it("abre sem ciclo quando o trimestre guardado difere do período global", async () => {
+    liveTermSync = true;
+    localStorage.setItem("siga:list-filters:avaliacao-centro", JSON.stringify({ trimestre: "2" }));
+    renderCenter();
+    await ready();
+    expect(termUpdates).toBeLessThan(5);
+    expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data.term).toBe(1);
+  });
+  it("respeita o trimestre do deep-link e acompanha uma mudança posterior da barra superior", async () => {
+    liveTermSync = true;
+    renderCenter({ initialTerm: "2" });
+    await ready();
+    expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data.term).toBe(2);
+    expect(termUpdates).toBeLessThan(3);
+    await act(async () => selectGlobalTerm?.("t3"));
+    await waitFor(() => expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data.term).toBe(3));
+    expect(termUpdates).toBeLessThan(4);
+  });
+
+  it("mudar o filtro de trimestre actualiza o global uma vez e não reaplica o deep-link", async () => {
+    liveTermSync = true;
+    renderCenter();
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: /Trimestre/i }), {
+      target: { value: "2" },
+    });
+    await waitFor(() => expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data.term).toBe(2));
+    expect(termUpdates).toBe(1);
+    expect((screen.getByRole("combobox", { name: /Trimestre/i }) as HTMLSelectElement).value).toBe(
+      "2",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^Limpar/ }));
+    await waitFor(() => expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data.term).toBe(1));
+    expect(termUpdates).toBe(2);
+  });
+
+  it("o filtro de disciplina mostra só as da turma e larga a da turma anterior", async () => {
+    renderCenter({
+      classGroups: [
+        ...baseProps.classGroups,
+        { id: "cg2", name: "10ª C", grade_name: "10ª Classe", course_name: "Construção Civil" },
+      ],
+      subjects: [
+        { id: "sub1", name: "Matemática", code: "MAT" },
+        { id: "sub2", name: "Topografia", code: "TOP" },
+      ],
+      classSubjects: [
+        { class_group_id: "cg1", subject_id: "sub1" },
+        { class_group_id: "cg2", subject_id: "sub2" },
+      ],
+    });
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: /^Filtros/ }));
+    const disciplina = () =>
+      screen.getByRole("combobox", { name: /^Disciplina/ }) as HTMLSelectElement;
+    const options = () => Array.from(disciplina().options).map((option) => option.text);
+    expect(options()).toEqual(["Todas", "Matemática"]);
+    expect(disciplina().value).toBe("sub1");
+
+    fireEvent.change(screen.getByRole("combobox", { name: /^Turma/ }), {
+      target: { value: "cg2" },
+    });
+    expect(options()).toEqual(["Todas", "Topografia"]);
+    expect(disciplina().value).toBe("todas");
+    await waitFor(() =>
+      expect(listAssessmentsMock.mock.calls.at(-1)?.[0].data).toMatchObject({
+        classGroupId: "cg2",
+        subjectId: "sub2",
+      }),
+    );
+  });
+
   it("carrega os alunos por ordem alfabética, com as notas já lançadas", async () => {
     renderCenter();
     await waitFor(() => expect(cell("MAC", "Ana Silva").value).toBe("12"));

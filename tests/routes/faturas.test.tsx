@@ -54,6 +54,8 @@ vi.mock("@/features/finance/server", () => ({
   getFinanceSchemaStatus: () => getFinanceSchemaStatusMock(),
   cancelInvoice: vi.fn(),
   issueInvoice: vi.fn(),
+  issueTuitionBatch: vi.fn(),
+  listTuitionBatchClasses: async () => [],
   recordInvoicePayment: vi.fn(),
 }));
 
@@ -97,6 +99,8 @@ const sampleReporting: Reporting = {
     cash_in: 0,
     cash_out: 0,
     cash_balance: 0,
+    drawer_balance: 0,
+    bank_balance: 0,
     truncated: false,
   },
   monthly: [],

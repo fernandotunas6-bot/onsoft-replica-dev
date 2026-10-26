@@ -11,6 +11,7 @@
  * por dois conceitos diferentes.
  */
 import {
+  ArrowLeftRight,
   CreditCard,
   Banknote,
   BookOpen,
@@ -22,6 +23,7 @@ import {
   ChartColumn,
   CircleAlert,
   CircleCheck,
+  CircleX,
   ClipboardCheck,
   Clock,
   Clock3,
@@ -115,6 +117,8 @@ export const moduleIcons = {
   institutionalLink: UserRoundCheck,
   /** Tesouraria: caixa e cobranças do dia. */
   treasury: Landmark,
+  /** Bancos e conciliação: cobranças do gateway contra o que entrou. */
+  reconciliation: ArrowLeftRight,
   /** Acompanhamento de alunos em risco de insucesso. */
   studentRisk: TrendingDown,
   /** Diagnóstico de erros do sistema. */
@@ -147,6 +151,7 @@ export const actionIcons = {
 /** Estados — combinam com os tons `success | warning | destructive | info | muted`. */
 export const statusIcons = {
   success: CircleCheck,
+  rejected: CircleX,
   warning: TriangleAlert,
   error: CircleAlert,
   info: Info,

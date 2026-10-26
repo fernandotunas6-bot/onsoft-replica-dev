@@ -55,11 +55,11 @@ export const listAlumniInputSchema = z.object({
   limit: z.number().int().min(1).max(200).optional().default(50),
 });
 
-export const alumniIdInputSchema = z.object({ alumniId: z.string().uuid() });
-export const studentIdInputSchema = z.object({ studentId: z.string().uuid() });
+export const alumniIdInputSchema = z.object({ alumniId: z.string().guid() });
+export const studentIdInputSchema = z.object({ studentId: z.string().guid() });
 
 export const upsertAlumniInputSchema = z.object({
-  studentId: z.string().uuid(),
+  studentId: z.string().guid(),
   graduationYear: z.number().int().min(1950).max(2100).nullable().optional(),
   graduationGrade: nullableText(180),
   graduationCourse: nullableText(180),
@@ -84,8 +84,8 @@ export const upsertAlumniInputSchema = z.object({
 });
 
 export const alumniExperienceInputSchema = z.object({
-  alumniId: z.string().uuid(),
-  experienceId: z.string().uuid().optional(),
+  alumniId: z.string().guid(),
+  experienceId: z.string().guid().optional(),
   kind: z.enum(alumniExperienceKinds),
   organization: z.string().trim().min(1).max(180),
   title: nullableText(180),
@@ -98,8 +98,8 @@ export const alumniExperienceInputSchema = z.object({
 });
 
 export const deleteAlumniExperienceInputSchema = z.object({
-  alumniId: z.string().uuid(),
-  experienceId: z.string().uuid(),
+  alumniId: z.string().guid(),
+  experienceId: z.string().guid(),
 });
 
 export const listAlumniOpportunitiesInputSchema = z.object({
@@ -110,8 +110,8 @@ export const listAlumniOpportunitiesInputSchema = z.object({
 });
 
 export const upsertAlumniOpportunityInputSchema = z.object({
-  opportunityId: z.string().uuid().optional(),
-  createdByAlumniId: z.string().uuid().nullable().optional(),
+  opportunityId: z.string().guid().optional(),
+  createdByAlumniId: z.string().guid().nullable().optional(),
   title: z.string().trim().min(2).max(180),
   organization: nullableText(180),
   opportunityType: z.enum(alumniOpportunityTypes).default("job"),
@@ -125,8 +125,8 @@ export const upsertAlumniOpportunityInputSchema = z.object({
 });
 
 export const alumniOpportunityApplicationInputSchema = z.object({
-  opportunityId: z.string().uuid(),
-  alumniId: z.string().uuid(),
+  opportunityId: z.string().guid(),
+  alumniId: z.string().guid(),
   status: z
     .enum(["interested", "applied", "shortlisted", "accepted", "rejected", "withdrawn"])
     .default("interested"),
@@ -135,8 +135,8 @@ export const alumniOpportunityApplicationInputSchema = z.object({
 
 export const mentoringMatchInputSchema = z
   .object({
-    mentorAlumniId: z.string().uuid(),
-    menteeAlumniId: z.string().uuid(),
+    mentorAlumniId: z.string().guid(),
+    menteeAlumniId: z.string().guid(),
     focusArea: z.string().trim().min(2).max(180),
     notes: nullableText(2000),
   })
@@ -146,12 +146,12 @@ export const mentoringMatchInputSchema = z
   });
 
 export const mentoringStatusInputSchema = z.object({
-  mentorshipId: z.string().uuid(),
+  mentorshipId: z.string().guid(),
   status: z.enum(["requested", "active", "completed", "cancelled"]),
 });
 
 export const alumniEngagementInputSchema = z.object({
-  alumniId: z.string().uuid(),
+  alumniId: z.string().guid(),
   kind: z.enum(alumniEngagementKinds),
   title: z.string().trim().min(2).max(180),
   occurredAt: z.string().datetime().optional(),
@@ -160,7 +160,7 @@ export const alumniEngagementInputSchema = z.object({
 });
 
 export const alumniEventInputSchema = z.object({
-  eventId: z.string().uuid().optional(),
+  eventId: z.string().guid().optional(),
   title: z.string().trim().min(2).max(180),
   description: nullableText(5000),
   eventType: z
@@ -184,13 +184,13 @@ export const alumniEventInputSchema = z.object({
 });
 
 export const alumniEventRegistrationInputSchema = z.object({
-  eventId: z.string().uuid(),
-  alumniId: z.string().uuid(),
+  eventId: z.string().guid(),
+  alumniId: z.string().guid(),
   status: z.enum(["registered", "attended", "cancelled", "waitlist"]).default("registered"),
 });
 
 export const alumniSurveyInputSchema = z.object({
-  surveyId: z.string().uuid().optional(),
+  surveyId: z.string().guid().optional(),
   title: z.string().trim().min(2).max(180),
   description: nullableText(3000),
   purpose: z
@@ -214,14 +214,14 @@ export const alumniSurveyInputSchema = z.object({
 });
 
 export const alumniSurveyResponseInputSchema = z.object({
-  surveyId: z.string().uuid(),
-  alumniId: z.string().uuid(),
+  surveyId: z.string().guid(),
+  alumniId: z.string().guid(),
   responseJson: z.record(z.string(), z.unknown()),
 });
 
 export const alumniContributionInputSchema = z
   .object({
-    alumniId: z.string().uuid(),
+    alumniId: z.string().guid(),
     contributionType: z.enum([
       "donation",
       "sponsorship",

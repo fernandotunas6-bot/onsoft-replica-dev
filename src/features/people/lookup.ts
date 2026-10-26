@@ -1,4 +1,5 @@
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
+import { readInChunks } from "@/integrations/supabase/read-all-pages";
 
 type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -22,12 +23,11 @@ export async function loadPersonNamesById(
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (!personIds.length) return map;
-  const { data } = await db
-    .from("people")
-    .select("id, full_name")
-    .eq("school_id", schoolId)
-    .in("id", personIds);
-  for (const row of (data ?? []) as Array<{ id: string; full_name: string | null }>) {
+  // Em lotes: a lista de ids vai no URL (a SAF-T de um ano pede milhares de alunos).
+  const { data } = await readInChunks(personIds, (chunk) =>
+    db.from("people").select("id, full_name").eq("school_id", schoolId).in("id", chunk),
+  );
+  for (const row of data as Array<{ id: string; full_name: string | null }>) {
     map.set(String(row.id), String(row.full_name ?? "—"));
   }
   return map;

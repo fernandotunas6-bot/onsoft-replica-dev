@@ -11,6 +11,7 @@ import {
   inventoryNavPaths,
   missingAdminNavPaths,
 } from "@/features/auth/navigation-catalog";
+import { MODULE_CATALOG } from "@/features/auth/module-availability";
 import {
   SIGA_AUTHENTICATED_ROUTE_PREFIXES,
   isKnownSigaRoute,
@@ -38,6 +39,13 @@ const fullPlan = {
 };
 
 describe("navigation catalog", () => {
+  /**
+   * A cobertura verifica-se **com tudo ligado**: é o que prova que um módulo, ao
+   * ser ligado numa escola, fica de facto alcançável pelo menu. Com a omissão do
+   * produto os adormecidos não aparecem — e isso tem o seu próprio teste.
+   */
+  const tudoLigado = { enabledModules: new Set(MODULE_CATALOG.map((mod) => mod.id)) };
+
   it("keeps launcher workspace apps aligned with the catalog", () => {
     expect(launcherWorkspaceApps.map((app) => app.id).sort()).toEqual(
       WORKSPACE_MODULE_SPECS.map((spec) => spec.id).sort(),
@@ -51,12 +59,47 @@ describe("navigation catalog", () => {
   });
 
   it("exposes every admin module path in the sidebar for Administrador", () => {
-    const groups = getPortalNavigation("Administrador", {}, fullPlan);
+    const groups = getPortalNavigation("Administrador", {}, fullPlan, tudoLigado);
     const paths = collectNavPaths(groups);
     const missing = missingAdminNavPaths(paths);
     expect(missing, `paths missing from sidebar: ${missing.join(", ")}`).toEqual([]);
     expect(ADMIN_NAV_PATH_COVERAGE.every((path) => paths.has(path))).toBe(true);
-    expect(paths.has("/alumni")).toBe(true);
+  });
+
+  /**
+   * Um módulo adormecido existe, tem ficheiros e caminho — e vem **desligado por
+   * omissão**, pelo que não aparece no lançador nem no menu até uma escola o ligar
+   * (uma linha em `school_modules`). Ver `module-availability.ts`. A 25/10/2026 são o Alumni, o
+   * RH e as Catracas: zero registos em produção, medidos por `count(*)`.
+   *
+   * Até aqui este teste exigia `paths.has("/alumni")`. A regra passou a ser a
+   * inversa, e vigiada: enquanto o módulo estiver marcado, não volta ao menu por
+   * descuido. Para o acordar, tirar `dormant` do `modules.json` — e então as duas
+   * asserções abaixo obrigam a pôr-lhe navegação outra vez.
+   */
+  const modulosAdormecidos = modulesCatalog.modules.filter(
+    (mod) => "dormant" in mod && mod.dormant,
+  );
+
+  it("declara os módulos adormecidos com a razão escrita", () => {
+    expect(modulosAdormecidos.map((mod) => mod.id).sort()).toEqual(["alumni", "catracas", "rh"]);
+    for (const mod of modulosAdormecidos) {
+      expect("dormantReason" in mod && mod.dormantReason, `${mod.id} sem razão`).toBeTruthy();
+      // Têm de manter o caminho: `dormant` é o estado **por omissão**, não uma
+      // remoção. Sem caminho, uma escola que ligasse o módulo não chegava lá.
+      expect("navPath" in mod && mod.navPath, `${mod.id} sem navPath`).toBeTruthy();
+    }
+  });
+
+  it("nenhum módulo adormecido aparece no menu de qualquer papel", () => {
+    const papeis = ["Administrador", "Secretaria", "Tesouraria", "Professor"] as const;
+    const caminhosAdormecidos = ["/alumni", "/financeiro/rh", "/catracas"];
+    for (const papel of papeis) {
+      const paths = collectNavPaths(getPortalNavigation(papel, {}, fullPlan));
+      for (const caminho of caminhosAdormecidos) {
+        expect(paths.has(caminho), `${papel} ainda vê ${caminho}`).toBe(false);
+      }
+    }
   });
 
   it("maps inventory modules with navPath to workspace catalog", () => {
@@ -79,7 +122,7 @@ describe("navigation catalog", () => {
   });
 
   it("exposes secondary inventory routes in the admin sidebar", () => {
-    const paths = collectNavPaths(getPortalNavigation("Administrador", {}, fullPlan));
+    const paths = collectNavPaths(getPortalNavigation("Administrador", {}, fullPlan, tudoLigado));
     for (const mod of modulesCatalog.modules) {
       const secondary = "secondaryNavPaths" in mod ? mod.secondaryNavPaths : undefined;
       if (!secondary?.length) continue;
@@ -107,20 +150,29 @@ describe("navigation catalog", () => {
     expect(paths.has("/importar")).toBe(true);
     expect(paths.has("/pessoas")).toBe(true);
     expect(paths.has("/alunos")).toBe(true);
-    expect(paths.has("/alumni")).toBe(true);
+    // O /alumni saiu do menu (módulo adormecido) — ver o teste dos adormecidos acima.
     expect(paths.has("/configuracoes")).toBe(false);
   });
 
-  it("shows the protected Alumni self-service entry for students", () => {
-    const paths = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan));
-    expect(paths.has("/alumni/portal")).toBe(true);
-    expect(paths.has("/alumni")).toBe(false);
+  it("shows the protected Alumni self-service entry only to students who finished", () => {
+    const alumni = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan, { isAlumni: true }));
+    expect(alumni.has("/alumni/portal")).toBe(true);
+    expect(alumni.has("/alumni")).toBe(false);
+    // Quem ainda estuda não vê o portal de antigos alunos.
+    const current = collectNavPaths(getPortalNavigation("Aluno", {}, fullPlan));
+    expect(current.has("/alumni/portal")).toBe(false);
+  });
+
+  it("o encarregado não tem ligações para páginas que lhe estão fechadas", () => {
+    const paths = collectNavPaths(getPortalNavigation("Encarregado", {}, fullPlan));
+    expect(paths.has("/faturas")).toBe(false);
+    expect(paths.has("/financeiro")).toBe(true);
   });
 
   it("shows finance modules for Tesouraria without secretaria-only routes", () => {
     const paths = collectNavPaths(getPortalNavigation("Tesouraria", {}, fullPlan));
     expect(paths.has("/financeiro")).toBe(true);
-    expect(paths.has("/financeiro/rh")).toBe(true);
+    // O /financeiro/rh saiu do menu (módulo adormecido) — ver o teste dos adormecidos acima.
     expect(paths.has("/faturas")).toBe(true);
     expect(paths.has("/relatorios/financeiros")).toBe(true);
     expect(paths.has("/importar")).toBe(true);

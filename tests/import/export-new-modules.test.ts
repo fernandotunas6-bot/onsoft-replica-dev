@@ -8,6 +8,11 @@ function createMockTable(data: unknown[]) {
   query.eq = vi.fn(chain);
   query.is = vi.fn(chain);
   query.order = vi.fn(chain);
+  // A exportação lê por páginas (`range`).
+  query.range = vi.fn((from: number, to: number) => ({
+    then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
+      resolve({ data: data.slice(from, to + 1), error: null }),
+  }));
   query.then = (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
     resolve({ data: data as unknown[], error: null });
   return query;

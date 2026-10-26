@@ -29,7 +29,7 @@ const trimmed = (min: number, max: number, message: string) =>
   z.string().trim().min(min, message).max(max, message);
 
 export const blogPostInputSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().guid().optional(),
   slug: z
     .string()
     .trim()
@@ -53,7 +53,7 @@ export const blogPostInputSchema = z.object({
 export type BlogPostInput = z.infer<typeof blogPostInputSchema>;
 
 export const faqInputSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().guid().optional(),
   question: trimmed(3, 300, "A pergunta tem de ter entre 3 e 300 caracteres."),
   answer: trimmed(3, 4000, "A resposta tem de ter entre 3 e 4000 caracteres."),
   category: trimmed(1, 60, "A categoria tem no máximo 60 caracteres.").default("Geral"),
@@ -80,12 +80,12 @@ export const contactMessageInputSchema = z.object({
 export type ContactMessageInput = z.infer<typeof contactMessageInputSchema>;
 
 export const contactStatusInputSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().guid(),
   status: z.enum(CONTACT_STATUSES),
 });
 
 export const showcaseHiddenInputSchema = z.object({
-  schoolId: z.string().uuid(),
+  schoolId: z.string().guid(),
   hidden: z.boolean(),
   reason: z.string().trim().max(300).nullish(),
 });

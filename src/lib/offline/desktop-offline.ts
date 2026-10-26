@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
+import { toast } from "@/lib/toast";
 import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { desktopVault, isDesktopSessionRuntime } from "@/lib/desktop-session-vault";
 import { enableOutbox, vaultOutboxStorage } from "@/lib/offline/outbox";
@@ -32,7 +33,16 @@ export function startDesktopOffline(queryClient: QueryClient, router?: ChunkLoad
   if (!online) restoreOfflineQueries(queryClient, readStoredActiveSchool());
   const stopPersisting = persistOfflineQueries(queryClient, readStoredActiveSchool);
 
-  void desktopVault().then((vault) => enableOutbox(vaultOutboxStorage(vault)));
+  void desktopVault()
+    .then((vault) => enableOutbox(vaultOutboxStorage(vault)))
+    .catch((error) => {
+      // A fila no cofre NÃO foi recuperada: não fingir que está vazia.
+      toast.error("Não foi possível abrir a fila offline do computador.", {
+        description:
+          error instanceof Error ? error.message : "Peça assistência antes de gravar sem rede.",
+        duration: Infinity,
+      });
+    });
 
   return stopPersisting;
 }

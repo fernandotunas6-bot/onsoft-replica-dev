@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { resolveEnabledModules } from "@/features/auth/module-availability";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { getCurrentAccountContext } from "@/features/auth/server";
@@ -22,6 +23,27 @@ import {
  * fá-lo — via a dependência mudar sempre e reentrava em ciclo de render.
  */
 const NO_GRANTS: Record<string, string> = Object.freeze({});
+
+/**
+ * As mesmas armadilhas que o `NO_GRANTS` fechou, nos outros dois valores que
+ * este hook devolve a partir de `profile.data`.
+ *
+ * `profile.data?.schools ?? []` e `profile.data?.linkedEntities ?? {…}`
+ * criavam um array/objecto novo em CADA render enquanto a query de conta não
+ * resolvesse. Quem os passe como dependência de `useMemo`/`useEffect` vê a
+ * dependência mudar sempre — é o ciclo de render que dá
+ * «Maximum update depth exceeded» (React #185).
+ */
+const NO_SCHOOLS: UserSchoolMembershipItem[] = Object.freeze(
+  [],
+) as unknown as UserSchoolMembershipItem[];
+const NO_LINKED_ENTITIES = Object.freeze({
+  person_id: null,
+  student_id: null,
+  teacher_id: null,
+  guardian_person_id: null,
+  linked_students: Object.freeze([]) as unknown as [],
+});
 
 const ACTIVE_ROLE_KEY = "siga:active-role";
 const ACTIVE_STUDENT_KEY = "siga:active-student-id";
@@ -81,7 +103,7 @@ export function useCurrentAccount() {
     [profile.data?.roles, primaryRole],
   );
 
-  const schools: UserSchoolMembershipItem[] = profile.data?.schools ?? [];
+  const schools: UserSchoolMembershipItem[] = profile.data?.schools ?? NO_SCHOOLS;
   const currentSchoolId = profile.data?.school_id ?? null;
   const currentSchoolName = profile.data?.school_name ?? null;
   const currentSchoolSlug = profile.data?.school_slug ?? null;
@@ -156,13 +178,7 @@ export function useCurrentAccount() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a escola resolvida muda
   }, [hostSchoolId, currentSchoolId]);
 
-  const linkedEntities = profile.data?.linkedEntities ?? {
-    person_id: null,
-    student_id: null,
-    teacher_id: null,
-    guardian_person_id: null,
-    linked_students: [],
-  };
+  const linkedEntities = profile.data?.linkedEntities ?? NO_LINKED_ENTITIES;
 
   const activeStudentId =
     activeStudentIdState &&
@@ -190,6 +206,11 @@ export function useCurrentAccount() {
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U";
 
+  const enabledModules = useMemo(
+    () => resolveEnabledModules(profile.data?.module_overrides ?? {}),
+    [profile.data?.module_overrides],
+  );
+
   return {
     id: userId ?? "",
     email,
@@ -211,6 +232,14 @@ export function useCurrentAccount() {
     activeSchool,
     setActiveSchoolId,
     linkedEntities,
+    /** Tem processo Alumni nesta escola (vê o «Meu Portal Alumni»). */
+    isAlumni: Boolean(profile.data?.is_alumni),
+    /**
+     * Os módulos ligados nesta escola. Enquanto o contexto não chega — primeiro
+     * render, ou uma consulta que falhou — vale a omissão do produto, e não um
+     * conjunto vazio: nunca se fica sem navegação por não se saber ainda.
+     */
+    enabledModules,
     activeStudentId,
     activeStudent,
     setActiveStudentId,

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAuthMotionActive } from "./use-auth-motion-active";
 
 /**
  * Vídeo de fundo leve: só carrega em ecrãs grandes, sem som, respeita "reduzir movimento".
@@ -17,33 +18,47 @@ import { useEffect, useState } from "react";
  */
 export function AuthBackgroundVideo() {
   const [enabled, setEnabled] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const active = useAuthMotionActive();
+  const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
-    const wide = window.matchMedia("(min-width: 1024px)").matches;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    if (!wide || reduce || conn?.saveData) return;
+    if (!active || enabled || failed) return;
     const id = window.setTimeout(() => setEnabled(true), 600);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [active, enabled, failed]);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (active) {
+      // Autoplay pode ser recusado pelo navegador; o poster permanece disponível.
+      void video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [active, enabled]);
   return (
     <>
       {/* Poster em CSS (`.auth-hero-poster` em styles.css), só ≥ 1024 px: pinta com o HTML. */}
       <div aria-hidden className="auth-hero-poster pointer-events-none absolute inset-0" />
       {enabled ? (
         <video
+          ref={videoRef}
           aria-hidden
           // `inset-px`: 1 px para dentro do poster. O 1.º frame (igual ao poster já pintado)
           // media ~1 200 px² a mais por arredondamento e o Chrome promovia-o a LCP aos ~2 s.
           className="pointer-events-none absolute left-px top-px h-[calc(100%-2px)] w-[calc(100%-2px)] object-cover animate-fade-in"
           src="/auth-classroom.mp4"
-          autoPlay
+          autoPlay={active}
           muted
           loop
           playsInline
           // `preload="none"` contradiz o `autoPlay`: o Safari não arranca sozinho sem metadados.
           preload="metadata"
           // Enquanto o ficheiro não estiver em `public/`, desmonta-se em silêncio.
-          onError={() => setEnabled(false)}
+          onError={() => {
+            setFailed(true);
+            setEnabled(false);
+          }}
         />
       ) : null}
     </>

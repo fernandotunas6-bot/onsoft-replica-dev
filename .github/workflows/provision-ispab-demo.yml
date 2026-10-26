@@ -1,0 +1,87 @@
+name: Cadastrar ISPAB de demonstração
+
+on:
+  push:
+    branches: [feat/ispab-demo-registration]
+    paths:
+      - .github/workflows/provision-ispab-demo.yml
+      - scripts/siga/ispab-demo-config.ts
+      - scripts/siga/provision-ispab-demo.ts
+      - tests/saas/ispab-demo.test.ts
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operação de demonstração
+        type: choice
+        options: [preflight, create]
+        default: preflight
+      credential_public_key:
+        description: Chave pública RSA 4096 em base64; nunca incluir a chave privada
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provision-ispab-demo
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: npx --no-install vitest run tests/saas/ispab-demo.test.ts
+      - name: Preparar execução Node sem alterar o código da aplicação
+        run: npx --no-install esbuild scripts/siga/provision-ispab-demo.ts --bundle --platform=node --format=esm --packages=external --define:import.meta.env={} --outfile=.ispab-demo-runner.mjs
+      - run: node .ispab-demo-runner.mjs --check-input
+      - run: node .ispab-demo-runner.mjs --check-runtime
+
+  provision:
+    if: github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Preparar execução Node
+        run: npx --no-install esbuild scripts/siga/provision-ispab-demo.ts --bundle --platform=node --format=esm --packages=external --define:import.meta.env={} --outfile=.ispab-demo-runner.mjs
+      - name: Verificar ou cadastrar apenas a demonstração ISPAB
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://xodgfmxiaunpamctfeea.supabase.co' }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
+          ISPAB_CREDENTIAL_PUBLIC_KEY: ${{ inputs.credential_public_key }}
+          ISPAB_OPERATION: ${{ inputs.operation }}
+        run: |
+          if [ "$ISPAB_OPERATION" = create ]; then
+            node .ispab-demo-runner.mjs --create
+          else
+            node .ispab-demo-runner.mjs
+          fi
+      - name: Guardar acesso cifrado para o proprietário
+        if: always() && inputs.operation == 'create'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ispab-demo-encrypted-access
+          path: .ispab-demo-result
+          retention-days: 1
+          include-hidden-files: true
+          if-no-files-found: ignore

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
+import { VALORES_ESPERA_MIGRACAO } from "./espera-migracao";
 
 /**
  * Valores literais que o código grava ou procura e a base não aceita.
@@ -132,6 +133,7 @@ describe("valores gravados e filtrados vs CHECK da produção", () => {
   it("nenhum valor literal fica fora do que a base aceita", () => {
     const errados = usos
       .filter((u) => !permitidos.get(u.chave)!.has(u.valor))
+      .filter((u) => !VALORES_ESPERA_MIGRACAO.has(`${u.chave}=${u.valor}`))
       .map((u) => `${u.ficheiro}:${u.linha}: ${u.tipo} ${u.chave} = "${u.valor}"`);
     expect(
       errados,

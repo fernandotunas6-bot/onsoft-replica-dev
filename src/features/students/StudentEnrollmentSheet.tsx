@@ -12,7 +12,14 @@ import {
 } from "@/components/modals/SequentialSheetModal";
 import { personRelationshipTypeOptions } from "@/features/people/schemas";
 import { findPersonDuplicates, searchPeople } from "@/features/people/server";
-import { enrollNewStudent } from "@/features/students/server";
+import { enrollNewStudent, enrollStudentInClass } from "@/features/students/server";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { Link } from "@tanstack/react-router";
+import { academicStatusLabel } from "@/features/students/academic-status";
+import {
+  matchExistingStudents,
+  type ExistingStudentOption,
+} from "@/features/students/existing-student-match";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 import {
@@ -75,27 +82,36 @@ export function StudentEnrollmentSheet({
   autoOpen = false,
   classGroups,
   people,
+  existingStudents = [],
   onCreated,
 }: {
   trigger: (open: () => void) => ReactNode;
   autoOpen?: boolean;
   classGroups: ClassGroupOption[];
   people: PersonOption[];
+  /** Alunos da escola, para oferecer o existente em vez de criar outro. */
+  existingStudents?: readonly ExistingStudentOption[];
   onCreated: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(autoOpen);
+  const requestId = useRef("");
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.send");
   const [values, setValues] = useState(emptyValues);
   const [guardianQuery, setGuardianQuery] = useState("");
   const [guardianResults, setGuardianResults] = useState<PersonOption[]>([]);
   const [searchingGuardians, setSearchingGuardians] = useState(false);
+  // Aluno existente escolhido na folha: abre a matrícula curta (só a turma).
+  const [existing, setExisting] = useState<{ student: ExistingStudentOption; key: number } | null>(
+    null,
+  );
 
   // Fecho sem gravar (cancelado ou X) não deve deixar dados da tentativa
   // anterior visíveis da próxima vez que a folha abrir.
   const wasOpen = useRef(open);
   useEffect(() => {
     if (wasOpen.current && !open) {
+      requestId.current = "";
       setValues(emptyValues);
       setGuardianQuery("");
       setGuardianResults([]);
@@ -138,6 +154,15 @@ export function StudentEnrollmentSheet({
   }, [guardianQuery]);
 
   const hasUnsavedChanges = values.nome.trim() !== "";
+  const existingMatches = useMemo(
+    () =>
+      matchExistingStudents(existingStudents, {
+        name: values.nome,
+        nationalId: values.nif,
+        phone: values.telefone,
+      }),
+    [existingStudents, values.nome, values.nif, values.telefone],
+  );
 
   const directory = useMemo(
     () =>
@@ -242,22 +267,24 @@ export function StudentEnrollmentSheet({
             }
           }
           const turma = classGroups.find((group) => group.id === values.turmaId);
+          // A lotação é uma regra da base (enroll_student): não há matrícula acima
+          // dela. O ecrã oferecia «continuar com a matrícula extraordinária», que
+          // depois falhava com o aluno já criado e sem turma.
           if (
             turma &&
             typeof turma.capacity === "number" &&
             turma.capacity > 0 &&
             (turma.enrolled_count ?? 0) >= turma.capacity
           ) {
-            const proceedCapacity = window.confirm(
-              `Aviso de lotação: a turma "${turma.name}" já atingiu a sua lotação máxima (${turma.enrolled_count ?? 0}/${turma.capacity} alunos).\n\nDeseja continuar com a matrícula extraordinária nesta turma?`,
+            throw new Error(
+              `A turma «${turma.name}» atingiu a lotação máxima. Seleccione outra turma com vagas disponíveis.`,
             );
-            if (!proceedCapacity) {
-              throw new Error("Matrícula cancelada — selecione outra turma com vagas disponíveis.");
-            }
           }
           const relationship = values.parentesco || "encarregado";
+          requestId.current ||= crypto.randomUUID();
           await enrollNewStudent({
             data: {
+              requestId: requestId.current,
               person: {
                 full_name: values.nome,
                 birth_date: values.nascimento || undefined,
@@ -337,6 +364,65 @@ export function StudentEnrollmentSheet({
                     onChange={(next) => setField("nif", next)}
                   />
                 </SheetCell>
+                {existingMatches.length ? (
+                  // Não é um SheetCell: esse é um <label>, e o clique em qualquer parte dele
+                  // carregaria no primeiro botão da lista.
+                  <div className="block min-w-0 bg-card px-4 py-4 sm:col-span-2">
+                    <p className="mb-2 text-[12px] font-medium leading-[20px] text-muted-foreground">
+                      Já é aluno desta escola?
+                    </p>
+                    <ul aria-label="Alunos existentes" className="divide-y rounded-md border">
+                      {existingMatches.map(({ student, reason }) => (
+                        <li
+                          key={student.id}
+                          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium">{student.full_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[
+                                student.registration_number
+                                  ? `Nº ${student.registration_number}`
+                                  : null,
+                                [student.grade_name, student.class_name]
+                                  .filter(Boolean)
+                                  .join(" · ") || "Sem turma",
+                                student.academic_year,
+                                academicStatusLabel(student.student_status),
+                                reason === "bi"
+                                  ? "mesmo BI/NIF"
+                                  : reason === "telefone"
+                                    ? "mesmo telefone"
+                                    : "nome parecido",
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Link
+                              to="/alunos/$studentId"
+                              params={{ studentId: student.id }}
+                              className="text-xs font-semibold text-muted-foreground hover:underline"
+                            >
+                              Abrir ficha
+                            </Link>
+                            <button
+                              type="button"
+                              className="text-xs font-semibold text-primary hover:underline"
+                              onClick={() => {
+                                setExisting((prev) => ({ student, key: (prev?.key ?? 0) + 1 }));
+                                setOpen(false);
+                              }}
+                            >
+                              Matricular este aluno
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </SheetGrid>
             );
           }
@@ -418,6 +504,7 @@ export function StudentEnrollmentSheet({
                 <SheetCell label="Observações" full>
                   <Textarea
                     aria-label="Observações"
+                    placeholder="Indicações para a secretaria, guardadas no histórico da matrícula."
                     value={values.obs}
                     onChange={(e) => setField("obs", e.target.value)}
                   />
@@ -668,6 +755,42 @@ export function StudentEnrollmentSheet({
           );
         }}
       </SequentialSheetModal>
+      {existing ? (
+        <QuickFormModal
+          key={existing.key}
+          autoOpen
+          trigger={() => null}
+          eyebrow={existing.student.full_name}
+          title="Matricular aluno existente"
+          description="Usa a ficha que já existe: não cria outro aluno. Se já tiver matrícula no ano da turma escolhida, muda de turma nessa matrícula."
+          icon={<UserPlus className="size-5" />}
+          submitLabel="Matricular"
+          successDescription="Matrícula gravada na ficha existente."
+          fields={[
+            {
+              name: "turma",
+              label: "Turma",
+              type: "select",
+              full: true,
+              options: classGroups.map((group) => ({
+                value: group.id,
+                label: [formatEnrollmentClassGroupLabel(group), group.academic_year_name]
+                  .filter(Boolean)
+                  .join(" · "),
+              })),
+            },
+          ]}
+          onSubmit={async (submitted) => {
+            const turma = classGroups.find((group) => group.id === submitted["turma"]);
+            if (!turma) throw new Error("Seleccione uma turma válida.");
+            await enrollStudentInClass({
+              data: { studentId: existing.student.id, classGroupId: turma.id },
+            });
+            setValues(emptyValues);
+            await onCreated();
+          }}
+        />
+      ) : null}
     </>
   );
 }

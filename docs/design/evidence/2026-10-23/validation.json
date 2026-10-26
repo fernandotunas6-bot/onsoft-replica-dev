@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-23",
+  "pr": "https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/262",
+  "validated_code_commit": "1be6a916959b03605d8a86525a289cd159c7927a",
+  "full_suite": {
+    "passed_files": 608,
+    "skipped_files": 3,
+    "passed_tests": 4174,
+    "skipped_tests": 19,
+    "failed_tests": 0,
+    "seconds": 286.89,
+    "scope": "full suite prior to final pending-header prop; followed by directed tests"
+  },
+  "post_merge_navigation": {
+    "passed_files": 4,
+    "passed_tests": 50
+  },
+  "final_pending_controls": {
+    "passed_files": 5,
+    "passed_tests": 36
+  },
+  "local_typecheck": "passed",
+  "production_node_build": "passed",
+  "lint": {
+    "errors": 0,
+    "preexisting_warnings": 2
+  },
+  "incremental_accessibility": "passed",
+  "incremental_style": "passed",
+  "browser": {
+    "isolated_cases": 12,
+    "widths": [390, 767, 768, 1023, 1024, 1440],
+    "overflow_cases": 0,
+    "page_errors": 0
+  },
+  "github_ci_last_observed": "pending",
+  "deployment": "not performed",
+  "migrations": "not performed",
+  "not_validated": [
+    "authenticated end-to-end journeys",
+    "actual school preference persistence",
+    "remote multi-tenant RBAC/RLS",
+    "physical devices and other browser engines",
+    "INP/LCP/CLS p75",
+    "remaining module-by-module audit and large-dialog migrations"
+  ]
+}

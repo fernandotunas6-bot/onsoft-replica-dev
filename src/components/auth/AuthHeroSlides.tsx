@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthMotionActive } from "./use-auth-motion-active";
 
 const slides = [
   {
@@ -26,15 +27,16 @@ const slides = [
 /** Textos do painel de entrada que deslizam suavemente para a esquerda. */
 export function AuthHeroSlides() {
   const [index, setIndex] = useState(0);
+  const active = useAuthMotionActive();
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!active) return;
     const id = window.setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [active]);
 
   return (
     <div className="relative max-w-xl">
-      <div className="relative min-h-[15rem] overflow-hidden">
+      <div className="grid items-end overflow-hidden py-2">
         {slides.map((s, i) => {
           const offset =
             i === index
@@ -46,11 +48,13 @@ export function AuthHeroSlides() {
             <div
               key={s.title}
               aria-hidden={i !== index}
-              className={`absolute inset-x-0 bottom-0 transition-all duration-700 ease-out ${offset}`}
+              className={`col-start-1 row-start-1 transition-all duration-700 ease-out ${offset}`}
             >
-              <p className="text-xs font-semibold opacity-80">{s.eyebrow}</p>
-              <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight">{s.title}</h1>
-              <p className="mt-4 max-w-lg text-sm leading-6 opacity-85">{s.text}</p>
+              <p className="text-xs font-medium opacity-80">{s.eyebrow}</p>
+              <h1 className="mt-4 font-display text-[clamp(28px,3vw,44px)] font-semibold leading-[1.12] tracking-tight">
+                {s.title}
+              </h1>
+              <p className="mt-5 max-w-lg text-sm leading-relaxed opacity-85">{s.text}</p>
             </div>
           );
         })}
@@ -62,6 +66,7 @@ export function AuthHeroSlides() {
             key={s.title}
             type="button"
             aria-label={`Mostrar: ${s.eyebrow}`}
+            aria-pressed={i === index}
             onClick={() => setIndex(i)}
             className="flex h-[24px] min-w-[24px] items-center justify-center"
           >

@@ -12,8 +12,8 @@ import { finalClassification } from "@/features/higher-ed/engine";
 import { getStudentTranscript } from "@/features/higher-ed/server";
 
 const searchSchema = z.object({
-  programId: z.string().uuid(),
-  studentId: z.string().uuid(),
+  programId: z.string().guid(),
+  studentId: z.string().guid(),
 });
 
 export const Route = createFileRoute("/pedagogica_/superior_/historico")({
@@ -169,7 +169,7 @@ function TranscriptPage() {
                   {(() => {
                     if (data.progress.average === null) return "—";
                     const final = data.progress.completed
-                      ? finalClassification(data.progress.average)
+                      ? finalClassification(data.progress.averageExact)
                       : null;
                     return final
                       ? `${final.value} valores (${final.mention})`

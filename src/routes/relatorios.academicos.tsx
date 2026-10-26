@@ -1,7 +1,7 @@
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { usePassingValue } from "@/features/academic/use-passing-value";
+import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
 import { EvolutionPanel } from "@/features/academic/EvolutionPanel";
 import { YearComparisonPanel } from "@/features/academic/YearComparisonPanel";
 import { Award, Download, FileBadge, FileDown } from "lucide-react";
@@ -76,7 +76,12 @@ function RelatoriosAcademicos() {
     warmReportCharts();
   }, []);
   const account = useCurrentAccount();
-  const canRead = canReadModule(account.role, "pedagogica");
+  // As pautas da escola são da equipa (o servidor só as serve à gestão e aos
+  // professores); alunos e encarregados vêem as suas notas no próprio portal.
+  const canRead =
+    canReadModule(account.role, "pedagogica") &&
+    account.role !== "Aluno" &&
+    account.role !== "Encarregado";
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const resendOn = installed.hasCapability("resend.send");
@@ -87,7 +92,7 @@ function RelatoriosAcademicos() {
   );
 
   const { selectedYearId, selectedYearLabel, school } = useSchoolSettings();
-  const passing = usePassingValue();
+  const { passing, promotionRules } = useActiveAssessmentRule();
   const workspaceQuery = useQuery({
     queryKey: ["academic", "pedagogical-workspace", selectedYearId],
     queryFn: () =>
@@ -308,7 +313,7 @@ function RelatoriosAcademicos() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Relatórios"
+          group="Académico"
           title="Relatórios Académicos"
           description="Indicadores de aproveitamento, evolução das médias e desempenho comparado das turmas."
           actions={
@@ -317,6 +322,9 @@ function RelatoriosAcademicos() {
               <PautaExportDialog
                 termGrades={termGradesAll}
                 classGroups={classGroups}
+                evaluationPeriods={school?.evaluation_periods}
+                passing={passing}
+                promotionRules={promotionRules}
                 disabled={!canRead || termGradesAll.length === 0}
               />
               <Button

@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
@@ -34,7 +36,7 @@ import {
   type AcademicYearPhase,
 } from "@/features/calendar/dates";
 import { buildUpcomingCalendarItems } from "@/features/calendar/upcoming";
-import { invoiceNetTotal } from "@/features/finance/invoice-settlement";
+import { invoiceNetTotal, invoiceOpenAmount } from "@/features/finance/invoice-settlement";
 import {
   emptySchoolTodayOps,
   isStartingWithinMinutes,
@@ -243,27 +245,42 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
       overview.yearPhase = progress.phase;
     }
 
+    /**
+     * As turmas são lidas uma vez e reutilizadas: o bloco dos alunos e o do
+     * heatmap faziam exactamente a mesma consulta (`id, name, grade_level_id`
+     * da mesma escola) no mesmo pedido, e ambos correm sob a mesma condição.
+     * Fica `null` se o primeiro bloco falhar, e aí o heatmap lê por si.
+     */
+    let classGroups: Array<{
+      id: string;
+      name: string;
+      grade_level_id: string | null;
+    }> | null = null;
+
     if (capabilities.students) {
+      // Totais de alunos, matrículas, sexo e idade sobre todas as linhas: os alunos
+      // vinham cortados nas 1000, as matrículas nas 500, e as fichas iam num só
+      // `.in(...)` que passava o tamanho do URL com ~200 alunos (sexo e idade a zero).
+      const reads = pagedReadClient(db);
       try {
         const [studentsResult, programsResult, groupsResult, roomsResult, enrollmentsResult] =
           await Promise.all([
-            db.from("students").select("id, status, person_id").eq("school_id", schoolId),
+            reads.from("students").select("id, status, person_id").eq("school_id", schoolId),
             db
               .from("programs")
               .select("id", { count: "exact", head: true })
               .eq("school_id", schoolId)
               .eq("is_active", true),
-            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+            reads.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
             db
               .from("rooms")
               .select("id", { count: "exact", head: true })
               .eq("school_id", schoolId)
               .neq("status", "inactive"),
-            db
+            reads
               .from("enrollments")
               .select("id, status, class_group_id, enrolled_on, student_id, attendance_rate")
-              .eq("school_id", schoolId)
-              .limit(500),
+              .eq("school_id", schoolId),
           ]);
 
         let enrollments: Array<{
@@ -278,18 +295,17 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           enrollmentsResult.error &&
           /attendance_rate|42703|schema cache/i.test(enrollmentsResult.error.message)
         ) {
-          const retry = await db
+          const retry = await reads
             .from("enrollments")
             .select("id, status, class_group_id, enrolled_on, student_id")
-            .eq("school_id", schoolId)
-            .limit(500);
+            .eq("school_id", schoolId);
           enrollments = (retry.data ?? []).map((row) => ({ ...row, attendance_rate: null }));
         }
 
         const students = studentsResult.data ?? [];
         const personIds = [...new Set(students.map((row) => row.person_id).filter(Boolean))];
         const { data: people } = personIds.length
-          ? await db.from("people").select("id, sex, date_of_birth").in("id", personIds)
+          ? await reads.from("people").select("id, sex, date_of_birth").in("id", personIds)
           : { data: [] as Array<{ id: string; sex: string | null; date_of_birth: string | null }> };
         const peopleById = new Map((people ?? []).map((row) => [row.id, row]));
 
@@ -310,6 +326,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
           name: string;
           grade_level_id: string | null;
         }>;
+        // Só se reutiliza o que veio bem. O Supabase devolve `data: null` com erro
+        // sem lançar: guardar `[]` nesse caso faria o heatmap herdar a falha em
+        // vez de tentar por si.
+        classGroups = groupsResult.error ? null : groups;
         const gradeLevelIds = [
           ...new Set(groups.map((row) => row.grade_level_id).filter(Boolean)),
         ] as string[];
@@ -418,7 +438,10 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     if (capabilities.students) {
       try {
         // Heatmap de desempenho: médias por turma e disciplina, por trimestre.
-        const [{ data: heatmapGrades }, { data: heatmapGroups }, { data: heatmapSubjects }] =
+        // Amostra: o servidor devolve no máximo 1000 notas por pedido (o `limit(5000)`
+        // antigo recebia as mesmas 1000). Ler todas as notas da escola em cada abertura
+        // do painel seria pesado; o cálculo exacto pede uma agregação na base.
+        const [{ data: heatmapGrades }, groupsForHeatmap, { data: heatmapSubjects }] =
           await Promise.all([
             db
               .from("siga_assessment_scores")
@@ -426,16 +449,27 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
                 "score, enrollment_id, siga_assessment_items!inner(term, subject_id, max_score)",
               )
               .eq("school_id", schoolId)
-              .limit(5000),
-            db.from("class_groups").select("id, name, grade_level_id").eq("school_id", schoolId),
+              .limit(1000),
+            // Já vieram acima, na mesma consulta: só se lêem outra vez se aquele
+            // bloco tiver caído na degradação graciosa.
+            classGroups
+              ? Promise.resolve({ data: classGroups })
+              : db
+                  .from("class_groups")
+                  .select("id, name, grade_level_id")
+                  .eq("school_id", schoolId),
             db.from("subjects").select("id, name, code").eq("school_id", schoolId),
           ]);
+        const heatmapGroups = groupsForHeatmap.data;
 
-        const { data: heatmapEnrollments } = await db
-          .from("enrollments")
-          .select("id, class_group_id")
-          .eq("school_id", schoolId)
-          .limit(1000);
+        const { data: heatmapEnrollments } = await readAllPages((from, to) =>
+          db
+            .from("enrollments")
+            .select("id, class_group_id")
+            .eq("school_id", schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        );
         const groupByEnrollment = new Map(
           (heatmapEnrollments ?? []).map((row) => [String(row.id), String(row.class_group_id)]),
         );
@@ -573,17 +607,26 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
     }
 
     if (capabilities.finance) {
+      // Todas as linhas: cortadas, uma fatura paga cujo recibo ficava de fora contava como dívida.
       const [{ data: invoices }, { data: receipts }] = await Promise.all([
-        db
-          .from("finance_invoices")
-          .select("id, amount, discount_amount, penalty_amount, competence_month, status, due_date")
-          .eq("school_id", schoolId)
-          .limit(3000),
-        db
-          .from("finance_receipts")
-          .select("invoice_id, amount, paid_on, status, payment_method")
-          .eq("school_id", schoolId)
-          .limit(3000),
+        readAllPages((from, to) =>
+          db
+            .from("finance_invoices")
+            .select(
+              "id, amount, discount_amount, penalty_amount, competence_month, status, due_date",
+            )
+            .eq("school_id", schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+        readAllPages((from, to) =>
+          db
+            .from("finance_receipts")
+            .select("id, invoice_id, amount, paid_on, status, payment_method")
+            .eq("school_id", schoolId)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ]);
 
       const paidByInvoice = new Map<string, number>();
@@ -615,7 +658,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         if (invoice.status === "cancelled") continue;
         const total = invoiceNetTotal(invoice);
         const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-        const openAmount = Math.max(total - paid, 0);
+        const openAmount = invoiceOpenAmount(total, paid);
         billed += total;
         received += Math.min(paid, total);
         outstanding += openAmount;
@@ -894,7 +937,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
         ...new Set(slotRows.map((slot) => String(slot.class_subject_id)).filter(Boolean)),
       ];
       if (classSubjectIds.length) {
-        const { data: classSubjects } = await db
+        const { data: classSubjects } = await pagedReadClient(db)
           .from("class_subjects")
           .select("id, class_group_id, teacher_id")
           .eq("school_id", schoolId)
@@ -958,12 +1001,15 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
       // quando esta leitura passou a ser tipada — com o cliente privilegiado,
       // que não tem tipos, um nome de coluna errado é indistinguível de um dia
       // sem aniversários.
-      const { data: people } = await db
-        .from("people")
-        .select("id, date_of_birth")
-        .eq("school_id", schoolId)
-        .not("date_of_birth", "is", null)
-        .limit(2000);
+      const { data: people } = await readAllPages((from, to) =>
+        db
+          .from("people")
+          .select("id, date_of_birth")
+          .eq("school_id", schoolId)
+          .not("date_of_birth", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       ops.birthdaysToday = (people ?? []).filter(
         (person) => String(person.date_of_birth ?? "").slice(5, 10) === mmDd,
       ).length;
@@ -973,18 +1019,24 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
 
     if (["Administrador", "Tesouraria"].includes(role)) {
       try {
-        const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .limit(250),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(250),
-        ]);
+        // Só as vencidas e não anuladas, todas, e os recibos dessas mesmas faturas.
+        // Antes eram 250 faturas e 250 recibos quaisquer, sem ordem: uma fatura paga
+        // cujo recibo ficava de fora contava como atrasada, e as outras não contavam.
+        const reads = pagedReadClient(db);
+        const { data: invoices } = await reads
+          .from("finance_invoices")
+          .select("id, amount, discount_amount, penalty_amount, status, due_date")
+          .eq("school_id", schoolId)
+          .neq("status", "cancelled")
+          .lt("due_date", today);
+        const invoiceIds = (invoices ?? []).map((invoice) => String(invoice.id));
+        const { data: receipts } = invoiceIds.length
+          ? await reads
+              .from("finance_receipts")
+              .select("invoice_id, amount, status")
+              .eq("school_id", schoolId)
+              .in("invoice_id", invoiceIds)
+          : { data: [] as Array<{ invoice_id: string; amount: number; status: string }> };
         const paidByInvoice = new Map<string, number>();
         for (const receipt of receipts ?? []) {
           if (receipt.status === "reversed") continue;
@@ -998,7 +1050,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
           if (invoice.status === "cancelled") continue;
           const total = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = Math.max(total - paid, 0);
+          const openAmount = invoiceOpenAmount(total, paid);
           if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
         }
         ops.overdueInvoices = overdueCount;
@@ -1083,17 +1135,23 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
     if (canFinance) {
       try {
         const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .neq("status", "cancelled")
-            .limit(5000),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(5000),
+          readAllPages((from, to) =>
+            db
+              .from("finance_invoices")
+              .select("id, amount, discount_amount, penalty_amount, status, due_date")
+              .eq("school_id", schoolId)
+              .neq("status", "cancelled")
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
+          readAllPages((from, to) =>
+            db
+              .from("finance_receipts")
+              .select("id, invoice_id, amount, status")
+              .eq("school_id", schoolId)
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
         ]);
         const paidByInvoice = new Map<string, number>();
         for (const receipt of receipts ?? []) {
@@ -1109,7 +1167,7 @@ export const listSchoolAlerts = createServerFn({ method: "GET" })
           if (invoice.status === "cancelled") continue;
           const total = invoiceNetTotal(invoice);
           const paid = paidByInvoice.get(String(invoice.id)) ?? 0;
-          const openAmount = Math.max(total - paid, 0);
+          const openAmount = invoiceOpenAmount(total, paid);
           if (openAmount > 0 && String(invoice.due_date ?? "") < today) overdueCount += 1;
         }
         const faturas = buildSchoolAlert("faturas", overdueCount);

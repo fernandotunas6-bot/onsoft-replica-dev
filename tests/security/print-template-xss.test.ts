@@ -55,9 +55,25 @@ describe("modelos de impressão sem código activo", () => {
     for (const file of readdirSync(capabilityDir).filter((name) => name.endsWith(".json"))) {
       const capability = JSON.parse(readFileSync(join(capabilityDir, file), "utf8")) as {
         windows: string[];
+        local?: boolean;
+        permissions?: string[];
       };
       for (const label of capability.windows) {
-        expect(["main", "school", "quick-pane"], `${file}: ${label}`).toContain(label);
+        expect(["main", "school", "quick-pane", "offline-shell"], `${file}: ${label}`).toContain(
+          label,
+        );
+      }
+      // A nova interface embutida só pode ser local e sem comandos
+      // privilegiados; a janela de impressão continua sem capability.
+      if (capability.windows.includes("offline-shell")) {
+        expect(capability.windows).toEqual(["offline-shell"]);
+        expect(capability.local).toBe(true);
+        expect(capability.permissions).toEqual([
+          "core:default",
+          "core:window:allow-close",
+          "allow-desktop-offline-readiness",
+          "allow-open-siga-portal",
+        ]);
       }
     }
   });

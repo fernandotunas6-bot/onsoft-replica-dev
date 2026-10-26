@@ -32,7 +32,7 @@ export const GRANT_ELEVATABLE_ROLES: readonly ApplicationRole[] = [
 const roleOnlyPrefixes = ["/financeiro/rh", "/configuracoes"] as const;
 
 export const accessModules = [
-  { key: "dashboard", label: "Dashboard", prefixes: ["/"] },
+  { key: "dashboard", label: "Dashboard", prefixes: ["/", "/portal"] },
   {
     key: "pessoas",
     label: "Pessoas / Alunos / Alumni",
@@ -65,7 +65,7 @@ export const accessModules = [
 
 const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   {
-    prefixes: ["/"],
+    prefixes: ["/", "/portal"],
     roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Encarregado", "Aluno"],
   },
   { prefixes: ["/alumni"], roles: ["Administrador", "Secretaria"] },
@@ -78,7 +78,7 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
   },
   // Mais específico do que /financeiro — bloquear RH a alunos/encarregados.
   {
-    prefixes: ["/financeiro/rh"],
+    prefixes: ["/financeiro/rh", "/financeiro/conciliacao"],
     roles: ["Administrador", "Tesouraria"],
   },
   {
@@ -110,8 +110,14 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     prefixes: ["/pedagogica/catalogo"],
     roles: ["Administrador", "Secretaria", "Professor"],
   },
+  // Ecrãs de gestão: o aluno não tem ligação para eles no menu e vê o que é seu no
+  // portal. O encarregado mantém-nos: o chat abre a ficha do educando.
   {
-    prefixes: ["/pessoas", "/alunos", "/documentos"],
+    prefixes: ["/pessoas", "/alunos"],
+    roles: ["Administrador", "Secretaria", "Encarregado"],
+  },
+  {
+    prefixes: ["/documentos"],
     roles: ["Administrador", "Secretaria", "Encarregado", "Aluno"],
   },
   {
@@ -128,9 +134,10 @@ const accessRules: Array<{ prefixes: string[]; roles: ApplicationRole[] }> = [
     ],
     roles: ["Administrador", "Secretaria", "Professor", "Encarregado", "Aluno"],
   },
+  // O aluno não lê nenhuma área dos Arquivos (`canReadFileArea`): a página abria vazia.
   {
     prefixes: ["/arquivos"],
-    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor", "Aluno"],
+    roles: ["Administrador", "Secretaria", "Tesouraria", "Professor"],
   },
   {
     prefixes: ["/importar"],
@@ -173,6 +180,11 @@ export function canAccessPath(
     pathname.startsWith("/api/")
   ) {
     return true;
+  }
+
+  // Classroom content is additionally authorized per school and enrollment by the Edge Function.
+  if (pathname === "/aulas-virtuais") {
+    return ["Administrador", "Professor", "Aluno"].includes(role);
   }
 
   if (pathname === "/alumni/portal" || pathname.startsWith("/alumni/portal/")) {

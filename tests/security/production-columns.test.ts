@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { COLUNAS_ESPERA_MIGRACAO, FUNCOES_ESPERA_MIGRACAO } from "./espera-migracao";
+import {
+  COLUNAS_ESPERA_MIGRACAO,
+  FUNCOES_ESPERA_MIGRACAO,
+  VALORES_ESPERA_MIGRACAO,
+} from "./espera-migracao";
 
 /**
  * O código só lê e filtra colunas que existem na produção
@@ -18,6 +22,8 @@ type Snapshot = {
 };
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as Snapshot;
 const columns = new Map(snapshot.tabelas.map((t) => [t.tabela, new Set(t.colunas)]));
+// Contratos atómicos já presentes no retrato; conservar a mensagem de indisponibilidade.
+const workflowFunctions = ["siga_enroll_new_student_atomic", "siga_save_active_academic_year"];
 
 function walk(dir: string, out: string[] = []) {
   for (const name of readdirSync(dir)) {
@@ -87,6 +93,19 @@ describe("colunas usadas existem na produção", () => {
     expect(missing).toEqual([]);
   });
 
+  it("RPCs atómicos têm migração e falham de forma explícita se indisponíveis", () => {
+    const sql = readFileSync(
+      "supabase/migrations/20261007083733_atomic_student_enrollment_and_academic_year.sql",
+      "utf8",
+    );
+    const client = readFileSync("src/integrations/supabase/workflow-rpcs.ts", "utf8");
+    for (const name of workflowFunctions) {
+      expect(sql).toContain(`FUNCTION public.${name}(`);
+      expect(client).toContain(name);
+    }
+    expect(client).toContain('error?.code === "PGRST202"');
+  });
+
   it("valores literais de estado são os que a base aceita", () => {
     const allowed = new Map(
       snapshot.valores.map((v) => [`${v.tabela}.${v.coluna}`, new Set(v.valores)]),
@@ -94,7 +113,9 @@ describe("colunas usadas existem na produção", () => {
     const wrong: string[] = [];
     const check = (where: string, key: string, value: string) => {
       const values = allowed.get(key);
-      if (values && !values.has(value)) wrong.push(`${where} ${key}=${value}`);
+      if (values && !values.has(value) && !VALORES_ESPERA_MIGRACAO.has(`${key}=${value}`)) {
+        wrong.push(`${where} ${key}=${value}`);
+      }
     };
     for (const file of walk("src")) {
       const source = readFileSync(file, "utf8");

@@ -2,13 +2,14 @@
  * Contagens reais do ano lectivo para o separador "Estrutura académica".
  * Só contagens (head: true), nunca dados de alunos. Pessoal da escola.
  */
+import { readAllPages } from "@/integrations/supabase/read-all-pages";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import type { AcademicStructureCounts } from "./academic-architecture";
 
-const inputSchema = z.object({ academicYearId: z.string().uuid().optional() });
+const inputSchema = z.object({ academicYearId: z.string().guid().optional() });
 
 export const getAcademicStructureStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -43,7 +44,7 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
           .select("id")
           .eq("school_id", schoolId)
           .eq("academic_year_id", yearId)
-          .limit(2000)
+          .limit(1000)
       : { data: [] as Array<{ id: string }> };
     const groupIds = (groups ?? []).map((g) => String(g.id));
     const hasGroups = groupIds.length > 0;
@@ -99,18 +100,25 @@ export const getAcademicStructureStatus = createServerFn({ method: "GET" })
         .select("id", head)
         .eq("school_id", schoolId)
         .in("class_group_id", hasGroups ? groupIds : noGroup),
-      db
-        .from("gradebooks")
-        .select("status")
-        .eq("school_id", schoolId)
-        .eq("academic_year_id", yearId ?? noGroup[0])
-        .limit(5000),
-      db
-        .from("grade_sheets")
-        .select("status")
-        .eq("school_id", schoolId)
-        .eq("academic_year_id", yearId ?? noGroup[0])
-        .limit(5000),
+      // Por páginas: 40 turmas × 12 disciplinas × 3 períodos já passam as 1000 linhas.
+      readAllPages((from, to) =>
+        db
+          .from("gradebooks")
+          .select("id, status")
+          .eq("school_id", schoolId)
+          .eq("academic_year_id", yearId ?? noGroup[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      readAllPages((from, to) =>
+        db
+          .from("grade_sheets")
+          .select("id, status")
+          .eq("school_id", schoolId)
+          .eq("academic_year_id", yearId ?? noGroup[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
       db
         .from("grade_scores")
         .select("id", head)

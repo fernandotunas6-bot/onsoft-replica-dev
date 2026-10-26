@@ -1,7 +1,12 @@
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { invoiceNetTotal, invoiceStatusFromPaid } from "@/features/finance/invoice-settlement";
+import {
+  invoiceNetTotal,
+  invoiceOpenAmount,
+  invoiceStatusFromPaid,
+} from "@/features/finance/invoice-settlement";
 import { normalizeText } from "../engine/normalize";
-import { selectAllPages } from "../engine/paged";
+import { rowsOrThrow, selectAllPages } from "../engine/paged";
 import { categoryToFeeKind } from "@/features/finance/server";
 import { formatInvoiceNumber } from "@/features/finance/invoice-numbering";
 
@@ -255,12 +260,25 @@ export async function loadExistingReceiptNumbers(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<Set<string>> {
-  const { data, error } = await db
-    .from("finance_receipts")
-    .select("receipt_number")
-    .eq("school_id", schoolId);
-  if (error) throw new Error(`Não foi possível carregar recibos existentes: ${error.message}`);
-  return new Set((data ?? []).map((row) => normalizeText(row.receipt_number)).filter(Boolean));
+  const data = await rowsOrThrow(
+    readAllPages((from, to) =>
+      db
+        .from("finance_receipts")
+        .select("id, receipt_number, external_id")
+        .eq("school_id", schoolId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    "Não foi possível carregar recibos existentes",
+  );
+  // O nº da folha de uma importação anterior está no external_id (ver registerReceiptDirect).
+  const fromSheet = data
+    .map((row) => (row as { external_id?: string | null }).external_id ?? "")
+    .filter((id) => id.startsWith(IMPORT_RECEIPT_PREFIX))
+    .map((id) => id.slice(IMPORT_RECEIPT_PREFIX.length));
+  return new Set(
+    [...data.map((row) => normalizeText(row.receipt_number)), ...fromSheet].filter(Boolean),
+  );
 }
 
 export type OpenInvoiceRef = {
@@ -283,60 +301,69 @@ export async function loadOpenInvoiceRefs(
   db: SupabaseClient,
   schoolId: string,
 ): Promise<OpenInvoiceRef[]> {
-  const { data: invoices, error: invoicesError } = await db
-    .from("finance_invoices")
-    .select(
-      "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
-    )
-    .eq("school_id", schoolId)
-    .in("status", ["open", "partially_paid"]);
-  if (invoicesError) {
-    throw new Error(`Não foi possível carregar faturas em aberto: ${invoicesError.message}`);
-  }
-  if (!invoices?.length) return [];
+  // Por páginas e em lotes de ids: com mais de 1000 faturas em aberto, as restantes
+  // não eram encontradas, e a lista de ids passava o tamanho máximo do URL.
+  const invoices = await rowsOrThrow(
+    readAllPages((from, to) =>
+      db
+        .from("finance_invoices")
+        .select(
+          "id, contract_id, invoice_number, amount, discount_amount, penalty_amount, due_date, competence_month",
+        )
+        .eq("school_id", schoolId)
+        .in("status", ["open", "partially_paid"])
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    "Não foi possível carregar faturas em aberto",
+  );
+  if (!invoices.length) return [];
 
   const contractIds = [...new Set(invoices.map((row) => String(row.contract_id)))];
-  const { data: contracts, error: contractsError } = await db
-    .from("finance_contracts")
-    .select("id, enrollment_id")
-    .eq("school_id", schoolId)
-    .in("id", contractIds);
-  if (contractsError) {
-    throw new Error(`Não foi possível carregar contratos financeiros: ${contractsError.message}`);
-  }
+  const contracts = await rowsOrThrow(
+    readInChunks(contractIds, (chunk) =>
+      db
+        .from("finance_contracts")
+        .select("id, enrollment_id")
+        .eq("school_id", schoolId)
+        .in("id", chunk),
+    ),
+    "Não foi possível carregar contratos financeiros",
+  );
   const enrollmentIdByContract = new Map(
-    (contracts ?? []).map((row) => [String(row.id), String(row.enrollment_id)]),
+    contracts.map((row) => [String(row.id), String(row.enrollment_id)]),
   );
 
   const enrollmentIds = [...new Set([...enrollmentIdByContract.values()])];
-  const { data: enrollments, error: enrollmentsError } = enrollmentIds.length
-    ? await db
-        .from("enrollments")
-        .select("id, student_id")
-        .eq("school_id", schoolId)
-        .in("id", enrollmentIds)
-    : { data: [], error: null };
-  if (enrollmentsError) {
-    throw new Error(
-      `Não foi possível carregar matrículas das faturas: ${enrollmentsError.message}`,
-    );
-  }
+  const enrollments = await rowsOrThrow(
+    readInChunks(enrollmentIds, (chunk) =>
+      db.from("enrollments").select("id, student_id").eq("school_id", schoolId).in("id", chunk),
+    ),
+    "Não foi possível carregar matrículas das faturas",
+  );
   const studentIdByEnrollment = new Map(
-    (enrollments ?? []).map((row) => [String(row.id), String(row.student_id)]),
+    enrollments.map((row) => [String(row.id), String(row.student_id)]),
   );
 
   const invoiceIds = invoices.map((row) => String(row.id));
-  const { data: receipts, error: receiptsError } = await db
-    .from("finance_receipts")
-    .select("invoice_id, amount")
-    .eq("school_id", schoolId)
-    .eq("status", "issued")
-    .in("invoice_id", invoiceIds);
-  if (receiptsError) {
-    throw new Error(`Não foi possível carregar recibos existentes: ${receiptsError.message}`);
-  }
+  // Vários recibos por fatura: páginas dentro de cada lote.
+  const receipts = await rowsOrThrow(
+    readInChunks(invoiceIds, (chunk) =>
+      readAllPages((from, to) =>
+        db
+          .from("finance_receipts")
+          .select("id, invoice_id, amount")
+          .eq("school_id", schoolId)
+          .eq("status", "issued")
+          .in("invoice_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+    ),
+    "Não foi possível carregar recibos existentes",
+  );
   const paidByInvoice = new Map<string, number>();
-  for (const row of receipts ?? []) {
+  for (const row of receipts) {
     const key = String(row.invoice_id);
     paidByInvoice.set(key, (paidByInvoice.get(key) ?? 0) + Number(row.amount || 0));
   }
@@ -356,7 +383,7 @@ export async function loadOpenInvoiceRefs(
             amount,
             due_date: String(row.due_date),
             competence_month: row.competence_month ? String(row.competence_month) : null,
-            remaining: Math.max(0, amount - paid),
+            remaining: invoiceOpenAmount(amount, paid),
           }
         : null;
     })
@@ -427,12 +454,43 @@ export function mapPaymentMethod(value: unknown): "cash" | "bank_transfer" | "ca
 }
 
 /**
- * Regista um pagamento directamente em `finance_receipts`, sem passar pela RPC
- * `register_payment` — essa exige sessão interactiva com AAL2 (`private.is_aal2()`), o que uma
- * importação em lote, corrida com o cliente administrativo, nunca tem. Mesmo fallback que
- * `settleGatewayPayment` usa para pagamentos server-to-server (`gateway-webhook-handler.ts`):
- * soma os recibos já emitidos, valida o saldo, grava o recibo e recalcula o estado da fatura.
- * Sem o `FOR UPDATE` da função SQL — aceitável porque a importação processa uma linha de cada vez.
+ * Prefixo do `external_id` dos recibos importados. Liga o recibo à linha da folha que o
+ * originou, para que importar a mesma folha outra vez devolva o recibo existente.
+ */
+const IMPORT_EXTERNAL_PREFIX = "import:";
+const IMPORT_RECEIPT_PREFIX = `${IMPORT_EXTERNAL_PREFIX}recibo:`;
+
+/** Chave da linha importada: o nº do recibo da folha, ou fatura, valor, data e método. */
+export function importPaymentKey(params: {
+  receiptNumberHint?: string | null;
+  invoiceId: string;
+  amount: number;
+  paidOn: string;
+  paymentMethod: string;
+}) {
+  const hint = normalizeText(params.receiptNumberHint);
+  if (hint) return `recibo:${hint}`;
+  return `${params.invoiceId}:${params.amount.toFixed(2)}:${params.paidOn}:${params.paymentMethod}`;
+}
+
+function isMissingFunction(error: { code?: string; message?: string }) {
+  return (
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /could not find the function/i.test(error.message ?? "")
+  );
+}
+
+/**
+ * Regista um pagamento importado. `register_payment` exige sessão interactiva com AAL2,
+ * que uma importação em lote, corrida com o cliente administrativo, nunca tem; por isso
+ * usa a mesma função atómica dos webhooks (`settle_gateway_payment_service`, aplicada a
+ * 2026-10-02): fatura trancada `FOR UPDATE`, saldo com a multa, recibo e estado numa só
+ * transacção, e o mesmo `external_id` devolve o recibo existente. Sem o trancamento, uma
+ * importação ao mesmo tempo que um pagamento na tesouraria pagava a fatura a mais.
+ *
+ * O recibo leva o número da série da escola; o nº da folha fica no `external_id`.
+ * Só sem a função na base (ambiente local) segue o caminho em passos, abaixo.
  */
 export async function registerReceiptDirect(
   db: SupabaseClient,
@@ -445,8 +503,48 @@ export async function registerReceiptDirect(
     paidOn: string;
     receivedBy: string;
     receiptNumberHint?: string | null;
+    /** Ver `importPaymentKey`. */
+    importKey: string;
   },
-): Promise<{ receiptId: string; receiptNumber: string; invoiceStatus: string }> {
+): Promise<{
+  receiptId: string;
+  receiptNumber: string;
+  invoiceStatus: string;
+  alreadyImported?: boolean;
+}> {
+  const { data: settled, error: settleError } = await db.rpc(
+    "settle_gateway_payment_service" as never,
+    {
+      school_id: params.schoolId,
+      invoice_id: params.invoiceId,
+      amount: params.amount,
+      payment_method: params.paymentMethod,
+      received_by: params.receivedBy,
+      external_id: `${IMPORT_EXTERNAL_PREFIX}${params.importKey}`,
+      paid_on: params.paidOn,
+    } as never,
+  );
+  if (!settleError) {
+    const result = settled as unknown as {
+      alreadyPaid: boolean;
+      receiptId?: string;
+      receiptNumber?: string;
+      invoiceStatus?: string;
+    };
+    if (result.alreadyPaid && !result.receiptId) {
+      throw new Error("A fatura já está paga; linha ignorada.");
+    }
+    return {
+      receiptId: String(result.receiptId),
+      receiptNumber: String(result.receiptNumber),
+      invoiceStatus: String(result.invoiceStatus),
+      alreadyImported: result.alreadyPaid,
+    };
+  }
+  if (!isMissingFunction(settleError)) {
+    throw new Error(settleError.message || "Não foi possível registar o pagamento.");
+  }
+
   const { data: receipts, error: receiptsError } = await db
     .from("finance_receipts")
     .select("amount")

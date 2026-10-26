@@ -9,13 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 
+type QuickOptions = string[] | { value: string; label: string }[];
+
 export type QuickField = {
   name: string;
   label: string;
   placeholder?: string | undefined;
   type?:
     "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
-  options?: string[] | { value: string; label: string }[] | undefined;
+  options?: QuickOptions | undefined;
+  /**
+   * Opções que dependem do que já está escolhido noutros campos (ex.: as disciplinas
+   * da turma do aluno). Substitui `options`; ao mudarem, o campo volta à primeira.
+   */
+  optionsFor?: ((values: Record<string, string>) => QuickOptions) | undefined;
   /**
    * Teclado do telemóvel (§28). Deixar em branco na maioria dos casos: o
    * `inferInputMode` abaixo acerta a partir do tipo e do nome do campo. Só vale
@@ -91,6 +98,11 @@ export function QuickFormModal({
   const [values, setValues] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
   const didAutoOpen = useRef(false);
+  // Guarda síncrona: o botão só fica desactivado depois de o React voltar a desenhar,
+  // e dois cliques no mesmo instante enviavam duas vezes (dois recibos do mesmo
+  // pagamento parcial, por exemplo).
+  const inFlight = useRef(false);
+  const tracksValues = Boolean(renderHint) || fields.some((field) => field.optionsFor);
 
   useEffect(() => {
     if (!autoOpen || didAutoOpen.current) return;
@@ -122,6 +134,8 @@ export function QuickFormModal({
     if (!formRef.current) return;
     if (!formRef.current.reportValidity()) return;
 
+    if (inFlight.current) return;
+    inFlight.current = true;
     const values = readValues();
 
     setSaving(true);
@@ -136,6 +150,7 @@ export function QuickFormModal({
         description: err instanceof Error ? err.message : "Ocorreu uma falha ao guardar.",
       });
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }
@@ -154,7 +169,7 @@ export function QuickFormModal({
               onSubmit={(event) => event.preventDefault()}
               onChange={() => {
                 setDirty(true);
-                if (renderHint) setValues(readValues());
+                if (tracksValues) setValues(readValues());
               }}
             >
               {fields.map((field) => (
@@ -173,11 +188,19 @@ export function QuickFormModal({
                     />
                   ) : field.type === "select" ? (
                     (() => {
-                      const normalizedOptions = (field.options ?? []).map((option) =>
+                      const normalizedOptions = (
+                        (field.optionsFor ? field.optionsFor(values) : field.options) ?? []
+                      ).map((option) =>
                         typeof option === "string" ? { value: option, label: option } : option,
                       );
                       return (
                         <select
+                          // Opções novas: monta de novo, para não ficar um valor que já não está na lista.
+                          key={
+                            field.optionsFor
+                              ? normalizedOptions.map((option) => option.value).join("\u0000")
+                              : undefined
+                          }
                           id={field.name}
                           name={field.name}
                           required={field.required ?? true}

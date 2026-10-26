@@ -58,6 +58,9 @@ tests/visual/diff/
 .e2e-ecosystem-pids.json
 test-results/
 playwright-report/
+# Sessões autorizadas Playwright: nunca guardar tokens ou cookies no Git.
+tests/e2e/.auth/
+tests/e2e/auth-states/
 
 # Arquivos de referência grandes que não devem entrar no repo (>100MB, rejeitados pelo GitHub)
 public/turmas/*.zip
@@ -75,3 +78,14 @@ chat/
 # Credenciais descarregadas de consolas de provedores -- nunca versionar
 client_secret_*.json
 *-service-account.json
+
+# Descargas soltas na raiz (o sweep de 12/10 versionou 3 MB destas e trocou o
+# favicon por um logótipo de 1 MB). Marcas pertencem a public/brands/.
+/Imagem do ChatGPT*
+/* - cópia.*
+/*#*.png
+
+# School website assets are rebuilt from painel/escolas before SIGA dev/build.
+/public/_school-website/
+/.ispab-demo-runner.mjs
+/.ispab-demo-result/

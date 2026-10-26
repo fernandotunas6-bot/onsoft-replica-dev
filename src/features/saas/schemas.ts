@@ -49,8 +49,11 @@ const adminPasswordSchema = z
   .string()
   .min(10, "A senha deve ter pelo menos 10 caracteres.")
   .max(200, "A senha é demasiado longa.")
-  .refine((value) => /[a-zA-Z]/.test(value) && /[0-9]/.test(value), {
-    message: "A senha deve combinar letras e números.",
+  // Os mesmos grupos que o Supabase Auth exige desde 25/10/2026 (minúsculas,
+  // maiúsculas e dígitos). Antes bastava `/[a-zA-Z]/`, e por isso "abcdefghij1"
+  // passava aqui e era recusada pelo Auth — com a mensagem dele, não a nossa.
+  .refine((value) => /[a-z]/.test(value) && /[A-Z]/.test(value) && /[0-9]/.test(value), {
+    message: "A senha deve combinar maiúsculas, minúsculas e números.",
   })
   .refine((value) => !/^(.)\1+$/.test(value), {
     message: "A senha não pode ser o mesmo caracter repetido.",
@@ -116,15 +119,15 @@ export const createSchoolWizardInputSchema = z.object({
   province: z
     .string()
     .trim()
-    .optional()
-    .transform((value) => normalizeAngolaProvince(value) ?? undefined),
+    .transform((value) => normalizeAngolaProvince(value) ?? undefined)
+    .optional(),
   municipality: z.string().trim().max(80).optional(),
   commune: z.string().trim().max(80).optional(),
   neighborhood: z.string().trim().max(120).optional(),
   school_type: z
     .unknown()
-    .optional()
-    .transform((value) => (isSchoolTypeId(value) ? value : undefined)),
+    .transform((value) => (isSchoolTypeId(value) ? value : undefined))
+    .optional(),
   // Contexto pedagógico do cliente: que níveis a escola lecciona e, no II Ciclo,
   // que cursos. É com isto que «Preparar estrutura académica» cria as classes,
   // cursos e disciplinas certos — sem isto toda a escola nascia «Ensino Geral ·
@@ -133,13 +136,13 @@ export const createSchoolWizardInputSchema = z.object({
   teaching_levels: z
     .array(z.unknown())
     .max(10)
-    .optional()
-    .transform((values) => (values ? [...new Set(values.filter(isTeachingLevelId))] : undefined)),
+    .transform((values) => [...new Set(values.filter(isTeachingLevelId))])
+    .optional(),
   secondary_courses: z
     .array(z.unknown())
     .max(10)
-    .optional()
-    .transform((values) => (values ? [...new Set(values.filter(isCourseId))] : undefined)),
+    .transform((values) => [...new Set(values.filter(isCourseId))])
+    .optional(),
   phone: optionalAngolaPhone,
   email: normalizedEmail("E-mail da escola inválido").optional().or(z.literal("")),
   logo_url: z.string().trim().optional(),
@@ -182,7 +185,7 @@ export const createSchoolWizardInputSchema = z.object({
 export type CreateSchoolWizardInput = z.infer<typeof createSchoolWizardInputSchema>;
 
 export const updateTenantStatusInputSchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
   status: z.enum([
     "provisioning",
     "provisioning_failed",
@@ -199,17 +202,25 @@ export type UpdateTenantStatusInput = z.infer<typeof updateTenantStatusInputSche
 
 export const updateTenantSubscriptionInputSchema = z
   .object({
-    tenantId: z.string().uuid(),
+    tenantId: z.string().guid(),
     plan_code: planCodeSchema.optional(),
     extend_trial_days: z.number().int().min(1).max(90).optional(),
     // Pagamento confirmado pela equipa: activa a assinatura por um mês ou um ano.
     confirm_payment_billing: z.enum(["monthly", "yearly"]).optional(),
+    // Ou pelo número de meses pagos (trimestral e semestral incluídos). Ganha a
+    // `confirm_payment_billing` quando vêm os dois.
+    confirm_payment_months: z
+      .union([z.literal(1), z.literal(3), z.literal(6), z.literal(12)])
+      .optional(),
+    // Referência do pagamento recebido sem comprovativo (numerário, transferência).
+    payment_reference: z.string().trim().max(120).optional(),
   })
   .refine(
     (data) =>
       data.plan_code != null ||
       data.extend_trial_days != null ||
-      data.confirm_payment_billing != null,
+      data.confirm_payment_billing != null ||
+      data.confirm_payment_months != null,
     { message: "Indique plano, extensão de trial ou pagamento confirmado." },
   );
 
@@ -222,13 +233,13 @@ export const grantPlatformAdminInputSchema = z.object({
 export type GrantPlatformAdminInput = z.infer<typeof grantPlatformAdminInputSchema>;
 
 export const revokePlatformAdminInputSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().guid(),
 });
 
 export type RevokePlatformAdminInput = z.infer<typeof revokePlatformAdminInputSchema>;
 
 export const registerTenantDomainInputSchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().guid(),
   hostname: z
     .string()
     .trim()
@@ -244,13 +255,13 @@ export const registerTenantDomainInputSchema = z.object({
 export type RegisterTenantDomainInput = z.infer<typeof registerTenantDomainInputSchema>;
 
 export const verifyTenantDomainInputSchema = z.object({
-  domainId: z.string().uuid(),
+  domainId: z.string().guid(),
 });
 
 export type VerifyTenantDomainInput = z.infer<typeof verifyTenantDomainInputSchema>;
 
 export const updateTenantDomainStatusInputSchema = z.object({
-  domainId: z.string().uuid(),
+  domainId: z.string().guid(),
   status: z.enum(["pending", "active", "failed"]),
 });
 
@@ -284,7 +295,7 @@ export const publicSchoolSignupInputSchema = createSchoolWizardInputSchema
     // (ver signup-verification.ts). Opcional no esquema; exigido no servidor.
     email_verification_token: z.string().trim().max(2000).optional(),
     // Sessão do assistente WEB, para fechar o acompanhamento de desistências.
-    session_id: z.string().uuid().optional(),
+    session_id: z.string().guid().optional(),
     /** hCaptcha do WEB; exigido quando o Worker tem `HCAPTCHA_SECRET_KEY`. */
     captcha_token: z.string().trim().max(4000).optional(),
   });

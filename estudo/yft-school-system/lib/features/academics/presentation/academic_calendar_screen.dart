@@ -401,9 +401,9 @@ class _AcademicCalendarScreenState
                       : () async {
                           final requiredTermCount = _isTriTerm ? 3 : 2;
                           final termDates = [
-                            (_term1Start, _term1End, 'Term 1'),
-                            (_term2Start, _term2End, 'Term 2'),
-                            if (_isTriTerm) (_term3Start, _term3End, 'Term 3'),
+                            (_term1Start, _term1End, '1.º Período'),
+                            (_term2Start, _term2End, '2.º Período'),
+                            if (_isTriTerm) (_term3Start, _term3End, '3.º Período'),
                           ];
 
                           if (termDates.length != requiredTermCount ||
@@ -435,18 +435,18 @@ class _AcademicCalendarScreenState
 
                           final terms = <AcademicCalendarTerm>[
                             AcademicCalendarTerm(
-                              name: 'Term 1',
+                              name: '1.º Período',
                               startDate: _term1Start!,
                               endDate: _term1End!,
                             ),
                             AcademicCalendarTerm(
-                              name: 'Term 2',
+                              name: '2.º Período',
                               startDate: _term2Start!,
                               endDate: _term2End!,
                             ),
                             if (_isTriTerm)
                               AcademicCalendarTerm(
-                                name: 'Term 3',
+                                name: '3.º Período',
                                 startDate: _term3Start!,
                                 endDate: _term3End!,
                               ),
@@ -553,8 +553,8 @@ class _AcademicCalendarScreenState
 
   Widget _buildActiveTermDropdown(String current) {
     final terms = _isTriTerm
-        ? ['Term 1', 'Term 2', 'Term 3']
-        : ['Term 1', 'Term 2'];
+        ? ['1.º Período', '2.º Período', '3.º Período']
+        : ['1.º Período', '2.º Período'];
     final safeValue = terms.contains(current) ? current : terms.first;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),

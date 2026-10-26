@@ -5,8 +5,8 @@ export const listDocumentsInputSchema = z.object({
 });
 
 export const createDocumentRequestInputSchema = z.object({
-  studentId: z.string().uuid(),
-  templateId: z.string().uuid(),
+  studentId: z.string().guid(),
+  templateId: z.string().guid(),
   requestNumber: z.string().trim().min(1).max(64),
   priority: z.enum(["normal", "urgent"]).default("normal"),
   dueOn: z.string().date().optional(),
@@ -16,7 +16,7 @@ export const createDocumentRequestInputSchema = z.object({
 export type CreateDocumentRequestInput = z.infer<typeof createDocumentRequestInputSchema>;
 
 export const updateDocumentRequestStatusInputSchema = z.object({
-  requestId: z.string().uuid(),
+  requestId: z.string().guid(),
   /**
    * Vocabulário da INTERFACE. O servidor traduz para o da base (`uiStatusToSga` em
    * documents/server.ts) antes de gravar.

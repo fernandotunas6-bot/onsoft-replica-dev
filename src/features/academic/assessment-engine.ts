@@ -86,6 +86,8 @@ export type PromotionOptions = {
   passing?: number;
   /** Regras de transição por ciclo do modelo (por omissão, as que o SIGA aplicava). */
   rules?: PromotionRules;
+  /** Períodos de avaliação configurados na escola (2 ou 3); por omissão, os do ciclo. */
+  periodCount?: number;
 };
 
 export function decidePromotionStatus(
@@ -101,10 +103,12 @@ export function decidePromotionStatus(
   const passes = overallAvg >= passing && withinFailures;
 
   if (rule.requiresPap) {
-    if (papGrade !== undefined && papGrade !== null && papGrade < passing) {
-      return "NÃO APTO (PAP)";
-    }
-    if (passes) return "APTO (PAP)";
+    const hasPap = papGrade !== undefined && papGrade !== null;
+    if (hasPap && papGrade < passing) return "NÃO APTO (PAP)";
+    // Sem a nota da PAP não há aptidão: a média positiva só diz que falta a prova.
+    // Antes saía «APTO (PAP)» para toda a turma técnica, porque nenhum consumidor
+    // (pauta, exportação, histórico) passa a nota da PAP.
+    if (passes) return hasPap ? "APTO (PAP)" : "PENDENTE";
   } else if (passes) {
     return "TRANSITA";
   }
@@ -132,6 +136,23 @@ export function evaluateStudentPromotion({
 
   if (mfds.length === 0) {
     return { status: "PENDENTE", failingCount: 0 };
+  }
+
+  // Sem nota em todas as disciplinas e em todos os períodos, não há decisão: antes, um
+  // aluno com notas numa de doze disciplinas saía «TRANSITA» pela média dessa única
+  // disciplina, e só com o 1.º trimestre lançado também (auditoria 13, F-06). Igual ao
+  // caminho oficial (`exam-engine.computeFinalResult` → «incomplete»).
+  const periodCount = getPeriodCountForCycle(cycle, options.periodCount);
+  const incomplete = subjectResults.some((s) => {
+    if (s.mfd === null) return true;
+    const terms = [s.mt1, s.mt2, s.mt3].slice(0, periodCount);
+    return terms.some((mt) => mt === null || mt === undefined);
+  });
+  if (incomplete) {
+    const failingSoFar = subjectResults.filter(
+      (s) => s.mfd !== null && s.mfd < (options.passing ?? angolaGradeScale.passing),
+    ).length;
+    return { status: "PENDENTE", failingCount: failingSoFar };
   }
 
   const failingCount = subjectResults.filter(

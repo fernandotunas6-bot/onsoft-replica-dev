@@ -1,63 +1,60 @@
 // style-check: route-exempt - despacha para os painéis de portal (AdminPortalDashboard, TeacherPortalDashboard, etc.)
 import { lazy, Suspense, useEffect, useId, useState, useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
-import {
-  Activity,
-  Building2,
-  CalendarDays,
-  DoorOpen,
-  GraduationCap,
-  Megaphone,
-  Receipt,
-  RefreshCw,
-  TrendingUp,
-  UserCheck,
-  UserRound,
-  Users,
-} from "lucide-react";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
 import type { EntityFocus } from "@/features/intelligence/types";
 import type { DashboardOverviewSnapshot } from "@/features/intelligence/dashboard/dashboard-suggestion-rules";
-import { AppShell } from "@/components/layout/AppShell";
-import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
-import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
+
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
-import { DisciplinePerformanceHeatmap } from "@/features/dashboard/components/DisciplinePerformanceHeatmap";
-import { CashFlowForecastChart } from "@/features/dashboard/components/CashFlowForecastChart";
 import { getDashboardOverview } from "@/features/dashboard/server";
-import { overlayServico } from "@/features/documents/print-overlays";
-import { issuePrintDocument } from "@/features/documents/print-issue-loader";
-import { Button } from "@/components/ui/button";
-import { kwanza } from "@/lib/currency";
 import { warmDashboardCharts } from "@/lib/warm-charts";
-import { schoolYear as fallbackSchoolYear } from "@/lib/school-config";
-import { canAccessPath } from "@/features/auth/access-policy";
-import { TeacherWorkspaceHint } from "@/features/academic/TeacherWorkspacePanel";
-import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
+import { startDashboardDateClock } from "@/features/dashboard/date-clock";
 import { resolvePortalMode } from "@/features/auth/portal-engine";
-import { StudentPortalDashboard } from "@/features/dashboard/portals/StudentPortalDashboard";
-import { GuardianPortalDashboard } from "@/features/dashboard/portals/GuardianPortalDashboard";
-import { TeacherPortalDashboard } from "@/features/dashboard/portals/TeacherPortalDashboard";
-import { AdminPortalDashboard } from "@/features/dashboard/portals/AdminPortalDashboard";
+import { PortalDashboardSkeleton } from "@/features/dashboard/portals/PortalDashboardSkeleton";
+// Âncoras deliberadas, não uso directo nesta rota: mantêm o esqueleto puro dos
+// gráficos e a dica do docente no grafo ESTÁTICO do ecrã de entrada, para que
+// nenhum dos dois volte a chegar por um caminho pesado (`DashboardCharts`,
+// `TeacherWorkspacePanel`) — ver `tests/ui/first-paint-budget.test.ts`.
+import { DashboardChartsSkeleton as _DashboardChartsSkeletonPin } from "@/features/dashboard/DashboardChartsSkeleton";
+import { TeacherWorkspaceHint as _TeacherWorkspaceHintPin } from "@/features/academic/TeacherWorkspaceHint";
 
-const DashboardCharts = lazy(() =>
-  import("@/features/dashboard/DashboardCharts").then((module) => ({
-    default: module.DashboardCharts,
+/**
+ * Um utilizador vê **um** portal, o do seu papel. Importados estaticamente, os quatro
+ * entravam no grafo da rota `/` — que é também o ecrã de entrada — e arrastavam 55
+ * módulos só deles, incluindo `features/higher-ed/server.ts` e
+ * `pedagogica/attendance-server.ts`. Separados, cada papel carrega só o seu.
+ */
+// A estrutura do painel não é necessária para apresentar o login público.
+// Carregá-la apenas quando o dashboard realmente renderiza reduz o JS inicial
+// sem tocar em navegação, permissões ou lógica do AppShell autenticado.
+const AppShell = lazy(() =>
+  import("@/components/layout/AppShell").then((module) => ({
+    default: module.AppShell,
   })),
 );
-const DashboardAgeChart = lazy(() =>
-  import("@/features/dashboard/DashboardCharts").then((module) => ({
-    default: module.DashboardAgeChart,
+
+const StudentPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/StudentPortalDashboard").then((module) => ({
+    default: module.StudentPortalDashboard,
   })),
 );
-const TeacherWorkspacePanel = lazy(() =>
-  import("@/features/academic/TeacherWorkspacePanel").then((module) => ({
-    default: module.TeacherWorkspacePanel,
+const GuardianPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/GuardianPortalDashboard").then((module) => ({
+    default: module.GuardianPortalDashboard,
+  })),
+);
+const TeacherPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/TeacherPortalDashboard").then((module) => ({
+    default: module.TeacherPortalDashboard,
+  })),
+);
+const AdminPortalDashboard = lazy(() =>
+  import("@/features/dashboard/portals/AdminPortalDashboard").then((module) => ({
+    default: module.AdminPortalDashboard,
   })),
 );
 
@@ -80,37 +77,12 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const toneBg = {
-  primary: "bg-primary-soft text-primary-strong",
-  info: "bg-info/10 text-info-strong",
-  pink: "bg-chart-2/10 text-chart-2-strong",
-  warning: "bg-warning/15 text-warning-foreground",
-} as const;
-
-const dotTone: Record<string, string> = {
-  success: "bg-success",
-  info: "bg-info",
-  warning: "bg-warning",
-  primary: "bg-primary",
-};
-
-function DashboardGreeting({ greeting }: { greeting: string }) {
-  const currentUser = useCurrentAccount();
-  return (
-    <>
-      {greeting}, {currentUser.name.split(" ")[0]}
-    </>
-  );
-}
-
-function Dashboard() {
+export function Dashboard() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
-  const { school, selectedYearLabel } = useSchoolSettings();
-  const installed = useInstalledIntegrations();
-  const whatsappNotices = installed.hasCapability("whatsapp.notices");
-  const resendOn = installed.hasCapability("resend.send");
+  const portalMode = resolvePortalMode(currentUser.role);
+  const { school } = useSchoolSettings();
   const [now, setNow] = useState<Date | null>(null);
   const overviewQuery = useQuery({
     queryKey: ["dashboard", "overview"],
@@ -118,30 +90,10 @@ function Dashboard() {
   });
 
   useEffect(() => {
-    let timer = 0;
-    const tick = () => {
-      setNow(new Date());
-      if (document.visibilityState === "visible") {
-        timer = window.setTimeout(tick, 1000);
-      }
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        setNow(new Date());
-        tick();
-      } else {
-        window.clearTimeout(timer);
-      }
-    };
-    setNow(new Date());
+    if (portalMode !== "admin") return;
     warmDashboardCharts();
-    tick();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
+    return startDashboardDateClock(setNow);
+  }, [portalMode]);
 
   // Realtime — invalida o overview sempre que dados críticos mudam na BD
   useEffect(() => {
@@ -177,14 +129,6 @@ function Dashboard() {
   })();
 
   const data = overviewQuery.data;
-  const yearName = data?.academicYear?.name ?? fallbackSchoolYear;
-  const totalStudents = data?.totals.students ?? 0;
-  const capabilities = data?.capabilities ?? {
-    students: false,
-    finance: false,
-    documents: false,
-    audit: false,
-  };
 
   const focusedDashboardEntity = useMemo<EntityFocus<DashboardOverviewSnapshot> | null>(() => {
     if (!data) return null;
@@ -205,166 +149,32 @@ function Dashboard() {
 
   useDeclareEntityFocus(focusedDashboardEntity);
 
-  const stats = [
-    {
-      label: "Total de estudantes",
-      value: capabilities.students ? String(totalStudents) : "—",
-      icon: Users,
-      tone: "primary" as const,
-      hint: capabilities.students
-        ? `${data?.totals.activeStudents ?? 0} com matrícula activa${
-            data?.totals.applicants
-              ? ` · ${data.totals.applicants} candidato(s) — confirmar matrícula`
-              : ""
-          }`
-        : "Sem permissão de leitura académica",
-      href:
-        capabilities.students && (data?.totals.applicants ?? 0) > 0
-          ? ("/alunos" as const)
-          : undefined,
-      search:
-        capabilities.students && (data?.totals.applicants ?? 0) > 0
-          ? { action: "confirmar" as const }
-          : undefined,
-    },
-    {
-      label: "Estudantes masculinos",
-      value: capabilities.students ? String(data?.totals.male ?? 0) : "—",
-      icon: UserCheck,
-      tone: "info" as const,
-      hint:
-        capabilities.students && totalStudents
-          ? `${Math.round(((data?.totals.male ?? 0) / totalStudents) * 100)}% do total`
-          : "Aguardando dados",
-    },
-    {
-      label: "Estudantes femininos",
-      value: capabilities.students ? String(data?.totals.female ?? 0) : "—",
-      icon: UserRound,
-      tone: "pink" as const,
-      hint:
-        capabilities.students && totalStudents
-          ? `${Math.round(((data?.totals.female ?? 0) / totalStudents) * 100)}% do total`
-          : "Aguardando dados",
-    },
-    {
-      label: capabilities.documents ? "Documentos emitidos" : "Saldo de caixa",
-      value: capabilities.documents
-        ? String(data?.totals.documentIssued ?? 0)
-        : capabilities.finance
-          ? kwanza(data?.finance?.cash_balance ?? 0)
-          : "—",
-      icon: Receipt,
-      tone: "warning" as const,
-      hint: capabilities.documents
-        ? `${data?.totals.documentTotal ?? 0} pedidos registados${
-            data?.totals.documentPending ? ` · ${data.totals.documentPending} pendente(s)` : ""
-          }`
-        : capabilities.finance
-          ? `${data?.finance?.open_invoice_count ?? 0} faturas em aberto`
-          : "Sem dados financeiros",
-      href:
-        capabilities.documents && (data?.totals.documentPending ?? 0) > 0
-          ? ("/documentos" as const)
-          : undefined,
-    },
-  ];
-
-  const miniStats = [
-    {
-      label: "Cursos",
-      value: capabilities.students ? String(data?.totals.courses ?? 0) : "—",
-      icon: GraduationCap,
-    },
-    {
-      label: "Turmas activas",
-      value: capabilities.students ? String(data?.totals.classGroups ?? 0) : "—",
-      icon: Building2,
-    },
-    {
-      label: "Salas",
-      value: capabilities.students ? String(data?.totals.rooms ?? 0) : "—",
-      icon: DoorOpen,
-    },
-    {
-      label: "Taxa de presença",
-      value:
-        capabilities.students && data?.totals.attendanceAverage != null
-          ? `${data.totals.attendanceAverage}%`
-          : "—",
-      icon: Activity,
-    },
-  ];
-
-  const refresh = async () => {
-    setNow(new Date());
-    try {
-      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-      toast.success("Dashboard actualizado", {
-        description: "Indicadores recalculados a partir da base de dados.",
-      });
-    } catch (error) {
-      toast.error("Não foi possível actualizar", {
-        description: error instanceof Error ? error.message : "Tente novamente.",
-      });
-    }
-  };
-
-  const printSchool = {
-    name: school?.name ?? "Escola",
-    nif: school?.nif,
-    phone: school?.phone,
-    email: school?.email,
-    address: school?.address,
-    directorName: school?.director_name,
-    academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
-  };
-
-  const printAnnouncement = (item: { title: string; body?: string | null }) => {
-    void issuePrintDocument({
-      tipo: "Comunicado escolar",
-      school: printSchool,
-      overlay: overlayServico({
-        name: item.title || "Comunicado",
-        areaLabel: "Comunicações",
-        reference: item.title || "COM",
-        status: "Publicado",
-        parties: [{ label: "Escola", value: school?.name ?? "Escola" }],
-        sections: [{ title: "Mensagem", text: String(item.body ?? "Sem texto.") }],
-        permissions: ["Secretaria", "Direcção"],
-        term: "Comunicado institucional emitido pela secretaria da escola.",
-      }),
-    }).catch((error) =>
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível imprimir o comunicado.",
-      ),
-    );
-  };
-
   const [activeTab, setActiveTab] = useState<"geral" | "pedagogico" | "financeiro" | "auditoria">(
     "geral",
   );
 
-  const portalMode = resolvePortalMode(currentUser.role);
-
   return (
-    <AppShell>
-      {portalMode === "student" ? (
-        <StudentPortalDashboard />
-      ) : portalMode === "guardian" ? (
-        <GuardianPortalDashboard />
-      ) : portalMode === "teacher" ? (
-        <TeacherPortalDashboard />
-      ) : (
-        <AdminPortalDashboard
-          data={data}
-          isLoading={overviewQuery.isLoading}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          now={now}
-          greeting={greeting}
-        />
-      )}
-    </AppShell>
+    <Suspense fallback={<PortalDashboardSkeleton />}>
+      <AppShell>
+        <Suspense fallback={<PortalDashboardSkeleton />}>
+          {portalMode === "student" ? (
+            <StudentPortalDashboard />
+          ) : portalMode === "guardian" ? (
+            <GuardianPortalDashboard />
+          ) : portalMode === "teacher" ? (
+            <TeacherPortalDashboard />
+          ) : (
+            <AdminPortalDashboard
+              data={data}
+              isLoading={overviewQuery.isLoading}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              now={now}
+              greeting={greeting}
+            />
+          )}
+        </Suspense>
+      </AppShell>
+    </Suspense>
   );
 }

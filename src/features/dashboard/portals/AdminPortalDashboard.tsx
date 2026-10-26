@@ -24,7 +24,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
 import { DisciplinePerformanceHeatmap } from "@/features/dashboard/components/DisciplinePerformanceHeatmap";
 import { CashFlowForecastChart } from "@/features/dashboard/components/CashFlowForecastChart";
-import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardCharts";
+import { DashboardChartsSkeleton } from "@/features/dashboard/DashboardChartsSkeleton";
 import { overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ export function AdminPortalDashboard({
           : "Aguardando dados",
     },
     {
-      label: capabilities.documents ? "Documentos emitidos" : "Saldo de caixa",
+      label: capabilities.documents ? "Documentos emitidos" : "Total recebido",
       icon: capabilities.documents ? FileText : Receipt,
       value: capabilities.documents
         ? String(data?.totals.documentIssued ?? 0)
@@ -222,7 +222,7 @@ export function AdminPortalDashboard({
       ? [
           {
             id: "cash",
-            label: "Saldo de caixa",
+            label: "Total recebido",
             value: kwanza(data?.finance?.cash_balance ?? 0),
             hint: `${data?.finance?.open_invoice_count ?? 0} faturas em aberto`,
             tone: "success" as const,
@@ -677,14 +677,14 @@ export function AdminPortalDashboard({
               key={s.label}
               to={s.href}
               {...(s.search ? { search: s.search } : {})}
-              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer"
+              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               {card}
             </Link>
           ) : (
             <div
               key={s.label}
-              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               {card}
             </div>
@@ -696,7 +696,7 @@ export function AdminPortalDashboard({
         {miniStats.map((s) => (
           <div
             key={s.label}
-            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card"
+            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
           >
             <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
             <div>

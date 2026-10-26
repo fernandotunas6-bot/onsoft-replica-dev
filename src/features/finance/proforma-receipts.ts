@@ -1,3 +1,4 @@
+import { schoolTodayIso } from "@/lib/school-date";
 import { formatAngolaIban } from "@/lib/angola-banking";
 import { kwanza } from "@/lib/currency";
 import type { SchoolBankingPrint } from "@/lib/finance-print";
@@ -52,6 +53,21 @@ export type ProformaInvoiceOutput = {
 /**
  * Emite os cálculos e dados estruturados para Fatura Proforma oficial.
  */
+const PROFORMA_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/**
+ * Número da proforma: `FP-AAAA/MMDD-XXXX`, com a data de Luanda e quatro caracteres
+ * aleatórios. A proforma é um orçamento impresso e não fica na base, por isso não tem
+ * sequência fiscal — mas não pode repetir-se. Antes era `FP-ano/(faturas + 1)`: duas
+ * proformas sem fatura nova pelo meio tinham o mesmo número, e o ano era o do UTC.
+ */
+export function proformaNumber(now: Date = new Date()) {
+  const today = schoolTodayIso(now);
+  const bytes = crypto.getRandomValues(new Uint8Array(4));
+  const suffix = Array.from(bytes, (b) => PROFORMA_ALPHABET[b % PROFORMA_ALPHABET.length]).join("");
+  return `FP-${today.slice(0, 4)}/${today.slice(5, 7)}${today.slice(8, 10)}-${suffix}`;
+}
+
 export function buildProformaInvoice(input: ProformaInvoiceInput): ProformaInvoiceOutput {
   const itemsWithTotal = input.items.map((item) => ({
     ...item,

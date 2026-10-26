@@ -2,6 +2,7 @@ import { moduleIcons } from "@/lib/app-icons";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import type { Plan } from "@/features/saas/types";
 import { canAccessPath } from "@/features/auth/access-policy";
+import { hiddenNavPaths, resolveEnabledModules } from "@/features/auth/module-availability";
 
 export type PortalMode = "student" | "guardian" | "teacher" | "admin";
 
@@ -72,20 +73,22 @@ function filterNavGroups(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
+  hidden: ReadonlySet<string> = new Set(),
 ): NavGroup[] {
+  // Duas peneiras independentes, e ambas têm de deixar passar: o `canAccessPath`
+  // diz o que este papel **pode**, e `hidden` o que esta escola **tem ligado**
+  // (ver `module-availability.ts`). Itens e grupos que ficam vazios desaparecem.
+  const visivel = (to: string | undefined) =>
+    Boolean(to) && !hidden.has(to as string) && canAccessPath(to as string, role, grants, plan);
   return groups
     .map((group) => ({
       ...group,
       items: group.items
         .map((item) => ({
           ...item,
-          children: item.children?.filter((child) => canAccessPath(child.to, role, grants, plan)),
+          children: item.children?.filter((child) => visivel(child.to)),
         }))
-        .filter(
-          (item) =>
-            (item.to ? canAccessPath(item.to, role, grants, plan) : false) ||
-            Boolean(item.children?.length),
-        ),
+        .filter((item) => visivel(item.to) || Boolean(item.children?.length)),
     }))
     .filter((group) => group.items.length > 0);
 }
@@ -94,8 +97,13 @@ export function getPortalNavigation(
   role: ApplicationRole,
   grants: Record<string, string> = {},
   plan?: Plan | null,
+  options: { isAlumni?: boolean; enabledModules?: ReadonlySet<string> } = {},
 ): NavGroup[] {
   const mode = resolvePortalMode(role);
+  // Sem `enabledModules` vale a omissão do produto — nunca "tudo visível". Quem
+  // não souber dos módulos da escola vê o que o produto dá por omissão, que é o
+  // mesmo que se via antes de isto existir.
+  const hidden = hiddenNavPaths(options.enabledModules ?? resolveEnabledModules({}));
 
   if (mode === "student") {
     return filterNavGroups(
@@ -103,7 +111,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Aluno",
           items: [
-            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Académico",
               icon: moduleIcons.pedagogy,
@@ -142,7 +150,15 @@ export function getPortalNavigation(
             },
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
-            { label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" },
+            // Só para quem já concluiu (tem processo Alumni), não para quem ainda estuda.
+            //
+            // Fica, ao contrário das outras entradas de Alumni, retiradas a 25/10 por o
+            // módulo não ter um único registo em produção. Esta é condicional: com zero
+            // antigos alunos nunca aparece, e no dia em que existir um aparece a quem é.
+            // Não é uma concha vazia — é uma porta que só abre quando há dados atrás.
+            ...(options.isAlumni
+              ? [{ label: "Meu Portal Alumni", icon: moduleIcons.alumni, to: "/alumni/portal" }]
+              : []),
             { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
           ],
         },
@@ -150,6 +166,7 @@ export function getPortalNavigation(
       role,
       grants,
       plan,
+      hidden,
     );
   }
 
@@ -159,7 +176,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Encarregado",
           items: [
-            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Meu Educando", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Desempenho",
               icon: moduleIcons.academicReports,
@@ -191,14 +208,9 @@ export function getPortalNavigation(
               to: "/pedagogica",
               search: { tab: "presencas" },
             },
-            {
-              label: "Financeiro",
-              icon: moduleIcons.finance,
-              children: [
-                { label: "Propinas e Faturas", icon: moduleIcons.finance, to: "/financeiro" },
-                { label: "Recibos", icon: moduleIcons.receipts, to: "/faturas" },
-              ],
-            },
+            // «Recibos» apontava para /faturas, que é só da Direcção e da Tesouraria:
+            // o item ficava escondido. Propinas, faturas e recibos estão em /financeiro.
+            { label: "Financeiro", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Documentos", icon: moduleIcons.documents, to: "/documentos" },
             { label: "Comunicação", icon: moduleIcons.communications, to: "/comunicacoes" },
             { label: "Meu Perfil", icon: moduleIcons.profile, to: "/perfil" },
@@ -208,6 +220,7 @@ export function getPortalNavigation(
       role,
       grants,
       plan,
+      hidden,
     );
   }
 
@@ -217,7 +230,7 @@ export function getPortalNavigation(
         {
           title: "Portal do Professor",
           items: [
-            { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+            { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
             {
               label: "Frequência",
               icon: moduleIcons.attendance,
@@ -281,6 +294,7 @@ export function getPortalNavigation(
       role,
       grants,
       plan,
+      hidden,
     );
   }
 
@@ -288,7 +302,7 @@ export function getPortalNavigation(
     {
       title: "Principal",
       items: [
-        { label: "Início", icon: moduleIcons.dashboard, to: "/" },
+        { label: "Início", icon: moduleIcons.dashboard, to: "/portal" },
         { label: "Calendário Lectivo", icon: moduleIcons.calendar, to: "/calendario" },
       ],
     },
@@ -322,6 +336,11 @@ export function getPortalNavigation(
               icon: moduleIcons.attendance,
               to: "/pedagogica",
               search: { tab: "chamada" },
+            },
+            {
+              label: "Presença dos Professores",
+              icon: moduleIcons.qrPresence,
+              to: "/pedagogica/presenca-docente",
             },
             {
               label: "Planos de Aula",
@@ -413,9 +432,14 @@ export function getPortalNavigation(
           label: "Caixa e Pagamentos",
           icon: moduleIcons.finance,
           children: [
-            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Tesouraria", icon: moduleIcons.treasury, to: "/tesouraria" },
+            { label: "Movimentos de Caixa", icon: moduleIcons.finance, to: "/financeiro" },
             { label: "Faturas e Recibos", icon: moduleIcons.receipts, to: "/faturas" },
+            {
+              label: "Bancos e Conciliação",
+              icon: moduleIcons.reconciliation,
+              to: "/financeiro/conciliacao",
+            },
             { label: "RH e Folha Salarial", icon: moduleIcons.hr, to: "/financeiro/rh" },
             { label: "Processar Folha", icon: moduleIcons.hr, to: "/financeiro/rh/folha" },
             {
@@ -514,7 +538,7 @@ export function getPortalNavigation(
     },
   ];
 
-  return filterNavGroups(groups, role, grants, plan);
+  return filterNavGroups(groups, role, grants, plan, hidden);
 }
 
 export function getPortalContextualSuggestions(role: ApplicationRole) {

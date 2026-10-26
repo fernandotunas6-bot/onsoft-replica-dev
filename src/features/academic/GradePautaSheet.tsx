@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { NO_CLASS_SUBJECTS, subjectsOfClass } from "@/features/academic/pauta-subjects";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileBadge, FileDown, Lock, Save, Unlock } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -18,8 +19,9 @@ import {
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { documentValidationCode } from "@/features/academic/assessment-views";
-import { sendOrQueue } from "@/lib/offline/outbox";
+import { OUTBOX_UNCERTAIN_MESSAGE, sendOrQueue } from "@/lib/offline/outbox";
 import { currentUserId } from "@/lib/offline/outbox-session";
+import { readStoredActiveSchool } from "@/features/auth/active-school";
 import { overlayPauta, overlayServico } from "@/features/documents/print-overlays";
 import { issuePrintDocument } from "@/features/documents/print-issue-loader";
 import { setTermLock } from "@/features/school/server";
@@ -115,7 +117,8 @@ export function GradePautaSheet({
   schoolName,
   academicYear,
   classGroups,
-  subjects,
+  subjects: schoolSubjects,
+  classSubjects = NO_CLASS_SUBJECTS,
   enrollments,
   termGrades,
   passingGrade = angolaGradeScale.passing,
@@ -128,6 +131,8 @@ export function GradePautaSheet({
   academicYear: string;
   classGroups: ClassGroupOption[];
   subjects: SubjectOption[];
+  /** Disciplinas atribuídas a cada turma (`class_subjects`): só essas são oferecidas. */
+  classSubjects?: Array<{ class_group_id: string; subject_id: string }>;
   enrollments: EnrollmentRow[];
   termGrades: TermGradeRow[];
   passingGrade?: number;
@@ -147,6 +152,10 @@ export function GradePautaSheet({
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const [view, setView] = useState<PautaView>("disciplina");
   const [classGroupId, setClassGroupId] = useState(classGroups[0]?.id ?? "");
+  const subjects = useMemo(
+    () => subjectsOfClass(schoolSubjects, classSubjects, classGroupId),
+    [schoolSubjects, classSubjects, classGroupId],
+  );
   const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
   const initialTerm =
     globalTerm?.sequence && globalTerm.sequence >= 1 && globalTerm.sequence <= 3
@@ -162,7 +171,10 @@ export function GradePautaSheet({
   }, [classGroupId, classGroups]);
 
   useEffect(() => {
-    if (!subjectId && subjects[0]?.id) setSubjectId(subjects[0].id);
+    // Ao mudar de turma, a disciplina escolhida pode não ser dela.
+    // Sem nenhuma, fica vazia: nunca lançar na disciplina da turma anterior.
+    if (subjects.some((subject) => subject.id === subjectId)) return;
+    setSubjectId(subjects[0]?.id ?? "");
   }, [subjectId, subjects]);
 
   const selectedGroup = classGroups.find((group) => group.id === classGroupId);
@@ -293,12 +305,20 @@ export function GradePautaSheet({
             .filter(Boolean)
             .join(" · "),
           userId: await currentUserId(),
+          schoolId: readStoredActiveSchool(),
         },
       );
       if (outcome.queued) {
-        toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
-          description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
-        });
+        if (outcome.requiresVerification) {
+          toast.warning("Notas sem confirmação do servidor", {
+            description: OUTBOX_UNCERTAIN_MESSAGE,
+            duration: Infinity,
+          });
+        } else {
+          toast.info(`Notas guardadas neste computador · ${pendingRows.length} aluno(s)`, {
+            description: "Sem ligação ao servidor. São enviadas sozinhas quando a Internet voltar.",
+          });
+        }
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] });
@@ -719,6 +739,7 @@ export function GradePautaSheet({
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
             >
+              {subjects.length === 0 ? <option value="">Sem disciplinas atribuídas</option> : null}
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}

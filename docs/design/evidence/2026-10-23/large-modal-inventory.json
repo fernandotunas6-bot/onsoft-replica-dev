@@ -1,0 +1,64 @@
+{
+  "kind": "static-candidates-not-runtime-diagnosis",
+  "base": "9defaf17521adbdc9a46a497e5838295a42f46b6",
+  "note": "Cada consumidor exige revisão de conteúdo, guardas e destino antes de migrar; tamanho declarado não prova falha.",
+  "verdictReviewedAt": "2026-10-25",
+  "verdictNote": "Revisão de código (sem execução) dos 7 candidatos — ver legenda abaixo. Nenhum ficheiro foi migrado nesta revisão; é só o veredicto da Fase 1.",
+  "verdictLegend": {
+    "justifica_o_tamanho": "o conteúdo precisa mesmo do espaço — não é candidato a página",
+    "candidato_a_pagina": "formulário/perfil complexo, aberto a partir de uma lista de topo — candidato real à Fase 9 (migrar com testes)",
+    "ja_corrigido": "o inventário estático estava desactualizado; o consumidor já não usa este tamanho",
+    "migrado": "Fase 9 concluída — o modal foi retirado e o conteúdo vive numa página, com testes a confirmar"
+  },
+  "candidates": [
+    {
+      "file": "src/components/mobile/MoreHub.tsx",
+      "line": 89,
+      "source": "<BottomSheet open={open} onOpenChange={onOpenChange} size=\"full\">",
+      "verdict": "justifica_o_tamanho",
+      "reasoning": "Catálogo de navegação em folha inferior de ecrã inteiro (todas as áreas do portal + pesquisa + conta), accionado pela barra inferior de topo — é um menu, não um formulário; o padrão full-bleed está correcto."
+    },
+    {
+      "file": "src/features/documents/PrintTemplateStudio.tsx",
+      "line": 230,
+      "source": "size=\"full\"",
+      "verdict": "justifica_o_tamanho",
+      "reasoning": "Editor lado-a-lado de código-fonte e pré-visualização ao vivo (textarea + iframe, min-height 68vh), accionado por \"Ver/Editar\" num painel de topo — precisa mesmo de largura/altura para edição e feedback simultâneos."
+    },
+    {
+      "file": "src/features/students/components/StudentExtensiveModal.tsx",
+      "line": 179,
+      "source": "<ModalShell open={open} onOpenChange={onOpenChange} size=\"xl\" className=\"overflow-hidden\">",
+      "verdict": "migrado",
+      "reasoning": "Migrado em 25/10/2026: a página /alunos/$studentId já existia e cobria quase tudo (fotografia, financeiro, encarregados) — só faltava o separador \"Histórico\" (StudentStatusHistoryTimeline/getStudentStatusHistory), agora acrescentado à página como secção própria. O modal tinha botão \"Abrir Ficha Completa\" que já apontava para esta página — era uma camada redundante. Ficheiro apagado; os três pontos de abertura em src/routes/alunos/index.tsx (clique na linha, botão \"Visualizar\", lista móvel) e a acção \"Ver resumo\" em StudentMobileList.tsx passaram a navegar directamente para a página. Único consumidor do modal (fora do teste de fumo, também apagado). ESLint, tsc e tests/students + tests/routes/alunos.test.tsx + tests/ui/first-paint-budget.test.ts confirmados; falta validação visual em sessão autenticada."
+    },
+    {
+      "file": "src/features/academic/components/TurmaProfileModal.tsx",
+      "line": 179,
+      "source": "<ModalShell open={open} onOpenChange={onOpenChange} size=\"2xl\">",
+      "verdict": "migrado",
+      "reasoning": "Migrado em 25/10/2026 para a nova página /pedagogica/turmas/$turmaId (src/routes/pedagogica_.turmas.$turmaId.tsx) — não existia página equivalente, ao contrário do caso dos alunos; construída de raiz com consultas próprias (listPedagogicalWorkspace, listTeachers, listRooms), preservando as 5 secções (Resumo, Alunos, Professores & Disciplinas, Horário, Avaliações). Os dois formulários pequenos (Editar turma, Atribuir professor) continuam em modal, como o contrato permite, agora em src/features/academic/components/TurmaFormModals.tsx (ficheiro novo, só com os dois sub-modais exportados). src/routes/pedagogica.tsx passou a navegar para a página em vez de abrir o modal; routeTree.gen.ts regenerado. ESLint, tsc e tests/academic/class-group-update.test.ts + class-group-code.test.ts + tests/routes/pedagogica.test.tsx (14/14) confirmados; falta validação visual em sessão autenticada."
+    },
+    {
+      "file": "src/features/people/components/PersonWizardModal.tsx",
+      "line": 275,
+      "source": "size=\"2xl\"",
+      "verdict": "migrado",
+      "reasoning": "Migrado em 25/10/2026 para a nova página /pessoas/novo (src/routes/pessoas/novo.tsx) — assistente de 7 passos preservado tal como estava (identidade → contactos → documentos → relações → vínculos → revisão → conclusão), incluindo a visual lateral EducationWorkflowVisual e a detecção de duplicados. As três saídas (onPersonCreated \"view\"/\"enroll\", fecho) passaram a navegação directa: /pessoas/$personId, window.location.href para /alunos (igual ao original) e /pessoas. Aproveitei o estado `checkingDuplicates`, que já existia mas nunca tinha sido lido, para desactivar \"Próximo\" durante a verificação — único desvio do original, e só porque o estado já estava lá sem uso."
+    },
+    {
+      "file": "src/features/people/components/PersonProfile360Modal.tsx",
+      "line": 348,
+      "source": "size=\"2xl\"",
+      "verdict": "migrado",
+      "reasoning": "Migrado em 25/10/2026 para a nova página /pessoas/$personId (src/routes/pessoas/$personId.tsx) — não existia página equivalente. Preservadas as 8 secções via o mesmo ModalSidebar+Tabs (reutilizável fora do ModalShell, confirmado por leitura do componente), toda a edição em linha (dados pessoais, vínculos institucionais) e o upload de fotografia. O tipo `PersonRecord` mudou-se para um ficheiro próprio (src/features/people/person-record.ts) para não depender do modal apagado. src/routes/pessoas/index.tsx (lista) passou a navegar em vez de abrir modais; removido também um import morto (`updatePersonStatus`) que já estava sem uso no ficheiro original."
+    },
+    {
+      "file": "src/features/pedagogica/components/AssignTeacherForm.tsx",
+      "line": 123,
+      "source": "size=\"sm\" (inventário estava desactualizado — dizia 2xl)",
+      "verdict": "ja_corrigido",
+      "reasoning": "O código actual usa `size=\"sm\"` (3 selects: turma/disciplina/professor); o histórico git mostra que já foi compactado antes desta revisão (commits b7898f87, 7dffa08f). A entrada de 23/10 no inventário ficou desactualizada."
+    }
+  ]
+}

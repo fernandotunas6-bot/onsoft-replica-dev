@@ -112,7 +112,11 @@ function VerifyDocumentPage() {
               <dt className="text-muted-foreground">Titular</dt>
               <dd>{query.data.holder}</dd>
               <dt className="text-muted-foreground">Data</dt>
-              <dd>{new Date(query.data.issuedAt).toLocaleString("pt-AO")}</dd>
+              <dd>
+                {new Date(query.data.issuedAt).toLocaleString("pt-AO", {
+                  timeZone: "Africa/Luanda",
+                })}
+              </dd>
               {query.data.subjects.length ? (
                 <>
                   <dt className="text-muted-foreground">Disciplinas</dt>

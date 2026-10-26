@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { chunkedInClient } from "@/integrations/supabase/chunked-in-client";
 import { resolveSgaMembership, sgaClient, type SgaMembershipContext } from "./sga";
 import { GRANT_ELEVATABLE_ROLES, type ApplicationRole } from "@/features/auth/access-policy";
 import { ACTIVE_SCHOOL_UNAVAILABLE } from "@/features/auth/active-school";
@@ -10,7 +11,8 @@ import {
 
 export async function loadSgaAdminClient() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return sgaClient(supabaseAdmin);
+  // Os `.in(...)` longos vão em lotes: com ~200 ids o URL passava o tamanho máximo.
+  return chunkedInClient(sgaClient(supabaseAdmin));
 }
 
 /** Import dinâmico como em `loadSgaAdminClient`: só existe do lado do servidor. */
@@ -209,6 +211,8 @@ export async function assertModuleNotBlocked(
 const TENANT_WRITE_BLOCKED: Record<TenantAccessBlockReason | "archived_school", string> = {
   suspended:
     "A assinatura desta escola está suspensa: os dados podem ser consultados, mas não alterados. Regularize a assinatura no portal comercial.",
+  past_due:
+    "O pagamento da assinatura está em atraso: os dados podem ser consultados, mas não alterados. Pague em Configurações → Assinatura e envie o comprovativo.",
   trial_expired:
     "O período experimental terminou: os dados podem ser consultados, mas não alterados. Escolha um plano para continuar a usar o SIGA Plus.",
   cancelled:
@@ -240,7 +244,7 @@ export async function assertTenantAllowsWrites(schoolId: string, now = new Date(
   if (!school.tenant_id) return;
   const { data: tenant, error: tenantError } = await db
     .from("tenants")
-    .select("status, subscription_status, trial_ends_at")
+    .select("status, subscription_status, trial_ends_at, billing_exempt")
     .eq("id", school.tenant_id)
     .maybeSingle();
   if (tenantError) {

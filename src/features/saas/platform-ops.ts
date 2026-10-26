@@ -13,6 +13,16 @@ import type {
   TenantDomain,
   TenantStatus,
 } from "@/features/saas/types";
+import { isMissingTableError, profileFromRow } from "@/features/saas/tenant-billing";
+import {
+  addMonthsClamped,
+  isInTrial,
+  trialExtensionError,
+  isTrialExpired,
+  monthlyRevenueOf,
+  resolveStatusChange,
+  type TenantBillingProfile,
+} from "@/features/saas/tenant-billing-rules";
 import {
   aggregateGatewayWebhookMetrics,
   emptyGatewayWebhookMetrics,
@@ -49,6 +59,8 @@ async function syncTenantSubscriptionRecord(
     planId: string;
     status: SubscriptionLifecycle;
     periodEnd?: string;
+    /** Não mexer no `current_period_end` de uma assinatura que já existe. */
+    keepPeriodEnd?: boolean;
   },
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -70,7 +82,7 @@ async function syncTenantSubscriptionRecord(
       .update({
         plan_id: input.planId,
         status: input.status,
-        current_period_end: periodEnd,
+        ...(input.keepPeriodEnd ? {} : { current_period_end: periodEnd }),
         updated_at: now,
       })
       .eq("id", existing.id);
@@ -92,35 +104,79 @@ export async function fetchSaaSStats(): Promise<SaaSStats> {
   const db = await loadSgaAdminClient();
   const { data: tenants, error: tenantErr } = await db
     .from("tenants")
-    .select("id, status, plan_id, max_students, max_storage_gb, plans(price_aoa_monthly)");
+    .select(
+      "id, status, subscription_status, trial_ends_at, billing_exempt, plan_id, max_students, max_storage_gb, plans(price_aoa_monthly, price_aoa_yearly)",
+    );
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar as escolas.");
 
+  const { data: usageRows, error: usageErr } = await db
+    .from("tenant_usage")
+    .select("tenant_id, active_students_count");
+  if (usageErr) throw publicDatabaseError(usageErr, "Não foi possível carregar a utilização.");
+  const studentsByTenant = new Map(
+    (usageRows ?? []).map((u) => [u.tenant_id as string, Number(u.active_students_count ?? 0)]),
+  );
+
+  // Condições próprias de cobrança (por aluno, valor fixo, descontos). Sem a tabela
+  // (migração por aplicar) conta o preço de tabela do plano, como antes.
+  const profiles = new Map<string, TenantBillingProfile>();
+  const { data: profileRows, error: profileErr } = await (
+    db as unknown as {
+      from: (t: string) => {
+        select: (c: string) => Promise<{ data: unknown[] | null; error: { code?: string } | null }>;
+      };
+    }
+  )
+    .from("tenant_billing_profiles")
+    .select("*");
+  if (profileErr && !isMissingTableError(profileErr)) {
+    throw publicDatabaseError(profileErr as never, "Não foi possível carregar a cobrança.");
+  }
+  for (const row of (profileRows ?? []) as Array<Record<string, unknown>>) {
+    const profile = profileFromRow(row);
+    profiles.set(profile.tenantId, profile);
+  }
+
+  const now = new Date();
   const stats: SaaSStats = {
     totalTenants: tenants?.length ?? 0,
-    activeTenants: tenants?.filter((t) => t.status === "active").length ?? 0,
-    trialTenants: tenants?.filter((t) => t.status === "trial").length ?? 0,
-    suspendedTenants:
-      tenants?.filter((t) => t.status === "suspended" || t.status === "past_due").length ?? 0,
-    totalStudents: 0,
+    activeTenants: 0,
+    trialTenants: 0,
+    suspendedTenants: 0,
+    pastDueTenants: 0,
+    trialExpiredTenants: 0,
+    exemptTenants: 0,
+    totalStudents: sumTenantUsageStudents(usageRows),
     mrrAoa: 0,
     arrAoa: 0,
     totalStorageGb: 0,
   };
 
   for (const t of tenants ?? []) {
+    const trialExpired = isTrialExpired(t, now);
+    const inTrial = isInTrial(t);
+    if (t.status === "active" && !inTrial && !t.billing_exempt) stats.activeTenants += 1;
+    if (inTrial && !trialExpired) stats.trialTenants += 1;
+    if (t.status === "suspended") stats.suspendedTenants += 1;
+    if (t.status === "past_due") stats.pastDueTenants += 1;
+    if (t.billing_exempt) stats.exemptTenants += 1;
+    if (trialExpired) stats.trialExpiredTenants += 1;
     stats.totalStorageGb += t.max_storage_gb || 10;
-    const plan = t.plans as unknown as { price_aoa_monthly?: number } | undefined;
-    if (plan && (t.status === "active" || t.status === "trial")) {
-      stats.mrrAoa += Number(plan.price_aoa_monthly || 0);
-    }
+    stats.mrrAoa += monthlyRevenueOf(
+      {
+        tenantStatus: String(t.status),
+        subscriptionStatus: t.subscription_status ?? null,
+        billingExempt: Boolean(t.billing_exempt),
+        profile: profiles.get(t.id) ?? null,
+        plan:
+          (t.plans as unknown as { price_aoa_monthly?: number; price_aoa_yearly?: number }) ?? null,
+        activeStudents: studentsByTenant.get(t.id) ?? 0,
+      },
+      now,
+    );
   }
-  stats.arrAoa = stats.mrrAoa * 12;
-
-  const { data: usageRows, error: usageErr } = await db
-    .from("tenant_usage")
-    .select("active_students_count");
-  if (usageErr) throw publicDatabaseError(usageErr, "Não foi possível carregar a utilização.");
-  stats.totalStudents = sumTenantUsageStudents(usageRows);
+  stats.mrrAoa = Math.round(stats.mrrAoa * 100) / 100;
+  stats.arrAoa = Math.round(stats.mrrAoa * 12 * 100) / 100;
   return stats;
 }
 
@@ -152,9 +208,26 @@ export async function updateTenantStatus(input: {
   userId: string;
 }): Promise<{ success: true }> {
   const db = await loadSgaAdminClient();
+  const { data: current, error: loadErr } = await db
+    .from("tenants")
+    .select("status, subscription_status, billing_exempt")
+    .eq("id", input.tenantId)
+    .maybeSingle();
+  if (loadErr) throw publicDatabaseError(loadErr, "Não foi possível carregar a escola.");
+  if (!current) throw new Error("Escola não encontrada.");
+  const decision = resolveStatusChange(
+    {
+      status: String(current.status),
+      subscription_status: current.subscription_status as string | null,
+      billing_exempt: current.billing_exempt as boolean | null,
+    },
+    input.status,
+  );
+  if ("error" in decision) throw new Error(decision.error);
+  const status = decision.status as TenantStatus;
   const { error } = await db
     .from("tenants")
-    .update({ status: input.status, updated_at: new Date().toISOString() })
+    .update({ status, updated_at: new Date().toISOString() })
     .eq("id", input.tenantId);
   if (error) throw publicDatabaseError(error, "Não foi possível atualizar o estado da escola.");
   await db.from("saas_audit_logs").insert({
@@ -163,7 +236,7 @@ export async function updateTenantStatus(input: {
     action: "TENANT_STATUS_CHANGED",
     entity: "tenant",
     entity_id: input.tenantId,
-    metadata: { status: input.status },
+    metadata: { status, requested: input.status, previous: current.status },
   });
   return { success: true };
 }
@@ -173,16 +246,45 @@ export async function updateTenantSubscription(input: {
   plan_code?: "start" | "professional" | "business" | "enterprise";
   extend_trial_days?: number;
   confirm_payment_billing?: "monthly" | "yearly";
+  confirm_payment_months?: 1 | 3 | 6 | 12;
+  payment_reference?: string;
   userId: string;
 }): Promise<{ success: true }> {
   const db = await loadSgaAdminClient();
   const { data: tenant, error: tenantErr } = await db
     .from("tenants")
-    .select("id, status, trial_ends_at, plan_id")
+    .select("id, status, subscription_status, trial_ends_at, plan_id")
     .eq("id", input.tenantId)
     .maybeSingle();
   if (tenantErr) throw publicDatabaseError(tenantErr, "Não foi possível carregar a escola.");
   if (!tenant) throw new Error("Escola não encontrada.");
+  if (input.extend_trial_days && !input.confirm_payment_months && !input.confirm_payment_billing) {
+    const refusal = trialExtensionError({
+      status: String(tenant.status),
+      subscription_status: tenant.subscription_status as string | null,
+    });
+    if (refusal) throw new Error(refusal);
+  }
+  const paying = input.confirm_payment_months ?? input.confirm_payment_billing;
+  if (paying && input.payment_reference?.trim()) {
+    // O mesmo pagamento registado duas vezes (repetição depois de um erro de rede)
+    // somava dois períodos pagos.
+    const { data: repeated, error: repeatedErr } = await db
+      .from("saas_audit_logs")
+      .select("id")
+      .eq("tenant_id", input.tenantId)
+      .eq("action", "TENANT_SUBSCRIPTION_UPDATED")
+      .eq("metadata->>payment_reference", input.payment_reference.trim())
+      .limit(1);
+    if (repeatedErr) {
+      throw publicDatabaseError(repeatedErr, "Não foi possível confirmar o pagamento.");
+    }
+    if (repeated?.length) {
+      throw new Error(
+        `O pagamento com a referência ${input.payment_reference.trim()} já foi registado.`,
+      );
+    }
+  }
 
   const patch: TablesUpdate<"tenants"> = { updated_at: new Date().toISOString() };
   const metadata: Record<string, unknown> = {};
@@ -215,7 +317,14 @@ export async function updateTenantSubscription(input: {
   // Pagamento confirmado: a assinatura passa a activa até ao fim do período
   // pago, contado a partir de hoje ou do fim do período ainda em curso.
   let paidUntil: string | null = null;
-  if (input.confirm_payment_billing) {
+  const paidMonths =
+    input.confirm_payment_months ??
+    (input.confirm_payment_billing === "yearly"
+      ? 12
+      : input.confirm_payment_billing === "monthly"
+        ? 1
+        : null);
+  if (paidMonths) {
     const { data: current } = await db
       .from("subscriptions")
       .select("status, current_period_end")
@@ -228,14 +337,15 @@ export async function updateTenantSubscription(input: {
         ? new Date(current.current_period_end)
         : null;
     const base = currentEnd && currentEnd.getTime() > Date.now() ? currentEnd : new Date();
-    const end = new Date(base);
-    if (input.confirm_payment_billing === "yearly") end.setFullYear(end.getFullYear() + 1);
-    else end.setMonth(end.getMonth() + 1);
-    paidUntil = end.toISOString();
+    paidUntil = addMonthsClamped(base, paidMonths).toISOString();
     patch.subscription_status = "active";
     patch.status = "active";
     metadata.payment_confirmed = true;
-    metadata.billing = input.confirm_payment_billing;
+    metadata.billing = paidMonths === 12 ? "yearly" : paidMonths === 1 ? "monthly" : undefined;
+    metadata.months = paidMonths;
+    if (input.payment_reference?.trim()) {
+      metadata.payment_reference = input.payment_reference.trim();
+    }
     metadata.paid_until = paidUntil;
   }
 
@@ -266,7 +376,14 @@ export async function updateTenantSubscription(input: {
       tenantId: input.tenantId,
       planId: updatedTenant.plan_id as string,
       status: (updatedTenant.subscription_status as SubscriptionLifecycle) || "active",
-      periodEnd: paidUntil ?? (updatedTenant.trial_ends_at as string | null) ?? undefined,
+      // Só um pagamento ou uma extensão de trial mexem no fim do período. Mudar só o
+      // plano mantinha-o igual ao fim do trial antigo e a tarefa diária punha uma
+      // escola paga em atraso.
+      periodEnd:
+        paidUntil ??
+        (input.extend_trial_days ? (updatedTenant.trial_ends_at as string | null) : null) ??
+        undefined,
+      keepPeriodEnd: !paidUntil && !input.extend_trial_days,
     });
   }
 

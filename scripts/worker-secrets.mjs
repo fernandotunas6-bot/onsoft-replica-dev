@@ -52,6 +52,8 @@ export const OPTIONAL_WORKER_SECRETS = [
  */
 export const OPTIONAL_WORKER_VARS = [
   "PLATFORM_DOMAIN",
+  // Origens públicas autorizadas por campanha; configuração não sensível, sem wildcards.
+  "SIGA_SCHOOL_WEBSITE_ORIGINS",
   "APPYPAY_ENV",
   "APPYPAY_CLIENT_ID",
   "APPYPAY_RESOURCE",
@@ -85,6 +87,13 @@ export const NOT_WORKER_SECRETS = {
   SIGA_GATEWAY_DEV_API_KEY: "só para desenvolvimento local",
   NODE_ENV: "definida pelo build",
   SIGA_E2E_LIVE: "só nos testes E2E",
+  BBB_API_URL:
+    "endpoint do serviço BBB dedicado; configuração exclusiva do runtime BBB, não do Cloudflare Worker",
+  BBB_API_SECRET: "segredo exclusivo do serviço BBB dedicado; nunca publicar no Cloudflare Worker",
+  BBB_ATTENDEE_PASSWORD:
+    "credencial exclusiva do serviço BBB dedicado; nunca publicar no Cloudflare Worker",
+  BBB_MODERATOR_PASSWORD:
+    "credencial exclusiva do serviço BBB dedicado; nunca publicar no Cloudflare Worker",
   E2E_ALERT_EMAIL_FROM: "só no CI (notificação de falha E2E)",
 };
 

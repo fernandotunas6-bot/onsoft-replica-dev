@@ -3,7 +3,8 @@ import { linkNewSubjectsToCatalog } from "@/features/education-catalog/catalog-l
 import { createServerFn } from "@tanstack/react-start";
 import { assertCanSeeStudent, loadStudentScope } from "@/features/students/student-scope";
 import { loadActivePassingValue, loadActiveRuleSummary } from "./exam-data";
-import { recordAuditBatch } from "@/features/audit/record-audit";
+import { pagedReadClient } from "@/integrations/supabase/paged-client";
+import { readSettingsDomain } from "@/features/school/settings-domains";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import {
@@ -11,7 +12,6 @@ import {
   requireSgaWriterForWrite,
   resolveSgaMembershipAdmin,
 } from "@/integrations/supabase/sga-admin";
-import { pedagogySettingsSchema } from "@/features/school/schemas";
 import { averagePercent } from "@/features/students/schemas";
 import { loadPeopleLite, loadPersonNamesById } from "@/features/people/lookup";
 import { scoreAverage, inferTeachingCycle } from "@/lib/angola-academic";
@@ -23,7 +23,8 @@ import {
   upsertSgaTermGrade,
   upsertSgaTermGradesBatch,
 } from "./sga-grades";
-import { reportSigaError } from "@/lib/ops-report";
+import { assertTermOpen, writeAssessmentScores } from "./assessment-score-write";
+import { withOfflineReceipt } from "@/features/offline-sync/receipts";
 import {
   createClassGroupInputSchema,
   createSubjectInputSchema,
@@ -37,6 +38,7 @@ import {
   updateClassGroupInputSchema,
   upsertTermGradeInputSchema,
   upsertTermGradesBatchInputSchema,
+  type UpsertTermGradesBatchInput,
   createAssessmentInputSchema,
   updateAssessmentInputSchema,
   deleteAssessmentInputSchema,
@@ -51,28 +53,6 @@ import {
   updateProgramGradingProfileInputSchema,
   applyCurriculumToClassGroupInputSchema,
 } from "./schemas";
-
-async function assertTermOpen(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  schoolId: string,
-  term: number,
-) {
-  const { data, error } = await db
-    .from("school_settings")
-    .select("value")
-    .eq("school_id", schoolId)
-    .eq("domain", "pedagogy")
-    .maybeSingle();
-  // Sem conseguir ler os períodos fechados, não se grava (antes contava como aberto).
-  if (error)
-    throw publicDatabaseError(error, "Não foi possível confirmar se o período está aberto.");
-  const pedagogy = pedagogySettingsSchema.safeParse(data?.value ?? {}).data;
-  if (pedagogy?.closedTerms.includes(term as 1 | 2 | 3)) {
-    throw new Error(
-      `O ${term}º trimestre está fechado. O director pode reabrir a pauta em Configurações → Pedagógico.`,
-    );
-  }
-}
 
 type StructureSummary = {
   id: string;
@@ -266,8 +246,11 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
     const filteredGroupIds = (groups.data ?? []).map((group: { id: string }) => group.id);
 
     const classSubjectsChain = (async () => {
+      // Por páginas e por lotes: o horário da escola inteira passa facilmente as 500
+      // linhas, e com a ordem só por `starts_at` eram as aulas da tarde que caíam.
+      const reads = pagedReadClient(db);
       const { data: classSubjectsData } = filteredGroupIds.length
-        ? await db
+        ? await reads
             .from("class_subjects")
             .select("id, class_group_id, subject_id, teacher_id, weekly_periods, status")
             .in("class_group_id", filteredGroupIds)
@@ -277,13 +260,12 @@ export const listPedagogicalWorkspace = createServerFn({ method: "GET" })
         String(row["id"]),
       );
       const { data: slots, error: slotsError } = ids.length
-        ? await db
+        ? await reads
             .from("timetable_slots")
             .select("id, class_subject_id, weekday, starts_at, ends_at, room, status")
             .in("class_subject_id", ids)
             .eq("status", "active")
             .order("starts_at")
-            .limit(500)
         : { data: [] as Array<Record<string, unknown>>, error: null };
       return { data: classSubjectsData, timetableSlots: slots, scheduleError: slotsError };
     })();
@@ -1151,44 +1133,104 @@ export const upsertTermGradesBatch = createServerFn({ method: "POST" })
       context.userId,
       ["Administrador", "Secretaria", "Professor"],
     );
-    const db = await loadSgaAdminClient();
-    await assertTermOpen(db, membership.schoolId, data.term);
-    // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).
-    const { data: rule } = await db
-      .from("assessment_rule_sets")
-      .select("grading_scale_id")
-      .eq("school_id", membership.schoolId)
-      .eq("code", "DEFAULT")
-      .eq("status", "active")
-      .order("version", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (rule?.grading_scale_id) {
-      const { data: scale } = await db
-        .from("grading_scales")
-        .select("minimum_value, maximum_value")
-        .eq("school_id", membership.schoolId)
-        .eq("id", rule.grading_scale_id)
-        .maybeSingle();
-      if (scale) {
-        const min = Number(scale.minimum_value);
-        const max = Number(scale.maximum_value);
-        const outside = data.rows.some((row) =>
-          [row.mac, row.npp, row.npt].some((value) => value < min || value > max),
-        );
-        if (outside)
-          throw new Error(`As notas têm de estar entre ${min} e ${max} (escala do modelo).`);
-      }
+    if (data.offlineSchoolId && data.offlineSchoolId !== membership.schoolId) {
+      throw new Error("A escola activa é diferente da escola de origem do lançamento offline.");
     }
-    return upsertSgaTermGradesBatch({
-      db,
-      schoolId: membership.schoolId,
-      userId: context.userId,
-      subjectId: data.subjectId,
-      term: data.term,
-      rows: data.rows,
-    });
+    if (data.offlineActorId && data.offlineActorId !== context.userId) {
+      throw new Error("A conta actual é diferente da conta que realizou o lançamento offline.");
+    }
+    const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
+    const {
+      offlineSchoolId: _school,
+      offlineActorId: _actor,
+      offlineOpId,
+      offlineDeviceId,
+      ...payload
+    } = data;
+    return withOfflineReceipt(
+      {
+        db,
+        schoolId,
+        actorId: context.userId,
+        opId: offlineOpId,
+        deviceId: offlineDeviceId,
+        kind: "grades.term",
+        payload,
+        alreadyApplied: () => termGradesAlreadyApplied(db, schoolId, data),
+      },
+      async () => {
+        await assertTermOpen(db, membership.schoolId, data.term);
+        // A escala vem do modelo de avaliação activo (o esquema só limita a 0–20).
+        const { data: rule } = await db
+          .from("assessment_rule_sets")
+          .select("grading_scale_id")
+          .eq("school_id", membership.schoolId)
+          .eq("code", "DEFAULT")
+          .eq("status", "active")
+          .order("version", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (rule?.grading_scale_id) {
+          const { data: scale } = await db
+            .from("grading_scales")
+            .select("minimum_value, maximum_value")
+            .eq("school_id", membership.schoolId)
+            .eq("id", rule.grading_scale_id)
+            .maybeSingle();
+          if (scale) {
+            const min = Number(scale.minimum_value);
+            const max = Number(scale.maximum_value);
+            const outside = data.rows.some((row) =>
+              [row.mac, row.npp, row.npt].some((value) => value < min || value > max),
+            );
+            if (outside)
+              throw new Error(`As notas têm de estar entre ${min} e ${max} (escala do modelo).`);
+          }
+        }
+        return upsertSgaTermGradesBatch({
+          db,
+          schoolId: membership.schoolId,
+          userId: context.userId,
+          subjectId: data.subjectId,
+          term: data.term,
+          rows: data.rows,
+        });
+      },
+    );
   });
+
+/**
+ * Depois de um envio offline que caiu a meio: estas notas já estão gravadas? Então o
+ * envio entrou. Senão, repetir é seguro (só se regravam as notas que mudaram).
+ */
+async function termGradesAlreadyApplied(
+  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  schoolId: string,
+  data: UpsertTermGradesBatchInput,
+) {
+  const stored = await listSgaTermGrades({
+    db,
+    schoolId,
+    enrollmentIds: data.rows.map((row) => row.enrollmentId),
+    limit: data.rows.length * 40,
+  });
+  const byEnrollment = new Map(
+    stored
+      .filter((row) => row.subject_id === data.subjectId && row.term === data.term)
+      .map((row) => [row.enrollment_id, row]),
+  );
+  const same = data.rows.every((row) => {
+    const current = byEnrollment.get(row.enrollmentId);
+    return (
+      current !== undefined &&
+      current.mac === row.mac &&
+      current.npp === row.npp &&
+      current.npt === row.npt
+    );
+  });
+  return same ? { saved: data.rows.length } : null;
+}
 
 export const assignClassSubjectTeacher = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1664,6 +1706,26 @@ export const createAssessment = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
+    // Como nas notas e nos planos: a disciplina tem de estar atribuída à turma, nesta
+    // escola. Sem isto a avaliação nascia e nenhuma nota se podia lançar nela.
+    const { data: classSubject, error: classSubjectError } = await db
+      .from("class_subjects")
+      .select("id")
+      .eq("school_id", membership.schoolId)
+      .eq("class_group_id", data.classGroupId)
+      .eq("subject_id", data.subjectId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    if (classSubjectError && !isMissingRelation(classSubjectError)) {
+      throw publicDatabaseError(
+        classSubjectError,
+        "Não foi possível validar a turma e a disciplina.",
+      );
+    }
+    if (!classSubjectError && !classSubject) {
+      throw new Error("Esta disciplina não está atribuída à turma escolhida.");
+    }
     const { data: created, error } = await db
       .from("siga_assessment_items")
       .insert({
@@ -1721,137 +1783,12 @@ export const upsertAssessmentScores = createServerFn({ method: "POST" })
       ["Administrador", "Secretaria", "Professor"],
     );
     const db = await loadSgaAdminClient();
-    const { data: item, error: itemError } = await db
-      .from("siga_assessment_items")
-      .select("id, term, class_group_id, max_score")
-      .eq("id", data.itemId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (itemError) {
-      if (isMissingRelation(itemError)) {
-        throw new Error(
-          "Tabelas de avaliações em falta. Corra supabase/APPLY_ENROLLMENT_AND_PREMIUM.sql.",
-        );
-      }
-      throw publicDatabaseError(itemError, "Não foi possível validar a avaliação.");
-    }
-    if (!item?.id) throw new Error("Avaliação não encontrada.");
-    // O esquema aceita até 20 para qualquer avaliação; uma prova cotada para 10
-    // aceitava 18, e o domínio por competência passava dos 100%.
-    const maxScore = item.max_score == null ? null : Number(item.max_score);
-    if (maxScore != null && data.rows.some((row) => row.score != null && row.score > maxScore)) {
-      throw new Error(`Esta avaliação vale ${maxScore} valores: nenhuma nota pode passar disso.`);
-    }
-    await assertTermOpen(db, membership.schoolId, Number(item.term));
-    // Pauta homologada/publicada: as notas das avaliações também ficam fechadas
-    // (a alteração passa a pedido), como as de MAC/NPP/NPT.
-    await assertAssessmentTermNotLocked(
-      db,
-      membership.schoolId,
-      String(item.class_group_id),
-      Number(item.term),
-    );
-
-    // 1 SELECT para todos os alunos do lote + 1 INSERT em lote (novos) + updates em
-    // paralelo — substitui o anterior select+insert/update sequencial por aluno, que
-    // tornava lançar notas de uma turma inteira em dezenas de idas e vindas à base.
-    const enrollmentIds = data.rows.map((row) => row.enrollmentId);
-    // Só alunos da turma da avaliação. Para o professor a base já o exige (gatilho
-    // `enforce_teacher_assessment_score_scope`); para a Administração e a
-    // Secretaria não, e uma nota podia ficar num aluno de outra turma.
-    const { data: classEnrollments, error: classError } = await db
-      .from("enrollments")
-      .select("id")
-      .eq("school_id", membership.schoolId)
-      .eq("class_group_id", String(item.class_group_id))
-      .in("id", enrollmentIds);
-    if (classError) {
-      throw publicDatabaseError(classError, "Não foi possível confirmar os alunos da turma.");
-    }
-    if ((classEnrollments ?? []).length !== new Set(enrollmentIds).size) {
-      throw new Error("Há alunos que não são da turma desta avaliação.");
-    }
-    const { data: existingRows, error: existingError } = await db
-      .from("siga_assessment_scores")
-      .select("id, score, enrollment_id")
-      .eq("item_id", data.itemId)
-      .in("enrollment_id", enrollmentIds);
-    if (existingError) {
-      throw publicDatabaseError(existingError, "Não foi possível verificar as notas existentes.");
-    }
-    const existingByEnrollment = new Map(
-      (existingRows ?? []).map((row) => [row.enrollment_id, row] as const),
-    );
-    const toInsert = data.rows.filter((row) => !existingByEnrollment.has(row.enrollmentId));
-    const toUpdate = data.rows.filter((row) => existingByEnrollment.has(row.enrollmentId));
-
-    const [insertResult, ...updateResults] = await Promise.all([
-      toInsert.length
-        ? db.from("siga_assessment_scores").insert(
-            toInsert.map((row) => ({
-              school_id: membership.schoolId,
-              item_id: data.itemId,
-              enrollment_id: row.enrollmentId,
-              score: row.score,
-              recorded_by: context.userId,
-            })),
-          )
-        : Promise.resolve({ error: null }),
-      ...toUpdate.map((row) => {
-        const existing = existingByEnrollment.get(row.enrollmentId)!;
-        return db
-          .from("siga_assessment_scores")
-          .update({
-            previous_score: existing.score,
-            score: row.score,
-            recorded_by: context.userId,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id)
-          .eq("school_id", membership.schoolId);
-      }),
-    ]);
-    // Lançar notas é a escrita de maior consequência do sistema. Sem registo,
-    // um lote que falha a meio — uns alunos gravados, outros não — chega ao
-    // professor como uma mensagem genérica e não deixa rasto nenhum.
-    const failure = insertResult.error ?? updateResults.find((result) => result.error)?.error;
-    if (failure) {
-      reportSigaError("assessment.score.write_failed", failure, {
-        module: "academic",
-        action: "score.upsert",
-        school_id: membership.schoolId,
-        assessment_item_id: data.itemId,
-        user_id: context.userId,
-        count: data.rows.length,
-      });
-    }
-    if (insertResult.error)
-      throw publicDatabaseError(insertResult.error, "Não foi possível lançar as notas.");
-    for (const result of updateResults) {
-      if (result.error)
-        throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
-    }
-    // A tabela só guarda a nota anterior: uma nota mudada duas vezes perdia a
-    // original. Cada alteração de uma nota já lançada fica em audit_logs.
-    await recordAuditBatch(
-      toUpdate
-        .map((row) => ({ row, existing: existingByEnrollment.get(row.enrollmentId)! }))
-        .filter(({ row, existing }) => Number(existing.score) !== Number(row.score))
-        .map(({ row, existing }) => ({
-          schoolId: membership.schoolId,
-          actorUserId: context.userId,
-          action: "grades.assessment_score_changed",
-          entityType: "siga_assessment_scores",
-          entityId: existing.id,
-          metadata: {
-            item_id: data.itemId,
-            enrollment_id: row.enrollmentId,
-            from: existing.score,
-            to: row.score,
-          },
-        })),
-    );
-    return { saved: data.rows.length };
+    return writeAssessmentScores(db, {
+      schoolId: membership.schoolId,
+      userId: context.userId,
+      itemId: data.itemId,
+      rows: data.rows,
+    });
   });
 
 export const updateAssessmentItem = createServerFn({ method: "POST" })
@@ -1931,63 +1868,6 @@ export const updateAssessmentItem = createServerFn({ method: "POST" })
     return { success: true, item: updated };
   });
 
-export const deleteAssessmentItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => deleteAssessmentInputSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    if (!context) throw new Error("Não autenticado.");
-    const membership = await requireSgaWriterForWrite(
-      "pedagogica",
-      context.supabase,
-      context.userId,
-      ["Administrador", "Secretaria", "Professor"],
-    );
-    const db = await loadSgaAdminClient();
-
-    // Check if assessment scores exist
-    const { count, error: countErr } = await db
-      .from("siga_assessment_scores")
-      .select("*", { count: "exact", head: true })
-      .eq("item_id", data.itemId)
-      .eq("school_id", membership.schoolId);
-
-    if (countErr && !isMissingRelation(countErr)) {
-      throw publicDatabaseError(countErr, "Não foi possível verificar as notas da avaliação.");
-    }
-
-    if ((count ?? 0) > 0 && !data.force) {
-      throw new Error(
-        `Esta avaliação possui ${count} nota(s) lançada(s). Confirme que pretende eliminar todas as notas associadas.`,
-      );
-    }
-
-    // Delete scores first if any exist
-    if ((count ?? 0) > 0) {
-      const { error: delScoresErr } = await db
-        .from("siga_assessment_scores")
-        .delete()
-        .eq("item_id", data.itemId)
-        .eq("school_id", membership.schoolId);
-
-      if (delScoresErr) {
-        throw publicDatabaseError(delScoresErr, "Não foi possível eliminar as notas associadas.");
-      }
-    }
-
-    // Delete item
-    const { error: delItemErr } = await db
-      .from("siga_assessment_items")
-      .delete()
-      .eq("id", data.itemId)
-      .eq("school_id", membership.schoolId);
-
-    if (delItemErr) {
-      throw publicDatabaseError(delItemErr, "Não foi possível eliminar a avaliação.");
-    }
-
-    return { success: true, deletedScoresCount: count ?? 0 };
-  });
-
 export type StudentAcademicHistoryYear = {
   academicYearId: string | null;
   academicYearName: string;
@@ -2002,6 +1882,8 @@ export type StudentAcademicHistoryYear = {
   status: ReturnType<typeof buildClassAcademicSummaries>[number]["status"];
   /** Resultado registado pela secretaria (Exames → Resultado final); null se ainda não houver. */
   official: { outcome: string; finalAverage: number | null } | null;
+  /** Nota mínima de aprovação do modelo de avaliação em vigor (não um 10 fixo). */
+  passingValue: number;
 };
 
 /**
@@ -2151,6 +2033,10 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
 
     // Regra de transição do modelo em vigor (nota de aprovação e regras por ciclo).
     const activeRule = await loadActiveRuleSummary(db, membership.schoolId);
+    // Os períodos configurados pela escola (2 ou 3); o motor ajusta-os ao ciclo de
+    // cada turma (o Superior é sempre semestral). Sem eles, uma escola de dois
+    // trimestres tinha o histórico «PENDENTE» à espera de um 3.º que não existe.
+    const academicSettings = await readSettingsDomain(db, membership.schoolId, "academic");
 
     // Resultado oficial por ano lectivo (histórico académico registado).
     const { data: officialRows } = await db
@@ -2211,7 +2097,11 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         subjects: subjectsForClass,
         termGrades: gradesForEnrollment,
         cycle,
-        options: { passing: activeRule.passing, rules: activeRule.promotionRules },
+        options: {
+          passing: activeRule.passing,
+          rules: activeRule.promotionRules,
+          periodCount: academicSettings.evaluation_periods,
+        },
       });
 
       return {
@@ -2227,6 +2117,7 @@ export const getStudentAcademicHistory = createServerFn({ method: "GET" })
         overallMfd: summary?.overallMfd ?? null,
         status: summary?.status ?? "PENDENTE",
         official: officialByYear.get(String(year?.["name"] ?? "")) ?? null,
+        passingValue: activeRule.passing,
       };
     });
 

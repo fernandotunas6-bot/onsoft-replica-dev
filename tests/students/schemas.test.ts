@@ -3,7 +3,6 @@ import {
   assignGuardianInputSchema,
   mapSgaGuardianRelationship,
   changeStudentStatusInputSchema,
-  createStudentInputSchema,
   enrollNewStudentInputSchema,
   removeGuardianInputSchema,
   searchStudentsInputSchema,
@@ -27,29 +26,10 @@ describe("searchStudentsInputSchema", () => {
   });
 });
 
-describe("createStudentInputSchema", () => {
-  it("requires a registration number", () => {
-    expect(
-      createStudentInputSchema.safeParse({ personId: uuid, registrationNumber: "" }).success,
-    ).toBe(false);
-    expect(
-      createStudentInputSchema.safeParse({ personId: uuid, registrationNumber: "2026-0001" })
-        .success,
-    ).toBe(true);
-  });
-
-  it("defaults guardians to an empty array", () => {
-    const result = createStudentInputSchema.parse({
-      personId: uuid,
-      registrationNumber: "2026-0001",
-    });
-    expect(result.guardians).toEqual([]);
-  });
-});
-
 describe("enrollNewStudentInputSchema", () => {
   it("validates both the person and the registration number together", () => {
     const result = enrollNewStudentInputSchema.safeParse({
+      requestId: uuid,
       person: { full_name: "Ana Domingos" },
       registrationNumber: "2026-0001",
     });
@@ -58,10 +38,28 @@ describe("enrollNewStudentInputSchema", () => {
 
   it("fails when the nested person is invalid, even if the registration number is fine", () => {
     const result = enrollNewStudentInputSchema.safeParse({
+      requestId: uuid,
       person: { full_name: "A" },
       registrationNumber: "2026-0001",
     });
     expect(result.success).toBe(false);
+  });
+
+  it("exige pedido identificável e turma com ano correspondente", () => {
+    const person = { full_name: "Ana Domingos" };
+    expect(enrollNewStudentInputSchema.safeParse({ person }).success).toBe(false);
+    expect(
+      enrollNewStudentInputSchema.safeParse({ requestId: uuid, person, classGroupId: uuid })
+        .success,
+    ).toBe(false);
+    expect(
+      enrollNewStudentInputSchema.safeParse({
+        requestId: uuid,
+        person,
+        classGroupId: uuid,
+        academicYearId: uuid,
+      }).success,
+    ).toBe(true);
   });
 });
 

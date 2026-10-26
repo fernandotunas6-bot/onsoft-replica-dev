@@ -17,8 +17,8 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     shortName: "Início",
     description: "Painel e atalhos do dia.",
     mark: "siga-dashboard",
-    navPath: "/",
-    target: { type: "route", to: "/" },
+    navPath: "/portal",
+    target: { type: "route", to: "/portal" },
   },
   {
     id: "siga-alunos",
@@ -111,6 +111,35 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/financeiro/rh" },
   },
   {
+    id: "siga-faturas",
+    name: "Faturas e Recibos",
+    shortName: "Faturas",
+    description: "Documentos de cobrança e quitação.",
+    mark: "siga-faturas",
+    navPath: "/faturas",
+    target: { type: "route", to: "/faturas" },
+  },
+  {
+    id: "siga-tesouraria",
+    name: "Tesouraria",
+    shortName: "Tesouraria",
+    description: "Caixa, saldos e fecho do dia.",
+    // Sem marca própria; usa a do Financeiro, de que é parte.
+    mark: "siga-financeiro",
+    navPath: "/tesouraria",
+    target: { type: "route", to: "/tesouraria" },
+  },
+  {
+    id: "siga-conciliacao",
+    name: "Bancos e Conciliação",
+    shortName: "Conciliação",
+    description: "Cobranças do gateway e conciliação bancária.",
+    // Sem marca própria; usa a do Financeiro, de que é parte.
+    mark: "siga-financeiro",
+    navPath: "/financeiro/conciliacao",
+    target: { type: "route", to: "/financeiro/conciliacao" },
+  },
+  {
     id: "siga-arquivos",
     name: "Arquivos",
     shortName: "Arquivos",
@@ -147,15 +176,6 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     target: { type: "route", to: "/relatorios/financeiros" },
   },
   {
-    id: "siga-catracas",
-    name: "Catracas & Cartão Virtual",
-    shortName: "Catracas",
-    description: "Controlo de acesso físico e cartões digitais.",
-    mark: "siga-catracas",
-    navPath: "/catracas",
-    target: { type: "route", to: "/catracas" },
-  },
-  {
     id: "siga-acessos",
     name: "Acessos",
     shortName: "Acessos",
@@ -163,6 +183,15 @@ export const WORKSPACE_MODULE_SPECS: WorkspaceModuleSpec[] = [
     mark: "siga-acessos",
     navPath: "/acessos",
     target: { type: "route", to: "/acessos" },
+  },
+  {
+    id: "siga-catracas",
+    name: "Catracas & Cartão Virtual",
+    shortName: "Catracas",
+    description: "Controlo de acesso físico e cartões digitais.",
+    mark: "siga-catracas",
+    navPath: "/catracas",
+    target: { type: "route", to: "/catracas" },
   },
   {
     id: "siga-matricula",

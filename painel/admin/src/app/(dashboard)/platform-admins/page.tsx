@@ -37,9 +37,9 @@ export default function PlatformAdminsPage() {
   const [needsAuth, setNeedsAuth] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Não limpa o erro: conceder/revogar recarregam e a mensagem tem de ficar.
   const load = useCallback(async () => {
     setLoading(true)
-    setError(null)
     const token = await accessToken()
     const result = await fetchPlatformAdmins(token)
     if (!token || result.error?.includes("Unauthorized") || result.error?.includes("Sem permissão")) {
@@ -78,7 +78,12 @@ export default function PlatformAdminsPage() {
     setSaving(false)
   }
 
-  async function handleRevoke(userId: string) {
+  async function handleRevoke(userId: string, label: string) {
+    if (admins.length <= 1) {
+      setError("Não pode revogar o último administrador da plataforma.")
+      return
+    }
+    if (!window.confirm(`Revogar o acesso de ${label} à consola da plataforma?`)) return
     setError(null)
     const token = await accessToken()
     const result = await revokePlatformAdmin(token, userId)
@@ -180,7 +185,7 @@ export default function PlatformAdminsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => void handleRevoke(admin.user_id)}
+                          onClick={() => void handleRevoke(admin.user_id, admin.email || admin.user_id)}
                         >
                           Revogar
                         </Button>

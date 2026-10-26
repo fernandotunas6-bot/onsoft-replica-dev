@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { numberMatches } from "@/features/education-catalog/identifiers";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -15,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Eye,
   FileBadge,
   FileDown,
   FileText,
@@ -44,17 +44,20 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { buildEmisExportPayload } from "@/features/integrations/emis";
 import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentSheet";
-import { StudentExtensiveModal } from "@/features/students/components/StudentExtensiveModal";
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
 import { StudentFinanceBadge } from "@/features/students/components/StudentFinanceBadge";
 import {
+  ACADEMIC_STATUS_LABELS,
+  academicStatusLabel,
   computeDynamicCounters,
   matchesQuickCategory,
+  studentStatusChoices,
+  type ManualStudentStatus,
   type QuickFilterCategory,
   type InactiveSubFilter,
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
-import { batchAssignClass, batchUpdateStudentStatus } from "@/features/students/server";
+import { classGroupChoices } from "@/features/students/enrollment-directory";
 import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -113,6 +116,8 @@ import {
 } from "@/components/ui/table";
 import { searchPeople } from "@/features/people/server";
 import {
+  batchAssignClass,
+  batchUpdateStudentStatus,
   changeStudentStatus,
   enrollStudentInClass,
   searchStudents,
@@ -180,22 +185,6 @@ const selectClass = "h-9 rounded-lg border border-input bg-background px-3 text-
 
 const badge = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold";
 
-const estadoLabels: Record<string, string> = {
-  active: "Activo",
-  inactive: "Inactivo",
-  transferred: "Transferido",
-  graduated: "Concluído",
-  applicant: "Candidato",
-};
-
-const estadoTone: Record<string, string> = {
-  active: "bg-primary text-primary-foreground",
-  inactive: "bg-muted text-muted-foreground",
-  transferred: "border border-destructive/30 bg-destructive/10 text-destructive-strong",
-  graduated: "bg-success/15 text-success",
-  applicant: "bg-warning/20 text-warning-foreground",
-};
-
 const pagamentoLabels: Record<string, string> = {
   settled: "Regularizado",
   pending: "Pendente",
@@ -255,7 +244,7 @@ function StudentsPage() {
   const pageSize = Number(filters.pageSize) || 10;
   const page = Math.max(1, Number(filters.page) || 1);
   const setPage = (next: number) => setFilter("page", String(next));
-  const [extensiveModalStudent, setExtensiveModalStudent] = useState<StudentRow | null>(null);
+  const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -355,9 +344,16 @@ function StudentsPage() {
   );
   const pendingApplicationsCount = pendingApplicationsQuery.data?.length ?? 0;
   const classGroups = workspaceQuery.data?.classGroups ?? [];
-  const turmaOptions = classGroups
-    .filter((group) => group.academic_year_id)
-    .map((group) => `${group.name}${group.grade_name ? ` · ${group.grade_name}` : ""}`);
+  const turmaOptions = classGroupChoices(classGroups);
+  // «Turma» e «Mudar» na linha: a mesma colocação (`enrollStudentInClass`).
+  const placeInClass = async (studentId: string, classGroupId: string) => {
+    await enrollStudentInClass({ data: { studentId, classGroupId } });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+      queryClient.invalidateQueries({ queryKey: ["academic", "pedagogical-workspace"] }),
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+    ]);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -371,7 +367,7 @@ function StudentsPage() {
       const matchQuery =
         !q ||
         s.full_name.toLowerCase().includes(q) ||
-        s.registration_number.toLowerCase().includes(q) ||
+        numberMatches(s.registration_number, q) ||
         (s.email ?? "").toLowerCase().includes(q) ||
         (s.phone ?? "").toLowerCase().includes(q) ||
         (s.national_id ?? "").toLowerCase().includes(q) ||
@@ -458,7 +454,7 @@ function StudentsPage() {
     { label: "Turma", value: (row: StudentRow) => row.class_name ?? "" },
     {
       label: "Estado",
-      value: (row: StudentRow) => estadoLabels[row.student_status] ?? row.student_status,
+      value: (row: StudentRow) => academicStatusLabel(row.student_status),
     },
     {
       label: "Pagamento",
@@ -516,7 +512,7 @@ function StudentsPage() {
             rows: filtered.map((row) => ({
               label: String(row.full_name),
               value: String(row.registration_number ?? "—"),
-              note: [row.class_name, estadoLabels[String(row.student_status)] ?? row.student_status]
+              note: [row.class_name, academicStatusLabel(String(row.student_status))]
                 .filter(Boolean)
                 .join(" · "),
             })),
@@ -657,6 +653,7 @@ function StudentsPage() {
                 academic_year_name: String(group.academic_year_name ?? ""),
               }))}
               people={peopleQuery.data ?? []}
+              existingStudents={studentsQuery.data ?? []}
               onCreated={async () => {
                 await Promise.all([
                   queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
@@ -798,7 +795,7 @@ function StudentsPage() {
                   {
                     name: "estado",
                     label: "Estado",
-                    value: estadoLabels[estado] ?? estado,
+                    value: academicStatusLabel(estado),
                     emptyValue: "todos",
                   },
                 ]
@@ -830,7 +827,10 @@ function StudentsPage() {
               emptyValue: "todos",
               options: [
                 { value: "todos", label: "Todos os estados" },
-                ...Object.entries(estadoLabels).map(([value, label]) => ({ value, label })),
+                ...Object.entries(ACADEMIC_STATUS_LABELS).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
               ],
             },
             {
@@ -1139,7 +1139,7 @@ function StudentsPage() {
                 error={studentsQuery.isError ? studentsQuery.error : undefined}
                 onRetry={() => void studentsQuery.refetch()}
                 onOpenStudent={(student) =>
-                  setExtensiveModalStudent(paged.find((row) => row.id === student.id) ?? null)
+                  void navigate({ to: "/alunos/$studentId", params: { studentId: student.id } })
                 }
                 onClearFilters={resetFilters}
                 emptyTitle={
@@ -1229,7 +1229,9 @@ function StudentsPage() {
                             "cursor-pointer transition-colors hover:bg-muted/60 group",
                             selectedIds.includes(s.id) && "bg-primary/5",
                           )}
-                          onClick={() => setExtensiveModalStudent(s)}
+                          onClick={() =>
+                            void navigate({ to: "/alunos/$studentId", params: { studentId: s.id } })
+                          }
                         >
                           <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -1323,22 +1325,10 @@ function StudentsPage() {
                           <TableCell>
                             <div className="flex justify-end gap-2">
                               <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setExtensiveModalStudent(s);
-                                }}
-                              >
-                                <Eye className="size-3.5" /> Visualizar
-                              </Button>
-                              <Button
                                 asChild
                                 variant="outline"
                                 size="sm"
-                                className="h-8 gap-1 px-2 text-xs"
+                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
                                 onClick={(event) => event.stopPropagation()}
                               >
                                 <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
@@ -1362,35 +1352,7 @@ function StudentsPage() {
                                       options: turmaOptions,
                                     },
                                   ]}
-                                  onSubmit={async (values) => {
-                                    const group = classGroups.find(
-                                      (item) =>
-                                        `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                        values["turma"],
-                                    );
-                                    const yearId = String(group?.academic_year_id ?? "");
-                                    if (!group || !yearId) {
-                                      throw new Error("Seleccione uma turma com ano lectivo.");
-                                    }
-                                    await enrollStudentInClass({
-                                      data: {
-                                        studentId: s.id,
-                                        classGroupId: group.id,
-                                        academicYearId: yearId,
-                                      },
-                                    });
-                                    await Promise.all([
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["students", "search"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["academic", "pedagogical-workspace"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["dashboard", "overview"],
-                                      }),
-                                    ]);
-                                  }}
+                                  onSubmit={(values) => placeInClass(s.id, values["turma"] ?? "")}
                                   trigger={(open) => (
                                     <Button
                                       size="sm"
@@ -1421,39 +1383,11 @@ function StudentsPage() {
                                       type: "select",
                                       required: true,
                                       options: turmaOptions.filter(
-                                        (option) => option !== s.class_name,
+                                        (option) => option.value !== s.class_group_id,
                                       ),
                                     },
                                   ]}
-                                  onSubmit={async (values) => {
-                                    const group = classGroups.find(
-                                      (item) =>
-                                        `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                                        values["turma"],
-                                    );
-                                    const yearId = String(group?.academic_year_id ?? "");
-                                    if (!group || !yearId) {
-                                      throw new Error("Seleccione uma turma com ano lectivo.");
-                                    }
-                                    await enrollStudentInClass({
-                                      data: {
-                                        studentId: s.id,
-                                        classGroupId: group.id,
-                                        academicYearId: yearId,
-                                      },
-                                    });
-                                    await Promise.all([
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["students", "search"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["academic", "pedagogical-workspace"],
-                                      }),
-                                      queryClient.invalidateQueries({
-                                        queryKey: ["dashboard", "overview"],
-                                      }),
-                                    ]);
-                                  }}
+                                  onSubmit={(values) => placeInClass(s.id, values["turma"] ?? "")}
                                   trigger={(open) => (
                                     <Button
                                       size="sm"
@@ -1481,8 +1415,8 @@ function StudentsPage() {
                                       label: "Estado",
                                       type: "select",
                                       required: true,
-                                      defaultValue: estadoLabels[s.student_status] ?? "Activo",
-                                      options: ["Activo", "Inactivo", "Transferido", "Concluído"],
+                                      defaultValue: s.student_status,
+                                      options: studentStatusChoices(),
                                     },
                                     {
                                       name: "motivo",
@@ -1493,16 +1427,8 @@ function StudentsPage() {
                                     },
                                   ]}
                                   onSubmit={async (values) => {
-                                    const statusMap: Record<
-                                      string,
-                                      "active" | "inactive" | "transferred" | "graduated"
-                                    > = {
-                                      Activo: "active",
-                                      Inactivo: "inactive",
-                                      Transferido: "transferred",
-                                      Concluído: "graduated",
-                                    };
-                                    const newStatus = statusMap[values["estado"] ?? ""] ?? "active";
+                                    const newStatus = (values["estado"] ||
+                                      "active") as ManualStudentStatus;
                                     await changeStudentStatus({
                                       data: {
                                         studentId: s.id,
@@ -1603,11 +1529,7 @@ function StudentsPage() {
                       },
                     ]}
                     onSubmit={async (values) => {
-                      const group = classGroups.find(
-                        (item) =>
-                          `${item.name}${item.grade_name ? ` · ${item.grade_name}` : ""}` ===
-                          values["turma"],
-                      );
+                      const group = classGroups.find((item) => item.id === values["turma"]);
                       const yearId = String(group?.academic_year_id ?? "");
                       if (!group || !yearId)
                         throw new Error("Seleccione uma turma com ano lectivo.");
@@ -1651,13 +1573,7 @@ function StudentsPage() {
                       label: "Novo Estado",
                       type: "select",
                       required: true,
-                      options: [
-                        { value: "active", label: "Activo" },
-                        { value: "inactive", label: "Desistente / Inactivo" },
-                        { value: "transferred", label: "Transferido" },
-                        { value: "graduated", label: "Concluído" },
-                        { value: "applicant", label: "Candidato" },
-                      ],
+                      options: studentStatusChoices(["applicant"]),
                     },
                     {
                       name: "motivo",
@@ -1718,15 +1634,6 @@ function StudentsPage() {
               setPage(1);
             }}
             pageSizeOptions={[10, 25, 50, 100]}
-          />
-
-          <StudentExtensiveModal
-            open={Boolean(extensiveModalStudent)}
-            onOpenChange={(open) => {
-              if (!open) setExtensiveModalStudent(null);
-            }}
-            studentId={extensiveModalStudent?.id ?? null}
-            initialData={extensiveModalStudent}
           />
         </div>
       </div>
