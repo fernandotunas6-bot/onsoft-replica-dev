@@ -345,10 +345,28 @@ describe("entregas: professor", () => {
       assessmentOptions: [item],
       lines: [
         // Na pauta com a mesma nota: não conta.
-        { enrollmentId: "e1", studentName: "Ana", submission: returned(15), attempts: 1, pautaScore: 15 },
+        {
+          enrollmentId: "e1",
+          studentName: "Ana",
+          submission: returned(15),
+          attempts: 1,
+          pautaScore: 15,
+        },
         // Nota 0 sem nota na pauta: conta (Number(null) também é 0).
-        { enrollmentId: "e2", studentName: "Bia", submission: returned(0), attempts: 1, pautaScore: null },
-        { enrollmentId: "e3", studentName: "Caio", submission: returned(12), attempts: 1, pautaScore: 9 },
+        {
+          enrollmentId: "e2",
+          studentName: "Bia",
+          submission: returned(0),
+          attempts: 1,
+          pautaScore: null,
+        },
+        {
+          enrollmentId: "e3",
+          studentName: "Caio",
+          submission: returned(12),
+          attempts: 1,
+          pautaScore: 9,
+        },
       ],
     });
     server.syncTaskGradesToPauta.mockResolvedValue({ saved: 2 });

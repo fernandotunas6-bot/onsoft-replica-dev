@@ -446,7 +446,9 @@ function AssessmentLink({
     mutationFn: () => syncTaskGradesToPauta({ data: { taskId } }),
     onSuccess: (result) => {
       toast.success(
-        result.saved === 1 ? "1 nota lançada na pauta." : `${result.saved} notas lançadas na pauta.`,
+        result.saved === 1
+          ? "1 nota lançada na pauta."
+          : `${result.saved} notas lançadas na pauta.`,
       );
       void queryClient.invalidateQueries({ queryKey });
     },
