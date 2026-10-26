@@ -12,9 +12,7 @@ import { mustChangePassword } from "@/features/students/student-accounts";
 
 export const completeFirstPasswordChange = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) =>
-    z.object({ password: z.string().min(1).max(200) }).parse(input),
-  )
+  .validator((input: unknown) => z.object({ password: z.string().min(1).max(200) }).parse(input))
   .handler(async ({ data, context }) => {
     if (!passwordMeetsPolicy(data.password)) throw new Error(PASSWORD_POLICY_HINT);
     const db = await loadSgaAdminClient();

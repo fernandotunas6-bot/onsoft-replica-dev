@@ -16,7 +16,8 @@ vi.mock("@/features/academic/class-organization-server", () => ({
   applyClassOrganization: (a: unknown) => server.applyClassOrganization(a),
 }));
 
-const { ClassOrganizationView } = await import("@/features/academic/components/ClassOrganizationPage");
+const { ClassOrganizationView } =
+  await import("@/features/academic/components/ClassOrganizationPage");
 
 afterEach(() => {
   cleanup();
@@ -55,10 +56,34 @@ describe("organizar turmas", () => {
     });
     server.previewClassOrganization.mockResolvedValue({
       classes: [
-        { id: "cA", letter: "A", code: "7A-M", name: "7ª A — Manhã", capacity: 2, current: 1, proposed: 2, youngest: 12, oldest: 13 },
-        { id: "cB", letter: "B", code: "7B-M", name: "7ª B — Manhã", capacity: 2, current: 2, proposed: 1, youngest: 14, oldest: 14 },
+        {
+          id: "cA",
+          letter: "A",
+          code: "7A-M",
+          name: "7ª A — Manhã",
+          capacity: 2,
+          current: 1,
+          proposed: 2,
+          youngest: 12,
+          oldest: 13,
+        },
+        {
+          id: "cB",
+          letter: "B",
+          code: "7B-M",
+          name: "7ª B — Manhã",
+          capacity: 2,
+          current: 2,
+          proposed: 1,
+          youngest: 14,
+          oldest: 14,
+        },
       ],
-      lines: [line(2, "B", "A", "move", 12), line(3, "A", "A", "records", 13), line(1, "B", "B", "same", 14)],
+      lines: [
+        line(2, "B", "A", "move", 12),
+        line(3, "A", "A", "records", 13),
+        line(1, "B", "B", "same", 14),
+      ],
       moves: [{ enrollmentId: "e2", studentId: "s2", from: "cB", to: "cA" }],
       blockers: [],
       warnings: ["1 aluno(s) já têm notas, presenças ou entregas nesta turma e ficam onde estão."],
@@ -66,7 +91,9 @@ describe("organizar turmas", () => {
     });
     server.applyClassOrganization.mockResolvedValue({ moved: 1, failed: [], blocked: [] });
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
         <ClassOrganizationView />
       </QueryClientProvider>,
     );

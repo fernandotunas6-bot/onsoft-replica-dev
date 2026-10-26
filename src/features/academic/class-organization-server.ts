@@ -123,7 +123,9 @@ export const listOrganizationScopes = createServerFn({ method: "GET" })
           .in("id", programIds)
       : { data: [] as Row[] };
     const levelOf = new Map(((levels ?? []) as Row[]).map((row) => [str(row.id), row]));
-    const programName = new Map(((programs ?? []) as Row[]).map((row) => [str(row.id), str(row.name)]));
+    const programName = new Map(
+      ((programs ?? []) as Row[]).map((row) => [str(row.id), str(row.name)]),
+    );
     const studentsIn = new Map<string, number>();
     for (const row of (enrollments ?? []) as Row[]) {
       const id = str(row.class_group_id);
@@ -166,7 +168,12 @@ async function loadPlan(
   db: Db,
   schoolId: string,
   input: z.infer<typeof scopeInput>,
-): Promise<{ plan: OrganizationPlan; yearId: string; counts: Map<string, number>; capacity: Map<string, number> }> {
+): Promise<{
+  plan: OrganizationPlan;
+  yearId: string;
+  counts: Map<string, number>;
+  capacity: Map<string, number>;
+}> {
   const year = await activeYear(db, schoolId, input.academicYearId);
   const [{ data: level, error: levelError }, { data: groups, error: groupError }] =
     await Promise.all([
@@ -207,7 +214,8 @@ async function loadPlan(
         .in("class_group_id", groupIds)
         .in("status", CURRENT)
     : { data: [] as Row[], error: null };
-  if (enrollmentError) throw publicDatabaseError(enrollmentError, "Não foi possível ler as matrículas.");
+  if (enrollmentError)
+    throw publicDatabaseError(enrollmentError, "Não foi possível ler as matrículas.");
   const enrollmentRows = (enrollments ?? []) as Row[];
   const enrollmentIds = enrollmentRows.map((row) => str(row.id));
   const studentIds = [...new Set(enrollmentRows.map((row) => str(row.student_id)))];

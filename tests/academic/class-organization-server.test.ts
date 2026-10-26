@@ -63,8 +63,7 @@ vi.mock("@tanstack/react-start", () => ({
       },
       middleware: () => fn,
       handler:
-        (h: (ctx: { data: unknown; context: Row }) => unknown) =>
-        (call?: { data: unknown }) =>
+        (h: (ctx: { data: unknown; context: Row }) => unknown) => (call?: { data: unknown }) =>
           h({ data: fn.parse(call?.data), context: { userId: "staff", claims, supabase: {} } }),
       parse: (input: unknown) => input,
     };
@@ -75,15 +74,48 @@ vi.mock("@tanstack/react-start", () => ({
 const server = await import("@/features/academic/class-organization-server");
 
 const student = (n: number, birth: string, group: string) => ({ n, birth, group });
-function seed(list: Array<{ n: number; birth: string; group: string }>, withRecords: number[] = []) {
+function seed(
+  list: Array<{ n: number; birth: string; group: string }>,
+  withRecords: number[] = [],
+) {
   tables = {
     academic_years: [{ id: "y1", school_id: S, name: "2026/2027", status: "active" }],
     grade_levels: [{ id: LEVEL, school_id: S, name: "7.ª Classe", sequence: 7, program_id: "p1" }],
     programs: [{ id: "p1", school_id: S, name: "Ensino Geral" }],
     class_groups: [
-      { id: "cA", school_id: S, academic_year_id: "y1", grade_level_id: LEVEL, shift: "morning", code: "7A-M", name: "7ª A — Manhã", capacity: 2, status: "active" },
-      { id: "cB", school_id: S, academic_year_id: "y1", grade_level_id: LEVEL, shift: "morning", code: "7B-M", name: "7ª B — Manhã", capacity: 2, status: "active" },
-      { id: "cT", school_id: S, academic_year_id: "y1", grade_level_id: LEVEL, shift: "afternoon", code: "7A-T", name: "7ª A — Tarde", capacity: 35, status: "active" },
+      {
+        id: "cA",
+        school_id: S,
+        academic_year_id: "y1",
+        grade_level_id: LEVEL,
+        shift: "morning",
+        code: "7A-M",
+        name: "7ª A — Manhã",
+        capacity: 2,
+        status: "active",
+      },
+      {
+        id: "cB",
+        school_id: S,
+        academic_year_id: "y1",
+        grade_level_id: LEVEL,
+        shift: "morning",
+        code: "7B-M",
+        name: "7ª B — Manhã",
+        capacity: 2,
+        status: "active",
+      },
+      {
+        id: "cT",
+        school_id: S,
+        academic_year_id: "y1",
+        grade_level_id: LEVEL,
+        shift: "afternoon",
+        code: "7A-T",
+        name: "7ª A — Tarde",
+        capacity: 35,
+        status: "active",
+      },
     ],
     enrollments: list.map((s) => ({
       id: `e${s.n}`,
@@ -120,7 +152,12 @@ describe("organizar turmas no servidor", () => {
     const { scopes, year } = await server.listOrganizationScopes({ data: {} });
     expect(year.name).toBe("2026/2027");
     expect(scopes).toEqual([
-      expect.objectContaining({ gradeLevelName: "7.ª Classe", shift: "afternoon", classes: 1, students: 0 }),
+      expect.objectContaining({
+        gradeLevelName: "7.ª Classe",
+        shift: "afternoon",
+        classes: 1,
+        students: 0,
+      }),
       expect.objectContaining({ shift: "morning", shiftLabel: "Manhã", classes: 2, students: 2 }),
     ]);
   });

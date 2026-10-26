@@ -36,7 +36,10 @@ import {
 const STATUS: Record<LineStatus, { label: string; tone: string }> = {
   move: { label: "Muda", tone: "bg-primary/10 text-primary" },
   same: { label: "Fica", tone: "bg-muted text-muted-foreground" },
-  records: { label: "Com notas — fica", tone: "bg-warning/15 text-warning-foreground dark:text-warning" },
+  records: {
+    label: "Com notas — fica",
+    tone: "bg-warning/15 text-warning-foreground dark:text-warning",
+  },
   no_birth_date: { label: "Sem data de nascimento", tone: "bg-destructive/10 text-destructive" },
   no_capacity: { label: "Sem vaga", tone: "bg-destructive/10 text-destructive" },
 };
@@ -116,7 +119,10 @@ export function ClassOrganizationView() {
           >
             <option value="">Escolha a classe a organizar…</option>
             {(scopes.data?.scopes ?? []).map((scope) => (
-              <option key={`${scope.gradeLevelId}|${scope.shift}`} value={`${scope.gradeLevelId}|${scope.shift}`}>
+              <option
+                key={`${scope.gradeLevelId}|${scope.shift}`}
+                value={`${scope.gradeLevelId}|${scope.shift}`}
+              >
                 {scope.programName ? `${scope.programName} · ` : ""}
                 {scope.gradeLevelName} · {scope.shiftLabel} — {scope.classes} turma(s),{" "}
                 {scope.students} aluno(s)
@@ -126,7 +132,12 @@ export function ClassOrganizationView() {
         </div>
         {plan ? (
           <div className="flex gap-2">
-            <Button type="button" variant="outline" className="gap-2" onClick={() => window.print()}>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.print()}
+            >
               <Printer className="size-4" aria-hidden /> Imprimir listas
             </Button>
             <AlertDialog>
@@ -162,8 +173,8 @@ export function ClassOrganizationView() {
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-10 text-center print:hidden">
           <IconChip icon={Users} tone="muted" size="md" />
           <p className="max-w-md text-sm text-muted-foreground">
-            Escolha uma classe e um turno. A turma A recebe os alunos mais novos, a B os seguintes, e
-            assim por diante, até à lotação de cada turma. Nada muda antes de aplicar.
+            Escolha uma classe e um turno. A turma A recebe os alunos mais novos, a B os seguintes,
+            e assim por diante, até à lotação de cada turma. Nada muda antes de aplicar.
           </p>
         </div>
       ) : preview.isLoading ? (
@@ -253,7 +264,9 @@ export function ClassOrganizationView() {
                           <td className="px-3 py-2 tabular-nums text-muted-foreground">
                             {index + 1}
                           </td>
-                          <td className="px-3 py-2 font-mono text-xs">{line.studentNumber || "—"}</td>
+                          <td className="px-3 py-2 font-mono text-xs">
+                            {line.studentNumber || "—"}
+                          </td>
                           <td className="px-3 py-2">{line.name}</td>
                           <td className="px-3 py-2 tabular-nums">{birth(line.birthDate)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{line.age ?? "—"}</td>

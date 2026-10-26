@@ -46,7 +46,7 @@ export function provisionalPassword(
 export function mustChangePassword(appMetadata: unknown): boolean {
   return Boolean(
     appMetadata &&
-      typeof appMetadata === "object" &&
-      (appMetadata as Record<string, unknown>).must_change_password === true,
+    typeof appMetadata === "object" &&
+    (appMetadata as Record<string, unknown>).must_change_password === true,
   );
 }

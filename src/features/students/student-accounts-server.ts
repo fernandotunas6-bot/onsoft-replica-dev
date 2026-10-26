@@ -115,7 +115,11 @@ async function loadStudentLines(
   db: Db,
   schoolId: string,
   studentIds: string[],
-): Promise<Array<Omit<StudentAccountLine, "classGroupId" | "classLabel"> & { personId: string; status: string }>> {
+): Promise<
+  Array<
+    Omit<StudentAccountLine, "classGroupId" | "classLabel"> & { personId: string; status: string }
+  >
+> {
   if (!studentIds.length) return [];
   const { data: students, error } = await db
     .from("students")
@@ -159,9 +163,7 @@ export type IssuedCredential = {
 export const createStudentAccounts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) =>
-    z
-      .object({ studentIds: z.array(z.string().guid()).min(1).max(ACCOUNTS_BATCH) })
-      .parse(input),
+    z.object({ studentIds: z.array(z.string().guid()).min(1).max(ACCOUNTS_BATCH) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     requireAal2(context.claims ?? {}, "Criar contas de acesso de alunos");

@@ -125,11 +125,15 @@ export function buildOrganizationPlan(input: {
   for (const group of open) {
     const letter = classLetter(group.code, group.name);
     if (!letter) {
-      blockers.push(`A turma «${group.name}» (${group.code}) não tem letra reconhecível no código.`);
+      blockers.push(
+        `A turma «${group.name}» (${group.code}) não tem letra reconhecível no código.`,
+      );
       continue;
     }
     if (seen.has(letter)) {
-      blockers.push(`Há duas turmas ${letter} nesta classe e turno (${seen.get(letter)} e ${group.code}).`);
+      blockers.push(
+        `Há duas turmas ${letter} nesta classe e turno (${seen.get(letter)} e ${group.code}).`,
+      );
       continue;
     }
     seen.set(letter, group.code);

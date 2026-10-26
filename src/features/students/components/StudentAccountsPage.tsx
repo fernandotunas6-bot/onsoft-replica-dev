@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { KeyRound, Printer, ShieldCheck, UserCheck, UserPlus, Users, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,7 @@ export function StudentAccountsView() {
   const shown = (data?.students ?? []).filter(
     (student) =>
       (!classId || student.classGroupId === classId) &&
-      (!term ||
-        student.name.toLowerCase().includes(term) ||
-        student.studentNumber.includes(term)),
+      (!term || student.name.toLowerCase().includes(term) || student.studentNumber.includes(term)),
   );
   const missing = shown.filter((student) => !student.hasAccount);
   const labelOf = new Map((data?.students ?? []).map((s) => [s.studentId, s.classLabel]));
@@ -95,6 +93,11 @@ export function StudentAccountsView() {
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível mudar.")),
   });
 
+  // O endereço do portal só existe no cliente: lido depois de hidratar, para o
+  // servidor e o primeiro render concordarem.
+  const [portal, setPortal] = useState("");
+  useEffect(() => setPortal(window.location.host), []);
+
   if (query.isLoading) return <InlineLoading label="A carregar os alunos…" />;
   if (query.isError || !data) {
     return (
@@ -105,7 +108,6 @@ export function StudentAccountsView() {
   }
   const total = data.students.length;
   const withAccount = data.students.filter((student) => student.hasAccount).length;
-  const portal = typeof window !== "undefined" ? window.location.host : "";
 
   return (
     <div className="space-y-6">
@@ -254,7 +256,12 @@ export function StudentAccountsView() {
             <h2 id="fichas-acesso" className="mr-auto text-sm font-semibold">
               Fichas de acesso ({issued.length})
             </h2>
-            <Button type="button" variant="outline" className="gap-2" onClick={() => window.print()}>
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.print()}
+            >
               <Printer className="size-4" aria-hidden /> Imprimir fichas
             </Button>
           </div>
