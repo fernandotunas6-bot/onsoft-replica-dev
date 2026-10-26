@@ -134,6 +134,11 @@ encarregado) passa a ser uma ligação para a página. A Administração, a Secr
 recebem o menu do comunicado (o comunicado e a lista); o aluno e o encarregado lêem a página sem
 menu. Mesmos cartões e `StatusBadge` da página da fatura. Sem estilos novos.
 
+**26/10/2026 — SIGA Context Engine (painel lateral sem separador vazio):** o separador
+«Relacionado» do painel lateral só aparece quando a entidade aberta tem relações com destino ou
+acções. Na página da fatura abria vazio; fica só «Mensagens», e o menu da fatura na sidebar leva
+às páginas ligadas. Sem estilos novos.
+
 ## Diagnóstico por prioridade
 
 | Prioridade / natureza  | Evidência inicial                                                                                       | Correcção / estado                                                                                             |
