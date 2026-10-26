@@ -27,6 +27,10 @@ class AppSession {
   /// When true, teachers may PUT `/api/grades` for their school.
   final bool teacherCanEditResults;
 
+  /// Conta de aluno (modo SIGA): usa os ecrãs do encarregado, com a própria
+  /// ficha como único «educando», e textos na primeira pessoa.
+  final bool isStudent;
+
   AppSession({
     required this.role,
     required this.userName,
@@ -40,6 +44,7 @@ class AppSession {
     this.schoolMotto,
     this.photoUrl,
     this.teacherCanEditResults = false,
+    this.isStudent = false,
   });
 
   AppSession copyWith({
@@ -55,6 +60,7 @@ class AppSession {
     String? schoolMotto,
     String? photoUrl,
     bool? teacherCanEditResults,
+    bool? isStudent,
   }) {
     return AppSession(
       role: role ?? this.role,
@@ -70,6 +76,7 @@ class AppSession {
       photoUrl: photoUrl ?? this.photoUrl,
       teacherCanEditResults:
           teacherCanEditResults ?? this.teacherCanEditResults,
+      isStudent: isStudent ?? this.isStudent,
     );
   }
 }
@@ -167,6 +174,7 @@ class AuthStateNotifier extends Notifier<AppSession?> {
         schoolId: school['id'] as String,
         uid: me['user_id'] as String,
         schoolName: school['name'] as String?,
+        isStudent: role == 'student',
       );
       return null;
     } on DioException catch (e) {
