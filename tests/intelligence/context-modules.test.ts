@@ -46,6 +46,7 @@ describe("contribuições dos módulos de contexto", () => {
   it("nome do tipo no cabeçalho, e «Contexto» para um tipo sem módulo", () => {
     expect(contextKindLabel("subject-offering")).toBe("Disciplina");
     expect(contextKindLabel("invoice")).toBe("Fatura");
+    expect(contextKindLabel("employee")).toBe("Funcionário");
     expect(contextKindLabel("file")).toBe("Ficheiro");
     expect(contextKindLabel("finance-overview")).toBe("Contexto");
   });
@@ -55,6 +56,9 @@ describe("contribuições dos módulos de contexto", () => {
     expect(canOpenEntityMenu("student", "Encarregado")).toBe(false);
     expect(canOpenEntityMenu("invoice", "Tesouraria")).toBe(true);
     expect(canOpenEntityMenu("invoice", "Secretaria")).toBe(false);
+    expect(canOpenEntityMenu("employee", "Tesouraria")).toBe(true);
+    expect(canOpenEntityMenu("employee", "Secretaria")).toBe(false);
+    expect(canOpenEntityMenu("employee", "Professor")).toBe(false);
     expect(canOpenEntityMenu("file", "Professor")).toBe(true);
     expect(canOpenEntityMenu("file", "Encarregado")).toBe(false);
     expect(canOpenEntityMenu("class", "Tesouraria")).toBe(false);
@@ -69,6 +73,9 @@ describe("contribuições dos módulos de contexto", () => {
     expect(contextBackLink(context([frame("invoice")]), "/faturas/x", {})).toEqual({
       to: "/faturas",
     });
+    expect(
+      contextBackLink(context([frame("employee")]), "/financeiro/rh/funcionarios/x", {}),
+    ).toEqual({ to: "/financeiro/rh/funcionarios" });
     expect(contextBackLink(context([frame("file")]), "/arquivos/x", {})).toEqual({
       to: "/arquivos",
     });

@@ -136,11 +136,11 @@ vi.mock("@/features/academic/use-academic-nav-tree", () => ({
 // Entidade que a página declarou em foco (a ficha do aluno lida do servidor).
 const focus = vi.hoisted(() => ({
   entity: null as null | {
-    type: "student" | "teacher" | "invoice" | "file";
+    type: "student" | "teacher" | "invoice" | "employee" | "file";
     id: string;
     label: string;
     schoolId: string;
-    relations?: { class?: string; student?: string };
+    relations?: { class?: string; student?: string; teacher?: string; employee?: string };
   },
 }));
 // Professores que o servidor devolveria à escola (horário de um professor).
@@ -1125,11 +1125,100 @@ describe("AppSidebar — menu do professor (Context Engine)", () => {
     expect(back?.search ?? null).toBeNull();
   });
 
+  it("com o vínculo de RH devolvido, a administração vai à ficha de RH; a secretaria não", () => {
+    const VINCULO = "55555555-5555-4555-8555-555555555555";
+    papel = "Administrador";
+    focus.entity = { ...joao, relations: { employee: VINCULO } };
+    currentPathname = `/professores/${JOAO}`;
+    const view = renderSidebar();
+    expect(linksTo(`/financeiro/rh/funcionarios/${VINCULO}`)).toEqual([
+      { label: "Ficha de RH", search: {} },
+    ]);
+    view.unmount();
+    // `/financeiro/rh` é só da Administração e da Tesouraria, pelo cargo.
+    papel = "Secretaria";
+    renderSidebar();
+    expect(screen.getByRole("region", { name: "Professor: João Mendes" })).toBeDefined();
+    expect(linksTo(`/financeiro/rh/funcionarios/${VINCULO}`)).toEqual([]);
+  });
+
   it("o encarregado não recebe o menu do professor", () => {
     papel = "Encarregado";
     focus.entity = joao;
     currentPathname = `/professores/${JOAO}`;
     renderSidebar();
     expect(screen.queryByRole("region", { name: /^Professor/ })).toBeNull();
+  });
+});
+
+describe("AppSidebar — menu do funcionário (Context Engine, contexto RH)", () => {
+  const VINCULO = "55555555-5555-4555-8555-555555555555";
+  const PROFESSOR = "66666666-6666-4666-8666-666666666666";
+  const rosa = {
+    type: "employee" as const,
+    id: VINCULO,
+    label: "Rosa Mateus",
+    schoolId: "school-a",
+    relations: { teacher: PROFESSOR },
+  };
+
+  it("a tesouraria abre a ficha: voltar aos funcionários, a ficha marcada e as páginas do RH", () => {
+    papel = "Tesouraria";
+    focus.entity = rosa;
+    currentPathname = `/financeiro/rh/funcionarios/${VINCULO}`;
+    renderSidebar();
+    const section = screen.getByRole("region", { name: "Funcionário: Rosa Mateus" });
+    expect(section.textContent).toContain("Funcionário · Rosa Mateus");
+    expect(linksTo("/financeiro/rh/funcionarios").map((link) => link.label)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^Voltar/), "Todos os funcionários"]),
+    );
+    expect(linksTo(`/financeiro/rh/funcionarios/${VINCULO}`)).toEqual([
+      { label: "Ficha do funcionário", search: {} },
+    ]);
+    for (const path of [
+      "/financeiro/rh/faltas",
+      "/financeiro/rh/folha",
+      "/financeiro/rh/salarios",
+    ]) {
+      expect(linksTo(path), path).toHaveLength(1);
+    }
+    // A tesouraria não abre perfis de professores.
+    expect(linksTo(`/professores/${PROFESSOR}`)).toEqual([]);
+    const active = within(section)
+      .getAllByRole("link")
+      .find((link) => link.getAttribute("aria-current") === "page");
+    expect(active?.textContent).toContain("Ficha do funcionário");
+  });
+
+  it("a administração vai da ficha ao perfil do professor da mesma pessoa", () => {
+    papel = "Administrador";
+    focus.entity = rosa;
+    currentPathname = `/financeiro/rh/funcionarios/${VINCULO}`;
+    renderSidebar();
+    expect(linksTo(`/professores/${PROFESSOR}`)).toEqual([
+      { label: "Perfil do professor", search: {} },
+    ]);
+  });
+
+  it("antes de a página ler a ficha, ou com um vínculo de outra escola, o menu não muda", () => {
+    papel = "Tesouraria";
+    currentPathname = `/financeiro/rh/funcionarios/${VINCULO}`;
+    const first = renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Funcionário/ })).toBeNull();
+    first.unmount();
+    focus.entity = { ...rosa, schoolId: "school-b" };
+    renderSidebar();
+    expect(screen.queryByRole("region", { name: /^Funcionário/ })).toBeNull();
+  });
+
+  it("quem não abre o RH não recebe o menu do funcionário", () => {
+    for (const role of ["Secretaria", "Encarregado"]) {
+      papel = role;
+      focus.entity = rosa;
+      currentPathname = `/financeiro/rh/funcionarios/${VINCULO}`;
+      const view = renderSidebar();
+      expect(screen.queryByRole("region", { name: /^Funcionário/ }), role).toBeNull();
+      view.unmount();
+    }
   });
 });
