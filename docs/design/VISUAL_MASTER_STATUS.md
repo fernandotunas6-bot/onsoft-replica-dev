@@ -224,3 +224,14 @@ Resumo da semana (26/10): painel na mesma página, depois de «Leituras de hoje�
 linha por professor com etiquetas só para o que precisa de atenção e barra da percentagem
 (verde ≥ 90 %, âmbar ≥ 70 %, vermelho abaixo). Na lista de leituras, «Mesmo telemóvel que …» a
 âmbar. Capturas com dados simulados em 390/1440 px e escuro a 768 px.
+
+Limpeza visual (26/10, pedido do proprietário «eliminar a poluição visual»): em
+`/pedagogica_/presenca-docente` os três cartões de estado do QR passaram a uma linha de
+etiquetas e as definições ficam recolhidas atrás de «Definições» (abertas só enquanto falta a
+zona); a impressão é um só botão com «Esta semana»/«Próxima semana»; sem coordenadas no ecrã;
+descrições de uma frase (sem «Saber mais»). «Leituras de hoje» mostra primeiro o que pede
+decisão, com motivos curtos sem repetir a linha, e recolhe as aceites («N leituras aceites ·
+Ver»). O resumo da semana tem «X de Y aulas» e etiquetas só para o que precisa de atenção. O QR
+por aula do RH fica recolhido no fim da página. App: sem título repetido no cartão, sem as três
+dicas no fundo, e a sala aparece como vem do horário («Sala 12», não «Sala Sala 12»). A página
+da Direcção ficou com cerca de metade da altura a 1440 px.

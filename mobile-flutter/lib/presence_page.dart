@@ -244,8 +244,6 @@ class _PresencePageState extends State<PresencePage> {
                   'Sem aulas suas no horário de hoje. Se devia ter, fale com a Direcção Pedagógica.',
             ),
           for (final lesson in lessons) _LessonTile(lesson: lesson),
-          const SizedBox(height: 20),
-          const _Tips(),
         ],
       ),
     );
@@ -269,9 +267,9 @@ class _HeroCard extends StatelessWidget {
     final end = dark ? const Color(0xff1d2a5c) : const Color(0xff1f3fb8);
     final subtitle = switch (mode) {
       PresenceMode.qr =>
-        'Antes de cada aula, leia o QR mostrado pela Direcção. Funciona sem internet.',
+        'Leia o QR da Direcção antes de cada aula. Funciona sem internet.',
       PresenceMode.button =>
-        'A escola aceita o botão «Estou na sala» e também o QR da escola.',
+        'Confirme a presença com o QR da escola ou o botão «Estou na sala».',
       PresenceMode.off =>
         'A confirmação de presença está desligada nesta escola.',
     };
@@ -289,6 +287,7 @@ class _HeroCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
@@ -303,30 +302,21 @@ class _HeroCard extends StatelessWidget {
                   size: 26,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              const SizedBox(width: 14),
+              Expanded(
                 child: Text(
-                  'Presença na sala',
-                  style: TextStyle(
+                  subtitle,
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -.4,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                    letterSpacing: -.2,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              color: Colors.white.withValues(alpha: .86),
-              fontSize: 14,
-              height: 1.5,
-            ),
           ),
           const SizedBox(height: 18),
           SizedBox(
@@ -472,9 +462,7 @@ class _LessonTile extends StatelessWidget {
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
-                        lesson.room == null
-                            ? label
-                            : '$label · Sala ${lesson.room}',
+                        lesson.room == null ? label : '$label · ${lesson.room}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: color,
                           fontWeight: FontWeight.w600,
@@ -519,42 +507,6 @@ class _Notice extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Tips extends StatelessWidget {
-  const _Tips();
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall;
-    Widget tip(IconData icon, String text) => Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: style)),
-        ],
-      ),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        tip(
-          Icons.schedule,
-          'Pode ler a partir de 15 minutos antes do início da aula.',
-        ),
-        tip(
-          Icons.location_on_outlined,
-          'Autorize a localização: confirma que está na escola.',
-        ),
-        tip(
-          Icons.wifi_off_outlined,
-          'Sem internet, a leitura fica guardada até 72 horas e segue sozinha.',
-        ),
-      ],
     );
   }
 }

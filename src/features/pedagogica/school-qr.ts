@@ -221,6 +221,26 @@ export const PRESENCE_SCAN_REASON_LABELS: Record<PresenceScanReason, string> = {
   aparelho_partilhado: "Telemóvel já usado hoje por outro professor",
 };
 
+/**
+ * Motivos curtos para a lista da Direcção (os longos falam com o professor). `null`
+ * esconde o motivo: já se vê noutra parte da linha.
+ */
+export const PRESENCE_SCAN_REASON_SHORT: Record<PresenceScanReason, string | null> = {
+  qr_expirado: "QR expirado",
+  qr_do_futuro: "QR com hora errada",
+  offline_expirado: "Enviada fora do prazo",
+  qr_impresso_desactivado: "QR impresso não aceite",
+  qr_impresso_fora_da_semana: "QR impresso de outra semana",
+  hora_do_aparelho_inconsistente: "Hora do telemóvel não bate certo",
+  leitura_offline: null,
+  sem_localizacao: "Sem localização",
+  localizacao_imprecisa: "Localização imprecisa",
+  localizacao_falsa: "Localização falsa",
+  fora_da_escola: "Fora da escola",
+  zona_por_definir: "Zona por definir",
+  aparelho_partilhado: "Telemóvel partilhado",
+};
+
 export type PresenceDecision = "accepted" | "review" | "rejected";
 
 export type PresenceScanSettings = {

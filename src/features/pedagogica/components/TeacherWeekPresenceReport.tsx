@@ -53,35 +53,35 @@ function TeacherRow({ row }: { row: TeacherWeekRow }) {
     <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{row.teacherName}</p>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          <Count label={row.scheduled === 1 ? "aula" : "aulas"} value={row.scheduled} />
-          <Count label="sem presença" value={row.missing} tone="danger" />
-          <Count
-            label={
-              row.callsWithoutPresence === 1 ? "chamada sem presença" : "chamadas sem presença"
-            }
-            value={row.callsWithoutPresence}
-            tone="danger"
-          />
-          <Count label={row.late === 1 ? "atraso" : "atrasos"} value={row.late} tone="warning" />
-          <Count label="por rever" value={row.scansInReview} tone="warning" />
-          <Count
-            label={row.scansRejected === 1 ? "recusada" : "recusadas"}
-            value={row.scansRejected}
-            tone="warning"
-          />
-        </div>
-        {row.confirmed ? (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Confirmadas:{" "}
-            {[
-              row.byQr ? `${row.byQr} por QR` : null,
-              row.bySelf ? `${row.bySelf} pelo professor` : null,
-              row.byDirection ? `${row.byDirection} pela Direcção` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {[
+            `${row.confirmed} de ${row.scheduled} ${row.scheduled === 1 ? "aula" : "aulas"}`,
+            row.bySelf ? `${row.bySelf} pelo professor` : null,
+            row.byDirection ? `${row.byDirection} pela Direcção` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {row.callsWithoutPresence || row.late || row.scansInReview || row.scansRejected ? (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <Count
+              label={
+                row.callsWithoutPresence === 1 ? "chamada sem presença" : "chamadas sem presença"
+              }
+              value={row.callsWithoutPresence}
+              tone="danger"
+            />
+            <Count label={row.late === 1 ? "atraso" : "atrasos"} value={row.late} tone="warning" />
+            <Count
+              label={
+                row.scansInReview + row.scansRejected === 1
+                  ? "leitura com dúvidas"
+                  : "leituras com dúvidas"
+              }
+              value={row.scansInReview + row.scansRejected}
+              tone="warning"
+            />
+          </div>
         ) : null}
       </div>
       <div className="flex w-full shrink-0 items-center gap-2 sm:w-56">
@@ -124,7 +124,7 @@ export function TeacherWeekPresenceReport() {
   return (
     <Panel
       title="Resumo da semana"
-      description="Aulas do horário que já começaram, sem feriados. Quem tem aulas sem presença ou chamadas feitas sem estar na sala aparece primeiro."
+      description="Aulas do horário já começadas, sem feriados."
       icon={CalendarRange}
       action={
         <div className="flex flex-wrap items-center gap-1.5">
@@ -184,9 +184,9 @@ export function TeacherWeekPresenceReport() {
               className={rateTone(data.totals.rate).text}
             />
             <Tile
-              label="Sem presença"
-              value={String(data.totals.missing)}
-              className={data.totals.missing ? "text-destructive-strong" : undefined}
+              label="Professores com faltas"
+              value={String(attention.length)}
+              className={attention.length ? "text-destructive-strong" : undefined}
             />
             <Tile
               label="Chamadas sem presença"
@@ -196,24 +196,13 @@ export function TeacherWeekPresenceReport() {
           </div>
           {data.holidays.length ? (
             <p className="mt-3 text-xs text-muted-foreground">
-              Feriado fora da conta:{" "}
+              Sem contar o feriado:{" "}
               {data.holidays
                 .map((holiday) => `${shortDate(holiday.date)} ${holiday.name}`)
                 .join(", ")}
             </p>
           ) : null}
-          {attention.length ? (
-            <p className="mt-3 text-sm font-medium text-destructive-strong">
-              {attention.length === 1
-                ? "1 professor com aulas sem presença."
-                : `${attention.length} professores com aulas sem presença.`}
-            </p>
-          ) : (
-            <p className="mt-3 text-sm font-medium text-success-strong">
-              Todas as aulas desta semana têm presença confirmada.
-            </p>
-          )}
-          <ul className="mt-2 divide-y">
+          <ul className="mt-3 divide-y">
             {data.rows.map((row) => (
               <TeacherRow key={row.teacherId} row={row} />
             ))}

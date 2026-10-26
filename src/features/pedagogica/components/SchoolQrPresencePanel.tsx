@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import QRCode from "qrcode";
 import {
   CheckCircle2,
+  ChevronDown,
   Expand,
   MapPin,
   Printer,
   RefreshCw,
+  ScanLine,
+  Settings2,
   ShieldAlert,
   WifiOff,
   X,
@@ -20,12 +23,21 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { moduleIcons } from "@/lib/app-icons";
 import { TeacherWeekPresenceReport } from "@/features/pedagogica/components/TeacherWeekPresenceReport";
 import {
+  PRESENCE_SCAN_REASON_SHORT,
   SCHOOL_PRESENCE_MODE_LABELS,
+  addDays,
   luandaDateOf,
   luandaTimeOfMs,
+  mondayOf,
   rotatingSchoolQrAt,
   type SchoolPresenceMode,
 } from "@/features/pedagogica/school-qr";
@@ -41,10 +53,9 @@ import {
 } from "@/features/pedagogica/school-qr-server";
 
 const MODE_HELP: Record<SchoolPresenceMode, string> = {
-  qr: "Cada professor lê no telemóvel o QR mostrado pela Direcção antes da aula. O botão «Estou na sala» deixa de contar.",
-  button:
-    "O professor toca «Estou na sala» no portal. Mais simples, mas não prova que está na escola.",
-  off: "Ninguém confirma presença. A chamada dos alunos continua a funcionar.",
+  qr: "O professor lê o QR no telemóvel. O botão deixa de contar.",
+  button: "O professor toca «Estou na sala». Não prova que está na escola.",
+  off: "Ninguém confirma. A chamada dos alunos continua.",
 };
 
 /** Painel da Direcção: definições, ecrã do QR, QR impresso e leituras por rever. */
@@ -55,6 +66,8 @@ export function SchoolQrPresencePanel() {
     retry: false,
   });
   const [kioskOpen, setKioskOpen] = useState(false);
+  // Fechadas quando a escola já está configurada; abertas enquanto falta a zona.
+  const [settingsOpen, setSettingsOpen] = useState<boolean | null>(null);
 
   if (config.isLoading) {
     return (
@@ -76,6 +89,7 @@ export function SchoolQrPresencePanel() {
     );
   }
   const data = config.data;
+  const settingsShown = settingsOpen ?? !data.center;
 
   return (
     <div className="space-y-6">
@@ -89,7 +103,7 @@ export function SchoolQrPresencePanel() {
 
       <Panel
         title="QR da escola"
-        description="Um QR único para todos os professores, gerado aqui. Muda a cada poucos segundos e funciona sem internet durante o dia."
+        description="Um QR único para todos os professores, gerado aqui."
         icon={moduleIcons.qrPresence}
         action={
           <div className="flex flex-wrap gap-2">
@@ -105,36 +119,44 @@ export function SchoolQrPresencePanel() {
           </div>
         }
       >
-        <div className="grid gap-3 sm:grid-cols-3">
-          <InfoTile
-            label="Modo"
-            value={SCHOOL_PRESENCE_MODE_LABELS[data.mode]}
-            hint={MODE_HELP[data.mode]}
-          />
-          <InfoTile
-            label="Zona da escola"
-            value={data.center ? `Raio de ${data.radiusM} m` : "Por definir"}
-            hint={
-              data.center
-                ? "Leituras fora desta zona ficam para a Direcção rever."
-                : "Defina a zona no local da escola para travar leituras de longe."
-            }
-          />
-          <InfoTile
-            label="Sem internet"
-            value={`Até ${data.offlineMaxHours} h`}
-            hint="O telemóvel guarda a leitura e envia-a quando tiver rede."
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <SummaryChip tone={data.mode === "qr" ? "primary" : "muted"}>
+            {SCHOOL_PRESENCE_MODE_LABELS[data.mode]}
+          </SummaryChip>
+          <SummaryChip tone={data.center ? "muted" : "warning"}>
+            <MapPin className="size-3.5" />
+            {data.center ? `Zona de ${data.radiusM} m` : "Zona por definir"}
+          </SummaryChip>
+          <SummaryChip tone="muted">
+            <WifiOff className="size-3.5" />
+            Sem rede até {data.offlineMaxHours} h
+          </SummaryChip>
+          {data.available ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="ml-auto gap-1.5"
+              aria-expanded={settingsShown}
+              onClick={() => setSettingsOpen(!settingsShown)}
+            >
+              <Settings2 className="size-4" />
+              {settingsShown ? "Fechar definições" : "Definições"}
+            </Button>
+          ) : null}
         </div>
-        {data.mode !== "qr" && data.available ? (
+        {data.mode !== "qr" && data.available && !settingsShown ? (
           <p className="mt-3 text-xs text-muted-foreground">
-            Para mostrar o QR, mude o modo para «{SCHOOL_PRESENCE_MODE_LABELS.qr}» nas definições
-            abaixo.
+            Para mostrar o QR, escolha «{SCHOOL_PRESENCE_MODE_LABELS.qr}» nas definições.
           </p>
+        ) : null}
+        {data.available && settingsShown ? (
+          <div className="mt-4 border-t pt-4">
+            <SchoolPresenceSettingsForm config={data} onSaved={() => setSettingsOpen(false)} />
+          </div>
         ) : null}
       </Panel>
 
-      {data.available ? <SchoolPresenceSettingsForm config={data} /> : null}
       {data.available ? <PresenceScansReview /> : null}
       <TeacherWeekPresenceReport />
       {kioskOpen ? <SchoolQrKiosk onClose={() => setKioskOpen(false)} /> : null}
@@ -142,13 +164,25 @@ export function SchoolQrPresencePanel() {
   );
 }
 
-function InfoTile({ label, value, hint }: { label: string; value: string; hint: string }) {
+function SummaryChip({
+  tone,
+  children,
+}: {
+  tone: "primary" | "muted" | "warning";
+  children: ReactNode;
+}) {
+  const color =
+    tone === "primary"
+      ? "bg-primary-soft text-primary-strong"
+      : tone === "warning"
+        ? "bg-warning/10 text-warning-strong"
+        : "bg-muted text-muted-foreground";
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-    </div>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${color}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -156,8 +190,10 @@ function InfoTile({ label, value, hint }: { label: string; value: string; hint: 
 
 function SchoolPresenceSettingsForm({
   config,
+  onSaved,
 }: {
   config: SchoolPresenceConfig & { canEdit: boolean };
+  onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<SchoolPresenceMode>(config.mode);
@@ -188,6 +224,7 @@ function SchoolPresenceSettingsForm({
       }),
     onSuccess: (_, rotateSecret) => {
       setConfirmRotate(false);
+      if (!rotateSecret) onSaved();
       toast.success(rotateSecret ? "QR anulados e renovados" : "Definições guardadas", {
         description: rotateSecret
           ? "Os QR mostrados ou impressos antes deixam de valer. Volte a abrir o ecrã do QR."
@@ -230,14 +267,10 @@ function SchoolPresenceSettingsForm({
   };
 
   return (
-    <Panel
-      title="Definições da presença"
-      description={
-        config.canEdit
-          ? "Só a Direcção (Administrador) muda estas regras."
-          : "Só a Direcção (Administrador) muda estas regras. Está a ver em modo de leitura."
-      }
-    >
+    <>
+      {config.canEdit ? null : (
+        <p className="mb-4 text-xs text-muted-foreground">Só a Direcção muda estas regras.</p>
+      )}
       <form
         className="space-y-5"
         onSubmit={(event) => {
@@ -276,8 +309,7 @@ function SchoolPresenceSettingsForm({
         <fieldset className="space-y-2" disabled={disabled}>
           <legend className="text-sm font-semibold">Zona da escola</legend>
           <p className="text-xs text-muted-foreground">
-            Esteja no pátio da escola e toque «Usar a minha localização». Uma leitura fora da zona
-            não conta sozinha: fica para a Direcção rever.
+            No pátio da escola, toque «Usar a minha localização».
           </p>
           <div className="flex flex-wrap items-end gap-3">
             <Button
@@ -301,8 +333,8 @@ function SchoolPresenceSettingsForm({
               />
             </div>
             {center ? (
-              <p className="text-xs text-muted-foreground">
-                Centro: {center.latitude.toFixed(5)}, {center.longitude.toFixed(5)}{" "}
+              <p className="pb-2 text-xs text-muted-foreground">
+                Zona definida
                 <button
                   type="button"
                   className="ml-1 underline"
@@ -313,7 +345,7 @@ function SchoolPresenceSettingsForm({
                 </button>
               </p>
             ) : (
-              <p className="text-xs text-warning-strong">Zona por definir.</p>
+              <p className="pb-2 text-xs text-warning-strong">Zona por definir</p>
             )}
           </div>
         </fieldset>
@@ -322,7 +354,7 @@ function SchoolPresenceSettingsForm({
           <ToggleRow
             id="presence-require-location"
             label="Pedir a localização em todas as leituras"
-            hint="Recomendado. Sem localização, a leitura fica por rever."
+            hint="Sem localização, a leitura fica por rever."
             checked={requireLocation}
             onChange={setRequireLocation}
             disabled={disabled}
@@ -330,7 +362,7 @@ function SchoolPresenceSettingsForm({
           <ToggleRow
             id="presence-allow-printed"
             label="Aceitar o QR impresso da semana"
-            hint="Para escolas sem ecrã. Exige localização dentro da zona."
+            hint="Para escolas sem ecrã; só vale dentro da zona."
             checked={allowPrinted}
             onChange={setAllowPrinted}
             disabled={disabled}
@@ -394,12 +426,12 @@ function SchoolPresenceSettingsForm({
               </Button>
             )}
             <Button type="submit" disabled={save.isPending}>
-              {save.isPending ? "A guardar…" : "Guardar definições"}
+              {save.isPending ? "A guardar…" : "Guardar"}
             </Button>
           </div>
         ) : null}
       </form>
-    </Panel>
+    </>
   );
 }
 
@@ -680,28 +712,33 @@ function PrintableQrButton({ disabled }: { disabled: boolean }) {
         description: error instanceof Error ? error.message : "Tente novamente.",
       }),
   });
+  const thisMonday = mondayOf(luandaDateOf(Date.now()));
+  const span = (monday: string) => {
+    const short = (iso: string) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+    return `${short(monday)} a ${short(addDays(monday, 6))}`;
+  };
   return (
-    <div className="flex gap-1">
-      <Button
-        type="button"
-        variant="outline"
-        className="gap-1.5"
-        disabled={disabled || print.isPending}
-        onClick={() => print.mutate("current")}
-      >
-        <Printer className="size-4" /> Imprimir QR da semana
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="text-xs"
-        disabled={disabled || print.isPending}
-        onClick={() => print.mutate("next")}
-      >
-        Semana seguinte
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="gap-1.5"
+          disabled={disabled || print.isPending}
+        >
+          <Printer className="size-4" /> Imprimir QR
+          <ChevronDown className="size-3.5 opacity-60" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => print.mutate("current")}>
+          Esta semana ({span(thisMonday)})
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => print.mutate("next")}>
+          Próxima semana ({span(addDays(thisMonday, 7))})
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -732,6 +769,7 @@ function PresenceScansReview() {
     refetchInterval: 60_000,
   });
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [showAccepted, setShowAccepted] = useState(false);
   const review = useMutation({
     mutationFn: (input: { scanId: string; decision: "accepted" | "rejected"; note: string }) =>
       reviewPresenceScan({ data: input }),
@@ -739,7 +777,7 @@ function PresenceScansReview() {
       toast.success(result.decision === "accepted" ? "Leitura confirmada" : "Leitura recusada", {
         description:
           result.decision === "accepted" && result.marked
-            ? `${result.marked} aula(s) com presença registada.`
+            ? `${plural(result.marked, "aula", "aulas")} com presença registada.`
             : undefined,
       });
       void queryClient.invalidateQueries({ queryKey: ["presence-scans"] });
@@ -753,121 +791,164 @@ function PresenceScansReview() {
 
   const rows = scans.data?.scans ?? [];
   const pending = rows.filter((row) => row.decision === "review");
+  const rejected = rows.filter((row) => row.decision === "rejected");
+  const accepted = rows.filter((row) => row.decision === "accepted");
+  // O que pede decisão vem primeiro; as aceites ficam recolhidas.
+  const visible = [...pending, ...rejected, ...(showAccepted ? accepted : [])];
 
   return (
     <Panel
       title="Leituras de hoje"
-      description="Cada leitura do QR pelos professores. As que levantam dúvidas (fora da zona, sem rede, localização falsa) ficam aqui para a Direcção decidir."
+      description="As leituras com dúvidas ficam aqui para a Direcção decidir."
+      icon={ScanLine}
       action={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => void scans.refetch()}
-        >
-          <RefreshCw className="size-4" /> Actualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          {pending.length ? (
+            <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning-strong">
+              {pending.length} por rever
+            </span>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Actualizar leituras"
+            onClick={() => void scans.refetch()}
+          >
+            <RefreshCw className={`size-4 ${scans.isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       }
     >
-      {pending.length ? (
-        <p className="mb-3 text-sm font-medium text-warning-strong">
-          {pending.length === 1 ? "1 leitura por rever." : `${pending.length} leituras por rever.`}
-        </p>
-      ) : null}
       {rows.length === 0 ? (
         <EmptyState
           title="Ainda sem leituras hoje"
           description="Quando os professores lerem o QR, aparecem aqui."
         />
       ) : (
-        <ul className="divide-y">
-          {rows.map((row) => (
-            <li key={row.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start">
-              <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                  {row.teacherName}
-                  <StatusBadge
-                    status={DECISION_STATUS[row.decision]}
-                    label={DECISION_LABEL[row.decision]}
-                    size="sm"
-                  />
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {luandaTimeOfMs(Date.parse(row.scannedAt))} ·{" "}
-                  {row.kind === "printed" ? "QR impresso" : "QR do ecrã"}
-                  {row.offline ? " · enviada sem rede" : ""}
-                  {row.distanceM != null ? ` · a ${formatDistance(row.distanceM)} da escola` : ""}
-                  {row.sessionCount ? ` · ${row.sessionCount} aula(s)` : " · sem aula a essa hora"}
-                </p>
-                {row.reasonLabels.length ? (
-                  <p
-                    className={`text-xs ${row.decision === "accepted" ? "text-muted-foreground" : "text-warning-strong"}`}
-                  >
-                    {row.reasonLabels.join(" · ")}
-                  </p>
-                ) : null}
-                {row.sharedWith.length ? (
-                  <p className="text-xs font-medium text-warning-strong">
-                    Mesmo telemóvel que {row.sharedWith.join(", ")}
-                  </p>
-                ) : null}
-                {row.reviewNote ? (
-                  <p className="text-xs text-muted-foreground">Decisão: {row.reviewNote}</p>
-                ) : null}
-              </div>
-              {row.decision === "review" ? (
-                <form
-                  className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto"
-                  onSubmit={(event) => event.preventDefault()}
-                >
-                  <Input
-                    aria-label="Motivo da decisão"
-                    placeholder="Motivo (obrigatório)"
-                    className="h-8 min-w-40 flex-1 text-xs"
-                    value={notes[row.id] ?? ""}
-                    onChange={(event) =>
-                      setNotes((current) => ({ ...current, [row.id]: event.target.value }))
-                    }
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1 text-success"
-                    disabled={review.isPending || (notes[row.id] ?? "").trim().length < 5}
-                    onClick={() =>
-                      review.mutate({
-                        scanId: row.id,
-                        decision: "accepted",
-                        note: (notes[row.id] ?? "").trim(),
-                      })
-                    }
-                  >
-                    <CheckCircle2 className="size-3.5" /> Confirmar
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1 text-destructive"
-                    disabled={review.isPending || (notes[row.id] ?? "").trim().length < 5}
-                    onClick={() =>
-                      review.mutate({
-                        scanId: row.id,
-                        decision: "rejected",
-                        note: (notes[row.id] ?? "").trim(),
-                      })
-                    }
-                  >
-                    <XCircle className="size-3.5" /> Recusar
-                  </Button>
-                </form>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <>
+          {visible.length ? (
+            <ul className="divide-y">
+              {visible.map((row) => {
+                const flags = row.decision === "accepted" ? [] : scanNotes(row);
+                return (
+                  <li key={row.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start">
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                        {row.teacherName}
+                        {row.decision === "accepted" ? null : (
+                          <StatusBadge
+                            status={DECISION_STATUS[row.decision]}
+                            label={DECISION_LABEL[row.decision]}
+                            size="sm"
+                          />
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{scanMeta(row)}</p>
+                      {flags.length ? (
+                        <p className="text-xs font-medium text-warning-strong">
+                          {flags.join(" · ")}
+                        </p>
+                      ) : null}
+                      {row.reviewNote ? (
+                        <p className="text-xs text-muted-foreground">Decisão: {row.reviewNote}</p>
+                      ) : null}
+                    </div>
+                    {row.decision === "review" ? (
+                      <form
+                        className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto"
+                        onSubmit={(event) => event.preventDefault()}
+                      >
+                        <Input
+                          aria-label="Motivo da decisão"
+                          placeholder="Motivo (obrigatório)"
+                          className="h-8 min-w-40 flex-1 text-xs"
+                          value={notes[row.id] ?? ""}
+                          onChange={(event) =>
+                            setNotes((current) => ({ ...current, [row.id]: event.target.value }))
+                          }
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1 text-success"
+                          disabled={review.isPending || (notes[row.id] ?? "").trim().length < 5}
+                          onClick={() =>
+                            review.mutate({
+                              scanId: row.id,
+                              decision: "accepted",
+                              note: (notes[row.id] ?? "").trim(),
+                            })
+                          }
+                        >
+                          <CheckCircle2 className="size-3.5" /> Confirmar
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1 text-destructive"
+                          disabled={review.isPending || (notes[row.id] ?? "").trim().length < 5}
+                          onClick={() =>
+                            review.mutate({
+                              scanId: row.id,
+                              decision: "rejected",
+                              note: (notes[row.id] ?? "").trim(),
+                            })
+                          }
+                        >
+                          <XCircle className="size-3.5" /> Recusar
+                        </Button>
+                      </form>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          {accepted.length ? (
+            <button
+              type="button"
+              className={`flex w-full items-center justify-between gap-2 rounded-lg px-1 py-2.5 text-left text-sm text-muted-foreground hover:text-foreground ${visible.length ? "mt-1 border-t" : ""}`}
+              aria-expanded={showAccepted}
+              onClick={() => setShowAccepted((open) => !open)}
+            >
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-success" />
+                {accepted.length === 1 ? "1 leitura aceite" : `${accepted.length} leituras aceites`}
+              </span>
+              <span className="text-xs font-medium">{showAccepted ? "Esconder" : "Ver"}</span>
+            </button>
+          ) : null}
+        </>
       )}
     </Panel>
   );
+}
+
+function plural(count: number, one: string, many: string) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+function scanMeta(row: PresenceScanRow) {
+  return [
+    luandaTimeOfMs(Date.parse(row.scannedAt)),
+    row.kind === "printed" ? "QR impresso" : null,
+    row.offline ? "enviada sem rede" : null,
+    row.distanceM != null ? `a ${formatDistance(row.distanceM)}` : null,
+    row.sessionCount ? plural(row.sessionCount, "aula", "aulas") : "sem aula a essa hora",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** Motivos curtos, sem repetir o que a linha já diz. */
+function scanNotes(row: PresenceScanRow) {
+  const notes = row.reasons
+    .filter((reason) => !(reason === "aparelho_partilhado" && row.sharedWith.length))
+    .map((reason) => PRESENCE_SCAN_REASON_SHORT[reason])
+    .filter((label): label is string => Boolean(label));
+  if (row.sharedWith.length) notes.push(`Mesmo telemóvel que ${row.sharedWith.join(", ")}`);
+  return notes;
 }
