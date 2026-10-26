@@ -7,7 +7,8 @@
  * Ligações do browser para fora (levantadas no código):
  * - Supabase (REST, Auth, Storage e Realtime por WebSocket);
  * - Firebase Cloud Messaging (notificações push);
- * - api.pwnedpasswords.com (verificação de palavra-passe exposta, k-anonimato).
+ * - api.pwnedpasswords.com (verificação de palavra-passe exposta, k-anonimato);
+ * - api.github.com (versão e tamanhos da app de computador em /transferir).
  * A letra (Inter) é servida pelo próprio SIGA, em /fonts/inter.
  * As integrações (Zoom, Moodle, WhatsApp…) só abrem separadores, não precisam.
  *
@@ -31,6 +32,7 @@ const DIRECTIVES: ReadonlyArray<readonly [string, string]> = [
       "https://*.portal-siga.com",
       "https://*.googleapis.com",
       "https://api.pwnedpasswords.com",
+      "https://api.github.com",
     ].join(" "),
   ],
   ["frame-src", "'self'"],

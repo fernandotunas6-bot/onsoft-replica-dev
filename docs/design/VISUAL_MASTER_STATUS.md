@@ -412,3 +412,11 @@ tem aulas de hora/aula (o atalho da agenda continua a abrir a chamada); em modo 
 vez de «Professor na sala», sem o método; o resumo de Pedagógica → Presenças mostra só as
 categorias com casos; salas pelo `roomLabel` partilhado («12» → «Sala 12», «Sala 4» e
 «Laboratório» ficam), também na app.
+
+App de computador (26/10, pedido do proprietário): ícones da app Tauri trocados pelo «S» em
+squircle da web (saíram os do capelo amarelo) e página pública `/transferir` (também em
+Definições → App para computador): um botão para o sistema de quem visita, com formato, tamanho
+e versão, passos de instalação recolhidos, os outros sistemas numa lista e, no telemóvel, só a
+lista com um aviso de que a app é para computador. No ecrã de entrada, a ligação «Transferir a
+app para computador» aparece a partir de 768 px e nunca dentro da própria app. Capturas a
+390/1440 px e escuro a 768 px em `/mnt/project-files/desktop/`.
