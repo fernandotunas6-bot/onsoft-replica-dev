@@ -8,7 +8,6 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
-import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import { resolveUserLinkedEntities } from "@/features/auth/server";
 import { schoolTodayIso } from "@/lib/school-date";
 import {
@@ -40,16 +39,6 @@ import { recordTeacherCheckin } from "@/features/pedagogica/teacher-presence-ser
 import { loadSchoolPresenceMode } from "@/features/pedagogica/school-presence-mode";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
-
-/**
- * As duas tabelas do QR da escola (20261026100000_school_presence_qr.sql, aplicada a
- * 26/10) ainda não estão nos tipos gerados nem no retrato da base: entram com
- * `npm run siga:gen-types` e `npm run siga:db-snapshot`, e aí este atalho sai. Até lá,
- * um erro de tabela em falta dá a mensagem «falta aplicar o SQL».
- */
-function presenceTables(db: AdminDb) {
-  return dynamicTablesClient(db as never);
-}
 
 export const SCHOOL_QR_SQL_MISSING_MESSAGE =
   "O QR da escola ainda não está activo: falta aplicar o SQL docs/agents/SIGA_aplicar_qr_escola.sql no Supabase.";
@@ -126,7 +115,7 @@ export async function loadSchoolPresenceSettings(
   db: AdminDb,
   schoolId: string,
 ): Promise<{ available: boolean; row: SettingsRow | null }> {
-  const { data, error } = await presenceTables(db)
+  const { data, error } = await db
     .from("siga_school_presence_settings")
     .select("*")
     .eq("school_id", schoolId)
@@ -142,7 +131,7 @@ async function ensureSettings(db: AdminDb, schoolId: string, userId: string) {
   const loaded = await loadSchoolPresenceSettings(db, schoolId);
   if (!loaded.available) throw new Error(SCHOOL_QR_SQL_MISSING_MESSAGE);
   if (loaded.row) return loaded.row;
-  const { data, error } = await presenceTables(db)
+  const { data, error } = await db
     .from("siga_school_presence_settings")
     .insert({
       school_id: schoolId,
@@ -199,7 +188,7 @@ export const updateSchoolPresenceConfig = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
     const current = await ensureSettings(db, membership.schoolId, context.userId);
-    const { data: updated, error } = await presenceTables(db)
+    const { data: updated, error } = await db
       .from("siga_school_presence_settings")
       .update({
         mode: data.mode,
@@ -534,7 +523,7 @@ export async function processPresenceScan(
 
   // O mesmo envio (fila offline) devolve a leitura já gravada.
   if (input.scan.opId) {
-    const { data: previous } = await presenceTables(db)
+    const { data: previous } = await db
       .from("siga_teacher_presence_scans")
       .select("*")
       .eq("school_id", input.schoolId)
@@ -642,7 +631,7 @@ export async function processPresenceScan(
     }
   }
 
-  const { data: saved, error: saveError } = await presenceTables(db)
+  const { data: saved, error: saveError } = await db
     .from("siga_teacher_presence_scans")
     .insert({
       school_id: input.schoolId,
@@ -759,7 +748,7 @@ export const listPresenceScans = createServerFn({ method: "GET" })
     // Dia de Luanda (UTC+1): das 23:00 UTC da véspera às 23:00 UTC do dia.
     const from = new Date(Date.parse(`${date}T00:00:00+01:00`)).toISOString();
     const to = new Date(Date.parse(`${addDays(date, 1)}T00:00:00+01:00`)).toISOString();
-    const { data: rows, error } = await presenceTables(db)
+    const { data: rows, error } = await db
       .from("siga_teacher_presence_scans")
       .select("*")
       .eq("school_id", membership.schoolId)
@@ -833,7 +822,7 @@ export const reviewPresenceScan = createServerFn({ method: "POST" })
       ...STAFF_ROLES,
     ]);
     const db = await loadSgaAdminClient();
-    const { data: scan, error } = await presenceTables(db)
+    const { data: scan, error } = await db
       .from("siga_teacher_presence_scans")
       .select("*")
       .eq("school_id", membership.schoolId)
@@ -843,7 +832,7 @@ export const reviewPresenceScan = createServerFn({ method: "POST" })
     if (!scan) throw new Error("Leitura não encontrada.");
     if (scan.decision !== "review") throw new Error("Esta leitura já foi decidida.");
 
-    const { data: updated, error: updateError } = await presenceTables(db)
+    const { data: updated, error: updateError } = await db
       .from("siga_teacher_presence_scans")
       .update({
         decision: data.decision,

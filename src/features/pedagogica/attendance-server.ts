@@ -282,7 +282,7 @@ export const listTeacherAttendanceSessions = createServerFn({ method: "GET" })
       ),
     );
 
-    // `*` traz também a presença do professor quando a migração 20261026090000 já
+    // `*` traz também a presença do professor quando a migração 20261026083707 já
     // correu (sem ela, as colunas simplesmente não vêm).
     const { data: existingSessions } = await reads
       .from("siga_attendance_sessions")
@@ -699,7 +699,7 @@ export const getAttendanceCallSheet = createServerFn({ method: "GET" })
         status: sessionRow.status,
         notes: sessionRow.notes,
         teacher_presence: teacherPresence.fields,
-        /** Falso enquanto a migração 20261026090000 não correr. */
+        /** Falso enquanto a migração 20261026083707 não correr. */
         presence_enabled: teacherPresence.enabled,
         viewer_is_session_teacher: viewerIsSessionTeacher,
         viewer_can_register_presence:

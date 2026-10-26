@@ -7,7 +7,7 @@
 -- não aparece. Confirmar no fim com a consulta do fundo (deve dar "aplicada").
 
 
--- ══════════ 20261026090000_teacher_lesson_presence.sql ══════════
+-- ══════════ 20261026083707_teacher_lesson_presence.sql ══════════
 -- Presença do professor na sala de aula, gravada na própria aula (sessão da chamada).
 --
 -- A presença por QR (hr_teacher_lesson_occurrences) só existe para professores com
@@ -69,4 +69,4 @@ SELECT CASE WHEN EXISTS (
    WHERE table_schema = 'public'
      AND table_name = 'siga_attendance_sessions'
      AND column_name = 'teacher_checked_in_at'
-) THEN 'aplicada' ELSE 'por aplicar' END AS "20261026090000 presença do professor na aula";
+) THEN 'aplicada' ELSE 'por aplicar' END AS "20261026083707 presença do professor na aula";

@@ -154,16 +154,9 @@ const ANON_POLICIES_ESPERADAS = [
 // 2026-10-24/25: sessões de caixa e depósito da gaveta no banco (#283) —
 // `finance_cash_points`, `finance_cash_sessions` e `finance_cash_deposits`
 // confirmadas no retrato recapturado deste ciclo, depois de a #283 fundir.
-// 2026-10-26: QR da escola para a presença dos professores
-// (20261026100000_school_presence_qr.sql, pacote docs/agents/SIGA_aplicar_qr_escola.sql).
-// Aplicada na produção a 26/10 pelo proprietário (SQL Editor) e confirmada por consulta
-// a pg_class (FORCE RLS, sem grants para anon/authenticated). Sai daqui quando o retrato
-// for recapturado (npm run siga:db-snapshot), junto com o atalho `presenceTables` do
-// servidor e a regeneração dos tipos.
-const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([
-  "siga_school_presence_settings",
-  "siga_teacher_presence_scans",
-]);
+// 2026-10-26: as duas tabelas do QR da escola (20261026100000) entraram no retrato
+// depois de aplicadas, pelo que a lista voltou a ficar vazia.
+const TABELAS_AUSENTES_DA_PRODUCAO = new Set<string>([]);
 
 /** Tabelas consultadas pelo código — `.from("x")`, excluindo buckets de storage. */
 function tabelasUsadasPelaApp(): string[] {

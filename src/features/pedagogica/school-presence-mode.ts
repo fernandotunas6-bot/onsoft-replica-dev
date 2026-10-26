@@ -1,5 +1,4 @@
 import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
-import { dynamicTablesClient } from "@/integrations/supabase/sga";
 import type { SchoolPresenceMode } from "@/features/pedagogica/school-qr";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -14,8 +13,7 @@ export async function loadSchoolPresenceMode(
   schoolId: string,
 ): Promise<SchoolPresenceMode> {
   try {
-    // Tabela de 20261026100000_school_presence_qr.sql, ainda fora dos tipos gerados.
-    const { data, error } = await dynamicTablesClient(db as never)
+    const { data, error } = await db
       .from("siga_school_presence_settings")
       .select("mode")
       .eq("school_id", schoolId)

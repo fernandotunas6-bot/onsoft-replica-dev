@@ -957,7 +957,7 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
       /* horário indisponível */
     }
 
-    // Presença do professor na aula (migração 20261026090000): `*` traz as colunas
+    // Presença do professor na aula (migração 20261026083707): `*` traz as colunas
     // quando existem. Conta com a do QR do RH, mais abaixo.
     const sessionChecked = new Set<string>();
     const sessionPending = new Set<string>();

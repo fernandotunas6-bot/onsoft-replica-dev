@@ -11548,6 +11548,158 @@ export type Database = {
         }
         Relationships: []
       }
+      siga_school_presence_settings: {
+        Row: {
+          allow_printed: boolean
+          center_latitude: number | null
+          center_longitude: number | null
+          created_at: string
+          geofence_radius_m: number
+          mode: string
+          offline_max_hours: number
+          qr_secret: string
+          qr_secret_version: number
+          require_location: boolean
+          rotation_seconds: number
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_printed?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string
+          geofence_radius_m?: number
+          mode?: string
+          offline_max_hours?: number
+          qr_secret: string
+          qr_secret_version?: number
+          require_location?: boolean
+          rotation_seconds?: number
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_printed?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string
+          geofence_radius_m?: number
+          mode?: string
+          offline_max_hours?: number
+          qr_secret?: string
+          qr_secret_version?: number
+          require_location?: boolean
+          rotation_seconds?: number
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_school_presence_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_teacher_presence_scans: {
+        Row: {
+          accuracy_m: number | null
+          client_op_id: string | null
+          created_at: string
+          decision: string
+          device_id: string | null
+          device_scanned_at: string | null
+          distance_m: number | null
+          id: string
+          inside_geofence: boolean | null
+          location_mocked: boolean | null
+          offline: boolean
+          qr_kind: string
+          qr_step: number
+          reasons: string[]
+          received_at: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scanned_at: string
+          school_id: string
+          session_ids: string[]
+          teacher_id: string
+          user_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          client_op_id?: string | null
+          created_at?: string
+          decision: string
+          device_id?: string | null
+          device_scanned_at?: string | null
+          distance_m?: number | null
+          id?: string
+          inside_geofence?: boolean | null
+          location_mocked?: boolean | null
+          offline?: boolean
+          qr_kind: string
+          qr_step: number
+          reasons?: string[]
+          received_at?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_at: string
+          school_id: string
+          session_ids?: string[]
+          teacher_id: string
+          user_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          client_op_id?: string | null
+          created_at?: string
+          decision?: string
+          device_id?: string | null
+          device_scanned_at?: string | null
+          distance_m?: number | null
+          id?: string
+          inside_geofence?: boolean | null
+          location_mocked?: boolean | null
+          offline?: boolean
+          qr_kind?: string
+          qr_step?: number
+          reasons?: string[]
+          received_at?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_at?: string
+          school_id?: string
+          session_ids?: string[]
+          teacher_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_teacher_presence_scans_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_teacher_presence_scans_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_timetable_slot_details: {
         Row: {
           created_at: string

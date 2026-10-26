@@ -6,14 +6,14 @@
   de RH na produção, logo 0 aulas para QR). A presença passa a gravar-se na aula do horário
   (`siga_attendance_sessions`), sem depender do RH. Regras e ecrãs na
   [especificação, §11](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md).
-  SQL aplicado a 26/10 (`docs/agents/SIGA_aplicar_presenca_professor.sql`); as seis colunas
-  ficam em `tests/security/espera-migracao.ts` até o retrato ser recapturado.
+  SQL aplicado a 26/10 (versão registada `20261026083707`, nome do ficheiro alinhado).
 - **QR único da escola** ([§12](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md)): a
   Direcção mostra um QR rotativo que funciona sem internet, o professor lê-o no portal ou na
   app Flutter; zona GPS, fila sem rede, leituras por rever e modo qr/botão/desligado. SQL
-  `20261026100000` aplicado a 26/10. **Falta** recapturar o retrato e regenerar os tipos
-  (`npm run siga:db-snapshot`, `npm run siga:gen-types`) e então tirar as duas tabelas de
-  `TABELAS_AUSENTES_DA_PRODUCAO` e o atalho `presenceTables` de `school-qr-server.ts`.
+  `20261026100000` aplicado a 26/10 no SQL Editor (sem registo de versão). Retrato e tipos
+  das duas tabelas e das seis colunas acrescentados a partir de consultas à produção (os totais
+  de tabelas, políticas, funções, triggers, relações e valores conferem); uma recaptura completa
+  (`npm run siga:db-snapshot`, `npm run siga:gen-types`) deve dar o mesmo.
 - **Chamada dos alunos:** abrir a chamada por turma+disciplina com dois tempos da mesma
   disciplina no dia (7 casos no horário de produção) lia com `maybeSingle()`, falhava e criava
   uma terceira sessão sem hora; agora escolhe o tempo em curso ou o próximo e liga a sessão

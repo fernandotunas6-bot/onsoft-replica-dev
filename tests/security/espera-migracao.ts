@@ -10,17 +10,9 @@
  * obriga a lista a encolher: a coluna sai daqui quando o retrato recapturado já a tiver.
  */
 // O retrato de 2026-10-12 já inclui as ligações de cursos/disciplinas ao catálogo.
-// Presença do professor na aula (20261026090000_teacher_lesson_presence.sql, pacote
-// docs/agents/SIGA_aplicar_presenca_professor.sql): as leituras usam `select("*")` e as
-// escritas tratam a coluna em falta com «falta aplicar o SQL».
-export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([
-  "siga_attendance_sessions.teacher_checked_in_at",
-  "siga_attendance_sessions.teacher_checked_in_by",
-  "siga_attendance_sessions.teacher_checkin_method",
-  "siga_attendance_sessions.teacher_late_minutes",
-  "siga_attendance_sessions.teacher_checked_out_at",
-  "siga_attendance_sessions.teacher_presence_note",
-]);
+// As seis colunas da presença do professor na aula (20261026083707, versão registada na produção) saíram a 26/10:
+// aplicadas na produção e já no retrato.
+export const COLUNAS_ESPERA_MIGRACAO = new Set<string>([]);
 
 /**
  * Funções `public` que o código chama e a produção ainda não tem (migração escrita e por
