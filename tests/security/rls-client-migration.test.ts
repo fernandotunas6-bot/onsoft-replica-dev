@@ -66,6 +66,18 @@ const PRIVILEGIO_POR_DESENHO = new Set([
   // o 2FA e o histórico de estado. Guarda Administrador/Secretaria; todas as
   // leituras filtram pela escola da membership.
   "src/features/academic/year-rollover-server.ts",
+  // Organizar turmas por idade (2026-10-26): lê matrículas, fichas e registos de
+  // notas/presenças da classe para decidir quem pode mudar, e muda por
+  // placeStudentInClass (cliente privilegiado, 2FA, gatilho de lotação).
+  // Guarda Administrador/Secretaria; tudo filtrado pela escola da membership.
+  "src/features/academic/class-organization-server.ts",
+  // Contas dos alunos (2026-10-26): criar contas no Auth, perfil, membership e
+  // ligar a ficha exige a chave de serviço (auth.admin). Guarda Administrador/
+  // Secretaria + 2FA; só contas que são apenas de aluno nesta escola.
+  "src/features/students/student-accounts-server.ts",
+  // Primeira senha: só a própria conta (context.userId) e só com o sinal
+  // must_change_password, que vive em app_metadata (só o servidor escreve).
+  "src/features/auth/first-password-server.ts",
   // Sessões de caixa (2026-10-24): as tabelas nascem sem políticas e sem
   // privilégios para authenticated; escrevem-se só pelas RPC (sessão do
   // utilizador, AAL2). A leitura do estado corre aqui, depois da guarda de

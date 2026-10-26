@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import {
+  ArrowDownAZ,
   Download,
   FileBadge,
   FileDown,
@@ -11,6 +12,7 @@ import {
   FolderOpen,
   GitMerge,
   GraduationCap,
+  KeyRound,
   Pencil,
   Trash2,
   User,
@@ -335,6 +337,16 @@ function PeoplePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <DocHelpButton title="Navegação — Pessoas e permissões" />
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/pessoas/organizar-turmas">
+                <ArrowDownAZ className="size-4" /> Organizar turmas
+              </Link>
+            </Button>
+            <Button variant="outline" className="gap-2" asChild>
+              <Link to="/pessoas/acessos-alunos">
+                <KeyRound className="size-4" /> Acessos dos alunos
+              </Link>
+            </Button>
             <Button
               variant="outline"
               className="gap-2"
