@@ -66,6 +66,7 @@ describe("acessos dos alunos", () => {
     server.listStudentAccounts.mockResolvedValue({
       yearName: "2026/2027",
       schoolCode: "SIGA-AO-000001",
+      portalHost: "ispab.portal-siga.com",
       numberLoginEnabled: false,
       isAdministrator: true,
       students,
@@ -79,6 +80,7 @@ describe("acessos dos alunos", () => {
               studentId: id,
               name: s.name,
               studentNumber: s.studentNumber,
+              loginEmail: `${s.studentNumber}.sigaao000001@alunos.portal-siga.com`,
               password: "KMPT-4827-ra",
             };
           }),
@@ -87,7 +89,7 @@ describe("acessos dos alunos", () => {
     );
     wrap(<StudentAccountsView />);
 
-    expect(await screen.findByText(/os alunos só entram pelo BI/)).toBeTruthy();
+    expect(await screen.findByText(/os alunos entram pelo BI/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Turma"), { target: { value: "c7a" } });
     fireEvent.click(screen.getByRole("button", { name: "Criar contas em falta (12)" }));
 
@@ -98,6 +100,9 @@ describe("acessos dos alunos", () => {
     expect(within(slips).getAllByRole("listitem")).toHaveLength(12);
     expect(slips.textContent).toContain("KMPT-4827-ra");
     expect(slips.textContent).toContain("1260001");
+    // O endereço é o da escola, e sem nº de aluno nem BI entra-se pelo utilizador da conta.
+    expect(slips.textContent).toContain("ispab.portal-siga.com");
+    expect(slips.textContent).toContain("1260001.sigaao000001@alunos.portal-siga.com");
   });
 
   it("nova senha de quem já tem conta entra nas fichas; o Administrador liga o nº de aluno", async () => {
@@ -112,6 +117,7 @@ describe("acessos dos alunos", () => {
       studentId: line(20, true).studentId,
       name: "Aluno 20",
       studentNumber: "1260020",
+      loginEmail: "1260020.sigaao000001@alunos.portal-siga.com",
       password: "ABCD-2345-xy",
     });
     server.setStudentNumberLogin.mockResolvedValue({ student_number_login: true });

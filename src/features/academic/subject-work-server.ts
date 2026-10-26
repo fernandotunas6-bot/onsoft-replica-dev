@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
+import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { resolveSgaMembershipAdmin } from "@/integrations/supabase/sga-admin";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 import { todayInLuanda } from "@/features/calendar/dates";
@@ -119,33 +120,41 @@ export const getMySubjectWork = createServerFn({ method: "GET" })
     );
     if (!groupOfClassSubject.size) return base;
 
-    const { data: tasks, error: taskError } = await db
-      .from("siga_class_tasks")
-      .select(
-        "id, class_subject_id, kind, title, description, due_on, status, accepts_late, assessment_item_id, created_at",
-      )
-      .eq("school_id", schoolId)
-      .in("class_subject_id", [...groupOfClassSubject.keys()])
-      .order("created_at", { ascending: false })
-      .limit(200);
+    // O histórico inteiro, por páginas: o resumo e a média contam todos os
+    // trabalhos, não só os 200 mais recentes.
+    const { data: taskRows, error: taskError } = await readAllPages<Row>((from, to) =>
+      db
+        .from("siga_class_tasks")
+        .select(
+          "id, class_subject_id, kind, title, description, due_on, status, accepts_late, assessment_item_id, created_at",
+        )
+        .eq("school_id", schoolId)
+        .in("class_subject_id", [...groupOfClassSubject.keys()])
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
     if (taskError) throw publicDatabaseError(taskError, "Não foi possível ler os trabalhos.");
-    const taskRows = (tasks ?? []) as Row[];
     if (!taskRows.length) return base;
 
     const enrollmentIds = [...new Set(enrollmentOfGroup.values())];
-    const { data: submissions, error: subError } = await db
-      .from("siga_class_task_submissions")
-      .select(SUBMISSION_COLUMNS)
-      .eq("school_id", schoolId)
-      .in(
-        "task_id",
-        taskRows.map((row) => str(row.id)),
-      )
-      .in("enrollment_id", enrollmentIds);
+    // Várias tentativas por trabalho: dentro de cada lote de ids, também por páginas.
+    const { data: submissions, error: subError } = await readInChunks(
+      taskRows.map((row) => str(row.id)),
+      (ids) =>
+        readAllPages((from, to) =>
+          db
+            .from("siga_class_task_submissions")
+            .select(SUBMISSION_COLUMNS)
+            .eq("school_id", schoolId)
+            .in("task_id", ids)
+            .in("enrollment_id", enrollmentIds)
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
+    );
     if (subError) throw publicDatabaseError(subError, "Não foi possível ler as entregas.");
-    const submissionRows = (submissions ?? []) as unknown as Array<
-      SubmissionRow & { task_id: string }
-    >;
+    const submissionRows = submissions as unknown as Array<SubmissionRow & { task_id: string }>;
     const files = await loadAttachmentInfo(
       db,
       schoolId,

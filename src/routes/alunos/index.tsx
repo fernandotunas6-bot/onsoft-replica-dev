@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { numberMatches } from "@/features/education-catalog/identifiers";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Eye,
   FileBadge,
   FileDown,
   FileText,
@@ -45,7 +44,6 @@ import { PickFileButton } from "@/features/arquivos/PickFileButton";
 import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
 import { buildEmisExportPayload } from "@/features/integrations/emis";
 import { StudentEnrollmentSheet } from "@/features/students/StudentEnrollmentSheet";
-import { StudentExtensiveModal } from "@/features/students/components/StudentExtensiveModal";
 import { StudentStatusBadge } from "@/features/students/components/StudentStatusBadge";
 import { StudentFinanceBadge } from "@/features/students/components/StudentFinanceBadge";
 import {
@@ -246,7 +244,7 @@ function StudentsPage() {
   const pageSize = Number(filters.pageSize) || 10;
   const page = Math.max(1, Number(filters.page) || 1);
   const setPage = (next: number) => setFilter("page", String(next));
-  const [extensiveModalStudent, setExtensiveModalStudent] = useState<StudentRow | null>(null);
+  const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
@@ -1141,7 +1139,7 @@ function StudentsPage() {
                 error={studentsQuery.isError ? studentsQuery.error : undefined}
                 onRetry={() => void studentsQuery.refetch()}
                 onOpenStudent={(student) =>
-                  setExtensiveModalStudent(paged.find((row) => row.id === student.id) ?? null)
+                  void navigate({ to: "/alunos/$studentId", params: { studentId: student.id } })
                 }
                 onClearFilters={resetFilters}
                 emptyTitle={
@@ -1231,7 +1229,9 @@ function StudentsPage() {
                             "cursor-pointer transition-colors hover:bg-muted/60 group",
                             selectedIds.includes(s.id) && "bg-primary/5",
                           )}
-                          onClick={() => setExtensiveModalStudent(s)}
+                          onClick={() =>
+                            void navigate({ to: "/alunos/$studentId", params: { studentId: s.id } })
+                          }
                         >
                           <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
                             <input
@@ -1325,22 +1325,10 @@ function StudentsPage() {
                           <TableCell>
                             <div className="flex justify-end gap-2">
                               <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setExtensiveModalStudent(s);
-                                }}
-                              >
-                                <Eye className="size-3.5" /> Visualizar
-                              </Button>
-                              <Button
                                 asChild
                                 variant="outline"
                                 size="sm"
-                                className="h-8 gap-1 px-2 text-xs"
+                                className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
                                 onClick={(event) => event.stopPropagation()}
                               >
                                 <Link to="/alunos/$studentId" params={{ studentId: s.id }}>
@@ -1646,15 +1634,6 @@ function StudentsPage() {
               setPage(1);
             }}
             pageSizeOptions={[10, 25, 50, 100]}
-          />
-
-          <StudentExtensiveModal
-            open={Boolean(extensiveModalStudent)}
-            onOpenChange={(open) => {
-              if (!open) setExtensiveModalStudent(null);
-            }}
-            studentId={extensiveModalStudent?.id ?? null}
-            initialData={extensiveModalStudent}
           />
         </div>
       </div>

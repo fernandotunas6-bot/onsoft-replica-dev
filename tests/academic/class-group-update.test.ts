@@ -38,7 +38,7 @@ describe("actualizar uma turma", () => {
   });
 
   it("«Reactivar» envia só o estado", () => {
-    const modal = readFileSync("src/features/academic/components/TurmaProfileModal.tsx", "utf8");
+    const modal = readFileSync("src/routes/pedagogica_.turmas.$turmaId.tsx", "utf8");
     const reactivate = modal.slice(modal.indexOf("setReactivating(true)"));
     const call = reactivate.slice(0, reactivate.indexOf("});"));
     expect(call).not.toContain("capacity:");

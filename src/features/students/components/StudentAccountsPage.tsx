@@ -9,7 +9,7 @@ import { toast } from "@/lib/toast";
 import { publicErrorMessage } from "@/lib/public-error";
 import { cn } from "@/lib/utils";
 import { setStudentNumberLogin } from "@/features/access/student-access-server";
-import { ACCOUNTS_BATCH } from "@/features/students/student-accounts";
+import { ACCOUNTS_BATCH, slipSignIn } from "@/features/students/student-accounts";
 import {
   createStudentAccounts,
   listStudentAccounts,
@@ -45,6 +45,7 @@ export function StudentAccountsView() {
   );
   const missing = shown.filter((student) => !student.hasAccount);
   const labelOf = new Map((data?.students ?? []).map((s) => [s.studentId, s.classLabel]));
+  const biOf = new Map((data?.students ?? []).map((s) => [s.studentId, s.hasBi]));
 
   const create = useMutation({
     mutationFn: async () => {
@@ -93,10 +94,10 @@ export function StudentAccountsView() {
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível mudar.")),
   });
 
-  // O endereço do portal só existe no cliente: lido depois de hidratar, para o
-  // servidor e o primeiro render concordarem.
-  const [portal, setPortal] = useState("");
-  useEffect(() => setPortal(window.location.host), []);
+  // Sem endereço da escola no servidor, o do browser: lido depois de hidratar,
+  // para o servidor e o primeiro render concordarem.
+  const [browserHost, setBrowserHost] = useState("");
+  useEffect(() => setBrowserHost(window.location.host), []);
 
   if (query.isLoading) return <InlineLoading label="A carregar os alunos…" />;
   if (query.isError || !data) {
@@ -108,6 +109,7 @@ export function StudentAccountsView() {
   }
   const total = data.students.length;
   const withAccount = data.students.filter((student) => student.hasAccount).length;
+  const portal = data.portalHost ?? browserHost;
 
   return (
     <div className="space-y-6">
@@ -153,8 +155,9 @@ export function StudentAccountsView() {
 
       {!data.numberLoginEnabled ? (
         <p className="rounded-lg bg-warning/10 px-3 py-2 text-sm print:hidden">
-          Com «Entrar com o nº de aluno» desligado, os alunos só entram pelo BI — e a maioria não o
-          tem registado. Ligue-o antes de entregar as fichas.
+          Com «Entrar com o nº de aluno» desligado, os alunos entram pelo BI; quem não o tem
+          registado recebe na ficha o utilizador interno da conta, que é longo de escrever. Ligue-o
+          antes de imprimir as fichas.
         </p>
       ) : null}
 
@@ -270,26 +273,38 @@ export function StudentAccountsView() {
             aluno escolhe a sua senha.
           </p>
           <ul className="grid gap-3 sm:grid-cols-2 print:grid-cols-2" aria-label="Fichas de acesso">
-            {issued.map((credential) => (
-              <li
-                key={credential.studentId}
-                className="break-inside-avoid space-y-1.5 rounded-xl border border-dashed p-4 text-sm"
-              >
-                <p className="font-semibold">{credential.name}</p>
-                <p className="text-xs text-muted-foreground">{credential.classLabel}</p>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pt-1">
-                  <dt className="text-muted-foreground">Endereço</dt>
-                  <dd className="font-mono text-xs">{portal}</dd>
-                  <dt className="text-muted-foreground">Nº de aluno</dt>
-                  <dd className="font-mono">{credential.studentNumber}</dd>
-                  <dt className="text-muted-foreground">Senha provisória</dt>
-                  <dd className="font-mono font-semibold tracking-wide">{credential.password}</dd>
-                </dl>
-                <p className="pt-1 text-[11px] text-muted-foreground">
-                  No primeiro acesso escolhe a tua senha. Não partilhes estes dados.
-                </p>
-              </li>
-            ))}
+            {issued.map((credential) => {
+              const signIn = slipSignIn({
+                numberLoginEnabled: data.numberLoginEnabled,
+                hasBi: biOf.get(credential.studentId) ?? false,
+                studentNumber: credential.studentNumber,
+                loginEmail: credential.loginEmail,
+              });
+              return (
+                <li
+                  key={credential.studentId}
+                  className="break-inside-avoid space-y-1.5 rounded-xl border border-dashed p-4 text-sm"
+                >
+                  <p className="font-semibold">{credential.name}</p>
+                  <p className="text-xs text-muted-foreground">{credential.classLabel}</p>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pt-1">
+                    <dt className="text-muted-foreground">Endereço</dt>
+                    <dd className="font-mono text-xs">{portal}</dd>
+                    <dt className="text-muted-foreground">ID do aluno</dt>
+                    <dd className="font-mono">{credential.studentNumber}</dd>
+                    <dt className="text-muted-foreground">Entrar com</dt>
+                    <dd className={cn("break-all", signIn.code && "font-mono text-xs")}>
+                      {signIn.value}
+                    </dd>
+                    <dt className="text-muted-foreground">Senha provisória</dt>
+                    <dd className="font-mono font-semibold tracking-wide">{credential.password}</dd>
+                  </dl>
+                  <p className="pt-1 text-[11px] text-muted-foreground">
+                    No primeiro acesso escolhe a tua senha. Não partilhes estes dados.
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}

@@ -2,8 +2,8 @@
  * Contas de acesso dos alunos. Puro: o servidor usa-o para criar as contas.
  *
  * O aluno quase nunca tem e-mail. A conta (Supabase Auth) leva um endereço
- * interno, sem caixa de correio, que nunca aparece no ecrã: o aluno entra com o
- * número de aluno (ou o BI) e a senha. A primeira senha é provisória, entregue
+ * interno, sem caixa de correio: o aluno entra com o número de aluno (ou o BI)
+ * e a senha. O endereço interno só vai para a ficha quando não há outro caminho. A primeira senha é provisória, entregue
  * em papel pela Secretaria, e tem de ser trocada no primeiro acesso.
  */
 import { passwordMeetsPolicy } from "@/lib/password-policy-error";
@@ -49,4 +49,38 @@ export function mustChangePassword(appMetadata: unknown): boolean {
     typeof appMetadata === "object" &&
     (appMetadata as Record<string, unknown>).must_change_password === true,
   );
+}
+
+/**
+ * O que a ficha manda escrever no campo de entrada: o que funciona de facto
+ * para esta conta. O nº de aluno só serve com a opção da escola ligada, o BI
+ * só se estiver na ficha; sem nenhum dos dois, resta o endereço interno.
+ */
+export function slipSignIn(input: {
+  numberLoginEnabled: boolean;
+  hasBi: boolean;
+  studentNumber: string;
+  loginEmail: string;
+}): { value: string; code: boolean } {
+  if (input.numberLoginEnabled && input.studentNumber) {
+    return input.hasBi
+      ? { value: `${input.studentNumber} ou o nº do teu B.I.`, code: false }
+      : { value: input.studentNumber, code: true };
+  }
+  if (input.hasBi) return { value: "o número do teu B.I.", code: false };
+  return { value: input.loginEmail, code: true };
+}
+
+/**
+ * Endereço da escola para a ficha: o domínio próprio activo, senão o subdomínio
+ * da plataforma. No endereço geral o nº de aluno não chega (todas as escolas
+ * começam no 1260001), por isso a ficha nunca deve imprimir o geral.
+ */
+export function pickPortalHost(
+  domains: Array<{ hostname: string; type: string }>,
+  slugHost: string | null,
+): string | null {
+  const own = domains.find((domain) => domain.type !== "siga_subdomain");
+  const platform = domains.find((domain) => domain.type === "siga_subdomain");
+  return own?.hostname ?? platform?.hostname ?? slugHost;
 }

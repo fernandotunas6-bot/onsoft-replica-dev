@@ -1079,12 +1079,9 @@ function PedagogicaPage() {
               workspace={workspace}
               teacherNameById={teacherNameById}
               canvasWork={canvasWork}
-              // A ficha da turma tem página própria (SIGA Context Engine).
+              // A ficha da turma tem página própria.
               onOpenTurma={(id) =>
-                void navigate({
-                  to: "/pedagogica/turmas/$classGroupId",
-                  params: { classGroupId: id },
-                })
+                void navigate({ to: "/pedagogica/turmas/$turmaId", params: { turmaId: id } })
               }
             />
           </TabsContent>

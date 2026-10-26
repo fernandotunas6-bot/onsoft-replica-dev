@@ -12,6 +12,7 @@ import {
   FilePlus2,
   FileText,
   GraduationCap,
+  History,
   LoaderCircle,
   Mail,
   MapPin,
@@ -71,10 +72,12 @@ import {
   changeStudentStatus,
   enrollStudentInClass,
   getStudentProfile,
+  getStudentStatusHistory,
   removeGuardian,
   updateEnrollmentAttendance,
   updateStudentProfile,
 } from "@/features/students/server";
+import { StudentStatusHistoryTimeline } from "@/features/students/components/StudentStatusHistoryTimeline";
 import {
   academicStatusLabel,
   enrollmentStatusLabel,
@@ -298,6 +301,10 @@ function StudentDetail() {
   const historyQuery = useQuery({
     queryKey: ["academic", "history", studentId],
     queryFn: () => getStudentAcademicHistory({ data: { studentId } }),
+  });
+  const statusHistoryQuery = useQuery({
+    queryKey: ["students", "status-history", studentId],
+    queryFn: () => getStudentStatusHistory({ data: { studentId } }),
   });
   const peopleQuery = useQuery({
     queryKey: ["people", "search", ""],
@@ -2096,6 +2103,22 @@ function StudentDetail() {
               <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
                 <CalendarDays className="size-4" /> Registo actualizado no {activeYearLabel}.
               </p>
+            </section>
+          ) : null}
+
+          {/* Mudanças de estado do aluno; na ficha por secções, ficam no Histórico. */}
+          {show("historico") ? (
+            <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <IconChip icon={History} size="sm" label="Histórico de estados" />
+                <h2 className="font-display text-base font-bold">Histórico de estados</h2>
+              </div>
+              <div className="mt-4">
+                <StudentStatusHistoryTimeline
+                  events={statusHistoryQuery.data ?? []}
+                  isLoading={statusHistoryQuery.isLoading}
+                />
+              </div>
             </section>
           ) : null}
         </div>

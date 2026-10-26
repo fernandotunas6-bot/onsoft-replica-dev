@@ -43,6 +43,15 @@ export async function assertTermOpen(db: Db, schoolId: string, term: number) {
 
 export type AssessmentScoreRow = { enrollmentId: string; score: number | null };
 
+/**
+ * A nota mudou? Ausente é ausente, não zero: `Number(null)` dá 0, e uma nota
+ * apagada (ou lançada como 0 onde não havia nada) saía da auditoria.
+ */
+export function sameScore(before: unknown, after: unknown): boolean {
+  const value = (score: unknown) => (score == null || score === "" ? null : Number(score));
+  return value(before) === value(after);
+}
+
 export async function writeAssessmentScores(
   db: Db,
   input: { schoolId: string; userId: string; itemId: string; rows: AssessmentScoreRow[] },
@@ -162,7 +171,7 @@ export async function writeAssessmentScores(
   await recordAuditBatch(
     toUpdate
       .map((row) => ({ row, existing: existingByEnrollment.get(row.enrollmentId)! }))
-      .filter(({ row, existing }) => Number(existing.score) !== Number(row.score))
+      .filter(({ row, existing }) => !sameScore(existing.score, row.score))
       .map(({ row, existing }) => ({
         schoolId: input.schoolId,
         actorUserId: input.userId,
