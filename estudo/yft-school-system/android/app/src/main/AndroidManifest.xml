@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sem esta permissão o APK de release não tem rede (o modelo do Flutter só a põe
+         nos manifestos de depuração): nem login no Firebase nem a API. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="yft_school_system"
+        android:label="SIGA Plus"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

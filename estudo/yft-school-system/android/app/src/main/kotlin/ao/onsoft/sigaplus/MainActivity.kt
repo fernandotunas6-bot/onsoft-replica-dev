@@ -1,4 +1,4 @@
-package com.example.yft_school_system
+package ao.onsoft.sigaplus
 
 import io.flutter.embedding.android.FlutterActivity
 
