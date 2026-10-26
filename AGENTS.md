@@ -25,6 +25,14 @@ Handoff e estado dos ciclos: [docs/agents/CONTINUE.md](docs/agents/CONTINUE.md).
 
 Skills: `.cursor/skills/siga/SKILL.md`, `siga-web`, `siga-admin`, `siga-docs`, `siga-saas`, `siga-identity`, e `.cursor/skills/siga-*/SKILL.md` por módulo escolar.
 
+**Aluno, login, BI, turmas A–Z e fecho de ano (PR #339):** ler a skill
+[`siga-alunos-ano-lectivo`](.cursor/skills/siga-alunos-ano-lectivo/SKILL.md),
+o [PROMPT MASTER completo](.cursor/skills/siga-alunos-ano-lectivo/references/PROMPT_MASTER.md)
+e a [estrutura visual contextual](docs/design/STUDENT_LOGIN_CLASSES_CONTEXTUAL_UI_2026-10-26.md).
+Trabalho transversal: preservar as skills `siga-alunos`, `siga-pessoas`,
+`siga-acessos`, `siga-pedagogica` e `siga-matricula`. Nenhum motor
+de sidebar paralelo, migração ou publicação automática por esta PR.
+
 **Velocidade e refinamento:** `.cursor/skills/siga-performance/SKILL.md` — optimizar o
 que existe, sem acrescentar/remover funcionalidades ou elementos, sem aumentar a
 interface nem alterar a identidade. Medir antes/depois e preservar segurança e dados.

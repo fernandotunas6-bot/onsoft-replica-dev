@@ -105,10 +105,10 @@ function mapSignInError(message: string) {
       : "A verificação anti-robô está activa no servidor mas não está configurada nesta aplicação. Avise a administração: falta VITE_HCAPTCHA_SITE_KEY.";
   }
   if (value.includes("invalid login credentials") || value.includes("invalid_credentials")) {
-    return "Email ou senha incorrectos. Confirme os dados e tente novamente.";
+    return "Identificador ou senha incorrectos. Confirme os dados e tente novamente.";
   }
   if (value.includes("school_required")) {
-    return "Este número de aluno existe em mais de uma escola. Entre pelo endereço da sua escola.";
+    return "Para entrar com o número de aluno, utilize o endereço do portal da sua escola.";
   }
   if (value.includes("email not confirmed")) {
     return "Confirme o email da conta antes de iniciar sessão.";

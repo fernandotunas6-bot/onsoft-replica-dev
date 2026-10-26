@@ -171,7 +171,7 @@ export async function buildRenewalPlan(
     studentIds.length
       ? db
           .from("students")
-          .select("id, status, person_id")
+          .select("id, status, person_id, student_number")
           .eq("school_id", schoolId)
           .in("id", studentIds)
       : Promise.resolve({ data: [] as Row[], error: null }),
@@ -229,6 +229,7 @@ export async function buildRenewalPlan(
     students: ((studentsRead.data ?? []) as Row[]).map((row) => ({
       studentId: str(row.id),
       name: nameOf.get(str(row.person_id)) || "—",
+      studentNumber: str(row.student_number),
       studentStatus: row.status ? str(row.status) : null,
       outcome: outcomeOf.get(str(row.id))?.outcome ?? null,
       targetYearClassGroupId: targetClassOf.get(str(row.id)) ?? null,
