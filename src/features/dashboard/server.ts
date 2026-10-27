@@ -815,7 +815,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .order("occurred_at", { ascending: false })
         .limit(6);
       if (audits?.length) {
-        overview.auditActivity = audits.map(
+        overview.recentActivity = audits.map(
           // `audit_logs.id` é bigint na produção, não uuid. A anotação dizia
           // `string` e ninguém reparou porque o cliente privilegiado não tem
           // tipos; o `String(row.id)` abaixo já tratava o valor correctamente.
@@ -824,7 +824,14 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
               .split(".")
               .at(-1)
               ?.toLowerCase();
-            const verb = op === "insert" ? "Criou" : op === "delete" ? "Eliminou" : "Actualizou";
+            const verb =
+              op === "insert"
+                ? "Criou"
+                : op === "delete"
+                  ? "Eliminou"
+                  : op === "update"
+                    ? "Actualizou"
+                    : "Registou";
             return {
               id: String(row.id),
               title: `${verb} ${row.entity_type ?? "registo"}`,
@@ -834,6 +841,12 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
             };
           },
         );
+        overview.auditActivity = overview.recentActivity.map(({ id, title, detail, time }) => ({
+          id,
+          title,
+          detail,
+          time,
+        }));
       }
     }
 
