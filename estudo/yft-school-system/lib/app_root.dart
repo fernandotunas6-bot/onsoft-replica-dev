@@ -2,6 +2,7 @@ import 'package:yft_school_system/core/auth/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/core/auth/school_suspension.dart';
+import 'package:yft_school_system/core/realtime/live_updates.dart';
 import 'package:yft_school_system/core/routing/app_router.dart';
 import 'package:yft_school_system/core/schools/known_schools.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -84,6 +85,8 @@ class _AppRootState extends ConsumerState<AppRoot> with WidgetsBindingObserver {
 
     return MaterialApp.router(
       title: 'SIGA Plus',
+      // As faixas «Novo aviso · Ver» (LiveUpdates) aparecem sobre qualquer ecrã.
+      scaffoldMessengerKey: appMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(reduceMotion: appearance.reduceMotion),
       routerConfig: appRouter,

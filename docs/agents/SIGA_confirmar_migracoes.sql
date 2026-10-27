@@ -161,6 +161,11 @@ from (values
                  where tablename = 'siga_attendance_records'
                    and policyname = 'Members read siga_attendance_records'
                    and qual like '%teacher_students%')),
+  -- Está no pacote docs/agents/SIGA_aplicar_tempo_real_avisos.sql (app móvel).
+  ('20261027100000_realtime_publish_notifications',
+     exists (select 1 from pg_publication_tables
+             where pubname = 'supabase_realtime' and schemaname = 'public'
+               and tablename = 'notifications')),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
      and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))

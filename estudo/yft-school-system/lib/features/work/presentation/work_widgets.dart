@@ -181,7 +181,7 @@ class _GradeBadge extends StatelessWidget {
       ),
       child: Text(
         formatGrade(grade),
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color),
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: color),
       ),
     );
   }
@@ -251,8 +251,10 @@ class _AgendaHero extends StatelessWidget {
     final average = agenda.average;
     final next = agenda.nextAssessment;
     final lesson = agenda.nextLesson;
-    const onHero = Colors.white;
-    final muted = Colors.white.withValues(alpha: 0.82);
+    // Texto sobre a cor principal: branco ou tinta, o que passar 4,5 de
+    // contraste (laranja e verde-água pedem tinta).
+    final onHero = AppColors.onPrimary;
+    final muted = onHero.withValues(alpha: 0.82);
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -282,9 +284,9 @@ class _AgendaHero extends StatelessWidget {
                         children: [
                           TextSpan(
                             text: average == null ? '—' : formatGrade(average),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 34,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: onHero,
                               height: 1.1,
                             ),
@@ -303,17 +305,17 @@ class _AgendaHero extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
+                    color: onHero.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(LucideIcons.users, size: 14, color: onHero),
+                      Icon(LucideIcons.users, size: 14, color: onHero),
                       const SizedBox(width: 6),
                       Text(
                         agenda.className!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: onHero,
@@ -326,7 +328,7 @@ class _AgendaHero extends StatelessWidget {
           ),
           if (next != null || (lesson != null && lesson.daysAhead > 0)) ...[
             const SizedBox(height: 14),
-            Divider(height: 1, color: Colors.white.withValues(alpha: 0.2)),
+            Divider(height: 1, color: onHero.withValues(alpha: 0.2)),
             const SizedBox(height: 12),
           ],
           if (next != null)
@@ -367,10 +369,10 @@ class _HeroLine extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.18),
+            color: AppColors.onPrimary.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 17, color: Colors.white),
+          child: Icon(icon, size: 17, color: AppColors.onPrimary),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -381,17 +383,17 @@ class _HeroLine extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.82),
+                  color: AppColors.onPrimary.withValues(alpha: 0.82),
                 ),
               ),
               Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: AppColors.onPrimary,
                 ),
               ),
             ],

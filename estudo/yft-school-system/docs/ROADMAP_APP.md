@@ -13,7 +13,7 @@ Ponto de entrada para qualquer agente que continue a app móvel. Ler também:
 (`src/routes/api/mobile/*`, que chamam as funções de servidor do SIGA). Descarrega-se
 em portal-siga.com/download (release `android`, nunca a «latest»).
 
-## Estado (27/10/2026) — versão 1.1.0
+## Estado (27/10/2026) — versão 1.2.0 (por publicar)
 
 | Área | Estado | Onde |
 | ---- | ------ | ---- |
@@ -25,7 +25,13 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
 | Esqueletos de carregamento | feito | `lib/core/widgets/skeleton.dart` |
 | Boletim, faltas, horário, comunicados, recibos, mensagens | feito (#154) | `/api/sga/*` |
 | Chamada e notas do professor | feito (#154) | `/api/mobile/attendance`, `/grades` |
-| Funcionar sem rede (cópia das leituras + faixa «Sem rede · a ver dados de há N horas») | feito (por publicar) | `lib/core/offline/offline_cache.dart` |
+| Funcionar sem rede (cópia das leituras + faixa «Sem rede · a ver dados de há N horas») | feito (#364) | `lib/core/offline/offline_cache.dart` |
+| Centro de notificações (sino do Início, por dia, «Por ler», marcar lidas, destino por tipo) | feito | `/api/mobile/notifications`; `features/notifications/` |
+| Tempo real com a app aberta (avisos, mensagens, comunicados) | feito | `lib/core/realtime/` (Supabase Realtime) |
+| Notificações no telemóvel com a app fechada (verificação de 30 em 30 min) | feito | `lib/core/notify/` (WorkManager + notificações locais) |
+| Lembretes da véspera (avaliações e trabalhos para amanhã) | feito | `planTomorrow` em `notify_planner.dart` |
+| «Para ter em atenção» no Início (alertas por prioridade) | feito | `features/dashboard/presentation/widgets/home_alerts.dart` |
+| Notificações instantâneas com a app fechada (FCM) | à espera do dono | ver «Pendências do dono» |
 | Entregar trabalhos na app | por fazer | hoje no portal (`submitTaskWork`) |
 
 ## Plano, por ordem (decidido com o dono a 27/10)
@@ -38,8 +44,20 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
    sessão acaba (`SgaSession.onClear`). Teste: `test/offline_cache_test.dart`.
 2. **Faltas por disciplina:** percentagem e quantas faltam até ao limite
    (`maximum_absence_percentage` do modelo de avaliação do SIGA).
-3. **Notificações** de comunicados, notas e prazos de trabalhos (exige decidir o
-   canal: FCM, que traz o Firebase de volta, ou outro).
+3. ~~**Notificações**~~ Feito (27/10), em camadas, sem depender do Firebase:
+   - **Fonte:** a tabela `notifications` do SIGA (o sino do portal), pela rota
+     `/api/mobile/notifications`; `?pulse=1&after=&announcements_after=` devolve num só
+     pedido pequeno só o que é novo, as mensagens por ler e os comunicados novos.
+   - **App aberta:** `SgaRealtime` (pacote `realtime_client`, só Dart) com três canais:
+     `notifications` (filtro `user_id`), `siga_chat_messages` e `school_announcements`.
+     O RLS do servidor filtra. Sem tempo real dos avisos (ver pendências), verifica-os
+     de minuto a minuto (`LiveUpdates`). Novidade → faixa «Ver» no ecrã.
+   - **App fechada (Android):** `workmanager` de 30 em 30 min, com rede, fora das 22h–6h;
+     `NotifyChecker` + `planFromPulse` decidem o que mostrar (nunca repete, junta quando
+     são muitos, mensagens sem o texto). Estado em `notify_state.json` (partilhado com a
+     app). A sessão renova-se em segurança entre os dois isolates (`SgaSession._renew`).
+   - **Definições:** `/notifications-settings` com interruptores reais (telemóvel,
+     lembretes da véspera) e o pedido de autorização do Android 13+.
 4. **Capturas dos ecrãs no CI** (testes «golden» com dados falsos, artefacto no PR),
    para rever o visual sem telemóvel.
 5. **Retoque visual** no estilo Material 3 Expressive (formas, movimento com mola,
@@ -74,6 +92,15 @@ animações); ícones Lucide (o pacote Phosphor tem problemas com o SDK da app).
 - O pacote é `ao.onsoft.sigaplus` e a chave de assinatura é fixa: nunca mudar.
 
 ## Pendências do dono
+
+- **Tempo real dos avisos pessoais:** colar `docs/agents/SIGA_aplicar_tempo_real_avisos.sql`
+  no SQL Editor do Supabase (publica `notifications` no tempo real; não alarga acessos).
+  Até lá a app verifica-os de minuto a minuto com a app aberta.
+- **Notificações instantâneas com a app fechada (FCM):** registar a app Android
+  `ao.onsoft.sigaplus` no Firebase `siga-plus-integracoes`, pôr o `google-services.json`
+  na variável `YFT_GOOGLE_SERVICES_JSON` e criar uma conta de serviço com permissão de
+  envio (FCM HTTP v1) para o servidor. Depois: tabela de dispositivos só do servidor,
+  rota para registar o token e envio a cada `notifications` novo.
 
 - Trocar a chave `sb_secret_…` do Supabase (colada numa conversa a 26/10, não usada).
 - Guardar `~/.tauri/` e `~/.android-siga/` no cofre de senhas.

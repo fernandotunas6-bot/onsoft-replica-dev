@@ -170,7 +170,7 @@ class _WorkDetail extends ConsumerWidget {
                         task.title,
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -227,7 +227,7 @@ class _WorkDetail extends ConsumerWidget {
                         formatGrade(grade),
                         style: TextStyle(
                           fontSize: 32,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: gradeColor(grade),
                         ),
                       ),

@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/models/school_notice.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
+import 'package:yft_school_system/core/notify/notify_controller.dart';
 
 /// Data de publicação legível, sem segundos.
 String formatNoticeWhen(String raw) => formatServerDateTime(raw);
@@ -127,6 +128,18 @@ class NoticesScreen extends ConsumerWidget {
           ),
         ),
         data: (notices) {
+          // Abrir a lista conta como ver os comunicados: o sino fica limpo.
+          final newest = notices
+              .map(announcementDate)
+              .whereType<DateTime>()
+              .fold<DateTime?>(null, (a, b) => a == null || b.isAfter(a) ? b : a);
+          if (newest != null) {
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => ref
+                  .read(notifyControllerProvider.notifier)
+                  .markAnnouncementsSeen(newest),
+            );
+          }
           if (notices.isEmpty) {
             return Center(
               child: Column(

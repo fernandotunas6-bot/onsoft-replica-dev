@@ -14,6 +14,10 @@ const _kBaseUrl = String.fromEnvironment(
   defaultValue: _kDefaultBaseUrl,
 );
 
+/// Endereço da API (Worker) desta compilação; a verificação em segundo plano
+/// usa-o fora do Riverpod.
+const kApiBaseUrl = _kBaseUrl;
+
 Dio _createDio(Ref ref) {
   final dio = Dio(
     BaseOptions(
@@ -58,9 +62,7 @@ Dio _createDio(Ref ref) {
             markSchoolSuspended();
           }
           if (data.containsKey('error')) {
-            error = error.copyWith(
-              message: data['error'] as String?,
-            );
+            error = error.copyWith(message: data['error'] as String?);
           }
         }
 
