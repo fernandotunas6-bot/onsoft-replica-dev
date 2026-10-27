@@ -61,7 +61,11 @@ export function AdminHomeFocus({
           Não foi possível consultar os indicadores. Volte a abrir o Início para tentar novamente.
         </div>
       ) : items.length ? (
-        <div className={compact ? "grid gap-2 sm:grid-cols-2" : "grid gap-3 md:grid-cols-2 xl:grid-cols-4"}>
+        <div
+          className={
+            compact ? "grid gap-2 sm:grid-cols-2" : "grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+          }
+        >
           {items.map((item) => {
             const Icon = focusIcons[item.id];
             return (
@@ -70,14 +74,20 @@ export function AdminHomeFocus({
                 to={item.to}
                 className={`group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none ${compact ? "p-3" : "p-4"}`}
               >
-                <span className={`flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ${compact ? "size-8" : "size-9"}`}>
+                <span
+                  className={`flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ${compact ? "size-8" : "size-9"}`}
+                >
                   <Icon className="size-4" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block font-bold leading-none tabular-nums text-foreground ${compact ? "text-lg" : "text-2xl"}`}>
+                  <span
+                    className={`block font-bold leading-none tabular-nums text-foreground ${compact ? "text-lg" : "text-2xl"}`}
+                  >
                     {item.count}
                   </span>
-                  <span className={`block text-xs font-semibold text-foreground ${compact ? "mt-1" : "mt-2"}`}>
+                  <span
+                    className={`block text-xs font-semibold text-foreground ${compact ? "mt-1" : "mt-2"}`}
+                  >
                     {item.title}
                   </span>
                   <span className="mt-1 block text-[11px] text-muted-foreground">
