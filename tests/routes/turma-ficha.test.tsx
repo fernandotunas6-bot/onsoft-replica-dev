@@ -95,7 +95,10 @@ const workspace = {
   scheduleAvailable: true,
 };
 
-const server = vi.hoisted(() => ({ workspace: vi.fn() }));
+const server = vi.hoisted(() => ({ workspace: vi.fn(), tasks: vi.fn() }));
+vi.mock("@/features/academic/timetable-lessons", () => ({
+  listClassTasks: server.tasks,
+}));
 vi.mock("@/features/academic/server", () => ({
   listPedagogicalWorkspace: server.workspace,
   listRooms: () => Promise.resolve([]),
@@ -119,6 +122,7 @@ afterEach(() => {
   resetRouteLocation();
   resetCurrentAccount();
   server.workspace.mockReset();
+  server.tasks.mockReset();
 });
 
 function open(search: Record<string, unknown> = {}, role = "Secretaria", id = TURMA) {
@@ -168,6 +172,35 @@ describe("/pedagogica/turmas/$turmaId", () => {
     open({}, "Secretaria", "99999999-9999-4999-8999-999999999999");
     await waitFor(() => expect(screen.getByText("Turma não encontrada")).toBeDefined());
     expect(screen.queryByText("Ocupação")).toBeNull();
+  });
+
+  it("o professor tem contexto da sua turma e não vê acções administrativas", async () => {
+    server.tasks.mockResolvedValue({
+      available: true,
+      open: [{
+        id: "tarefa-1", title: "Experiência de Física", subjectName: "Física",
+        dueOn: "2026-11-10", description: null,
+      }],
+      closed: [],
+    });
+    open({}, "Professor");
+    await waitFor(() =>
+      expect(screen.getByRole("complementary", { name: "Contexto do professor" })).toBeDefined(),
+    );
+    await waitFor(() => expect(screen.getByText("Experiência de Física")).toBeDefined());
+    expect(server.tasks).toHaveBeenCalledWith({ data: { classGroupId: TURMA } });
+    expect(screen.getByRole("link", { name: "Ver trabalhos e entregas" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Presenças e aulas realizadas" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Editar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Professor" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Aplicar currículo do curso" })).toBeNull();
+  });
+
+  it("a Secretaria mantém gestão de turma e não carrega o painel do professor", async () => {
+    open();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Editar" })).toBeDefined());
+    expect(screen.queryByRole("complementary", { name: "Contexto do professor" })).toBeNull();
+    expect(server.tasks).not.toHaveBeenCalled();
   });
 
   it("aluno e encarregado não pedem a turma", async () => {
