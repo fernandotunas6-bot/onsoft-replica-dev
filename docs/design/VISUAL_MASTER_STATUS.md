@@ -1,5 +1,18 @@
 # Execução do padrão visual — 23/10/2026
 
+**27/10/2026 — pesquisa global e Início operacional (PR #375 em revisão):**
+pesquisa visual de Canvas, Moodle, Linear, Notion e Stripe registada em
+[Dashboard Home Research](DASHBOARD_HOME_RESEARCH_2026-10-27.md).
+Mantendo a PR #372 já integrada, a entrada administrativa mostra prioridades
+também no mobile, através de variante compacta, e reutiliza as operações
+autorizadas no desktop. Os cartões estatísticos deixam de ampliar no hover,
+conforme a directriz de interacções discretas; o cabeçalho verifica também
+`grants`. Não altera portais de professor/aluno/encarregado, dados ou RLS.
+Teste de regressão em `tests/dashboard/home-visual-layout.test.tsx`.
+**CI, testes em dispositivos reais, contas multi-escola, merge e deploy ainda
+não validados.** A PR foi aberta como rascunho.
+
+
 **27/10/2026 — botões discretos e cabeçalho semitransparente (PR em revisão):**
 o componente global `Button` conserva estados hover, loading, disabled e foco
 visível, mas elimina o efeito de compressão `scale` ao clicar. A navegação
