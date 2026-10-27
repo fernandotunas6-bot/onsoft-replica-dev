@@ -46,6 +46,7 @@ import { SchoolSetupGuide } from "@/features/school/SchoolSetupGuide";
 import { buildHomeFocusItems } from "@/features/dashboard/home-focus";
 import { AdminHomeFocus } from "@/features/dashboard/components/AdminHomeFocus";
 import { AdminAuditActivity } from "@/features/dashboard/components/AdminAuditActivity";
+import { AdminFinanceSummary } from "@/features/dashboard/components/AdminFinanceSummary";
 
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
@@ -826,6 +827,10 @@ export function AdminPortalDashboard({
         <div className="space-y-6">
           <DisciplinePerformanceHeatmap dataByTerm={data?.performanceHeatmap ?? {}} />
         </div>
+      ) : null}
+
+      {activeTab === "financeiro" && capabilities.finance ? (
+        <AdminFinanceSummary finance={data?.finance} loading={isLoading} />
       ) : null}
 
       {(activeTab === "geral" || activeTab === "financeiro") && capabilities.finance ? (
