@@ -41,15 +41,11 @@ export function TurmaTeacherContextPanel({
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
             <p className="text-xs text-muted-foreground">Trabalhos em curso</p>
-            <p className="mt-1 text-xl font-bold tabular-nums">
-              {openCount}
-            </p>
+            <p className="mt-1 text-xl font-bold tabular-nums">{openCount}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Prazo terminado</p>
-            <p className="mt-1 text-xl font-bold tabular-nums">
-              {closedCount}
-            </p>
+            <p className="mt-1 text-xl font-bold tabular-nums">{closedCount}</p>
           </div>
           <div className="col-span-2 border-t border-border pt-3">
             <p className="text-xs text-muted-foreground">Aulas no horário semanal da turma</p>
@@ -57,8 +53,8 @@ export function TurmaTeacherContextPanel({
           </div>
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Até 200 trabalhos publicados. Prazo encerrado não significa correcção.
-          Uma aula no horário não significa que foi leccionada.
+          Até 200 trabalhos publicados. Prazo encerrado não significa correcção. Uma aula no horário
+          não significa que foi leccionada.
         </p>
         {tasksQuery.isError ? (
           <p role="alert" className="mt-2 text-xs text-destructive">
@@ -125,7 +121,8 @@ export function TurmaTeacherContextPanel({
             search={{ turma: classGroupId }}
             className="flex min-h-10 items-center gap-2 rounded-md px-2 text-xs font-medium hover:bg-secondary/40"
           >
-            <BookOpenCheck className="size-4 text-muted-foreground" /> Planos e conteúdos leccionados
+            <BookOpenCheck className="size-4 text-muted-foreground" />
+            <span>Planos e conteúdos leccionados</span>
           </Link>
           <Link
             to="/pedagogica"
