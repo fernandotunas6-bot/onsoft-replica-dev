@@ -52,7 +52,11 @@ for (let corrida = 0; corrida < 2; corrida++) {
   const confirmar = (await db.exec(pacote)).at(-1).rows[0];
   assert.deepEqual(confirmar, { "20261027100000 tempo real dos avisos": "aplicada" });
 }
-assert.deepEqual(await published(), ["notifications", "school_announcements", "siga_chat_messages"]);
+assert.deepEqual(await published(), [
+  "notifications",
+  "school_announcements",
+  "siga_chat_messages",
+]);
 assert.equal(await probe(), "aplicada");
 
 console.log(
