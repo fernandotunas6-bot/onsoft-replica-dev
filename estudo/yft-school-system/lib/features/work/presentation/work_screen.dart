@@ -230,9 +230,60 @@ class _WorkDetail extends ConsumerWidget {
                   task.onPaper ? 'Entregue em papel' : 'Entregue',
                   'a ${_date(task.submittedAt!.toLocal())}',
                   if (task.late) '(depois do prazo)',
+                  if (task.attempt > 1) '· ${task.attempt}.ª tentativa',
                 ].join(' '),
                 style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
+              if (task.answer != null || task.fileName != null) ...[
+                const SizedBox(height: 10),
+                CardGroup(
+                  children: [
+                    if (task.answer != null)
+                      SoftCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Text(
+                          task.answer!,
+                          maxLines: 6,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.4,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    if (task.fileName != null)
+                      SoftCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              task.fileName!.toLowerCase().endsWith('.pdf')
+                                  ? LucideIcons.fileText
+                                  : LucideIcons.image,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                task.fileName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                              ),
+                            ),
+                            if (task.fileSize != null)
+                              Text(
+                                formatFileSize(task.fileSize!),
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
             if (grade != null || (task.feedback?.trim().isNotEmpty ?? false)) ...[
               const SizedBox(height: 16),

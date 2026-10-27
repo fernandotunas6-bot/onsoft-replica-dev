@@ -163,6 +163,26 @@ void main() {
     expect(t.archived, isTrue);
     expect(t.acceptsLate, isFalse);
     expect(t.attempt, 2);
+    final mine = WorkTask.fromJson({
+      'id': 't3',
+      'state': 'submitted',
+      'latest': {
+        'attempt': 1,
+        'body': '  A minha resposta.  ',
+        'file': {'name': 'ficha.pdf', 'sizeBytes': 1468006},
+      },
+    });
+    expect(mine.answer, 'A minha resposta.');
+    expect(mine.fileName, 'ficha.pdf');
+    expect(formatFileSize(mine.fileSize!), '1.4 MB');
+    expect(formatFileSize(327680), '320 KB');
+    expect(
+      WorkTask.fromJson({
+        'id': 't4',
+        'latest': {'body': '  '},
+      }).answer,
+      isNull,
+    );
     final plain = WorkTask.fromJson({'id': 't2', 'state': 'open'});
     expect(plain.archived, isFalse);
     expect(plain.acceptsLate, isTrue);

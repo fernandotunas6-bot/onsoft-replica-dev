@@ -115,6 +115,11 @@ class WorkTask {
   /// Tentativa da entrega mais recente (0 sem entrega).
   final int attempt;
 
+  /// O que o aluno entregou na última tentativa: a resposta escrita e o anexo.
+  final String? answer;
+  final String? fileName;
+  final int? fileSize;
+
   /// Já não recebe entregas (arquivado, ou de uma matrícula que já não está activa).
   final bool archived;
   final bool acceptsLate;
@@ -134,6 +139,9 @@ class WorkTask {
     this.late = false,
     this.onPaper = false,
     this.attempt = 0,
+    this.answer,
+    this.fileName,
+    this.fileSize,
     this.archived = false,
     this.acceptsLate = true,
   });
@@ -144,6 +152,9 @@ class WorkTask {
   factory WorkTask.fromJson(Map<String, dynamic> j) {
     final latest = j['latest'] is Map<String, dynamic>
         ? j['latest'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final file = latest['file'] is Map<String, dynamic>
+        ? latest['file'] as Map<String, dynamic>
         : const <String, dynamic>{};
     return WorkTask(
       id: j['id'] as String,
@@ -160,6 +171,11 @@ class WorkTask {
       late: latest['isLate'] == true,
       onPaper: latest['onPaper'] == true,
       attempt: (latest['attempt'] as num?)?.toInt() ?? 0,
+      answer: (latest['body'] as String?)?.trim().isEmpty ?? true
+          ? null
+          : (latest['body'] as String).trim(),
+      fileName: file['name'] as String?,
+      fileSize: (file['sizeBytes'] as num?)?.toInt(),
       archived: j['archived'] == true,
       acceptsLate: j['acceptsLate'] != false,
     );
@@ -266,3 +282,10 @@ final workOverviewProvider = FutureProvider.family<WorkOverview?, String?>((
   if (!sgaMode) return null;
   return ref.watch(sgaWorkRepositoryProvider).getWork(studentId);
 });
+
+/// «320 KB», «1.4 MB» (com ponto, como os outros números da app).
+String formatFileSize(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
