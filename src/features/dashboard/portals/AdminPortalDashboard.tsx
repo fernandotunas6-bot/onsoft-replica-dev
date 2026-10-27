@@ -45,6 +45,7 @@ import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
 import { SchoolSetupGuide } from "@/features/school/SchoolSetupGuide";
 import { buildHomeFocusItems } from "@/features/dashboard/home-focus";
 import { AdminHomeFocus } from "@/features/dashboard/components/AdminHomeFocus";
+import { AdminAuditActivity } from "@/features/dashboard/components/AdminAuditActivity";
 
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
@@ -469,7 +470,7 @@ export function AdminPortalDashboard({
               { id: "geral", label: "Visão geral" },
               { id: "pedagogico", label: "Desempenho" },
               ...(capabilities.finance ? [{ id: "financeiro", label: "Financeiro" }] : []),
-              { id: "auditoria", label: "Auditoria" },
+              ...(capabilities.audit ? [{ id: "auditoria", label: "Auditoria" }] : []),
             ]}
           />
         }
@@ -511,16 +512,18 @@ export function AdminPortalDashboard({
                 Projeção Financeira
               </Button>
             ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              aria-pressed={activeTab === "auditoria"}
-              size="sm"
-              onClick={() => setActiveTab("auditoria")}
-              className={homeViewClass(activeTab === "auditoria")}
-            >
-              Auditoria de Produtividade
-            </Button>
+            {capabilities.audit ? (
+              <Button
+                type="button"
+                variant="ghost"
+                aria-pressed={activeTab === "auditoria"}
+                size="sm"
+                onClick={() => setActiveTab("auditoria")}
+                className={homeViewClass(activeTab === "auditoria")}
+              >
+                Auditoria
+              </Button>
+            ) : null}
           </div>
         }
       />
@@ -667,151 +670,157 @@ export function AdminPortalDashboard({
         </section>
       ) : null}
 
-      <section className="surface-card p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <TrendingUp className="size-4 text-primary" />
-            Progresso do {yearName}
-          </div>
-          <span className="text-sm font-bold text-primary">
-            {data?.academicYear
-              ? data.yearPhase === "not_started"
-                ? "Ainda não começou"
-                : data.yearPhase === "ended"
-                  ? "Concluído"
-                  : `${data.yearProgress}%`
-              : "—"}
-          </span>
-        </div>
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${data?.academicYear ? data.yearProgress : 0}%` }}
-          />
-        </div>
-        <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-          <span>
-            {data?.academicYear
-              ? new Date(`${data.academicYear.starts_on}T00:00:00`).toLocaleDateString("pt-PT")
-              : "Sem ano lectivo activo"}
-          </span>
-          <span>
-            {data?.academicYear
-              ? new Date(`${data.academicYear.ends_on}T00:00:00`).toLocaleDateString("pt-PT")
-              : "—"}
-          </span>
-        </div>
-      </section>
-
-      {/* Os mesmos números já estão no `MetricGrid` acima, com hierarquia. */}
-      <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => {
-          const card = (
-            <>
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm text-muted-foreground">{s.label}</p>
-                <IconChip
-                  icon={s.icon}
-                  size="md"
-                  tone={s.tone === "pink" ? "info" : s.tone}
-                  label={s.label}
-                />
-              </div>
-              <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
-            </>
-          );
-          return s.href ? (
-            <Link
-              key={s.label}
-              to={s.href}
-              {...(s.search ? { search: s.search } : {})}
-              className="surface-card block cursor-pointer p-5 transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
-            >
-              {card}
-            </Link>
-          ) : (
-            <div key={s.label} className="surface-card p-5">
-              {card}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
-        {miniStats.map((s) => (
-          <div key={s.label} className="surface-card flex items-center gap-4 p-4">
-            <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
-            <div>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className="text-xl font-bold">{s.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <DashboardCalendarCard />
-        {(data?.announcements?.length ?? 0) > 0 ? (
+      {activeTab === "geral" ? (
+        <>
           <section className="surface-card p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <IconChip icon={Megaphone} size="sm" label="Comunicados" />
-                <h2 className="text-base font-semibold">Comunicados</h2>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <TrendingUp className="size-4 text-primary" />
+                Progresso do {yearName}
               </div>
-              {canAccessPath("/comunicacoes", currentUser.role) ? (
-                <Button asChild size="sm" variant="ghost">
-                  <Link to="/comunicacoes">Ver todos</Link>
-                </Button>
-              ) : null}
+              <span className="text-sm font-bold text-primary">
+                {data?.academicYear
+                  ? data.yearPhase === "not_started"
+                    ? "Ainda não começou"
+                    : data.yearPhase === "ended"
+                      ? "Concluído"
+                      : `${data.yearProgress}%`
+                  : "—"}
+              </span>
             </div>
-            <ul className="space-y-3">
-              {data?.announcements.map((item) => (
-                <li key={item.id} className="rounded-xl bg-secondary p-3">
-                  <p className="text-sm font-semibold [overflow-wrap:anywhere]">
-                    {canAccessPath("/comunicacoes", currentUser.role, currentUser.grants) ? (
-                      <Link
-                        to="/comunicacoes/$announcementId"
-                        params={{ announcementId: item.id }}
-                        className="hover:text-primary hover:underline"
-                      >
-                        {item.title}
-                      </Link>
-                    ) : (
-                      item.title
-                    )}
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
-                  {item.published_at ? (
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      {new Date(item.published_at).toLocaleDateString("pt-PT")}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${data?.academicYear ? data.yearProgress : 0}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+              <span>
+                {data?.academicYear
+                  ? new Date(`${data.academicYear.starts_on}T00:00:00`).toLocaleDateString("pt-PT")
+                  : "Sem ano lectivo activo"}
+              </span>
+              <span>
+                {data?.academicYear
+                  ? new Date(`${data.academicYear.ends_on}T00:00:00`).toLocaleDateString("pt-PT")
+                  : "—"}
+              </span>
+            </div>
           </section>
-        ) : null}
-      </div>
 
-      <div className="space-y-4">
-        <Suspense fallback={<DashboardChartsSkeleton />}>
-          <DashboardCharts
-            loading={isLoading}
-            totalStudents={totalStudents}
-            capabilities={{
-              students: capabilities.students,
-              finance: capabilities.finance,
-            }}
-            studentsByClass={data?.studentsByClass ?? []}
-            genderSplit={data?.genderSplit ?? []}
-            enrollmentsByMonth={data?.enrollmentsByMonth ?? []}
-            financeMonthly={data?.financeMonthly ?? []}
-            finance={data?.finance}
-            attendanceAverage={data?.totals.attendanceAverage}
-          />
-        </Suspense>
-      </div>
+          {/* Os mesmos números já estão no `MetricGrid` acima, com hierarquia. */}
+          <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
+            {stats.map((s) => {
+              const card = (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm text-muted-foreground">{s.label}</p>
+                    <IconChip
+                      icon={s.icon}
+                      size="md"
+                      tone={s.tone === "pink" ? "info" : s.tone}
+                      label={s.label}
+                    />
+                  </div>
+                  <p className="mt-3 text-4xl font-extrabold tracking-tight">{s.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+                </>
+              );
+              return s.href ? (
+                <Link
+                  key={s.label}
+                  to={s.href}
+                  {...(s.search ? { search: s.search } : {})}
+                  className="surface-card block cursor-pointer p-5 transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
+                >
+                  {card}
+                </Link>
+              ) : (
+                <div key={s.label} className="surface-card p-5">
+                  {card}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
+            {miniStats.map((s) => (
+              <div key={s.label} className="surface-card flex items-center gap-4 p-4">
+                <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
+                <div>
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <p className="text-xl font-bold">{s.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <DashboardCalendarCard />
+            {(data?.announcements?.length ?? 0) > 0 ? (
+              <section className="surface-card p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <IconChip icon={Megaphone} size="sm" label="Comunicados" />
+                    <h2 className="text-base font-semibold">Comunicados</h2>
+                  </div>
+                  {canAccessPath("/comunicacoes", currentUser.role) ? (
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to="/comunicacoes">Ver todos</Link>
+                    </Button>
+                  ) : null}
+                </div>
+                <ul className="space-y-3">
+                  {data?.announcements.map((item) => (
+                    <li key={item.id} className="rounded-xl bg-secondary p-3">
+                      <p className="text-sm font-semibold [overflow-wrap:anywhere]">
+                        {canAccessPath("/comunicacoes", currentUser.role, currentUser.grants) ? (
+                          <Link
+                            to="/comunicacoes/$announcementId"
+                            params={{ announcementId: item.id }}
+                            className="hover:text-primary hover:underline"
+                          >
+                            {item.title}
+                          </Link>
+                        ) : (
+                          item.title
+                        )}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
+                      {item.published_at ? (
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {new Date(item.published_at).toLocaleDateString("pt-PT")}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+
+      {activeTab === "geral" || activeTab === "pedagogico" ? (
+        <div className="space-y-4">
+          <Suspense fallback={<DashboardChartsSkeleton />}>
+            <DashboardCharts
+              loading={isLoading}
+              totalStudents={totalStudents}
+              capabilities={{
+                students: capabilities.students,
+                finance: capabilities.finance,
+              }}
+              studentsByClass={data?.studentsByClass ?? []}
+              genderSplit={data?.genderSplit ?? []}
+              enrollmentsByMonth={data?.enrollmentsByMonth ?? []}
+              financeMonthly={data?.financeMonthly ?? []}
+              finance={data?.finance}
+              attendanceAverage={data?.totals.attendanceAverage}
+            />
+          </Suspense>
+        </div>
+      ) : null}
 
       {activeTab === "geral" || activeTab === "pedagogico" ? (
         <div className="space-y-6">
@@ -828,6 +837,14 @@ export function AdminPortalDashboard({
             mainPaymentChannel={data?.cashFlowForecast?.mainPaymentChannel ?? undefined}
           />
         </div>
+      ) : null}
+
+      {activeTab === "auditoria" && capabilities.audit ? (
+        <AdminAuditActivity
+          items={data?.auditActivity ?? []}
+          loading={isLoading}
+          unavailable={!isLoading && !data}
+        />
       ) : null}
     </div>
   );
