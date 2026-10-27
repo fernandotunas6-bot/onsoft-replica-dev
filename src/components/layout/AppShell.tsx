@@ -77,6 +77,7 @@ import {
 import type { SchoolAlert } from "@/features/dashboard/alerts";
 
 import { workspacePresentation } from "@/lib/workspace-presentation";
+import { usePersistedSidebar } from "@/hooks/use-persisted-sidebar";
 const SettingsCenter = lazy(() =>
   import("@/components/modals/SettingsCenter").then(({ SettingsCenter }) => ({
     default: SettingsCenter,
@@ -141,10 +142,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   const activeYearLabel = activeYear?.label ?? selectedYearLabel;
 
   const presentation = workspacePresentation(school?.preferences);
-  const [sidebarOverride, setSidebarOverride] = useState<{
-    schoolId: string;
-    collapsed: boolean;
-  } | null>(null);
+  const { collapsed, toggleCollapsed } = usePersistedSidebar(currentUser.id, school?.id);
   const { isDark, toggleDark } = useAppearance();
   const { favorited, toggleFavorite, current: navCurrent } = useNavigationMemory();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -231,15 +229,6 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     });
   }, [router, currentUser.role, currentUser.grants]);
 
-  const collapsed =
-    sidebarOverride && sidebarOverride.schoolId === school?.id
-      ? sidebarOverride.collapsed
-      : !presentation.expandedSidebar;
-
-  const toggleCollapsed = () => {
-    if (school?.id) setSidebarOverride({ schoolId: school.id, collapsed: !collapsed });
-  };
-
   const selectYear = (yearId: string) => {
     if (yearId === "fallback") return;
     setSelectedYearId(yearId);
@@ -304,6 +293,8 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
               className="header-icon-btn hidden lg:inline-flex"
               onClick={toggleCollapsed}
               aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+              aria-expanded={!collapsed}
+              aria-controls="siga-sidebar-navigation"
             >
               <Menu className="size-5" />
             </Button>
