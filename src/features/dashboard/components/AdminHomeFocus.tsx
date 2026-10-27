@@ -23,10 +23,7 @@ export function AdminHomeFocus({
   unavailable: boolean;
 }) {
   return (
-    <section
-      aria-labelledby="home-focus-heading"
-      className="hidden space-y-3 md:block"
-    >
+    <section aria-labelledby="home-focus-heading" className="hidden space-y-3 md:block">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
@@ -42,11 +39,17 @@ export function AdminHomeFocus({
       </div>
 
       {loading ? (
-        <div role="status" className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div
+          role="status"
+          className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground"
+        >
           A consultar actividades…
         </div>
       ) : unavailable ? (
-        <div role="alert" className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
+        <div
+          role="alert"
+          className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground"
+        >
           Não foi possível consultar os indicadores. Volte a abrir o Início para tentar novamente.
         </div>
       ) : items.length ? (
