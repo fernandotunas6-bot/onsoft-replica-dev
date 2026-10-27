@@ -39,12 +39,17 @@ A hierarquia dá primeiro a resposta: «o que devo fazer?» e depois «como est�
 3. O portal administrativo reutiliza as mesmas acções autorizadas em ambos os formatos; a grelha de desktop é contextual, não um catálogo de todos os módulos.
 4. Acções no cabeçalho passam também a considerar `grants`, não apenas o papel.
 5. Cartões estatísticos abandonam `hover:scale` e sombras reactivas; o elemento realmente navegável mantém hover/foco discretos.
+6. As vistas passam a apresentar áreas coerentes: visão geral com contexto diário, desempenho com gráficos académicos, financeiro com os montantes já confirmados e auditoria apenas para perfis com `capabilities.audit`.
+7. A auditoria usa `auditActivity`, derivado dos mesmos `audit_logs` já consultados no overview da escola, isolado de `recentActivity`. Não exibe métricas artificiais como `operationalEfficiency: 100` nem interpreta recibos como auditoria.
+8. Os resumos financeiros não substituem a confirmação do fornecedor nem o estado financeiro da aplicação; são somente leitura das contagens já presentes.
 
 Sem SQL, novas dependências, novos dados, alterações de rotas ou migrações.
 
 ## Critérios de aceitação e limites
 
 - [ ] `typecheck`, lint, Vitest, build e CI da PR aprovados.
+- [ ] Verificar as vistas Geral / Desempenho / Financeiro / Auditoria, incluindo o caso sem logs de auditoria.
+- [ ] Confirmar que o utilizador sem `capabilities.audit` não vê o botão de Auditoria e que os logs são estritamente da escola activa.
 - [ ] Ecrãs 390, 768, 1024 e 1440 px; sem overflow horizontal.
 - [ ] Testar teclado, foco visível, toque e movimento reduzido.
 - [ ] Verificar administrador e funções com grants limitados para não revelar atalhos não autorizados.
