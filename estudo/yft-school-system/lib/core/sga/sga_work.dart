@@ -112,6 +112,13 @@ class WorkTask {
   final bool late;
   final bool onPaper;
 
+  /// Tentativa da entrega mais recente (0 sem entrega).
+  final int attempt;
+
+  /// Já não recebe entregas (arquivado, ou de uma matrícula que já não está activa).
+  final bool archived;
+  final bool acceptsLate;
+
   const WorkTask({
     required this.id,
     required this.title,
@@ -126,6 +133,9 @@ class WorkTask {
     this.submittedAt,
     this.late = false,
     this.onPaper = false,
+    this.attempt = 0,
+    this.archived = false,
+    this.acceptsLate = true,
   });
 
   /// Ainda pede acção do aluno.
@@ -149,13 +159,16 @@ class WorkTask {
       submittedAt: DateTime.tryParse(latest['submittedAt'] as String? ?? ''),
       late: latest['isLate'] == true,
       onPaper: latest['onPaper'] == true,
+      attempt: (latest['attempt'] as num?)?.toInt() ?? 0,
+      archived: j['archived'] == true,
+      acceptsLate: j['acceptsLate'] != false,
     );
   }
 }
 
 /// Os trabalhos do ano corrente, de todas as disciplinas (`/api/mobile/work`).
 class WorkOverview {
-  /// Só o próprio aluno entrega (no portal); o encarregado vê.
+  /// Só o próprio aluno entrega (na app ou no portal); o encarregado vê.
   final bool canSubmit;
 
   /// Média das notas devolvidas (0–20).
