@@ -384,6 +384,8 @@ export function AdminPortalDashboard({
             </section>
           ) : null}
 
+          <AdminHomeFocus items={focusItems} loading={isLoading} unavailable={!isLoading && !data} compact />
+
           {isLoading ? <MetricGridSkeleton count={5} /> : <MetricGrid metrics={mobileMetrics} />}
 
           <section>
@@ -419,14 +421,14 @@ export function AdminPortalDashboard({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {canAccessPath("/alunos", currentUser.role) ? (
+          {canAccessPath("/alunos", currentUser.role, currentUser.grants) ? (
             <Button asChild size="sm" className="rounded-lg shadow-xs">
               <Link to="/alunos" search={{ action: "matricular" }}>
                 + Nova Matrícula
               </Link>
             </Button>
           ) : null}
-          {canAccessPath("/financeiro", currentUser.role) ? (
+          {canAccessPath("/financeiro", currentUser.role, currentUser.grants) ? (
             <Button asChild size="sm" variant="outline" className="rounded-lg shadow-xs">
               <Link to="/financeiro">Caixa & Pagamentos</Link>
             </Button>
@@ -435,6 +437,18 @@ export function AdminPortalDashboard({
       </div>
 
       <AdminHomeFocus items={focusItems} loading={isLoading} unavailable={!isLoading && !data} />
+
+      {mobileActions.some((action) => !action.hidden) ? (
+        <section aria-labelledby="home-quick-actions" className="hidden space-y-2 md:block">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="home-quick-actions" className="text-sm font-semibold text-foreground">
+              Acesso rápido
+            </h2>
+            <p className="text-xs text-muted-foreground">Operações frequentes</p>
+          </div>
+          <QuickActions actions={mobileActions} compact className="md:grid-cols-3 xl:grid-cols-6" />
+        </section>
+      ) : null}
 
       {/*
         Os quatro separadores em pastilhas embrulham para duas linhas a 360px e
@@ -707,14 +721,14 @@ export function AdminPortalDashboard({
               key={s.label}
               to={s.href}
               {...(s.search ? { search: s.search } : {})}
-              className="surface-card block p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:border-primary/40 hover:shadow-card cursor-pointer motion-reduce:transition-none motion-reduce:hover:scale-100"
+              className="surface-card block cursor-pointer p-5 transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
             >
               {card}
             </Link>
           ) : (
             <div
               key={s.label}
-              className="surface-card p-5 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
+              className="surface-card p-5"
             >
               {card}
             </div>
@@ -726,7 +740,7 @@ export function AdminPortalDashboard({
         {miniStats.map((s) => (
           <div
             key={s.label}
-            className="surface-card flex items-center gap-4 p-4 transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-card motion-reduce:transition-none motion-reduce:hover:scale-100"
+            className="surface-card flex items-center gap-4 p-4"
           >
             <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
             <div>
