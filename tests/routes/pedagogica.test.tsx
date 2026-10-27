@@ -251,7 +251,7 @@ describe("/pedagogica — render", () => {
     renderRoute(Pedagogica);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+      expect(screen.getByRole("heading", { name: /Ensino e aprendizagem/i })).toBeDefined();
     });
     // A turma tem de chegar mesmo ao DOM: sem esta asserção o teste passaria
     // com o workspace vazio e não provava que o caminho de dados corre.
@@ -300,10 +300,11 @@ describe("/pedagogica — render", () => {
     renderRoute(Pedagogica);
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+      expect(screen.getByRole("heading", { name: /Ensino e aprendizagem/i })).toBeDefined();
     });
     const horarios = screen.getByRole("tab", { name: /Horários/i });
     expect(horarios.getAttribute("data-state")).toBe("active");
+    expect(horarios.className).toContain("data-[state=active]:border-primary");
   });
 
   it("avisa quando o ano lectivo não tem os três trimestres e liga ao calendário", async () => {
@@ -362,7 +363,7 @@ describe("/pedagogica — render", () => {
       expect(listAcademicCalendarMock).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Área Pedagógica/i })).toBeDefined();
+      expect(screen.getByRole("heading", { name: /Ensino e aprendizagem/i })).toBeDefined();
     });
     expect(screen.queryByText(/trimestres configurados/)).toBeNull();
   });
