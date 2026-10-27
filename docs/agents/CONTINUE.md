@@ -1,5 +1,12 @@
 # Handoff — continuar o SIGA
 
+## App móvel: estado e plano — 2026-10-27
+
+App SIGA Plus 1.1.0 publicada (Início «Hoje», trabalhos, aluno com menu próprio,
+entrada por n.º de aluno). **Para continuar, ler primeiro**
+[estudo/yft-school-system/docs/ROADMAP_APP.md](../../estudo/yft-school-system/docs/ROADMAP_APP.md):
+estado por área, plano por ordem (1. funcionar sem rede, 2. faltas por disciplina, 3. notificações, 4. capturas no CI, 5. retoque visual) e como trabalhar sem Flutter local.
+
 ## Apps para descarregar: desktop e Android — 2026-10-26
 
 - **SIGA Desktop 1.3.1** publicado, a primeira versão com actualizações assinadas
