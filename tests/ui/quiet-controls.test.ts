@@ -20,7 +20,7 @@ describe("botões discretos e cabeçalho legível", () => {
     expect(nav).not.toContain("group-hover:scale-");
     expect(nav).not.toContain("transition-[transform,background-color]");
     expect(nav).toContain('aria-current={props.active ? "page" : undefined}');
-    expect(nav).toContain('before:w-[3px]');
+    expect(nav).toContain("before:w-[3px]");
   });
 
   it("não anima escala, rotação ou deslocação dos ícones dos controlos globais", () => {
@@ -43,7 +43,7 @@ describe("botões discretos e cabeçalho legível", () => {
   it("aumenta e suaviza a topbar sem perder os estados dos botões", () => {
     const shell = read("src/components/layout/AppShell.tsx");
     const mobile = read("src/components/mobile/MobileHeader.tsx");
-    expect(shell).toContain('hidden h-16 min-w-0');
+    expect(shell).toContain("hidden h-16 min-w-0");
     expect(shell).toContain("bg-card/95");
     expect(shell).toContain("supports-[backdrop-filter]:backdrop-blur-sm");
     expect(mobile).toContain("min-h-[68px]");
