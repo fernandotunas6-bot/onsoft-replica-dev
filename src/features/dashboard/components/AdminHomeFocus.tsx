@@ -60,7 +60,7 @@ export function AdminHomeFocus({
               <Link
                 key={item.id}
                 to={item.to}
-                className="group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card p-4 transition-[background-color,border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transform-none motion-reduce:transition-none"
+                className="group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card p-4 transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="size-4" aria-hidden="true" />

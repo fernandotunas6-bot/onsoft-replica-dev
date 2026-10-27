@@ -1,5 +1,17 @@
 # Execução do padrão visual — 23/10/2026
 
+**27/10/2026 — botões discretos e cabeçalho semitransparente (PR em revisão):**
+o componente global `Button` conserva estados hover, loading, disabled e foco
+visível, mas elimina o efeito de compressão `scale` ao clicar. A navegação
+e os ícones deixam de crescer, rodar ou deslocar-se no hover; as indicações
+estáticas da página activa, a cor de realce e o foco acessível continuam.
+O cabeçalho desktop sobe de 56 para 64 px, o móvel de 64 para 68 px;
+o fundo passa a 95% opaco, reduzindo para 90% quando há suporte a
+`backdrop-filter` suave. Favoritos informa `aria-pressed`, notificações
+informa `aria-expanded`. Sem migrações nem mudança de permissões.
+Teste de contrato visual adicionado em `tests/ui/quiet-controls.test.ts`.
+**CI, testes em aparelhos e publicação ainda por confirmar.**
+
 **27/10/2026 — navegação e Início, incremento em PR (CI por concluir):**
 a página `/pedagogica` deixa de repetir «Área Pedagógica» no cabeçalho e passa a
 «Ensino e aprendizagem»; separadores com indicador activo composto por fundo,
