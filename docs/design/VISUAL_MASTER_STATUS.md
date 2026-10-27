@@ -1,5 +1,17 @@
 # Execução do padrão visual — 23/10/2026
 
+**27/10/2026 — refinamento contextual da PR #375 (revisão em curso):**
+a vista Auditoria passa a usar apenas os últimos `audit_logs` autenticados da
+escola, sem exibir valores de produtividade definidos de forma constante.
+A vista Financeiro recebe quatro valores do overview (recebido, facturado,
+por receber e em atraso), com dados em falta representados por «—».
+Os separadores deixam de reutilizar indistintamente os mesmos gráficos:
+Visão Geral, Desempenho, Financeiro e Auditoria mostram conteúdo contextual.
+O botão de auditoria exige `capabilities.audit` e os outros portais não mudam.
+Testes de apresentação são acrescentados. O CI anterior falhou em oito
+erros Prettier já corrigidos em novo commit; a validação mais recente ainda
+precisa de ser confirmada.
+
 **27/10/2026 — pesquisa global e Início operacional (PR #375 em revisão):**
 pesquisa visual de Canvas, Moodle, Linear, Notion e Stripe registada em
 [Dashboard Home Research](DASHBOARD_HOME_RESEARCH_2026-10-27.md).
