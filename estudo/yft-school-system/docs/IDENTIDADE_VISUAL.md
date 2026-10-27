@@ -85,6 +85,24 @@ hierarquia faz-se por tamanho e por cor — `textPrimary` contra
 | Rótulos e botões | `w500` |
 | Corpo | `w400` |
 
+## Forma e movimento (Material 3 Expressive, 27/10/2026)
+
+Retoque leve, pensado para telemóveis de gama baixa: nada de sombras novas, de
+desfocagens nem de animações em ciclo; tudo pára com «reduzir movimento».
+
+| Peça | Regra | Onde |
+|---|---|---|
+| Movimento | Formas e posições com **mola** (`AppMotion.press`, `AppMotion.spatial`); cor e opacidade com `AppMotion.effects`. Durações por `AppMotion.of(context, …)`, que dá zero com «reduzir movimento» (sistema ou Aparência). | `lib/core/theme/motion.dart` |
+| Toque nos cartões | `SoftCard` com `onTap` encolhe para 98 % e volta com mola; só quando o toque é aceite (não ao deslizar a lista). | `section_widgets.dart` |
+| Listas | **`CardGroup`**: cartões ligados, 3 px entre eles, cantos de 22 por fora e 6 por dentro. Usar em qualquer lista de `SoftCard` (Início, Trabalhos, Faltas, Notificações por dia), em vez de cartões soltos com 8–10 px ou de um cartão com divisores. | `section_widgets.dart` |
+| Separadores | **`PillTabs`** em todo o lado (já não `SegmentedButton` com contorno). A seleccionada ganha a cor principal e cantos mais fechados (20 → 12), com mola. | `section_widgets.dart` |
+| Barra de baixo | Pílula atrás do ícone do separador activo (cor principal a 12 %, 22 % no escuro), que se abre com mola. | `app_shell.dart` |
+| Componentes | Tema completo: escala de letra Outfit até `w600`; botões `Filled`/`Outlined`/`Text` em pílula; `SnackBar` flutuante sobre `ink` com a acção em `accentOn(ink)` (≥ 4,5); diálogos com cantos de 28; folhas com cantos de 28 e pega; FAB quadrado de cantos largos; transição de páginas do Android `FadeForwards`. | `app_theme.dart` |
+| Percentagens | Sempre `formatPercent` («92.1 %»), com ponto e espaço, como as notas. | `sga_absences.dart` |
+
+Teste: `test/visual_motion_test.dart` (cantos do grupo, mola sem salto, contraste da
+acção das faixas com todas as cores principais).
+
 ## Regra de alteração
 
 Acrescentar uma cor principal é acrescentar uma `AccentOption` a

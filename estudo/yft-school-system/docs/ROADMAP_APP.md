@@ -13,7 +13,7 @@ Ponto de entrada para qualquer agente que continue a app móvel. Ler também:
 (`src/routes/api/mobile/*`, que chamam as funções de servidor do SIGA). Descarrega-se
 em portal-siga.com/download (release `android`, nunca a «latest»).
 
-## Estado (27/10/2026) — versão 1.2.0 publicada; 1.3.0 a seguir
+## Estado (27/10/2026) — versão 1.3.0 publicada; 1.4.0 a seguir
 
 | Área | Estado | Onde |
 | ---- | ------ | ---- |
@@ -33,6 +33,7 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
 | «Para ter em atenção» no Início (alertas por prioridade) | feito | `features/dashboard/presentation/widgets/home_alerts.dart` |
 | Faltas por disciplina (percentagem, limite da escola, quantas ainda cabem) | feito (1.3.0) | `/api/mobile/absences` (`getMyAbsencesBySubject`); `subject_absences_section.dart` |
 | Notificações instantâneas com a app fechada (FCM) | à espera do dono | ver «Pendências do dono» |
+| Retoque visual (mola, cartões ligados, separadores, barra, tema) | feito (1.4.0) | `lib/core/theme/motion.dart`; `section_widgets.dart` |
 | Entregar trabalhos na app | por fazer | hoje no portal (`submitTaskWork`) |
 
 ## Plano, por ordem (decidido com o dono a 27/10)
@@ -72,8 +73,11 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
    `capturas`). Localmente: o comando está no topo do ficheiro; as imagens ficam em
    `test/screenshots/goldens/` (fora do Git). Ecrã novo → acrescentá-lo ao mapa
    `screens` e os dados que pede a `_overrides`.
-5. **Retoque visual** no estilo Material 3 Expressive (formas, movimento com mola,
-   tipografia), sem pesar em telemóveis de gama baixa.
+5. ~~**Retoque visual**~~ Feito (1.4.0), no estilo Material 3 Expressive sem pesar em
+   telemóveis de gama baixa: movimento com mola (`lib/core/theme/motion.dart`),
+   cartões ligados em `CardGroup`, separadores `PillTabs` em todo o lado, pílula no
+   separador activo da barra, tema completo dos componentes (letra, botões, faixas,
+   diálogos, folhas, transições). Regras em [IDENTIDADE_VISUAL.md](./IDENTIDADE_VISUAL.md#forma-e-movimento-material-3-expressive-27102026).
 6. Entregar trabalhos na app (foto/PDF), quando 1–5 estiverem feitos.
 
 Princípios da pesquisa (apps escolares 2025–26): «agora e a seguir» no Início; prazos

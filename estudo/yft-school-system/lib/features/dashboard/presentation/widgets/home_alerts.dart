@@ -288,18 +288,7 @@ class HomeAlertsCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeader(title: 'Para ter em atenção'),
-          SoftCard(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              children: [
-                for (final (i, a) in alerts.indexed) ...[
-                  if (i > 0)
-                    Divider(height: 1, indent: 66, color: AppColors.border),
-                  _AlertRow(alert: a),
-                ],
-              ],
-            ),
-          ),
+          CardGroup(children: [for (final a in alerts) _AlertRow(alert: a)]),
         ],
       ),
     );
@@ -313,48 +302,46 @@ class _AlertRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = alertColor(alert.level);
-    return InkWell(
+    return SoftCard(
       onTap: () => context.push(alert.route),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            IconTile(icon: alert.icon, color: color, size: 40),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          IconTile(icon: alert.icon, color: color, size: 40),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  alert.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (alert.detail.isNotEmpty)
                   Text(
-                    alert.title,
-                    maxLines: 2,
+                    alert.detail,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  if (alert.detail.isNotEmpty)
-                    Text(
-                      alert.detail,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
+        ],
       ),
     );
   }

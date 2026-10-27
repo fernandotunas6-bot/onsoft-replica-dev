@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_state.dart';
 import '../theme/app_colors.dart';
+import '../theme/motion.dart';
 import '../theme/appearance_state.dart';
 import '../utils/responsive_utils.dart';
 import 'app_icons.dart';
@@ -134,19 +135,35 @@ class _BottomBar extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Badge(
-                  isLabelVisible: badge > 0,
-                  label: Text(badge > 99 ? '99+' : '$badge'),
-                  backgroundColor: AppColors.error,
-                  child: Icon(
-                    icon,
-                    size: 22,
-                    color: color,
-                    semanticLabel: badge > 0 ? '$badge por ler' : null,
+                // Indicador do separador activo: a pílula abre-se com mola.
+                AnimatedContainer(
+                  duration: AppMotion.of(context, AppMotion.medium),
+                  curve: AppMotion.spatial,
+                  width: selected ? 56 : 32,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primary.withValues(
+                            alpha: AppColors.isDark ? 0.22 : 0.12,
+                          )
+                        : AppColors.primary.withValues(alpha: 0),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  alignment: Alignment.center,
+                  child: Badge(
+                    isLabelVisible: badge > 0,
+                    label: Text(badge > 99 ? '99+' : '$badge'),
+                    backgroundColor: AppColors.error,
+                    child: Icon(
+                      icon,
+                      size: 22,
+                      color: color,
+                      semanticLabel: badge > 0 ? '$badge por ler' : null,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),

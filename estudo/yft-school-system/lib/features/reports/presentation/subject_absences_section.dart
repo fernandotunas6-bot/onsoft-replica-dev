@@ -92,11 +92,12 @@ class SubjectAbsencesList extends StatelessWidget {
                 ),
               ),
             ),
-          for (final s in data.subjects)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _SubjectRow(subject: s, limit: limit),
-            ),
+          CardGroup(
+            children: [
+              for (final s in data.subjects)
+                _SubjectRow(subject: s, limit: limit),
+            ],
+          ),
         ],
       ),
     );

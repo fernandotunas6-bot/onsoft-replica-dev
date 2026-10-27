@@ -445,12 +445,10 @@ class WorkDueCard extends ConsumerWidget {
                   ),
                 );
               }
-              return Column(
+              return CardGroup(
                 children: [
-                  for (final task in pending.take(3)) ...[
+                  for (final task in pending.take(3))
                     WorkTaskTile(task: task, onTap: () => context.push('/trabalhos')),
-                    const SizedBox(height: 10),
-                  ],
                 ],
               );
             },
