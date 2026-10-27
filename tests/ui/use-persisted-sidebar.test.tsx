@@ -19,15 +19,14 @@ describe("preferência pessoal da sidebar", () => {
     expect(nextSession.result.current.collapsed).toBe(false);
     nextSession.unmount();
 
-    expect(renderHook(() => usePersistedSidebar("user-a", "school-a")).result.current.collapsed)
-      .toBe(false);
+    const thirdSession = renderHook(() => usePersistedSidebar("user-a", "school-a"));
+    expect(thirdSession.result.current.collapsed).toBe(false);
   });
 
   it("não herda o estado de outra escola ou conta", () => {
-    const view = renderHook(
-      ({ user, school }) => usePersistedSidebar(user, school),
-      { initialProps: { user: "user-a", school: "school-a" } },
-    );
+    const view = renderHook(({ user, school }) => usePersistedSidebar(user, school), {
+      initialProps: { user: "user-a", school: "school-a" },
+    });
     act(() => view.result.current.toggleCollapsed());
     expect(view.result.current.collapsed).toBe(true);
     view.rerender({ user: "user-a", school: "school-b" });
