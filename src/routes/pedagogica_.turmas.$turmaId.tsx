@@ -380,7 +380,7 @@ function TurmaDetail() {
           <section
             id={sectionId("resumo")}
             aria-labelledby={`${sectionId("resumo")}-titulo`}
-            className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+            className={account.role === "Professor" ? "rounded-xl border border-border bg-card p-6 shadow-soft 2xl:col-span-2" : "rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"}
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Resumo" />
