@@ -484,7 +484,7 @@ export function AdminPortalDashboard({
               <Button
                 type="button"
                 variant="ghost"
-              aria-pressed={activeTab === "financeiro"}
+                aria-pressed={activeTab === "financeiro"}
                 size="sm"
                 onClick={() => setActiveTab("financeiro")}
                 className={homeViewClass(activeTab === "financeiro")}
