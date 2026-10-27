@@ -13,7 +13,7 @@ Ponto de entrada para qualquer agente que continue a app móvel. Ler também:
 (`src/routes/api/mobile/*`, que chamam as funções de servidor do SIGA). Descarrega-se
 em portal-siga.com/download (release `android`, nunca a «latest»).
 
-## Estado (27/10/2026) — versão 1.2.0 (por publicar)
+## Estado (27/10/2026) — versão 1.2.0 publicada; 1.3.0 a seguir
 
 | Área | Estado | Onde |
 | ---- | ------ | ---- |
@@ -31,6 +31,7 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
 | Notificações no telemóvel com a app fechada (verificação de 30 em 30 min) | feito | `lib/core/notify/` (WorkManager + notificações locais) |
 | Lembretes da véspera (avaliações e trabalhos para amanhã) | feito | `planTomorrow` em `notify_planner.dart` |
 | «Para ter em atenção» no Início (alertas por prioridade) | feito | `features/dashboard/presentation/widgets/home_alerts.dart` |
+| Faltas por disciplina (percentagem, limite da escola, quantas ainda cabem) | feito (1.3.0) | `/api/mobile/absences` (`getMyAbsencesBySubject`); `subject_absences_section.dart` |
 | Notificações instantâneas com a app fechada (FCM) | à espera do dono | ver «Pendências do dono» |
 | Entregar trabalhos na app | por fazer | hoje no portal (`submitTaskWork`) |
 
@@ -42,8 +43,13 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
    resposta do servidor (um 401/403/500 nunca é escondido); escritas nunca. A faixa
    `OfflineBanner` no `AppShell` mostra de quando são os dados. Apaga-se quando a
    sessão acaba (`SgaSession.onClear`). Teste: `test/offline_cache_test.dart`.
-2. **Faltas por disciplina:** percentagem e quantas faltam até ao limite
-   (`maximum_absence_percentage` do modelo de avaliação do SIGA).
+2. ~~**Faltas por disciplina.**~~ Feito (1.3.0): `getMyAbsencesBySubject` no portal
+   (aluno ou educando, por `resolveVisibleStudent`), sobre a chamada do SIGA do ano da
+   matrícula activa, sem aulas canceladas; justificadas e sem registo não contam (a
+   regra de `absencePercentageFromStatuses`). Limite = `maximum_absence_percentage` do
+   modelo `DEFAULT` em vigor; «quantas ainda cabem» conta sobre as aulas dadas até hoje.
+   Aviso a partir de 75 % do limite. Na app: secção «Por disciplina» no ecrã Faltas e
+   alertas no Início.
 3. ~~**Notificações**~~ Feito (27/10), em camadas, sem depender do Firebase:
    - **Fonte:** a tabela `notifications` do SIGA (o sino do portal), pela rota
      `/api/mobile/notifications`; `?pulse=1&after=&announcements_after=` devolve num só
@@ -58,8 +64,14 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
      app). A sessão renova-se em segurança entre os dois isolates (`SgaSession._renew`).
    - **Definições:** `/notifications-settings` com interruptores reais (telemóvel,
      lembretes da véspera) e o pedido de autorização do Android 13+.
-4. **Capturas dos ecrãs no CI** (testes «golden» com dados falsos, artefacto no PR),
-   para rever o visual sem telemóvel.
+4. ~~**Capturas dos ecrãs no CI.**~~ Feito: `test/screenshots/screens_test.dart` desenha
+   Início do encarregado, Notificações, Faltas e Trabalhos, em claro e escuro, com
+   dados de exemplo e a letra (Outfit) e os ícones (Lucide, Material) verdadeiros. Só
+   corre no modo SIGA e com `--update-goldens` (sem isso fica saltado); o workflow
+   «Estudo — YFT (APK Android)» anexa as imagens a cada execução (artefacto
+   `capturas`). Localmente: o comando está no topo do ficheiro; as imagens ficam em
+   `test/screenshots/goldens/` (fora do Git). Ecrã novo → acrescentá-lo ao mapa
+   `screens` e os dados que pede a `_overrides`.
 5. **Retoque visual** no estilo Material 3 Expressive (formas, movimento com mola,
    tipografia), sem pesar em telemóveis de gama baixa.
 6. Entregar trabalhos na app (foto/PDF), quando 1–5 estiverem feitos.

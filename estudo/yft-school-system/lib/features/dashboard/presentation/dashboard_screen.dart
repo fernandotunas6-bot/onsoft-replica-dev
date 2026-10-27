@@ -1,6 +1,7 @@
 import 'package:yft_school_system/core/sga/sga_work.dart';
 import 'package:yft_school_system/core/notify/notify_controller.dart';
 import 'package:yft_school_system/core/sga/sga_notifications.dart';
+import 'package:yft_school_system/core/sga/sga_absences.dart';
 import 'package:yft_school_system/features/work/presentation/work_widgets.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,7 @@ class DashboardScreen extends ConsumerWidget {
             ref.invalidate(unreadNoticesCountProvider);
             ref.invalidate(conversationsUnreadProvider);
             ref.invalidate(personalNoticesProvider);
+            ref.invalidate(subjectAbsencesProvider);
             ref.invalidate(parentNoticesProvider);
             ref.invalidate(subjectsProvider(null));
             ref.invalidate(academicCalendarProvider);

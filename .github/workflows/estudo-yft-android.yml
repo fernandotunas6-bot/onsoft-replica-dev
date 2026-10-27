@@ -123,6 +123,20 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
+      # Capturas dos ecrãs principais (claro e escuro), com dados de exemplo e a
+      # letra e os ícones verdadeiros, para rever o visual sem telemóvel. Ficam
+      # anexadas à execução (Actions → esta execução → Artifacts → «capturas»).
+      - name: Capturas dos ecrãs
+        run: |
+          flutter test test/screenshots --update-goldens \
+            --dart-define=SGA_SUPABASE_URL=https://sga.test \
+            --dart-define=SGA_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: estudo/yft-school-system/test/screenshots/goldens/*.png
+          retention-days: 30
+
       # Um APK por arquitectura: ~3× mais pequeno que o universal, o que conta nos
       # dados móveis. arm64 serve quase todos os telemóveis; armv7, os antigos.
       - name: Construir

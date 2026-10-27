@@ -82,6 +82,7 @@ import { Route as ApiCalendarIcsRouteImport } from './routes/api/calendar.ics'
 import { Route as ApiCatracasDeviceScanRouteImport } from './routes/api/catracas/device-scan'
 import { Route as ApiCronLessonRemindersRouteImport } from './routes/api/cron/lesson-reminders'
 import { Route as ApiCronSaasLifecycleRouteImport } from './routes/api/cron/saas-lifecycle'
+import { Route as ApiMobileAbsencesRouteImport } from './routes/api/mobile/absences'
 import { Route as ApiMobileAgendaRouteImport } from './routes/api/mobile/agenda'
 import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/attendance'
 import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
@@ -528,6 +529,11 @@ const ApiCronLessonRemindersRoute = ApiCronLessonRemindersRouteImport.update({
 const ApiCronSaasLifecycleRoute = ApiCronSaasLifecycleRouteImport.update({
   id: '/api/cron/saas-lifecycle',
   path: '/api/cron/saas-lifecycle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileAbsencesRoute = ApiMobileAbsencesRouteImport.update({
+  id: '/api/mobile/absences',
+  path: '/api/mobile/absences',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMobileAgendaRoute = ApiMobileAgendaRouteImport.update({
@@ -1017,6 +1023,7 @@ export interface FileRoutesByFullPath {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/absences': typeof ApiMobileAbsencesRoute
   '/api/mobile/agenda': typeof ApiMobileAgendaRoute
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
   '/api/mobile/chat': typeof ApiMobileChatRoute
@@ -1169,6 +1176,7 @@ export interface FileRoutesByTo {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/absences': typeof ApiMobileAbsencesRoute
   '/api/mobile/agenda': typeof ApiMobileAgendaRoute
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
   '/api/mobile/chat': typeof ApiMobileChatRoute
@@ -1322,6 +1330,7 @@ export interface FileRoutesById {
   '/api/catracas/device-scan': typeof ApiCatracasDeviceScanRoute
   '/api/cron/lesson-reminders': typeof ApiCronLessonRemindersRoute
   '/api/cron/saas-lifecycle': typeof ApiCronSaasLifecycleRoute
+  '/api/mobile/absences': typeof ApiMobileAbsencesRoute
   '/api/mobile/agenda': typeof ApiMobileAgendaRoute
   '/api/mobile/attendance': typeof ApiMobileAttendanceRoute
   '/api/mobile/chat': typeof ApiMobileChatRoute
@@ -1476,6 +1485,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/absences'
     | '/api/mobile/agenda'
     | '/api/mobile/attendance'
     | '/api/mobile/chat'
@@ -1628,6 +1638,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/absences'
     | '/api/mobile/agenda'
     | '/api/mobile/attendance'
     | '/api/mobile/chat'
@@ -1780,6 +1791,7 @@ export interface FileRouteTypes {
     | '/api/catracas/device-scan'
     | '/api/cron/lesson-reminders'
     | '/api/cron/saas-lifecycle'
+    | '/api/mobile/absences'
     | '/api/mobile/agenda'
     | '/api/mobile/attendance'
     | '/api/mobile/chat'
@@ -1932,6 +1944,7 @@ export interface RootRouteChildren {
   ApiCatracasDeviceScanRoute: typeof ApiCatracasDeviceScanRoute
   ApiCronLessonRemindersRoute: typeof ApiCronLessonRemindersRoute
   ApiCronSaasLifecycleRoute: typeof ApiCronSaasLifecycleRoute
+  ApiMobileAbsencesRoute: typeof ApiMobileAbsencesRoute
   ApiMobileAgendaRoute: typeof ApiMobileAgendaRoute
   ApiMobileAttendanceRoute: typeof ApiMobileAttendanceRoute
   ApiMobileChatRoute: typeof ApiMobileChatRoute
@@ -2505,6 +2518,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/saas-lifecycle'
       fullPath: '/api/cron/saas-lifecycle'
       preLoaderRoute: typeof ApiCronSaasLifecycleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/absences': {
+      id: '/api/mobile/absences'
+      path: '/api/mobile/absences'
+      fullPath: '/api/mobile/absences'
+      preLoaderRoute: typeof ApiMobileAbsencesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/agenda': {
@@ -3231,6 +3251,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCatracasDeviceScanRoute: ApiCatracasDeviceScanRoute,
   ApiCronLessonRemindersRoute: ApiCronLessonRemindersRoute,
   ApiCronSaasLifecycleRoute: ApiCronSaasLifecycleRoute,
+  ApiMobileAbsencesRoute: ApiMobileAbsencesRoute,
   ApiMobileAgendaRoute: ApiMobileAgendaRoute,
   ApiMobileAttendanceRoute: ApiMobileAttendanceRoute,
   ApiMobileChatRoute: ApiMobileChatRoute,
