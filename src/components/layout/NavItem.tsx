@@ -24,7 +24,7 @@ export const NAV_ROW_IDLE =
   "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
 
 export const NAV_ROW_ACTIVE =
-  "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active hover:bg-primary/15 hover:text-sidebar-active";
+  "bg-primary/10 font-semibold text-sidebar-active shadow-nav-active ring-1 ring-inset ring-primary/15 before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-r-full before:bg-primary before:content-[''] hover:bg-primary/15 hover:text-sidebar-active";
 
 export const NAV_DEPTH_CLASS: Record<NavDepth, string> = {
   root: "min-h-11 px-2.5 py-1.5 text-sm font-medium lg:min-h-9",
