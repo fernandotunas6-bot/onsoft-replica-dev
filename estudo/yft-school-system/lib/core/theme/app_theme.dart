@@ -37,7 +37,13 @@ class AppTheme {
                 TargetPlatform.fuchsia: _NoTransitionsBuilder(),
               },
             )
-          : null,
+          : const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+              },
+            ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.secondary,
@@ -65,6 +71,46 @@ class AppTheme {
           fontWeight: FontWeight.w500,
           color: AppColors.textSecondary,
         ),
+        // Escala completa, para os componentes do Material (diálogos, folhas,
+        // botões) terem a mesma letra e o mesmo limite de peso (w600).
+        headlineMedium: GoogleFonts.outfit(
+          fontSize: 28,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        headlineSmall: GoogleFonts.outfit(
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        titleLarge: GoogleFonts.outfit(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        titleMedium: GoogleFonts.outfit(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        titleSmall: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary,
+        ),
+        labelLarge: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        labelMedium: GoogleFonts.outfit(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        bodySmall: GoogleFonts.outfit(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -81,10 +127,105 @@ class AppTheme {
           ),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          minimumSize: const Size(64, 48),
+          shape: const StadiumBorder(),
+          textStyle: GoogleFonts.outfit(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          minimumSize: const Size(64, 48),
+          shape: const StadiumBorder(),
+          side: BorderSide(color: AppColors.border),
+          textStyle: GoogleFonts.outfit(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          shape: const StadiumBorder(),
+          textStyle: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected)
+                ? AppColors.primary
+                : AppColors.textSecondary.withValues(alpha: 0.08),
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected)
+                ? AppColors.onPrimary
+                : AppColors.textSecondary,
+          ),
+          side: const WidgetStatePropertyAll(BorderSide.none),
+          textStyle: WidgetStatePropertyAll(
+            GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: const StadiumBorder(),
+        side: BorderSide(color: AppColors.border),
+        labelStyle: GoogleFonts.outfit(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.ink,
+        contentTextStyle: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: Colors.white,
+        ),
+        actionTextColor: accentOn(AppColors.ink),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+        contentTextStyle: GoogleFonts.outfit(
+          fontSize: 14,
+          height: 1.4,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: AppColors.primary,
+        linearTrackColor: AppColors.border,
+        circularTrackColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(3),
+      ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
-        shape: const CircleBorder(),
+        // Quadrado de cantos largos, como no Material 3 Expressive.
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
@@ -123,6 +264,11 @@ class AppTheme {
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: AppColors.textSecondary.withValues(alpha: 0.4),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
       ),
       drawerTheme: DrawerThemeData(
         backgroundColor: AppColors.surface,
@@ -130,6 +276,16 @@ class AppTheme {
       ),
     );
   }
+}
+
+/// A cor principal clareada até ler bem (4,5) sobre [bg]: acções das faixas
+/// escuras (SnackBar), onde o azul puro fica sem contraste.
+Color accentOn(Color bg) {
+  var c = AppColors.primary;
+  for (var t = 0.1; AppColors.contrast(c, bg) < 4.5 && t <= 1; t += 0.1) {
+    c = Color.lerp(AppColors.primary, Colors.white, t)!;
+  }
+  return c;
 }
 
 class _NoTransitionsBuilder extends PageTransitionsBuilder {

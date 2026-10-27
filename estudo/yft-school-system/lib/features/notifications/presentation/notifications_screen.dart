@@ -283,18 +283,20 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
+  /// Um título por dia («Hoje», «Ontem», …) e os avisos desse dia num bloco.
   List<Widget> _grouped(List<_Entry> shown) {
-    final out = <Widget>[];
-    String? group;
+    final days = <String, List<_Entry>>{};
     for (final e in shown) {
-      final g = noticeDayGroup(e.at);
-      if (g != group) {
-        group = g;
-        out.add(
+      days.putIfAbsent(noticeDayGroup(e.at), () => []).add(e);
+    }
+    final out = <Widget>[];
+    for (final MapEntry(key: day, value: entries) in days.entries) {
+      out
+        ..add(
           Padding(
-            padding: EdgeInsets.only(top: out.isEmpty ? 0 : 12, bottom: 8),
+            padding: EdgeInsets.only(top: out.isEmpty ? 0 : 16, bottom: 8),
             child: Text(
-              g,
+              day,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -302,14 +304,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ),
             ),
           ),
+        )
+        ..add(
+          CardGroup(
+            children: [
+              for (final e in entries)
+                _EntryTile(entry: e, onTap: () => _open(e)),
+            ],
+          ),
         );
-      }
-      out.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: _EntryTile(entry: e, onTap: () => _open(e)),
-        ),
-      );
     }
     return out;
   }

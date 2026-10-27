@@ -150,7 +150,7 @@ class _History extends ConsumerWidget {
                   Expanded(
                     child: _Stat(
                       label: 'Assiduidade',
-                      value: '${rate.toStringAsFixed(0)}%',
+                      value: formatPercent(rate),
                       color: AppColors.primary,
                     ),
                   ),
@@ -164,32 +164,33 @@ class _History extends ConsumerWidget {
                 )
               else ...[
                 SectionHeader(title: 'Faltas recentes'),
-                for (final d in h.absences)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: SoftCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.calendarX,
-                              size: 18, color: AppColors.error),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _formatDay(d),
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppColors.textPrimary,
+                CardGroup(
+                  children: [
+                    for (final d in h.absences)
+                      SoftCard(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.calendarX,
+                                size: 18, color: AppColors.error),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _formatDay(d),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
+                ),
               ],
             ],
           );

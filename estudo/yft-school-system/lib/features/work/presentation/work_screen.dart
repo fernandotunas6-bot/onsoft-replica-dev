@@ -76,18 +76,11 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: pad.copyWith(top: 16, bottom: 32),
                     children: [
-                      SegmentedButton<_WorkFilter>(
-                        showSelectedIcon: false,
-                        segments: [
-                          ButtonSegment(
-                            value: _WorkFilter.pending,
-                            label: Text(pendingCount > 0 ? 'Por fazer · $pendingCount' : 'Por fazer'),
-                          ),
-                          const ButtonSegment(value: _WorkFilter.delivered, label: Text('Entregues')),
-                          const ButtonSegment(value: _WorkFilter.graded, label: Text('Com nota')),
-                        ],
-                        selected: {_filter},
-                        onSelectionChanged: (s) => setState(() => _filter = s.first),
+                      PillTabs(
+                        labels: const ['Por fazer', 'Entregues', 'Com nota'],
+                        selected: _filter.index,
+                        badges: {0: pendingCount},
+                        onSelected: (i) => setState(() => _filter = _WorkFilter.values[i]),
                       ),
                       if (overview?.average != null) ...[
                         const SizedBox(height: 12),
@@ -112,13 +105,15 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                           ),
                         )
                       else
-                        for (final task in shown) ...[
-                          WorkTaskTile(
-                            task: task,
-                            onTap: () => _showDetail(context, task, overview?.canSubmit ?? false),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
+                        CardGroup(
+                          children: [
+                            for (final task in shown)
+                              WorkTaskTile(
+                                task: task,
+                                onTap: () => _showDetail(context, task, overview?.canSubmit ?? false),
+                              ),
+                          ],
+                        ),
                     ],
                   );
                 },

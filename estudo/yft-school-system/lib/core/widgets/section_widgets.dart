@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/motion.dart';
 
 /// Título de secção com ligação "Ver todas" à direita.
 class SectionHeader extends StatelessWidget {
@@ -83,41 +84,124 @@ class IconTile extends StatelessWidget {
   }
 }
 
-/// Cartão branco com contorno fino, a base das listas.
-class SoftCard extends StatelessWidget {
+/// Cartão branco com contorno fino, a base das listas. Com [onTap], encolhe
+/// um pouco ao toque e volta com mola. Dentro de um [CardGroup], os cantos
+/// seguem a posição no grupo.
+class SoftCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry padding;
+
+  /// Cantos próprios; sem eles, os do [CardGroup] ou 20.
+  final BorderRadius? radius;
 
   const SoftCard({
     super.key,
     required this.child,
     this.onTap,
     this.padding = const EdgeInsets.all(16),
+    this.radius,
   });
 
   @override
+  State<SoftCard> createState() => _SoftCardState();
+}
+
+class _SoftCardState extends State<SoftCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
+    final radius =
+        widget.radius ??
+        CardGroup.radiusOf(context) ??
+        BorderRadius.circular(20);
+    final card = Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: radius,
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        onTap: widget.onTap,
+        onHighlightChanged: widget.onTap == null
+            ? null
+            : (v) {
+                if (v != _pressed) setState(() => _pressed = v);
+              },
+        borderRadius: radius,
         child: Container(
-          padding: padding,
+          padding: widget.padding,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: radius,
             border: Border.all(color: AppColors.border),
           ),
-          child: child,
+          child: widget.child,
         ),
       ),
+    );
+    if (widget.onTap == null) return card;
+    return AnimatedScale(
+      scale: _pressed ? 0.98 : 1,
+      duration: AppMotion.of(
+        context,
+        _pressed ? AppMotion.fast : AppMotion.medium,
+      ),
+      curve: _pressed ? AppMotion.effects : AppMotion.press,
+      child: card,
     );
   }
 }
 
-/// Fila de pílulas: a seleccionada fica com a cor principal.
+/// Lista de cartões ligados (Material 3 Expressive): pouco espaço entre eles,
+/// cantos largos por fora e estreitos por dentro, para se lerem como um bloco.
+/// Os filhos que forem [SoftCard] (directos ou dentro de outro widget) ficam
+/// com os cantos certos.
+class CardGroup extends StatelessWidget {
+  final List<Widget> children;
+  final double gap;
+
+  const CardGroup({super.key, required this.children, this.gap = 3});
+
+  static const _outer = Radius.circular(22);
+  static const _inner = Radius.circular(6);
+
+  /// Cantos do cartão [index] num grupo de [count].
+  static BorderRadius radiusAt(int index, int count) {
+    if (count <= 1) return const BorderRadius.all(_outer);
+    final first = index == 0;
+    final last = index == count - 1;
+    return BorderRadius.vertical(
+      top: first ? _outer : _inner,
+      bottom: last ? _outer : _inner,
+    );
+  }
+
+  static BorderRadius? radiusOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_CardSlot>()?.radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) SizedBox(height: gap),
+          _CardSlot(radius: radiusAt(i, children.length), child: children[i]),
+        ],
+      ],
+    );
+  }
+}
+
+class _CardSlot extends InheritedWidget {
+  final BorderRadius radius;
+
+  const _CardSlot({required this.radius, required super.child});
+
+  @override
+  bool updateShouldNotify(_CardSlot old) => old.radius != radius;
+}
+
+/// Fila de pílulas: a seleccionada fica com a cor principal e cantos mais
+/// fechados (a forma muda com mola).
 class PillTabs extends StatelessWidget {
   final List<String> labels;
   final int selected;
@@ -134,6 +218,7 @@ class PillTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final duration = AppMotion.of(context, AppMotion.medium);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -141,41 +226,58 @@ class PillTabs extends StatelessWidget {
           for (var i = 0; i < labels.length; i++)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Material(
-                color: i == selected
-                    ? AppColors.primary
-                    : AppColors.textSecondary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => onSelected(i),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 9,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          labels[i],
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: i == selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: i == selected
-                                ? AppColors.onPrimary
-                                : AppColors.textSecondary,
+              child: Semantics(
+                selected: i == selected,
+                button: true,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: i == selected ? 1 : 0),
+                  duration: duration,
+                  curve: AppMotion.spatial,
+                  builder: (context, t, _) {
+                    final k = t.clamp(0.0, 1.0);
+                    final radius = BorderRadius.circular(20 - 8 * k);
+                    return Material(
+                      color: Color.lerp(
+                        AppColors.textSecondary.withValues(alpha: 0.08),
+                        AppColors.primary,
+                        k,
+                      ),
+                      borderRadius: radius,
+                      child: InkWell(
+                        borderRadius: radius,
+                        onTap: () => onSelected(i),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 9,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                labels[i],
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: i == selected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: Color.lerp(
+                                    AppColors.textSecondary,
+                                    AppColors.onPrimary,
+                                    k,
+                                  ),
+                                ),
+                              ),
+                              if ((badges[i] ?? 0) > 0) ...[
+                                const SizedBox(width: 6),
+                                CountBadge(count: badges[i]!),
+                              ],
+                            ],
                           ),
                         ),
-                        if ((badges[i] ?? 0) > 0) ...[
-                          const SizedBox(width: 6),
-                          CountBadge(count: badges[i]!),
-                        ],
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
