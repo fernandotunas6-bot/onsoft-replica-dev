@@ -177,10 +177,15 @@ describe("/pedagogica/turmas/$turmaId", () => {
   it("o professor tem contexto da sua turma e não vê acções administrativas", async () => {
     server.tasks.mockResolvedValue({
       available: true,
-      open: [{
-        id: "tarefa-1", title: "Experiência de Física", subjectName: "Física",
-        dueOn: "2026-11-10", description: null,
-      }],
+      open: [
+        {
+          id: "tarefa-1",
+          title: "Experiência de Física",
+          subjectName: "Física",
+          dueOn: "2026-11-10",
+          description: null,
+        },
+      ],
       closed: [],
     });
     open({}, "Professor");
