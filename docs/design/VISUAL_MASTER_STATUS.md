@@ -4,6 +4,8 @@ Contrato: [VISUAL_MASTER_2026.md](VISUAL_MASTER_2026.md). Esta matriz acompanha
 **todas as dez fases**. O padrão está registado; a execução integral está parcial.
 Não considerar o sistema todo validado por causa dos testes abaixo.
 
+**27/10/2026 — sidebar persistente e flyout recolhido:** o novo pedido do proprietário substitui o compacto por omissão. Em ramo de revisão: expandido por omissão no desktop, botão com alternância fixa por utilizador/escola, subfunções em flyout por hover apenas quando recolhida e acordeão actual preservado quando expandida. Cobertura adicionada em Vitest/jsdom; execução de CI, dispositivo físico e produção ainda **não validadas**.
+
 **25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
 de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados

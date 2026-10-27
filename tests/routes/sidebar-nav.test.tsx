@@ -311,6 +311,30 @@ describe("AppSidebar — acordeão de subfunções e menu da escola", () => {
     expect(screen.queryByRole("button", { name: "Secretaria" })).toBeNull();
   });
 
+  it("abre flyout com o rato somente quando está recolhida", async () => {
+    currentPathname = "/portal";
+    renderSidebar(true);
+    const secretaria = screen.getByRole("button", { name: "Secretaria" });
+    hoverWithMouse(secretaria);
+    const menu = await screen.findByRole("menu");
+    expect(menu.textContent).toContain("Secretaria");
+    const pessoas = screen.getByRole("menuitem", { name: "Pessoas" });
+    expect(pessoas.getAttribute("data-to")).toBe("/pessoas");
+    expect(document.body.style.pointerEvents).not.toBe("none");
+    fireEvent.keyDown(menu, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+  });
+
+  it("mantém o acordeão normal quando está expandida, mesmo com hover", () => {
+    currentPathname = "/portal";
+    renderSidebar(false);
+    const secretaria = screen.getByRole("button", { name: "Secretaria" });
+    hoverWithMouse(secretaria);
+    expect(screen.queryByRole("menu")).toBeNull();
+    fireEvent.click(secretaria);
+    expect(screen.getByRole("navigation", { name: "Subfunções de Secretaria" })).toBeTruthy();
+  });
+
   it("hover da escola abre um menu não-modal que preserva o resto da sidebar", async () => {
     renderSidebar();
     const school = screen.getByRole("button", { name: "Abrir menu da escola: Escola Teste" });
