@@ -75,12 +75,12 @@ class StudentAbsences {
   );
 }
 
-/// «12,5 %» (vírgula decimal, como em Angola), sem casas quando é inteiro.
+/// «12.5 %», sem casas quando é inteiro (o mesmo formato das notas na app).
 String formatPercent(double value) {
   final rounded = (value * 10).round() / 10;
   final text = rounded == rounded.roundToDouble()
       ? rounded.toStringAsFixed(0)
-      : rounded.toStringAsFixed(1).replaceAll('.', ',');
+      : rounded.toStringAsFixed(1);
   return '$text %';
 }
 

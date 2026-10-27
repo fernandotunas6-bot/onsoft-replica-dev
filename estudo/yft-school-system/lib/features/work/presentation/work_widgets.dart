@@ -334,7 +334,7 @@ class _AgendaHero extends StatelessWidget {
           if (next != null)
             _HeroLine(
               icon: LucideIcons.clipboardCheck,
-              label: 'Próxima avaliação · ${relativeDay(next.date)}',
+              label: 'Próxima avaliação · ${relativeDay(next.date).toLowerCase()}',
               value: [
                 next.name,
                 if (next.subjectName.isNotEmpty) next.subjectName,

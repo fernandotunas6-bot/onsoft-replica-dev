@@ -64,8 +64,14 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
      app). A sessão renova-se em segurança entre os dois isolates (`SgaSession._renew`).
    - **Definições:** `/notifications-settings` com interruptores reais (telemóvel,
      lembretes da véspera) e o pedido de autorização do Android 13+.
-4. **Capturas dos ecrãs no CI** (testes «golden» com dados falsos, artefacto no PR),
-   para rever o visual sem telemóvel.
+4. ~~**Capturas dos ecrãs no CI.**~~ Feito: `test/screenshots/screens_test.dart` desenha
+   Início do encarregado, Notificações, Faltas e Trabalhos, em claro e escuro, com
+   dados de exemplo e a letra (Outfit) e os ícones (Lucide, Material) verdadeiros. Só
+   corre no modo SIGA e com `--update-goldens` (sem isso fica saltado); o workflow
+   «Estudo — YFT (APK Android)» anexa as imagens a cada execução (artefacto
+   `capturas`). Localmente: o comando está no topo do ficheiro; as imagens ficam em
+   `test/screenshots/goldens/` (fora do Git). Ecrã novo → acrescentá-lo ao mapa
+   `screens` e os dados que pede a `_overrides`.
 5. **Retoque visual** no estilo Material 3 Expressive (formas, movimento com mola,
    tipografia), sem pesar em telemóveis de gama baixa.
 6. Entregar trabalhos na app (foto/PDF), quando 1–5 estiverem feitos.

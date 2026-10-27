@@ -42,9 +42,9 @@ void main() {
     final a = sample();
     expect(a.limitPercentage, 25);
     expect(a.atRisk.map((s) => s.subjectName), ['Física', 'Inglês']);
-    expect(formatPercent(37.5), '37,5 %');
+    expect(formatPercent(37.5), '37.5 %');
     expect(formatPercent(20), '20 %');
-    expect(formatPercent(8.33), '8,3 %');
+    expect(formatPercent(8.33), '8.3 %');
     expect(
       absenceCounts(a.subjects[1]),
       '2 faltas em 10 aulas · 20 % · 1 justificada',
@@ -79,7 +79,7 @@ void main() {
     ]);
     expect(
       alerts.first.detail,
-      '37,5 % de faltas · falar com o director de turma.',
+      '37.5 % de faltas · falar com o director de turma.',
     );
     expect(alerts.last.detail, 'Mais uma falta passa o limite.');
     // Com boa média e faltas em risco, não aparece o «bom trabalho».
