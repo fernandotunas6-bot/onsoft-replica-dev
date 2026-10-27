@@ -43,6 +43,8 @@ import { MobileTabs } from "@/components/mobile/MobileTabs";
 import { MobileOnly, ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { useSchoolAlerts } from "@/features/dashboard/use-school-alerts";
 import { SchoolSetupGuide } from "@/features/school/SchoolSetupGuide";
+import { buildHomeFocusItems } from "@/features/dashboard/home-focus";
+import { AdminHomeFocus } from "@/features/dashboard/components/AdminHomeFocus";
 
 const DashboardCharts = lazy(() =>
   import("@/features/dashboard/DashboardCharts").then((module) => ({
@@ -68,6 +70,11 @@ const dotTone: Record<string, string> = {
   warning: "bg-warning",
   primary: "bg-primary",
 };
+
+const homeViewClass = (active: boolean) =>
+  active
+    ? "rounded-lg border-b-2 border-primary bg-primary/10 px-3.5 text-xs font-semibold text-primary shadow-none hover:bg-primary/15"
+    : "rounded-lg border-b-2 border-transparent bg-transparent px-3.5 text-xs font-medium text-muted-foreground shadow-none hover:bg-muted/70 hover:text-foreground";
 
 type DashboardOverview = Awaited<ReturnType<typeof getDashboardOverview>>;
 
@@ -193,6 +200,19 @@ export function AdminPortalDashboard({
   ];
 
   const { alerts } = useSchoolAlerts();
+  const focusItems = buildHomeFocusItems({
+    applicants: data?.totals.applicants,
+    documentsPending: data?.totals.documentPending,
+    invoicesOpen: data?.finance?.open_invoice_count,
+    upcomingEvents: data?.upcomingEvents.length,
+    canManageStudents:
+      capabilities.students && canAccessPath("/alunos", currentUser.role, currentUser.grants),
+    canReadDocuments:
+      capabilities.documents && canAccessPath("/documentos", currentUser.role, currentUser.grants),
+    canReadInvoices:
+      capabilities.finance && canAccessPath("/faturas", currentUser.role, currentUser.grants),
+    canReadCalendar: canAccessPath("/calendario", currentUser.role, currentUser.grants),
+  });
 
   /*
    * Ordem mobile da home (§13): primeiro o que exige atenção, depois os números,
@@ -414,6 +434,8 @@ export function AdminPortalDashboard({
         </div>
       </div>
 
+      <AdminHomeFocus items={focusItems} loading={isLoading} unavailable={!isLoading && !data} />
+
       {/*
         Os quatro separadores em pastilhas embrulham para duas linhas a 360px e
         deixam de se ler como um grupo. No telemóvel são separadores que rolam na
@@ -433,42 +455,50 @@ export function AdminPortalDashboard({
           />
         }
         desktop={
-          <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+          <div
+            role="group"
+            aria-label="Vistas do Início"
+            className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/70 bg-muted/30 p-1.5"
+          >
             <Button
               type="button"
-              variant={activeTab === "geral" ? "default" : "secondary"}
+              variant="ghost"
+              aria-pressed={activeTab === "geral"}
               size="sm"
               onClick={() => setActiveTab("geral")}
-              className="rounded-full text-xs font-semibold px-3.5"
+              className={homeViewClass(activeTab === "geral")}
             >
               Visão Geral
             </Button>
             <Button
               type="button"
-              variant={activeTab === "pedagogico" ? "default" : "secondary"}
+              variant="ghost"
+              aria-pressed={activeTab === "pedagogico"}
               size="sm"
               onClick={() => setActiveTab("pedagogico")}
-              className="rounded-full text-xs font-semibold px-3.5"
+              className={homeViewClass(activeTab === "pedagogico")}
             >
               Desempenho & Pautas
             </Button>
             {capabilities.finance ? (
               <Button
                 type="button"
-                variant={activeTab === "financeiro" ? "default" : "secondary"}
+                variant="ghost"
+              aria-pressed={activeTab === "financeiro"}
                 size="sm"
                 onClick={() => setActiveTab("financeiro")}
-                className="rounded-full text-xs font-semibold px-3.5"
+                className={homeViewClass(activeTab === "financeiro")}
               >
                 Projeção Financeira
               </Button>
             ) : null}
             <Button
               type="button"
-              variant={activeTab === "auditoria" ? "default" : "secondary"}
+              variant="ghost"
+              aria-pressed={activeTab === "auditoria"}
               size="sm"
               onClick={() => setActiveTab("auditoria")}
-              className="rounded-full text-xs font-semibold px-3.5"
+              className={homeViewClass(activeTab === "auditoria")}
             >
               Auditoria de Produtividade
             </Button>
