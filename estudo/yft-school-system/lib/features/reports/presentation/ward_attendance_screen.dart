@@ -8,6 +8,8 @@ import 'package:yft_school_system/core/utils/responsive_utils.dart';
 import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:yft_school_system/features/calendar/application/school_events.dart';
 import 'package:yft_school_system/features/reports/presentation/providers/wards_provider.dart';
+import 'package:yft_school_system/core/sga/sga_absences.dart';
+import 'package:yft_school_system/features/reports/presentation/subject_absences_section.dart';
 
 /// Faltas do educando: presenças, faltas e as datas das faltas recentes.
 class WardAttendanceScreen extends ConsumerStatefulWidget {
@@ -91,6 +93,7 @@ class _History extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(studentAttendanceProvider(ward.id));
+        ref.invalidate(subjectAbsencesProvider(ward.id));
         await ref.read(studentAttendanceProvider(ward.id).future);
       },
       child: async.when(
@@ -124,6 +127,8 @@ class _History extends ConsumerWidget {
           return ListView(
             padding: EdgeInsets.fromLTRB(pad.left, 8, pad.right, 32),
             children: [
+              // Modo SIGA: cada disciplina face ao limite de faltas da escola.
+              SubjectAbsencesSection(studentId: ward.id),
               Row(
                 children: [
                   Expanded(

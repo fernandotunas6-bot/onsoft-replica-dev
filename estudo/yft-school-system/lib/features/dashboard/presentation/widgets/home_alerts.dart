@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../core/sga/sga_absences.dart';
 import '../../../../core/sga/sga_config.dart';
 import '../../../../core/sga/sga_work.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -49,6 +50,7 @@ String _when(int days) => switch (days) {
 List<HomeAlert> buildHomeAlerts({
   StudentAgenda? agenda,
   WorkOverview? work,
+  StudentAbsences? absences,
   required DateTime now,
   int max = 3,
 }) {
@@ -168,6 +170,54 @@ List<HomeAlert> buildHomeAlerts({
     );
   }
 
+  // Faltas: acima do limite é urgente (pode reprovar por faltas); perto, aviso.
+  final risk = absences?.atRisk ?? const <SubjectAbsence>[];
+  final over = [
+    for (final s in risk)
+      if (s.status == AbsenceStatus.over) s,
+  ];
+  final near = [
+    for (final s in risk)
+      if (s.status == AbsenceStatus.warning) s,
+  ];
+  if (over.isNotEmpty) {
+    final s = over.first;
+    alerts.add(
+      HomeAlert(
+        level: AlertLevel.urgent,
+        icon: LucideIcons.userX,
+        title: over.length == 1
+            ? 'Faltas a ${s.subjectName} acima do limite'
+            : 'Faltas acima do limite em ${over.length} disciplinas',
+        detail: over.length == 1 && s.percentage != null
+            ? '${formatPercent(s.percentage!)} de faltas · falar com o director de turma.'
+            : over.map((s) => s.subjectName).join(' · '),
+        route: '/ward-attendance',
+      ),
+    );
+  }
+  if (near.isNotEmpty) {
+    final s = near.first;
+    final r = s.remaining ?? 0;
+    alerts.add(
+      HomeAlert(
+        level: AlertLevel.soon,
+        icon: LucideIcons.userX,
+        title: near.length == 1
+            ? 'Faltas a ${s.subjectName} perto do limite'
+            : 'Faltas perto do limite em ${near.length} disciplinas',
+        detail: near.length == 1
+            ? (r <= 0
+                  ? 'Mais uma falta passa o limite.'
+                  : r == 1
+                  ? 'Só pode faltar a mais 1 aula.'
+                  : 'Só pode faltar a mais $r aulas.')
+            : near.map((s) => s.subjectName).join(' · '),
+        route: '/ward-attendance',
+      ),
+    );
+  }
+
   // A média do ano.
   final average = agenda?.average;
   if (average != null && average < 10) {
@@ -219,10 +269,16 @@ class HomeAlertsCard extends ConsumerWidget {
     final work = ref
         .watch(workOverviewProvider(studentId))
         .whenOrNull(data: (w) => w);
-    if (agenda == null && work == null) return const SizedBox.shrink();
+    final absences = ref
+        .watch(subjectAbsencesProvider(studentId))
+        .whenOrNull(data: (a) => a);
+    if (agenda == null && work == null && absences == null) {
+      return const SizedBox.shrink();
+    }
     final alerts = buildHomeAlerts(
       agenda: agenda,
       work: work,
+      absences: absences,
       now: DateTime.now(),
     );
     if (alerts.isEmpty) return const SizedBox.shrink();
