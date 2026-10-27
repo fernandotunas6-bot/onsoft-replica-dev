@@ -42,6 +42,7 @@ import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { errorMessage } from "@/lib/error-message";
 import { safeHref } from "@/lib/safe-url";
 import { TURMA_SECTIONS, type TurmaSection } from "@/features/academic/turma-sections";
+import { TurmaTeacherContextPanel } from "@/features/academic/components/TurmaTeacherContextPanel";
 import { z } from "zod";
 
 /**
@@ -109,6 +110,8 @@ function TurmaDetail() {
   const account = useCurrentAccount();
   const { school, selectedYearId } = useSchoolSettings();
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
+  const canManageTurma =
+    (account.role === "Administrador" || account.role === "Secretaria") && canManageAcademic;
   const canReadAcademic =
     account.role === "Administrador" ||
     account.role === "Secretaria" ||
@@ -126,7 +129,7 @@ function TurmaDetail() {
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "assign"],
     queryFn: () => listTeachers({ data: { status: "active", limit: 200 } }),
-    enabled: canManageAcademic,
+    enabled: canManageTurma,
   });
   const classroomsQuery = useQuery({
     queryKey: ["academic", "rooms"],
@@ -274,6 +277,7 @@ function TurmaDetail() {
               · {turma.academic_year_name}
             </p>
           </div>
+          {canManageTurma ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
@@ -368,9 +372,11 @@ function TurmaDetail() {
               }}
             />
           </div>
+          ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className={account.role === "Professor" ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]" : ""}>
+        <div className={account.role === "Professor" ? "grid min-w-0 grid-cols-1 gap-6 2xl:grid-cols-2" : "grid grid-cols-1 gap-6 lg:grid-cols-2"}>
           <section
             id={sectionId("resumo")}
             aria-labelledby={`${sectionId("resumo")}-titulo`}
@@ -638,6 +644,10 @@ function TurmaDetail() {
               )}
             </div>
           </section>
+        </div>
+        {account.role === "Professor" ? (
+          <TurmaTeacherContextPanel classGroupId={turma.id} weeklySlots={horario.length} />
+        ) : null}
         </div>
       </div>
 
