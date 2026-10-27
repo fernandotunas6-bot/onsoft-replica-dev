@@ -24,29 +24,31 @@ export function TurmaTeacherContextPanel({
 
   const open = tasksQuery.data?.open ?? [];
   const closed = tasksQuery.data?.closed ?? [];
+  const unavailable = tasksQuery.isError || tasksQuery.data?.available === false;
+  const openCount = tasksQuery.isLoading ? "…" : unavailable ? "—" : open.length;
+  const closedCount = tasksQuery.isLoading ? "…" : unavailable ? "—" : closed.length;
 
   return (
     <aside
       aria-label="Contexto do professor"
-      className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:self-start"
+      className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:col-start-2 xl:row-start-1 xl:row-span-5 xl:self-start"
     >
       <section className="rounded-xl border border-border bg-card p-4 shadow-soft">
         <h2 className="text-sm font-semibold">Contexto do professor</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Actividade desta turma. Os trabalhos apresentados pertencem apenas às disciplinas que
-          pode consultar.
+          Trabalhos das disciplinas que pode consultar nesta turma.
         </p>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
             <p className="text-xs text-muted-foreground">Trabalhos em curso</p>
             <p className="mt-1 text-xl font-bold tabular-nums">
-              {tasksQuery.isLoading ? "…" : tasksQuery.isError || tasksQuery.data?.available === false ? "—" : open.length}
+              {openCount}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Prazo terminado</p>
             <p className="mt-1 text-xl font-bold tabular-nums">
-              {tasksQuery.isLoading ? "…" : tasksQuery.isError || tasksQuery.data?.available === false ? "—" : closed.length}
+              {closedCount}
             </p>
           </div>
           <div className="col-span-2 border-t border-border pt-3">
@@ -55,8 +57,8 @@ export function TurmaTeacherContextPanel({
           </div>
         </div>
         <p className="mt-3 text-[11px] text-muted-foreground">
-          Até 200 trabalhos publicados. Prazo terminado não significa trabalho corrigido;
-          horário não significa aula leccionada.
+          Até 200 trabalhos publicados. Prazo encerrado não significa correcção.
+          Uma aula no horário não significa que foi leccionada.
         </p>
         {tasksQuery.isError ? (
           <p role="alert" className="mt-2 text-xs text-destructive">
@@ -130,7 +132,8 @@ export function TurmaTeacherContextPanel({
             search={{ tab: "presencas", turma: classGroupId }}
             className="flex min-h-10 items-center gap-2 rounded-md px-2 text-xs font-medium hover:bg-secondary/40"
           >
-            <Clock3 className="size-4 text-muted-foreground" /> Presenças e aulas realizadas
+            <Clock3 className="size-4 text-muted-foreground" />
+            <span>Presenças e aulas realizadas</span>
           </Link>
         </nav>
       </section>
