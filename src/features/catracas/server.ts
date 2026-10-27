@@ -58,15 +58,18 @@ async function activeCardOf(
   return data?.[0] ?? null;
 }
 
-/** Hora e minuto de Luanda (o servidor corre em UTC: `getHours()` dava uma hora a menos). */
+/** Hora de Luanda, independentemente do fuso horário do Worker ou do executor de testes. */
 function luandaClock(iso: string): { hour: number; label: string } {
+  // Timestamps Postgres costumam incluir o offset. Dados legados sem fuso
+  // são interpretados em UTC, não no fuso local da máquina que corre o SIGA.
+  const timestamp = /(?:Z|[+-]\d{2}:\d{2})$/i.test(iso) ? iso : `${iso}Z`;
   const parts = new Intl.DateTimeFormat("pt-PT", {
     timeZone: "Africa/Luanda",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hourCycle: "h23",
-  }).formatToParts(new Date(iso));
+  }).formatToParts(new Date(timestamp));
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
   return {
     hour: Number(get("hour")),

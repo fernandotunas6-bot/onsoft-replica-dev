@@ -29,11 +29,20 @@ vi.setConfig({ testTimeout: 30_000 });
 
 const getRequestMock = vi.fn();
 const createClientMock = vi.fn();
+const authAdminMocks = vi.hoisted(() => ({
+  getUserById: vi.fn(),
+  listFactors: vi.fn(),
+}));
 
-// 2FA na sessão (session-mfa.ts): estas contas não têm factor verificado.
+// 2FA no login é opcional: simular metadados privados, não user_metadata.
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
-    auth: { admin: { mfa: { listFactors: async () => ({ data: { factors: [] }, error: null }) } } },
+    auth: {
+      admin: {
+        getUserById: authAdminMocks.getUserById,
+        mfa: { listFactors: authAdminMocks.listFactors },
+      },
+    },
   },
 }));
 
@@ -138,6 +147,14 @@ async function runMiddleware() {
 describe("requireSupabaseAuth", () => {
   beforeEach(() => {
     vi.resetModules();
+    authAdminMocks.getUserById.mockReset().mockResolvedValue({
+      data: { user: { app_metadata: {} } },
+      error: null,
+    });
+    authAdminMocks.listFactors.mockReset().mockResolvedValue({
+      data: { factors: [] },
+      error: null,
+    });
     getRequestMock.mockReset();
     createClientMock.mockReset();
     process.env["SUPABASE_URL"] = "https://projecto.supabase.co";
@@ -154,6 +171,21 @@ describe("requireSupabaseAuth", () => {
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(next.mock.calls[0]?.[0]).toMatchObject({ context: { userId: "user-real" } });
+    });
+
+    it("bloqueia aal1 quando a conta escolheu MFA no login e tem factor verificado", async () => {
+      authAdminMocks.getUserById.mockResolvedValue({
+        data: { user: { app_metadata: { siga_login_mfa_enabled: true } } },
+        error: null,
+      });
+      authAdminMocks.listFactors.mockResolvedValue({
+        data: { factors: [{ status: "verified" }] },
+        error: null,
+      });
+      const token = await signJwt({ sub: "user-real", exp: futureExp(), aal: "aal1" }, SECRET);
+      setupRequest(token, "accepts");
+
+      await expect(runMiddleware()).rejects.toThrow(/confirmação no login/i);
     });
 
     it("REJEITA um token forjado — nunca cai no fallback local", async () => {
