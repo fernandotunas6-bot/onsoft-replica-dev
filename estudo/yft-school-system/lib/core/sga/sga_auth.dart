@@ -331,7 +331,29 @@ class SgaSession {
     return renewed?.accessToken;
   }
 
+  /// Os tokens guardados agora (a verificação em segundo plano, noutro
+  /// isolate, pode tê-los renovado entretanto).
+  Future<SgaTokens?> _stored() async {
+    try {
+      final raw = await storage.read();
+      if (raw == null) return null;
+      return SgaTokens.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<SgaTokens?> _renew(SgaTokens t) async {
+    // O Supabase troca o token de renovação a cada uso. Se o outro isolate já
+    // renovou, usar o par dele em vez de gastar um token que já não serve.
+    final before = await _stored();
+    if (before != null &&
+        before.refreshToken != t.refreshToken &&
+        before.userId == t.userId) {
+      _tokens = before;
+      if (!before.expiresWithin(const Duration(seconds: 60))) return before;
+      t = before;
+    }
     try {
       _tokens = await client.refresh(t.refreshToken);
       await _persist();
@@ -339,7 +361,20 @@ class SgaSession {
     } on SgaAuthException catch (e) {
       // Só acaba a sessão se o servidor recusou o token de renovação (ou a
       // conta). Sem rede, 429 ou erro do servidor: fica para tentar depois.
-      if (e.code == 'expired' || e.code == 'credentials') await clear();
+      if (e.code == 'expired' || e.code == 'credentials') {
+        // Recusado porque o outro isolate o gastou ao mesmo tempo? Então o
+        // par novo já está guardado: seguir com ele.
+        final after = await _stored();
+        if (after != null &&
+            after.refreshToken != t.refreshToken &&
+            after.userId == t.userId) {
+          _tokens = after;
+          return after.expiresWithin(const Duration(seconds: 60))
+              ? null
+              : after;
+        }
+        await clear();
+      }
       return null;
     }
   }

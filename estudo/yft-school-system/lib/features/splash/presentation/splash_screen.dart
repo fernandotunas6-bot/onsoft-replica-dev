@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/core/notify/phone_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
@@ -52,7 +54,8 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _navigateToNext() async {
     var seen = false;
     try {
-      seen = await const FlutterSecureStorage().read(key: onboardingSeenKey) ==
+      seen =
+          await const FlutterSecureStorage().read(key: onboardingSeenKey) ==
           'true';
     } catch (_) {
       // Sem armazenamento (testes, navegador sem permissão): mostrar.
@@ -65,6 +68,10 @@ class _SplashScreenState extends State<SplashScreen>
     } catch (_) {
       // Firebase por inicializar.
     }
+    // Aberta por um toque numa notificação: o Início e, por cima, o aviso.
+    final launch = signedIn && sgaMode
+        ? await PhoneNotifications.instance.takeLaunchRoute()
+        : null;
     if (!mounted) return;
     context.go(
       !seen
@@ -73,6 +80,9 @@ class _SplashScreenState extends State<SplashScreen>
           ? '/dashboard'
           : '/login',
     );
+    if (seen && launch != null && launch != '/dashboard') {
+      unawaited(context.push(launch));
+    }
   }
 
   @override

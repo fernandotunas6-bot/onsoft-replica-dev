@@ -50,6 +50,12 @@ dependencies:
   pdf: ^3.11.1
   path_provider: ^2.1.5
   share_plus: ^10.1.4
+  # Tempo real do SIGA (Supabase Realtime, só Dart): avisos e mensagens ao segundo.
+  realtime_client: ^2.13.2
+  # Notificações no telemóvel (avisos novos com a app em segundo plano ou fechada).
+  flutter_local_notifications: ^22.3.3
+  # Verificação periódica em segundo plano (Android: a cada 15 min, com rede).
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:

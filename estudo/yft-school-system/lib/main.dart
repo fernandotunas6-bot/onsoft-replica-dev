@@ -10,6 +10,10 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/app_root.dart';
+import 'package:yft_school_system/core/notify/background_notify.dart';
+import 'package:yft_school_system/core/notify/phone_notifications.dart';
+import 'package:yft_school_system/core/realtime/live_updates.dart';
+import 'package:yft_school_system/core/routing/app_router.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'firebase_options.dart';
 
@@ -23,7 +27,16 @@ void main() async {
   });
   // No modo SIGA a conta é a do Supabase do SIGA: o Firebase não arranca.
   if (!sgaMode) await _initFirebase();
-  runApp(const ProviderScope(child: AppRoot()));
+  if (sgaMode) {
+    // Notificações no telemóvel: tocar abre o ecrã do aviso. A verificação em
+    // segundo plano (Android) regista-se aqui; corre de meia em meia hora.
+    await PhoneNotifications.instance.init(
+      onTap: (route) => appRouter.push(route),
+    );
+    await BackgroundNotify.initialize();
+  }
+  // LiveUpdates: tempo real e avisos novos enquanto a sessão está aberta.
+  runApp(const ProviderScope(child: LiveUpdates(child: AppRoot())));
 }
 
 Future<void> _initFirebase() async {

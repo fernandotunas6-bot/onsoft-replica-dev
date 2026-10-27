@@ -15,6 +15,7 @@ import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/core/widgets/section_widgets.dart';
 import 'package:yft_school_system/features/calendar/application/school_events.dart';
 import 'package:yft_school_system/features/messages/presentation/messages_screen.dart';
+import 'package:yft_school_system/core/realtime/live_updates.dart' show sgaRealtimeProvider;
 
 /// Lista das conversas 1:1 (separador "Conversas" de Mensagens).
 class ConversationsList extends ConsumerWidget {
@@ -363,8 +364,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       },
       fireImmediately: true,
     );
+    // Com o tempo real ligado, as mensagens novas chegam sozinhas; a
+    // verificação passa de 15 s a 1 min (rede de segurança).
+    var tick = 0;
     _poll = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (mounted) ref.invalidate(chatThreadProvider(widget.conversationId));
+      tick++;
+      if (!mounted) return;
+      if (ref.read(sgaRealtimeProvider).chatLive.value && tick % 4 != 0) return;
+      ref.invalidate(chatThreadProvider(widget.conversationId));
     });
   }
 

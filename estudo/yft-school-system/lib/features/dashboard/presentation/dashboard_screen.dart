@@ -1,4 +1,6 @@
 import 'package:yft_school_system/core/sga/sga_work.dart';
+import 'package:yft_school_system/core/notify/notify_controller.dart';
+import 'package:yft_school_system/core/sga/sga_notifications.dart';
 import 'package:yft_school_system/features/work/presentation/work_widgets.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import 'package:yft_school_system/core/widgets/app_icons.dart';
 import 'package:yft_school_system/core/widgets/app_shell.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/features/calendar/application/school_events.dart';
+import 'package:yft_school_system/features/dashboard/presentation/widgets/home_alerts.dart';
 import 'package:yft_school_system/features/dashboard/presentation/widgets/home_sections.dart';
 import 'package:yft_school_system/features/dashboard/presentation/providers/notices_providers.dart';
 import 'package:yft_school_system/core/network/api_client.dart';
@@ -38,6 +41,7 @@ class DashboardScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(unreadNoticesCountProvider);
             ref.invalidate(conversationsUnreadProvider);
+            ref.invalidate(personalNoticesProvider);
             ref.invalidate(parentNoticesProvider);
             ref.invalidate(subjectsProvider(null));
             ref.invalidate(academicCalendarProvider);
@@ -77,7 +81,7 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 /// "Bem-vindo, Ana!" sobre o fundo escolhido em Aparência, com o sino dos
-/// comunicados por ler.
+/// avisos por ler.
 class _HomeHeader extends ConsumerWidget {
   const _HomeHeader();
 
@@ -86,10 +90,16 @@ class _HomeHeader extends ConsumerWidget {
     final session = ref.watch(authProvider);
     final backdrop = ref.watch(appearanceProvider).backdrop;
     final icons = AppIcons(ref.watch(appearanceProvider).modernIcons);
-    // Comunicados e conversas por ler, juntos no sino.
-    final unread =
-        (ref.watch(unreadNoticesCountProvider).whenOrNull(data: (n) => n) ?? 0) +
-        (ref.watch(conversationsUnreadProvider).whenOrNull(data: (n) => n) ?? 0);
+    // Modo SIGA: avisos pessoais por ler e comunicados novos (as mensagens têm
+    // o contador delas no separador). Sem SIGA: comunicados e conversas.
+    final unread = sgaMode
+        ? (ref.watch(personalNoticesProvider).whenOrNull(data: (f) => f.unread) ?? 0) +
+            unseenAnnouncements(
+              ref.watch(parentNoticesProvider).whenOrNull(data: (l) => l) ?? const [],
+              ref.watch(notifyControllerProvider).whenOrNull(data: (s) => s.seenAnnouncementsAt),
+            )
+        : (ref.watch(unreadNoticesCountProvider).whenOrNull(data: (n) => n) ?? 0) +
+            (ref.watch(conversationsUnreadProvider).whenOrNull(data: (n) => n) ?? 0);
     final name = session?.userName ?? 'utilizador';
     final firstName = name.trim().split(RegExp(r'\s+')).first;
     final subtitle = [
@@ -143,8 +153,9 @@ class _HomeHeader extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Mensagens',
-            onPressed: () => context.go('/mensagens'),
+            tooltip: unread > 0 ? 'Notificações: $unread por ler' : 'Notificações',
+            onPressed: () =>
+                sgaMode ? context.push('/notificacoes') : context.go('/mensagens'),
             icon: Badge(
               isLabelVisible: unread > 0,
               label: Text(unread > 99 ? '99+' : '$unread'),
@@ -381,14 +392,20 @@ class ParentDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadAsync = ref.watch(unreadNoticesCountProvider);
-    final noticeBadge =
-        unreadAsync.whenOrNull(data: (n) => n > 0 ? n : null);
+    // Modo SIGA: os comunicados que chegaram desde a última visita.
+    final unseen = sgaMode
+        ? unseenAnnouncements(
+            ref.watch(parentNoticesProvider).whenOrNull(data: (l) => l) ?? const [],
+            ref.watch(notifyControllerProvider).whenOrNull(data: (s) => s.seenAnnouncementsAt),
+          )
+        : ref.watch(unreadNoticesCountProvider).whenOrNull(data: (n) => n) ?? 0;
+    final noticeBadge = unseen > 0 ? unseen : null;
 
     return Column(
       children: [
         const WardSwitcher(),
         const TodayAgendaCard(),
+        const HomeAlertsCard(),
         const CurrentClassCard(),
         const WorkDueCard(),
         const SubjectsPreview(),

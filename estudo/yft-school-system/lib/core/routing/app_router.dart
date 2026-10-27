@@ -1,4 +1,5 @@
 import 'package:yft_school_system/features/work/presentation/work_screen.dart';
+import 'package:yft_school_system/features/notifications/presentation/notifications_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -88,7 +89,14 @@ final appRouter = GoRouter(
       builder: (context, state) => const OnboardingScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-    GoRoute(path: '/trabalhos', builder: (context, state) => const WorkScreen()),
+    GoRoute(
+      path: '/trabalhos',
+      builder: (context, state) => const WorkScreen(),
+    ),
+    GoRoute(
+      path: '/notificacoes',
+      builder: (context, state) => const NotificationsScreen(),
+    ),
     GoRoute(
       path: '/forgot-password',
       builder: (context, state) => const ForgotPasswordScreen(),

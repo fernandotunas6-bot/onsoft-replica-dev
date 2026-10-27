@@ -87,6 +87,7 @@ import { Route as ApiMobileAttendanceRouteImport } from './routes/api/mobile/att
 import { Route as ApiMobileChatRouteImport } from './routes/api/mobile/chat'
 import { Route as ApiMobileGradesRouteImport } from './routes/api/mobile/grades'
 import { Route as ApiMobileLoginRouteImport } from './routes/api/mobile/login'
+import { Route as ApiMobileNotificationsRouteImport } from './routes/api/mobile/notifications'
 import { Route as ApiMobilePresenceRouteImport } from './routes/api/mobile/presence'
 import { Route as ApiMobileProfileRouteImport } from './routes/api/mobile/profile'
 import { Route as ApiMobileWorkRouteImport } from './routes/api/mobile/work'
@@ -554,6 +555,11 @@ const ApiMobileLoginRoute = ApiMobileLoginRouteImport.update({
   path: '/api/mobile/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileNotificationsRoute = ApiMobileNotificationsRouteImport.update({
+  id: '/api/mobile/notifications',
+  path: '/api/mobile/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobilePresenceRoute = ApiMobilePresenceRouteImport.update({
   id: '/api/mobile/presence',
   path: '/api/mobile/presence',
@@ -1016,6 +1022,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/notifications': typeof ApiMobileNotificationsRoute
   '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/mobile/work': typeof ApiMobileWorkRoute
@@ -1167,6 +1174,7 @@ export interface FileRoutesByTo {
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/notifications': typeof ApiMobileNotificationsRoute
   '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/mobile/work': typeof ApiMobileWorkRoute
@@ -1319,6 +1327,7 @@ export interface FileRoutesById {
   '/api/mobile/chat': typeof ApiMobileChatRoute
   '/api/mobile/grades': typeof ApiMobileGradesRoute
   '/api/mobile/login': typeof ApiMobileLoginRoute
+  '/api/mobile/notifications': typeof ApiMobileNotificationsRoute
   '/api/mobile/presence': typeof ApiMobilePresenceRoute
   '/api/mobile/profile': typeof ApiMobileProfileRoute
   '/api/mobile/work': typeof ApiMobileWorkRoute
@@ -1472,6 +1481,7 @@ export interface FileRouteTypes {
     | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/mobile/login'
+    | '/api/mobile/notifications'
     | '/api/mobile/presence'
     | '/api/mobile/profile'
     | '/api/mobile/work'
@@ -1623,6 +1633,7 @@ export interface FileRouteTypes {
     | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/mobile/login'
+    | '/api/mobile/notifications'
     | '/api/mobile/presence'
     | '/api/mobile/profile'
     | '/api/mobile/work'
@@ -1774,6 +1785,7 @@ export interface FileRouteTypes {
     | '/api/mobile/chat'
     | '/api/mobile/grades'
     | '/api/mobile/login'
+    | '/api/mobile/notifications'
     | '/api/mobile/presence'
     | '/api/mobile/profile'
     | '/api/mobile/work'
@@ -1925,6 +1937,7 @@ export interface RootRouteChildren {
   ApiMobileChatRoute: typeof ApiMobileChatRoute
   ApiMobileGradesRoute: typeof ApiMobileGradesRoute
   ApiMobileLoginRoute: typeof ApiMobileLoginRoute
+  ApiMobileNotificationsRoute: typeof ApiMobileNotificationsRoute
   ApiMobilePresenceRoute: typeof ApiMobilePresenceRoute
   ApiMobileProfileRoute: typeof ApiMobileProfileRoute
   ApiMobileWorkRoute: typeof ApiMobileWorkRoute
@@ -2527,6 +2540,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mobile/login'
       fullPath: '/api/mobile/login'
       preLoaderRoute: typeof ApiMobileLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/notifications': {
+      id: '/api/mobile/notifications'
+      path: '/api/mobile/notifications'
+      fullPath: '/api/mobile/notifications'
+      preLoaderRoute: typeof ApiMobileNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/presence': {
@@ -3216,6 +3236,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileChatRoute: ApiMobileChatRoute,
   ApiMobileGradesRoute: ApiMobileGradesRoute,
   ApiMobileLoginRoute: ApiMobileLoginRoute,
+  ApiMobileNotificationsRoute: ApiMobileNotificationsRoute,
   ApiMobilePresenceRoute: ApiMobilePresenceRoute,
   ApiMobileProfileRoute: ApiMobileProfileRoute,
   ApiMobileWorkRoute: ApiMobileWorkRoute,

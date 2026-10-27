@@ -9,6 +9,8 @@ import '../utils/responsive_utils.dart';
 import 'app_icons.dart';
 import 'profile_photo_avatar.dart';
 import '../network/api_client.dart';
+import '../providers/repository_providers.dart' show conversationsUnreadProvider;
+import 'section_widgets.dart' show CountBadge;
 import '../utils/media_url.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -65,6 +67,8 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDesktop = getScreenSize(context) == ScreenSize.desktop;
     final icons = AppIcons(ref.watch(appearanceProvider).modernIcons);
+    final messagesUnread =
+        ref.watch(conversationsUnreadProvider).whenOrNull(data: (n) => n) ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -93,6 +97,7 @@ class AppShell extends ConsumerWidget {
               builder: (context) => _BottomBar(
                 current: tab,
                 icons: icons,
+                messagesUnread: messagesUnread,
                 onMore: () => Scaffold.of(context).openDrawer(),
               ),
             ),
@@ -105,15 +110,25 @@ class _BottomBar extends StatelessWidget {
   final AppIcons icons;
   final VoidCallback onMore;
 
+  /// Mensagens por ler: contador no separador.
+  final int messagesUnread;
+
   const _BottomBar({
     required this.current,
     required this.icons,
     required this.onMore,
+    this.messagesUnread = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget item(IconData icon, String label, bool selected, VoidCallback onTap) {
+    Widget item(
+      IconData icon,
+      String label,
+      bool selected,
+      VoidCallback onTap, {
+      int badge = 0,
+    }) {
       final color = selected ? AppColors.primary : AppColors.textSecondary;
       return Expanded(
         child: InkWell(
@@ -123,7 +138,17 @@ class _BottomBar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 22, color: color),
+                Badge(
+                  isLabelVisible: badge > 0,
+                  label: Text(badge > 99 ? '99+' : '$badge'),
+                  backgroundColor: AppColors.error,
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: color,
+                    semanticLabel: badge > 0 ? '$badge por ler' : null,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   label,
@@ -152,9 +177,15 @@ class _BottomBar extends StatelessWidget {
         child: Row(
           children: [
             for (final t in AppTab.values)
-              item(t.icon(icons), t.label, t == current, () {
-                if (t != current) context.go(t.route);
-              }),
+              item(
+                t.icon(icons),
+                t.label,
+                t == current,
+                () {
+                  if (t != current) context.go(t.route);
+                },
+                badge: t == AppTab.messages ? messagesUnread : 0,
+              ),
             item(icons.more, 'Mais', false, onMore),
           ],
         ),
@@ -197,6 +228,7 @@ List<_MenuEntry> _entriesFor(UserRole? role, AppIcons i, {bool student = false})
 List<_MenuEntry> _allEntriesFor(UserRole? role, AppIcons i, {bool student = false}) {
   return [
     _MenuEntry(i.profile, 'Meu perfil', '/personal-info'),
+    if (sgaMode) _MenuEntry(i.bell, 'Notificações', '/notificacoes'),
     // Aluno: os ecrãs do encarregado, com a própria ficha e na primeira pessoa.
     if (role == UserRole.parent && student) ...[
       _MenuEntry(i.grades, 'O meu boletim', '/result-card'),
@@ -247,6 +279,8 @@ class AppMenu extends ConsumerWidget {
     final appearance = ref.watch(appearanceProvider);
     final icons = AppIcons(appearance.modernIcons);
     final inDrawer = currentTab == null;
+    final messagesUnread =
+        ref.watch(conversationsUnreadProvider).whenOrNull(data: (n) => n) ?? 0;
 
     void open(String route) {
       if (inDrawer) Navigator.of(context).pop();
@@ -357,7 +391,9 @@ class AppMenu extends ConsumerWidget {
                       t.label,
                       () => context.go(t.route),
                       selected: t == currentTab,
-                      trailing: const SizedBox.shrink(),
+                      trailing: t == AppTab.messages && messagesUnread > 0
+                          ? CountBadge(count: messagesUnread)
+                          : const SizedBox.shrink(),
                     ),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -420,7 +456,12 @@ class OfflineBanner extends StatelessWidget {
         return Column(
           children: [
             Material(
-              color: const Color(0xFFFFF4DB),
+              color: Color.alphaBlend(
+                AppColors.warning.withValues(
+                  alpha: AppColors.isDark ? 0.22 : 0.16,
+                ),
+                AppColors.surface,
+              ),
               child: SafeArea(
                 bottom: false,
                 child: Semantics(
@@ -429,13 +470,17 @@ class OfflineBanner extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
-                        const Icon(LucideIcons.wifiOff, size: 16, color: Color(0xFF6B4A00)),
+                        Icon(
+                          LucideIcons.wifiOff,
+                          size: 16,
+                          color: AppColors.textPrimary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Sem rede · a ver dados ${offlineAge(since)}',
-                            style: const TextStyle(
-                              color: Color(0xFF6B4A00),
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),

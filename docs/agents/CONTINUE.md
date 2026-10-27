@@ -1,5 +1,15 @@
 # Handoff — continuar o SIGA
 
+## App móvel: notificações em tempo real e alertas — 2026-10-27
+
+App SIGA Plus 1.2.0: centro de notificações (sino), tempo real com a app aberta,
+notificações no telemóvel com a app fechada (verificação de 30 em 30 min), lembretes
+da véspera, «Para ter em atenção» no Início, e funcionar sem rede (#364). Estado,
+desenho e pendências do dono em
+[estudo/yft-school-system/docs/ROADMAP_APP.md](../../estudo/yft-school-system/docs/ROADMAP_APP.md).
+**Pendente do dono:** colar `docs/agents/SIGA_aplicar_tempo_real_avisos.sql` no SQL
+Editor (tempo real dos avisos) e o Firebase para notificações instantâneas (FCM).
+
 ## App móvel: estado e plano — 2026-10-27
 
 App SIGA Plus 1.1.0 publicada (Início «Hoje», trabalhos, aluno com menu próprio,
