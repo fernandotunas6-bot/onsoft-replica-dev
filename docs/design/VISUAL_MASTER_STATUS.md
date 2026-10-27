@@ -1,5 +1,17 @@
 # Execução do padrão visual — 23/10/2026
 
+**27/10/2026 — navegação e Início, incremento em PR (CI por concluir):**
+a página `/pedagogica` deixa de repetir «Área Pedagógica» no cabeçalho e passa a
+«Ensino e aprendizagem»; separadores com indicador activo composto por fundo,
+texto e sublinhado. A sidebar partilhada ganha um traço activo de 3 px,
+respeitando tema e redução de movimentos. O Início administrativo passa a
+destacar somente contagens existentes e autorizadas: candidaturas por confirmar,
+documentos pendentes, faturas em aberto e próximos eventos; o erro de carregamento
+não é zero. Referências de pesquisa: Canvas Dashboard/To-do, Moodle Timeline/
+recentes, Linear UI (hierarquia e contraste). Testes de regressão pedagógica e
+função pura de prioridades adicionados. **Evidência de CI, capturas em dispositivos
+e publicação de produção ainda pendentes**; não declarar execução integral.
+
 Contrato: [VISUAL_MASTER_2026.md](VISUAL_MASTER_2026.md). Esta matriz acompanha
 **todas as dez fases**. O padrão está registado; a execução integral está parcial.
 Não considerar o sistema todo validado por causa dos testes abaixo.
