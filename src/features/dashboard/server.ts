@@ -127,6 +127,14 @@ function emptyOverview(role = "Utilizador") {
       time: string;
       tone: string;
     }>,
+    // Exclusivamente audit_logs, para nunca apresentar recibos/documentos
+    // como eventos de auditoria quando não há logs acessíveis.
+    auditActivity: [] as Array<{
+      id: string;
+      title: string;
+      detail: string;
+      time: string;
+    }>,
     upcomingEvents: [] as Array<{
       id: string;
       title: string;
@@ -807,7 +815,7 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
         .order("occurred_at", { ascending: false })
         .limit(6);
       if (audits?.length) {
-        overview.recentActivity = audits.map(
+        overview.auditActivity = audits.map(
           // `audit_logs.id` é bigint na produção, não uuid. A anotação dizia
           // `string` e ninguém reparou porque o cliente privilegiado não tem
           // tipos; o `String(row.id)` abaixo já tratava o valor correctamente.
