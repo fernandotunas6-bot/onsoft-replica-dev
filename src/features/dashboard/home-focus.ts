@@ -22,9 +22,7 @@ export type HomeFocusItem = {
 };
 
 function positiveCount(value: number | null | undefined): number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? Math.floor(value)
-    : 0;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
 }
 
 /** Ordem por actividade, não por valor monetário nem gravidade presumida. */
