@@ -17,19 +17,27 @@ export function AdminHomeFocus({
   items,
   loading,
   unavailable,
+  compact = false,
 }: {
   items: HomeFocusItem[];
   loading: boolean;
   unavailable: boolean;
+  compact?: boolean;
 }) {
   return (
-    <section aria-labelledby="home-focus-heading" className="hidden space-y-3 md:block">
+    <section
+      aria-labelledby={compact ? "home-focus-heading-mobile" : "home-focus-heading"}
+      className={compact ? "space-y-2 md:hidden" : "hidden space-y-3 md:block"}
+    >
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
             Acompanhar
           </p>
-          <h2 id="home-focus-heading" className="mt-0.5 text-base font-semibold text-foreground">
+          <h2
+            id={compact ? "home-focus-heading-mobile" : "home-focus-heading"}
+            className="mt-0.5 text-base font-semibold text-foreground"
+          >
             O que merece atenção
           </h2>
         </div>
@@ -53,23 +61,23 @@ export function AdminHomeFocus({
           Não foi possível consultar os indicadores. Volte a abrir o Início para tentar novamente.
         </div>
       ) : items.length ? (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className={compact ? "grid gap-2 sm:grid-cols-2" : "grid gap-3 md:grid-cols-2 xl:grid-cols-4"}>
           {items.map((item) => {
             const Icon = focusIcons[item.id];
             return (
               <Link
                 key={item.id}
                 to={item.to}
-                className="group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card p-4 transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
+                className={`group flex min-w-0 items-start gap-3 rounded-xl border border-border bg-card transition-[background-color,border-color] duration-150 hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none ${compact ? "p-3" : "p-4"}`}
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className={`flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ${compact ? "size-8" : "size-9"}`}>
                   <Icon className="size-4" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-2xl font-bold leading-none tabular-nums text-foreground">
+                  <span className={`block font-bold leading-none tabular-nums text-foreground ${compact ? "text-lg" : "text-2xl"}`}>
                     {item.count}
                   </span>
-                  <span className="mt-2 block text-xs font-semibold text-foreground">
+                  <span className={`block text-xs font-semibold text-foreground ${compact ? "mt-1" : "mt-2"}`}>
                     {item.title}
                   </span>
                   <span className="mt-1 block text-[11px] text-muted-foreground">
