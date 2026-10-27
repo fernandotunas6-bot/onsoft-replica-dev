@@ -69,7 +69,7 @@ describe("2FA imposto na sessão", () => {
 
   it("o ecrã de entrada pede o código em qualquer via de entrada", () => {
     const gate = readFileSync(join(process.cwd(), "src/components/auth/AuthGate.tsx"), "utf8");
-    expect(gate).toMatch(/await adoptSession\(data\.session\)/);
-    expect(gate).toMatch(/adoptSession\(nextSession\)/);
+    expect(gate).toMatch(/await adoptSession\(data\.session, version\)/);
+    expect(gate).toMatch(/adoptSession\(nextSession, version\)/);
   });
 });

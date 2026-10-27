@@ -22,6 +22,7 @@ export const ACTIVE_SCHOOL_UNAVAILABLE = "ACTIVE_SCHOOL_UNAVAILABLE";
  * da sessão e tem de ser relido.
  */
 export const ACTIVE_SCHOOL_CHANGED_EVENT = "siga:active-school-changed";
+const ACTIVE_SCHOOL_SELECTION_EVENT = "siga:active-school-selection";
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
@@ -58,15 +59,43 @@ export function isActiveSchoolUnavailable(error: unknown): boolean {
 /** Grava a escolha em cookie (para o servidor) e em localStorage (para o arranque). */
 export function rememberActiveSchool(schoolId: string | null) {
   if (typeof document === "undefined") return;
+  const previous = readStoredActiveSchool();
 
   if (schoolId) {
     document.cookie = `${ACTIVE_SCHOOL_COOKIE}=${encodeURIComponent(schoolId)}; path=/; max-age=${ONE_YEAR_SECONDS}; SameSite=Lax`;
     localStorage.setItem(ACTIVE_SCHOOL_STORAGE_KEY, schoolId);
-    return;
+  } else {
+    document.cookie = `${ACTIVE_SCHOOL_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+    localStorage.removeItem(ACTIVE_SCHOOL_STORAGE_KEY);
   }
 
-  document.cookie = `${ACTIVE_SCHOOL_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
-  localStorage.removeItem(ACTIVE_SCHOOL_STORAGE_KEY);
+  // Todos os useCurrentAccount montados partilham a mesma selecção. Um estado
+  // React por consumidor deixava cabeçalho/menu/guardas na escola anterior.
+  if (previous !== schoolId) window.dispatchEvent(new Event(ACTIVE_SCHOOL_SELECTION_EVENT));
+}
+
+export function subscribeActiveSchool(onChange: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (isActiveSchoolStorageEvent(event)) onChange();
+  };
+  window.addEventListener(ACTIVE_SCHOOL_SELECTION_EVENT, onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(ACTIVE_SCHOOL_SELECTION_EVENT, onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function isActiveSchoolStorageEvent(event: StorageEvent): boolean {
+  return (
+    event.storageArea === localStorage &&
+    (event.key === ACTIVE_SCHOOL_STORAGE_KEY || event.key === null)
+  );
+}
+
+/** O servidor não deve ler armazenamento de outra sessão durante SSR. */
+export function serverActiveSchool(): null {
+  return null;
 }
 
 export function readStoredActiveSchool(): string | null {

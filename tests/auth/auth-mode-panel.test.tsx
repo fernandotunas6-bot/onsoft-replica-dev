@@ -2,6 +2,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthGate } from "@/components/auth/AuthGate";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+
+function renderGate(children: ReactNode) {
+  return render(<QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>);
+}
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -26,7 +32,7 @@ afterEach(cleanup);
 
 describe("login e registo no mesmo painel", () => {
   it("troca por links, mantém o painel e os dados do login, e move o foco para o formulário activo", async () => {
-    const { container } = render(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
+    const { container } = renderGate(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
     await screen.findByRole("heading", { name: "Iniciar sessão" });
     const panel = container.querySelector("[data-auth-panel]");
     const email = screen.getByLabelText("Email ou Nº de BI / NIF") as HTMLInputElement;
@@ -52,7 +58,7 @@ describe("login e registo no mesmo painel", () => {
   });
 
   it("mantém a recuperação de senha acessível ao toque e teclado", async () => {
-    render(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
+    renderGate(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
     const recover = await screen.findByRole("button", { name: "Esqueceu a senha?" });
     expect(recover.getAttribute("type")).toBe("button");
     expect(recover.classList.contains("min-h-[44px]")).toBe(true);
@@ -60,7 +66,7 @@ describe("login e registo no mesmo painel", () => {
   });
 
   it("mantém os campos e métodos de autenticação no registo", () => {
-    render(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
+    renderGate(<AuthGate sessionHint={false}>Área da escola</AuthGate>);
     fireEvent.click(screen.getByRole("link", { name: "Criar conta" }));
     const form = screen.getByRole("button", { name: "Criar conta" }).closest("form");
     expect(form?.querySelectorAll("input[required]")).toHaveLength(4);

@@ -57,6 +57,9 @@ import {
   Smartphone,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { clearOfflineQueries } from "@/lib/offline/offline-queries";
+import { clearRecentNav } from "@/lib/navigation-memory";
 import { Link } from "@tanstack/react-router";
 import { isTauriDesktop } from "@/lib/desktop-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,6 +195,7 @@ export function AuthGate({
   /** Cookie-pista lido no SSR: `false` = sem sessão, desenha logo o ecrã de entrada. */
   sessionHint?: boolean;
 }) {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   // Sem pista de sessão o ecrã de entrada sai já no HTML do servidor (LCP): se afinal
   // houver sessão, o `getSession` abaixo troca para a app logo após a hidratação.
@@ -294,14 +298,34 @@ export function AuthGate({
 
   useEffect(() => {
     let active = true;
+    let sessionVersion = 0;
+    let currentUserId: string | null = null;
+
+    const updateIdentity = (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user.id ?? null;
+      if (nextUserId === currentUserId) return;
+      // Os dados de vários módulos não têm userId na chave. A expiração,
+      // revogação ou saída noutra aba também têm de os apagar, antes de mostrar
+      // outra pessoa — não apenas o botão que chama useSignOut.
+      queryClient.clear();
+      if (currentUserId) {
+        clearOfflineQueries();
+        clearRecentNav();
+      }
+      currentUserId = nextUserId;
+      setSession(null);
+      setMfaFactors(null);
+    };
 
     // Qualquer via de entrada (senha, B.I., link mágico, Google, sessão
     // restaurada) passa por aqui: uma conta com 2FA só entra com aal2. O
     // servidor recusa os tokens aal1 dessas contas (`requireSupabaseAuth`).
-    const adoptSession = async (nextSession: Session | null) => {
+    const adoptSession = async (nextSession: Session | null, version: number) => {
+      if (!active || version !== sessionVersion) return;
+      updateIdentity(nextSession);
       if (nextSession) {
         const factors = await pendingMfaFactors();
-        if (!active) return;
+        if (!active || version !== sessionVersion) return;
         if (factors) {
           setMfaFactors(factors);
           setSession(null);
@@ -315,12 +339,13 @@ export function AuthGate({
     };
 
     const bootstrap = async () => {
+      const version = sessionVersion;
       try {
         const { data } = await supabase.auth.getSession();
-        if (!active) return;
+        if (!active || version !== sessionVersion) return;
         writeSessionHint(Boolean(data.session));
         if (data.session) {
-          await adoptSession(data.session);
+          await adoptSession(data.session, version);
           return;
         }
 
@@ -340,7 +365,7 @@ export function AuthGate({
           }
         }
       } catch (bootstrapError) {
-        if (!active) return;
+        if (!active || version !== sessionVersion) return;
         setError(
           bootstrapError instanceof Error
             ? bootstrapError.message
@@ -354,6 +379,8 @@ export function AuthGate({
 
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
+      const version = ++sessionVersion;
+      updateIdentity(nextSession);
       // Uma conta sem vínculo escolar (ex.: primeiro login Google) entra na
       // sessão mas não vê dados de escola nenhuma: o RouteAccessGate mostra-lhe
       // o painel de integração institucional, e o servidor recusa tudo o que
@@ -373,7 +400,7 @@ export function AuthGate({
         return;
       }
       // Fora do callback: o supabase-js bloqueia se se aguardar o Auth dentro dele.
-      window.setTimeout(() => void adoptSession(nextSession), 0);
+      window.setTimeout(() => void adoptSession(nextSession, version), 0);
     });
     // Erros de sessão não tratados (ex.: server function chamada num evento).
     const onRejection = (event: PromiseRejectionEvent) => {
@@ -385,7 +412,7 @@ export function AuthGate({
       data.subscription.unsubscribe();
       window.removeEventListener("unhandledrejection", onRejection);
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (!session) return;

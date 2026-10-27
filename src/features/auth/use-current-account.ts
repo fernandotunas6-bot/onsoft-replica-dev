@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { resolveEnabledModules } from "@/features/auth/module-availability";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/components/auth/AuthGate";
 import { getCurrentAccountContext } from "@/features/auth/server";
 import type { ApplicationRole } from "@/features/auth/access-policy";
@@ -9,9 +9,12 @@ import {
   ACTIVE_SCHOOL_CHANGED_EVENT,
   hostSchoolSlug,
   isActiveSchoolUnavailable,
+  isActiveSchoolStorageEvent,
   navigateToSchoolHost,
   readStoredActiveSchool,
   rememberActiveSchool,
+  serverActiveSchool,
+  subscribeActiveSchool,
 } from "@/features/auth/active-school";
 
 /**
@@ -47,21 +50,42 @@ const NO_LINKED_ENTITIES = Object.freeze({
 
 const ACTIVE_ROLE_KEY = "siga:active-role";
 const ACTIVE_STUDENT_KEY = "siga:active-student-id";
+// Um evento entre abas só invalida cada cache uma vez, mesmo com muitos consumidores.
+const handledSchoolStorageEvents = new WeakMap<QueryClient, StorageEvent>();
 
 export function useCurrentAccount() {
   const session = useAuthSession();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
 
-  const [activeSchoolIdState, setActiveSchoolIdState] = useState<string | null>(() =>
-    readStoredActiveSchool(),
+  const activeSchoolIdState = useSyncExternalStore(
+    subscribeActiveSchool,
+    readStoredActiveSchool,
+    serverActiveSchool,
   );
 
   // O cookie é a fonte que o servidor lê; garante-se que reflecte o que ficou
-  // guardado, mesmo em sessões abertas antes de o cookie existir.
+  // guardado, mesmo em sessões abertas antes de o cookie existir. Na hidratação
+  // o snapshot SSR ainda é null: não o gravar por cima da selecção do browser.
   useEffect(() => {
-    rememberActiveSchool(activeSchoolIdState);
-  }, [activeSchoolIdState]);
+    rememberActiveSchool(readStoredActiveSchool());
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (
+        !isActiveSchoolStorageEvent(event) ||
+        handledSchoolStorageEvents.get(queryClient) === event
+      )
+        return;
+      handledSchoolStorageEvents.set(queryClient, event);
+      rememberActiveSchool(readStoredActiveSchool());
+      void queryClient.resetQueries({ predicate: (query) => query.queryKey[0] !== "auth" });
+      window.dispatchEvent(new Event(ACTIVE_SCHOOL_CHANGED_EVENT));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [queryClient]);
 
   const profile = useQuery({
     queryKey: ["auth", "account-context", userId ?? "anon", activeSchoolIdState ?? "default"],
@@ -74,9 +98,12 @@ export function useCurrentAccount() {
       } catch (error) {
         // A escola guardada deixou de pertencer ao utilizador: limpa a selecção
         // em vez de o deixar preso num erro, e deixa o servidor voltar a decidir.
-        if (isActiveSchoolUnavailable(error) && activeSchoolIdState) {
+        if (
+          isActiveSchoolUnavailable(error) &&
+          activeSchoolIdState &&
+          readStoredActiveSchool() === activeSchoolIdState
+        ) {
           rememberActiveSchool(null);
-          setActiveSchoolIdState(null);
           return await getCurrentAccountContext({ data: { preferredSchoolId: undefined } });
         }
         console.error("[useCurrentAccount]", error);
@@ -84,6 +111,9 @@ export function useCurrentAccount() {
       }
     },
     staleTime: 5 * 60_000,
+    // O router usa keepPreviousData nas listas, mas a identidade/grants de A
+    // nunca podem ser apresentados como contexto provisório de B (ou de outra conta).
+    placeholderData: undefined,
     retry: 2,
     retryDelay: (attempt) => 400 * (attempt + 1),
   });
@@ -130,7 +160,8 @@ export function useCurrentAccount() {
     }
   }, [availableRoles, activeRoleState, primaryRole]);
 
-  const activeRole = activeRoleState || primaryRole;
+  const activeRole =
+    activeRoleState && availableRoles.includes(activeRoleState) ? activeRoleState : primaryRole;
 
   const setActiveRole = (newRole: ApplicationRole) => {
     setActiveRoleState(newRole);
@@ -150,7 +181,6 @@ export function useCurrentAccount() {
       return;
     }
     const changed = newSchoolId !== (activeSchoolIdState ?? currentSchoolId);
-    setActiveSchoolIdState(newSchoolId);
     // Grava o cookie antes de recarregar: os pedidos que se seguem já têm de
     // sair com a escola nova, senão recarregavam dados da escola anterior.
     rememberActiveSchool(newSchoolId);
