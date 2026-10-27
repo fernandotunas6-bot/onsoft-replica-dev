@@ -64,7 +64,7 @@ const initials = (name: string) =>
     .join("") || "—";
 
 type Listed = Awaited<ReturnType<typeof listTaskSubmissions>>;
-type Filter = "all" | "pending" | "toReturn" | "returned";
+export type Filter = "all" | "pending" | "toReturn" | "returned";
 const FILTERS: Array<{ key: Filter; label: string; test: (line: TaskSubmissionLine) => boolean }> =
   [
     { key: "all", label: "Todos", test: () => true },
@@ -82,9 +82,20 @@ const FILTERS: Array<{ key: Filter; label: string; test: (line: TaskSubmissionLi
   ];
 
 /** Professor ou direcção: resumo, configuração e a turma inteira, com o histórico. */
-export function TaskSubmissionsPanel({ taskId }: { taskId: string }) {
+export function TaskSubmissionsPanel({
+  taskId,
+  filter: controlledFilter,
+  onFilterChange,
+}: {
+  taskId: string;
+  /** Filtro vindo da URL (o menu do trabalho abre «Por entregar», «Por corrigir»…). */
+  filter?: Filter;
+  onFilterChange?: (filter: Filter) => void;
+}) {
   const queryKey = ["task-submissions", taskId];
-  const [filter, setFilter] = useState<Filter>("all");
+  const [localFilter, setLocalFilter] = useState<Filter>("all");
+  const filter = controlledFilter ?? localFilter;
+  const setFilter = onFilterChange ?? setLocalFilter;
   const query = useQuery({
     queryKey,
     queryFn: () => listTaskSubmissions({ data: { taskId } }),

@@ -171,4 +171,14 @@ describe("referências de um ficheiro", () => {
       expect(body, name).toContain("assertFileRefsInSchool(db, membership.schoolId");
     }
   });
+
+  it("o caminho da pasta (deep link e menu da pasta) segue a visibilidade da lista", () => {
+    const source = readFileSync("src/features/arquivos/server.ts", "utf8");
+    const begin = source.indexOf("export const listFolderTrail =");
+    const body = source.slice(begin, source.indexOf("export const", begin + 1));
+    expect(body).toContain('.eq("school_id", membership.schoolId)');
+    expect(body).toContain('is("deleted_at", null)');
+    expect(body).toContain("canSeeRow(");
+    expect(body).toContain("if (depth === 0) return empty;");
+  });
 });
