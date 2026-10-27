@@ -19,6 +19,7 @@ import { writeSessionHint } from "@/features/auth/session-hint";
 import { FirstPasswordScreen } from "@/features/auth/FirstPasswordScreen";
 import { mustChangePassword } from "@/features/students/student-accounts";
 import { pendingMfaFactors } from "@/features/auth/pending-mfa";
+import { isLoginMfaEnabled } from "@/features/auth/login-mfa-policy";
 import {
   passkeysSupported,
   registerPasskey,
@@ -172,14 +173,18 @@ export function useAuthSession(): Session | null {
  */
 function offerPasskey() {
   if (!passkeysSupported()) return;
-  toast("Da próxima vez, entre com um toque", {
-    description: "Crie uma chave de acesso: impressão digital, Face ID ou Windows Hello.",
+  toast("Pode configurar uma chave de acesso", {
+    description:
+      "Use impressão digital, Face ID ou Windows Hello e escolha nas Definições se quer confirmar cada novo login.",
     duration: 15_000,
     action: {
       label: "Criar chave",
       onClick: () => {
         void registerPasskey().then(
-          () => toast.success("Chave de acesso criada. Da próxima vez basta um toque."),
+          () =>
+            toast.success(
+              "Chave de acesso criada. A confirmação no login é opcional nas Definições.",
+            ),
           (passkeyError: unknown) => toast.error(passkeyErrorMessage(passkeyError)),
         );
       },
@@ -317,9 +322,8 @@ export function AuthGate({
       setMfaFactors(null);
     };
 
-    // Qualquer via de entrada (senha, B.I., link mágico, Google, sessão
-    // restaurada) passa por aqui: uma conta com 2FA só entra com aal2. O
-    // servidor recusa os tokens aal1 dessas contas (`requireSupabaseAuth`).
+    // Qualquer via de entrada passa por aqui. Só uma preferência explícita
+    // da conta pede 2FA no login; o servidor aplica a mesma regra.
     const adoptSession = async (nextSession: Session | null, version: number) => {
       if (!active || version !== sessionVersion) return;
       updateIdentity(nextSession);
@@ -441,7 +445,8 @@ export function AuthGate({
     const checkActivity = () => {
       // Dispositivo reconhecido (sessão com 2FA): sem fim por inactividade.
       // Só volta a pedir a verificação perante um sinal de risco.
-      let trust = deviceTrust(session.user.id);
+      const loginMfaOn = isLoginMfaEnabled(session.user.app_metadata);
+      let trust = loginMfaOn ? deviceTrust(session.user.id) : "shared";
       if (trust === "shared" && verifiedSession) {
         // Sessão com 2FA de antes do reconhecimento existir: reconhece agora.
         trustDevice(session.user.id);
