@@ -286,7 +286,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
             onOpenAccount={() => setAccountOpen(true)}
           />
 
-          <header className="sticky top-0 z-30 hidden h-14 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card px-3 lg:flex xl:gap-2 xl:px-5">
+          <header className="sticky top-0 z-30 hidden h-16 min-w-0 items-center gap-1.5 border-b border-border/70 bg-card/95 px-3 supports-[backdrop-filter]:bg-card/90 supports-[backdrop-filter]:backdrop-blur-sm lg:flex xl:gap-2 xl:px-5">
             <Button
               variant="ghost"
               size="icon"
@@ -400,6 +400,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 size="icon"
                 className="header-icon-btn"
                 aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                aria-pressed={favorited}
                 title={favorited ? "Remover dos favoritos" : "Favoritar página"}
                 onClick={() => {
                   toggleFavorite();
@@ -460,6 +461,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 className="header-icon-btn relative"
                 aria-label="Notificações"
                 aria-haspopup="dialog"
+                aria-expanded={notificationsOpen}
                 onClick={() => setNotificationsOpen(true)}
               >
                 <Bell className="size-5" />
