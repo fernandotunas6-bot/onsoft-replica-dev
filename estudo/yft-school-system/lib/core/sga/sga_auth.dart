@@ -269,6 +269,10 @@ class SgaSession {
   /// Escola escolhida (cabeçalho X-School-Id); null = a primeira do vínculo.
   String? schoolId;
 
+  /// Chamado quando a sessão acaba (saída ou recusa do servidor): apaga o que
+  /// ficou guardado no aparelho para usar sem rede.
+  Future<void> Function()? onClear;
+
   SgaSession(this.client, this.storage);
 
   SgaTokens? get tokens => _tokens;
@@ -355,6 +359,7 @@ class SgaSession {
     _tokens = null;
     schoolId = null;
     await storage.delete();
+    await onClear?.call();
   }
 
   Future<void> _persist() async {

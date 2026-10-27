@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../offline/offline_cache.dart';
 import 'sga_config.dart';
 import 'sga_providers.dart';
 
@@ -179,6 +180,7 @@ final sgaPortalDioProvider = Provider<Dio>((ref) {
       },
     ),
   );
+  dio.interceptors.add(OfflineCacheInterceptor(appOfflineCache));
   return dio;
 });
 
