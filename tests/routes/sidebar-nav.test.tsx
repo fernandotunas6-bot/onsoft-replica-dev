@@ -318,7 +318,10 @@ describe("AppSidebar — acordeão de subfunções e menu da escola", () => {
     hoverWithMouse(secretaria);
     const menu = await screen.findByRole("menu");
     expect(menu.textContent).toContain("Secretaria");
-    expect(screen.getByRole("menuitem", { name: "Pessoas" })).toHaveAttribute("data-to", "/pessoas");
+    expect(screen.getByRole("menuitem", { name: "Pessoas" })).toHaveAttribute(
+      "data-to",
+      "/pessoas",
+    );
     expect(document.body.style.pointerEvents).not.toBe("none");
     fireEvent.keyDown(menu, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
