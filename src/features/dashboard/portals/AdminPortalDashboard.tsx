@@ -384,7 +384,12 @@ export function AdminPortalDashboard({
             </section>
           ) : null}
 
-          <AdminHomeFocus items={focusItems} loading={isLoading} unavailable={!isLoading && !data} compact />
+          <AdminHomeFocus
+            items={focusItems}
+            loading={isLoading}
+            unavailable={!isLoading && !data}
+            compact
+          />
 
           {isLoading ? <MetricGridSkeleton count={5} /> : <MetricGrid metrics={mobileMetrics} />}
 
@@ -726,10 +731,7 @@ export function AdminPortalDashboard({
               {card}
             </Link>
           ) : (
-            <div
-              key={s.label}
-              className="surface-card p-5"
-            >
+            <div key={s.label} className="surface-card p-5">
               {card}
             </div>
           );
@@ -738,10 +740,7 @@ export function AdminPortalDashboard({
 
       <div className="hidden gap-4 md:grid sm:grid-cols-2 xl:grid-cols-4">
         {miniStats.map((s) => (
-          <div
-            key={s.label}
-            className="surface-card flex items-center gap-4 p-4"
-          >
+          <div key={s.label} className="surface-card flex items-center gap-4 p-4">
             <IconChip icon={s.icon} size="md" tone="primary" label={s.label} />
             <div>
               <p className="text-xs text-muted-foreground">{s.label}</p>
