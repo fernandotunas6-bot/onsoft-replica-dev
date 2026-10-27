@@ -56,9 +56,7 @@ export function NavIcon({
         <span
           className={cn(
             "block size-1 rounded-full transition-colors duration-(--siga-motion-fast) ease-(--siga-ease) motion-reduce:transition-none",
-            active
-              ? "bg-sidebar-active"
-              : "bg-sidebar-foreground/40 group-hover:bg-sidebar-active",
+            active ? "bg-sidebar-active" : "bg-sidebar-foreground/40 group-hover:bg-sidebar-active",
           )}
         />
       </span>
