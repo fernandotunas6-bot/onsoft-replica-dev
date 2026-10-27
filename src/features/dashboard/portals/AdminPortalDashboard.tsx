@@ -615,7 +615,7 @@ export function AdminPortalDashboard({
         </section>
       ) : null}
 
-      <InstalledModuleTools module="comunicacoes" />
+      {activeTab === "geral" ? <InstalledModuleTools module="comunicacoes" /> : null}
 
       {activeTab === "geral" ? <TodayAtSchoolCard /> : null}
 
@@ -810,7 +810,7 @@ export function AdminPortalDashboard({
               totalStudents={totalStudents}
               capabilities={{
                 students: capabilities.students,
-                finance: capabilities.finance,
+                finance: activeTab === "geral" && capabilities.finance,
               }}
               studentsByClass={data?.studentsByClass ?? []}
               genderSplit={data?.genderSplit ?? []}
