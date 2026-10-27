@@ -37,7 +37,12 @@ export function QuickActions({
         const Icon = action.icon;
         const inner = (
           <>
-            <span className={cn("inline-flex shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong", compact ? "size-8" : "size-[36px]")}>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary-strong",
+                compact ? "size-8" : "size-[36px]",
+              )}
+            >
               <Icon className={compact ? "size-4" : "size-[20px]"} aria-hidden />
             </span>
             <span className="min-w-0 break-words text-[13px] font-medium leading-[20px]">
