@@ -13,7 +13,7 @@ Ponto de entrada para qualquer agente que continue a app móvel. Ler também:
 (`src/routes/api/mobile/*`, que chamam as funções de servidor do SIGA). Descarrega-se
 em portal-siga.com/download (release `android`, nunca a «latest»).
 
-## Estado (27/10/2026) — versão 1.3.0 publicada; 1.4.0 a seguir
+## Estado (27/10/2026) — versão 1.4.0 publicada; 1.5.0 a seguir
 
 | Área | Estado | Onde |
 | ---- | ------ | ---- |
@@ -34,7 +34,7 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
 | Faltas por disciplina (percentagem, limite da escola, quantas ainda cabem) | feito (1.3.0) | `/api/mobile/absences` (`getMyAbsencesBySubject`); `subject_absences_section.dart` |
 | Notificações instantâneas com a app fechada (FCM) | à espera do dono | ver «Pendências do dono» |
 | Retoque visual (mola, cartões ligados, separadores, barra, tema) | feito (1.4.0) | `lib/core/theme/motion.dart`; `section_widgets.dart` |
-| Entregar trabalhos na app | por fazer | hoje no portal (`submitTaskWork`) |
+| Entregar trabalhos na app (fotos → JPG ou PDF, resposta escrita, reenviar) | feito (1.5.0) | `POST /api/mobile/work` (`submitTaskWork`); `submit_work_screen.dart`, `sga_submission.dart` |
 
 ## Plano, por ordem (decidido com o dono a 27/10)
 
@@ -78,7 +78,20 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
    cartões ligados em `CardGroup`, separadores `PillTabs` em todo o lado, pílula no
    separador activo da barra, tema completo dos componentes (letra, botões, faixas,
    diálogos, folhas, transições). Regras em [IDENTIDADE_VISUAL.md](./IDENTIDADE_VISUAL.md#forma-e-movimento-material-3-expressive-27102026).
-6. Entregar trabalhos na app (foto/PDF), quando 1–5 estiverem feitos.
+6. ~~**Entregar trabalhos na app.**~~ Feito (1.5.0): no detalhe do trabalho, o aluno
+   (só ele; o encarregado vê) tem «Entregar trabalho» / «Entregar de novo» enquanto
+   o professor não devolver. A página `SubmitWorkScreen` junta fotos (câmara ou
+   galeria, reduzidas a 1600 px e qualidade 70; até 10) e/ou uma resposta escrita. Uma
+   foto vai como JPG/PNG; várias juntam-se num PDF A4 na app (pacote `pdf`, já usado
+   nos recibos). Limite de 5 MB verificado antes de enviar. A entrega vai por
+   `POST /api/mobile/work` → `submitTaskWork`, a mesma função do portal (prazo,
+   atrasos, tarefa fechada, assinatura dos bytes, escola suspensa). Sem rede, as fotos
+   ficam na página para tentar de novo; no Android, `retrieveLostData` recupera a foto
+   se a câmara fechar a app. Escolher um PDF já feito continua no portal (precisaria
+   do pacote `file_picker`).
+
+Seguinte (sugestões): notificações instantâneas (FCM, à espera do dono); escolher um
+PDF do telemóvel; ver o anexo entregue (`openTaskSubmissionFile`).
 
 Princípios da pesquisa (apps escolares 2025–26): «agora e a seguir» no Início; prazos
 e estado visíveis; rede lenta é a regra em Angola (cache, imagens leves, poucas

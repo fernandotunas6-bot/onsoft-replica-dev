@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/auth/auth_state.dart';
 import '../../../core/sga/sga_config.dart';
+import '../../../core/sga/sga_submission.dart';
 import '../../../core/sga/sga_work.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/responsive_utils.dart';
 import '../../../core/widgets/section_widgets.dart';
 import '../../../core/widgets/skeleton.dart';
+import 'submit_work_screen.dart';
 import 'work_widgets.dart';
 
 enum _WorkFilter { pending, delivered, graded }
 
 /// Os trabalhos do ano corrente, de todas as disciplinas: o que está por fazer,
-/// o que foi entregue e o que já tem nota. A entrega faz-se no portal do SIGA.
+/// o que foi entregue e o que já tem nota. O aluno entrega aqui mesmo
+/// ([SubmitWorkScreen]) ou no portal do SIGA.
 class WorkScreen extends ConsumerStatefulWidget {
   const WorkScreen({super.key});
 
@@ -128,7 +130,27 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       backgroundColor: AppColors.surface,
-      builder: (_) => _WorkDetail(task: task, canSubmit: canSubmit),
+      builder: (_) => _WorkDetail(
+        task: task,
+        canSubmit: canSubmit,
+        onSubmit: () => _openSubmit(task),
+      ),
+    );
+  }
+
+  /// A página de entrega, por cima de tudo (sem a barra de baixo).
+  Future<void> _openSubmit(WorkTask task) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await Navigator.of(context, rootNavigator: true).push<SubmissionResult>(
+      MaterialPageRoute(builder: (_) => SubmitWorkScreen(task: task)),
+    );
+    if (result == null) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          result.late ? 'Trabalho entregue (depois do prazo).' : 'Trabalho entregue.',
+        ),
+      ),
     );
   }
 }
@@ -136,8 +158,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
 class _WorkDetail extends ConsumerWidget {
   final WorkTask task;
   final bool canSubmit;
+  final VoidCallback onSubmit;
 
-  const _WorkDetail({required this.task, required this.canSubmit});
+  const _WorkDetail({required this.task, required this.canSubmit, required this.onSubmit});
 
   String _date(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -146,7 +169,7 @@ class _WorkDetail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isStudent = ref.watch(authProvider)?.isStudent ?? false;
     final grade = task.grade;
-    final portal = SgaConfig.fromEnvironment.portalUrl;
+    final submittable = canSubmit && isStudent && canSubmitTask(task);
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -207,9 +230,60 @@ class _WorkDetail extends ConsumerWidget {
                   task.onPaper ? 'Entregue em papel' : 'Entregue',
                   'a ${_date(task.submittedAt!.toLocal())}',
                   if (task.late) '(depois do prazo)',
+                  if (task.attempt > 1) '· ${task.attempt}.ª tentativa',
                 ].join(' '),
                 style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
+              if (task.answer != null || task.fileName != null) ...[
+                const SizedBox(height: 10),
+                CardGroup(
+                  children: [
+                    if (task.answer != null)
+                      SoftCard(
+                        padding: const EdgeInsets.all(14),
+                        child: Text(
+                          task.answer!,
+                          maxLines: 6,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.4,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    if (task.fileName != null)
+                      SoftCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              task.fileName!.toLowerCase().endsWith('.pdf')
+                                  ? LucideIcons.fileText
+                                  : LucideIcons.image,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                task.fileName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                              ),
+                            ),
+                            if (task.fileSize != null)
+                              Text(
+                                formatFileSize(task.fileSize!),
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ],
             if (grade != null || (task.feedback?.trim().isNotEmpty ?? false)) ...[
               const SizedBox(height: 16),
@@ -240,31 +314,32 @@ class _WorkDetail extends ConsumerWidget {
                 ),
               ),
             ],
-            if (task.pending) ...[
+            if (submittable) ...[
               const SizedBox(height: 20),
-              SoftCard(
-                onTap: portal.isEmpty
-                    ? null
-                    : () {
-                        Clipboard.setData(ClipboardData(text: portal));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Endereço do portal copiado.')),
-                        );
-                      },
-                child: Row(
-                  children: [
-                    Icon(LucideIcons.link, size: 20, color: AppColors.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        canSubmit && isStudent
-                            ? 'Entregue no portal do SIGA: Disciplinas › ${task.subjectName.isEmpty ? 'a disciplina' : task.subjectName} › Trabalhos. Toque para copiar o endereço.'
-                            : 'O aluno entrega no portal do SIGA, com a sua conta.',
-                        style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.textPrimary),
-                      ),
-                    ),
-                  ],
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onSubmit();
+                },
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                icon: const Icon(LucideIcons.upload, size: 18),
+                label: Text(
+                  task.state == WorkState.submitted ? 'Entregar de novo' : 'Entregar trabalho',
                 ),
+              ),
+            ] else if (task.pending && !isStudent) ...[
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Icon(LucideIcons.info, size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'O aluno entrega com a sua conta, na app SIGA Plus ou no portal.',
+                      style: TextStyle(fontSize: 14, height: 1.4, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],

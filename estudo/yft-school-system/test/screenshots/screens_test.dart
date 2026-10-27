@@ -32,6 +32,7 @@ import 'package:yft_school_system/features/dashboard/presentation/providers/noti
 import 'package:yft_school_system/features/notifications/presentation/notifications_screen.dart';
 import 'package:yft_school_system/features/reports/presentation/providers/wards_provider.dart';
 import 'package:yft_school_system/features/reports/presentation/ward_attendance_screen.dart';
+import 'package:yft_school_system/features/work/presentation/submit_work_screen.dart';
 import 'package:yft_school_system/features/work/presentation/work_screen.dart';
 
 class _Parent extends AuthStateNotifier {
@@ -258,6 +259,7 @@ void main() {
     'notificacoes': () => const NotificationsScreen(enabled: true),
     'faltas': () => const WardAttendanceScreen(initialWardId: 'w1'),
     'trabalhos': () => const WorkScreen(),
+    'entregar': () => SubmitWorkScreen(task: _work.tasks.first),
   };
 
   for (final dark in [false, true]) {
