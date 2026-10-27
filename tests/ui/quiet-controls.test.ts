@@ -35,6 +35,9 @@ describe("botões discretos e cabeçalho legível", () => {
     expect(css).not.toContain("siga-motion-control:not(:disabled):not([aria-disabled");
     expect(css).not.toContain("group-hover:scale-150");
     expect(css).not.toContain("rotate(12deg)");
+    const focusCards = read("src/features/dashboard/components/AdminHomeFocus.tsx");
+    expect(focusCards).not.toContain("hover:-translate-y-");
+    expect(focusCards).toContain("focus-visible:ring-2");
   });
 
   it("aumenta e suaviza a topbar sem perder os estados dos botões", () => {
