@@ -46,10 +46,9 @@ describe("Início operacional responsivo", () => {
     );
     const section = screen.getByRole("region", { name: "O que merece atenção" });
     expect(section.className).toContain("md:hidden");
-    expect(screen.getByRole("link", { name: /3.*Candidaturas por confirmar/ })).toHaveAttribute(
-      "href",
-      "/alunos",
-    );
+    expect(
+      screen.getByRole("link", { name: /3.*Candidaturas por confirmar/ }).getAttribute("href"),
+    ).toBe("/alunos");
   });
 
   it("não transforma indisponibilidade numa contagem fictícia", () => {
