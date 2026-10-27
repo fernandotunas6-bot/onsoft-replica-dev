@@ -25,13 +25,17 @@ em portal-siga.com/download (release `android`, nunca a «latest»).
 | Esqueletos de carregamento | feito | `lib/core/widgets/skeleton.dart` |
 | Boletim, faltas, horário, comunicados, recibos, mensagens | feito (#154) | `/api/sga/*` |
 | Chamada e notas do professor | feito (#154) | `/api/mobile/attendance`, `/grades` |
+| Funcionar sem rede (cópia das leituras + faixa «Sem rede · a ver dados de há N horas») | feito (por publicar) | `lib/core/offline/offline_cache.dart` |
 | Entregar trabalhos na app | por fazer | hoje no portal (`submitTaskWork`) |
 
 ## Plano, por ordem (decidido com o dono a 27/10)
 
-1. **Funcionar sem rede.** Guardar a última resposta de cada leitura (boletim, horário,
-   trabalhos, agenda, comunicados) no telemóvel, por utilizador, e mostrá-la sem rede
-   com «a ver dados de há N horas». Apagar ao sair da conta. Só GET; escritas nunca.
+1. ~~**Funcionar sem rede.**~~ Feito: `OfflineCacheInterceptor` nas duas ligações do
+   modo SIGA (Worker e portal). Guarda cada GET com sucesso, por conta e escola, na
+   pasta privada da app (em memória na versão web); só usa a cópia quando não há
+   resposta do servidor (um 401/403/500 nunca é escondido); escritas nunca. A faixa
+   `OfflineBanner` no `AppShell` mostra de quando são os dados. Apaga-se quando a
+   sessão acaba (`SgaSession.onClear`). Teste: `test/offline_cache_test.dart`.
 2. **Faltas por disciplina:** percentagem e quantas faltam até ao limite
    (`maximum_absence_percentage` do modelo de avaliação do SIGA).
 3. **Notificações** de comunicados, notas e prazos de trabalhos (exige decidir o
@@ -48,7 +52,11 @@ animações); ícones Lucide (o pacote Phosphor tem problemas com o SDK da app).
 
 ## Como trabalhar nela
 
-- **Este Mac (macOS 12) não corre o Flutter:** tudo se prova no CI. Um PR que mexa em
+- **O Mac do dono (macOS 12) não corre o Flutter**, mas uma sessão na nuvem corre:
+  descarregar `flutter_linux_3.41.5-stable.tar.xz` de
+  `storage.googleapis.com/flutter_infra_release/releases/stable/linux/` para a pasta
+  temporária e correr `flutter analyze` e `flutter test` antes de abrir o PR. O CI
+  continua a ser a prova final. Um PR que mexa em
   `lib/`, `android/` ou `pubspec` corre o workflow «Estudo — YFT (APK Android)»:
   `flutter analyze` (falha até com sugestões de `const`), `flutter test`, build e
   confirmação da assinatura. Os testes do Worker correm no «Estudo — YFT School System

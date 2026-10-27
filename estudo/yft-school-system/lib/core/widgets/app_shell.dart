@@ -11,6 +11,8 @@ import 'profile_photo_avatar.dart';
 import '../network/api_client.dart';
 import '../utils/media_url.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../offline/offline_cache.dart';
 
 /// Os quatro separadores da barra inferior; "Mais" abre o menu lateral.
 enum AppTab { home, subjects, calendar, messages }
@@ -81,10 +83,10 @@ class AppShell extends ConsumerWidget {
                     child: AppMenu(currentTab: tab),
                   ),
                 ),
-                Expanded(child: body),
+                Expanded(child: OfflineBanner(child: body)),
               ],
             )
-          : body,
+          : OfflineBanner(child: body),
       bottomNavigationBar: isDesktop
           ? null
           : Builder(
@@ -399,6 +401,62 @@ class AppMenu extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Sem rede, a faixa no topo diz de quando são os dados no ecrã. Some quando
+/// uma leitura volta a chegar do servidor.
+class OfflineBanner extends StatelessWidget {
+  final Widget child;
+  const OfflineBanner({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<DateTime?>(
+      valueListenable: offlineSince,
+      builder: (context, since, _) {
+        if (since == null) return child;
+        return Column(
+          children: [
+            Material(
+              color: const Color(0xFFFFF4DB),
+              child: SafeArea(
+                bottom: false,
+                child: Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.wifiOff, size: 16, color: Color(0xFF6B4A00)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Sem rede · a ver dados ${offlineAge(since)}',
+                            style: const TextStyle(
+                              color: Color(0xFF6B4A00),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: child,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

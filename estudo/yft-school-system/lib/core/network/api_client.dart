@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yft_school_system/core/auth/school_suspension.dart';
 import 'package:yft_school_system/core/sga/sga_config.dart';
 import 'package:yft_school_system/core/sga/sga_providers.dart';
+import 'package:yft_school_system/core/offline/offline_cache.dart';
 
 const _kDefaultBaseUrl = 'https://school-worker.ceo-6f0.workers.dev';
 
@@ -67,6 +68,9 @@ Dio _createDio(Ref ref) {
       },
     ),
   );
+
+  // Sem rede, as leituras do SIGA mostram a última cópia guardada.
+  if (sgaMode) dio.interceptors.add(OfflineCacheInterceptor(appOfflineCache));
 
   return dio;
 }
