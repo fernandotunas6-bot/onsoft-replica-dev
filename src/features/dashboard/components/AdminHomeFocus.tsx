@@ -16,9 +16,11 @@ const focusIcons = {
 export function AdminHomeFocus({
   items,
   loading,
+  unavailable,
 }: {
   items: HomeFocusItem[];
   loading: boolean;
+  unavailable: boolean;
 }) {
   return (
     <section
@@ -42,6 +44,10 @@ export function AdminHomeFocus({
       {loading ? (
         <div role="status" className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           A consultar actividades…
+        </div>
+      ) : unavailable ? (
+        <div role="alert" className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
+          Não foi possível consultar os indicadores. Volte a abrir o Início para tentar novamente.
         </div>
       ) : items.length ? (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
