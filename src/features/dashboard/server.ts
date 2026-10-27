@@ -127,6 +127,14 @@ function emptyOverview(role = "Utilizador") {
       time: string;
       tone: string;
     }>,
+    // Exclusivamente audit_logs, para nunca apresentar recibos/documentos
+    // como eventos de auditoria quando não há logs acessíveis.
+    auditActivity: [] as Array<{
+      id: string;
+      title: string;
+      detail: string;
+      time: string;
+    }>,
     upcomingEvents: [] as Array<{
       id: string;
       title: string;
@@ -816,7 +824,14 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
               .split(".")
               .at(-1)
               ?.toLowerCase();
-            const verb = op === "insert" ? "Criou" : op === "delete" ? "Eliminou" : "Actualizou";
+            const verb =
+              op === "insert"
+                ? "Criou"
+                : op === "delete"
+                  ? "Eliminou"
+                  : op === "update"
+                    ? "Actualizou"
+                    : "Registou";
             return {
               id: String(row.id),
               title: `${verb} ${row.entity_type ?? "registo"}`,
@@ -826,6 +841,12 @@ export const getDashboardOverview = createServerFn({ method: "GET" })
             };
           },
         );
+        overview.auditActivity = overview.recentActivity.map(({ id, title, detail, time }) => ({
+          id,
+          title,
+          detail,
+          time,
+        }));
       }
     }
 
