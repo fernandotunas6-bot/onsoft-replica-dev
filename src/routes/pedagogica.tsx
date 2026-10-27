@@ -1,6 +1,15 @@
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
-import { useEffect, useMemo, useRef, useState, lazy, Suspense, type ComponentProps, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  lazy,
+  Suspense,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
