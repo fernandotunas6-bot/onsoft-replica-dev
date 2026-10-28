@@ -48,4 +48,12 @@ jobs:
           console.log("old_count", oldFiles.length, "new_count", newFiles.length);
           console.log("added_calls", newFiles.filter(f => !oldSet.has(f)));
           console.log("removed_calls", oldFiles.filter(f => !newSet.has(f)));
+          const source = fs.readFileSync("tests/security/rls-client-migration.test.ts", "utf8");
+          const region = source.split("const PRIVILEGIO_POR_DESENHO = new Set([")[1].split("]);")[0];
+          const allowed = new Set([...region.matchAll(/"([^"]+\.tsx?)"/g)].map(m => m[1]));
+          const inDebt = newFiles.filter(f => !allowed.has(f));
+          console.log("unapproved_privilege_count", inDebt.length);
+          console.log("unapproved_privilege_files", JSON.stringify(inDebt));
+          console.log("allowed_privilege_files", JSON.stringify(newFiles.filter(f => allowed.has(f))));
+
           NODE
