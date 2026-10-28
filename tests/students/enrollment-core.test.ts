@@ -212,7 +212,11 @@ describe("colocar em turma", () => {
     const store = fixture({ status: "active" }, [
       { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
     ]);
-    const originalFrom = store.db.from.bind(store.db);
+    const originalFrom = (
+      store.db as unknown as {
+        from: (table: string) => { update: (patch: Record<string, unknown>) => unknown };
+      }
+    ).from;
     const db = {
       from(table: string) {
         const query = originalFrom(table);
