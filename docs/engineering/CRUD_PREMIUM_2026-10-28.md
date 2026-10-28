@@ -139,3 +139,29 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Conflitos multi-tenant e sessões MFA autenticadas testados directamente em staging.
 - E2E real com teclado/mobile/assistivas e reconciliação com trabalhos paralelos antes de fazer merge.
 - Nenhuma migração SQL, credencial ou dado de produção é modificado nesta iteração.
+
+
+## Lote 4 — matrículas e turmas, primeira entrega
+
+### Melhorias implementadas
+
+- `placeStudentInClass`, núcleo partilhado: reenviar a colocação de um aluno já activo na mesma turma e no mesmo ano devolve o identificador existente, assinala `unchanged: true` e **não faz UPDATE nem cria histórico repetido**.
+- A verificação AAL2 mantém-se obrigatória mesmo para reenvios idênticos. O endpoint continua a exigir Administração/Secretaria e permissão de escrita no módulo Pessoas.
+- Matrícula `pending` na mesma turma continua a poder passar a `active`, sem criar segunda matrícula. Mudança para turma diferente continua a usar a matrícula existente para preservar avaliações e histórico.
+- Mudanças e confirmações aplicam compare-and-swap sobre `id`, `school_id`, `status` e `class_group_id`, com `UPDATE ... RETURNING id`: se outra sessão alterou a linha, devolve conflito recuperável em vez de sobrepor silenciosamente a mudança.
+- A camada `enrollStudentInClass` devolve o novo indicador `unchanged` sem retirar campos existentes e evita sincronização de utilização do tenant quando não houve alteração.
+- A contagem de vagas e a concorrência entre matrículas novas **continuam a depender das funções e gatilhos transaccionais da base**. Não substituir as garantias SQL por validação React.
+
+### Testes novos em `tests/students/enrollment-core.test.ts`
+
+- Repetição sequencial na mesma turma sem novas escritas, sem novo número e sem histórico duplicado.
+- Repetição da operação continua a exigir 2FA.
+- Confirmação de uma matrícula pendente no mesmo ano/turma sem criar outra.
+- Mudança concorrente da turma após a leitura: operação recusada com conflito e sem sobrepor a outra sessão.
+
+### Pendente para concluir o lote 4
+
+- Ensaio PostgreSQL simultâneo de último lugar da turma e sessões concorrentes, com contas fictícias e duas escolas em staging, respeitando o RLS e a AAL2.
+- Fluxos em lote: mudança de múltiplos alunos deve ser transaccional ou comunicar claramente êxitos parciais; não prometer atomicidade onde o servidor actualmente processa várias operações.
+- Regressão visual da matrícula, transferência, lote, fecho de ano, preservação de notas/pautas e caminhos de recuperação.
+- A PR permanece em `draft` até validação. Nenhum SQL ou dado de produção foi modificado.
