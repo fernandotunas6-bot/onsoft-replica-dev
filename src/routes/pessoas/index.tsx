@@ -178,7 +178,14 @@ function PeoplePage() {
   }, [peoplePhotoKey]);
 
   const teachersQuery = useQuery({
-    queryKey: ["people", "teachers", account.id, account.schoolId, filters.q, filters.teacherStatus],
+    queryKey: [
+      "people",
+      "teachers",
+      account.id,
+      account.schoolId,
+      filters.q,
+      filters.teacherStatus,
+    ],
     queryFn: () =>
       listTeachers({
         data: {
@@ -595,7 +602,11 @@ function PeoplePage() {
                   icon={GraduationCap}
                   title="Nenhum professor encontrado"
                   description="Ajuste a pesquisa ou o estado para encontrar docentes."
-                  actionLabel={filters.q.trim() || filters.teacherStatus !== "all" ? "Limpar filtros" : undefined}
+                  actionLabel={
+                    filters.q.trim() || filters.teacherStatus !== "all"
+                      ? "Limpar filtros"
+                      : undefined
+                  }
                   onAction={resetFilters}
                 />
               ) : (
@@ -661,7 +672,9 @@ function PeoplePage() {
                     ) : teachers.length === 0 ? (
                       <CrudListFeedbackRow
                         colSpan={5}
-                        kind={filters.q.trim() || filters.teacherStatus !== "all" ? "filtered" : "empty"}
+                        kind={
+                          filters.q.trim() || filters.teacherStatus !== "all" ? "filtered" : "empty"
+                        }
                         entityLabel="professores"
                         onClearFilters={resetFilters}
                       />
@@ -862,8 +875,16 @@ function PeoplePage() {
               ) : people.length === 0 ? (
                 <MobileEmptyState
                   icon={User}
-                  title={activeCount ? "Nenhuma pessoa corresponde aos filtros" : "Ainda não existem pessoas"}
-                  description={activeCount ? "Altere os critérios para continuar." : "Utilize Nova pessoa para iniciar o registo."}
+                  title={
+                    activeCount
+                      ? "Nenhuma pessoa corresponde aos filtros"
+                      : "Ainda não existem pessoas"
+                  }
+                  description={
+                    activeCount
+                      ? "Altere os critérios para continuar."
+                      : "Utilize Nova pessoa para iniciar o registo."
+                  }
                   actionLabel={activeCount ? "Limpar filtros" : undefined}
                   onAction={resetFilters}
                 />
