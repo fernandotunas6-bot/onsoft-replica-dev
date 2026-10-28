@@ -149,6 +149,21 @@ describe("updatePersonInputSchema", () => {
     expect(parsed.fullName).toBe("Ana Domingos");
   });
 
+  it("aceita uma versão de edição optimista sem obrigar consumidores antigos a enviá-la", () => {
+    const personId = "11111111-1111-4111-8111-111111111111";
+    expect(
+      updatePersonInputSchema.parse({
+        personId,
+        fullName: "Ana Domingos",
+        expectedUpdatedAt: "2026-10-28T07:00:00.000Z",
+      }).expectedUpdatedAt,
+    ).toBe("2026-10-28T07:00:00.000Z");
+    expect(updatePersonInputSchema.parse({ personId, fullName: "Ana Domingos" }).expectedUpdatedAt).toBeUndefined();
+    expect(
+      updatePersonInputSchema.safeParse({ personId, fullName: "Ana Domingos", expectedUpdatedAt: "" }).success,
+    ).toBe(false);
+  });
+
   it("valida NIF/BI quando fornecido", () => {
     expect(
       updatePersonInputSchema.safeParse({
