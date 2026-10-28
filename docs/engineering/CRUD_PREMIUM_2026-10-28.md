@@ -146,7 +146,7 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 ### Melhorias implementadas
 
 - `placeStudentInClass`, núcleo partilhado: reenviar a colocação de um aluno já activo na mesma turma e no mesmo ano devolve o identificador existente, assinala `unchanged: true` e **não faz UPDATE nem cria histórico repetido**.
-- A verificação AAL2 mantém-se obrigatória mesmo para reenvios idênticos. O endpoint continua a exigir Administração/Secretaria e permissão de escrita no módulo Pessoas.
+- A política MFA/AAL2 é definida pelo contrato de autorização efectivo da `main` e não é modificada por este lote. O endpoint mantém os controlos de cargo, módulo e escola; não usar a idempotência como dispensa de autorização.
 - Matrícula `pending` na mesma turma continua a poder passar a `active`, sem criar segunda matrícula. Mudança para turma diferente continua a usar a matrícula existente para preservar avaliações e histórico.
 - Mudanças e confirmações aplicam compare-and-swap sobre `id`, `school_id`, `status` e `class_group_id`, com `UPDATE ... RETURNING id`: se outra sessão alterou a linha, devolve conflito recuperável em vez de sobrepor silenciosamente a mudança.
 - A camada `enrollStudentInClass` devolve o novo indicador `unchanged` sem retirar campos existentes e evita sincronização de utilização do tenant quando não houve alteração.
@@ -155,7 +155,7 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 ### Testes novos em `tests/students/enrollment-core.test.ts`
 
 - Repetição sequencial na mesma turma sem novas escritas, sem novo número e sem histórico duplicado.
-- Repetição da operação continua a exigir 2FA.
+- Repetição da operação: mantém as verificações de autorização já exigidas pela versão de backend testada.
 - Confirmação de uma matrícula pendente no mesmo ano/turma sem criar outra.
 - Mudança concorrente da turma após a leitura: operação recusada com conflito e sem sobrepor a outra sessão.
 
