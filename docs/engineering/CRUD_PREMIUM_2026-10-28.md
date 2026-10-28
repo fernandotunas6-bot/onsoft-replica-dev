@@ -245,6 +245,8 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 
 - `createDocumentRequest` continua a exigir sessão e permissões de escrita da Secretaria/Administração, mas agora usa `requireDocumentRequestRelations` antes de inserir: aluno existente na escola da sessão, modelo da mesma escola e estado `active`. IDs fornecidos pelo browser não atribuem escola.
 - Rejeição explícita de aluno de outro tenant, modelo de outro tenant e modelo inactivo; indisponibilidade da leitura é erro recuperável, nunca uma falsa validação. Não são criadas solicitações quando a validação falha.
+- Na listagem, a consulta dos nomes das turmas também é filtrada por `school_id`; falhas ao consultar matrículas ou turmas são devolvidas como erros, não como ausência silenciosa de vínculo.
+- Testes de contrato verificam que as validações ocorrem antes do `INSERT` e que os nomes das turmas não atravessam limites de escola.
 - Verificação pública por código: falha ao consultar `audit_logs` ou os dados de escola não deve ser confundida com código inválido. A consulta pública continua limitada por IP e não retorna nomes completos dos titulares.
 - Novo teste `tests/documents/request-relations.test.ts`: mesmo tenant, aluno externo, modelo externo, modelo inactivo e falha de leitura. `tests/documents/verification.test.ts` mantém o contrato de emissão/validação.
 - Não foram aplicadas migrações nem escritas em produção. Para bloquear também uma mudança de escola entre a validação e o INSERT, é necessário rever os constraints/FKs compostos tenant+aluno em PostgreSQL numa staging independente.
