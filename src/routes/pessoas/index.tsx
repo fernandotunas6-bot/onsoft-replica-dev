@@ -847,7 +847,8 @@ function PeoplePage() {
             <div>
               <h2 className="font-display text-base font-bold">Registo central</h2>
               <p className="text-xs text-muted-foreground">
-                Pessoas da escola — clique numa linha para ver a ficha. A exportação abrange a página actual.
+                Pessoas da escola — clique numa linha para ver a ficha. A exportação abrange a
+                página actual.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -9,7 +9,12 @@ import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadStudentScope } from "@/features/students/student-scope";
 import { isMissingPeopleGeography } from "./person-fields";
 import { scanDirectoryPage, type DirectoryPage } from "./directory-pagination";
-import { applyTeacherContactVisibility, parseHiddenTeachers, seesAllTeacherContacts, TEACHER_CONTACT_DOMAIN } from "./teacher-contact-visibility";
+import {
+  applyTeacherContactVisibility,
+  parseHiddenTeachers,
+  seesAllTeacherContacts,
+  TEACHER_CONTACT_DOMAIN,
+} from "./teacher-contact-visibility";
 import {
   listTeachersPageInputSchema,
   personInstitutionRoleOptions,
@@ -31,13 +36,21 @@ const TEACHER_COLUMNS =
 const ROLE_DEPENDENT = new Set<string>(personInstitutionRoleOptions);
 
 function includesTerm(value: unknown, term: string): boolean {
-  return String(value ?? "").toLocaleLowerCase("pt").includes(term);
+  return String(value ?? "")
+    .toLocaleLowerCase("pt")
+    .includes(term);
 }
 
 function personFieldsMatch(person: Row, term: string): boolean {
   return [
-    "full_name", "email", "phone", "national_id", "province",
-    "municipality", "commune", "address",
+    "full_name",
+    "email",
+    "phone",
+    "national_id",
+    "province",
+    "municipality",
+    "commune",
+    "address",
   ].some((field) => includesTerm(person[field], term));
 }
 
@@ -66,18 +79,37 @@ async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?
   const [students, teachers, guardians, declared] = await Promise.all([
     db.from("students").select("person_id").eq("school_id", schoolId).in("person_id", ids),
     db.from("teachers").select("person_id").eq("school_id", schoolId).in("person_id", ids),
-    db.from("student_guardians").select("guardian_person_id").eq("school_id", schoolId).in("guardian_person_id", ids),
-    db.from("person_roles").select("person_id, role").eq("school_id", schoolId).eq("active", true).in("person_id", ids),
+    db
+      .from("student_guardians")
+      .select("guardian_person_id")
+      .eq("school_id", schoolId)
+      .in("guardian_person_id", ids),
+    db
+      .from("person_roles")
+      .select("person_id, role")
+      .eq("school_id", schoolId)
+      .eq("active", true)
+      .in("person_id", ids),
   ]);
   for (const result of [students, teachers, guardians]) {
-    if (result.error) throw publicDatabaseError(result.error, "Não foi possível verificar vínculos.");
+    if (result.error)
+      throw publicDatabaseError(result.error, "Não foi possível verificar vínculos.");
   }
   // Evita devolver um filtro institucional incompleto quando falta a tabela.
   if (declared.error && role && ROLE_DEPENDENT.has(role)) {
-    throw publicDatabaseError(declared.error, "Não foi possível consultar os vínculos institucionais.");
+    throw publicDatabaseError(
+      declared.error,
+      "Não foi possível consultar os vínculos institucionais.",
+    );
   }
-  if (declared.error && !/person_roles|42P01|42703|schema cache|PGRST/i.test(declared.error.message ?? "")) {
-    throw publicDatabaseError(declared.error, "Não foi possível consultar os vínculos institucionais.");
+  if (
+    declared.error &&
+    !/person_roles|42P01|42703|schema cache|PGRST/i.test(declared.error.message ?? "")
+  ) {
+    throw publicDatabaseError(
+      declared.error,
+      "Não foi possível consultar os vínculos institucionais.",
+    );
   }
   function add(id: unknown, value: string) {
     const key = String(id ?? "");
@@ -149,18 +181,23 @@ export const searchPeoplePage = createServerFn({ method: "GET" })
     const searchedRole = Boolean(term) && personRoleOptions.some((role) => role.includes(term));
     const roleFilter = data.role;
     async function hydrate(rows: Row[]) {
-      const candidates = term && !searchedRole
-        ? rows.filter((person) => personFieldsMatch(person, term))
-        : rows;
-      const roleMap = await personRoleMap(db, membership.schoolId, candidates.map((p) => String(p["id"])), roleFilter);
+      const candidates =
+        term && !searchedRole ? rows.filter((person) => personFieldsMatch(person, term)) : rows;
+      const roleMap = await personRoleMap(
+        db,
+        membership.schoolId,
+        candidates.map((p) => String(p["id"])),
+        roleFilter,
+      );
       return candidates
         .map((record) => ({
           fieldsMatch: personFieldsMatch(record, term),
           person: personRow(record, [...(roleMap.get(String(record["id"])) ?? [])]),
         }))
-        .filter(({ person, fieldsMatch }) =>
-          (!roleFilter || person.roles.includes(roleFilter)) &&
-          (!term || fieldsMatch || person.roles.some((role) => role.includes(term))),
+        .filter(
+          ({ person, fieldsMatch }) =>
+            (!roleFilter || person.roles.includes(roleFilter)) &&
+            (!term || fieldsMatch || person.roles.some((role) => role.includes(term))),
         )
         .map(({ person }) => person);
     }
@@ -168,10 +205,22 @@ export const searchPeoplePage = createServerFn({ method: "GET" })
     // Navegação normal: o Postgres faz o count e o range; não há scan completo.
     if (!term && !roleFilter) {
       const offset = (data.page - 1) * data.pageSize;
-      const result = await readPeople(db, membership.schoolId, scope, data, offset, data.pageSize, true);
+      const result = await readPeople(
+        db,
+        membership.schoolId,
+        scope,
+        data,
+        offset,
+        data.pageSize,
+        true,
+      );
       return {
         items: await hydrate(result.rows),
-        total: result.count ?? (() => { throw new Error("Contagem de pessoas indisponível."); })(),
+        total:
+          result.count ??
+          (() => {
+            throw new Error("Contagem de pessoas indisponível.");
+          })(),
         page: data.page,
         pageSize: data.pageSize,
       };
@@ -199,27 +248,35 @@ async function teacherRows(
 ) {
   const ids = [...new Set(rows.map((row) => String(row["person_id"])).filter(Boolean))];
   const { data: people, error } = ids.length
-    ? await db.from("people").select("id, full_name, email, phone, photo_url")
-        .eq("school_id", schoolId).in("id", ids)
+    ? await db
+        .from("people")
+        .select("id, full_name, email, phone, photo_url")
+        .eq("school_id", schoolId)
+        .in("id", ids)
     : { data: [] as Row[], error: null };
-  if (error) throw publicDatabaseError(error, "Não foi possível consultar os dados dos professores.");
+  if (error)
+    throw publicDatabaseError(error, "Não foi possível consultar os dados dos professores.");
   const names = new Map((people ?? []).map((person) => [String(person.id), person]));
-  return applyTeacherContactVisibility(rows.map((teacher) => {
-    const person = names.get(String(teacher["person_id"]));
-    return {
-      id: String(teacher["id"]),
-      person_id: String(teacher["person_id"]),
-      employee_number: String(teacher["employee_number"] ?? ""),
-      hired_on: (teacher["hired_on"] as string | null) ?? null,
-      employment_type: (teacher["employment_type"] as string | null) ?? null,
-      status: String(teacher["status"] ?? ""),
-      full_name: String(person?.full_name ?? "Professor"),
-      email: (person?.email as string | null) ?? null,
-      phone: (person?.phone as string | null) ?? null,
-      photo_url: (person?.photo_url as string | null) ?? null,
-      updated_at: String(teacher["updated_at"] ?? ""),
-    };
-  }), hidden, canSeeContacts);
+  return applyTeacherContactVisibility(
+    rows.map((teacher) => {
+      const person = names.get(String(teacher["person_id"]));
+      return {
+        id: String(teacher["id"]),
+        person_id: String(teacher["person_id"]),
+        employee_number: String(teacher["employee_number"] ?? ""),
+        hired_on: (teacher["hired_on"] as string | null) ?? null,
+        employment_type: (teacher["employment_type"] as string | null) ?? null,
+        status: String(teacher["status"] ?? ""),
+        full_name: String(person?.full_name ?? "Professor"),
+        email: (person?.email as string | null) ?? null,
+        phone: (person?.phone as string | null) ?? null,
+        photo_url: (person?.photo_url as string | null) ?? null,
+        updated_at: String(teacher["updated_at"] ?? ""),
+      };
+    }),
+    hidden,
+    canSeeContacts,
+  );
 }
 
 export const listTeachersPage = createServerFn({ method: "GET" })
@@ -231,30 +288,41 @@ export const listTeachersPage = createServerFn({ method: "GET" })
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");
     const db = await loadSgaAdminClient();
     // A preferência de privacidade não pode assumir "visível" perante erro.
-    const visibility = await db.from("school_settings").select("value")
-      .eq("school_id", membership.schoolId).eq("domain", TEACHER_CONTACT_DOMAIN).maybeSingle();
-    if (visibility.error) throw publicDatabaseError(visibility.error, "Não foi possível verificar a privacidade dos professores.");
+    const visibility = await db
+      .from("school_settings")
+      .select("value")
+      .eq("school_id", membership.schoolId)
+      .eq("domain", TEACHER_CONTACT_DOMAIN)
+      .maybeSingle();
+    if (visibility.error)
+      throw publicDatabaseError(
+        visibility.error,
+        "Não foi possível verificar a privacidade dos professores.",
+      );
     const hidden = parseHiddenTeachers(visibility.data?.value);
     const canSeeContacts = seesAllTeacherContacts(membership.allAppRoles ?? [membership.appRole]);
     async function read(offset: number, size: number, count: boolean) {
-      let query = db.from("teachers")
+      let query = db
+        .from("teachers")
         .select(TEACHER_COLUMNS, count ? { count: "exact" } : undefined)
         .eq("school_id", membership.schoolId)
         .order("created_at", { ascending: false })
         .order("id");
       if (data.status !== "all") query = query.eq("status", data.status);
       const result = await query.range(offset, offset + size - 1);
-      if (result.error) throw publicDatabaseError(result.error, "Não foi possível carregar os professores.");
+      if (result.error)
+        throw publicDatabaseError(result.error, "Não foi possível carregar os professores.");
       return { rows: (result.data ?? []) as Row[], total: result.count };
     }
     const term = (data.query ?? "").trim().toLocaleLowerCase("pt");
     async function prepare(rows: Row[]) {
       const visible = await teacherRows(db, membership.schoolId, rows, hidden, canSeeContacts);
       return term
-        ? visible.filter((teacher) =>
-            includesTerm(teacher.full_name, term) ||
-            includesTerm(teacher.employee_number, term) ||
-            includesTerm(teacher.email, term),
+        ? visible.filter(
+            (teacher) =>
+              includesTerm(teacher.full_name, term) ||
+              includesTerm(teacher.employee_number, term) ||
+              includesTerm(teacher.email, term),
           )
         : visible;
     }
@@ -262,7 +330,11 @@ export const listTeachersPage = createServerFn({ method: "GET" })
       const found = await read((data.page - 1) * data.pageSize, data.pageSize, true);
       return {
         items: await prepare(found.rows),
-        total: found.total ?? (() => { throw new Error("Contagem de professores indisponível."); })(),
+        total:
+          found.total ??
+          (() => {
+            throw new Error("Contagem de professores indisponível.");
+          })(),
         page: data.page,
         pageSize: data.pageSize,
       };
