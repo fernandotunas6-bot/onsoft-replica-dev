@@ -76,7 +76,8 @@ describe("QuickFormModal — registos seguros", () => {
     const onSubmit = vi.fn(async () => {});
     setup({
       onSubmit,
-      validate: (values) => (values["nome"]?.length === 1 ? { nome: "Nome curto." } : {}),
+      validate: (values): Record<string, string> =>
+        values["nome"]?.length === 1 ? { nome: "Nome curto." } : {},
     });
     fireEvent.change(screen.getByRole("textbox", { name: "Nome completo" }), {
       target: { value: "A" },
