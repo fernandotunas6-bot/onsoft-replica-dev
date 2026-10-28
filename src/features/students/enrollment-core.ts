@@ -459,7 +459,11 @@ export async function placeStudentInClass(
     // Repetir o mesmo pedido (por exemplo, duplo clique depois de uma resposta
     // lenta) é idempotente. A sessão e a AAL2 já foram verificadas acima.
     // A sincronização do estado continua necessária em dados legados incoerentes.
-    if (sameClass && alreadyActive && studentStatusAfterPlacement(previousStatus) === previousStatus) {
+    if (
+      sameClass &&
+      alreadyActive &&
+      studentStatusAfterPlacement(previousStatus) === previousStatus
+    ) {
       return {
         enrollmentId: String(current.id),
         enrollmentNumber: (current.enrollment_number as string | null) ?? null,
