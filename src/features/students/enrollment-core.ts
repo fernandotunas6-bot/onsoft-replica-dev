@@ -464,6 +464,26 @@ export async function placeStudentInClass(
       alreadyActive &&
       studentStatusAfterPlacement(previousStatus) === previousStatus
     ) {
+      // A matrícula pode ter sido movida/anulada por outra sessão depois da
+      // primeira leitura. Reconfirmar o no-op com escola, aluno e turma;
+      // nunca declarar êxito apenas com um snapshot desactualizado.
+      const { data: stillCurrent, error: stillCurrentError } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", input.schoolId)
+        .eq("id", current.id)
+        .eq("student_id", input.studentId)
+        .eq("class_group_id", input.classGroupId)
+        .eq("status", "active")
+        .maybeSingle();
+      if (stillCurrentError) {
+        throw publicDatabaseError(stillCurrentError, "Não foi possível confirmar a matrícula.");
+      }
+      if (!stillCurrent) {
+        throw new Error(
+          "Esta matrícula foi alterada por outra sessão. Actualize a lista e confirme a turma antes de repetir.",
+        );
+      }
       return {
         enrollmentId: String(current.id),
         enrollmentNumber: (current.enrollment_number as string | null) ?? null,
