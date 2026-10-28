@@ -26,6 +26,9 @@ vi.setConfig({ testTimeout: 20_000 });
 
 vi.mock("@tanstack/react-router", async () => (await import("./_harness")).reactRouterMock());
 vi.mock("@/components/layout/AppShell", async () => (await import("./_harness")).appShellMock());
+vi.mock("@/features/auth/use-current-account", async () =>
+  (await import("./_harness")).currentAccountMock(),
+);
 vi.mock("@/components/ui/media-frame", async () => (await import("./_harness")).mediaFrameMock());
 
 const searchPeopleMock = vi.fn();
@@ -142,8 +145,8 @@ describe("/pessoas — render", () => {
     renderRoute(PessoasRouteComponent);
 
     await waitFor(() => {
-      expect(screen.getByText("Nenhum professor neste filtro")).toBeDefined();
-      expect(screen.getByText("Nenhuma pessoa encontrada")).toBeDefined();
+      expect(screen.getByText("Ainda não existem professores")).toBeDefined();
+      expect(screen.getByText("Ainda não existem pessoas")).toBeDefined();
     });
   });
 
@@ -154,9 +157,8 @@ describe("/pessoas — render", () => {
     renderRoute(PessoasRouteComponent);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Não foi possível pesquisar pessoas: Falha na consulta ao Postgres"),
-      ).toBeDefined();
+      expect(screen.getByText("Não foi possível carregar pessoas.")).toBeDefined();
+      expect(screen.queryByText(/Falha na consulta ao Postgres/)).toBeNull();
     });
   });
 });
