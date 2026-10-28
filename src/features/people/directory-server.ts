@@ -1,10 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  loadSgaAdminClient,
-  requireSgaWriterFor,
-  resolveSgaMembershipAdmin,
-} from "@/integrations/supabase/sga-admin";
+import type { loadSgaAdminClient } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { loadStudentScope } from "@/features/students/student-scope";
 import { isMissingPeopleGeography } from "./person-fields";
@@ -16,17 +10,19 @@ import {
   TEACHER_CONTACT_DOMAIN,
 } from "./teacher-contact-visibility";
 import {
-  listTeachersPageInputSchema,
   personInstitutionRoleOptions,
   personRoleOptions,
-  searchPeoplePageInputSchema,
+  type ListTeachersPageInput,
+  type SearchPeoplePageInput,
 } from "./schemas";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type Row = Record<string, unknown>;
 type Scope = Awaited<ReturnType<typeof loadStudentScope>>;
-type PeopleInput = ReturnType<typeof searchPeoplePageInputSchema.parse>;
-type TeacherInput = ReturnType<typeof listTeachersPageInputSchema.parse>;
+type PeopleInput = SearchPeoplePageInput;
+type TeacherInput = ListTeachersPageInput;
+type DirectoryMembership = Parameters<typeof loadStudentScope>[1];
+type TeacherMembership = { schoolId: string; appRole: string; allAppRoles?: readonly string[] };
 
 const PERSON_BASE =
   "id, full_name, preferred_name, email, phone, national_id, status, date_of_birth, photo_url, updated_at";
@@ -163,17 +159,13 @@ async function readPeople(
  * Endpoint adicional: o searchPeople antigo mantém o seu contrato array para
  * outros consumidores. Aqui todas as páginas são calculadas no servidor.
  */
-export const searchPeoplePage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => searchPeoplePageInputSchema.parse(input ?? {}))
-  .handler(async ({ context, data }): Promise<DirectoryPage<ReturnType<typeof personRow>>> => {
-    if (!context) throw new Error("Sessão inválida.");
-    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
-    ]);
-    const db = await loadSgaAdminClient();
-    const scope = await loadStudentScope(db, membership, context.userId);
+export async function searchPeopleDirectoryPage(
+  db: AdminDb,
+  membership: DirectoryMembership,
+  userId: string,
+  data: PeopleInput,
+): Promise<DirectoryPage<ReturnType<typeof personRow>>> {
+    const scope = await loadStudentScope(db, membership, userId);
     if (!scope.all && !scope.personIds.length) {
       return { items: [], total: 0, page: data.page, pageSize: data.pageSize };
     }
@@ -237,7 +229,7 @@ export const searchPeoplePage = createServerFn({ method: "GET" })
         (await readPeople(db, membership.schoolId, scope, data, offset, size, false)).rows,
       prepare: hydrate,
     });
-  });
+}
 
 async function teacherRows(
   db: AdminDb,
@@ -279,14 +271,11 @@ async function teacherRows(
   );
 }
 
-export const listTeachersPage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => listTeachersPageInputSchema.parse(input ?? {}))
-  .handler(async ({ data, context }) => {
-    if (!context) throw new Error("Sessão inválida.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem vínculo activo com uma escola.");
-    const db = await loadSgaAdminClient();
+export async function listTeachersDirectoryPage(
+  db: AdminDb,
+  membership: TeacherMembership,
+  data: TeacherInput,
+) {
     const schoolId = membership.schoolId;
     // A preferência de privacidade não pode assumir "visível" perante erro.
     const visibility = await db
@@ -348,4 +337,4 @@ export const listTeachersPage = createServerFn({ method: "GET" })
       read: async (offset, size) => (await read(offset, size, false)).rows,
       prepare,
     });
-  });
+}
