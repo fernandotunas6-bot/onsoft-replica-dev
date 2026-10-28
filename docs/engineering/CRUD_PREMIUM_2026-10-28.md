@@ -167,6 +167,14 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - A capacidade concorrente continua garantida pelo gatilho da base, e não pelo pré-cálculo de vagas. Sem RPC transaccional para o lote inteiro, o resultado **pode ser parcial**, pelo que a interface tem de mostrar êxitos e falhas distintamente.
 - Testes em `tests/students/enrollment-batch.test.ts`: seis casos de repetição, confirmação, transferência, escola alheia, mudança concorrente e êxito parcial.
 
+### Lista de Alunos — reacção a êxitos parciais
+
+- `src/routes/alunos/index.tsx` já não mostra sucesso total nem desmarca todos os alunos quando uma atribuição em lote falha parcialmente.
+- A selecção retém apenas os alunos com falha; o formulário continua aberto com a turma escolhida, permitindo corrigir e repetir. Os alunos com sucesso não são reenviados por engano.
+- O resumo identifica os alunos pelo nome quando disponível, inclui a mensagem individual do servidor e limita a pré-visualização a quatro ocorrências, sem perder nenhum ID elegível para retentativa.
+- Após uma mutação, invalidam-se as consultas de alunos, contexto pedagógico e painel inicial para actualizar turma, lotação e indicadores.
+- `tests/students/batch-feedback.test.ts` fixa cinco casos: êxito, parcial, falha total, truncagem de detalhes e selecção apenas dos alunos do pedido.
+
 ### Pendente para concluir o lote 4
 
 - Ensaio PostgreSQL simultâneo de último lugar da turma e sessões concorrentes, com contas fictícias e duas escolas em staging, respeitando o RLS e a AAL2.
