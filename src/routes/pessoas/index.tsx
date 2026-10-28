@@ -61,6 +61,10 @@ import {
   updateTeacher,
 } from "@/features/people/server";
 import { personDocumentTypeOptions, personRoleOptions } from "@/features/people/schemas";
+import {
+  validatePersonQuickEdit,
+  validateTeacherQuickForm,
+} from "@/features/people/quick-form-validation";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -443,6 +447,7 @@ function PeoplePage() {
               description="Cria a pessoa e o registo de professor no SGA."
               icon={<GraduationCap className="size-5" />}
               submitLabel="Criar professor"
+              validate={validateTeacherQuickForm}
               onSubmit={async (values) => {
                 await createTeacher({
                   data: {
@@ -787,6 +792,7 @@ function PeoplePage() {
                                 description="Actualize nome, contacto e estado."
                                 icon={<Pencil className="size-5" />}
                                 submitLabel="Guardar"
+                                validate={validateTeacherQuickForm}
                                 onSubmit={async (values) => {
                                   await updateTeacher({
                                     data: {
@@ -1194,6 +1200,7 @@ function PeoplePage() {
                       description="Modifique os dados principais desta pessoa."
                       icon={<Pencil className="size-5" />}
                       submitLabel="Guardar Alterações"
+                      validate={(values) => validatePersonQuickEdit(values, person.id)}
                       fields={[
                         {
                           name: "nome",
