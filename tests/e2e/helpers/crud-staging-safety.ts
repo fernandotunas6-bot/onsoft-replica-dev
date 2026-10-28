@@ -4,6 +4,8 @@
  * Lê apenas dados fictícios já existentes: NÃO cria nem modifica alunos,
  * escolas, notas, pagamentos ou documentos. Nenhuma conta de produção é aceite.
  */
+import { isAbsolute, relative, resolve, sep } from "node:path";
+
 type Env = Record<string, string | undefined>;
 
 export type CrudStagingConfig = {
@@ -12,6 +14,7 @@ export type CrudStagingConfig = {
   stateB: string;
   markerA: string;
   markerB: string;
+  supabaseOrigin: string;
 };
 
 const PRODUCTION_PROJECT = "xodgfmxiaunpamctfeea";
@@ -72,12 +75,40 @@ export function resolveCrudStagingConfig(env: Env): CrudStagingConfig | null {
       throw new Error("E2E CRUD: o frontend aponta para um Supabase diferente do staging.");
     }
   }
-  if (stateA === stateB || markerA === markerB || markerA.length < 4 || markerB.length < 4) {
+  // Nunca usar storageState relativo ou guardado debaixo do repositório:
+  // os ficheiros contêm tokens de autenticação, mesmo com dados fictícios.
+  const workspace = resolve(process.cwd());
+  const insideWorkspace = (path: string) => {
+    const target = resolve(path);
+    const subpath = relative(workspace, target);
+    return subpath === "" || (subpath !== ".." && !subpath.startsWith(`..${sep}`) && !isAbsolute(subpath));
+  };
+  if (
+    !isAbsolute(stateA) ||
+    !isAbsolute(stateB) ||
+    !stateA.endsWith(".json") ||
+    !stateB.endsWith(".json") ||
+    insideWorkspace(stateA) ||
+    insideWorkspace(stateB)
+  ) {
+    throw new Error("E2E CRUD: as sessões devem estar em ficheiros JSON absolutos fora do repositório.");
+  }
+  if (resolve(stateA) === resolve(stateB)) {
+    throw new Error("E2E CRUD: as duas escolas não podem usar a mesma sessão.");
+  }
+
+  // A pesquisa de Pessoas ignora caixa e acentos. Os marcadores usados para
+  // provar o isolamento não podem coincidir depois dessa normalização.
+  const searchable = (value: string) =>
+    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt").trim();
+  const searchA = searchable(markerA);
+  const searchB = searchable(markerB);
+  if (!searchA || !searchB || searchA.length < 4 || searchB.length < 4 || searchA === searchB) {
     throw new Error("E2E CRUD: escolas e registos de teste devem ser distintos.");
   }
-  if (markerA.includes(markerB) || markerB.includes(markerA)) {
+  if (searchA.includes(searchB) || searchB.includes(searchA)) {
     throw new Error("E2E CRUD: use marcadores de alunos que não se sobreponham.");
   }
 
-  return { baseUrl: app.origin, stateA, stateB, markerA, markerB };
+  return { baseUrl: app.origin, stateA, stateB, markerA, markerB, supabaseOrigin: db.origin };
 }
