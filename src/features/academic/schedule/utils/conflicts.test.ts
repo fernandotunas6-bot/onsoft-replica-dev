@@ -109,9 +109,9 @@ describe("detectScheduleConflicts", () => {
       room_id: null,
       label: " sala 12 ",
     };
-    expect(detectScheduleConflicts([slot("a", base), slot("b", second)]).map((c) => c.kind)).toEqual([
-      "sala",
-    ]);
+    expect(
+      detectScheduleConflicts([slot("a", base), slot("b", second)]).map((c) => c.kind),
+    ).toEqual(["sala"]);
     expect(
       detectScheduleConflicts([
         slot("c", { ...base, label: "Laboratório" }),
