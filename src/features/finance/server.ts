@@ -734,14 +734,20 @@ export const listInvoices = createServerFn({ method: "GET" })
             .select("id, enrollment_id")
             .eq("school_id", membership.schoolId)
             .in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }>, error: null }),
+        : Promise.resolve({
+            data: [] as Array<{ id: string; enrollment_id: string }>,
+            error: null,
+          }),
       feeIds.length
         ? db
             .from("fee_items")
             .select("id, name, kind")
             .eq("school_id", membership.schoolId)
             .in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string; kind: string }>, error: null }),
+        : Promise.resolve({
+            data: [] as Array<{ id: string; name: string; kind: string }>,
+            error: null,
+          }),
       loadCompleteInvoiceReceipts(invoiceIds, (ids, from, to) =>
         db
           .from("finance_receipts")
@@ -753,7 +759,10 @@ export const listInvoices = createServerFn({ method: "GET" })
       ),
     ]);
     if (contractsResult.error) {
-      throw publicDatabaseError(contractsResult.error, "Não foi possível identificar os contratos.");
+      throw publicDatabaseError(
+        contractsResult.error,
+        "Não foi possível identificar os contratos.",
+      );
     }
     if (feeItemsResult.error) {
       throw publicDatabaseError(feeItemsResult.error, "Não foi possível consultar as rubricas.");
@@ -776,7 +785,10 @@ export const listInvoices = createServerFn({ method: "GET" })
           .in("id", enrollmentIds)
       : { data: [] as Array<{ id: string; student_id: string }>, error: null };
     if (enrollmentResult.error) {
-      throw publicDatabaseError(enrollmentResult.error, "Não foi possível consultar as matrículas.");
+      throw publicDatabaseError(
+        enrollmentResult.error,
+        "Não foi possível consultar as matrículas.",
+      );
     }
     const enrollments = enrollmentResult.data;
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
