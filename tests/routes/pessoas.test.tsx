@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import type { ComponentType } from "react";
 import {
   renderRoute,
@@ -35,13 +35,25 @@ const searchPeopleMock = vi.fn();
 const listTeachersMock = vi.fn();
 
 vi.mock("@/features/people/directory-server", () => ({
-  searchPeoplePage: async () => {
-    const items = await searchPeopleMock();
-    return { items, total: items.length, page: 1, pageSize: 25 };
+  searchPeoplePage: async ({ data }: { data: { page: number; pageSize: number } }) => {
+    const rows = await searchPeopleMock();
+    const start = (data.page - 1) * data.pageSize;
+    return {
+      items: rows.slice(start, start + data.pageSize),
+      total: rows.length,
+      page: data.page,
+      pageSize: data.pageSize,
+    };
   },
-  listTeachersPage: async () => {
-    const items = await listTeachersMock();
-    return { items, total: items.length, page: 1, pageSize: 25 };
+  listTeachersPage: async ({ data }: { data: { page: number; pageSize: number } }) => {
+    const rows = await listTeachersMock();
+    const start = (data.page - 1) * data.pageSize;
+    return {
+      items: rows.slice(start, start + data.pageSize),
+      total: rows.length,
+      page: data.page,
+      pageSize: data.pageSize,
+    };
   },
 }));
 
@@ -159,6 +171,22 @@ describe("/pessoas — render", () => {
       expect(screen.getByText("Ainda não existem professores")).toBeDefined();
       expect(screen.getByText("Ainda não existem pessoas")).toBeDefined();
     });
+  });
+
+  it("navega para a segunda página sem duplicar as primeiras 25 pessoas", async () => {
+    const people = Array.from({ length: 28 }, (_, index) => ({
+      ...samplePerson,
+      id: `per-${index + 1}`,
+      full_name: `Pessoa ${String(index + 1).padStart(3, "0")}`,
+    }));
+    seed({ people });
+    renderRoute(PessoasRouteComponent);
+
+    await waitFor(() => expect(screen.getByText("Pessoa 001")).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: "Página seguinte" }));
+    await waitFor(() => expect(screen.getByText("Pessoa 028")).toBeDefined());
+    expect(screen.queryByText("Pessoa 001")).toBeNull();
+    expect(screen.getByText("26–28")).toBeDefined();
   });
 
   it("exibe mensagem de erro quando a pesquisa de pessoas falha", async () => {
