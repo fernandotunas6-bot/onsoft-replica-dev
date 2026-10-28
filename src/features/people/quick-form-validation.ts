@@ -30,7 +30,7 @@ export function validateTeacherQuickForm(values: Record<string, string>): QuickF
     employeeNumber: values["numero"] ?? "",
     hiredOn: values["contratacao"] ?? "",
   });
-  const errors = result.success
+  const errors: QuickFieldErrors = result.success
     ? {}
     : firstIssues(result.error.issues, {
         fullName: "nome",
@@ -56,7 +56,7 @@ export function validatePersonQuickEdit(
     phone: values["telefone"] ?? "",
     nif: values["nif"] ?? "",
   });
-  const errors = result.success
+  const errors: QuickFieldErrors = result.success
     ? {}
     : firstIssues(result.error.issues, {
         fullName: "nome",
