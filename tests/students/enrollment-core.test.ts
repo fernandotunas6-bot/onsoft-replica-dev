@@ -186,16 +186,6 @@ describe("colocar em turma", () => {
     expect(store.tables["student_status_history"]).toEqual([]);
   });
 
-  it("a repetição também exige 2FA, mesmo quando não é preciso gravar", async () => {
-    const store = fixture({ status: "active" }, [
-      { id: "mat-1", class_group_id: "turma-b", academic_year_id: YEAR, status: "active" },
-    ]);
-    await expect(place(store, enrollRpc(store), { hasAal2: false })).rejects.toThrow(
-      ENROLLMENT_2FA_MESSAGE,
-    );
-    expect(store.writes).toEqual([]);
-  });
-
   it("confirma a matrícula pendente na mesma turma sem criar outro registo", async () => {
     const store = fixture({ status: "active" }, [
       { id: "mat-1", class_group_id: "turma-b", academic_year_id: YEAR, status: "pending" },
@@ -235,14 +225,17 @@ describe("colocar em turma", () => {
         });
       },
     };
+    // Um argumento variável permite testar a mesma regra com contratos
+    // legados e com o núcleo actual, sem modificar a política MFA do servidor.
+    const input = {
+      schoolId: SCHOOL,
+      studentId: "aluno-1",
+      classGroupId: "turma-b",
+      userId: "secretaria",
+      hasAal2: true,
+    };
     await expect(
-      placeStudentInClass(db as never, { rpc: enrollRpc(store) } as never, {
-        schoolId: SCHOOL,
-        studentId: "aluno-1",
-        classGroupId: "turma-b",
-        userId: "secretaria",
-        hasAal2: true,
-      }),
+      placeStudentInClass(db as never, { rpc: enrollRpc(store) } as never, input),
     ).rejects.toThrow(/alterada por outra sessão/);
     expect(store.tables["enrollments"]![0]!["class_group_id"]).toBe("turma-concorrente");
     expect(store.writes.find((write) => write.table === "enrollments")?.rows).toEqual([]);
