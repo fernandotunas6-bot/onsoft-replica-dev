@@ -1513,7 +1513,7 @@ export const batchAssignClass = createServerFn({ method: "POST" })
     }
     await restoreStudentStatuses(db, { schoolId, students: toRestore, userId: context.userId });
 
-    await syncStudentStatusAfterPlacement(db, {
+    const reactivated = await syncStudentStatusAfterPlacement(db, {
       schoolId,
       students: [...enrolled].map((studentId) => ({
         studentId,
@@ -1523,7 +1523,9 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       userId: context.userId,
     });
 
-    if (committed.placedIds.length || toEnroll.length) queueTenantUsageSync(schoolId);
+    if (committed.placedIds.length || toEnroll.length || reactivated > 0) {
+      queueTenantUsageSync(schoolId);
+    }
     return { success: failed.length === 0, count: enrolled.size, className: group.name, failed };
   });
 
