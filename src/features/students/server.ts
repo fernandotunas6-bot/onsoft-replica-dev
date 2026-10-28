@@ -909,7 +909,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       userId: context.userId,
       hasAal2: context.claims?.["aal"] === "aal2",
     });
-    queueTenantUsageSync(membership.schoolId);
+    if (!placed.unchanged) queueTenantUsageSync(membership.schoolId);
     return {
       id: placed.enrollmentId,
       enrollment_number: placed.enrollmentNumber,
@@ -918,6 +918,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       academic_year_id: placed.academicYearId,
       status: placed.status,
       moved: placed.moved,
+      unchanged: placed.unchanged ?? false,
     };
   });
 
