@@ -35,7 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { CrudListFeedbackRow } from "@/components/ui/crud-list-feedback-row";
 import {
   Table,
   TableBody,
@@ -148,6 +148,8 @@ function PeoplePage() {
     queryKey: [
       "people",
       "search",
+      account.id,
+      account.schoolId,
       deferredQuery,
       filters.province,
       filters.municipality,
@@ -163,7 +165,7 @@ function PeoplePage() {
           limit: 50,
         },
       }),
-    placeholderData: (previous) => previous,
+    enabled: Boolean(account.id && account.schoolId),
   });
 
   const peoplePhotoKey = (peopleQuery.data ?? [])
@@ -176,7 +178,7 @@ function PeoplePage() {
   }, [peoplePhotoKey]);
 
   const teachersQuery = useQuery({
-    queryKey: ["people", "teachers", filters.q, filters.teacherStatus],
+    queryKey: ["people", "teachers", account.id, account.schoolId, filters.q, filters.teacherStatus],
     queryFn: () =>
       listTeachers({
         data: {
@@ -185,12 +187,13 @@ function PeoplePage() {
           limit: 100,
         },
       }),
+    enabled: Boolean(account.id && account.schoolId),
   });
 
   const personQuery = useQuery({
-    queryKey: ["people", "detail", selectedId],
+    queryKey: ["people", "detail", account.id, account.schoolId, selectedId],
     queryFn: () => getPerson({ data: { id: selectedId! } }),
-    enabled: Boolean(selectedId),
+    enabled: Boolean(selectedId && account.id && account.schoolId),
   });
 
   const person = personQuery.data;
@@ -581,11 +584,19 @@ function PeoplePage() {
             mobile={
               teachersQuery.isLoading ? (
                 <EntityListSkeleton rows={5} />
+              ) : teachersQuery.isError ? (
+                <MobileErrorState
+                  what="os professores"
+                  error={teachersQuery.error}
+                  onRetry={() => void teachersQuery.refetch()}
+                />
               ) : teachers.length === 0 ? (
                 <MobileEmptyState
                   icon={GraduationCap}
-                  title="Nenhum professor neste filtro"
+                  title="Nenhum professor encontrado"
                   description="Ajuste a pesquisa ou o estado para encontrar docentes."
+                  actionLabel={filters.q.trim() || filters.teacherStatus !== "all" ? "Limpar filtros" : undefined}
+                  onAction={resetFilters}
                 />
               ) : (
                 <EntityList
@@ -640,17 +651,20 @@ function PeoplePage() {
                           </div>
                         </TableCell>
                       </TableRow>
+                    ) : teachersQuery.isError ? (
+                      <CrudListFeedbackRow
+                        colSpan={5}
+                        kind="error"
+                        entityLabel="professores"
+                        onRetry={() => void teachersQuery.refetch()}
+                      />
                     ) : teachers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="p-4">
-                          <EmptyState
-                            icon={GraduationCap}
-                            title="Nenhum professor neste filtro"
-                            description="Ajuste a pesquisa ou o estado para encontrar docentes, ou registe um novo professor."
-                            compact
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <CrudListFeedbackRow
+                        colSpan={5}
+                        kind={filters.q.trim() || filters.teacherStatus !== "all" ? "filtered" : "empty"}
+                        entityLabel="professores"
+                        onClearFilters={resetFilters}
+                      />
                     ) : (
                       teachers.map((teacher) => (
                         <TableRow key={teacher.id}>
@@ -803,7 +817,7 @@ function PeoplePage() {
                 variant="outline"
                 className="gap-1.5"
                 onClick={() => exportCsv("pessoas-filtradas", peopleExportColumns, people)}
-                disabled={!people.length}
+                disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
                 <Download className="size-3.5" /> CSV
               </Button>
@@ -820,7 +834,7 @@ function PeoplePage() {
                     `Filtros activos: ${activeCount || "nenhum"}`,
                   )
                 }
-                disabled={!people.length}
+                disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
                 <FileDown className="size-3.5" /> PDF
               </Button>
@@ -829,7 +843,7 @@ function PeoplePage() {
                 variant="outline"
                 className="gap-1.5"
                 onClick={exportarRegistoOficial}
-                disabled={!people.length}
+                disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
                 <FileBadge className="size-3.5" /> Oficial
               </Button>
@@ -845,15 +859,17 @@ function PeoplePage() {
                   error={peopleQuery.error}
                   onRetry={() => void peopleQuery.refetch()}
                 />
-              ) : (peopleQuery.data ?? []).length === 0 ? (
+              ) : people.length === 0 ? (
                 <MobileEmptyState
                   icon={User}
-                  title="Nenhuma pessoa encontrada"
-                  description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo."
+                  title={activeCount ? "Nenhuma pessoa corresponde aos filtros" : "Ainda não existem pessoas"}
+                  description={activeCount ? "Altere os critérios para continuar." : "Utilize Nova pessoa para iniciar o registo."}
+                  actionLabel={activeCount ? "Limpar filtros" : undefined}
+                  onAction={resetFilters}
                 />
               ) : (
                 <EntityList
-                  items={(peopleQuery.data ?? []).map<EntityListItem>((row) => ({
+                  items={people.map<EntityListItem>((row) => ({
                     id: row.id,
                     title: row.full_name,
                     subtitle: row.email ?? row.phone_primary ?? "Sem contacto",
@@ -904,30 +920,21 @@ function PeoplePage() {
                         </TableCell>
                       </TableRow>
                     ) : peopleQuery.isError ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="py-10 text-center text-sm text-destructive"
-                        >
-                          Não foi possível pesquisar pessoas:{" "}
-                          {peopleQuery.error instanceof Error
-                            ? peopleQuery.error.message
-                            : "erro desconhecido"}
-                        </TableCell>
-                      </TableRow>
-                    ) : (peopleQuery.data ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="p-4">
-                          <EmptyState
-                            icon={User}
-                            title="Nenhuma pessoa encontrada"
-                            description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo no botão «Nova pessoa»."
-                            compact
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <CrudListFeedbackRow
+                        colSpan={4}
+                        kind="error"
+                        entityLabel="pessoas"
+                        onRetry={() => void peopleQuery.refetch()}
+                      />
+                    ) : people.length === 0 ? (
+                      <CrudListFeedbackRow
+                        colSpan={4}
+                        kind={activeCount ? "filtered" : "empty"}
+                        entityLabel="pessoas"
+                        onClearFilters={resetFilters}
+                      />
                     ) : (
-                      (peopleQuery.data ?? []).map((row) => (
+                      people.map((row) => (
                         <TableRow
                           key={row.id}
                           className="cursor-pointer transition-colors hover:bg-secondary/50"
