@@ -79,6 +79,12 @@
     },
     "build": "passed",
     "changed_source_lint": "0 errors; 2 pre-existing fast-refresh warnings",
-    "route_tree": "Build regenerated routeTree.gen.ts and removed a duplicated TanStack registration"
+    "route_tree": "Build regenerated routeTree.gen.ts and removed a duplicated TanStack registration",
+    "typecheck": "passed; exit 0"
+  },
+  "delivery": {
+    "draft_pr": 376,
+    "url": "https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/376",
+    "deployed": false
   }
 }

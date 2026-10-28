@@ -206,3 +206,7 @@ alterados sem erros (dois avisos Fast Refresh). A suíte de 5320 testes refere-s
 ao SHA anterior indicado em `validation.json`, não às alterações recentes de toda
 a main. A geração do build removeu uma declaração TanStack duplicada da árvore
 de rotas.
+
+Verificação TypeScript final após esse alinhamento: `npm run typecheck`,
+código de saída **0**. Entrega para revisão na [PR #376](https://github.com/fernandotunas6-bot/onsoft-replica-dev/pull/376),
+em rascunho; sem deploy.
