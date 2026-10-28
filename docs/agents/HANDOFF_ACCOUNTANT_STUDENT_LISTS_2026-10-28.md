@@ -69,7 +69,7 @@ filtros, selecção homogénea e bloqueio da emissão, sem comprovar layout em a
 Não foi feito deploy nem aplicada a migração de caixa. Reversão: reverter o commit
 deste incremento; chamadas antigas de issueTuitionBatch continuam compatíveis.
 
-## Estado da entrega
+## Estado histórico da entrega local
 
 Implementação no commit local `72b4065`, ramo `feat/accountant-student-lists`.
 Build, typecheck com heap de 8 GB, 281 testes financeiros/permissões, 16 testes
@@ -97,9 +97,48 @@ podem ser seleccionadas, mas não podem receber novas propinas por este lote.
 A lista apresenta a dívida dos seleccionados. A emissão conserva a exigência de
 alunos activos, mesma turma não vazia e configuração financeira disponível. A
 exportação não cria cobranças no fornecedor, não baixa pagamentos e não envia
-mensagens. A publicação permanece bloqueada, sem nova tentativa de envio remoto.
+mensagens. O bloqueio de publicação deste registo foi entretanto resolvido com autorização do proprietário; a PR #386 está aberta.
 
 Validação deste refinamento: 20 testes da lista/lote passaram; a suite financeira
 mais os testes de ferramentas e acesso passou com 283 testes em 58 ficheiros.
 `npm run build` passou e ESLint dos dois ficheiros de código alterados passou.
 Não houve novo ensaio remoto, RLS real ou validação em aparelho físico.
+
+## PR #386 — correcção do CI e leitura com RLS
+
+A publicação foi autorizada e concluída: PR #386, inicialmente em
+`00c96c9aa7826f5f05ee5a992938089e3bf49210`. A primeira execução do CI
+`40688289043` aprovou segurança de dependências, estilo, acessibilidade, lint,
+build e tipos. Vitest falhou num teste de arquitectura: novo ficheiro privilegiado
+fazia subir a dívida de 72 para 73. Os outros 5382 testes passaram, 19 saltados.
+
+Antes de corrigir, foram lidas na produção **apenas metainformações** de
+`pg_policies`, privilégios de SELECT e agregados de `role_permissions`, em
+28/10/2026. Nenhum registo pessoal nem dado financeiro real foi consultado.
+RLS e SELECT para authenticated existem nas dez tabelas usadas. Admin/owner têm
+as sete permissões necessárias; treasury tem as cinco de pessoas/alunos/financeiro,
+mas não `academic.structure.read` ou `academic.classes.read`. A função efectiva
+`private.user_wide_reader_school_ids()` inclui Tesouraria.
+
+Correcção: matrículas, alunos, pessoas, contratos, facturas e recibos passam pelo
+JWT de `context.supabase` e respeitam RLS, além da guarda financeira e escola.
+Só o catálogo académico (turmas, classes, cursos e níveis) usa o cliente
+privilegiado, porque a Tesouraria não tem permissão RLS para o ler. Mantêm-se
+as projecções mínimas e filtro da escola/ano nessas leituras. Não se concedeu
+permissão nova, não se alterou RLS e não se introduziu fallback privilegiado para
+dados pessoais/financeiros.
+
+O teste de arquitectura conserva o tecto 72; regista a excepção por desenho só
+para o catálogo académico, com a razão confirmada na base. Um teste funcional
+confere a divisão exacta das seis tabelas lidas pela sessão e das quatro lidas
+pelo cliente privilegiado. Os 13 testes específicos de leitura/arquitectura
+passaram. A suite integral, build e tipos são novamente executados antes do envio.
+Esta leitura de políticas não substitui um ensaio com sessões reais de dois
+perfis/escolas nem valida as escritas financeiras em produção.
+
+Validação final da correcção: `npx vitest run --maxWorkers=4` passou com 5384 testes
+em 774 ficheiros; 19 testes/3 ficheiros saltados por dependências próprias dos
+ensaios. Build, typecheck (depois do build) e ESLint dos ficheiros alterados
+passaram. A suite integral inclui o teste que falhava no CI e o novo teste de
+separação do cliente da sessão/catálogo. Estes resultados são locais; a nova
+execução do GitHub Actions deve ser conferida no SHA enviado.

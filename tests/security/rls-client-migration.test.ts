@@ -55,6 +55,13 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Lista financeira (28/10/2026): dados de alunos, matrículas, contratos,
+  // facturas e recibos usam context.supabase/RLS. Apenas class_groups,
+  // grade_levels, programs e academic_levels usam o cliente privilegiado:
+  // pg_policies e role_permissions confirmados na produção nesta data;
+  // treasury não tem academic.classes.read/academic.structure.read. A guarda
+  // Administrador/Tesouraria e school_id limitam o catálogo à escola activa.
+  "src/features/finance/student-ledger-server.ts",
   // Presença do professor na aula (2026-10-26): authenticated só tem SELECT em
   // siga_attendance_sessions (as chamadas escrevem-se no servidor), por isso a
   // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,

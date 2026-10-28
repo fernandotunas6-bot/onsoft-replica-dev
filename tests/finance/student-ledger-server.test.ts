@@ -5,6 +5,9 @@ const state = vi.hoisted(() => ({
   denied: false,
   fail: "",
   calls: [] as string[],
+  privilegedCalls: [] as string[],
+  userCalls: [] as string[],
+  client: {} as unknown,
 }));
 vi.mock("@tanstack/react-start", () => ({
   createServerFn: () => {
@@ -16,7 +19,7 @@ vi.mock("@tanstack/react-start", () => ({
         return builder;
       },
       handler: (fn: (input: unknown) => unknown) => (input: { data: unknown }) =>
-        fn({ data: validate(input.data), context: { userId: "user", supabase: {} } }),
+        fn({ data: validate(input.data), context: { userId: "user", supabase: state.client } }),
     };
     return builder;
   },
@@ -25,14 +28,12 @@ vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth:
 vi.mock("@/integrations/supabase/server-error", () => ({
   publicDatabaseError: (_: unknown, message: string) => new Error(message),
 }));
-vi.mock("@/integrations/supabase/sga-admin", () => ({
-  requireSgaWriterFor: vi.fn(async () => {
-    if (state.denied) throw new Error("Sem permissão");
-    return { schoolId: "A" };
-  }),
-  loadSgaAdminClient: async () => ({
+vi.mock("@/integrations/supabase/sga", () => ({ sgaClient: (client: unknown) => client }));
+vi.mock("@/integrations/supabase/sga-admin", () => {
+  const makeClient = (privileged: boolean) => ({
     from: (table: string) => {
       state.calls.push(table);
+      (privileged ? state.privilegedCalls : state.userCalls).push(table);
       const predicates: ((row: Record<string, unknown>) => boolean)[] = [];
       let start = 0;
       let end = 999;
@@ -70,8 +71,16 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
       };
       return builder;
     },
-  }),
-}));
+  });
+  state.client = makeClient(false);
+  return {
+    requireSgaWriterFor: vi.fn(async () => {
+      if (state.denied) throw new Error("Sem permissão");
+      return { schoolId: "A" };
+    }),
+    loadSgaAdminClient: async () => makeClient(true),
+  };
+});
 import { listStudentLedger } from "@/features/finance/student-ledger-server";
 const year = "3f6b1c2e-6a1d-4c0b-9b51-0d6f3c8e2a11";
 const load = () => listStudentLedger({ data: { academicYearId: year } });
@@ -79,6 +88,8 @@ beforeEach(() => {
   state.denied = false;
   state.fail = "";
   state.calls = [];
+  state.privilegedCalls = [];
+  state.userCalls = [];
   state.tables = {
     enrollments: [
       {
@@ -152,6 +163,23 @@ describe("lista financeira no servidor (base simulada)", () => {
       levelName: "Secundário",
       outstanding: 1200,
     });
+  });
+  it("lê dados pessoais e financeiros com a sessão; privilégio só no catálogo académico", async () => {
+    await load();
+    expect([...new Set(state.privilegedCalls)].sort()).toEqual([
+      "academic_levels",
+      "class_groups",
+      "grade_levels",
+      "programs",
+    ]);
+    expect([...new Set(state.userCalls)].sort()).toEqual([
+      "enrollments",
+      "finance_contracts",
+      "finance_invoices",
+      "finance_receipts",
+      "people",
+      "students",
+    ]);
   });
   it("inclui recibos para além de 1000 linhas sem inventar dívida", async () => {
     state.tables.finance_receipts = Array.from({ length: 1200 }, (_, i) => ({

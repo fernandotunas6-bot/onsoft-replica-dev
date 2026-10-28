@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { sgaClient } from "@/integrations/supabase/sga";
 import { readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import { schoolTodayIso } from "@/lib/school-date";
@@ -25,7 +26,12 @@ export const listStudentLedger = createServerFn({ method: "GET" })
       "Administrador",
       "Tesouraria",
     ]);
-    const db = await loadSgaAdminClient();
+    // Dados pessoais/financeiros: JWT da sessão, com RLS além da guarda e escola.
+    const db = sgaClient(context.supabase);
+    // Confirmado em pg_policies/role_permissions em 28/10/2026: Tesouraria tem
+    // leitura financeira/alunos, mas não academic.structure/classes.read. Só o
+    // catálogo académico da escola usa o cliente privilegiado, sem dados pessoais.
+    const structureDb = await loadSgaAdminClient();
     const schoolId = membership.schoolId;
     const [enrollments, groups, grades, programs, levels] = await Promise.all([
       readAllPages((from, to) =>
@@ -38,7 +44,7 @@ export const listStudentLedger = createServerFn({ method: "GET" })
           .range(from, to),
       ).then(checked),
       readAllPages((from, to) =>
-        db
+        structureDb
           .from("class_groups")
           .select("id, name, grade_level_id")
           .eq("school_id", schoolId)
@@ -47,7 +53,7 @@ export const listStudentLedger = createServerFn({ method: "GET" })
           .range(from, to),
       ).then(checked),
       readAllPages((from, to) =>
-        db
+        structureDb
           .from("grade_levels")
           .select("id, name, program_id")
           .eq("school_id", schoolId)
@@ -55,7 +61,7 @@ export const listStudentLedger = createServerFn({ method: "GET" })
           .range(from, to),
       ).then(checked),
       readAllPages((from, to) =>
-        db
+        structureDb
           .from("programs")
           .select("id, name, academic_level_id")
           .eq("school_id", schoolId)
@@ -63,7 +69,7 @@ export const listStudentLedger = createServerFn({ method: "GET" })
           .range(from, to),
       ).then(checked),
       readAllPages((from, to) =>
-        db
+        structureDb
           .from("academic_levels")
           .select("id, name")
           .eq("school_id", schoolId)
