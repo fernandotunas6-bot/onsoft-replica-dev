@@ -482,13 +482,13 @@ export async function placeStudentInClass(
       }
       if (studentStatusAfterPlacement(previousStatus) === previousStatus) {
         return {
-        enrollmentId: String(current.id),
-        enrollmentNumber: (current.enrollment_number as string | null) ?? null,
-        classGroupId: input.classGroupId,
-        academicYearId,
-        status: "active",
-        moved: false,
-        unchanged: true,
+          enrollmentId: String(current.id),
+          enrollmentNumber: (current.enrollment_number as string | null) ?? null,
+          classGroupId: input.classGroupId,
+          academicYearId,
+          status: "active",
+          moved: false,
+          unchanged: true,
         };
       }
     }
