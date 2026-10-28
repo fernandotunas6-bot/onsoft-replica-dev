@@ -683,16 +683,22 @@ export const listInvoices = createServerFn({ method: "GET" })
     // As mais recentes não chegam: numa escola com mais de 250 faturas, as vencidas
     // antigas — as que mais importa cobrar — ficavam fora da lista, do filtro e do
     // «Receber». Com `includeOpen`, todas as por pagar entram, por mais antigas que sejam.
-    if (data.includeOpen && !studentContractIds) {
+    if (data.includeOpen) {
       const seen = new Set(invoices.map((row: { id: string }) => row.id));
       for (let from = 0; ; from += OPEN_INVOICES_PAGE) {
-        const page = await db
+        let openQuery = db
           .from("finance_invoices")
           .select(
             "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
           )
           .eq("school_id", membership.schoolId)
-          .in("status", ["open", "partially_paid"])
+          .in("status", ["open", "partially_paid"]);
+        // Ficha de um aluno: mesmo na leitura completa das dívidas antigas,
+        // nunca pesquisar faturas de contratos de outros alunos da escola.
+        if (studentContractIds) {
+          openQuery = openQuery.in("contract_id", studentContractIds);
+        }
+        const page = await openQuery
           .order("created_at", { ascending: false })
           .range(from, from + OPEN_INVOICES_PAGE - 1);
         if (page.error) {
