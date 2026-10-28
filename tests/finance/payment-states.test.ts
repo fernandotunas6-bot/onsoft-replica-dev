@@ -46,10 +46,8 @@ describe("estado da fatura", () => {
 
   it("arredondamento em cêntimos não deixa fatura paga artificialmente em dívida", () => {
     expect(
-      invoiceState(
-        { status: "issued", total: 0.3, paid: 0.1 + 0.2, dueOn: "2026-10-01" },
-        hoje,
-      ).status,
+      invoiceState({ status: "issued", total: 0.3, paid: 0.1 + 0.2, dueOn: "2026-10-01" }, hoje)
+        .status,
     ).toBe("paid");
   });
 
