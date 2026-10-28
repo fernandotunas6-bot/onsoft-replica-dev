@@ -36,27 +36,25 @@ const listTeachersMock = vi.fn();
 
 vi.mock("@/features/people/server", () => ({
   searchPeoplePage: async ({ data }: { data: { page: number; pageSize: number } }) => {
-      const rows = await searchPeopleMock();
-      const start = (data.page - 1) * data.pageSize;
-      return {
-        items: rows.slice(start, start + data.pageSize),
-        total: rows.length,
-        page: data.page,
-        pageSize: data.pageSize,
-      };
-    },
-    listTeachersPage: async ({ data }: { data: { page: number; pageSize: number } }) => {
-      const rows = await listTeachersMock();
-      const start = (data.page - 1) * data.pageSize;
-      return {
-        items: rows.slice(start, start + data.pageSize),
-        total: rows.length,
-        page: data.page,
-        pageSize: data.pageSize,
-      };
-    },
-  }));
-
+    const rows = await searchPeopleMock();
+    const start = (data.page - 1) * data.pageSize;
+    return {
+      items: rows.slice(start, start + data.pageSize),
+      total: rows.length,
+      page: data.page,
+      pageSize: data.pageSize,
+    };
+  },
+  listTeachersPage: async ({ data }: { data: { page: number; pageSize: number } }) => {
+    const rows = await listTeachersMock();
+    const start = (data.page - 1) * data.pageSize;
+    return {
+      items: rows.slice(start, start + data.pageSize),
+      total: rows.length,
+      page: data.page,
+      pageSize: data.pageSize,
+    };
+  },
   searchPeople: () => searchPeopleMock(),
   listTeachers: () => listTeachersMock(),
   getPerson: vi.fn(),
