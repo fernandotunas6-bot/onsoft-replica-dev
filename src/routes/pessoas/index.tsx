@@ -53,9 +53,7 @@ import {
   createTeacher,
   deleteTeacher,
   getPerson,
-  listTeachers,
   mergePeople,
-  searchPeople,
   updatePerson,
   updatePersonStatus,
   updateTeacher,
@@ -70,6 +68,8 @@ import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
+import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
+import { listTeachersPage, searchPeoplePage } from "@/features/people/directory-server";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { EntityAvatar, EntityList, type EntityListItem } from "@/components/mobile/EntityList";
@@ -124,6 +124,8 @@ const pessoasFilterDefaults = {
   personStatus: "todos",
 };
 
+const DIRECTORY_PAGE_SIZE = 25;
+
 function PeoplePage() {
   const account = useCurrentAccount();
   const queryClient = useQueryClient();
@@ -141,6 +143,18 @@ function PeoplePage() {
   );
   const navigate = useNavigate();
   const deferredQuery = useDeferredValue(filters.q.trim());
+  const [peoplePage, setPeoplePage] = useState(1);
+  const [teachersPage, setTeachersPage] = useState(1);
+  const resetDirectoryFilters = () => {
+    setPeoplePage(1);
+    setTeachersPage(1);
+    resetFilters();
+  };
+  const changeDirectoryFilter = (name: string, value: string) => {
+    setPeoplePage(1);
+    setTeachersPage(1);
+    setFilter(name as keyof typeof filters, value);
+  };
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
@@ -154,21 +168,25 @@ function PeoplePage() {
       filters.province,
       filters.municipality,
       filters.role,
+      filters.personStatus,
+      peoplePage,
     ],
     queryFn: () =>
-      searchPeople({
+      searchPeoplePage({
         data: {
           query: deferredQuery,
           province: filters.province || undefined,
           municipality: filters.municipality || undefined,
           role: (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
-          limit: 50,
+          status: filters.personStatus as "todos" | "active" | "inactive",
+          page: peoplePage,
+          pageSize: DIRECTORY_PAGE_SIZE,
         },
       }),
     enabled: Boolean(account.id && account.schoolId),
   });
 
-  const peoplePhotoKey = (peopleQuery.data ?? [])
+  const peoplePhotoKey = (peopleQuery.data?.items ?? [])
     .map((row) => (typeof row.photo_url === "string" ? row.photo_url : ""))
     .filter(Boolean)
     .join("|");
@@ -185,13 +203,15 @@ function PeoplePage() {
       account.schoolId,
       filters.q,
       filters.teacherStatus,
+      teachersPage,
     ],
     queryFn: () =>
-      listTeachers({
+      listTeachersPage({
         data: {
           query: filters.q || undefined,
           status: filters.teacherStatus as "all" | "active" | "inactive",
-          limit: 100,
+          page: teachersPage,
+          pageSize: DIRECTORY_PAGE_SIZE,
         },
       }),
     enabled: Boolean(account.id && account.schoolId),
@@ -204,13 +224,11 @@ function PeoplePage() {
   });
 
   const person = personQuery.data;
-  const people = (peopleQuery.data ?? []).filter(
-    (row) => filters.personStatus === "todos" || row.status === filters.personStatus,
-  );
+  const people = peopleQuery.data?.items ?? [];
   const personOptionFor = (row: { full_name: string; id: string }) =>
     `${row.full_name} · ${row.id.slice(0, 8)}`;
   const personOptions = people.map(personOptionFor);
-  const teachers = teachersQuery.data ?? [];
+  const teachers = teachersQuery.data?.items ?? [];
   const peopleExportColumns = [
     { label: "Nome", value: (row: (typeof people)[number]) => String(row.full_name ?? "") },
     { label: "Email", value: (row: (typeof people)[number]) => String(row.email ?? "") },
@@ -357,9 +375,9 @@ function PeoplePage() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => exportCsv("professores-filtrados", teacherExportColumns, teachers)}
+              onClick={() => exportCsv("professores-pagina", teacherExportColumns, teachers)}
             >
-              <Download className="size-4" /> Prof. CSV
+              <Download className="size-4" /> Prof. CSV · página
             </Button>
             <Button
               variant="outline"
@@ -510,8 +528,8 @@ function PeoplePage() {
         <ListFilterBar
           values={filters}
           activeCount={activeCount}
-          onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
-          onReset={resetFilters}
+          onChange={changeDirectoryFilter}
+          onReset={resetDirectoryFilters}
           fields={[
             {
               name: "q",
@@ -607,7 +625,7 @@ function PeoplePage() {
                       ? "Limpar filtros"
                       : undefined
                   }
-                  onAction={resetFilters}
+                  onAction={resetDirectoryFilters}
                 />
               ) : (
                 <EntityList
@@ -676,7 +694,7 @@ function PeoplePage() {
                           filters.q.trim() || filters.teacherStatus !== "all" ? "filtered" : "empty"
                         }
                         entityLabel="professores"
-                        onClearFilters={resetFilters}
+                        onClearFilters={resetDirectoryFilters}
                       />
                     ) : (
                       teachers.map((teacher) => (
@@ -814,6 +832,14 @@ function PeoplePage() {
               </div>
             }
           />
+          {!teachersQuery.isError && !teachersQuery.isLoading ? (
+            <ListPaginationBar
+              page={teachersPage}
+              pageSize={DIRECTORY_PAGE_SIZE}
+              totalItems={teachersQuery.data?.total ?? 0}
+              onPageChange={setTeachersPage}
+            />
+          ) : null}
         </div>
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
@@ -821,7 +847,7 @@ function PeoplePage() {
             <div>
               <h2 className="font-display text-base font-bold">Registo central</h2>
               <p className="text-xs text-muted-foreground">
-                Pessoas da escola — clique numa linha para ver a ficha.
+                Pessoas da escola — clique numa linha para ver a ficha. A exportação abrange a página actual.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -832,7 +858,7 @@ function PeoplePage() {
                 onClick={() => exportCsv("pessoas-filtradas", peopleExportColumns, people)}
                 disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
-                <Download className="size-3.5" /> CSV
+                <Download className="size-3.5" /> CSV · página
               </Button>
               <Button
                 size="sm"
@@ -849,7 +875,7 @@ function PeoplePage() {
                 }
                 disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
-                <FileDown className="size-3.5" /> PDF
+                <FileDown className="size-3.5" /> PDF · página
               </Button>
               <Button
                 size="sm"
@@ -858,7 +884,7 @@ function PeoplePage() {
                 onClick={exportarRegistoOficial}
                 disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
-                <FileBadge className="size-3.5" /> Oficial
+                <FileBadge className="size-3.5" /> Oficial · página
               </Button>
             </div>
           </div>
@@ -886,7 +912,7 @@ function PeoplePage() {
                       : "Utilize Nova pessoa para iniciar o registo."
                   }
                   actionLabel={activeCount ? "Limpar filtros" : undefined}
-                  onAction={resetFilters}
+                  onAction={resetDirectoryFilters}
                 />
               ) : (
                 <EntityList
@@ -952,7 +978,7 @@ function PeoplePage() {
                         colSpan={4}
                         kind={activeCount ? "filtered" : "empty"}
                         entityLabel="pessoas"
-                        onClearFilters={resetFilters}
+                        onClearFilters={resetDirectoryFilters}
                       />
                     ) : (
                       people.map((row) => (
@@ -1035,6 +1061,14 @@ function PeoplePage() {
               </div>
             }
           />
+          {!peopleQuery.isError && !peopleQuery.isLoading ? (
+            <ListPaginationBar
+              page={peoplePage}
+              pageSize={DIRECTORY_PAGE_SIZE}
+              totalItems={peopleQuery.data?.total ?? 0}
+              onPageChange={setPeoplePage}
+            />
+          ) : null}
         </div>
       </div>
 
