@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { resolveCrudStagingConfig } from "./helpers/crud-staging-safety";
+import {
+  isUnexpectedCrudSupabaseOrigin,
+  resolveCrudStagingConfig,
+} from "./helpers/crud-staging-safety";
 
 /**
  * Apenas leitura, opt-in, dois tenants reais de STAGING com marcadores fictícios
@@ -29,12 +32,9 @@ test.describe("CRUD Premium — pessoas, isolamento entre escolas @staging-reado
       });
       let blockedSupabaseRequests = 0;
       await context.route("**/*", async (route) => {
-        const target = new URL(route.request().url());
         // Abortamos qualquer API Supabase diferente do staging declarado.
         // Não registar URLs de pedidos: podem conter identificadores pessoais.
-        const isSupabase =
-          target.hostname === "supabase.co" || target.hostname.endsWith(".supabase.co");
-        if (isSupabase && target.origin !== config.supabaseOrigin) {
+        if (isUnexpectedCrudSupabaseOrigin(route.request().url(), config.supabaseOrigin)) {
           blockedSupabaseRequests += 1;
           await route.abort("blockedbyclient");
           return;
