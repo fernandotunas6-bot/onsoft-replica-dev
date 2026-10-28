@@ -217,6 +217,40 @@ function PeoplePage() {
     enabled: Boolean(account.id && account.schoolId),
   });
 
+  // A troca de escola ou de filtros restaurados pela URL nunca herda uma
+  // página avançada de outro universo de resultados.
+  useEffect(() => {
+    setPeoplePage(1);
+    setTeachersPage(1);
+  }, [
+    account.id,
+    account.schoolId,
+    deferredQuery,
+    filters.province,
+    filters.municipality,
+    filters.role,
+    filters.personStatus,
+    filters.teacherStatus,
+  ]);
+
+  // Depois de uma desactivação ou de um filtro, a página actual pode deixar
+  // de existir. Corrige-a sem fingir que o universo inteiro está vazio.
+  useEffect(() => {
+    const total = peopleQuery.data?.total;
+    if (typeof total !== "number") return;
+    setPeoplePage((current) =>
+      Math.min(current, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE))),
+    );
+  }, [peopleQuery.data?.total]);
+
+  useEffect(() => {
+    const total = teachersQuery.data?.total;
+    if (typeof total !== "number") return;
+    setTeachersPage((current) =>
+      Math.min(current, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE))),
+    );
+  }, [teachersQuery.data?.total]);
+
   const personQuery = useQuery({
     queryKey: ["people", "detail", account.id, account.schoolId, selectedId],
     queryFn: () => getPerson({ data: { id: selectedId! } }),
