@@ -1457,24 +1457,17 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       }
     }
 
-    // Os alunos já activos nesta turma não precisam de UPDATE. As matrículas
-    // pendentes e os alunos movidos só contam depois de confirmação efectiva.
-    const enrolled = new Set(
-      currentRows
-        .filter((row) => row.class_group_id === group.id && row.status === "active")
-        .map((row) => row.student_id),
-    );
-
-    // Uma única política para mover/confirmar: condições CAS por matrícula,
-    // escola, aluno, turma de origem e estado observado. Falhas individuais
-    // não podem apagar uma mudança concorrente nem ser contadas como êxito.
+    // Todos os vínculos do ano (inclusive os já activos na turma) devem ser
+    // confirmados contra o estado actual: uma lista carregada antes de outra
+    // transferência não é prova de que o aluno ainda está neste destino.
+    // O helper não grava os no-op; mudanças e pendentes usam CAS.
     const committed = await commitExistingEnrollmentPlacements(db, {
       schoolId,
       targetClassGroupId: group.id,
       userId: context.userId,
-      rows: [...toMove, ...toConfirm],
+      rows: currentRows,
     });
-    for (const studentId of committed.placedIds) enrolled.add(studentId);
+    const enrolled = new Set(committed.placedIds);
     failed.push(...committed.failed);
 
     // Quem tinha saído (anulado, desistente…) volta a candidato para enroll_student o aceitar.
