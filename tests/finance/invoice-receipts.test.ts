@@ -6,7 +6,12 @@ import {
 } from "@/features/finance/invoice-receipts";
 
 function receipt(id: number, invoiceId = "invoice-a"): InvoiceReceiptRow {
-  return { id: `receipt-${String(id).padStart(5, "0")}`, invoice_id: invoiceId, amount: 0.1, status: "issued" };
+  return {
+    id: `receipt-${String(id).padStart(5, "0")}`,
+    invoice_id: invoiceId,
+    amount: 0.1,
+    status: "issued",
+  };
 }
 
 describe("listagem financeira — recibos completos por fatura", () => {
