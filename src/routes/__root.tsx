@@ -1,3 +1,4 @@
+import { SigaOpening } from "@/components/brand/SigaOpening";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -213,6 +214,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <TenantProvider>
         <AppearanceProvider>
+          {/* Abertura de marca só na app escolar; as páginas públicas não a mostram. */}
+          {isPublic ? null : <SigaOpening />}
           <DesktopIntegration />
           <DesktopVaultGate />
           <div className="relative pt-[env(safe-area-inset-top,0)] flex min-h-screen flex-col">
