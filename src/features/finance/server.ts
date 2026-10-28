@@ -42,6 +42,7 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
+import { loadCompleteInvoiceReceipts, receiptsPaidByInvoice } from "./invoice-receipts";
 import {
   buildInvoiceDetail,
   type InvoiceChargeRow,
@@ -726,43 +727,65 @@ export const listInvoices = createServerFn({ method: "GET" })
       ),
     ] as string[];
 
-    const [{ data: contracts }, { data: feeItems }, { data: receipts }] = await Promise.all([
+    const [contractsResult, feeItemsResult, receiptResult] = await Promise.all([
       contractIds.length
-        ? db.from("finance_contracts").select("id, enrollment_id").in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
-      feeIds.length
-        ? db.from("fee_items").select("id, name, kind").in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string; kind: string }> }),
-      invoiceIds.length
         ? db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .in("invoice_id", invoiceIds)
-        : Promise.resolve({
-            data: [] as Array<{ invoice_id: string; amount: number; status: string }>,
-          }),
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", contractIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }>, error: null }),
+      feeIds.length
+        ? db
+            .from("fee_items")
+            .select("id, name, kind")
+            .eq("school_id", membership.schoolId)
+            .in("id", feeIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string; kind: string }>, error: null }),
+      loadCompleteInvoiceReceipts(invoiceIds, (ids, from, to) =>
+        db
+          .from("finance_receipts")
+          .select("id, invoice_id, amount, status")
+          .eq("school_id", membership.schoolId)
+          .in("invoice_id", ids)
+          .order("id")
+          .range(from, to),
+      ),
     ]);
+    if (contractsResult.error) {
+      throw publicDatabaseError(contractsResult.error, "Não foi possível identificar os contratos.");
+    }
+    if (feeItemsResult.error) {
+      throw publicDatabaseError(feeItemsResult.error, "Não foi possível consultar as rubricas.");
+    }
+    if (receiptResult.error) {
+      throw publicDatabaseError(receiptResult.error, "Não foi possível verificar os recibos.");
+    }
+    const contracts = contractsResult.data;
+    const feeItems = feeItemsResult.data;
+    const receipts = receiptResult.data;
 
     const enrollmentIds = [
       ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
     ];
-    const { data: enrollments } = enrollmentIds.length
-      ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
-      : { data: [] as Array<{ id: string; student_id: string }> };
+    const enrollmentResult = enrollmentIds.length
+      ? await db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", enrollmentIds)
+      : { data: [] as Array<{ id: string; student_id: string }>, error: null };
+    if (enrollmentResult.error) {
+      throw publicDatabaseError(enrollmentResult.error, "Não foi possível consultar as matrículas.");
+    }
+    const enrollments = enrollmentResult.data;
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const students = await loadStudentDirectory(db, membership.schoolId, studentIds);
     const studentById = new Map(students.map((row) => [row.student_id, row]));
     const enrollmentById = new Map((enrollments ?? []).map((row) => [row.id, row]));
     const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
     const feeById = new Map((feeItems ?? []).map((row) => [row.id, row]));
-    const paidByInvoice = new Map<string, number>();
-    for (const receipt of receipts ?? []) {
-      if (receipt.status === "reversed") continue;
-      paidByInvoice.set(
-        receipt.invoice_id,
-        (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
-      );
-    }
+    const paidByInvoice = receiptsPaidByInvoice(receipts);
     // A multa que um pagamento registado hoje levaria (late-fee.ts): a tesouraria vê-a
     // antes de receber, em vez de a fatura ficar «parcial» depois.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
