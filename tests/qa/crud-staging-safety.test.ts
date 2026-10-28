@@ -33,9 +33,9 @@ describe("bloqueio de chamadas Supabase durante o ensaio E2E", () => {
         staging,
       ),
     ).toBe(true);
-    expect(isUnexpectedCrudSupabaseOrigin("https://outroprojeto.supabase.co/rest/v1", staging)).toBe(
-      true,
-    );
+    expect(
+      isUnexpectedCrudSupabaseOrigin("https://outroprojeto.supabase.co/rest/v1", staging),
+    ).toBe(true);
   });
 });
 
@@ -112,9 +112,7 @@ describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
 
   it("não aceita extensões de armazenamento de credenciais diferentes de JSON", () => {
     expect(() =>
-      resolveCrudStagingConfig(
-        makeEnv({ SIGA_CRUD_E2E_TENANT_A_STATE: "/tmp/escola-a.txt" }),
-      ),
+      resolveCrudStagingConfig(makeEnv({ SIGA_CRUD_E2E_TENANT_A_STATE: "/tmp/escola-a.txt" })),
     ).toThrow(/ficheiros JSON/);
   });
 
