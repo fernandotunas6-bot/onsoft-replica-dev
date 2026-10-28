@@ -112,3 +112,30 @@ Manter o ecossistema WEB / ADMIN / SIGA / PAYFLOW / DOC, o contrato dos tipos `s
 ### Limitações assumidas
 
 O varrimento avançado é correcto e limitado, mas não é ainda o desenho final de pesquisa optimizada para dezenas de milhares de matrículas e pessoas. Uma próxima iteração deverá avaliar selectividade, índices de pesquisa, estratégia de filtro por vínculos e execução no PostgreSQL, mantendo autorização e histórico. Nenhum SQL foi aplicado em produção.
+
+
+## Lote 3 — formulários de edição rápida (em validação)
+
+### Código implementado nesta iteração
+
+- `QuickFormModal` aceita `validate(values)` por campo; mostra problemas ao lado do campo correcto com `aria-invalid`, `aria-describedby`, foco no primeiro campo inválido e sem chamar o servidor.
+- A submissão pelo Enter usa o mesmo fluxo do botão Guardar, com guarda síncrona contra duplo clique. Impede o fecho da janela durante a mutação.
+- Em falha do servidor, mantém os valores escritos e apresenta aviso no formulário; o utilizador pode corrigir e tentar novamente. Em êxito, fecha e limpa o estado temporário.
+- Campo BI/NIF expõe estado acessível de validação ao componente universal.
+- Os formulários **Novo professor**, **Editar professor** e **Editar Pessoa** usam `validateTeacherQuickForm` e `validatePersonQuickEdit`, reutilizando os schemas Zod existentes para nome, e-mail e BI, mais a validação local angolana de telefone.
+- **Edição de Pessoa**: opcional `expectedUpdatedAt` em `updatePersonInputSchema`; o servidor aplica `UPDATE ... WHERE school_id AND id AND updated_at` e rejeita actualização concorrente antes de sincronizar documentos associados. Mantém compatibilidade de contrato com chamadas legadas que não enviam versão.
+
+### Testes
+
+- `tests/people/quick-form-validation.test.ts`: nome curto, e-mail inválido, telefone inválido, NIF inválido, opcionais vazios e valores válidos.
+- `tests/ui/quick-form-validation.test.tsx`: validação acessível antes de gravar, preservação de valores em erro e prevenção de submissões duplicadas/fecho durante gravação.
+- `tests/people/schemas.test.ts`: versão de edição opcional e entradas inválidas.
+- **Gate**: nenhum teste pode ser marcado aprovado sem CI executado na SHA final.
+
+### Próximas melhorias que permanecem pendentes
+
+- CAS/versões e atomicidade de `updateTeacher` (actualiza duas tabelas): exige transacção/RPC segura e testes em staging, não tentar corrigir só com UI.
+- Revalidar no servidor todos os campos e permissões; a validação da interface não é controlo de segurança.
+- Conflitos multi-tenant e sessões MFA autenticadas testados directamente em staging.
+- E2E real com teclado/mobile/assistivas e reconciliação com trabalhos paralelos antes de fazer merge.
+- Nenhuma migração SQL, credencial ou dado de produção é modificado nesta iteração.
