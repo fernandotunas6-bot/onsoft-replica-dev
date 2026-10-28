@@ -58,6 +58,7 @@ import {
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
+import { buildBulkClassFeedback } from "@/features/students/batch-feedback";
 import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -1548,14 +1549,29 @@ function StudentsPage() {
                           academicYearId: yearId,
                         },
                       });
-                      toast.success(`${result.count} alunos na turma ${result.className}.`);
-                      if (result.failed.length) {
-                        toast.warning(
-                          `${result.failed.length} não ficaram matriculados: ${result.failed[0]?.message ?? ""}`,
+                      const feedback = buildBulkClassFeedback(
+                        result,
+                        selectedIds,
+                        new Map(allStudents.map((student) => [student.id, student.full_name])),
+                      );
+                      // Conservar só os alunos com falha: o utilizador pode
+                      // corrigir o problema e repetir sem nova pesquisa.
+                      setSelectedIds(feedback.retryStudentIds);
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["academic", "pedagogical-workspace"],
+                        }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                      ]);
+                      if (feedback.failureMessage) {
+                        if (feedback.successMessage) toast.success(feedback.successMessage);
+                        // O QuickFormModal mantém-se aberto e mostra o erro;
+                        // não anuncia sucesso total perante resultados parciais.
+                        throw new Error(
+                          [feedback.failureMessage, feedback.failureDetails].filter(Boolean).join("\n"),
                         );
                       }
-                      setSelectedIds([]);
-                      await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                     }}
                     trigger={(open) => (
                       <Button
