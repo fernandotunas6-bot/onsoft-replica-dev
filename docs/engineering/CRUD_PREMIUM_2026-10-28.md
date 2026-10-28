@@ -181,3 +181,26 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Fluxos em lote: mudança de múltiplos alunos deve ser transaccional ou comunicar claramente êxitos parciais; não prometer atomicidade onde o servidor actualmente processa várias operações.
 - Regressão visual da matrícula, transferência, lote, fecho de ano, preservação de notas/pautas e caminhos de recuperação.
 - A PR permanece em `draft` até validação. Nenhum SQL ou dado de produção foi modificado.
+
+
+## Lote 5 — primeira entrega: integridade da gravação de notas
+
+### Implementação
+
+- `src/features/academic/assessment-score-write.ts` valida todos os valores antes da escrita: IDs de matrícula únicos, valor finito, mínimo zero, máximo 20 e cotação específica da avaliação.
+- Reenvio da mesma nota não provoca `UPDATE`, não altera `updated_at` e não duplica auditoria. A comparação diferencia ausência de nota de zero.
+- A consulta às notas existentes recebe `school_id` explícito, além do item e da lista de matrículas.
+- Edição de nota usa compare-and-swap em `id`, escola, item, matrícula e valor anterior (inclusive `NULL`); se outra sessão alterou a nota entretanto, a operação recusa substituir o valor.
+- As alterações que realmente foram gravadas geram os eventos `grades.assessment_score_changed`. Em caso de lote parcialmente aplicado, os `UPDATE` confirmados são auditados antes de comunicar a falha. Erros e conflitos continuam a emitir telemetria operacional.
+- O retorno `{ saved: number }` continua compatível com os consumidores anteriores. O bloqueio de pautas homologadas e de trimestres fechados permanece obrigatório antes das notas.
+- A solução usa os gatilhos e contratos Supabase existentes, sem migrações nem escritas em produção.
+
+### Regressões adicionadas
+
+`tests/academic/assessment-score-write.test.ts` cobre duplicação de aluno, escala inválida, aluno fora da turma, reenvio inalterado, nota modificada com auditoria, concorrência e conversão de nota ausente para zero. Mantêm-se `tests/academic/assessment-score-audit.test.ts` e `tests/academic/assessment-lock.test.ts`.
+
+### Limites e gates
+
+- A gravação continua a ser um lote de operações, não uma única transacção PostgreSQL. O teste de carga/conflito com professores reais e RPC transaccional deve ser feito em staging antes de qualquer fusão.
+- Ainda falta validar autorização directa por atribuição de disciplina, contas de escolas distintas, pauta anual homologada, e visual das mensagens de conflito em mobile.
+- A aprovação exige o CI da **SHA final** e ensaio autenticado em staging; esta secção documenta código, não declara produção pronta.
