@@ -1232,6 +1232,7 @@ function PeoplePage() {
                         await updatePerson({
                           data: {
                             personId: person.id,
+                            expectedUpdatedAt: person.updated_at ?? undefined,
                             fullName: values["nome"] ?? person.full_name,
                             email: values["email"] || undefined,
                             phone: values["telefone"] || undefined,
