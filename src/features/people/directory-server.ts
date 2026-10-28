@@ -154,11 +154,15 @@ export const searchPeoplePage = createServerFn({ method: "GET" })
         : rows;
       const roleMap = await personRoleMap(db, membership.schoolId, candidates.map((p) => String(p["id"])), roleFilter);
       return candidates
-        .map((person) => personRow(person, [...(roleMap.get(String(person["id"])) ?? [])]))
-        .filter((person) =>
+        .map((record) => ({
+          fieldsMatch: personFieldsMatch(record, term),
+          person: personRow(record, [...(roleMap.get(String(record["id"])) ?? [])]),
+        }))
+        .filter(({ person, fieldsMatch }) =>
           (!roleFilter || person.roles.includes(roleFilter)) &&
-          (!term || personFieldsMatch(person as unknown as Row, term) || person.roles.some((role) => role.includes(term))),
-        );
+          (!term || fieldsMatch || person.roles.some((role) => role.includes(term))),
+        )
+        .map(({ person }) => person);
     }
 
     // Navegação normal: o Postgres faz o count e o range; não há scan completo.
@@ -167,7 +171,7 @@ export const searchPeoplePage = createServerFn({ method: "GET" })
       const result = await readPeople(db, membership.schoolId, scope, data, offset, data.pageSize, true);
       return {
         items: await hydrate(result.rows),
-        total: result.count ?? 0,
+        total: result.count ?? (() => { throw new Error("Contagem de pessoas indisponível."); })(),
         page: data.page,
         pageSize: data.pageSize,
       };
@@ -258,7 +262,7 @@ export const listTeachersPage = createServerFn({ method: "GET" })
       const found = await read((data.page - 1) * data.pageSize, data.pageSize, true);
       return {
         items: await prepare(found.rows),
-        total: found.total ?? 0,
+        total: found.total ?? (() => { throw new Error("Contagem de professores indisponível."); })(),
         page: data.page,
         pageSize: data.pageSize,
       };
