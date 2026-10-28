@@ -156,6 +156,23 @@ describe("/pedagogica/turmas/$turmaId", () => {
       await waitFor(() => expect(screen.getByText("Ana Paula Silva")).toBeDefined());
       expect(screen.queryByText("Bruno Kiala")).toBeNull();
       await waitFor(() => expect(scrolled).toContain("turma-alunos"));
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Alunos (1)" }));
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("o acesso a Resumo desloca a página e coloca o foco no título", async () => {
+    const scrolled: string[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.id);
+    };
+    try {
+      open({ secao: "resumo" });
+      await waitFor(() => expect(scrolled).toContain("turma-resumo"));
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Resumo" }));
+      expect(screen.getByText("Ana Paula Silva")).toBeDefined();
     } finally {
       Element.prototype.scrollIntoView = original;
     }

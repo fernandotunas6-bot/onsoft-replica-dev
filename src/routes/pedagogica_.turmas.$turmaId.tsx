@@ -221,9 +221,10 @@ function TurmaDetail() {
   // Com a turma carregada, leva à secção pedida pelo menu.
   const turmaLoaded = Boolean(turma);
   useEffect(() => {
-    if (!turmaLoaded || !secao || secao === "resumo") return;
+    if (!turmaLoaded || !secao) return;
     document.getElementById(sectionId(secao))?.scrollIntoView?.({ block: "start" });
-  }, [turmaLoaded, secao]);
+    document.getElementById(`${sectionId(secao)}-titulo`)?.focus({ preventScroll: true });
+  }, [turmaLoaded, turma?.id, secao]);
   const classRelations = useRelations();
   const classSuggestions = useSuggestions();
 
@@ -415,13 +416,17 @@ function TurmaDetail() {
             aria-labelledby={`${sectionId("resumo")}-titulo`}
             className={
               account.role === "Professor"
-                ? "rounded-xl border border-border bg-card p-6 shadow-soft"
-                : "rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+                ? "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+                : "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
             }
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Resumo" />
-              <h2 id={`${sectionId("resumo")}-titulo`} className="font-display text-base font-bold">
+              <h2
+                id={`${sectionId("resumo")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
                 Resumo
               </h2>
             </div>
@@ -532,11 +537,15 @@ function TurmaDetail() {
           <section
             id={sectionId("alunos")}
             aria-labelledby={`${sectionId("alunos")}-titulo`}
-            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Users} size="sm" label="Alunos" />
-              <h2 id={`${sectionId("alunos")}-titulo`} className="font-display text-base font-bold">
+              <h2
+                id={`${sectionId("alunos")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
                 Alunos ({alunos.length})
               </h2>
             </div>
@@ -606,12 +615,13 @@ function TurmaDetail() {
           <section
             id={sectionId("disciplinas")}
             aria-labelledby={`${sectionId("disciplinas")}-titulo`}
-            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
               <h2
                 id={`${sectionId("disciplinas")}-titulo`}
+                tabIndex={-1}
                 className="font-display text-base font-bold"
               >
                 Professores &amp; Disciplinas ({disciplinas.length})
@@ -643,12 +653,13 @@ function TurmaDetail() {
           <section
             id={sectionId("horario")}
             aria-labelledby={`${sectionId("horario")}-titulo`}
-            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Calendar} size="sm" label="Horário" />
               <h2
                 id={`${sectionId("horario")}-titulo`}
+                tabIndex={-1}
                 className="font-display text-base font-bold"
               >
                 Horário ({horario.length})
@@ -682,12 +693,13 @@ function TurmaDetail() {
           <section
             id={sectionId("avaliacoes")}
             aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
-            className="rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
               <h2
                 id={`${sectionId("avaliacoes")}-titulo`}
+                tabIndex={-1}
                 className="font-display text-base font-bold"
               >
                 Avaliações
