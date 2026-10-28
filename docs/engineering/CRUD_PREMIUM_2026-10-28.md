@@ -231,3 +231,12 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Somatório de recibos em cêntimos, ignorando estados `reversed`; nunca converter um estorno em cobrança efectiva.
 - `tests/finance/invoice-receipts.test.ts` cobre mais de 1.200 recibos, paginação, divisão por ID, ausência de faturas, falhas intermédias, recusa de truncagem e arredondamento após estornos.
 - Ainda pendente: prova de integração com dados de volume no PostgreSQL de staging e ensaio com contabilista, tesoureiro e contas de duas escolas. Nenhuma migração nem dado de produção modificado.
+
+
+### Financeiro — faturas antigas na ficha do aluno
+
+- `listInvoices` continua a apresentar as faturas recentes e permite agora aplicar `includeOpen: true` também a pedidos filtrados por `studentId`. As páginas adicionais incluem o filtro `school_id` **e** os IDs de contratos desse aluno, obtidos e validados pelo servidor, nunca fornecidos pela UI.
+- A ficha `src/routes/alunos/$studentId.tsx` pede `includeOpen` para que faturas em aberto antigas não desapareçam por ultrapassarem o limite das 1.000 recentes.
+- O cliente mantém a separação entre dívida, faturas pagas e recebimentos confirmados: não há criação de recibos nem alterações financeiras nesta entrega.
+- Regressão de contrato em `tests/finance/list-invoices-open.test.ts` e `tests/finance/list-invoices-student.test.ts`, incluindo filtro de contratos nas páginas adicionais.
+- **Pendente**: teste E2E com aluno fictício com mais de 1.000 documentos, reversões/estornos, latência e sessão em escola diferente. A pesquisa paginada de faturas em aberto continua a usar os estados `open` e `partially_paid` da base; é necessário ensaio de consistência das facturas com estado desactualizado depois de estorno.
