@@ -27,9 +27,24 @@ test.describe("CRUD Premium — pessoas, isolamento entre escolas @staging-reado
         baseURL: config.baseUrl,
         viewport: { width: 1280, height: 900 },
       });
+      let blockedSupabaseRequests = 0;
+      await context.route("**/*", async (route) => {
+        const target = new URL(route.request().url());
+        // Abortamos qualquer API Supabase diferente do staging declarado.
+        // Não registar URLs de pedidos: podem conter identificadores pessoais.
+        const isSupabase =
+          target.hostname === "supabase.co" || target.hostname.endsWith(".supabase.co");
+        if (isSupabase && target.origin !== config.supabaseOrigin) {
+          blockedSupabaseRequests += 1;
+          await route.abort("blockedbyclient");
+          return;
+        }
+        await route.continue();
+      });
       try {
         const page = await context.newPage();
         await page.goto("/pessoas/", { waitUntil: "domcontentloaded" });
+        expect(new URL(page.url()).origin).toBe(config.baseUrl);
 
         // Uma sessão expirada ou acesso negado NÃO contam como isolamento bem-sucedido.
         await expect(page.getByRole("heading", { name: "Registo central" })).toBeVisible();
@@ -47,12 +62,16 @@ test.describe("CRUD Premium — pessoas, isolamento entre escolas @staging-reado
         ).toBeVisible();
         await expect(page.getByText(otherName, { exact: true })).toHaveCount(0);
         await expect(page.getByText("Não foi possível carregar pessoas.")).toHaveCount(0);
+        expect(blockedSupabaseRequests).toBe(0);
       } finally {
         await context.close();
       }
     };
 
-    await check(config.stateA, config.markerA, config.markerB);
-    await check(config.stateB, config.markerB, config.markerA);
+    // Sessões activas simultaneamente: detecta fuga de cache entre escolas.
+    await Promise.all([
+      check(config.stateA, config.markerA, config.markerB),
+      check(config.stateB, config.markerB, config.markerA),
+    ]);
   });
 });
