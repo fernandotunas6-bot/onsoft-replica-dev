@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { StudentLedgerPanel } from "@/features/finance/components/StudentLedgerPanel";
 import "@/styles.css";
+import { PaymentReferenceCard } from "@/features/finance/components/PaymentReferenceCard";
 export function Demo() {
   return (
     <main className="mx-auto max-w-6xl p-3 sm:p-6">
@@ -26,7 +27,17 @@ const invoices = createRoute({
   path: "/faturas",
   component: () => <p id="navigation-result">Destino de ensaio: {location.search}</p>,
 });
-const router = createRouter({ routeTree: rootRoute.addChildren([home, invoices]) });
+const payment = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pagamento",
+  component: () => (
+    <main className="mx-auto max-w-6xl p-3 sm:p-6">
+      <p className="mb-4 text-sm">Ensaio controlado · dados fictícios · sem pagamentos reais</p>
+      <PaymentReferenceCard invoiceId="invoice-demo" invoiceNumber="FT-ENSAIO" />
+    </main>
+  ),
+});
+const router = createRouter({ routeTree: rootRoute.addChildren([home, invoices, payment]) });
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
     <RouterProvider router={router} />

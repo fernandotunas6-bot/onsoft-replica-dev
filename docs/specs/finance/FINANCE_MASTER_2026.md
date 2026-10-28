@@ -115,3 +115,18 @@ A lista financeira passa a cartões no telemóvel (abaixo de 768 px), com pago,
 dívida e vencida visíveis em conjunto e área de selecção de 44 px. Tabela mantida
 nos restantes degraus. Ensaio reproduzível em
 `docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`; sessões reais pendentes.
+
+## Confirmação e conclusão de pagamentos — 28/10/2026
+
+A confirmação manual e a ficha do aluno passam a enviar chave de tentativa;
+uma RPC sem suporte não é repetida sem a chave. A referência verifica todos os
+recibos emitidos, falhando sem gerar valor se a leitura estiver incompleta.
+Pagamentos parciais não liquidam todos os planos; acertos ficam limitados à
+escola/factura. PDF/cache depois de um recibo aceite não transformam o pagamento
+em falha. O cartão bloqueia montantes antigos durante recálculo e mostra o recibo
+após sucesso; data e estado não dependem de um clique optimista.
+
+A assinatura com chave, a lógica de repetição e o índice único foram confirmados
+na base por leitura de metadados em 28/10. Isto actualiza a evidência histórica
+sobre esta capacidade, sem afirmar migrações ou ensaios transaccionais reais.
+Contratos, matriz e limites: [handoff](../../agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md).

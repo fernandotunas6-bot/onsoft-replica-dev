@@ -495,3 +495,12 @@ entre páginas e limite de 60. Layout em aparelhos continua por validar.
 Detalhes e limites: `docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`.
 Não confundir este ensaio do componente com validação integral do portal ou dos
 pagamentos. A vista de tablet/desktop e os estados do dinheiro foram preservados.
+
+### 28/10/2026 — cartão de pagamento
+
+| Âmbito | Estado | Evidência | Próximo passo |
+| --- | --- | --- | --- |
+| Referência/confirmar/cópia | validado em Chromium controlado | 320/390/768/1440 px; alvos de 44 px, recálculo bloqueado, clipboard e confirmação única com API fictícia | Sessões reais e aparelhos |
+| Sucesso após recibo | implementado e testado local | Estado do recibo, cache/PDF separados da liquidação em Faturas, Caixa e ficha | Ensaio operacional com Tesouraria |
+
+Ver `docs/agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md` para os limites.

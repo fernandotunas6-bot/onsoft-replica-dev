@@ -13,7 +13,10 @@ const ledger = `import {currentFixtureContext} from 'fixture:auth';
 export async function listStudentLedger({data}){const ctx=currentFixtureContext();window.__ledgerRequests=(window.__ledgerRequests||[]).concat([{...ctx,...data}]);
 await new Promise(r=>setTimeout(r,100));const mode=new URLSearchParams(location.search).get('mode');if(mode==='error')throw new Error('Falha controlada');if(mode==='empty')return [];
 return Array.from({length:73},(_,i)=>({studentId:ctx.school+'-'+i,name:i===0?'Aluno de Ensaio com Nome Institucional Muito Longo de Teste de Acessibilidade e Legibilidade':i===1?'Bento — sem facturas':'Estudante de ensaio '+String(i+1).padStart(2,'0'),number:String(i+1).padStart(7,'0'),classGroupId:i<50?'g1':'g2',className:i<50?'10.ª A — Manhã':'10.ª B — Tarde',gradeId:'grade1',gradeName:'10.ª classe',programId:i<50?'p1':'p2',programName:i<50?'Curso Técnico de Informática e Sistemas de Informação com Designação Extensa':'Enfermagem Geral',levelId:'level1',levelName:'Ensino Secundário Técnico-Profissional',active:i!==2,billed:i===1?0:25000,paid:i===1?0:i%3===0?25000:10000,outstanding:i===1?0:i%3===0?0:15000,overdue:i===1?0:i%3===0?0:15000,invoiceCount:i===1?0:1}));}`;
-const invoice = `export async function issueTuitionBatch({data}){window.__issuedBatches=(window.__issuedBatches||[]).concat([data]);await new Promise(r=>setTimeout(r,300));return {issued:data.studentIds.map(studentId=>({studentId,invoiceNumber:'FT-ENSAIO'})),skipped:[],failed:[]};}`;
+const invoice = `import {schoolTodayIso} from "@/lib/school-date";
+export async function issueTuitionBatch({data}){window.__issuedBatches=(window.__issuedBatches||[]).concat([data]);await new Promise(r=>setTimeout(r,300));return {issued:data.studentIds.map(studentId=>({studentId,invoiceNumber:'FT-ENSAIO'})),skipped:[],failed:[]};}
+export async function generateInvoicePaymentReference({data}) {window.__paymentReferenceRequests=(window.__paymentReferenceRequests||[]).concat([data]);await new Promise(r=>setTimeout(r,400));const amount=data.paidOn===schoolTodayIso()?11000:10000;return {multicaixa:{entity:'12345',reference:amount===11000?'111 222 333':'444 555 666',amountNumber:amount,amountFormatted:amount+' Kz',expiresAt:'30/10/2026'},lateFee:amount-10000,mobileWallets:[]};}
+export async function confirmManualMulticaixaPayment({data}) {window.__confirmedPayments=(window.__confirmedPayments||[]).concat([data]);await new Promise(r=>setTimeout(r,300));return {message:'Pagamento de ensaio registado.',receiptNumber:'RC-ENSAIO',invoiceStatus:'paid'};}`;
 export default defineConfig({
   root: import.meta.dirname,
   cacheDir: path.join(repo, "node_modules", ".cache", "finance-ledger-qa"),
@@ -31,7 +34,11 @@ export default defineConfig({
           return "\0fixture-auth";
         if (id === "../student-ledger-server" && importer?.endsWith("StudentLedgerPanel.tsx"))
           return "\0fixture-ledger";
-        if (id === "../server" && importer?.endsWith("StudentLedgerPanel.tsx"))
+        if (
+          id === "../server" &&
+          (importer?.endsWith("StudentLedgerPanel.tsx") ||
+            importer?.endsWith("PaymentReferenceCard.tsx"))
+        )
           return "\0fixture-invoice";
         if (
           id === "@/features/intelligence/active-context" ||

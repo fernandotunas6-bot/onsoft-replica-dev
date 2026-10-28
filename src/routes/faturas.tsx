@@ -1,3 +1,4 @@
+import { finishRecordedPayment } from "@/features/finance/finish-recorded-payment";
 import { lazy, Suspense, useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
@@ -446,19 +447,17 @@ function FaturasPage() {
                 },
               });
               paymentKey.settled(attempt);
-              await Promise.all([
-                queryClient.invalidateQueries({
-                  queryKey: ["finance", "invoices"],
-                }),
-                queryClient.invalidateQueries({ queryKey: ["finance", "student-ledger"] }),
-                queryClient.invalidateQueries({
-                  queryKey: ["finance", "reporting"],
-                }),
-                queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
-              ]);
-              // Número oficial vem do servidor (gerado atomicamente) — nunca do
-              // valor digitado, para o PDF impresso bater sempre com a base de dados.
-              await downloadReceipt(f, paid.receipt_number, amount);
+              await finishRecordedPayment({
+                receiptNumber: paid.receipt_number,
+                refresh: () =>
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["finance"] }),
+                    queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                    queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
+                  ]),
+                // O número oficial é o devolvido pelo servidor, mesmo que o PDF falhe.
+                print: () => downloadReceipt(f, paid.receipt_number, amount),
+              });
               if (paid?.library_document_code) {
                 toast.success(`Recibo arquivado · ${paid.library_document_code}`);
               }

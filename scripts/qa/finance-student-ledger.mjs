@@ -19,6 +19,12 @@ const report = {
     { cwd: repo, encoding: "utf8" },
   ).trim(),
   environment: "Chromium 140; controlled React component; fictional data; backend/session mocked",
+  paymentReferenceBlob: execFileSync(
+    "git",
+    ["hash-object", "src/features/finance/components/PaymentReferenceCard.tsx"],
+    { cwd: repo, encoding: "utf8" },
+  ).trim(),
+  paymentViewports: [],
   viewports: [],
   checks: [],
   pageErrors: [],
@@ -209,6 +215,54 @@ try {
   await expect(error.page.getByRole("checkbox")).toHaveCount(25);
   await error.ctx.close();
   report.checks.push("empty and network-error/retry states");
+  for (const [width, height] of [
+    [320, 800],
+    [390, 844],
+    [768, 1024],
+    [1440, 1000],
+  ]) {
+    const payment = await context(width, height, "pagamento");
+    const paymentPage = payment.page;
+    await expect(paymentPage.getByText("111 222 333", { exact: true })).toBeVisible();
+    const documentWidth = await paymentPage.evaluate(() => document.documentElement.scrollWidth);
+    await paymentPage.screenshot({ path: root + `payment-${width}.png`, fullPage: false });
+    expect(documentWidth).toBeLessThanOrEqual(width + 1);
+    const copyButton = paymentPage.getByRole("button", { name: "Copiar montante" });
+    const copyTarget = await copyButton.boundingBox();
+    expect(copyTarget.width).toBeGreaterThanOrEqual(44);
+    expect(copyTarget.height).toBeGreaterThanOrEqual(44);
+    const date = paymentPage.getByLabel("Data do pagamento no comprovativo");
+    await date.fill("2020-01-01");
+    await expect(copyButton).toBeDisabled();
+    await expect(
+      paymentPage.getByRole("button", { name: "Confirmar pagamento manualmente" }),
+    ).toBeDisabled();
+    await expect(paymentPage.getByText("444 555 666", { exact: true })).toBeVisible();
+    await payment.ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await copyButton.click();
+    await expect
+      .poll(() => paymentPage.evaluate(() => navigator.clipboard.readText()))
+      .toBe("10000");
+    paymentPage.on("dialog", (dialog) => dialog.accept());
+    await paymentPage.getByRole("button", { name: "Confirmar pagamento manualmente" }).dblclick();
+    await expect(paymentPage.getByText("Recibo RC-ENSAIO", { exact: true })).toBeVisible();
+    const sent = await paymentPage.evaluate(() => window.__confirmedPayments);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      invoiceId: "invoice-demo",
+      amount: 10000,
+      paidOn: "2020-01-01",
+      idempotencyKey: expect.any(String),
+    });
+    await expect(
+      paymentPage.getByRole("button", { name: "Confirmar pagamento manualmente" }),
+    ).toHaveCount(0);
+    report.paymentViewports.push({ width, height, documentWidth, copyTarget, result: "passed" });
+    await payment.ctx.close();
+  }
+  report.checks.push(
+    "payment card: four viewports; 44px controls; date recalculation blocks stale copy/confirmation; clipboard real; one fake confirmation with key and selected date; accepted receipt prevents resubmission",
+  );
   expect(report.pageErrors).toEqual([]);
   expect(report.blockedRequests).toEqual([]);
   report.result = "passed";

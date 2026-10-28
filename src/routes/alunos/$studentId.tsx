@@ -1,3 +1,5 @@
+import { finishRecordedPayment } from "@/features/finance/finish-recorded-payment";
+import { usePaymentAttemptKey } from "@/features/finance/use-payment-attempt-key";
 import { studentGenderLabel } from "@/lib/school-display";
 import { useMemo, useState, useRef, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -248,6 +250,7 @@ function NotFoundOrError({ title }: { title: string }) {
 }
 
 function StudentDetail() {
+  const paymentKey = usePaymentAttemptKey();
   const { studentId } = Route.useParams();
   const queryClient = useQueryClient();
   const [cardModalOpen, setCardModalOpen] = useState(false);
@@ -2017,6 +2020,12 @@ function StudentDetail() {
                                             "Numerário"
                                         ] ?? "cash";
                                       const reference = values["referencia"] || undefined;
+                                      const attempt = [
+                                        invoice.id,
+                                        amount,
+                                        method,
+                                        reference ?? "",
+                                      ].join("|");
                                       const paid = await recordInvoicePayment({
                                         data: {
                                           invoiceId: invoice.id,
@@ -2024,18 +2033,32 @@ function StudentDetail() {
                                           amount,
                                           method,
                                           reference,
+                                          idempotencyKey: paymentKey.keyFor(attempt),
                                         },
                                       });
-                                      await queryClient.invalidateQueries({
-                                        queryKey: ["finance", "invoices"],
+                                      paymentKey.settled(attempt);
+                                      await finishRecordedPayment({
+                                        receiptNumber: paid.receipt_number,
+                                        refresh: () =>
+                                          Promise.all([
+                                            queryClient.invalidateQueries({
+                                              queryKey: ["finance"],
+                                            }),
+                                            queryClient.invalidateQueries({
+                                              queryKey: ["dashboard", "overview"],
+                                            }),
+                                            queryClient.invalidateQueries({
+                                              queryKey: ["arquivos"],
+                                            }),
+                                          ]),
+                                        // O número oficial é o devolvido pelo servidor, mesmo que o PDF falhe.
+                                        print: () =>
+                                          downloadInvoiceReceipt(
+                                            invoice,
+                                            paid.receipt_number,
+                                            amount,
+                                          ),
                                       });
-                                      // Número oficial vem do servidor (gerado atomicamente) — nunca do
-                                      // valor digitado, para o PDF impresso bater sempre com a base de dados.
-                                      await downloadInvoiceReceipt(
-                                        invoice,
-                                        paid.receipt_number,
-                                        amount,
-                                      );
                                     }}
                                     trigger={(open) => (
                                       <Button

@@ -43,6 +43,7 @@ import {
 // Só o schema (zod puro, sem dependências pesadas) entra estaticamente; o
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
+import { readInvoicePaidAmount } from "./invoice-paid-amount";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
 import {
   buildInvoiceDetail,
@@ -1021,11 +1022,14 @@ export const recordInvoicePayment = createServerFn({ method: "POST" })
       paid_on: paidOnIso(data.paidAt),
     };
     const keyed = data.idempotencyKey ? { ...args, idempotency_key: data.idempotencyKey } : args;
-    let { data: outcome, error } = await context.supabase.rpc("register_payment", keyed);
-    // Base ainda sem `20261024100000_register_payment_idempotency_key.sql`: a função
-    // não conhece a chave (PGRST202). Paga como antes, sem protecção à repetição.
+    const { data: outcome, error } = await context.supabase.rpc("register_payment", keyed);
+    // Não retirar a chave para repetir uma escrita: isso poderia duplicar um
+    // pagamento após falha de rede. A assinatura com chave foi confirmada na
+    // produção em 28/10/2026; bases antigas precisam da migração existente.
     if (error?.code === "PGRST202" && data.idempotencyKey) {
-      ({ data: outcome, error } = await context.supabase.rpc("register_payment", args));
+      throw new Error(
+        "A confirmação segura de pagamentos está indisponível. Contacte a administração antes de repetir.",
+      );
     }
     if (error) {
       if (isRpcAuthDenied(error)) {
@@ -1114,21 +1118,12 @@ export const generateInvoicePaymentReference = createServerFn({ method: "POST" }
     if (invoice.status === "paid" || invoice.status === "cancelled") {
       throw new Error("Esta fatura já não tem valor por pagar.");
     }
-    const { data: receipts } = await db
-      .from("finance_receipts")
-      .select("amount")
-      .eq("school_id", membership.schoolId)
-      .eq("invoice_id", data.invoiceId)
-      .eq("status", "issued");
-    const alreadyPaid = (receipts ?? []).reduce(
-      (sum: number, r: { amount: unknown }) => sum + Number(r.amount || 0),
-      0,
-    );
+    const alreadyPaid = await readInvoicePaidAmount(db, membership.schoolId, data.invoiceId);
     // A referência é paga electronicamente: se hoje já é depois da tolerância, a liquidação
     // (webhook ou confirmação manual) aplica a multa, e a referência tem de a incluir.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
     const lateFee = lateFeeFor(invoice, billing, data.paidOn ?? todayIso(), "electronic");
-    const due = Math.round((invoiceNetTotal(invoice) + lateFee - alreadyPaid) * 100) / 100;
+    const due = invoiceOpenAmount(invoiceNetTotal(invoice) + lateFee, alreadyPaid);
     if (due <= 0.009) throw new Error("Esta fatura já não tem valor por pagar.");
     const amount = data.amount ?? due;
     if (amount > due + 0.01) {
@@ -1166,6 +1161,7 @@ const confirmManualPaymentInputSchema = z.object({
   method: z.string().trim().max(40).optional(),
   /** Dia do pagamento no comprovativo; sem ele, hoje. */
   paidOn: paidOnDateSchema.optional(),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
@@ -1186,31 +1182,28 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
         amount: data.amount,
         method: data.method ?? "multicaixa_express",
         ...(data.paidOn ? { paidAt: paidAtFromPaidOn(data.paidOn) } : {}),
+        ...(data.idempotencyKey ? { idempotencyKey: data.idempotencyKey } : {}),
         receiptNumber: `MCX-CONF-${data.reference.replace(/\s+/g, "")}`,
       },
     });
 
-    const db = await loadSgaAdminClient();
-    const normRef = normalizePaymentReference(data.reference);
-    // O pagamento já está registado e repetir podia duplicá-lo: não se lança,
-    // mas um plano que fica "pendente" com a fatura paga tem de ficar visível.
-    for (const [column, value] of [
-      ["invoice_id", data.invoiceId],
-      ["reference", normRef],
-    ] as const) {
+    // Uma prestação parcial não liquida todos os planos da factura. O acerto
+    // legado só é seguro quando o saldo da factura ficou integralmente pago.
+    if (payResult.invoice_status === "paid") {
+      const db = await loadSgaAdminClient();
       const { error: planError } = await db
         .from("finance_payment_plans")
         .update({ status: "settled", updated_at: new Date().toISOString() })
         .eq("school_id", membership.schoolId)
-        .eq(column, value)
+        .eq("invoice_id", data.invoiceId)
         .in("status", ["pending_gateway", "scheduled"]);
-      if (planError) {
+      // O recibo já está registado: uma falha deste acerto não é falha do
+      // pagamento e nunca deve levar o utilizador a pagá-lo outra vez.
+      if (planError)
         reportSigaError("finance.payment_plan.settle_failed", planError, {
           school_id: membership.schoolId,
           invoice_id: data.invoiceId,
-          by: column,
         });
-      }
     }
 
     return {
@@ -1218,6 +1211,7 @@ export const confirmManualMulticaixaPayment = createServerFn({ method: "POST" })
       paidAt: new Date().toISOString(),
       receiptId: payResult.id,
       receiptNumber: payResult.receipt_number,
+      invoiceStatus: payResult.invoice_status,
       message: `Pagamento de ${data.amount} AOA confirmado manualmente pela tesouraria. Recibo oficial ${payResult.receipt_number} emitido.`,
     };
   });
