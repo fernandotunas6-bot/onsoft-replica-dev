@@ -34,7 +34,11 @@ export function CrudListFeedbackRow({
         <TableCell colSpan={colSpan} className="p-4">
           <EmptyState
             compact
-            title={filtered ? "Nenhum resultado para os filtros aplicados" : `Ainda não existem ${entityLabel}`}
+            title={
+              filtered
+                ? "Nenhum resultado para os filtros aplicados"
+                : `Ainda não existem ${entityLabel}`
+            }
             description={
               filtered
                 ? "Experimente alterar os critérios ou limpar os filtros."
