@@ -25,7 +25,6 @@ import {
   publicSchoolEmail,
   publicSchoolPhone,
 } from "@/features/integrations/install";
-import { requireAal2 } from "@/features/hr/require-aal2";
 import {
   candidacyProcessNumber,
   decideEnrollmentApplicationInputSchema,
@@ -373,10 +372,8 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
-    // Aceitar cria pessoa e aluno; register_student exige 2FA. Verificado antes
-    // de escrever: sem isto, cada tentativa sem 2FA deixava pessoas órfãs.
+    // Validar a capacidade antes de criar pessoa e aluno.
     if (data.decision === "accepted") {
-      requireAal2(context.claims, "Aceitar uma candidatura e criar o aluno");
       // Aceitar cria um aluno: conta para o limite do plano, como «Novo aluno».
       await assertCanAddStudentForSchool(membership.schoolId);
     }
@@ -607,7 +604,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
               }
             : null,
         });
-        // A base recusa sem 2FA (private.is_aal2) ou sem permissão. Antes, este
+        // A base recusa sem permissão de escrita na escola. Antes, este
         // ramo repetia a escrita com a chave de serviço — contornava a recusa e
         // o registo do encarregado. Recusar e explicar.
         if (!registered.ok) {
@@ -682,7 +679,7 @@ export const decideEnrollmentApplication = createServerFn({ method: "POST" })
           // Sem desvio pela chave de serviço: saltaria a verificação de
           // capacidade da turma que enroll_student faz sob FOR UPDATE.
           throw rpcFailureError(enrolled, {
-            auth: "Aluno criado, mas esta conta precisa de 2FA activo para o colocar na turma.",
+            auth: "Aluno criado, mas esta conta não tem permissão para o colocar na turma.",
             fallback:
               "Candidatura aceite e aluno criado, mas não foi possível colocá-lo na turma. Faça-o na ficha do aluno.",
           });

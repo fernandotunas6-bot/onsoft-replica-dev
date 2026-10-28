@@ -43,7 +43,6 @@ import {
   hasCurrentEnrollment,
 } from "./enrollment-sync";
 import {
-  ENROLLMENT_2FA_MESSAGE,
   assertClassAcceptsEnrollment,
   enrollStudentRpc,
   heldStudentMessage,
@@ -57,7 +56,6 @@ import {
 } from "./enrollment-core";
 import { buildPersonInsert, isMissingPeopleGeography } from "@/features/people/person-fields";
 import { syncBiDocumentFromNif } from "@/features/people/bi-document";
-import { requireAal2 } from "@/features/hr/require-aal2";
 import { assertCanSeeStudent, loadStudentScope } from "./student-scope";
 import { recordAccessAudit, recordAuditBatch } from "@/features/audit/record-audit";
 import { queueTenantUsageSync } from "@/features/saas/usage-sync";
@@ -690,7 +688,6 @@ export const enrollNewStudent = createServerFn({ method: "POST" })
       "Administrador",
       "Secretaria",
     ]);
-    requireAal2(context.claims, "Matricular alunos");
     // Um reenvio de uma operação já concluída não acrescenta alunos e deve
     // funcionar mesmo quando o primeiro pedido ocupou o último lugar do plano.
     const db = await loadSgaAdminClient();
@@ -907,7 +904,6 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       academicYearId: data.academicYearId ?? null,
       enrolledOn: data.enrolledOn ?? null,
       userId: context.userId,
-      hasAal2: context.claims?.["aal"] === "aal2",
     });
     queueTenantUsageSync(membership.schoolId);
     return {
@@ -1427,15 +1423,6 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       if (held) failed.push({ studentId, message: held });
       else toEnroll.push(studentId);
     }
-    // Matricular, mudar de turma e confirmar exigem 2FA (auditoria 14, A3): recusado
-    // antes de mexer em qualquer aluno.
-    if (
-      (toEnroll.length || toMove.length || toConfirm.length) &&
-      context.claims?.["aal"] !== "aal2"
-    ) {
-      throw new Error(ENROLLMENT_2FA_MESSAGE);
-    }
-
     // Capacidade: tudo ou nada, antes de mexer em qualquer matrícula.
     const capacity = typeof group.capacity === "number" ? group.capacity : null;
     if (capacity && capacity > 0) {
