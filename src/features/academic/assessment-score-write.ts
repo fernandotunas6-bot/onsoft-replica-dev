@@ -149,40 +149,44 @@ export async function writeAssessmentScores(
     return current && !sameScore(current.score, row.score);
   });
 
-  const [insertResult, ...updateResults] = await Promise.all([
-    toInsert.length
-      ? db.from("siga_assessment_scores").insert(
-          toInsert.map((row) => ({
-            school_id: input.schoolId,
-            item_id: input.itemId,
-            enrollment_id: row.enrollmentId,
-            score: row.score,
-            recorded_by: input.userId,
-          })),
-        )
-      : Promise.resolve({ error: null }),
-    ...toUpdate.map((row) => {
-      const existing = existingByEnrollment.get(row.enrollmentId)!;
-      // Não sobrepor uma nota alterada por outro professor ou pela secretaria
-      // entre a leitura e o UPDATE (compare-and-swap, incluindo valor null).
-      let update = db
-        .from("siga_assessment_scores")
-        .update({
-          previous_score: existing.score,
+  // Manter os tipos dos resultados de INSERT e UPDATE separados: o lote de
+  // alterações devolve as linhas confirmadas pelo PostgREST (RETURNING id).
+  const insertPromise = toInsert.length
+    ? db.from("siga_assessment_scores").insert(
+        toInsert.map((row) => ({
+          school_id: input.schoolId,
+          item_id: input.itemId,
+          enrollment_id: row.enrollmentId,
           score: row.score,
           recorded_by: input.userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .eq("school_id", input.schoolId)
-        .eq("item_id", input.itemId)
-        .eq("enrollment_id", row.enrollmentId);
-      update =
-        existing.score == null
-          ? update.is("score", null)
-          : update.eq("score", existing.score);
-      return update.select("id");
-    }),
+        })),
+      )
+    : Promise.resolve({ error: null });
+  const updatePromises = toUpdate.map((row) => {
+    const existing = existingByEnrollment.get(row.enrollmentId)!;
+    // Não sobrepor uma nota alterada por outro professor ou pela secretaria
+    // entre a leitura e o UPDATE (compare-and-swap, incluindo valor null).
+    let update = db
+      .from("siga_assessment_scores")
+      .update({
+        previous_score: existing.score,
+        score: row.score,
+        recorded_by: input.userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .eq("school_id", input.schoolId)
+      .eq("item_id", input.itemId)
+      .eq("enrollment_id", row.enrollmentId);
+    update =
+      existing.score == null
+        ? update.is("score", null)
+        : update.eq("score", existing.score);
+    return update.select("id");
+  });
+  const [insertResult, updateResults] = await Promise.all([
+    insertPromise,
+    Promise.all(updatePromises),
   ]);
 
   // Se o lote tiver resultados mistos, auditar as notas efectivamente alteradas
