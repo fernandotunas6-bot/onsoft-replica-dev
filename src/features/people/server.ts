@@ -1633,8 +1633,12 @@ export const listTeachersPage = createServerFn({ method: "GET" })
   .validator((input: unknown) => listTeachersPageInputSchema.parse(input ?? {}))
   .handler(async ({ context, data }) => {
     if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
-    const membership = await resolveSgaMembershipAdmin(context.userId);
-    if (!membership) throw new Error("Sem vínculo activo com uma escola.");
+    // Directório de Pessoas: a membership isoladamente inclui aluno/encarregado.
+    // Exigir cargo de Secretaria/Administração e permissão do módulo no servidor.
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     return listTeachersDirectoryPage(db, membership, data);
   });
