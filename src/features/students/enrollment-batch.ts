@@ -40,9 +40,33 @@ export async function commitExistingEnrollmentPlacements(
   const failed: BatchPlacementFailure[] = [];
 
   for (const row of input.rows) {
-    // Uma repetição da mesma matrícula activa é um no-op.
+    // Uma repetição da mesma matrícula activa é um no-op, mas a leitura
+    // inicial pode já estar desactualizada. Confirmar no servidor, na escola e
+    // na turma pretendidas, antes de contabilizar um aluno como colocado.
     if (row.class_group_id === input.targetClassGroupId && row.status === "active") {
-      placedIds.push(row.student_id);
+      const { data: unchanged, error: readError } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", input.schoolId)
+        .eq("id", row.id)
+        .eq("student_id", row.student_id)
+        .eq("class_group_id", input.targetClassGroupId)
+        .eq("status", "active")
+        .maybeSingle();
+      if (readError) {
+        failed.push({
+          studentId: row.student_id,
+          message: publicDatabaseError(readError, "Não foi possível confirmar a matrícula.").message,
+        });
+      } else if (unchanged) {
+        placedIds.push(row.student_id);
+      } else {
+        failed.push({
+          studentId: row.student_id,
+          message:
+            "Esta matrícula foi alterada por outra sessão. Actualize a lista antes de tentar de novo.",
+        });
+      }
       continue;
     }
 
