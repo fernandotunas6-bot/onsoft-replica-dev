@@ -252,3 +252,45 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Não foram aplicadas migrações nem escritas em produção. Para bloquear também uma mudança de escola entre a validação e o INSERT, é necessário rever os constraints/FKs compostos tenant+aluno em PostgreSQL numa staging independente.
 - E2E autenticado com duas escolas e contas fictícias, emissão real de documento e simulação de falha de rede permanecem pendentes antes de remover `draft`.
 
+
+## Lote 7 — ensaio transversal autenticado e seguro em staging
+
+### Implementação da matriz de isolamento de Pessoas
+
+- `tests/e2e/crud-tenant-readonly.spec.ts`: fluxo Playwright sem escritas que usa **dois contextos de navegador independentes**, cada um com sessão de uma escola de staging.
+- Para cada escola, pesquisa uma pessoa fictícia que deve aparecer nessa escola e pesquisa a pessoa fictícia da outra escola, que deve devolver **ausência de resultados**, não erro de servidor. A página `Registo central` tem de abrir: uma sessão expirada ou falta de autorização não são aprovação.
+- Sem screenshots, gravação de vídeo ou traces (podem conter dados pessoais). O teste só corre com opt-in explícito `SIGA_CRUD_E2E=1`; o CI habitual não tenta abrir sessões escolares.
+- `tests/e2e/helpers/crud-staging-safety.ts`: recusa projectos de produção, URL Supabase divergente, frontend não local, duas sessões iguais, marcadores sobrepostos e parâmetros em falta. A verificação compara também URLs Supabase do frontend quando fornecidas.
+- `tests/qa/crud-staging-safety.test.ts` valida em Vitest os contratos de segurança do ensaio; estes testes de configuração **não necessitam de credenciais**.
+
+### Como executar localmente com dados fictícios de staging
+
+Preparar previamente no **projecto Supabase de staging independente**, nunca em produção:
+
+1. Uma conta autorizada da Escola A e outra da Escola B, com sessões Playwright separadas (ficheiros `storageState` temporários e privados, fora do repositório).
+2. Uma pessoa fictícia com nome único na Escola A e outra na Escola B, sem nomes parcialmente coincidentes.
+3. Aplicação SIGA servida localmente em `http://127.0.0.1:3006`, ligada ao **mesmo** projecto de staging (confirmar as variáveis da aplicação e do servidor).
+
+No ambiente de execução, sem inserir segredos no Git nem em mensagens de log:
+
+```bash
+export SIGA_CRUD_E2E=1
+export VITE_SIGA_URL=http://127.0.0.1:3006
+export SIGA_CRUD_E2E_PROJECT_REF=<REF_DO_STAGING>
+export SUPABASE_URL=https://<REF_DO_STAGING>.supabase.co
+export VITE_SUPABASE_URL="$SUPABASE_URL"
+export SIGA_CRUD_E2E_TENANT_A_STATE=/caminho/seguro/escola-a.json
+export SIGA_CRUD_E2E_TENANT_B_STATE=/caminho/seguro/escola-b.json
+export SIGA_CRUD_E2E_TENANT_A_MARKER="Pessoa Fictícia QA Escola A"
+export SIGA_CRUD_E2E_TENANT_B_MARKER="Pessoa Fictícia QA Escola B"
+bunx playwright test tests/e2e/crud-tenant-readonly.spec.ts
+```
+
+Os placeholders `<REF_DO_STAGING>` devem ser substituídos pelo identificador real. Os ficheiros `storageState` nunca devem ser versionados ou anexados. Não utilizar contas de alunos, escolas ou documentos reais. Se o staging não estiver preparado, registar o ensaio como **não executado**, nunca como aprovação.
+
+### Gates de entrega
+
+- CI da última SHA (lint, tipos, Vitest, SQL/SQLite, dependências) aprovado.
+- Playwright autenticado A/B executado efectivamente em staging e relatório de resultado confirmado.
+- Revisão de segurança e permissões, contratos com PRs paralelas, UX mobile e recuperação de falhas.
+- PR mantém-se `draft` e sem deploy enquanto o E2E autenticado não for realizado.
