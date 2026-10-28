@@ -159,6 +159,14 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Confirmação de uma matrícula pendente no mesmo ano/turma sem criar outra.
 - Mudança concorrente da turma após a leitura: operação recusada com conflito e sem sobrepor a outra sessão.
 
+### Matrículas existentes em lote — segunda entrega
+
+- Novo helper `src/features/students/enrollment-batch.ts`: alterações de turma e confirmação de pendentes utilizam `UPDATE` condicionado por matrícula, aluno, escola, estado e turma de origem; uma alteração concorrente é devolvida como conflito individual.
+- `batchAssignClass` já não marca a matrícula pendente como sucesso antes da confirmação e contabiliza transferências apenas depois da escrita efectiva.
+- A repetição de matrícula activa na turma de destino não provoca escrita. O lote preserva os êxitos individuais mesmo quando há conflito numa linha diferente, assinalando `success: false` e `failed`.
+- A capacidade concorrente continua garantida pelo gatilho da base, e não pelo pré-cálculo de vagas. Sem RPC transaccional para o lote inteiro, o resultado **pode ser parcial**, pelo que a interface tem de mostrar êxitos e falhas distintamente.
+- Testes em `tests/students/enrollment-batch.test.ts`: seis casos de repetição, confirmação, transferência, escola alheia, mudança concorrente e êxito parcial.
+
 ### Pendente para concluir o lote 4
 
 - Ensaio PostgreSQL simultâneo de último lugar da turma e sessões concorrentes, com contas fictícias e duas escolas em staging, respeitando o RLS e a AAL2.
