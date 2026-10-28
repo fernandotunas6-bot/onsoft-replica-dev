@@ -112,3 +112,14 @@ export function resolveCrudStagingConfig(env: Env): CrudStagingConfig | null {
 
   return { baseUrl: app.origin, stateA, stateB, markerA, markerB, supabaseOrigin: db.origin };
 }
+
+/**
+ * Defesa adicional durante o teste: qualquer chamada browser a um projecto
+ * Supabase não declarado é bloqueada, sem expor URL ou token nos logs.
+ */
+export function isUnexpectedCrudSupabaseOrigin(requestUrl: string, expectedOrigin: string) {
+  const target = new URL(requestUrl);
+  const isSupabase =
+    target.hostname === "supabase.co" || target.hostname.endsWith(".supabase.co");
+  return isSupabase && target.origin !== expectedOrigin;
+}
