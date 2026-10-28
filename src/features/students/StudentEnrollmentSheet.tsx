@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { schoolShiftLabel } from "@/lib/school-display";
 import { UserPlus } from "lucide-react";
 import { EnrollmentEntryDialog } from "./EnrollmentEntryDialog";
 import { toast } from "@/lib/toast";
@@ -736,7 +737,7 @@ export function StudentEnrollmentSheet({
                         {selectedTurma.room_name && selectedTurma.room_name !== "—"
                           ? `${selectedTurma.room_name} · `
                           : ""}
-                        {selectedTurma.shift ? `${selectedTurma.shift} · ` : ""}
+                        {selectedTurma.shift ? `${schoolShiftLabel(selectedTurma.shift)} · ` : ""}
                         {typeof selectedTurma.capacity === "number"
                           ? `${selectedTurma.enrolled_count ?? 0}/${selectedTurma.capacity} alunos`
                           : "Capacidade não definida"}

@@ -214,6 +214,20 @@ async function open(
 }
 
 describe("/alunos/$studentId — secções", () => {
+  it("apresenta códigos de género e classes já designadas sem duplicar a unidade", async () => {
+    const original = { gender: profile.student.gender, grade_name: profile.student.grade_name };
+    try {
+      profile.student.gender = "male";
+      profile.student.grade_name = "1.ª Classe";
+      await open({ secao: "identificacao" });
+      expect(screen.getByText("Masculino")).toBeDefined();
+      expect(document.body.textContent).toContain("1.ª Classe");
+      expect(document.body.textContent).not.toContain("Classe Classe");
+    } finally {
+      Object.assign(profile.student, original);
+    }
+  });
+
   it("sem secção, a ficha completa de sempre", async () => {
     await open({});
     await waitFor(() =>
