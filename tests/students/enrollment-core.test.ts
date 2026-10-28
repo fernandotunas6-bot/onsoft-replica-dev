@@ -216,6 +216,36 @@ describe("colocar em turma", () => {
     expect(store.writes).toEqual([]);
   });
 
+  it("não repara o estado do aluno se a matrícula da turma mudou entretanto", async () => {
+    const store = fixture({ status: "inactive" }, [
+      { id: "mat-1", class_group_id: "turma-b", academic_year_id: YEAR, status: "active" },
+    ]);
+    const originalFrom = (
+      store.db as unknown as { from: (table: string) => unknown }
+    ).from;
+    let enrollmentReads = 0;
+    const client = {
+      from(table: string) {
+        if (table === "enrollments" && ++enrollmentReads === 2) {
+          store.tables["enrollments"]![0]!["class_group_id"] = "turma-a";
+        }
+        return originalFrom(table);
+      },
+    };
+    const input = {
+      schoolId: SCHOOL,
+      studentId: "aluno-1",
+      classGroupId: "turma-b",
+      userId: "secretaria",
+      hasAal2: true,
+    };
+    await expect(
+      placeStudentInClass(client as never, { rpc: enrollRpc(store) } as never, input),
+    ).rejects.toThrow(/alterada por outra sessão/);
+    expect(statusOf(store)).toBe("inactive");
+    expect(store.writes).toEqual([]);
+  });
+
   it("confirma a matrícula pendente na mesma turma sem criar outro registo", async () => {
     const store = fixture({ status: "active" }, [
       { id: "mat-1", class_group_id: "turma-b", academic_year_id: YEAR, status: "pending" },
