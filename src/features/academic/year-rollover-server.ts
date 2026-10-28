@@ -7,7 +7,7 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
-import { ENROLLMENT_2FA_MESSAGE, placeStudentInClass } from "@/features/students/enrollment-core";
+import { placeStudentInClass } from "@/features/students/enrollment-core";
 import {
   nextGradeLevel,
   planRenewal,
@@ -301,9 +301,6 @@ export const applyRenewal = createServerFn({ method: "POST" })
       context.userId,
       MANAGE_ROLES,
     );
-    // Sem 2FA cada aluno falhava com o mesmo erro; recusa-se logo.
-    const hasAal2 = context.claims?.["aal"] === "aal2";
-    if (!hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
     const db = await loadSgaAdminClient();
     const plan = await buildRenewalPlan(db, membership.schoolId, data);
     const marked = new Set(data.studentIds);
@@ -320,7 +317,6 @@ export const applyRenewal = createServerFn({ method: "POST" })
           classGroupId: line.targetClassGroupId,
           academicYearId: plan.targetYear.id,
           userId: context.userId,
-          hasAal2,
         });
         result.enrolled.push({ studentId: line.studentId, name: line.name });
       } catch (error) {

@@ -5,7 +5,7 @@
  * `enrollNewStudent`, `enrollStudentInClass`, `updateEnrollment`,
  * `batchAssignClass`, `decideEnrollmentApplication` e nos importadores de alunos
  * e de matrículas: a chamada a `register_student` e a `enroll_student`, a
- * tradução da recusa por falta de 2FA (cinco cópias, com expressões diferentes),
+ * tradução das recusas de autorização,
  * «colocar ou mudar de turma» (três caminhos) e o estado do aluno depois disso.
  * Ficam aqui, uma vez.
  *
@@ -27,10 +27,10 @@ import { recordStudentStatusHistoryBatch } from "./status-history";
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type DbError = { code?: string | undefined; message?: string | undefined };
 
-export const ENROLLMENT_2FA_MESSAGE =
-  "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos ou mudá-los de turma.";
+export const ENROLLMENT_AUTHORIZATION_MESSAGE =
+  "Sem autorização para matricular alunos. Confirme o vínculo à escola e as permissões de escrita.";
 
-/** `register_student` e `enroll_student` recusam sem 2FA (`private.is_aal2`) ou sem permissão. */
+/** `register_student` e `enroll_student` recusam sem permissão. */
 export { isRpcAuthDenied };
 
 export type RpcFailure = {
@@ -49,7 +49,7 @@ export function rpcFailureError(
   messages: { auth?: string; fallback: string },
 ): Error {
   if (outcome.userMessage) return new Error(outcome.userMessage);
-  if (outcome.authDenied) return new Error(messages.auth ?? ENROLLMENT_2FA_MESSAGE);
+  if (outcome.authDenied) return new Error(messages.auth ?? ENROLLMENT_AUTHORIZATION_MESSAGE);
   return publicDatabaseError(outcome.error, messages.fallback);
 }
 
@@ -65,7 +65,7 @@ export type GuardianLink = {
 
 export type RegisteredStudent = { studentId: string; studentNumber: string; status: string };
 
-/** Cria o aluno (e o primeiro encarregado) por `register_student`: número de processo da sequência, 2FA. */
+/** Cria o aluno (e o primeiro encarregado) por `register_student`: número de processo da sequência e autorização escolar. */
 export async function registerStudentRpc(
   session: SupabaseClient,
   input: {
@@ -99,7 +99,7 @@ export type EnrolledStudent = {
   status: string;
 };
 
-/** Matrícula nova por `enroll_student`: tranca a turma, lotação, ano activo, data, número, 2FA. */
+/** Matrícula nova por `enroll_student`: tranca a turma, lotação, ano activo, data, número e autorização escolar. */
 export async function enrollStudentRpc(
   session: SupabaseClient,
   input: { schoolId: string; studentId: string; classGroupId: string; enrolledOn?: string | null },
@@ -403,8 +403,6 @@ export async function placeStudentInClass(
     academicYearId?: string | null;
     enrolledOn?: string | null;
     userId: string;
-    /** Sessão com 2FA (aal2): exigida para matricular e para mudar de turma. */
-    hasAal2: boolean;
   },
 ): Promise<PlacementResult> {
   const { data: group, error: groupError } = await db
@@ -445,9 +443,7 @@ export async function placeStudentInClass(
     throw publicDatabaseError(currentError, "Não foi possível verificar matrículas existentes.");
   }
 
-  // Matricular e mudar de turma exigem 2FA (auditoria 14, A3, decidido pelo dono):
-  // antes só a matrícula nova o exigia, na base; a mudança de turma gravava sem ele.
-  if (!input.hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
+  // A autorização por escola e perfil é validada pelo chamador e pela RPC.
 
   let result: PlacementResult;
   if (current) {

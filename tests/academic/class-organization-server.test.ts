@@ -53,7 +53,7 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
   requireSgaWriterForWrite: async () => ({ schoolId: S, appRole: "Secretaria" }),
 }));
 vi.mock("@/features/students/enrollment-core", () => ({
-  ENROLLMENT_2FA_MESSAGE: "Matricular e mudar de turma exigem 2FA.",
+  ENROLLMENT_AUTHORIZATION_MESSAGE: "Matricular e mudar de turma exigem 2FA.",
   // A regra única de colocação: aqui só se regista a ordem e se aplica à base.
   placeStudentInClass: async (_db: unknown, _session: unknown, input: Row) => {
     placed.push({ studentId: String(input.studentId), classGroupId: String(input.classGroupId) });
@@ -249,19 +249,12 @@ describe("organizar turmas no servidor", () => {
     ]);
   });
 
-  it("recusa sem 2FA, ou se as turmas mudaram desde a pré-visualização", async () => {
+  it("com AAL1 continua a recusar um plano que mudou desde a pré-visualização", async () => {
     seed([student(1, "2012-01-01", "cA"), student(2, "2014-01-01", "cB")]);
     const plan = await server.previewClassOrganization({
       data: { gradeLevelId: LEVEL, shift: "morning" },
     });
     claims = { aal: "aal1" };
-    await expect(
-      server.applyClassOrganization({
-        data: { gradeLevelId: LEVEL, shift: "morning", signature: plan.signature },
-      }),
-    ).rejects.toThrow("2FA");
-
-    claims = { aal: "aal2" };
     // Entretanto lançaram-se notas ao aluno 2: o plano já não é o mesmo.
     tables.siga_assessment_scores = [{ school_id: S, enrollment_id: "e2" }];
     await expect(

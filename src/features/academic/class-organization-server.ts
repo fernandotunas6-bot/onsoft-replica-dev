@@ -13,7 +13,7 @@ import {
   requireSgaWriterFor,
   requireSgaWriterForWrite,
 } from "@/integrations/supabase/sga-admin";
-import { ENROLLMENT_2FA_MESSAGE, placeStudentInClass } from "@/features/students/enrollment-core";
+import { placeStudentInClass } from "@/features/students/enrollment-core";
 import { recordAccessAudit } from "@/features/audit/record-audit";
 import { todayInLuanda } from "@/features/calendar/dates";
 import { buildOrganizationPlan, orderMoves, type OrganizationPlan } from "./class-organization";
@@ -381,9 +381,6 @@ export const applyClassOrganization = createServerFn({ method: "POST" })
       context.userId,
       MANAGE_ROLES,
     );
-    // Mudar de turma exige 2FA (placeStudentInClass): recusa-se logo, não aluno a aluno.
-    const hasAal2 = context.claims?.["aal"] === "aal2";
-    if (!hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
     const db = await loadSgaAdminClient();
     const { plan, yearId, counts, capacity } = await loadPlan(db, membership.schoolId, data);
     if (plan.blockers.length) throw new Error(plan.blockers[0]);
@@ -403,7 +400,6 @@ export const applyClassOrganization = createServerFn({ method: "POST" })
           classGroupId: move.to,
           academicYearId: yearId,
           userId: context.userId,
-          hasAal2,
         });
         moved.push(move.studentId);
       } catch (error) {

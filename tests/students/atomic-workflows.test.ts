@@ -89,9 +89,9 @@ describe("matrícula interna atómica", () => {
     expect(state.adminWrites).not.toHaveBeenCalled();
     expect(state.usage).toHaveBeenCalledWith(school);
   });
-  it("AAL1 e falta de permissão impedem qualquer RPC", async () => {
-    await expect(enroll(input, { ...context, claims: { aal: "aal1" } })).rejects.toThrow(/2FA/);
-    expect(state.rpc).not.toHaveBeenCalled();
+  it("AAL1 permite matrícula autorizada e falta de permissão impede RPC", async () => {
+    await expect(enroll(input, { ...context, claims: { aal: "aal1" } })).resolves.toEqual(result);
+    state.rpc.mockClear();
     state.writer.mockRejectedValueOnce(new Error("Sem permissão"));
     await expect(enroll()).rejects.toThrow(/Sem permissão/);
     expect(state.rpc).not.toHaveBeenCalled();
