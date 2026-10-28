@@ -189,14 +189,17 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
       }),
     );
     const studentIds = students.map((student) => student.id);
-    const { data: enrollments } = studentIds.length
+    const { data: enrollments, error: enrollmentsError } = studentIds.length
       ? await db
           .from("enrollments")
           .select("student_id, class_group_id")
           .eq("school_id", membership.schoolId)
           .in("student_id", studentIds)
           .eq("status", "active")
-      : { data: [] as Array<{ student_id: string; class_group_id: string | null }> };
+      : { data: [] as Array<{ student_id: string; class_group_id: string | null }>, error: null };
+    if (enrollmentsError) {
+      throw publicDatabaseError(enrollmentsError, "Não foi possível carregar as matrículas.");
+    }
     const classIds = [
       ...new Set(
         (enrollments ?? [])
@@ -204,9 +207,16 @@ export const listDocumentWorkspace = createServerFn({ method: "GET" })
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    const { data: classGroups } = classIds.length
-      ? await db.from("class_groups").select("id, name").in("id", classIds)
-      : { data: [] as Array<{ id: string; name: string }> };
+    const { data: classGroups, error: classesError } = classIds.length
+      ? await db
+          .from("class_groups")
+          .select("id, name")
+          .eq("school_id", membership.schoolId)
+          .in("id", classIds)
+      : { data: [] as Array<{ id: string; name: string }>, error: null };
+    if (classesError) {
+      throw publicDatabaseError(classesError, "Não foi possível carregar as turmas.");
+    }
     const classNameById = new Map((classGroups ?? []).map((row) => [row.id, row.name]));
     const classNameByStudentId = new Map(
       (enrollments ?? []).map((row) => [
