@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 import {
   renderRoute,
@@ -158,6 +158,42 @@ describe("/pedagogica/turmas/$turmaId", () => {
       await waitFor(() => expect(scrolled).toContain("turma-alunos"));
     } finally {
       Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("pesquisa por nome sem acentos e por processo apenas entre alunos da turma", async () => {
+    const extraStudent = {
+      ...workspace.enrollmentOptions[0]!,
+      id: "m-3",
+      student_id: "aluno-3",
+      student_name: "Álvaro José",
+      registration_number: "2026-0199",
+      label: "Álvaro José",
+    };
+    workspace.enrollmentOptions.push(extraStudent);
+    try {
+      open({ secao: "alunos" });
+      const roster = await screen.findByRole("region", { name: "Alunos (2)" });
+      const search = within(roster).getByRole("searchbox", { name: "Procurar aluno nesta turma" });
+      expect(
+        within(roster)
+          .getAllByRole("link")
+          .map((link) => link.textContent),
+      ).toEqual(["Álvaro José2026-0199", "Ana Paula Silva2026-0142"]);
+      fireEvent.change(search, { target: { value: "jose alvaro" } });
+      expect(within(roster).getByRole("link").textContent).toBe("Álvaro José2026-0199");
+      expect(within(roster).getByRole("status").textContent).toBe("1 de 2 alunos");
+      fireEvent.change(search, { target: { value: "2026-0142" } });
+      expect(within(roster).getByRole("link").textContent).toBe("Ana Paula Silva2026-0142");
+      fireEvent.change(search, { target: { value: "Bruno" } });
+      expect(within(roster).queryByRole("link")).toBeNull();
+      expect(
+        within(roster).getByText("Nenhum aluno corresponde à pesquisa nesta turma."),
+      ).toBeDefined();
+      fireEvent.click(within(roster).getByRole("button", { name: "Limpar pesquisa" }));
+      expect(within(roster).getAllByRole("link")).toHaveLength(2);
+    } finally {
+      workspace.enrollmentOptions.pop();
     }
   });
 

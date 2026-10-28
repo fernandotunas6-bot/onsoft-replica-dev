@@ -1,5 +1,14 @@
 # Execução do padrão visual — 23/10/2026
 
+**28/10/2026 — pesquisa na lista da turma (implementado):**
+`/pedagogica/turmas/$turmaId` permite procurar por nome (sem distinção de acentos,
+maiúsculas ou ordem das palavras) ou número de processo, apenas nos alunos já
+devolvidos para a turma. Lista por ordem alfabética, contagem acessível e recuperação
+da pesquisa sem resultados. Nenhum endpoint, permissão, matrícula ou dado foi alterado.
+Evidência: 8 testes de render da ficha e 492 testes académicos passaram localmente;
+lint sem erros. Publicação e ensaio autenticado desta versão ainda pendentes.
+Não comprova dispositivos físicos nem isolamento remoto entre escolas.
+
 **27/10/2026 — botões discretos e cabeçalho semitransparente (PR em revisão):**
 o componente global `Button` conserva estados hover, loading, disabled e foco
 visível, mas elimina o efeito de compressão `scale` ao clicar. A navegação
