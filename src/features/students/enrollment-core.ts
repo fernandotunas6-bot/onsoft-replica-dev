@@ -500,7 +500,8 @@ export async function placeStudentInClass(
       academicYearId,
       status: "active",
       moved: !sameClass,
-      unchanged: sameClass && alreadyActive,
+      // Também pode haver reparação do estado do aluno; não é um no-op.
+      unchanged: false,
     };
   } else {
     const held = heldStudentMessage(previousStatus);
