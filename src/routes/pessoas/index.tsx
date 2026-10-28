@@ -53,7 +53,9 @@ import {
   createTeacher,
   deleteTeacher,
   getPerson,
+  listTeachersPage,
   mergePeople,
+  searchPeoplePage,
   updatePerson,
   updatePersonStatus,
   updateTeacher,
@@ -69,7 +71,6 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
-import { listTeachersPage, searchPeoplePage } from "@/features/people/directory-server";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { EntityAvatar, EntityList, type EntityListItem } from "@/components/mobile/EntityList";
