@@ -279,6 +279,13 @@ function TurmaDetail() {
           </div>
           {canManageTurma ? (
             <div className="flex flex-wrap items-center gap-2">
+              {turma.status === "active" ? (
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link to="/alunos" search={{ action: "matricular", classGroupId: turma.id }}>
+                    <UserPlus className="size-3.5" /> Matricular nesta turma
+                  </Link>
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
