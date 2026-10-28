@@ -32,8 +32,10 @@ import {
   findPersonDuplicatesInputSchema,
   getPersonInputSchema,
   listTeachersInputSchema,
+  listTeachersPageInputSchema,
   mergePeopleInputSchema,
   searchPeopleInputSchema,
+  searchPeoplePageInputSchema,
   setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
@@ -48,6 +50,7 @@ import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
 import { syncBiDocumentFromNif } from "./bi-document";
 import { insertTeacherWithNextNumber, isTeacherNumberTaken } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
+import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -1605,3 +1608,33 @@ export async function ensureTeacherHrRecord(input: {
 
   return { teacherId, personId: person.id };
 }
+
+/**
+ * Directório paginado — a autorização e o acesso privilegiado continuam neste
+ * módulo já existente, ao lado dos fluxos legados. As consultas e as regras
+ * de filtragem vivem no helper puro directory-server, que nunca abre a service key.
+ * Os endpoints antigos ficam disponíveis para consumidores não migrados.
+ */
+export const searchPeoplePage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => searchPeoplePageInputSchema.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return searchPeopleDirectoryPage(db, membership, context.userId, data);
+  });
+
+export const listTeachersPage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listTeachersPageInputSchema.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await resolveSgaMembershipAdmin(context.userId);
+    if (!membership) throw new Error("Sem vínculo activo com uma escola.");
+    const db = await loadSgaAdminClient();
+    return listTeachersDirectoryPage(db, membership, data);
+  });
