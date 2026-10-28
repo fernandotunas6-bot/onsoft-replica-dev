@@ -459,11 +459,7 @@ export async function placeStudentInClass(
     // Repetir o mesmo pedido (por exemplo, duplo clique depois de uma resposta
     // lenta) é idempotente. A sessão e a AAL2 já foram verificadas acima.
     // A sincronização do estado continua necessária em dados legados incoerentes.
-    if (
-      sameClass &&
-      alreadyActive &&
-      studentStatusAfterPlacement(previousStatus) === previousStatus
-    ) {
+    if (sameClass && alreadyActive) {
       // A matrícula pode ter sido movida/anulada por outra sessão depois da
       // primeira leitura. Reconfirmar o no-op com escola, aluno e turma;
       // nunca declarar êxito apenas com um snapshot desactualizado.
@@ -484,7 +480,8 @@ export async function placeStudentInClass(
           "Esta matrícula foi alterada por outra sessão. Actualize a lista e confirme a turma antes de repetir.",
         );
       }
-      return {
+      if (studentStatusAfterPlacement(previousStatus) === previousStatus) {
+        return {
         enrollmentId: String(current.id),
         enrollmentNumber: (current.enrollment_number as string | null) ?? null,
         classGroupId: input.classGroupId,
@@ -492,7 +489,8 @@ export async function placeStudentInClass(
         status: "active",
         moved: false,
         unchanged: true,
-      };
+        };
+      }
     }
 
     if (!sameClass || !alreadyActive) {
