@@ -87,3 +87,28 @@ Manter o ecossistema WEB / ADMIN / SIGA / PAYFLOW / DOC, o contrato dos tipos `s
 - Histórico académico e financeiro preservado.
 - Resultados mensuráveis de desempenho, experiência mobile e acessibilidade.
 - PR revista, CI final aprovado, testes de staging documentados antes do deploy.
+
+
+## Lote 2 — paginação real no servidor (em validação nesta PR)
+
+- `src/features/people/directory-server.ts`: contratos novos `searchPeoplePage` e `listTeachersPage`, sem remover `searchPeople` e `listTeachers` usados por outros consumidores.
+- Pesquisa com `page` / `pageSize` validados por Zod e `total` exacto; intervalo de registos e ordenação estável.
+- Navegação comum: PostgreSQL realiza `count: exact` e `range`, com `school_id` obtido de sessão/vínculo, nunca de parâmetro cliente.
+- Pesquisa por texto ou vínculo: varrimento paginado no servidor, aplica todos os critérios **antes** da contagem e da página. Não oculta pessoas fora dos primeiros 50 ou docentes fora dos primeiros 100.
+- Limite explícito de 50 000 registos candidatos por pesquisa avançada; ao ultrapassá-lo, devolve erro recuperável sem apresentar totais truncados. É uma protecção provisória: optimização por índices/RPC filtrada no banco requer perfil de dados real e ensaio de staging.
+- Perfis de alunos/encarregados mantêm o escopo de leitura autorizado; todas as consultas incluem escola. A pesquisa docente aplica ocultação de contactos **antes** de procurar pelo e-mail.
+- Os resultados de pessoas por estado passam a ser filtrados no backend, de maneira consistente com a contagem.
+- A página Pessoas utiliza dois paginadores distintos e as respectivas query keys incluem utilizador, escola, filtros e página, sem reutilização de dados de contexto anterior.
+- CSV, PDF e documento oficial dos registos de Pessoas identificam a **página actual**. Exportações completas de todos os resultados filtrados exigem endpoint seguro separado; nunca apresentar a página como relatório integral.
+
+### Testes específicos do lote 2
+
+- `tests/people/directory-pagination.test.ts`: cinco casos de varrimento, mais de 300 linhas, correspondências após os 200 primeiros, total exacto, página fora do intervalo, falha de rede e truncagem bloqueada.
+- `tests/people/schemas.test.ts`: contrato paginado, limites de página e estado, compatibilidade do esquema legado.
+- `tests/routes/pessoas.test.tsx`: mocks adaptados aos dois endpoints novos.
+- A execução de CI da última SHA é a única fonte de aprovação. Validar Vitest, lint, TypeScript, build, SQLite, PGlite e auditoria de dependências.
+- **Ainda pendente**: E2E autenticado com duas escolas e desempenho medido em grande volume; manter PR em draft, sem merge/deploy.
+
+### Limitações assumidas
+
+O varrimento avançado é correcto e limitado, mas não é ainda o desenho final de pesquisa optimizada para dezenas de milhares de matrículas e pessoas. Uma próxima iteração deverá avaliar selectividade, índices de pesquisa, estratégia de filtro por vínculos e execução no PostgreSQL, mantendo autorização e histórico. Nenhum SQL foi aplicado em produção.
