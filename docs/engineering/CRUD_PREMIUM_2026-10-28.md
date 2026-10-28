@@ -204,3 +204,12 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - A gravação continua a ser um lote de operações, não uma única transacção PostgreSQL. O teste de carga/conflito com professores reais e RPC transaccional deve ser feito em staging antes de qualquer fusão.
 - Ainda falta validar autorização directa por atribuição de disciplina, contas de escolas distintas, pauta anual homologada, e visual das mensagens de conflito em mobile.
 - A aprovação exige o CI da **SHA final** e ensaio autenticado em staging; esta secção documenta código, não declara produção pronta.
+
+
+### Horários — identificação rigorosa de conflitos de sala
+
+- `src/features/academic/schedule/utils/conflicts.ts` dá prioridade ao identificador físico `room_id`: duas aulas com IDs de sala diferentes não colidem apenas por terem o mesmo rótulo.
+- Se ambas as aulas não possuem `room_id` (dados legados), só são equiparadas por designação inequívoca `Sala ...`. Uma etiqueta genérica como `Laboratório` pode identificar o tipo de aula, não a sala, e não é prova suficiente de colisão.
+- Quando uma aula tem `room_id` e a outra tem apenas texto, não se infere igualdade sem relação comprovada. Conservam-se os bloqueios de turma e professor e a separação entre versões de horário.
+- `src/features/academic/schedule/utils/conflicts.test.ts` verifica ID físico prevalecer sobre texto, deteção da mesma sala apesar de rótulos divergentes, compatibilidade com `Sala 12` legado, etiquetas genéricas e combinação ID/rótulo.
+- **Risco restante**: para instituições com salas históricas sem identificador, migrar cuidadosamente para `room_id` e validar sobreposições na base. A UI não substitui os bloqueios transaccionais nem decide se um texto é uma sala física.
