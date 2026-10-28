@@ -54,9 +54,11 @@ describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
 
   it("falha quando o frontend aponta para outro projecto Supabase", () => {
     expect(() =>
-      resolveCrudStagingConfig(makeEnv({
-        VITE_SUPABASE_URL: "https://xodgfmxiaunpamctfeea.supabase.co",
-      })),
+      resolveCrudStagingConfig(
+        makeEnv({
+          VITE_SUPABASE_URL: "https://xodgfmxiaunpamctfeea.supabase.co",
+        }),
+      ),
     ).toThrow(/Supabase diferente/);
   });
 
@@ -65,12 +67,14 @@ describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
       resolveCrudStagingConfig(makeEnv({ SIGA_CRUD_E2E_TENANT_B_STATE: "/tmp/tenant-a.json" })),
     ).toThrow(/distintos/);
     expect(() =>
-      resolveCrudStagingConfig(makeEnv({
-        SIGA_CRUD_E2E_TENANT_B_MARKER: "Pessoa A 9876",
-      })),
+      resolveCrudStagingConfig(
+        makeEnv({
+          SIGA_CRUD_E2E_TENANT_B_MARKER: "Pessoa A 9876",
+        }),
+      ),
     ).toThrow(/não se sobreponham/);
-    expect(() =>
-      resolveCrudStagingConfig(makeEnv({ SIGA_CRUD_E2E_TENANT_B_MARKER: "" })),
-    ).toThrow(/configure/);
+    expect(() => resolveCrudStagingConfig(makeEnv({ SIGA_CRUD_E2E_TENANT_B_MARKER: "" }))).toThrow(
+      /configure/,
+    );
   });
 });
