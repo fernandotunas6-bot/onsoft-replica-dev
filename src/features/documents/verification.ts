@@ -232,23 +232,35 @@ export const verifyIssuedDocument = createServerFn({ method: "GET" })
     if (!isVerificationCode(code)) return { valid: false };
 
     const db = await loadSgaAdminClient();
-    const { data: row } = await db
+    const { data: row, error: verificationError } = await db
       .from("audit_logs")
       .select("school_id, metadata, occurred_at")
       .eq("action", ISSUED_DOCUMENT_ACTION)
       .eq("metadata->>code", code)
       .limit(1)
       .maybeSingle();
+    if (verificationError) {
+      throw publicDatabaseError(
+        verificationError,
+        "Não foi possível consultar a autenticidade do documento. Tente novamente.",
+      );
+    }
     if (!row) return { valid: false };
 
     const meta = (row.metadata ?? {}) as Record<string, unknown>;
     let schoolName = typeof meta.school_name === "string" ? meta.school_name : "";
     if (!schoolName) {
-      const { data: school } = await db
+      const { data: school, error: schoolError } = await db
         .from("schools")
         .select("name")
         .eq("id", row.school_id)
         .maybeSingle();
+      if (schoolError) {
+        throw publicDatabaseError(
+          schoolError,
+          "Não foi possível confirmar a escola emissora. Tente novamente.",
+        );
+      }
       schoolName = school?.name ?? "Escola";
     }
     return {
