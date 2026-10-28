@@ -41,9 +41,7 @@ describe("estado da fatura", () => {
       label: "Vencida · paga em parte",
     });
     expect(invoiceState({ ...invoice, paid: 0 }, hoje).status).toBe("overdue");
-    expect(
-      invoiceState({ ...invoice, paid: 10_000 }, hoje).status,
-    ).toBe("paid");
+    expect(invoiceState({ ...invoice, paid: 10_000 }, hoje).status).toBe("paid");
   });
 
   it("arredondamento em cêntimos não deixa fatura paga artificialmente em dívida", () => {
