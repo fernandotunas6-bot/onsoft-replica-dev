@@ -213,3 +213,12 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Quando uma aula tem `room_id` e a outra tem apenas texto, não se infere igualdade sem relação comprovada. Conservam-se os bloqueios de turma e professor e a separação entre versões de horário.
 - `src/features/academic/schedule/utils/conflicts.test.ts` verifica ID físico prevalecer sobre texto, deteção da mesma sala apesar de rótulos divergentes, compatibilidade com `Sala 12` legado, etiquetas genéricas e combinação ID/rótulo.
 - **Risco restante**: para instituições com salas históricas sem identificador, migrar cuidadosamente para `room_id` e validar sobreposições na base. A UI não substitui os bloqueios transaccionais nem decide se um texto é uma sala física.
+
+
+### Financeiro — dívidas após estorno e precisão em cêntimos
+
+- `src/features/finance/payment-states.ts`: o rótulo `paid` não se sobrepõe ao montante efectivamente recebido. Uma fatura de valor positivo cujo estado textual ainda seja `paid`, mas com recibos válidos insuficientes após estorno, passa a `partial` ou `overdue` segundo a data de vencimento.
+- O estado de liquidação usa comparação em cêntimos, consistente com `invoiceStatusFromPaid`; continua a respeitar faturas anuladas e permite fatura sem valor liquidada quando o estado válido o indica.
+- `src/features/finance/student-finance-summary.ts` agrega valores faturados, recebidos, por pagar e vencidos em cêntimos e calcula o saldo aberto com o motor existente `invoiceOpenAmount`. Elimina resíduos de ponto flutuante no perfil financeiro do aluno.
+- Testes em `tests/finance/payment-states.test.ts` e `tests/finance/student-finance-summary.test.ts`: estorno de fatura anteriormente paga, valores parciais, vencimento e múltiplas faturas com cêntimos.
+- Estes cálculos são de leitura/apresentação e não registam pagamentos nem executam estornos. A fonte de verdade mantém-se no PostgreSQL e nas RPCs financeiras; ensaios de reconciliação real permanecem obrigatórios em staging.
