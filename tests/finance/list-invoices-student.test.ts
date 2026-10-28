@@ -16,7 +16,9 @@ describe("listInvoices por aluno (auditoria 13, F-22)", () => {
 
   it("a ficha do aluno pede as faturas do aluno ao servidor", () => {
     const page = readFileSync("src/routes/alunos/$studentId.tsx", "utf8");
-    expect(page).toMatch(/listInvoices\(\{ data: \{ studentId, limit: \d+, includeOpen: true \} \}\)/);
+    expect(page).toMatch(
+      /listInvoices\(\{ data: \{ studentId, limit: \d+, includeOpen: true \} \}\)/,
+    );
   });
 
   it("o servidor filtra pelos contratos das matrículas do aluno, na escola", () => {
@@ -25,7 +27,7 @@ describe("listInvoices por aluno (auditoria 13, F-22)", () => {
     const handler = server.slice(start, start + 3000);
     expect(handler).toContain('.eq("student_id", data.studentId)');
     expect(handler).toContain('.in("contract_id", studentContractIds)');
-    expect(server).toContain('if (data.includeOpen) {');
+    expect(server).toContain("if (data.includeOpen) {");
     expect(server).toContain('openQuery = openQuery.in("contract_id", studentContractIds)');
   });
 });
