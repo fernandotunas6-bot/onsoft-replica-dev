@@ -245,6 +245,8 @@ export function QuickFormModal({
                           id={field.name}
                           name={field.name}
                           required={field.required ?? true}
+                          aria-invalid={Boolean(fieldErrors[field.name])}
+                          aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                           className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
                           defaultValue={
                             field.defaultValue ??
@@ -266,6 +268,8 @@ export function QuickFormModal({
                       name={field.name}
                       defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
                       disabled={false}
+                      ariaInvalid={Boolean(fieldErrors[field.name])}
+                      errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                       placeholder={field.placeholder ?? ""}
                       className="mt-1.5"
                     />
@@ -277,6 +281,8 @@ export function QuickFormModal({
                       {...(inferInputMode(field) ? { inputMode: inferInputMode(field) } : {})}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      aria-invalid={Boolean(fieldErrors[field.name])}
+                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                       defaultValue={field.defaultValue}
                       className="mt-1.5"
                       {...(field.suggestions?.length ? { list: `${field.name}-suggestions` } : {})}
