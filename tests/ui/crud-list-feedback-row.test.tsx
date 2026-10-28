@@ -2,7 +2,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Table, TableBody } from "@/components/ui/table";
-import { CrudListFeedbackRow, type CrudListFeedbackRowProps } from "@/components/ui/crud-list-feedback-row";
+import {
+  CrudListFeedbackRow,
+  type CrudListFeedbackRowProps,
+} from "@/components/ui/crud-list-feedback-row";
 
 afterEach(cleanup);
 
