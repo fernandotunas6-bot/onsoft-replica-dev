@@ -46,6 +46,33 @@ describe("matrículas existentes em lote — CAS e resultados parciais", () => {
     expect(store.tables["enrollments"]).toHaveLength(1);
   });
 
+  it("não conta como êxito um no-op que outra sessão já moveu", async () => {
+    const stale = sample({ class_group_id: CLASS_B });
+    const store = fixture([{ ...stale, class_group_id: CLASS_A }]);
+    const result = await store.place([stale]);
+    expect(result.placedIds).toEqual([]);
+    expect(result.failed).toEqual([
+      expect.objectContaining({
+        studentId: "aluno-1",
+        message: expect.stringMatching(/alterada por outra sessão/),
+      }),
+    ]);
+    expect(store.tables["enrollments"]?.[0]?.["class_group_id"]).toBe(CLASS_A);
+    expect(store.writes).toEqual([]);
+  });
+
+  it("não conta como êxito um no-op anulado ou de outra escola", async () => {
+    const stale = sample({ class_group_id: CLASS_B });
+    const cancelled = fixture([{ ...stale, status: "cancelled" }]);
+    const foreign = fixture([{ ...stale, school_id: "escola-b" }]);
+    for (const store of [cancelled, foreign]) {
+      const result = await store.place([stale]);
+      expect(result.placedIds).toEqual([]);
+      expect(result.failed).toHaveLength(1);
+      expect(store.writes).toEqual([]);
+    }
+  });
+
   it("confirma a matrícula pendente no mesmo lugar sem alterar a identidade", async () => {
     const row = sample({ class_group_id: CLASS_B, status: "pending" });
     const store = fixture([row]);
