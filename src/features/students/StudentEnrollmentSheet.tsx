@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { UserPlus } from "lucide-react";
+import { EnrollmentEntryDialog } from "./EnrollmentEntryDialog";
 import { toast } from "@/lib/toast";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
@@ -97,6 +98,7 @@ export function StudentEnrollmentSheet({
   onCreated: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(autoOpen);
+  const [entryMode, setEntryMode] = useState<"choose" | "new">("choose");
   const requestId = useRef("");
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.send");
@@ -126,6 +128,7 @@ export function StudentEnrollmentSheet({
     if (wasOpen.current && !open) {
       requestId.current = "";
       setValues(emptyValues);
+      setEntryMode("choose");
       setGuardianQuery("");
       setGuardianResults([]);
     }
@@ -222,9 +225,25 @@ export function StudentEnrollmentSheet({
 
   return (
     <>
-      {trigger(() => setOpen(true))}
+      {trigger(() => {
+        setEntryMode("choose");
+        setOpen(true);
+      })}
+      <EnrollmentEntryDialog
+        open={open && entryMode === "choose"}
+        onOpenChange={setOpen}
+        onCreate={() => setEntryMode("new")}
+        onSelect={(student) => {
+          setExisting((previous) => ({
+            student,
+            key: (previous?.key ?? 0) + 1,
+            classGroupId: values.turmaId || undefined,
+          }));
+          setOpen(false);
+        }}
+      />
       <SequentialSheetModal
-        open={open}
+        open={open && entryMode === "new"}
         onOpenChange={setOpen}
         eyebrow="Secretaria"
         title="Nova matrícula"
