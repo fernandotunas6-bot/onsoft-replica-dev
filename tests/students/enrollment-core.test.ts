@@ -161,6 +161,89 @@ describe("colocar em turma", () => {
     expect(store.tables["student_status_history"]).toEqual([]);
   });
 
+  it("repetir uma matrícula activa na mesma turma não gera novas escritas ou histórico", async () => {
+    const store = fixture({ status: "active" }, [
+      {
+        id: "mat-existente",
+        enrollment_number: "MAT-000001",
+        class_group_id: "turma-b",
+        academic_year_id: YEAR,
+        status: "active",
+      },
+    ]);
+    const rpc = enrollRpc(store);
+    const first = await place(store, rpc);
+    const again = await place(store, rpc);
+
+    expect(first).toMatchObject({
+      enrollmentId: "mat-existente",
+      moved: false,
+      unchanged: true,
+    });
+    expect(again).toEqual(first);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(store.writes).toEqual([]);
+    expect(store.tables["student_status_history"]).toEqual([]);
+  });
+
+  it("a repetição também exige 2FA, mesmo quando não é preciso gravar", async () => {
+    const store = fixture({ status: "active" }, [
+      { id: "mat-1", class_group_id: "turma-b", academic_year_id: YEAR, status: "active" },
+    ]);
+    await expect(place(store, enrollRpc(store), { hasAal2: false })).rejects.toThrow(
+      ENROLLMENT_2FA_MESSAGE,
+    );
+    expect(store.writes).toEqual([]);
+  });
+
+  it("confirma a matrícula pendente na mesma turma sem criar outro registo", async () => {
+    const store = fixture({ status: "active" }, [
+      { id: "mat-1", class_group_id: "turma-b", academic_year_id: YEAR, status: "pending" },
+    ]);
+    const rpc = enrollRpc(store);
+    const result = await place(store, rpc);
+    expect(result).toMatchObject({ enrollmentId: "mat-1", moved: false, unchanged: false });
+    expect(store.tables["enrollments"]![0]).toMatchObject({ id: "mat-1", status: "active" });
+    expect(store.writes.filter((write) => write.table === "enrollments")).toHaveLength(1);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejeita uma alteração concorrente antes de sobrepor a turma da outra sessão", async () => {
+    const store = fixture({ status: "active" }, [
+      { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
+    ]);
+    const originalFrom = store.db.from.bind(store.db);
+    const db = {
+      from(table: string) {
+        const query = originalFrom(table);
+        if (table !== "enrollments") return query;
+        return new Proxy(query, {
+          get(target, key) {
+            if (key === "update") {
+              return (patch: Record<string, unknown>) => {
+                // Outra secretaria moveu a matrícula depois da leitura inicial.
+                store.tables["enrollments"]![0]!["class_group_id"] = "turma-concorrente";
+                return target.update(patch);
+              };
+            }
+            return Reflect.get(target, key);
+          },
+        });
+      },
+    };
+    await expect(
+      placeStudentInClass(db as never, { rpc: enrollRpc(store) } as never, {
+        schoolId: SCHOOL,
+        studentId: "aluno-1",
+        classGroupId: "turma-b",
+        userId: "secretaria",
+        hasAal2: true,
+      }),
+    ).rejects.toThrow(/alterada por outra sessão/);
+    expect(store.tables["enrollments"]![0]!["class_group_id"]).toBe("turma-concorrente");
+    expect(store.writes.find((write) => write.table === "enrollments")?.rows).toEqual([]);
+  });
+
   it("uma matrícula anulada nunca é reactivada: matricula de novo", async () => {
     const store = fixture({ status: "active" }, [
       { id: "anulada", class_group_id: "turma-a", academic_year_id: YEAR, status: "cancelled" },
