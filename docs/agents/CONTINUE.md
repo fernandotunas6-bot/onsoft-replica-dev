@@ -1,5 +1,47 @@
 # Handoff — continuar o SIGA
 
+## Auditoria funcional: sessão, escola e API de faltas — 27/10/2026
+
+Base `ac9c8b1b20a3213594fb6ef73546115977e5ff64`, ramo
+`fix/system-audit-school-context-20261027`. Matriz por módulo, provas, alertas
+efectivos da base e limites em
+[auditoria funcional](../qa/system-audit-2026-10-27/README.md).
+O proprietário indicou depois o Colégio Adventista — Huambo como escola de testes.
+O registo está na base partilhada; não confundir esta indicação com staging isolado
+ou homologação integral. Não houve merge, deploy ou
+escritas na produção neste ciclo.
+
+`useCurrentAccount` partilha a selecção da escola, também entre abas, protege
+a hidratação e descarta a recuperação de pedidos ultrapassados. Contexto de
+conta não usa o `keepPreviousData` global. `AuthGate` limpa consultas ao mudar
+identidade/sair por outra via e descarta confirmações MFA atrasadas.
+`TenantProvider` só publica a resposta da geração actual.
+
+**Decisão de login do proprietário:** combinar com a PR #369,
+`fix/login-mfa-opt-in-20261027`, head
+`eed44e16503d82153e2d97b67dcb6ca1dfb0c8e9`. O MFA no login fica **desligado
+por omissão**, mesmo com factores antigos inscritos; só a preferência explícita
+da conta o activa. As correcções de ciclo de sessão não podem repor a regra
+anterior. A PR #369 foi combinada no candidato local para testar compatibilidade,
+sem merge no GitHub ou deploy. Testes específicos em
+`tests/auth/pending-mfa-policy.test.ts`.
+
+Foi reproduzido no Worker compilado o erro de produção de
+`/api/mobile/absences`: `Server function info not found`, HTTP 400. A leitura
+de faltas só tinha consumidor servidor e a RPC era omitida do manifesto.
+A correcção chama o serviço interno após `resolveBearerUserId` (Auth e política
+MFA voluntária da conta),
+mantendo `resolveVisibleStudent` e a validação do identificador. Verificar
+sempre a saída compilada, além do teste com mocks:
+`node scripts/siga/check-built-mobile-absences.mjs`, com Wrangler **local**
+na porta 8787. A prova não autentica nem consulta dados de alunos.
+
+As 215 tabelas públicas e respectivas colunas coincidiram com o snapshot;
+as 88 tabelas com RLS sem políticas não tinham SELECT para anon/authenticated.
+Os avisos de SECURITY DEFINER e de índices continuam por avaliar por caso.
+As três tabelas `notifications`, `school_announcements` e `siga_chat_messages`
+constavam da publicação Realtime: não reaplicar pacotes só pelo handoff antigo.
+
 ## App móvel: notificações em tempo real e alertas — 2026-10-27
 
 App SIGA Plus 1.2.0: centro de notificações (sino), tempo real com a app aberta,

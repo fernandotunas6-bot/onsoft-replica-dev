@@ -4,6 +4,13 @@ Contrato: [VISUAL_MASTER_2026.md](VISUAL_MASTER_2026.md). Esta matriz acompanha
 **todas as dez fases**. O padrão está registado; a execução integral está parcial.
 Não considerar o sistema todo validado por causa dos testes abaixo.
 
+**27/10/2026 — auditoria de contexto/sessão (fases 1, 8 e 9):** selecção de
+escola partilhada, invalidação entre contas e rejeição de respostas ultrapassadas;
+testes de componentes e login Chromium a 390/1440 px, foco de registo/entrada e
+ausência de overflow. Sem redesenho. [Matriz, evidências e limites](../qa/system-audit-2026-10-27/README.md).
+As restantes fases continuam parciais. O proprietário indicou o Colégio Adventista
+— Huambo para testes; isolamento de staging não confirmado.
+
 **25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
 de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
 Sem mudanças visuais e sem montagem de FullCalendar nas páginas. Os estados

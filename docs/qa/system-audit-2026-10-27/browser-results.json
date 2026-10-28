@@ -1,0 +1,18 @@
+[
+  {
+    "width": 390,
+    "login": true,
+    "overflow": false,
+    "signupNavigation": true,
+    "keyboardFocus": true,
+    "pageErrors": []
+  },
+  {
+    "width": 1440,
+    "login": true,
+    "overflow": false,
+    "signupNavigation": true,
+    "keyboardFocus": true,
+    "pageErrors": []
+  }
+]
