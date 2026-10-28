@@ -8,9 +8,7 @@
  * sinais de risco usam. Só o Aluno (a sua ficha) e o Encarregado (a de um
  * educando ligado) recebem dados (`resolveVisibleStudent`).
  */
-import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ID_CHUNK_SIZE, readAllPages, readInChunks } from "@/integrations/supabase/read-all-pages";
 import { resolveVisibleStudent } from "@/features/dashboard/student-access";
 
@@ -120,82 +118,89 @@ export function summarizeSubjectAbsences(
 
 const inputSchema = z.object({ studentId: z.string().guid().optional() });
 
-export const getMyAbsencesBySubject = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => inputSchema.parse(input ?? {}))
-  .handler(async ({ data, context }): Promise<StudentAbsences> => {
-    const visible = await resolveVisibleStudent(context.userId, data.studentId);
-    if (!visible) return EMPTY;
-    const { db, schoolId, studentId } = visible;
+/**
+ * Serviço interno para uma identidade já autenticada na rota HTTP.
+ * Não é uma RPC TanStack: sem consumidores no browser, o build omitia a sua
+ * entrada do manifesto e a própria rota falhava antes de verificar a sessão.
+ * O âmbito continua a ser resolvido por vínculo e educando no servidor.
+ */
+export async function getMyAbsencesBySubject(
+  userId: string,
+  input: unknown = {},
+): Promise<StudentAbsences> {
+  const data = inputSchema.parse(input ?? {});
+  const visible = await resolveVisibleStudent(userId, data.studentId);
+  if (!visible) return EMPTY;
+  const { db, schoolId, studentId } = visible;
 
-    const { data: enrollment } = await db
-      .from("enrollments")
-      .select("class_group_id")
+  const { data: enrollment } = await db
+    .from("enrollments")
+    .select("class_group_id")
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!enrollment?.class_group_id) return EMPTY;
+  const [{ data: group }, { data: rule }] = await Promise.all([
+    db
+      .from("class_groups")
+      .select("academic_year_id")
+      .eq("school_id", schoolId)
+      .eq("id", String(enrollment.class_group_id))
+      .maybeSingle(),
+    db
+      .from("assessment_rule_sets")
+      .select("maximum_absence_percentage")
+      .eq("school_id", schoolId)
+      .eq("code", "DEFAULT")
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const yearId = group?.academic_year_id ? String(group.academic_year_id) : null;
+  if (!yearId) return EMPTY;
+  const limit =
+    rule?.maximum_absence_percentage == null ? null : Number(rule.maximum_absence_percentage);
+
+  // Os registos do aluno; depois só as aulas deste ano que não foram canceladas.
+  const records = await readAllPages<{ session_id: string; status: string }>((from, to) =>
+    db
+      .from("siga_attendance_records")
+      .select("session_id, status")
       .eq("school_id", schoolId)
       .eq("student_id", studentId)
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!enrollment?.class_group_id) return EMPTY;
-    const [{ data: group }, { data: rule }] = await Promise.all([
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (records.error) throw new Error("Não foi possível ler as faltas.");
+  const sessions = await readInChunks<{ id: string; subject_id: string | null }>(
+    records.data.map((r) => String(r.session_id)),
+    (chunk) =>
       db
-        .from("class_groups")
-        .select("academic_year_id")
+        .from("siga_attendance_sessions")
+        .select("id, subject_id")
         .eq("school_id", schoolId)
-        .eq("id", String(enrollment.class_group_id))
-        .maybeSingle(),
-      db
-        .from("assessment_rule_sets")
-        .select("maximum_absence_percentage")
-        .eq("school_id", schoolId)
-        .eq("code", "DEFAULT")
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle(),
-    ]);
-    const yearId = group?.academic_year_id ? String(group.academic_year_id) : null;
-    if (!yearId) return EMPTY;
-    const limit =
-      rule?.maximum_absence_percentage == null ? null : Number(rule.maximum_absence_percentage);
+        .eq("academic_year_id", yearId)
+        .neq("status", "cancelled")
+        .in("id", chunk),
+    ID_CHUNK_SIZE,
+  );
+  if (sessions.error) throw new Error("Não foi possível ler as faltas.");
+  const subjectOf = new Map(
+    sessions.data.map((s) => [String(s.id), s.subject_id ? String(s.subject_id) : ""]),
+  );
+  const rows = records.data
+    .filter((r) => subjectOf.has(String(r.session_id)))
+    .map((r) => ({ subjectId: subjectOf.get(String(r.session_id))!, status: String(r.status) }));
 
-    // Os registos do aluno; depois só as aulas deste ano que não foram canceladas.
-    const records = await readAllPages<{ session_id: string; status: string }>((from, to) =>
-      db
-        .from("siga_attendance_records")
-        .select("session_id, status")
-        .eq("school_id", schoolId)
-        .eq("student_id", studentId)
-        .order("id", { ascending: true })
-        .range(from, to),
-    );
-    if (records.error) throw new Error("Não foi possível ler as faltas.");
-    const sessions = await readInChunks<{ id: string; subject_id: string | null }>(
-      records.data.map((r) => String(r.session_id)),
-      (chunk) =>
-        db
-          .from("siga_attendance_sessions")
-          .select("id, subject_id")
-          .eq("school_id", schoolId)
-          .eq("academic_year_id", yearId)
-          .neq("status", "cancelled")
-          .in("id", chunk),
-      ID_CHUNK_SIZE,
-    );
-    if (sessions.error) throw new Error("Não foi possível ler as faltas.");
-    const subjectOf = new Map(
-      sessions.data.map((s) => [String(s.id), s.subject_id ? String(s.subject_id) : ""]),
-    );
-    const rows = records.data
-      .filter((r) => subjectOf.has(String(r.session_id)))
-      .map((r) => ({ subjectId: subjectOf.get(String(r.session_id))!, status: String(r.status) }));
-
-    const subjectIds = [...new Set(rows.map((r) => r.subjectId).filter(Boolean))];
-    const names = await readInChunks<{ id: string; name: string | null }>(subjectIds, (chunk) =>
-      db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", chunk),
-    );
-    const subjectNames = new Map(
-      names.data.map((s) => [String(s.id), String(s.name ?? "Disciplina")]),
-    );
-    return summarizeSubjectAbsences(rows, subjectNames, limit);
-  });
+  const subjectIds = [...new Set(rows.map((r) => r.subjectId).filter(Boolean))];
+  const names = await readInChunks<{ id: string; name: string | null }>(subjectIds, (chunk) =>
+    db.from("subjects").select("id, name").eq("school_id", schoolId).in("id", chunk),
+  );
+  const subjectNames = new Map(
+    names.data.map((s) => [String(s.id), String(s.name ?? "Disciplina")]),
+  );
+  return summarizeSubjectAbsences(rows, subjectNames, limit);
+}

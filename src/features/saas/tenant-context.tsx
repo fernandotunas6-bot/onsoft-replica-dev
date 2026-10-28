@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Tenant, Plan } from "./types";
 import {
   isLocalDevHostname,
@@ -56,9 +56,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [isLoadingTenant, setIsLoadingTenant] = useState<boolean>(true);
   const [isAdminArea, setIsAdminArea] = useState<boolean>(false);
+  const requestVersion = useRef(0);
 
   const loadTenant = async () => {
+    const version = ++requestVersion.current;
+    const isCurrent = () => version === requestVersion.current;
     setIsLoadingTenant(true);
+    setActiveTenant(null);
+    setActivePlan(null);
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const lookup = resolveTenantLookup(hostname);
     const slug =
@@ -74,6 +79,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lookup.mode === "hostname"
           ? await getTenantByHostname({ data: { hostname: lookup.hostname } })
           : await getTenantBySlug({ data: { slug: lookup.slug } });
+      if (!isCurrent()) return;
 
       if (tenant) {
         setActiveTenant(tenant);
@@ -93,14 +99,18 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Só pedir ao servidor quando há sessão: sem ela o pedido é recusado
         // (401) e, antes de iniciar sessão, isso deixava o ecrã em branco.
         const { supabase } = await import("@/integrations/supabase/client");
+        if (!isCurrent()) return;
         const { data: sessionData } = await supabase.auth.getSession();
+        if (!isCurrent()) return;
         const fromMembership = sessionData.session
           ? await getTenantForCurrentUser().catch(() => null)
           : null;
+        if (!isCurrent()) return;
         setActiveTenant(fromMembership ?? null);
         setActivePlan(fromMembership?.plans ?? null);
       }
     } catch (err) {
+      if (!isCurrent()) return;
       console.warn("[TenantProvider] Error loading tenant:", err);
       if (allowDevFallback) {
         setActiveTenant({ ...DEV_SINGLE_SCHOOL_FALLBACK, slug });
@@ -109,7 +119,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       setActivePlan(null);
     } finally {
-      setIsLoadingTenant(false);
+      if (isCurrent()) setIsLoadingTenant(false);
     }
   };
 
@@ -120,13 +130,19 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const onSchoolChanged = () => void loadTenant();
     window.addEventListener(ACTIVE_SCHOOL_CHANGED_EVENT, onSchoolChanged);
     let unsub: (() => void) | undefined;
+    let active = true;
     void import("@/integrations/supabase/client").then(({ supabase }) => {
+      if (!active) return;
       const { data } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "SIGNED_IN") void loadTenant();
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT") void loadTenant();
       });
       unsub = () => data.subscription.unsubscribe();
     });
     return () => {
+      active = false;
+      // Invalida a geração mais recente, incluindo pedidos iniciados após a montagem.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++requestVersion.current;
       window.removeEventListener(ACTIVE_SCHOOL_CHANGED_EVENT, onSchoolChanged);
       unsub?.();
     };
