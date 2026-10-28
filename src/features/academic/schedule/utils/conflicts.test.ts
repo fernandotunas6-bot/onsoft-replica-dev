@@ -69,6 +69,73 @@ describe("detectScheduleConflicts", () => {
     expect(detectScheduleConflicts([a, b])).toEqual([]);
   });
 
+  it("sala identificada tem precedência mesmo quando os rótulos são iguais", () => {
+    const a = slot("a", {
+      class_group_id: "turma-a",
+      teacher_id: "prof-a",
+      room_id: "sala-a",
+      label: "Sala 1",
+    });
+    const b = slot("b", {
+      class_group_id: "turma-b",
+      teacher_id: "prof-b",
+      room_id: "sala-b",
+      label: "Sala 1",
+    });
+    expect(detectScheduleConflicts([a, b])).toEqual([]);
+  });
+
+  it("a mesma sala identificada entra em conflito apesar de rótulos distintos", () => {
+    const a = slot("a", { class_group_id: "turma-a", teacher_id: "prof-a" });
+    const b = slot("b", {
+      class_group_id: "turma-b",
+      teacher_id: "prof-b",
+      room_id: "room-a",
+      label: "Laboratório",
+    });
+    expect(detectScheduleConflicts([a, b]).map((c) => c.kind)).toEqual(["sala"]);
+  });
+
+  it("detecta sala legada explícita e não confunde etiquetas genéricas", () => {
+    const base = {
+      class_group_id: "turma-a",
+      teacher_id: "prof-a",
+      room_id: null,
+      label: "Sala 12",
+    };
+    const second = {
+      class_group_id: "turma-b",
+      teacher_id: "prof-b",
+      room_id: null,
+      label: " sala 12 ",
+    };
+    expect(detectScheduleConflicts([slot("a", base), slot("b", second)]).map((c) => c.kind)).toEqual([
+      "sala",
+    ]);
+    expect(
+      detectScheduleConflicts([
+        slot("c", { ...base, label: "Laboratório" }),
+        slot("d", { ...second, label: "Laboratório" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("não equipara sala com ID a etiqueta legada sem ID", () => {
+    const a = slot("a", {
+      class_group_id: "turma-a",
+      teacher_id: "prof-a",
+      room_id: "sala-a",
+      label: "Sala 12",
+    });
+    const b = slot("b", {
+      class_group_id: "turma-b",
+      teacher_id: "prof-b",
+      room_id: null,
+      label: "Sala 12",
+    });
+    expect(detectScheduleConflicts([a, b])).toEqual([]);
+  });
+
   it("não mistura versões diferentes do horário", () => {
     expect(
       detectScheduleConflicts([slot("a", { schedule_id: "v1" }), slot("b", { schedule_id: "v2" })]),
