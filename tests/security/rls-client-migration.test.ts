@@ -394,10 +394,7 @@ describe("migração para o cliente que respeita RLS (ARQ-01)", () => {
   );
 
   it("a nova consulta paginada não abre um novo cliente privilegiado", () => {
-    const source = readFileSync(
-      resolve(REPO, "src/features/people/directory-server.ts"),
-      "utf8",
-    );
+    const source = readFileSync(resolve(REPO, "src/features/people/directory-server.ts"), "utf8");
     expect(usaClientePrivilegiado(source)).toBe(false);
   });
 
