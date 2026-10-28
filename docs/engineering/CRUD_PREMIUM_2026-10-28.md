@@ -240,3 +240,13 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - O cliente mantém a separação entre dívida, faturas pagas e recebimentos confirmados: não há criação de recibos nem alterações financeiras nesta entrega.
 - Regressão de contrato em `tests/finance/list-invoices-open.test.ts` e `tests/finance/list-invoices-student.test.ts`, incluindo filtro de contratos nas páginas adicionais.
 - **Pendente**: teste E2E com aluno fictício com mais de 1.000 documentos, reversões/estornos, latência e sessão em escola diferente. A pesquisa paginada de faturas em aberto continua a usar os estados `open` e `partially_paid` da base; é necessário ensaio de consistência das facturas com estado desactualizado depois de estorno.
+
+## Lote 6 — documentos oficiais: relações por escola e verificação pública
+
+- `createDocumentRequest` continua a exigir sessão e permissões de escrita da Secretaria/Administração, mas agora usa `requireDocumentRequestRelations` antes de inserir: aluno existente na escola da sessão, modelo da mesma escola e estado `active`. IDs fornecidos pelo browser não atribuem escola.
+- Rejeição explícita de aluno de outro tenant, modelo de outro tenant e modelo inactivo; indisponibilidade da leitura é erro recuperável, nunca uma falsa validação. Não são criadas solicitações quando a validação falha.
+- Verificação pública por código: falha ao consultar `audit_logs` ou os dados de escola não deve ser confundida com código inválido. A consulta pública continua limitada por IP e não retorna nomes completos dos titulares.
+- Novo teste `tests/documents/request-relations.test.ts`: mesmo tenant, aluno externo, modelo externo, modelo inactivo e falha de leitura. `tests/documents/verification.test.ts` mantém o contrato de emissão/validação.
+- Não foram aplicadas migrações nem escritas em produção. Para bloquear também uma mudança de escola entre a validação e o INSERT, é necessário rever os constraints/FKs compostos tenant+aluno em PostgreSQL numa staging independente.
+- E2E autenticado com duas escolas e contas fictícias, emissão real de documento e simulação de falha de rede permanecem pendentes antes de remover `draft`.
+
