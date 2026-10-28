@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 import type { ExistingStudentOption } from "./existing-student-match";
 
@@ -23,7 +23,9 @@ export const searchEnrollmentStudents = createServerFn({ method: "GET" })
       .replace(/\s+/g, " ")
       .trim();
     if (term.length < 2) return [];
-    const db = await loadSgaAdminClient();
+    // Production policies people_read/students_read (verified 2026-10-28)
+    // allow authorised school staff. Preserve the session JWT and RLS.
+    const db = context.supabase;
     const pattern = `%${term}%`;
     const people = await db
       .from("people")

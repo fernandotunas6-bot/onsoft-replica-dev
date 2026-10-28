@@ -81,12 +81,17 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
     },
   }),
 }));
+const { loadSgaAdminClient } = await import("@/integrations/supabase/sga-admin");
 const { searchEnrollmentStudents } = await import("@/features/students/enrollment-student-search");
-const search = async (query: string, context: unknown = { userId: "secretaria", supabase: {} }) =>
-  (searchEnrollmentStudents as unknown as (args: unknown) => Promise<Record<string, unknown>[]>)({
-    data: { query },
-    context,
-  });
+const search = async (query: string, context?: unknown) => {
+  const session =
+    context === undefined
+      ? { userId: "secretaria", supabase: await loadSgaAdminClient() }
+      : context;
+  return (
+    searchEnrollmentStudents as unknown as (args: unknown) => Promise<Record<string, unknown>[]>
+  )({ data: { query }, context: session });
+};
 beforeEach(() => {
   vi.clearAllMocks();
   state.calls = [];
