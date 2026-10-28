@@ -1569,7 +1569,9 @@ function StudentsPage() {
                         // O QuickFormModal mantém-se aberto e mostra o erro;
                         // não anuncia sucesso total perante resultados parciais.
                         throw new Error(
-                          [feedback.failureMessage, feedback.failureDetails].filter(Boolean).join("\n"),
+                          [feedback.failureMessage, feedback.failureDetails]
+                            .filter(Boolean)
+                            .join("\n"),
                         );
                       }
                     }}

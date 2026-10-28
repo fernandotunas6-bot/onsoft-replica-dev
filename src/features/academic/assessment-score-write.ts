@@ -178,10 +178,7 @@ export async function writeAssessmentScores(
       .eq("school_id", input.schoolId)
       .eq("item_id", input.itemId)
       .eq("enrollment_id", row.enrollmentId);
-    update =
-      existing.score == null
-        ? update.is("score", null)
-        : update.eq("score", existing.score);
+    update = existing.score == null ? update.is("score", null) : update.eq("score", existing.score);
     return update.select("id");
   });
   const [insertResult, updateResults] = await Promise.all([

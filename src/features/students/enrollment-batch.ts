@@ -56,7 +56,8 @@ export async function commitExistingEnrollmentPlacements(
       if (readError) {
         failed.push({
           studentId: row.student_id,
-          message: publicDatabaseError(readError, "Não foi possível confirmar a matrícula.").message,
+          message: publicDatabaseError(readError, "Não foi possível confirmar a matrícula.")
+            .message,
         });
       } else if (unchanged) {
         placedIds.push(row.student_id);

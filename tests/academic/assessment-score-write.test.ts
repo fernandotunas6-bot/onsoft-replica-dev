@@ -34,23 +34,22 @@ type ScoreFixture = {
 function fixture(scores: ScoreFixture[] = []) {
   const store = memoryDb({
     school_settings: [{ school_id: SCHOOL, domain: "pedagogy", value: { closedTerms: [] } }],
-    siga_assessment_items: [{
-      id: ITEM,
-      school_id: SCHOOL,
-      class_group_id: CLASS,
-      term: 1,
-      max_score: 20,
-    }],
+    siga_assessment_items: [
+      {
+        id: ITEM,
+        school_id: SCHOOL,
+        class_group_id: CLASS,
+        term: 1,
+        max_score: 20,
+      },
+    ],
     enrollments: [
       { id: "enr-a", school_id: SCHOOL, class_group_id: CLASS },
       { id: "enr-b", school_id: SCHOOL, class_group_id: CLASS },
     ],
     siga_assessment_scores: scores.map((score) => ({ ...score })),
   });
-  const save = (
-    rows: Array<{ enrollmentId: string; score: number | null }>,
-    client = store.db,
-  ) =>
+  const save = (rows: Array<{ enrollmentId: string; score: number | null }>, client = store.db) =>
     writeAssessmentScores(client, {
       schoolId: SCHOOL,
       userId: "professor-a",
@@ -88,12 +87,13 @@ describe("lote de notas — validação antes de gravar", () => {
 
   it("recusa negativos, NaN, infinito e cotação acima do permitido", () => {
     for (const value of [-1, NaN, Infinity, -Infinity, 21]) {
-      expect(() => validateAssessmentScoreBatch([{ enrollmentId: "enr-a", score: value }], 20))
-        .toThrow(/entre 0 e 20/);
+      expect(() =>
+        validateAssessmentScoreBatch([{ enrollmentId: "enr-a", score: value }], 20),
+      ).toThrow(/entre 0 e 20/);
     }
-    expect(() =>
-      validateAssessmentScoreBatch([{ enrollmentId: "enr-a", score: 14 }], 10),
-    ).toThrow(/10 valores/);
+    expect(() => validateAssessmentScoreBatch([{ enrollmentId: "enr-a", score: 14 }], 10)).toThrow(
+      /10 valores/,
+    );
     expect(() =>
       validateAssessmentScoreBatch([{ enrollmentId: "enr-a", score: null }], 10),
     ).not.toThrow();
@@ -155,18 +155,16 @@ describe("lote de notas — idempotência e concorrência", () => {
         });
       },
     };
-    await expect(store.save([{ enrollmentId: "enr-a", score: 13 }], racedDb as never))
-      .rejects.toThrow(/alterada por outra sessão/);
+    await expect(
+      store.save([{ enrollmentId: "enr-a", score: 13 }], racedDb as never),
+    ).rejects.toThrow(/alterada por outra sessão/);
     expect(store.tables["siga_assessment_scores"]?.[0]?.["score"]).toBe(16);
     expect(mocks.audit).not.toHaveBeenCalled();
     expect(mocks.report).toHaveBeenCalled();
   });
 
   it("se uma nota falhar por concorrência, audita a outra que foi realmente gravada", async () => {
-    const store = fixture([
-      existing("score-a", "enr-a", 12),
-      existing("score-b", "enr-b", 11),
-    ]);
+    const store = fixture([existing("score-a", "enr-a", 12), existing("score-b", "enr-b", 11)]);
     const originalFrom = (
       store.db as unknown as {
         from: (table: string) => { update: (patch: Record<string, unknown>) => unknown };

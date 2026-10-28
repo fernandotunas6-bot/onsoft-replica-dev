@@ -24,16 +24,12 @@ export function buildBulkClassFeedback(
     return `${name}: ${row.message}`;
   });
   if (result.failed.length > visible.length) {
-    detailLines.push(
-      `E mais ${result.failed.length - visible.length} aluno(s) por verificar.`,
-    );
+    detailLines.push(`E mais ${result.failed.length - visible.length} aluno(s) por verificar.`);
   }
 
   return {
     successMessage:
-      result.count > 0
-        ? `${result.count} aluno(s) na turma ${result.className}.`
-        : null,
+      result.count > 0 ? `${result.count} aluno(s) na turma ${result.className}.` : null,
     failureMessage:
       result.failed.length > 0
         ? `${result.failed.length} aluno(s) não ficaram matriculados. Corrija ou repita apenas estes alunos.`
