@@ -1,5 +1,14 @@
 # Execução do padrão visual — 23/10/2026
 
+**28/10/2026 — destinos das secções da turma (implementado):**
+os deep links `?secao=` passam a reservar 88 px antes da secção e a colocar o foco
+no título sem criar uma nova paragem de Tab. O acesso explícito a Resumo deixa de
+ser ignorado e a mudança de turma volta a posicionar a secção pedida.
+Medição anterior em produção: título Alunos aos 20 px, cabeçalho até aos 44 px;
+título parcialmente oculto e sem foco. 63 testes locais de ficha e navegação passaram.
+Validação visual da versão publicada e dispositivos físicos ainda pendentes.
+Sem alterações aos dados, permissões ou fluxo de matrícula.
+
 **28/10/2026 — pesquisa na lista da turma (implementado):**
 `/pedagogica/turmas/$turmaId` permite procurar por nome (sem distinção de acentos,
 maiúsculas ou ordem das palavras) ou número de processo, apenas nos alunos já
