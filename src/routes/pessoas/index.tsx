@@ -240,7 +240,7 @@ function PeoplePage() {
   ];
   const exportarRegistoOficial = () => {
     void issuePrintDocument({
-      tipo: "Registo de pessoas",
+      tipo: `Registo de pessoas · página ${peoplePage}`,
       school: {
         name: school?.name ?? "Escola",
         nif: school?.nif,
@@ -251,9 +251,9 @@ function PeoplePage() {
         academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
       },
       overlay: overlayServico({
-        name: "Registo de pessoas",
+        name: `Registo de pessoas · página ${peoplePage}`,
         areaLabel: "Secretaria",
-        reference: `PES-${people.length}`,
+        reference: `PES-${peoplePage}-${people.length}`,
         status: "Oficial",
         parties: [{ label: "Escola", value: school?.name ?? "Escola" }],
         sections: [
@@ -269,7 +269,7 @@ function PeoplePage() {
       }),
       fallback: () =>
         exportOfficialPautaPdf(
-          "pessoas-oficial",
+          `pessoas-oficial-pagina-${peoplePage}`,
           "Registo de pessoas",
           {
             schoolName: school?.name ?? "Escola",
@@ -856,7 +856,7 @@ function PeoplePage() {
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                onClick={() => exportCsv("pessoas-filtradas", peopleExportColumns, people)}
+                onClick={() => exportCsv(`pessoas-pagina-${peoplePage}`, peopleExportColumns, people)}
                 disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
                 <Download className="size-3.5" /> CSV · página
@@ -867,7 +867,7 @@ function PeoplePage() {
                 className="gap-1.5"
                 onClick={() =>
                   exportPdfTable(
-                    "pessoas-filtradas",
+                    `pessoas-pagina-${peoplePage}`,
                     "Registo de pessoas",
                     peopleExportColumns,
                     people,
