@@ -1,3 +1,4 @@
+import { studentGenderLabel } from "@/lib/school-display";
 import { useMemo, useState, useRef, type ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1059,7 +1060,7 @@ function StudentDetail() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {student.registration_number}
-              {student.grade_name ? ` · ${student.grade_name} Classe` : ""}
+              {student.grade_name ? ` · ${student.grade_name}` : ""}
               {student.class_name ? ` · Turma ${student.class_name}` : ""}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1653,7 +1654,7 @@ function StudentDetail() {
                 </div>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <Field label="Nome completo" value={student.full_name} />
-                  <Field label="Género" value={student.gender ?? "—"} />
+                  <Field label="Género" value={studentGenderLabel(student.gender)} />
                   <Field
                     label="Data de nascimento"
                     value={
@@ -1872,10 +1873,7 @@ function StudentDetail() {
                 {show("academico") ? (
                   <>
                     <Field label="Curso" value={student.course_name ?? "—"} />
-                    <Field
-                      label="Classe"
-                      value={student.grade_name ? `${student.grade_name} Classe` : "—"}
-                    />
+                    <Field label="Classe" value={student.grade_name || "—"} />
                     <Field label="Turma" value={student.class_name ?? "—"} />
                   </>
                 ) : null}

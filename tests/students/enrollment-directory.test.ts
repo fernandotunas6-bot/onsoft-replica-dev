@@ -66,6 +66,15 @@ describe("enrollment directory", () => {
     expect(formatEnrollmentClassGroupLabel(groups[0]!)).toContain("28/35 alunos");
   });
 
+  it("traduz o turno sem alterar o código usado pelos filtros", () => {
+    const coded = [{ ...groups[0]!, shift: "evening" }];
+    const directory = buildEnrollmentDirectory(coded, { shift: "evening" });
+    expect(directory.shifts).toEqual([{ id: "evening", label: "Noite" }]);
+    expect(directory.classGroups[0]?.shift).toBe("evening");
+    expect(formatEnrollmentClassGroupLabel(coded[0]!)).toContain("Noite");
+    expect(formatEnrollmentClassGroupLabel(coded[0]!)).not.toContain("evening");
+  });
+
   it("excludes closed class groups", () => {
     const directory = buildEnrollmentDirectory(
       [...groups, { ...groups[0]!, id: "closed", status: "closed" }],

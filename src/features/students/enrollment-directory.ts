@@ -1,3 +1,4 @@
+import { schoolShiftLabel } from "@/lib/school-display";
 import { idOptions } from "@/lib/option-label";
 export type EnrollmentClassGroup = {
   id: string;
@@ -52,7 +53,7 @@ export function formatEnrollmentClassGroupLabel(group: EnrollmentClassGroup) {
     group.name,
     group.grade_name,
     group.course_name,
-    group.shift || null,
+    group.shift ? schoolShiftLabel(group.shift) : null,
     group.room_name && group.room_name !== "—" ? group.room_name : null,
     occupancy,
   ]
@@ -102,7 +103,7 @@ export function buildEnrollmentDirectory(
   const shifts = uniqueOptions(
     gradeRows.filter((group) => Boolean(group.shift)),
     (group) => group.shift || "",
-    (group) => group.shift || "",
+    (group) => schoolShiftLabel(group.shift),
   );
 
   const shiftRows = filters.shift
