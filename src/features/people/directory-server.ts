@@ -165,70 +165,70 @@ export async function searchPeopleDirectoryPage(
   userId: string,
   data: PeopleInput,
 ): Promise<DirectoryPage<ReturnType<typeof personRow>>> {
-    const scope = await loadStudentScope(db, membership, userId);
-    if (!scope.all && !scope.personIds.length) {
-      return { items: [], total: 0, page: data.page, pageSize: data.pageSize };
-    }
-    const term = data.query.trim().toLocaleLowerCase("pt");
-    const searchedRole = Boolean(term) && personRoleOptions.some((role) => role.includes(term));
-    const roleFilter = data.role;
-    async function hydrate(rows: Row[]) {
-      const candidates =
-        term && !searchedRole ? rows.filter((person) => personFieldsMatch(person, term)) : rows;
-      const roleMap = await personRoleMap(
-        db,
-        membership.schoolId,
-        candidates.map((p) => String(p["id"])),
-        roleFilter,
-      );
-      return candidates
-        .map((record) => ({
-          fieldsMatch: personFieldsMatch(record, term),
-          person: personRow(record, [...(roleMap.get(String(record["id"])) ?? [])]),
-        }))
-        .filter(
-          ({ person, fieldsMatch }) =>
-            (!roleFilter || person.roles.includes(roleFilter)) &&
-            (!term || fieldsMatch || person.roles.some((role) => role.includes(term))),
-        )
-        .map(({ person }) => person);
-    }
+  const scope = await loadStudentScope(db, membership, userId);
+  if (!scope.all && !scope.personIds.length) {
+    return { items: [], total: 0, page: data.page, pageSize: data.pageSize };
+  }
+  const term = data.query.trim().toLocaleLowerCase("pt");
+  const searchedRole = Boolean(term) && personRoleOptions.some((role) => role.includes(term));
+  const roleFilter = data.role;
+  async function hydrate(rows: Row[]) {
+    const candidates =
+      term && !searchedRole ? rows.filter((person) => personFieldsMatch(person, term)) : rows;
+    const roleMap = await personRoleMap(
+      db,
+      membership.schoolId,
+      candidates.map((p) => String(p["id"])),
+      roleFilter,
+    );
+    return candidates
+      .map((record) => ({
+        fieldsMatch: personFieldsMatch(record, term),
+        person: personRow(record, [...(roleMap.get(String(record["id"])) ?? [])]),
+      }))
+      .filter(
+        ({ person, fieldsMatch }) =>
+          (!roleFilter || person.roles.includes(roleFilter)) &&
+          (!term || fieldsMatch || person.roles.some((role) => role.includes(term))),
+      )
+      .map(({ person }) => person);
+  }
 
-    // Navegação normal: o Postgres faz o count e o range; não há scan completo.
-    if (!term && !roleFilter) {
-      const offset = (data.page - 1) * data.pageSize;
-      const result = await readPeople(
-        db,
-        membership.schoolId,
-        scope,
-        data,
-        offset,
-        data.pageSize,
-        true,
-      );
-      return {
-        items: await hydrate(result.rows),
-        total:
-          result.count ??
-          (() => {
-            throw new Error("Contagem de pessoas indisponível.");
-          })(),
-        page: data.page,
-        pageSize: data.pageSize,
-      };
-    }
-
-    // Pesquisa por textos e vínculos: nunca limitar antes dos filtros. A leitura
-    // por lotes possui um limite explícito, falhando sem devolver contagens parciais.
-    return scanDirectoryPage({
+  // Navegação normal: o Postgres faz o count e o range; não há scan completo.
+  if (!term && !roleFilter) {
+    const offset = (data.page - 1) * data.pageSize;
+    const result = await readPeople(
+      db,
+      membership.schoolId,
+      scope,
+      data,
+      offset,
+      data.pageSize,
+      true,
+    );
+    return {
+      items: await hydrate(result.rows),
+      total:
+        result.count ??
+        (() => {
+          throw new Error("Contagem de pessoas indisponível.");
+        })(),
       page: data.page,
       pageSize: data.pageSize,
-      batchSize: 100,
-      maxBatches: 500,
-      read: async (offset, size) =>
-        (await readPeople(db, membership.schoolId, scope, data, offset, size, false)).rows,
-      prepare: hydrate,
-    });
+    };
+  }
+
+  // Pesquisa por textos e vínculos: nunca limitar antes dos filtros. A leitura
+  // por lotes possui um limite explícito, falhando sem devolver contagens parciais.
+  return scanDirectoryPage({
+    page: data.page,
+    pageSize: data.pageSize,
+    batchSize: 100,
+    maxBatches: 500,
+    read: async (offset, size) =>
+      (await readPeople(db, membership.schoolId, scope, data, offset, size, false)).rows,
+    prepare: hydrate,
+  });
 }
 
 async function teacherRows(
@@ -276,65 +276,65 @@ export async function listTeachersDirectoryPage(
   membership: TeacherMembership,
   data: TeacherInput,
 ) {
-    const schoolId = membership.schoolId;
-    // A preferência de privacidade não pode assumir "visível" perante erro.
-    const visibility = await db
-      .from("school_settings")
-      .select("value")
-      .eq("school_id", membership.schoolId)
-      .eq("domain", TEACHER_CONTACT_DOMAIN)
-      .maybeSingle();
-    if (visibility.error)
-      throw publicDatabaseError(
-        visibility.error,
-        "Não foi possível verificar a privacidade dos professores.",
-      );
-    const hidden = parseHiddenTeachers(visibility.data?.value);
-    const canSeeContacts = seesAllTeacherContacts(membership.allAppRoles ?? [membership.appRole]);
-    async function read(offset: number, size: number, count: boolean) {
-      let query = db
-        .from("teachers")
-        .select(TEACHER_COLUMNS, count ? { count: "exact" } : undefined)
-        .eq("school_id", schoolId)
-        .order("created_at", { ascending: false })
-        .order("id");
-      if (data.status !== "all") query = query.eq("status", data.status);
-      const result = await query.range(offset, offset + size - 1);
-      if (result.error)
-        throw publicDatabaseError(result.error, "Não foi possível carregar os professores.");
-      return { rows: (result.data ?? []) as Row[], total: result.count };
-    }
-    const term = (data.query ?? "").trim().toLocaleLowerCase("pt");
-    async function prepare(rows: Row[]) {
-      const visible = await teacherRows(db, schoolId, rows, hidden, canSeeContacts);
-      return term
-        ? visible.filter(
-            (teacher) =>
-              includesTerm(teacher.full_name, term) ||
-              includesTerm(teacher.employee_number, term) ||
-              includesTerm(teacher.email, term),
-          )
-        : visible;
-    }
-    if (!term) {
-      const found = await read((data.page - 1) * data.pageSize, data.pageSize, true);
-      return {
-        items: await prepare(found.rows),
-        total:
-          found.total ??
-          (() => {
-            throw new Error("Contagem de professores indisponível.");
-          })(),
-        page: data.page,
-        pageSize: data.pageSize,
-      };
-    }
-    return scanDirectoryPage({
+  const schoolId = membership.schoolId;
+  // A preferência de privacidade não pode assumir "visível" perante erro.
+  const visibility = await db
+    .from("school_settings")
+    .select("value")
+    .eq("school_id", membership.schoolId)
+    .eq("domain", TEACHER_CONTACT_DOMAIN)
+    .maybeSingle();
+  if (visibility.error)
+    throw publicDatabaseError(
+      visibility.error,
+      "Não foi possível verificar a privacidade dos professores.",
+    );
+  const hidden = parseHiddenTeachers(visibility.data?.value);
+  const canSeeContacts = seesAllTeacherContacts(membership.allAppRoles ?? [membership.appRole]);
+  async function read(offset: number, size: number, count: boolean) {
+    let query = db
+      .from("teachers")
+      .select(TEACHER_COLUMNS, count ? { count: "exact" } : undefined)
+      .eq("school_id", schoolId)
+      .order("created_at", { ascending: false })
+      .order("id");
+    if (data.status !== "all") query = query.eq("status", data.status);
+    const result = await query.range(offset, offset + size - 1);
+    if (result.error)
+      throw publicDatabaseError(result.error, "Não foi possível carregar os professores.");
+    return { rows: (result.data ?? []) as Row[], total: result.count };
+  }
+  const term = (data.query ?? "").trim().toLocaleLowerCase("pt");
+  async function prepare(rows: Row[]) {
+    const visible = await teacherRows(db, schoolId, rows, hidden, canSeeContacts);
+    return term
+      ? visible.filter(
+          (teacher) =>
+            includesTerm(teacher.full_name, term) ||
+            includesTerm(teacher.employee_number, term) ||
+            includesTerm(teacher.email, term),
+        )
+      : visible;
+  }
+  if (!term) {
+    const found = await read((data.page - 1) * data.pageSize, data.pageSize, true);
+    return {
+      items: await prepare(found.rows),
+      total:
+        found.total ??
+        (() => {
+          throw new Error("Contagem de professores indisponível.");
+        })(),
       page: data.page,
       pageSize: data.pageSize,
-      batchSize: 100,
-      maxBatches: 500,
-      read: async (offset, size) => (await read(offset, size, false)).rows,
-      prepare,
-    });
+    };
+  }
+  return scanDirectoryPage({
+    page: data.page,
+    pageSize: data.pageSize,
+    batchSize: 100,
+    maxBatches: 500,
+    read: async (offset, size) => (await read(offset, size, false)).rows,
+    prepare,
+  });
 }
