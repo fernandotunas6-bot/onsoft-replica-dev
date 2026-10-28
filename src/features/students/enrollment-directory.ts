@@ -153,3 +153,20 @@ export function classGroupChoices(
         .join(" · "),
   );
 }
+
+/** Resolve a navigation hint only within the workspace returned by the server. */
+export function enrollmentContextFromClass(
+  groups: readonly EnrollmentClassGroup[],
+  classGroupId: string | undefined,
+) {
+  const group = groups.find((row) => row.id === classGroupId);
+  if (!group || ["inactive", "archived", "closed"].includes(group.status ?? "")) return null;
+  return {
+    academicYearId: group.academic_year_id ?? "",
+    courseId: group.course_id || group.course_name,
+    gradeName: group.grade_name,
+    shift: group.shift ?? "",
+    roomName: group.room_name ?? "",
+    turmaId: group.id,
+  };
+}

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  ENROLLMENT_2FA_MESSAGE,
   assertClassAcceptsEnrollment,
   enrollmentWindow,
   isRpcAuthDenied,
@@ -114,7 +113,6 @@ const place = (
     studentId: "aluno-1",
     classGroupId: "turma-b",
     userId: "secretaria",
-    hasAal2: true,
     ...extra,
   });
 
@@ -223,22 +221,22 @@ describe("colocar em turma", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it("sem 2FA, a matrícula nova é recusada antes de qualquer escrita", async () => {
+  it("permite matrícula com a sessão escolar autorizada", async () => {
     const store = fixture({ status: "inactive" });
     const rpc = enrollRpc(store);
-    await expect(place(store, rpc, { hasAal2: false })).rejects.toThrow(ENROLLMENT_2FA_MESSAGE);
-    expect(rpc).not.toHaveBeenCalled();
-    expect(store.writes).toEqual([]);
+    await expect(place(store, rpc)).resolves.toMatchObject({ classGroupId: "turma-b" });
   });
 
-  it("sem 2FA, mudar de turma também é recusado, sem escrever (A3)", async () => {
+  it("permite mudança de turma com sessão escolar autorizada", async () => {
     const store = fixture({ status: "active" }, [
       { id: "mat-1", class_group_id: "turma-a", academic_year_id: YEAR, status: "active" },
     ]);
     const rpc = enrollRpc(store);
-    await expect(place(store, rpc, { hasAal2: false })).rejects.toThrow(ENROLLMENT_2FA_MESSAGE);
+    await expect(place(store, rpc)).resolves.toMatchObject({
+      classGroupId: "turma-b",
+      moved: true,
+    });
     expect(rpc).not.toHaveBeenCalled();
-    expect(store.writes).toEqual([]);
   });
 });
 

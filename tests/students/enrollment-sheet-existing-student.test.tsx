@@ -4,9 +4,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 
 vi.setConfig({ testTimeout: 20_000 });
 
+const searchEnrollmentStudentsMock = vi.hoisted(() => vi.fn());
 const enrollStudentInClassMock = vi.fn();
 const enrollNewStudentMock = vi.fn();
 
+vi.mock("@/features/students/enrollment-student-search", () => ({
+  searchEnrollmentStudents: searchEnrollmentStudentsMock,
+}));
 vi.mock("@/features/students/server", () => ({
   enrollStudentInClass: (args: unknown) => enrollStudentInClassMock(args),
   enrollNewStudent: (args: unknown) => enrollNewStudentMock(args),
@@ -62,6 +66,7 @@ describe("Nova matrícula de quem já é aluno", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: /Criar novo aluno/ }));
     fireEvent.change(screen.getByLabelText("Nome completo"), {
       target: { value: "ana goncalves" },
     });
@@ -84,6 +89,50 @@ describe("Nova matrícula de quem já é aluno", () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
   });
 
+  it("mantém a turma de origem ao escolher um aluno já existente", async () => {
+    render(
+      <StudentEnrollmentSheet
+        autoOpen
+        initialClassGroupId="cg-target"
+        trigger={() => null}
+        classGroups={[...classGroups, { ...classGroups[0], id: "cg-target", name: "Destino" }]}
+        people={[]}
+        existingStudents={[{ id: "st-1", full_name: "Ana Maria Gonçalves" }]}
+        onCreated={async () => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Criar novo aluno/ }));
+    fireEvent.change(screen.getByLabelText("Nome completo"), {
+      target: { value: "ana goncalves" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Matricular este aluno" }));
+    await waitFor(() =>
+      expect((screen.getByLabelText("Turma") as HTMLSelectElement).value).toBe("cg-target"),
+    );
+  });
+
+  it("pesquisa uma ficha que não está na lista carregada e conserva a turma", async () => {
+    searchEnrollmentStudentsMock.mockResolvedValue([
+      { id: "remote-student", full_name: "Ana Santos", registration_number: "1260099" },
+    ]);
+    render(
+      <StudentEnrollmentSheet
+        autoOpen
+        initialClassGroupId="cg-target"
+        trigger={() => null}
+        classGroups={[...classGroups, { ...classGroups[0], id: "cg-target", name: "Destino" }]}
+        people={[]}
+        existingStudents={[]}
+        onCreated={async () => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Procurar aluno existente/ }));
+    fireEvent.change(screen.getByLabelText("Procurar aluno"), { target: { value: "1260099" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Seleccionar Ana Santos" }));
+    expect(((await screen.findByLabelText("Turma")) as HTMLSelectElement).value).toBe("cg-target");
+    expect(screen.queryByLabelText("Nome completo")).toBeNull();
+  });
+
   it("nome novo: não mostra a lista", () => {
     render(
       <StudentEnrollmentSheet
@@ -95,6 +144,7 @@ describe("Nova matrícula de quem já é aluno", () => {
         onCreated={async () => {}}
       />,
     );
+    fireEvent.click(screen.getByRole("button", { name: /Criar novo aluno/ }));
     fireEvent.change(screen.getByLabelText("Nome completo"), {
       target: { value: "Pedro Neto" },
     });
