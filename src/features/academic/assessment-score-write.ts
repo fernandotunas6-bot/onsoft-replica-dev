@@ -132,6 +132,7 @@ export async function writeAssessmentScores(
   const { data: existingRows, error: existingError } = await db
     .from("siga_assessment_scores")
     .select("id, score, enrollment_id")
+    .eq("school_id", input.schoolId)
     .eq("item_id", input.itemId)
     .in("enrollment_id", enrollmentIds);
   if (existingError) {
