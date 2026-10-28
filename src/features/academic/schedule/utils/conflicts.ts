@@ -19,8 +19,7 @@ function isExplicitRoomLabel(value: string | null | undefined): boolean {
   // identificadores físicos. Apenas uma designação inequívoca "Sala ..."
   // pode representar uma sala legada quando não existe room_id.
   return (
-    /^sala\s+\S/.test(label) &&
-    !(PLACEHOLDER_ROOM_LABELS as readonly string[]).includes(label)
+    /^sala\s+\S/.test(label) && !(PLACEHOLDER_ROOM_LABELS as readonly string[]).includes(label)
   );
 }
 
