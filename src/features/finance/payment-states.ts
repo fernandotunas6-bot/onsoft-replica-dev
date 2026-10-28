@@ -29,7 +29,10 @@ export function invoiceState(
   // cobrem o total. Arredondar para cêntimos, como o motor de liquidações.
   const totalCents = Math.max(Math.round(invoice.total * 100), 0);
   const paidCents = Math.max(Math.round(invoice.paid * 100), 0);
-  if ((totalCents > 0 && paidCents >= totalCents) || (totalCents === 0 && invoice.status === "paid")) {
+  if (
+    (totalCents > 0 && paidCents >= totalCents) ||
+    (totalCents === 0 && invoice.status === "paid")
+  ) {
     return { status: "paid", label: "Paga" };
   }
   const overdue = Boolean(invoice.dueOn && invoice.dueOn < today);
