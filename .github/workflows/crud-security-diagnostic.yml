@@ -1,0 +1,51 @@
+name: CRUD security diagnostic (one-off)
+
+on:
+  push:
+    branches:
+      - feat/crud-premium-engineering-20261028
+    paths:
+      - .github/workflows/crud-security-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Comparar acessos privilegiados com a base original
+        shell: bash
+        run: |
+          mkdir -p /tmp/siga-base
+          git archive 8ea7851bb5c7ed72536ebbd6abc5e9675a4d8fbf src | tar -x -C /tmp/siga-base
+          node <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+          function scan(dir, prefix = "src") {
+            const found = [];
+            for (const name of fs.readdirSync(dir)) {
+              const file = path.join(dir, name);
+              const rel = path.posix.join(prefix, name);
+              if (fs.statSync(file).isDirectory()) {
+                found.push(...scan(file, rel));
+                continue;
+              }
+              if (!/\.tsx?$/.test(name)) continue;
+              const raw = fs.readFileSync(file, "utf8");
+              const code = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+              if (/loadSgaAdminClient\s*\(/.test(code)) found.push(rel);
+            }
+            return found.sort();
+          }
+          const oldFiles = scan("/tmp/siga-base/src");
+          const newFiles = scan("src");
+          const oldSet = new Set(oldFiles);
+          const newSet = new Set(newFiles);
+          console.log("old_count", oldFiles.length, "new_count", newFiles.length);
+          console.log("added_calls", newFiles.filter(f => !oldSet.has(f)));
+          console.log("removed_calls", oldFiles.filter(f => !newSet.has(f)));
+          NODE
