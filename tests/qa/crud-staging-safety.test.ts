@@ -26,6 +26,7 @@ describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
       stateB: "/tmp/tenant-b.json",
       markerA: "E2E Pessoa A 9876",
       markerB: "E2E Pessoa B 9876",
+      supabaseOrigin: "https://stagingexample123456.supabase.co",
     });
   });
 
@@ -60,6 +61,54 @@ describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
         }),
       ),
     ).toThrow(/Supabase diferente/);
+  });
+
+  it("recusa sessões relativas, ficheiros sob o repositório e caminhos equivalentes", () => {
+    expect(() =>
+      resolveCrudStagingConfig(
+        makeEnv({ SIGA_CRUD_E2E_TENANT_A_STATE: "tests/.auth/escola-a.json" }),
+      ),
+    ).toThrow(/fora do repositório/);
+    expect(() =>
+      resolveCrudStagingConfig(
+        makeEnv({ SIGA_CRUD_E2E_TENANT_A_STATE: `${process.cwd()}/.auth/escola-a.json` }),
+      ),
+    ).toThrow(/fora do repositório/);
+    expect(() =>
+      resolveCrudStagingConfig(
+        makeEnv({
+          SIGA_CRUD_E2E_TENANT_A_STATE: "/tmp/teste/../tenant-b.json",
+          SIGA_CRUD_E2E_TENANT_B_STATE: "/tmp/tenant-b.json",
+        }),
+      ),
+    ).toThrow(/mesma sessão/);
+  });
+
+  it("não aceita extensões de armazenamento de credenciais diferentes de JSON", () => {
+    expect(() =>
+      resolveCrudStagingConfig(
+        makeEnv({ SIGA_CRUD_E2E_TENANT_A_STATE: "/tmp/escola-a.txt" }),
+      ),
+    ).toThrow(/ficheiros JSON/);
+  });
+
+  it("recusa marcadores indistintos por caixa ou acentos, como a pesquisa real", () => {
+    expect(() =>
+      resolveCrudStagingConfig(
+        makeEnv({
+          SIGA_CRUD_E2E_TENANT_A_MARKER: "Pessoa Única",
+          SIGA_CRUD_E2E_TENANT_B_MARKER: "pessoa unica",
+        }),
+      ),
+    ).toThrow(/distintos/);
+    expect(() =>
+      resolveCrudStagingConfig(
+        makeEnv({
+          SIGA_CRUD_E2E_TENANT_A_MARKER: "PESSOA FICTÍCIA",
+          SIGA_CRUD_E2E_TENANT_B_MARKER: "pessoa ficticia 2026",
+        }),
+      ),
+    ).toThrow(/não se sobreponham/);
   });
 
   it("recusa sessões iguais, marcadores sobrepostos e parâmetros em falta", () => {
