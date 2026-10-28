@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveCrudStagingConfig } from "../e2e/helpers/crud-staging-safety";
+import {
+  isUnexpectedCrudSupabaseOrigin,
+  resolveCrudStagingConfig,
+} from "../e2e/helpers/crud-staging-safety";
 
 const makeEnv = (patch: Record<string, string> = {}) => ({
   SIGA_CRUD_E2E: "1",
@@ -11,6 +14,29 @@ const makeEnv = (patch: Record<string, string> = {}) => ({
   SIGA_CRUD_E2E_TENANT_A_MARKER: "E2E Pessoa A 9876",
   SIGA_CRUD_E2E_TENANT_B_MARKER: "E2E Pessoa B 9876",
   ...patch,
+});
+
+describe("bloqueio de chamadas Supabase durante o ensaio E2E", () => {
+  const staging = "https://stagingexample123456.supabase.co";
+
+  it("permite chamadas do projecto de staging e recursos externos neutros", () => {
+    expect(isUnexpectedCrudSupabaseOrigin(`${staging}/rest/v1/people`, staging)).toBe(false);
+    expect(isUnexpectedCrudSupabaseOrigin("https://fonts.googleapis.com/css2", staging)).toBe(
+      false,
+    );
+  });
+
+  it("bloqueia o projecto de produção e qualquer outro Supabase", () => {
+    expect(
+      isUnexpectedCrudSupabaseOrigin(
+        "https://xodgfmxiaunpamctfeea.supabase.co/auth/v1/user",
+        staging,
+      ),
+    ).toBe(true);
+    expect(isUnexpectedCrudSupabaseOrigin("https://outroprojeto.supabase.co/rest/v1", staging)).toBe(
+      true,
+    );
+  });
 });
 
 describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
