@@ -246,7 +246,9 @@ export function QuickFormModal({
                           name={field.name}
                           required={field.required ?? true}
                           aria-invalid={Boolean(fieldErrors[field.name])}
-                          aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                          aria-describedby={
+                            fieldErrors[field.name] ? `${field.name}-error` : undefined
+                          }
                           className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
                           defaultValue={
                             field.defaultValue ??
@@ -289,7 +291,11 @@ export function QuickFormModal({
                     />
                   )}
                   {fieldErrors[field.name] ? (
-                    <p id={`${field.name}-error`} role="alert" className="mt-1 text-xs text-destructive">
+                    <p
+                      id={`${field.name}-error`}
+                      role="alert"
+                      className="mt-1 text-xs text-destructive"
+                    >
                       {fieldErrors[field.name]}
                     </p>
                   ) : null}

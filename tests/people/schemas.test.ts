@@ -158,9 +158,15 @@ describe("updatePersonInputSchema", () => {
         expectedUpdatedAt: "2026-10-28T07:00:00.000Z",
       }).expectedUpdatedAt,
     ).toBe("2026-10-28T07:00:00.000Z");
-    expect(updatePersonInputSchema.parse({ personId, fullName: "Ana Domingos" }).expectedUpdatedAt).toBeUndefined();
     expect(
-      updatePersonInputSchema.safeParse({ personId, fullName: "Ana Domingos", expectedUpdatedAt: "" }).success,
+      updatePersonInputSchema.parse({ personId, fullName: "Ana Domingos" }).expectedUpdatedAt,
+    ).toBeUndefined();
+    expect(
+      updatePersonInputSchema.safeParse({
+        personId,
+        fullName: "Ana Domingos",
+        expectedUpdatedAt: "",
+      }).success,
     ).toBe(false);
   });
 

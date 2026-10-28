@@ -1306,7 +1306,9 @@ export const updatePerson = createServerFn({ method: "POST" })
     }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
     if (!person && data.expectedUpdatedAt) {
-      throw new Error("Esta ficha foi alterada por outra pessoa. Actualize os dados antes de guardar.");
+      throw new Error(
+        "Esta ficha foi alterada por outra pessoa. Actualize os dados antes de guardar.",
+      );
     }
     if (!person) throw new Error("Pessoa não encontrada.");
     await syncBiDocumentFromNif(

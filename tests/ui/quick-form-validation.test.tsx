@@ -83,9 +83,9 @@ describe("QuickFormModal — registos seguros", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(screen.getByRole("alert").textContent).toContain("Nome curto.");
-    expect(screen.getByRole("textbox", { name: "Nome completo" }).getAttribute("aria-invalid")).toBe(
-      "true",
-    );
+    expect(
+      screen.getByRole("textbox", { name: "Nome completo" }).getAttribute("aria-invalid"),
+    ).toBe("true");
     expect(onSubmit).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole("textbox", { name: "Nome completo" }), {
       target: { value: "Ana" },
