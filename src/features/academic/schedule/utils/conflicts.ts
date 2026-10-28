@@ -15,7 +15,24 @@ export const PLACEHOLDER_ROOM_LABELS = ["sala", "s/n", "a definir", "sem sala fi
 
 function isExplicitRoomLabel(value: string | null | undefined): boolean {
   const label = value?.trim().toLocaleLowerCase() ?? "";
-  return Boolean(label) && !(PLACEHOLDER_ROOM_LABELS as readonly string[]).includes(label);
+  // "Laboratório", "Informática" ou "Aula" são descrições de aulas, não
+  // identificadores físicos. Apenas uma designação inequívoca "Sala ..."
+  // pode representar uma sala legada quando não existe room_id.
+  return (
+    /^sala\s+\S/.test(label) &&
+    !(PLACEHOLDER_ROOM_LABELS as readonly string[]).includes(label)
+  );
+}
+
+function samePhysicalRoom(left: ScheduleSlot, right: ScheduleSlot): boolean {
+  // O identificador é a autoridade, mesmo que os rótulos sejam idênticos.
+  if (left.room_id && right.room_id) return left.room_id === right.room_id;
+  // Não inferir igualdade entre uma sala identificada e uma etiqueta avulsa.
+  if (left.room_id || right.room_id) return false;
+  return (
+    isExplicitRoomLabel(left.label) &&
+    left.label?.trim().toLocaleLowerCase() === right.label?.trim().toLocaleLowerCase()
+  );
 }
 
 function overlaps(left: ScheduleSlot, right: ScheduleSlot) {
@@ -58,10 +75,7 @@ export function detectScheduleConflicts(slots: ScheduleSlot[]): ScheduleConflict
           key: "sala",
           kind: "sala" as const,
           severity: "blocker" as const,
-          matches:
-            (Boolean(left.room_id) && left.room_id === right.room_id) ||
-            (isExplicitRoomLabel(left.label) &&
-              left.label?.trim().toLocaleLowerCase() === right.label?.trim().toLocaleLowerCase()),
+          matches: samePhysicalRoom(left, right),
           message: `A sala ${left.room_name || left.label} está ocupada em dois slots sobrepostos.`,
         },
       ];
