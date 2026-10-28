@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { requireDocumentRequestRelations } from "@/features/documents/request-relations";
 import { memoryDb } from "../students/memory-db";
@@ -94,5 +95,28 @@ describe("pedido de documento — isolamento escola/modelo/aluno", () => {
         templateId: TEMPLATE,
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe("listagem de pedidos — contexto académico seguro", () => {
+  it("a criação valida aluno/modelo antes de inserir o pedido", () => {
+    const source = readFileSync("src/features/documents/server.ts", "utf8");
+    const create = source.slice(source.indexOf("export const createDocumentRequest"));
+    expect(create.indexOf("requireDocumentRequestRelations(")).toBeGreaterThan(-1);
+    expect(create.indexOf("requireDocumentRequestRelations(")).toBeLessThan(
+      create.indexOf('.from("document_requests")'),
+    );
+  });
+
+  it("não consulta turmas de outras escolas nem silencia falhas de matrícula", () => {
+    const source = readFileSync("src/features/documents/server.ts", "utf8");
+    const list = source.slice(
+      source.indexOf("export const listDocumentWorkspace"),
+      source.indexOf("export const createDocumentRequest"),
+    );
+    const classLookup = list.slice(list.indexOf('.from("class_groups")'));
+    expect(classLookup).toContain('.eq("school_id", membership.schoolId)');
+    expect(list).toContain("if (enrollmentsError)");
+    expect(list).toContain("if (classesError)");
   });
 });
