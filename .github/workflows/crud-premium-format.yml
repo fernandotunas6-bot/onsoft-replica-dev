@@ -1,0 +1,41 @@
+name: CRUD Premium one-off formatter
+
+on:
+  push:
+    branches:
+      - feat/crud-premium-engineering-20261028
+    paths:
+      - .github/workflows/crud-premium-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crud-premium-engineering-20261028
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Formatar ficheiros modificados
+        run: |
+          bunx prettier --write \
+            src/features/people/directory-server.ts \
+            src/features/people/server.ts \
+            src/routes/pessoas/index.tsx \
+            tests/routes/pessoas.test.tsx
+      - name: Commit da formatação
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/people/directory-server.ts src/features/people/server.ts src/routes/pessoas/index.tsx tests/routes/pessoas.test.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m "style(crud): format paged server boundary and tests"
+            git push origin HEAD:feat/crud-premium-engineering-20261028
+          fi
