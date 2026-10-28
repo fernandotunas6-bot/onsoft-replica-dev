@@ -15,9 +15,10 @@ As heads das PRs abertas consultadas estão em [open-pr-heads.json](open-pr-head
 Depois da indicação do proprietário, a PR #369 (`eed44e16503d82153e2d97b67dcb6ca1dfb0c8e9`)
 foi combinada **apenas no candidato local** para validar compatibilidade: o MFA de
 login fica desligado por omissão e só é exigido quando a própria conta o activar.
-Os guardas de operações sensíveis mantêm-se. A PR continua aberta no GitHub,
-fora da main; não foi contado este trabalho como já publicado. Não houve merge
-de PR no GitHub nem deploy. As provas finais devem identificar o SHA combinado.
+Os guardas de operações sensíveis mantêm-se. A PR foi posteriormente integrada na main pelo trabalho externo a este ciclo.
+O candidato foi alinhado com `origin/main` `c061fb75`, preservando também as
+alterações recentes de navegação. Este agente não fez merge de PR nem deploy.
+As provas distinguem o SHA da suíte completa do candidato posterior.
 
 Critérios externos consultados: [organização das avaliações no Moodle](https://docs.moodle.org/en/Gradebook),
 [conclusão de actividades](https://docs.moodle.org/en/Activity_completion),
@@ -183,3 +184,25 @@ também executar a saída compilada para reproduzir e confirmar a correcção.
    usar os contratos mestres pedagógico e financeiro e rever as PRs abertas por SHA.
 4. Só classificar o módulo como validado depois de cumprir o fluxo completo e explicitar
    limites. CI verde, RLS activo e saúde HTTP são evidências complementares.
+
+## Consulta autenticada no Colégio Adventista — 28/10/2026
+
+Entrada autorizada com a conta de testes fornecida pelo proprietário, sem pedido
+de MFA. Foram abertas `/portal`, `/alunos`, `/pedagogica`, `/financeiro`,
+`/documentos`, `/arquivos` e `/calendario`: HTTP 200, área principal visível,
+identificação Adventista presente e nenhuma excepção JavaScript observada.
+[Resultados sem credenciais](authenticated-readonly-results.json). Não se guardaram
+cookies ou tokens e não se incluíram credenciais nos artefactos. Esta prova
+não confirma cada consulta de dados, botão, gravação ou operação financeira.
+
+Verificação agregada de leitura: um ano activo e zero divergências de escola
+nas relações matrícula→aluno, matrícula→turma e turma→ano. Não houve alteração
+dos registos institucionais. A escola de testes partilha a base de produção;
+os testes automatizados de escrita que exigem projecto isolado continuam pendentes.
+
+Validação após alinhar com a main `c061fb75`: **433 testes de regressão em
+50 ficheiros**, zero falhas, build aprovado e lint dos ficheiros de código
+alterados sem erros (dois avisos Fast Refresh). A suíte de 5320 testes refere-se
+ao SHA anterior indicado em `validation.json`, não às alterações recentes de toda
+a main. A geração do build removeu uma declaração TanStack duplicada da árvore
+de rotas.

@@ -23,7 +23,8 @@ identidade/sair por outra via e descarta confirmações MFA atrasadas.
 por omissão**, mesmo com factores antigos inscritos; só a preferência explícita
 da conta o activa. As correcções de ciclo de sessão não podem repor a regra
 anterior. A PR #369 foi combinada no candidato local para testar compatibilidade,
-sem merge no GitHub ou deploy. Testes específicos em
+sem merge deste agente no GitHub ou deploy. A PR foi depois integrada por trabalho externo;
+o candidato foi alinhado com a main `c061fb75`. Testes específicos em
 `tests/auth/pending-mfa-policy.test.ts`.
 
 Foi reproduzido no Worker compilado o erro de produção de

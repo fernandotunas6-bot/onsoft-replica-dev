@@ -66,5 +66,19 @@
     "No native Flutter SDK execution",
     "No payment provider transaction or authenticated cross-school RLS proof",
     "Corrections not deployed to production"
-  ]
+  ],
+  "authenticated_readonly": "7 pages, main visible, Adventista label present, no observed JS exception; no institutional writes",
+  "later_main_alignment": {
+    "main": "c061fb75",
+    "merge_commit": "3b5f680b",
+    "scope": "New main includes UI/navigation changes beyond the fully tested source_commit; separate regression/build/typecheck results recorded subsequently",
+    "regressions": {
+      "files": 50,
+      "passed": 433,
+      "failed": 0
+    },
+    "build": "passed",
+    "changed_source_lint": "0 errors; 2 pre-existing fast-refresh warnings",
+    "route_tree": "Build regenerated routeTree.gen.ts and removed a duplicated TanStack registration"
+  }
 }
