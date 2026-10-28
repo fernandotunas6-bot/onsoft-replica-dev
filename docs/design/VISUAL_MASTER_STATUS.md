@@ -1,5 +1,17 @@
 # Execução do padrão visual — 23/10/2026
 
+**28/10/2026 — escolha de turma na matrícula existente (implementado):**
+o selector nativo recebe pesquisa opcional por palavras sem distinção de acentos.
+A matrícula existente exige escolha explícita quando não há turma de origem; a
+abertura pela turma conserva o preenchimento contextual. Filtrar mantém o ID
+seleccionado, mesmo quando não corresponde à pesquisa; o texto da pesquisa não
+entra nos dados enviados. A opção é activada somente neste fluxo de matrícula;
+os outros selectores e as opções dependentes mantêm o comportamento anterior.
+132 testes locais de alunos e QuickForm passaram, incluindo envio do ID escolhido,
+validação obrigatória, contexto, opções dependentes e protecção contra duplo envio.
+Lint sem erros. Compilação, CI e validação publicada ainda pendentes nesta entrega.
+Sem migração, alteração de permissões ou gravações de teste.
+
 **28/10/2026 — destinos das secções da turma (implementado):**
 os deep links `?secao=` passam a reservar 88 px antes da secção e a colocar o foco
 no título sem criar uma nova paragem de Tab. O acesso explícito a Resumo deixa de
