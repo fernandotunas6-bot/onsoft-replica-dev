@@ -142,6 +142,7 @@ import { StudentMobileList } from "@/features/students/components/StudentMobileL
 const alunosSearchSchema = z
   .object({
     action: z.enum(["matricular", "confirmar", "estado"]).optional(),
+    classGroupId: z.string().uuid().optional().catch(undefined),
   })
   .passthrough();
 
@@ -227,7 +228,7 @@ function StudentsPage() {
   const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
     useSchoolSettings();
-  const { action } = Route.useSearch();
+  const { action, classGroupId } = Route.useSearch();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "alunos",
     alunosFilterDefaults,
@@ -642,6 +643,7 @@ function StudentsPage() {
             />
             <StudentEnrollmentSheet
               autoOpen={action === "matricular" && !capacityBlocked}
+              initialClassGroupId={classGroupId}
               classGroups={classGroups.map((group) => ({
                 id: group.id,
                 name: group.name,
@@ -651,6 +653,12 @@ function StudentsPage() {
                 // Sem o nome, o selector «Ano lectivo» caía no fallback e
                 // mostrava o UUID cru ao utilizador.
                 academic_year_name: String(group.academic_year_name ?? ""),
+                course_id: group.course_id,
+                shift: group.shift,
+                room_name: group.room_name,
+                capacity: group.capacity,
+                enrolled_count: group.enrolled_count,
+                status: group.status,
               }))}
               people={peopleQuery.data ?? []}
               existingStudents={studentsQuery.data ?? []}

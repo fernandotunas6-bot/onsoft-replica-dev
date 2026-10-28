@@ -84,6 +84,27 @@ describe("Nova matrícula de quem já é aluno", () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
   });
 
+  it("mantém a turma de origem ao escolher um aluno já existente", async () => {
+    render(
+      <StudentEnrollmentSheet
+        autoOpen
+        initialClassGroupId="cg-target"
+        trigger={() => null}
+        classGroups={[...classGroups, { ...classGroups[0], id: "cg-target", name: "Destino" }]}
+        people={[]}
+        existingStudents={[{ id: "st-1", full_name: "Ana Maria Gonçalves" }]}
+        onCreated={async () => {}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Nome completo"), {
+      target: { value: "ana goncalves" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Matricular este aluno" }));
+    await waitFor(() =>
+      expect((screen.getByLabelText("Turma") as HTMLSelectElement).value).toBe("cg-target"),
+    );
+  });
+
   it("nome novo: não mostra a lista", () => {
     render(
       <StudentEnrollmentSheet
