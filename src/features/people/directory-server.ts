@@ -156,7 +156,7 @@ async function readPeople(
     result = await query(PERSON_BASE);
   }
   if (result.error) throw publicDatabaseError(result.error, "Não foi possível pesquisar pessoas.");
-  return { rows: (result.data ?? []) as Row[], count: result.count };
+  return { rows: (result.data ?? []) as unknown as Row[], count: result.count };
 }
 
 /**
@@ -287,6 +287,7 @@ export const listTeachersPage = createServerFn({ method: "GET" })
     const membership = await resolveSgaMembershipAdmin(context.userId);
     if (!membership) throw new Error("Sem vínculo activo com uma escola.");
     const db = await loadSgaAdminClient();
+    const schoolId = membership.schoolId;
     // A preferência de privacidade não pode assumir "visível" perante erro.
     const visibility = await db
       .from("school_settings")
@@ -305,7 +306,7 @@ export const listTeachersPage = createServerFn({ method: "GET" })
       let query = db
         .from("teachers")
         .select(TEACHER_COLUMNS, count ? { count: "exact" } : undefined)
-        .eq("school_id", membership.schoolId)
+        .eq("school_id", schoolId)
         .order("created_at", { ascending: false })
         .order("id");
       if (data.status !== "all") query = query.eq("status", data.status);
@@ -316,7 +317,7 @@ export const listTeachersPage = createServerFn({ method: "GET" })
     }
     const term = (data.query ?? "").trim().toLocaleLowerCase("pt");
     async function prepare(rows: Row[]) {
-      const visible = await teacherRows(db, membership.schoolId, rows, hidden, canSeeContacts);
+      const visible = await teacherRows(db, schoolId, rows, hidden, canSeeContacts);
       return term
         ? visible.filter(
             (teacher) =>
