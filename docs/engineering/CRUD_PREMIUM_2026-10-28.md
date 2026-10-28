@@ -222,3 +222,12 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - `src/features/finance/student-finance-summary.ts` agrega valores faturados, recebidos, por pagar e vencidos em cêntimos e calcula o saldo aberto com o motor existente `invoiceOpenAmount`. Elimina resíduos de ponto flutuante no perfil financeiro do aluno.
 - Testes em `tests/finance/payment-states.test.ts` e `tests/finance/student-finance-summary.test.ts`: estorno de fatura anteriormente paga, valores parciais, vencimento e múltiplas faturas com cêntimos.
 - Estes cálculos são de leitura/apresentação e não registam pagamentos nem executam estornos. A fonte de verdade mantém-se no PostgreSQL e nas RPCs financeiras; ensaios de reconciliação real permanecem obrigatórios em staging.
+
+
+### Lote 5 — recibos financeiros completos e dívida verdadeira
+
+- `src/features/finance/invoice-receipts.ts` carrega os recibos por **lotes de IDs** e por páginas com ordenação estável, porque o PostgREST pode devolver apenas 1.000 linhas, mesmo quando a consulta pede mais. Em erro ou limite excedido, nunca devolve uma soma parcial como se fosse definitiva.
+- `listInvoices` filtra recibos, contratos, rubricas e matrículas com `school_id` obtido da sessão autorizada. Os erros dessas relações interrompem a consulta em vez de apresentar nomes/saldos omitidos.
+- Somatório de recibos em cêntimos, ignorando estados `reversed`; nunca converter um estorno em cobrança efectiva.
+- `tests/finance/invoice-receipts.test.ts` cobre mais de 1.200 recibos, paginação, divisão por ID, ausência de faturas, falhas intermédias, recusa de truncagem e arredondamento após estornos.
+- Ainda pendente: prova de integração com dados de volume no PostgreSQL de staging e ensaio com contabilista, tesoureiro e contas de duas escolas. Nenhuma migração nem dado de produção modificado.
