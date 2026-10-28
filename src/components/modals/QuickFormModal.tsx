@@ -198,7 +198,13 @@ export function QuickFormModal({
               }}
               onChange={(event) => {
                 setDirty(true);
-                const name = (event.target as HTMLInputElement).name;
+                const target = event.target;
+                const name =
+                  target instanceof HTMLInputElement ||
+                  target instanceof HTMLSelectElement ||
+                  target instanceof HTMLTextAreaElement
+                    ? target.name
+                    : "";
                 if (name) {
                   setFieldErrors((previous) => {
                     if (!previous[name]) return previous;
