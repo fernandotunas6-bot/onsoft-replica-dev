@@ -81,7 +81,10 @@ export function resolveCrudStagingConfig(env: Env): CrudStagingConfig | null {
   const insideWorkspace = (path: string) => {
     const target = resolve(path);
     const subpath = relative(workspace, target);
-    return subpath === "" || (subpath !== ".." && !subpath.startsWith(`..${sep}`) && !isAbsolute(subpath));
+    return (
+      subpath === "" ||
+      (subpath !== ".." && !subpath.startsWith(`..${sep}`) && !isAbsolute(subpath))
+    );
   };
   if (
     !isAbsolute(stateA) ||
@@ -91,7 +94,9 @@ export function resolveCrudStagingConfig(env: Env): CrudStagingConfig | null {
     insideWorkspace(stateA) ||
     insideWorkspace(stateB)
   ) {
-    throw new Error("E2E CRUD: as sessões devem estar em ficheiros JSON absolutos fora do repositório.");
+    throw new Error(
+      "E2E CRUD: as sessões devem estar em ficheiros JSON absolutos fora do repositório.",
+    );
   }
   if (resolve(stateA) === resolve(stateB)) {
     throw new Error("E2E CRUD: as duas escolas não podem usar a mesma sessão.");
@@ -100,7 +105,11 @@ export function resolveCrudStagingConfig(env: Env): CrudStagingConfig | null {
   // A pesquisa de Pessoas ignora caixa e acentos. Os marcadores usados para
   // provar o isolamento não podem coincidir depois dessa normalização.
   const searchable = (value: string) =>
-    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt").trim();
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt")
+      .trim();
   const searchA = searchable(markerA);
   const searchB = searchable(markerB);
   if (!searchA || !searchB || searchA.length < 4 || searchB.length < 4 || searchA === searchB) {
@@ -119,7 +128,6 @@ export function resolveCrudStagingConfig(env: Env): CrudStagingConfig | null {
  */
 export function isUnexpectedCrudSupabaseOrigin(requestUrl: string, expectedOrigin: string) {
   const target = new URL(requestUrl);
-  const isSupabase =
-    target.hostname === "supabase.co" || target.hostname.endsWith(".supabase.co");
+  const isSupabase = target.hostname === "supabase.co" || target.hostname.endsWith(".supabase.co");
   return isSupabase && target.origin !== expectedOrigin;
 }
