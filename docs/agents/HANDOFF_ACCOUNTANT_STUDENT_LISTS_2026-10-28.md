@@ -142,3 +142,19 @@ ensaios. Build, typecheck (depois do build) e ESLint dos ficheiros alterados
 passaram. A suite integral inclui o teste que falhava no CI e o novo teste de
 separação do cliente da sessão/catálogo. Estes resultados são locais; a nova
 execução do GitHub Actions deve ser conferida no SHA enviado.
+
+## Lista móvel e ensaio de navegador
+
+A verificação visual encontrou tabela com scroll horizontal e alvos de selecção
+com cerca de 12 px no telemóvel. A lista usa agora `ResponsiveEntityView`: cartões
+abaixo de 768 px, tabela a partir desse limite, com a mesma selecção/filtros e
+paginação. O label do checkbox oferece 44 × 44 px de toque sem aumentar a marca.
+Um teste DOM verifica os valores no cartão e a selecção preservada na passagem
+para tabela. O ensaio Chromium verificou nove larguras, teclado, contextos,
+download CSV, formulário real com API fictícia, clique repetido, erros e retorno.
+
+Reprodução, matriz, blob, comparação antes/depois e limites:
+`docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`.
+Comando: `node scripts/qa/finance-student-ledger.mjs` (Chromium instalado).
+A suite integral local passou com 5385 testes/19 saltados; build, tipos e lint
+passaram. Ensaios reais de sessão/RLS e aparelhos físicos continuam pendentes.

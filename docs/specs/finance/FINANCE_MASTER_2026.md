@@ -110,3 +110,8 @@ aparelho. Contratos, matriz, evidências e limites em
 Refinamento local: selecção por página com limite de 60 e exportação de cobrança
 só dos seleccionados com dívida, incluindo matrículas inactivas. O ficheiro traz
 ano/data de conferência; não corresponde a envio de lembretes nem a pagamento.
+
+A lista financeira passa a cartões no telemóvel (abaixo de 768 px), com pago,
+dívida e vencida visíveis em conjunto e área de selecção de 44 px. Tabela mantida
+nos restantes degraus. Ensaio reproduzível em
+`docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`; sessões reais pendentes.

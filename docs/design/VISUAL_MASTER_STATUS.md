@@ -484,3 +484,14 @@ Refinamento da lista financeira: selecção/desmarcação por página, contador 
 dívida seleccionada e exportação só dos devedores escolhidos. Estado implementado;
 testes DOM cobrem exclusão de alunos sem dívida, matrícula inactiva, selecção
 entre páginas e limite de 60. Layout em aparelhos continua por validar.
+
+### 28/10/2026 — lista financeira em navegador
+
+| Âmbito | Estado | Evidência | Limite / próximo passo |
+| --- | --- | --- | --- |
+| Lista móvel e toque | validado em Chromium controlado | Cartões abaixo de 768 px; alvos de 44 px; nove viewports, 320–1440 px | Ensaiar aparelhos reais |
+| Teclado, contexto, CSV, diálogo | validado em Chromium controlado | `scripts/qa/finance-student-ledger.mjs`; foco/Escape em 320 × 800 e 640 × 360; descarga real CSV; API fictícia | Sessão/servidor real, leitores de ecrã e restantes browsers |
+
+Detalhes e limites: `docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`.
+Não confundir este ensaio do componente com validação integral do portal ou dos
+pagamentos. A vista de tablet/desktop e os estados do dinheiro foram preservados.

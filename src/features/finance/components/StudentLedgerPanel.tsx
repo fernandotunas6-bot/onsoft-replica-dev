@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -122,6 +123,27 @@ function Ledger({
     setPage(1);
     setResult(null);
   };
+  const selectionControl = (row: Row) => (
+    <label
+      data-slot="student-selection"
+      className="inline-flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center"
+    >
+      <Checkbox
+        aria-label={`Seleccionar ${row.name}`}
+        checked={selected.includes(row.studentId)}
+        disabled={!selected.includes(row.studentId) && selected.length >= 60}
+        onCheckedChange={(checked) =>
+          setSelected((old) =>
+            checked === true
+              ? old.includes(row.studentId) || old.length >= 60
+                ? old
+                : [...old, row.studentId]
+              : old.filter((id) => id !== row.studentId),
+          )
+        }
+      />
+    </label>
+  );
   const totals = filtered.reduce(
     (sum, row) => ({
       paid: sum.paid + row.paid,
@@ -334,78 +356,116 @@ function Ledger({
               ))}
             </div>
           ) : null}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">
-                Situação financeira dos alunos no ano seleccionado
-              </caption>
-              <thead>
-                <tr>
-                  {[
-                    "Seleccionar",
-                    "Aluno",
-                    "Turma / curso / nível",
-                    "Pago",
-                    "Dívida",
-                    "Vencida",
-                    "Situação",
-                  ].map((label) => (
-                    <th key={label} scope="col" className="p-3 font-medium">
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+          <ResponsiveEntityView
+            mobile={
+              <ul aria-label="Lista financeira dos alunos" className="space-y-3">
                 {visible.map((row) => {
                   const state = studentBalanceState(row);
                   return (
-                    <tr key={row.studentId} className="border-t border-border">
-                      <td className="p-3">
-                        <Checkbox
-                          aria-label={`Seleccionar ${row.name}`}
-                          checked={selected.includes(row.studentId)}
-                          disabled={!selected.includes(row.studentId) && selected.length >= 60}
-                          onCheckedChange={(checked) =>
-                            setSelected((old) =>
-                              checked === true
-                                ? [...new Set([...old, row.studentId])]
-                                : old.filter((id) => id !== row.studentId),
-                            )
-                          }
-                        />
-                      </td>
-                      <td className="p-3">
-                        <Link
-                          to="/faturas"
-                          search={{ aluno: row.studentId }}
-                          className="text-primary hover:underline"
-                        >
-                          {row.name}
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {row.number}
-                          {!row.active ? " · Matrícula inactiva" : ""}
-                        </p>
-                      </td>
-                      <td className="p-3">
-                        {row.className}
-                        <p className="text-xs text-muted-foreground">
-                          {row.gradeName} · {row.programName} · {row.levelName}
-                        </p>
-                      </td>
-                      <td className="p-3 whitespace-nowrap">{kwanza(row.paid)}</td>
-                      <td className="p-3 whitespace-nowrap">{kwanza(row.outstanding)}</td>
-                      <td className="p-3 whitespace-nowrap">{kwanza(row.overdue)}</td>
-                      <td className="p-3">
+                    <li key={row.studentId} className="rounded-xl border border-border bg-card p-3">
+                      <div className="flex items-start gap-2">
+                        {selectionControl(row)}
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            to="/faturas"
+                            search={{ aluno: row.studentId }}
+                            className="block text-sm font-medium text-primary hover:underline [overflow-wrap:anywhere]"
+                          >
+                            {row.name}
+                          </Link>
+                          <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                            {row.number} · {row.className}
+                            {!row.active ? " · Matrícula inactiva" : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                        {row.gradeName} · {row.programName} · {row.levelName}
+                      </p>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                        {[
+                          { label: "Pago", value: row.paid },
+                          { label: "Dívida", value: row.outstanding },
+                          { label: "Vencida", value: row.overdue },
+                        ].map((amount) => (
+                          <div key={amount.label} className="min-w-0">
+                            <dt className="text-xs text-muted-foreground">{amount.label}</dt>
+                            <dd className="text-sm font-medium tabular-nums [overflow-wrap:anywhere]">
+                              {kwanza(amount.value)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      <div className="mt-3">
                         <StatusBadge status={state.status} label={state.label} />
-                      </td>
-                    </tr>
+                      </div>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </ul>
+            }
+            desktop={
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <caption className="sr-only">
+                    Situação financeira dos alunos no ano seleccionado
+                  </caption>
+                  <thead>
+                    <tr>
+                      {[
+                        "Seleccionar",
+                        "Aluno",
+                        "Turma / curso / nível",
+                        "Pago",
+                        "Dívida",
+                        "Vencida",
+                        "Situação",
+                      ].map((label) => (
+                        <th key={label} scope="col" className="p-3 font-medium">
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map((row) => {
+                      const state = studentBalanceState(row);
+                      return (
+                        <tr key={row.studentId} className="border-t border-border">
+                          <td className="p-3">{selectionControl(row)}</td>
+                          <td className="p-3">
+                            <Link
+                              to="/faturas"
+                              search={{ aluno: row.studentId }}
+                              className="text-primary hover:underline"
+                            >
+                              {row.name}
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {row.number}
+                              {!row.active ? " · Matrícula inactiva" : ""}
+                            </p>
+                          </td>
+                          <td className="p-3">
+                            {row.className}
+                            <p className="text-xs text-muted-foreground">
+                              {row.gradeName} · {row.programName} · {row.levelName}
+                            </p>
+                          </td>
+                          <td className="p-3 whitespace-nowrap">{kwanza(row.paid)}</td>
+                          <td className="p-3 whitespace-nowrap">{kwanza(row.outstanding)}</td>
+                          <td className="p-3 whitespace-nowrap">{kwanza(row.overdue)}</td>
+                          <td className="p-3">
+                            <StatusBadge status={state.status} label={state.label} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            }
+          />
           {!filtered.length ? (
             <p className="p-4 text-sm">Nenhum aluno corresponde aos filtros.</p>
           ) : null}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 const fixtures = vi.hoisted(() => ({
@@ -74,6 +74,7 @@ const mount = (blocked = false) =>
     </QueryClientProvider>,
   );
 beforeEach(() => {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024, writable: true });
   localStorage.clear();
   fixtures.exportCsv.mockClear();
   fixtures.rows.splice(2);
@@ -151,6 +152,27 @@ describe("lista financeira — interacções", () => {
     for (const checkbox of screen.getAllByRole("checkbox").slice(0, 10)) fireEvent.click(checkbox);
     expect(screen.getByRole("button", { name: "Limpar selecção (60)" })).toBeTruthy();
     expect(screen.getAllByRole("checkbox")[10].getAttribute("data-disabled")).not.toBeNull();
+  });
+  it("no telemóvel mostra os valores no cartão e preserva selecção ao passar para tabela", async () => {
+    window.innerWidth = 390;
+    mount();
+    const list = await screen.findByRole("list", { name: "Lista financeira dos alunos" });
+    expect(screen.queryByRole("table")).toBeNull();
+    const card = within(list).getByText("Ana").closest("li")!;
+    expect(within(card).getByText("Pago")).toBeTruthy();
+    expect(within(card).getByText("Dívida")).toBeTruthy();
+    expect(within(card).getByText("Vencida")).toBeTruthy();
+    fireEvent.click(
+      within(card).getByRole("checkbox", { name: "Seleccionar Ana" }).closest("label")!,
+    );
+    expect(within(card).getByRole("checkbox").getAttribute("data-state")).toBe("checked");
+    window.innerWidth = 1024;
+    fireEvent(window, new Event("resize"));
+    await screen.findByRole("table");
+    expect(screen.queryByRole("list", { name: "Lista financeira dos alunos" })).toBeNull();
+    expect(
+      screen.getByRole("checkbox", { name: "Seleccionar Ana" }).getAttribute("data-state"),
+    ).toBe("checked");
   });
   it("não emite quando a configuração financeira está bloqueada", async () => {
     mount(true);
