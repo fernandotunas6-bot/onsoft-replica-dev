@@ -34,6 +34,17 @@ vi.mock("@/components/ui/media-frame", async () => (await import("./_harness")).
 const searchPeopleMock = vi.fn();
 const listTeachersMock = vi.fn();
 
+vi.mock("@/features/people/directory-server", () => ({
+  searchPeoplePage: async () => {
+    const items = await searchPeopleMock();
+    return { items, total: items.length, page: 1, pageSize: 25 };
+  },
+  listTeachersPage: async () => {
+    const items = await listTeachersMock();
+    return { items, total: items.length, page: 1, pageSize: 25 };
+  },
+}));
+
 vi.mock("@/features/people/server", () => ({
   searchPeople: () => searchPeopleMock(),
   listTeachers: () => listTeachersMock(),
