@@ -890,7 +890,9 @@ function PeoplePage() {
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                onClick={() => exportCsv(`pessoas-pagina-${peoplePage}`, peopleExportColumns, people)}
+                onClick={() =>
+                  exportCsv(`pessoas-pagina-${peoplePage}`, peopleExportColumns, people)
+                }
                 disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
                 <Download className="size-3.5" /> CSV · página
