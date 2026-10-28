@@ -16,6 +16,7 @@ import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
+import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import {
@@ -73,6 +74,13 @@ export const Route = createFileRoute("/pedagogica_/turmas/$turmaId")({
   }),
   component: TurmaDetail,
 });
+
+const foldRosterSearch = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt")
+    .trim();
 
 const weekdayLabels = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -137,6 +145,8 @@ function TurmaDetail() {
     enabled: canReadAcademic,
   });
 
+  const [studentSearch, setStudentSearch] = useState({ classId: turmaId, value: "" });
+  const searchValue = studentSearch.classId === turmaId ? studentSearch.value : "";
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -163,6 +173,17 @@ function TurmaDetail() {
     () => (workspace?.enrollmentOptions ?? []).filter((row) => row.class_group_id === turmaId),
     [workspace?.enrollmentOptions, turmaId],
   );
+  const filteredStudents = useMemo(() => {
+    const words = foldRosterSearch(searchValue).split(/\s+/).filter(Boolean);
+    return alunos
+      .filter((student) => {
+        const text = foldRosterSearch(
+          `${student.student_name} ${student.registration_number ?? ""}`,
+        );
+        return words.every((word) => text.includes(word));
+      })
+      .sort((a, b) => a.student_name.localeCompare(b.student_name, "pt"));
+  }, [alunos, searchValue]);
   const disciplinas = useMemo(
     () => (workspace?.classSubjects ?? []).filter((row) => row.class_group_id === turmaId),
     [workspace?.classSubjects, turmaId],
@@ -520,9 +541,33 @@ function TurmaDetail() {
               </h2>
             </div>
             <div className="mt-4">
-              {alunos.length ? (
+              {alunos.length > 0 ? (
+                <div className="mb-3 space-y-2">
+                  <label htmlFor="turma-alunos-pesquisa" className="text-xs font-medium">
+                    Procurar aluno nesta turma
+                  </label>
+                  <Input
+                    id="turma-alunos-pesquisa"
+                    type="search"
+                    placeholder="Nome ou número de processo"
+                    value={searchValue}
+                    onChange={(event) =>
+                      setStudentSearch({ classId: turmaId, value: event.target.value })
+                    }
+                    aria-describedby="turma-alunos-resultados"
+                  />
+                  <p
+                    id="turma-alunos-resultados"
+                    role="status"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {filteredStudents.length} de {alunos.length} alunos
+                  </p>
+                </div>
+              ) : null}
+              {filteredStudents.length ? (
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {alunos.map((aluno) => (
+                  {filteredStudents.map((aluno) => (
                     <Link
                       key={aluno.id}
                       to="/alunos/$studentId"
@@ -539,9 +584,21 @@ function TurmaDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhum aluno matriculado nesta turma ainda.
-                </p>
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                  {alunos.length
+                    ? "Nenhum aluno corresponde à pesquisa nesta turma."
+                    : "Nenhum aluno matriculado nesta turma ainda."}
+                  {alunos.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="mt-2 block w-full"
+                      onClick={() => setStudentSearch({ classId: turmaId, value: "" })}
+                    >
+                      Limpar pesquisa
+                    </Button>
+                  ) : null}
+                </div>
               )}
             </div>
           </section>
