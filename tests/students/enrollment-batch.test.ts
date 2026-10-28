@@ -77,7 +77,10 @@ describe("matrículas existentes em lote — CAS e resultados parciais", () => {
     const result = await store.place([row]);
     expect(result.placedIds).toEqual([]);
     expect(result.failed).toEqual([
-      expect.objectContaining({ studentId: "aluno-1", message: expect.stringMatching(/outra sessão/) }),
+      expect.objectContaining({
+        studentId: "aluno-1",
+        message: expect.stringMatching(/outra sessão/),
+      }),
     ]);
     expect(store.tables["enrollments"]?.[0]?.["class_group_id"]).toBe(CLASS_A);
   });
@@ -123,9 +126,7 @@ describe("matrículas existentes em lote — CAS e resultados parciais", () => {
 
     const result = await store.place([first, second]);
     expect(result.placedIds).toEqual(["aluno-a"]);
-    expect(result.failed).toEqual([
-      expect.objectContaining({ studentId: "aluno-b" }),
-    ]);
+    expect(result.failed).toEqual([expect.objectContaining({ studentId: "aluno-b" })]);
     expect(store.tables["enrollments"]?.[0]?.["class_group_id"]).toBe(CLASS_B);
     expect(store.tables["enrollments"]?.[1]?.["class_group_id"]).toBe(CLASS_A);
   });
