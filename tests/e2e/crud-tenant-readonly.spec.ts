@@ -18,9 +18,7 @@ test.describe("CRUD Premium — pessoas, isolamento entre escolas @staging-reado
     video: "off",
   });
 
-  test("a pesquisa de Pessoas vê apenas os registos da escola autenticada", async ({
-    browser,
-  }) => {
+  test("a pesquisa de Pessoas vê apenas os registos da escola autenticada", async ({ browser }) => {
     if (!config) throw new Error("Staging obrigatório.");
 
     const check = async (storageState: string, ownName: string, otherName: string) => {
