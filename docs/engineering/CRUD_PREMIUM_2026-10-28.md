@@ -294,3 +294,13 @@ Os placeholders `<REF_DO_STAGING>` devem ser substituídos pelo identificador re
 - Playwright autenticado A/B executado efectivamente em staging e relatório de resultado confirmado.
 - Revisão de segurança e permissões, contratos com PRs paralelas, UX mobile e recuperação de falhas.
 - PR mantém-se `draft` e sem deploy enquanto o E2E autenticado não for realizado.
+
+
+### Reforço de segurança do ensaio E2E de duas escolas
+
+- Os ficheiros Playwright `storageState` devem ter caminhos absolutos `.json` fora do repositório (não colocar tokens de autenticação em `.auth/` versionável). Recusa também caminhos diferentes que apontem para o mesmo ficheiro.
+- Os nomes fictícios de controlo não podem coincidir ou estar contidos um no outro depois de remover acentos e diferenças de maiúsculas/minúsculas; caso contrário, uma pesquisa ambígua poderia produzir uma falsa avaliação de isolamento.
+- A suite utiliza contextos independentes e **simultâneos** das Escolas A e B, para ensaiar uma troca de pesquisa com ambas as sessões activas.
+- Cada pedido do browser dirigido a `*.supabase.co` é conferido com a origem de staging declarada. Pedidos para outro projecto, incluindo produção, são bloqueados e fazem o teste falhar sem publicar identificadores de pedido nem tokens.
+- Também verifica que a aplicação não redirecciona para uma origem fora do servidor local.
+- `tests/qa/crud-staging-safety.test.ts` exerce essas regras sem necessitar de sessões reais. O smoke Playwright continua **não executado** até existirem credenciais fictícias e projecto de staging autorizado.
