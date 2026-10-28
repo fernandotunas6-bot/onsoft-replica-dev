@@ -107,7 +107,7 @@ export function EnrollmentEntryDialog({
               <span>Procurar aluno</span>
               <Input
                 autoFocus
-              aria-label="Procurar aluno"
+                aria-label="Procurar aluno"
                 value={query}
                 maxLength={100}
                 onChange={(e) => setQuery(e.target.value)}
