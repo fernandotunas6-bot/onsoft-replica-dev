@@ -213,6 +213,8 @@ export type SetPersonInstitutionRolesInput = z.infer<typeof setPersonInstitution
 export const updatePersonInputSchema = z
   .object({
     personId: z.string().guid(),
+    /** Bloqueia gravações baseadas numa ficha desactualizada sem alterar o contrato legado. */
+    expectedUpdatedAt: z.string().min(1).max(100).optional(),
     fullName: z.string().trim().min(2).max(160),
     email: z.union([z.literal(""), z.string().trim().email()]).optional(),
     phone: optionalText,
