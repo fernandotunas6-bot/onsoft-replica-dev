@@ -1,0 +1,89 @@
+# SIGA Plus — CRUD Premium & Engenharia · PR isolada
+
+Data: 28/10/2026 · Branch: `feat/crud-premium-engineering-20261028` · Base inicial: `main@8ea7851bb5c7ed72536ebbd6abc5e9675a4d8fbf`
+
+## Objectivo
+
+Melhorar progressivamente os CRUDs, a arquitectura, a integridade e a experiência do SIGA Plus, **sem remover funcionalidades**. Esta PR é deliberadamente mantida em **draft** até existirem provas de validação suficientes para as áreas efectivamente alteradas.
+
+## Inventário inicial verificado no repositório
+
+- A aplicação principal usa React 19, TypeScript, TanStack Start/Router/Query, Tailwind 4, Radix, Zod e Supabase.
+- Há primitivas de `ListFilterBar`, `ListPaginationBar`, `DataTableShell`, `EmptyState`, `MobileErrorState` e `MobileEmptyState`; devem ser reutilizadas antes de criar novas.
+- `src/routes/pessoas/index.tsx`: listagens de pessoas e professores, filtros e exportações. As consultas tinham chaves que não incluíam utilizador/escola; a consulta de pessoas admitia dados anteriores durante uma pesquisa diferente.
+- A listagem de professores, tanto desktop como mobile, apresentava uma lista vazia em caso de falha de carregamento.
+- A lista desktop de pessoas mostrava a mensagem técnica de erro directamente ao utilizador; a lista de pessoas no ecrã e a exportação não usavam os mesmos filtros de estado.
+- `searchPeople` no servidor continua a limitar um conjunto de resultados **antes** de aplicar pesquisa e filtro por papel em memória; isto pode ocultar resultados válidos fora da primeira janela. É uma pendência de **backend/paginação**, não se deve declarar resolvida com paginação apenas no browser.
+- `listTeachers` também aplica pesquisa em memória depois de limitar a consulta; requer evolução de contrato e ensaio em staging.
+- O contrato `docs/agents/DATABASE_RULES.md` proíbe aplicar SQL experimental na base real. A migração só deve ser considerada depois da análise do retrato de produção, testes e validação dos contratos.
+- Há várias PRs paralelas abertas, incluindo trabalho em contextos escolares, dashboard, login de alunos e horário. Evitar alterações cruzadas sem reconciliação.
+
+## Implementação: lote 1 — interface segura e coerente (nesta PR)
+
+- Novo `CrudListFeedbackRow` reutilizável para cinco estados: `empty`, `filtered`, `error`, `forbidden` e `conflict`.
+- Estados de erro nunca se apresentam como vazio e oferecem retentativa quando recuperáveis.
+- Mensagens técnicas não se tornam visíveis directamente na tabela.
+- O estado vazio e a ausência de resultados por filtros são distintos.
+- Pessoas: consultas com chave separada por utilizador/escola; impedida a reutilização visual de resultados de pesquisa anterior ao trocar filtros; consultas bloqueadas até resolver contexto autenticado.
+- Pessoas: lista no ecrã utiliza os mesmos registos filtrados por estado da exportação.
+- Professores: erros de carregamento recuperáveis no desktop e telemóvel.
+- Exportações da lista de pessoas são desactivadas enquanto a consulta está em erro ou carregamento.
+
+**Limites:** esta primeira alteração não altera regras de matrícula, SQL, autorizações no servidor, pagamentos ou dados de produção.
+
+## Plano de implementação incremental (mesma branch isolada, commits pequenos)
+
+| Lote | Área | Critério antes de avançar |
+|---|---|---|
+| 1 | Estados partilhados, Pessoas | Testes React, tipo, lint, build |
+| 2 | Listagens do backend e paginação | Contrato paginado, pesquisa/filtros antes do limite; autorização escola/papel; testes de volume |
+| 3 | Formulários e edição | Erros por campo, conservação de dados, conflito optimista e confirmação |
+| 4 | Matrículas e turmas | Idempotência, último lugar concorrente, transferências, histórico e permissões |
+| 5 | Avaliação, horários e financeiro | Versões, operações auditáveis, autorização por atribuição e ausência de duplicação |
+| 6 | Documentos, comunicação e outros módulos | Ficheiros, exportações e filas por tenant, retries, acessibilidade |
+| 7 | Qualidade transversal e release | E2E autenticado em staging, regressão visual, recuperação, riscos e gate de produção |
+
+Nenhuma etapa é considerada implementada apenas por constar nesta tabela.
+
+## Matriz de testes e evidências exigidas
+
+| Caso | Mecanismo | Estado inicial |
+|---|---|---|
+| Vazio real / filtro sem resultados | Teste de componente React | Implementado no lote 1 |
+| Falha de rede ≠ lista vazia | Teste de componente + QA manual autenticado | Teste de componente no lote 1 |
+| Permissão negada e conflito visual | Teste React | Implementado no lote 1 |
+| Chaves de cache isoladas por conta/escola | Inspecção + E2E com duas sessões | Código adaptado; E2E pendente |
+| Pesquisa após os primeiros 150 resultados | Teste backend/DB com volume | Pendente do lote 2 |
+| Paginação, ordenação e contagem no servidor | Integração com DB | Pendente do lote 2 |
+| Duplo clique em matrícula | Integração transaccional + E2E | Pendente do lote 4 |
+| Última vaga disputada simultaneamente | Concorrência PostgreSQL | Pendente do lote 4 |
+| Professor sem vínculo tenta gravar nota | Teste de autorização directo à API | Pendente do lote 5 |
+| Pesquisa, ficheiros e exportações entre escolas | Teste de isolamento de tenant | Pendente dos lotes 2–6 |
+| Sem ligação durante retentativa | E2E autenticado/staging | Pendente |
+| Teclado, foco, leitor de ecrã e mobile | Playwright/Axe, QA visual | Pendente dos lotes correspondentes |
+| Migração segura + recuperação | PostgreSQL/PGlite e ensaio restaurado | Sem migrações no lote 1 |
+
+## Execução e aprovação
+
+Antes de retirar o estado **draft** da PR:
+
+1. Confirmar a base actual, resolver alterações paralelas e conflitos, sem rebase/force-push destrutivo.
+2. Correr `bun install --frozen-lockfile`, `bun run check`, `bun run lint`, `bun run build`, `bun run typecheck` e `bun run test` no runner de CI.
+3. Correr os testes SQL existentes em PGlite, sem executar SQL contra a produção.
+4. Quando houver alterações de backend com escrita, acrescentar testes de autorização, concorrência e idempotência em staging antes de integrar.
+5. Fazer smoke autenticado e teste de telemóvel com contas fictícias em escolas distintas, nunca com dados reais.
+6. Registrar o resultado de cada job da **última SHA** na PR. Não declarar aprovação enquanto houver falhas ou jobs pendentes.
+7. Não fazer merge/deploy automático apenas por esta documentação. Exigir revisão explícita.
+
+## Guardrails de arquitectura
+
+Manter o ecossistema WEB / ADMIN / SIGA / PAYFLOW / DOC, o contrato dos tipos `src/integrations/supabase/types.sga.ts`, as RPCs transaccionais existentes e a protecção de dados multi-tenant. Não introduzir outro backend nem substituir serviços de produção. Migrações apenas aditivas, com verificação contra `supabase/PRODUCTION_SNAPSHOT.json`. O cliente não é autoridade sobre papel, escola, turma ou matrícula. O novo estado visual nunca é prova de autorização.
+
+## Indicadores finais
+
+- Cada CRUD activo tem estado, fonte, permissão, evento de auditoria e prova de regressão mapeados.
+- Erros de rede, autorização e conflito são claramente distintos de ausência de dados.
+- Pesquisas/filtros e exportações operam sobre o mesmo conjunto autorizado, com indicação correcta do universo total.
+- Histórico académico e financeiro preservado.
+- Resultados mensuráveis de desempenho, experiência mobile e acessibilidade.
+- PR revista, CI final aprovado, testes de staging documentados antes do deploy.
