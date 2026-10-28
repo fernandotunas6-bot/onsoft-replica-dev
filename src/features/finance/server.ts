@@ -15,6 +15,8 @@ import {
 } from "@/integrations/supabase/sga-admin";
 import {
   financeListInputSchema,
+  issueTuitionBatchInputSchema,
+  TUITION_BATCH_LIMIT,
   listInvoicesInputSchema,
   getInvoiceDetailInputSchema,
   issueInvoiceInputSchema,
@@ -1553,14 +1555,6 @@ async function issueInvoiceFor(
  * base (contrato, preço, bolsa, mês, número, arquivo). Uma turma cabe; a escola
  * inteira não, por isso o lote é por turma.
  */
-const TUITION_BATCH_LIMIT = 60;
-
-const issueTuitionBatchInputSchema = z.object({
-  classGroupId: z.string().guid(),
-  dueOn: z.string().date(),
-  issuedOn: z.string().date().optional(),
-});
-
 export type TuitionBatchResult = {
   issued: Array<{ studentId: string; invoiceNumber: string }>;
   skipped: Array<{ studentId: string; reason: string }>;
@@ -1624,19 +1618,51 @@ export const issueTuitionBatch = createServerFn({ method: "POST" })
       ["Administrador", "Tesouraria", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
-    const { data: rows, error } = await db
+    let batchQuery = db
       .from("enrollments")
       .select("student_id")
       .eq("school_id", membership.schoolId)
       .eq("class_group_id", data.classGroupId)
-      .eq("status", "active")
-      .limit(TUITION_BATCH_LIMIT + 1);
+      .eq("status", "active");
+    if (data.studentIds) batchQuery = batchQuery.in("student_id", [...new Set(data.studentIds)]);
+    if (data.academicYearId) batchQuery = batchQuery.eq("academic_year_id", data.academicYearId);
+    const { data: rows, error } = await batchQuery.limit(TUITION_BATCH_LIMIT + 1);
     if (error) throw publicDatabaseError(error, "Não foi possível ler os alunos da turma.");
     const studentIds = [...new Set((rows ?? []).map((row) => String(row.student_id)))];
     if (studentIds.length > TUITION_BATCH_LIMIT) {
       throw new Error(
         `A turma tem mais de ${TUITION_BATCH_LIMIT} alunos activos. Emita as propinas em duas vezes ou aluno a aluno.`,
       );
+    }
+
+    if (data.studentIds && studentIds.length !== new Set(data.studentIds).size) {
+      throw new Error(
+        "A selecção contém alunos sem matrícula activa nesta turma/ano. Actualize a lista.",
+      );
+    }
+    if (data.studentIds) {
+      // A emissão individual resolve a matrícula activa. Recusar ambiguidades antes
+      // de começar, para não cobrar outro ano/turma por escolha arbitrária.
+      const active = await readAllPages((from, to) =>
+        db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .eq("status", "active")
+          .in("student_id", studentIds)
+          .order("id")
+          .range(from, to),
+      );
+      if (active.error)
+        throw publicDatabaseError(active.error, "Não foi possível validar as matrículas.");
+      const counts = new Map<string, number>();
+      for (const row of active.data)
+        counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1);
+      if (studentIds.some((id) => counts.get(id) !== 1)) {
+        throw new Error(
+          "Há alunos com matrículas activas ambíguas. Corrija as matrículas antes de emitir.",
+        );
+      }
     }
 
     const result: TuitionBatchResult = { issued: [], skipped: [], failed: [] };

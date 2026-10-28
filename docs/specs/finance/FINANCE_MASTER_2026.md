@@ -94,3 +94,19 @@ Nenhuma destas se fecha só com código: cada uma escreve na produção, depende
 7. **Limite de desconto por papel (§8).** Decidido a 25/10 e feito no #310: a Tesouraria dá bolsas e descontos até 25 %; acima disso, e para mudar ou retirar o que está acima, só um Administrador.
 8. **Depósito da gaveta no banco (§4.6).** Decidido a 25/10 e feito no #283: sai do esperado da sessão com o nº do talão, confirma-o no extracto quem não o registou.
 9. **Pagamento por TPA.** Feito no #308: o funcionário passa o cartão no TPA do banco e regista o valor pago. Conta como canal electrónico para a multa.
+
+## Lista financeira por aluno — 28/10/2026
+
+Em `/faturas`, «Lista financeira dos alunos» consolida valores por aluno no ano
+seleccionado, incluindo quem não tem facturas. Filtra por turma, classe, curso,
+nível e situação; exporta o conjunto filtrado e emite propinas para até 60 alunos
+seleccionados da mesma turma. Usa os recibos emitidos para o recebido, com os
+estornos excluídos. Não envia lembretes em massa nem liquida dívidas.
+
+Estado: implementado e testado localmente; falta ensaio remoto por perfil e
+aparelho. Contratos, matriz, evidências e limites em
+[HANDOFF_ACCOUNTANT_STUDENT_LISTS_2026-10-28.md](../../agents/HANDOFF_ACCOUNTANT_STUDENT_LISTS_2026-10-28.md).
+
+Refinamento local: selecção por página com limite de 60 e exportação de cobrança
+só dos seleccionados com dívida, incluindo matrículas inactivas. O ficheiro traz
+ano/data de conferência; não corresponde a envio de lembretes nem a pagamento.

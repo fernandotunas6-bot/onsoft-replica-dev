@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +98,12 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { dateInRange, usePersistedListFilters } from "@/lib/list-filters";
 import { schoolDateInDays, schoolTodayIso } from "@/lib/school-date";
 
+const StudentLedgerPanel = lazy(() =>
+  import("@/features/finance/components/StudentLedgerPanel").then((module) => ({
+    default: module.StudentLedgerPanel,
+  })),
+);
+
 const faturasFilterDefaults = {
   q: "",
   estado: "todos",
@@ -170,6 +176,7 @@ function receiveDescription(multa: { counter: number; electronic: number }) {
 }
 
 function FaturasPage() {
+  const [showStudentLedger, setShowStudentLedger] = useState(false);
   const paymentKey = usePaymentAttemptKey();
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
@@ -307,6 +314,7 @@ function FaturasPage() {
     const created = () =>
       realtime.invalidate(
         ["finance", "invoices"],
+        ["finance", "student-ledger"],
         ["finance", "reporting"],
         ["dashboard", "overview"],
       );
@@ -325,7 +333,12 @@ function FaturasPage() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "finance_invoices" },
-        () => realtime.invalidate(["finance", "invoices"], ["finance", "reporting"]),
+        () =>
+          realtime.invalidate(
+            ["finance", "invoices"],
+            ["finance", "student-ledger"],
+            ["finance", "reporting"],
+          ),
       )
       .subscribe();
 
@@ -437,6 +450,7 @@ function FaturasPage() {
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "invoices"],
                 }),
+                queryClient.invalidateQueries({ queryKey: ["finance", "student-ledger"] }),
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "reporting"],
                 }),
@@ -508,6 +522,7 @@ function FaturasPage() {
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "invoices"],
                 }),
+                queryClient.invalidateQueries({ queryKey: ["finance", "student-ledger"] }),
                 queryClient.invalidateQueries({
                   queryKey: ["finance", "reporting"],
                 }),
@@ -1179,6 +1194,24 @@ function FaturasPage() {
             },
           ]}
         />
+
+        <div>
+          <Button
+            variant="outline"
+            aria-expanded={showStudentLedger}
+            onClick={() => setShowStudentLedger((open) => !open)}
+          >
+            <Users className="size-4" />{" "}
+            {showStudentLedger
+              ? "Fechar lista financeira dos alunos"
+              : "Lista financeira dos alunos"}
+          </Button>
+        </div>
+        {showStudentLedger ? (
+          <Suspense fallback={<EntityListSkeleton rows={4} />}>
+            <StudentLedgerPanel blocked={financeInvoiceBlocked} />
+          </Suspense>
+        ) : null}
 
         <Panel
           title="Documentos emitidos"

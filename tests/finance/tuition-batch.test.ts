@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { issueTuitionBatchInputSchema } from "@/features/finance/schemas";
 
 /**
  * A emissão em lote não pode ter uma lógica própria de preço, bolsa ou verificação do
@@ -24,5 +25,32 @@ describe("propinas em lote", () => {
     expect(lote).toMatch(/\.eq\("class_group_id", data\.classGroupId\)/);
     expect(lote).toMatch(/TUITION_BATCH_LIMIT \+ 1/);
     expect(lote).toMatch(/já tem a propina[\s\S]+skipped\.push[\s\S]+failed\.push/);
+  });
+});
+
+describe("selecção de propinas em lote", () => {
+  const id = "3f6b1c2e-6a1d-4c0b-9b51-0d6f3c8e2a11";
+  const base = { classGroupId: id, dueOn: "2026-11-10" };
+  it("preserva lote da turma e aceita selecção explícita", () => {
+    expect(issueTuitionBatchInputSchema.parse(base)).toEqual(base);
+    expect(
+      issueTuitionBatchInputSchema.parse({ ...base, studentIds: [id], academicYearId: id })
+        .studentIds,
+    ).toEqual([id]);
+  });
+  it("recusa selecção vazia, ids inválidos e mais de 60", () => {
+    for (const studentIds of [[], ["inválido"], Array(61).fill(id)]) {
+      expect(issueTuitionBatchInputSchema.safeParse({ ...base, studentIds }).success).toBe(false);
+    }
+  });
+  it("valida todos os seleccionados e a ambiguidade antes de emitir o primeiro", () => {
+    const lote = bloco("export const issueTuitionBatch = ", "export const recordCashExpense");
+    expect(lote.indexOf("studentIds.length !== new Set(data.studentIds).size")).toBeLessThan(
+      lote.indexOf("await issueInvoiceFor"),
+    );
+    expect(lote.indexOf("counts.get(id) !== 1")).toBeLessThan(
+      lote.indexOf("await issueInvoiceFor"),
+    );
+    expect(lote).toContain('.eq("academic_year_id", data.academicYearId)');
   });
 });

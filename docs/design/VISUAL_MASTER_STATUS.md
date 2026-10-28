@@ -471,3 +471,16 @@ visita primeiro. No Android o cartão «SIGA Plus para Android» (APK de 64 bits
 para o de 32 bits, passos e certificado recolhidos) vem em cima e destacado; no computador fica
 por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã de entrada a ligação
 «Transferir a app do SIGA» aparece em todos os tamanhos (fora da app de computador).
+
+### 28/10/2026 — Financeiro: lista por aluno
+
+| Fase / módulo | Estado | Evidência | Próximo passo |
+| --- | --- | --- | --- |
+| Faturas / lista financeira por aluno | implementado | StudentLedgerPanel; filtros partilhados, estados centralizados, tabela paginada, erros e carregamento; testes DOM de filtros/selecção | Ensaio visual desktop/tablet/Android, teclado e zoom |
+| Fluidez / desempenho da lista | parcial | Chunk e consulta carregados só ao abrir; cache por escola/ano; 25 linhas por página; backend por páginas e ids | Medir rede lenta, latência e Web Vitals reais |
+| Isolamento e perfis | parcial | Guarda financeira, school_id em todas as consultas; testes com duas escolas simuladas | Testar sessões e RLS reais |
+
+Refinamento da lista financeira: selecção/desmarcação por página, contador de
+dívida seleccionada e exportação só dos devedores escolhidos. Estado implementado;
+testes DOM cobrem exclusão de alunos sem dívida, matrícula inactiva, selecção
+entre páginas e limite de 60. Layout em aparelhos continua por validar.
