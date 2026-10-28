@@ -16,9 +16,13 @@ const lista = server.slice(
 
 describe("faturas por pagar na lista", () => {
   it("com includeOpen, lê todas as por pagar em páginas de 1000", () => {
-    expect(lista).toMatch(/if \(data\.includeOpen && !studentContractIds\)/);
+    expect(lista).toMatch(/if \(data\.includeOpen\)/);
     expect(lista).toMatch(/\.in\("status", \["open", "partially_paid"\]\)/);
     expect(lista).toMatch(/\.range\(from, from \+ OPEN_INVOICES_PAGE - 1\)/);
+    // Não basta ler todas as faturas da escola: na ficha de um aluno
+    // as páginas adicionais mantêm o filtro pelos seus próprios contratos.
+    expect(lista).toMatch(/if \(studentContractIds\) \{/);
+    expect(lista).toMatch(/openQuery = openQuery\.in\("contract_id", studentContractIds\)/);
   });
 
   it("Faturas, Caixa e Tesouraria pedem-nas", () => {
