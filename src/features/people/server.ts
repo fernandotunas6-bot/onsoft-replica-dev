@@ -1287,11 +1287,16 @@ export const updatePerson = createServerFn({ method: "POST" })
       personPatch["address"] = data.address || null;
     }
 
-    const { data: person, error } = await db
+    let updateQuery = db
       .from("people")
       .update(personPatch)
       .eq("id", data.personId)
-      .eq("school_id", membership.schoolId)
+      .eq("school_id", membership.schoolId);
+    // CAS: quem abriu a ficha antes de outra edição recebe conflito, não sobrescreve.
+    if (data.expectedUpdatedAt) {
+      updateQuery = updateQuery.eq("updated_at", data.expectedUpdatedAt);
+    }
+    const { data: person, error } = await updateQuery
       .select("id, full_name, email, phone, status")
       .maybeSingle();
     if (error && hasGeography && isMissingPeopleGeography(error)) {
@@ -1300,6 +1305,9 @@ export const updatePerson = createServerFn({ method: "POST" })
       );
     }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
+    if (!person && data.expectedUpdatedAt) {
+      throw new Error("Esta ficha foi alterada por outra pessoa. Actualize os dados antes de guardar.");
+    }
     if (!person) throw new Error("Pessoa não encontrada.");
     await syncBiDocumentFromNif(
       db,
