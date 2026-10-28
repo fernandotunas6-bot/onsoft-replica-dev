@@ -385,3 +385,16 @@ quando todos os requisitos aplicáveis tiverem validação; requisito não aplic
 precisa de justificação explícita. Testes DOM não comprovam dispositivos físicos,
 RLS remota, pagamentos reais ou Web Vitals p75. Não dispensar requisitos por falta
 de acesso: registá-los como bloqueados até poder validá-los.
+
+
+## Actualização do proprietário — 27/10/2026: comportamento da sidebar
+
+Esta instrução **substitui apenas** a regra anterior que tornava a sidebar compacta por omissão e desactivava flyouts por hover:
+
+- **Entrada no portal desktop:** sidebar expandida (240px) se a pessoa ainda não escolheu outro estado; a escolha de recolher/expandir feita no botão das três linhas prevalece sobre o formato por omissão anterior.
+- **Clique no botão do topo:** alterna uma única vez e fixa o estado, sem voltar a expandir/recolher por hover, mudança de página ou renderização.
+- **Preferência persistente:** guardar por utilizador e escola no navegador; restaurar no regresso e isolar os contextos. Se o armazenamento estiver bloqueado, a alternância continua activa enquanto a página permanecer montada.
+- **Sidebar recolhida (64px):** passar o rato sobre um ícone com subfunções abre um flyout lateral; ao sair, fecha com tolerância curta para a transição até ao conteúdo. Clique/toque e teclado continuam operacionais.
+- **Sidebar expandida:** preservar o acordeão por clique que já existe, sem flyout substitutivo por hover. Preservar contexto, permissões, links, classes visuais, colunas, menu da escola e responsividade mobile.
+
+As restantes regras do padrão visual de 23/10/2026 continuam válidas.

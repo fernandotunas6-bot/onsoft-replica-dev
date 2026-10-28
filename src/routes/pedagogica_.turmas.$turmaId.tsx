@@ -42,6 +42,7 @@ import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { errorMessage } from "@/lib/error-message";
 import { safeHref } from "@/lib/safe-url";
 import { TURMA_SECTIONS, type TurmaSection } from "@/features/academic/turma-sections";
+import { TurmaTeacherContextPanel } from "@/features/academic/components/TurmaTeacherContextPanel";
 import { z } from "zod";
 
 /**
@@ -109,6 +110,8 @@ function TurmaDetail() {
   const account = useCurrentAccount();
   const { school, selectedYearId } = useSchoolSettings();
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
+  const canManageTurma =
+    (account.role === "Administrador" || account.role === "Secretaria") && canManageAcademic;
   const canReadAcademic =
     account.role === "Administrador" ||
     account.role === "Secretaria" ||
@@ -126,7 +129,7 @@ function TurmaDetail() {
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "assign"],
     queryFn: () => listTeachers({ data: { status: "active", limit: 200 } }),
-    enabled: canManageAcademic,
+    enabled: canManageTurma,
   });
   const classroomsQuery = useQuery({
     queryKey: ["academic", "rooms"],
@@ -274,107 +277,119 @@ function TurmaDetail() {
               · {turma.academic_year_name}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setAssignOpen(true)}
-            >
-              <UserPlus className="size-3.5" /> Professor
-            </Button>
-            {turma.course_id ? (
+          {canManageTurma ? (
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                disabled={applyingCurriculum}
-                onClick={handleApplyCurriculum}
+                onClick={() => setAssignOpen(true)}
               >
-                <BookOpen className="size-3.5" /> Aplicar currículo do curso
+                <UserPlus className="size-3.5" /> Professor
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setEditOpen(true)}
-            >
-              <Pencil className="size-3.5" /> Editar
-            </Button>
-            {turma.status !== "active" ? (
+              {turma.course_id ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={applyingCurriculum}
+                  onClick={handleApplyCurriculum}
+                >
+                  <BookOpen className="size-3.5" /> Aplicar currículo do curso
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                disabled={reactivating}
-                onClick={async () => {
-                  setReactivating(true);
+                onClick={() => setEditOpen(true)}
+              >
+                <Pencil className="size-3.5" /> Editar
+              </Button>
+              {turma.status !== "active" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={reactivating}
+                  onClick={async () => {
+                    setReactivating(true);
+                    try {
+                      await updateClassGroup({
+                        data: {
+                          id: turma.id,
+                          code: turma.code,
+                          name: turma.name,
+                          // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
+                          status: "active",
+                        },
+                      });
+                      await refreshAcademic();
+                      toast.success("Turma reactivada.");
+                    } catch (err) {
+                      toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
+                    } finally {
+                      setReactivating(false);
+                    }
+                  }}
+                >
+                  <RotateCcw className="size-3.5" /> Reactivar
+                </Button>
+              ) : null}
+              <ConfirmActionModal
+                trigger={(openConfirm) =>
+                  turma.status === "active" ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-destructive"
+                      onClick={openConfirm}
+                    >
+                      <Trash2 className="size-3.5" /> Desactivar
+                    </Button>
+                  ) : null
+                }
+                eyebrow="Turma"
+                title="Desactivar esta turma?"
+                description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
+                confirmLabel="Desactivar turma"
+                onConfirm={async () => {
                   try {
-                    await updateClassGroup({
-                      data: {
-                        id: turma.id,
-                        code: turma.code,
-                        name: turma.name,
-                        // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
-                        status: "active",
-                      },
-                    });
+                    await deleteClassGroup({ data: { id: turma.id } });
                     await refreshAcademic();
-                    toast.success("Turma reactivada.");
+                    toast.success("Turma desactivada.");
                   } catch (err) {
-                    toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
-                  } finally {
-                    setReactivating(false);
+                    toast.error(
+                      err instanceof Error ? err.message : "Não foi possível desactivar a turma.",
+                    );
+                    throw err;
                   }
                 }}
-              >
-                <RotateCcw className="size-3.5" /> Reactivar
-              </Button>
-            ) : null}
-            <ConfirmActionModal
-              trigger={(openConfirm) =>
-                turma.status === "active" ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-destructive"
-                    onClick={openConfirm}
-                  >
-                    <Trash2 className="size-3.5" /> Desactivar
-                  </Button>
-                ) : null
-              }
-              eyebrow="Turma"
-              title="Desactivar esta turma?"
-              description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
-              confirmLabel="Desactivar turma"
-              onConfirm={async () => {
-                try {
-                  await deleteClassGroup({ data: { id: turma.id } });
-                  await refreshAcademic();
-                  toast.success("Turma desactivada.");
-                } catch (err) {
-                  toast.error(
-                    err instanceof Error ? err.message : "Não foi possível desactivar a turma.",
-                  );
-                  throw err;
-                }
-              }}
-            />
-          </div>
+              />
+            </div>
+          ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div
+          className={
+            account.role === "Professor"
+              ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"
+              : "grid grid-cols-1 gap-6 lg:grid-cols-2"
+          }
+        >
           <section
             id={sectionId("resumo")}
             aria-labelledby={`${sectionId("resumo")}-titulo`}
-            className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+            className={
+              account.role === "Professor"
+                ? "rounded-xl border border-border bg-card p-6 shadow-soft"
+                : "rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+            }
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Resumo" />
@@ -638,6 +653,9 @@ function TurmaDetail() {
               )}
             </div>
           </section>
+          {account.role === "Professor" ? (
+            <TurmaTeacherContextPanel classGroupId={turma.id} weeklySlots={horario.length} />
+          ) : null}
         </div>
       </div>
 

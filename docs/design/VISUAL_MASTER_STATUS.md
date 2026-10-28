@@ -1,5 +1,29 @@
 # Execução do padrão visual — 23/10/2026
 
+**27/10/2026 — botões discretos e cabeçalho semitransparente (PR em revisão):**
+o componente global `Button` conserva estados hover, loading, disabled e foco
+visível, mas elimina o efeito de compressão `scale` ao clicar. A navegação
+e os ícones deixam de crescer, rodar ou deslocar-se no hover; as indicações
+estáticas da página activa, a cor de realce e o foco acessível continuam.
+O cabeçalho desktop sobe de 56 para 64 px, o móvel de 64 para 68 px;
+o fundo passa a 95% opaco, reduzindo para 90% quando há suporte a
+`backdrop-filter` suave. Favoritos informa `aria-pressed`, notificações
+informa `aria-expanded`. Sem migrações nem mudança de permissões.
+Teste de contrato visual adicionado em `tests/ui/quiet-controls.test.ts`.
+**CI, testes em aparelhos e publicação ainda por confirmar.**
+
+**27/10/2026 — navegação e Início, incremento em PR (CI por concluir):**
+a página `/pedagogica` deixa de repetir «Área Pedagógica» no cabeçalho e passa a
+«Ensino e aprendizagem»; separadores com indicador activo composto por fundo,
+texto e sublinhado. A sidebar partilhada ganha um traço activo de 3 px,
+respeitando tema e redução de movimentos. O Início administrativo passa a
+destacar somente contagens existentes e autorizadas: candidaturas por confirmar,
+documentos pendentes, faturas em aberto e próximos eventos; o erro de carregamento
+não é zero. Referências de pesquisa: Canvas Dashboard/To-do, Moodle Timeline/
+recentes, Linear UI (hierarquia e contraste). Testes de regressão pedagógica e
+função pura de prioridades adicionados. **Evidência de CI, capturas em dispositivos
+e publicação de produção ainda pendentes**; não declarar execução integral.
+
 Contrato: [VISUAL_MASTER_2026.md](VISUAL_MASTER_2026.md). Esta matriz acompanha
 **todas as dez fases**. O padrão está registado; a execução integral está parcial.
 Não considerar o sistema todo validado por causa dos testes abaixo.
@@ -10,6 +34,7 @@ testes de componentes e login Chromium a 390/1440 px, foco de registo/entrada e
 ausência de overflow. Sem redesenho. [Matriz, evidências e limites](../qa/system-audit-2026-10-27/README.md).
 As restantes fases continuam parciais. O proprietário indicou o Colégio Adventista
 — Huambo para testes; isolamento de staging não confirmado.
+**27/10/2026 — sidebar persistente e flyout recolhido:** o novo pedido do proprietário substitui o compacto por omissão. Em ramo de revisão: expandido por omissão no desktop, botão com alternância fixa por utilizador/escola, subfunções em flyout por hover apenas quando recolhida e acordeão actual preservado quando expandida. Cobertura adicionada em Vitest/jsdom; execução de CI, dispositivo físico e produção ainda **não validadas**.
 
 **25/10/2026 — backend de horários/calendário:** agenda autenticada, sincronização
 de presenças e migrações verificadas; [evidência e limites](../architecture/ACADEMIC_AGENDA.md).
@@ -365,6 +390,19 @@ backend, RLS ou dados.
   preferências modalidade página/modal, foco, scroll e isolamento ao mudar de
   escola, incluindo 390/768/1024/1440 px. Não inferir homologação com dados reais.
 - Orientações para trabalho paralelo: `docs/agents/HANDOFF_SETTINGS_2026-10-25.md`.
+
+## Context Engine — trabalho, pasta e submenus por hover (26/10/2026)
+
+Ramo `claude/project-thread-vlrjln`, sobre o `main` com as #332, #337 e #348.
+
+- Menu do trabalho (`/pedagogica/tarefas/$taskId`) e menu da pasta (`/arquivos?pasta=`) usam o
+  mesmo `ContextEntityNav`: «Voltar», cabeçalho «Trabalho · ‹nome›» com a turma e a disciplina por
+  baixo, grupos e linhas iguais aos dos outros contextos. Sem componentes visuais novos.
+- Barra recolhida: com rato, o submenu de cada grupo abre ao apontar, à direita, e fecha 180 ms
+  depois de o cursor sair (o mesmo atraso do menu da escola). Não reabre a sidebar em hover; toque
+  e teclado continuam a abrir por toque/Enter. Expandida, mantém-se o acordeão.
+- Evidência: `tests/routes/sidebar-nav.test.tsx` (hover com rato, toque sem hover, menus do
+  trabalho e da pasta). Falta confirmação visual autenticada e em aparelhos.
 
 ## Presença do professor na sala (26/10/2026)
 
