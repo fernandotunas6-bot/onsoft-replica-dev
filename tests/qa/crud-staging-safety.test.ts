@@ -114,7 +114,7 @@ describe("homologação CRUD: segurança do alvo E2E com duas escolas", () => {
   it("recusa sessões iguais, marcadores sobrepostos e parâmetros em falta", () => {
     expect(() =>
       resolveCrudStagingConfig(makeEnv({ SIGA_CRUD_E2E_TENANT_B_STATE: "/tmp/tenant-a.json" })),
-    ).toThrow(/distintos/);
+    ).toThrow(/mesma sessão/);
     expect(() =>
       resolveCrudStagingConfig(
         makeEnv({
