@@ -41,6 +41,7 @@ import {
   type PrintTemplateKey,
 } from "./print-catalog";
 import { parsePrintSettings } from "./print-settings";
+import { requireDocumentRequestRelations } from "./request-relations";
 import {
   readSettingsDomainRow,
   updateSettingsDomainValue,
@@ -290,16 +291,11 @@ export const createDocumentRequest = createServerFn({ method: "POST" })
     ]);
     const db = await loadSgaAdminClient();
 
-    const { data: template, error: templateError } = await db
-      .from("document_templates")
-      .select("id, name, document_type")
-      .eq("id", data.templateId)
-      .eq("school_id", membership.schoolId)
-      .maybeSingle();
-    if (templateError) {
-      throw publicDatabaseError(templateError, "Não foi possível validar o modelo.");
-    }
-    if (!template) throw new Error("Modelo de documento não encontrado.");
+    const template = await requireDocumentRequestRelations(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      templateId: data.templateId,
+    });
 
     const purposeParts = [
       data.requestNumber ? `Nº ${data.requestNumber}` : null,
