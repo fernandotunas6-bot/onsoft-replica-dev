@@ -1,0 +1,43 @@
+name: CRUD Premium one-off phase-five formatter
+
+on:
+  push:
+    branches:
+      - feat/crud-premium-engineering-20261028
+    paths:
+      - .github/workflows/crud-phase5-format.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/crud-premium-engineering-20261028
+          persist-credentials: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Formatar apenas os ficheiros indicados pelo CI
+        run: |
+          bunx prettier --write \
+            src/features/academic/assessment-score-write.ts \
+            src/features/students/batch-feedback.ts \
+            src/features/students/enrollment-batch.ts \
+            src/routes/alunos/index.tsx \
+            tests/academic/assessment-score-write.test.ts \
+            tests/students/enrollment-core.test.ts
+      - name: Registar formatação na branch isolada
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/academic/assessment-score-write.ts src/features/students/batch-feedback.ts src/features/students/enrollment-batch.ts src/routes/alunos/index.tsx tests/academic/assessment-score-write.test.ts tests/students/enrollment-core.test.ts
+          if ! git diff --cached --quiet; then
+            git commit -m "style(crud): apply official Prettier to phase-four and five files"
+            git push origin HEAD:feat/crud-premium-engineering-20261028
+          fi
