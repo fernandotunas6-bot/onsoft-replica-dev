@@ -148,7 +148,9 @@ async function loadStudentLines(
     : { data: [] as Row[], error: null };
   if (peopleError) throw publicDatabaseError(peopleError, "Não foi possível ler as fichas.");
   const personOf = new Map(((people ?? []) as Row[]).map((row) => [str(row.id), row]));
-  const accountIds = [...new Set(((people ?? []) as Row[]).map((person) => str(person.user_id)).filter(Boolean))];
+  const accountIds = [
+    ...new Set(((people ?? []) as Row[]).map((person) => str(person.user_id)).filter(Boolean)),
+  ];
   const { data: accountMemberships, error: accountError } = accountIds.length
     ? await db
         .from("school_memberships")
@@ -171,7 +173,8 @@ async function loadStudentLines(
       name: str(person?.full_name) || "—",
       studentNumber: str(row.student_number),
       hasAccount: Boolean(person?.user_id),
-      accountSuspended: Boolean(person?.user_id) && accountStatus.get(str(person?.user_id)) !== "active",
+      accountSuspended:
+        Boolean(person?.user_id) && accountStatus.get(str(person?.user_id)) !== "active",
       hasBi: Boolean(person?.national_id),
     };
   });
