@@ -769,8 +769,11 @@ function PeoplePage() {
                             {teacher.employee_number}
                           </TableCell>
                           <TableCell className="font-semibold">
-                            <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}
-                              className="rounded-sm text-foreground hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                            <Link
+                              to="/professores/$teacherId"
+                              params={{ teacherId: teacher.id }}
+                              className="rounded-sm text-foreground hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                            >
                               {teacher.full_name}
                             </Link>
                           </TableCell>
@@ -811,26 +814,43 @@ function PeoplePage() {
                             <div className="flex justify-end gap-1">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button type="button" size="icon" variant="ghost"
-                                    aria-label={`Acções de ${teacher.full_name}`} title={`Acções de ${teacher.full_name}`}>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    aria-label={`Acções de ${teacher.full_name}`}
+                                    title={`Acções de ${teacher.full_name}`}
+                                  >
                                     <MoreHorizontal className="size-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-56">
-                                  <DropdownMenuLabel className="truncate">{teacher.full_name}</DropdownMenuLabel>
+                                  <DropdownMenuLabel className="truncate">
+                                    {teacher.full_name}
+                                  </DropdownMenuLabel>
                                   <DropdownMenuItem asChild>
-                                    <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}>
+                                    <Link
+                                      to="/professores/$teacherId"
+                                      params={{ teacherId: teacher.id }}
+                                    >
                                       <User className="size-4" /> Ver perfil completo
                                     </Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem asChild>
-                                    <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}
-                                      search={{ tab: "documentos" }}>
+                                    <Link
+                                      to="/professores/$teacherId"
+                                      params={{ teacherId: teacher.id }}
+                                      search={{ tab: "documentos" }}
+                                    >
                                       <FolderOpen className="size-4" /> Processo documental
                                     </Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onSelect={() => exportCsv("professor", teacherExportColumns, [teacher])}>
+                                  <DropdownMenuItem
+                                    onSelect={() =>
+                                      exportCsv("professor", teacherExportColumns, [teacher])
+                                    }
+                                  >
                                     <Download className="size-4" /> Exportar esta ficha (CSV)
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -886,7 +906,13 @@ function PeoplePage() {
                                   },
                                 ]}
                                 trigger={(open) => (
-                                  <Button size="icon" variant="ghost" onClick={open} aria-label={`Editar ${teacher.full_name}`} title="Editar professor">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={open}
+                                    aria-label={`Editar ${teacher.full_name}`}
+                                    title="Editar professor"
+                                  >
                                     <Pencil className="size-4" />
                                   </Button>
                                 )}
@@ -1150,21 +1176,34 @@ function PeoplePage() {
                               size="sm"
                             />
                           </TableCell>
-                          <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
+                          <TableCell
+                            className="text-right"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button type="button" size="icon" variant="ghost"
-                                  aria-label={`Acções de ${row.full_name}`}>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  aria-label={`Acções de ${row.full_name}`}
+                                >
                                   <MoreHorizontal className="size-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52" onClick={(event) => event.stopPropagation()}>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-52"
+                                onClick={(event) => event.stopPropagation()}
+                              >
                                 <DropdownMenuItem asChild>
                                   <Link to="/pessoas/$personId" params={{ personId: row.id }}>
                                     <User className="size-4" /> Ver ficha completa
                                   </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => exportCsv("pessoa", peopleExportColumns, [row])}>
+                                <DropdownMenuItem
+                                  onSelect={() => exportCsv("pessoa", peopleExportColumns, [row])}
+                                >
                                   <Download className="size-4" /> Exportar registo (CSV)
                                 </DropdownMenuItem>
                               </DropdownMenuContent>

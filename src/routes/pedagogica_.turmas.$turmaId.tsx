@@ -158,16 +158,21 @@ function TurmaDetail() {
 
   const [studentSearch, setStudentSearch] = useState({ classId: turmaId, value: "" });
   const [expandedLists, setExpandedLists] = useState({
-    classId: turmaId, alunos: false, horario: false, avaliacoes: false,
+    classId: turmaId,
+    alunos: false,
+    horario: false,
+    avaliacoes: false,
   });
-  const expanded = expandedLists.classId === turmaId
-    ? expandedLists
-    : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
+  const expanded =
+    expandedLists.classId === turmaId
+      ? expandedLists
+      : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
   const toggleList = (section: "alunos" | "horario" | "avaliacoes") =>
     setExpandedLists((current) => {
-      const base = current.classId === turmaId
-        ? current
-        : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
+      const base =
+        current.classId === turmaId
+          ? current
+          : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
       return { ...base, [section]: !base[section] };
     });
   const searchValue = studentSearch.classId === turmaId ? studentSearch.value : "";
@@ -514,7 +519,9 @@ function TurmaDetail() {
             </dl>
             {classRelations.length > 0 || classSuggestions.length > 0 ? (
               <details className="mt-3 rounded-lg border border-border bg-secondary/10 p-3">
-                <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-2">Relações e próximas acções</summary>
+                <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-2">
+                  Relações e próximas acções
+                </summary>
                 <div className="mb-3 mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {classRelations.map((relation) => (
                     <div key={relation.key} className="flex items-center gap-2 text-xs">
@@ -569,283 +576,358 @@ function TurmaDetail() {
             }
           >
             <div className="min-w-0 space-y-4">
-          <section
-            id={sectionId("alunos")}
-            aria-labelledby={`${sectionId("alunos")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={Users} size="sm" label="Alunos" />
-              <h2
-                id={`${sectionId("alunos")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+              <section
+                id={sectionId("alunos")}
+                aria-labelledby={`${sectionId("alunos")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Alunos ({alunos.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {alunos.length > 0 ? (
-                <div className="mb-3 space-y-2">
-                  <label htmlFor="turma-alunos-pesquisa" className="text-xs font-medium">
-                    Procurar aluno nesta turma
-                  </label>
-                  <Input
-                    id="turma-alunos-pesquisa"
-                    type="search"
-                    placeholder="Nome ou número de processo"
-                    value={searchValue}
-                    onChange={(event) =>
-                      setStudentSearch({ classId: turmaId, value: event.target.value })
-                    }
-                    aria-describedby="turma-alunos-resultados"
-                  />
-                  <p
-                    id="turma-alunos-resultados"
-                    role="status"
-                    className="text-xs text-muted-foreground"
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={Users} size="sm" label="Alunos" />
+                  <h2
+                    id={`${sectionId("alunos")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
                   >
-                    {filteredStudents.length} de {alunos.length} alunos
-                  </p>
+                    Alunos ({alunos.length})
+                  </h2>
                 </div>
-              ) : null}
-              {filteredStudents.length ? (
-                <div className="rounded-lg border border-border bg-card">
-                  {visibleStudents.map((aluno) => (
-                    <div
-                      key={aluno.id}
-                      className="flex min-w-0 items-center gap-1 border-b border-border last:border-b-0 hover:bg-secondary/40"
-                    >
-                      {aluno.student_id ? (
-                        <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
-                          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs focus-visible:outline-2">
-                          <span className="min-w-0 truncate font-medium text-foreground">
-                            {aluno.student_name}
-                          </span>
-                          <span className="shrink-0 text-muted-foreground">
-                            {aluno.registration_number || "—"}
-                          </span>
-                        </Link>
-                      ) : (
-                        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs">
-                          <span className="truncate font-medium">{aluno.student_name}</span>
-                          <span className="text-muted-foreground">{aluno.registration_number || "—"}</span>
+                <div className="mt-4">
+                  {alunos.length > 0 ? (
+                    <div className="mb-3 space-y-2">
+                      <label htmlFor="turma-alunos-pesquisa" className="text-xs font-medium">
+                        Procurar aluno nesta turma
+                      </label>
+                      <Input
+                        id="turma-alunos-pesquisa"
+                        type="search"
+                        placeholder="Nome ou número de processo"
+                        value={searchValue}
+                        onChange={(event) =>
+                          setStudentSearch({ classId: turmaId, value: event.target.value })
+                        }
+                        aria-describedby="turma-alunos-resultados"
+                      />
+                      <p
+                        id="turma-alunos-resultados"
+                        role="status"
+                        className="text-xs text-muted-foreground"
+                      >
+                        {filteredStudents.length} de {alunos.length} alunos
+                      </p>
+                    </div>
+                  ) : null}
+                  {filteredStudents.length ? (
+                    <div className="rounded-lg border border-border bg-card">
+                      {visibleStudents.map((aluno) => (
+                        <div
+                          key={aluno.id}
+                          className="flex min-w-0 items-center gap-1 border-b border-border last:border-b-0 hover:bg-secondary/40"
+                        >
+                          {aluno.student_id ? (
+                            <Link
+                              to="/alunos/$studentId"
+                              params={{ studentId: aluno.student_id }}
+                              className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs focus-visible:outline-2"
+                            >
+                              <span className="min-w-0 truncate font-medium text-foreground">
+                                {aluno.student_name}
+                              </span>
+                              <span className="shrink-0 text-muted-foreground">
+                                {aluno.registration_number || "—"}
+                              </span>
+                            </Link>
+                          ) : (
+                            <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs">
+                              <span className="truncate font-medium">{aluno.student_name}</span>
+                              <span className="text-muted-foreground">
+                                {aluno.registration_number || "—"}
+                              </span>
+                            </div>
+                          )}
+                          {aluno.student_id ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="mr-1 shrink-0"
+                                  aria-label={`Acções de ${aluno.student_name}`}
+                                >
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="truncate">
+                                  {aluno.student_name}
+                                </DropdownMenuLabel>
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    to="/alunos/$studentId"
+                                    params={{ studentId: aluno.student_id }}
+                                  >
+                                    <Users className="size-4" /> Ver ficha do aluno
+                                  </Link>
+                                </DropdownMenuItem>
+                                {canReadStudentSection(
+                                  "academico",
+                                  account.role,
+                                  account.grants,
+                                ) ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      to="/alunos/$studentId"
+                                      params={{ studentId: aluno.student_id }}
+                                      search={{ secao: "academico" }}
+                                    >
+                                      <GraduationCap className="size-4" /> Dados académicos
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canReadStudentSection(
+                                  "financeiro",
+                                  account.role,
+                                  account.grants,
+                                ) ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      to="/alunos/$studentId"
+                                      params={{ studentId: aluno.student_id }}
+                                      search={{ secao: "financeiro" }}
+                                    >
+                                      <BookOpen className="size-4" /> Propinas e finanças
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canReadStudentSection(
+                                  "documentos",
+                                  account.role,
+                                  account.grants,
+                                ) ? (
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      to="/alunos/$studentId"
+                                      params={{ studentId: aluno.student_id }}
+                                      search={{ secao: "documentos" }}
+                                    >
+                                      <BookOpen className="size-4" /> Documentos do aluno
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ) : null}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : null}
                         </div>
-                      )}
-                      {aluno.student_id ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button type="button" variant="ghost" size="icon"
-                              className="mr-1 shrink-0"
-                              aria-label={`Acções de ${aluno.student_name}`}>
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuLabel className="truncate">{aluno.student_name}</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                              <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}>
-                                <Users className="size-4" /> Ver ficha do aluno
-                              </Link>
-                            </DropdownMenuItem>
-                            {canReadStudentSection("academico", account.role, account.grants) ? (
-                              <DropdownMenuItem asChild>
-                                <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
-                                  search={{ secao: "academico" }}>
-                                  <GraduationCap className="size-4" /> Dados académicos
-                                </Link>
-                              </DropdownMenuItem>
-                            ) : null}
-                            {canReadStudentSection("financeiro", account.role, account.grants) ? (
-                              <DropdownMenuItem asChild>
-                                <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
-                                  search={{ secao: "financeiro" }}>
-                                  <BookOpen className="size-4" /> Propinas e finanças
-                                </Link>
-                              </DropdownMenuItem>
-                            ) : null}
-                            {canReadStudentSection("documentos", account.role, account.grants) ? (
-                              <DropdownMenuItem asChild>
-                                <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
-                                  search={{ secao: "documentos" }}>
-                                  <BookOpen className="size-4" /> Documentos do aluno
-                                </Link>
-                              </DropdownMenuItem>
-                            ) : null}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      {alunos.length
+                        ? "Nenhum aluno corresponde à pesquisa nesta turma."
+                        : "Nenhum aluno matriculado nesta turma ainda."}
+                      {alunos.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="mt-2 block w-full"
+                          onClick={() => setStudentSearch({ classId: turmaId, value: "" })}
+                        >
+                          Limpar pesquisa
+                        </Button>
                       ) : null}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  {alunos.length
-                    ? "Nenhum aluno corresponde à pesquisa nesta turma."
-                    : "Nenhum aluno matriculado nesta turma ainda."}
-                  {alunos.length > 0 ? (
+                  )}
+                  {filteredStudents.length > 10 ? (
                     <Button
                       type="button"
-                      variant="link"
-                      className="mt-2 block w-full"
-                      onClick={() => setStudentSearch({ classId: turmaId, value: "" })}
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full gap-1.5"
+                      aria-expanded={expanded.alunos}
+                      onClick={() => toggleList("alunos")}
                     >
-                      Limpar pesquisa
+                      {expanded.alunos ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                      {expanded.alunos
+                        ? "Mostrar menos"
+                        : `Mostrar todos os ${filteredStudents.length} alunos`}
                     </Button>
                   ) : null}
                 </div>
-              )}
-              {filteredStudents.length > 10 ? (
-                <Button type="button" variant="ghost" size="sm" className="mt-2 w-full gap-1.5"
-                  aria-expanded={expanded.alunos} onClick={() => toggleList("alunos")}>
-                  {expanded.alunos ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                  {expanded.alunos ? "Mostrar menos" : `Mostrar todos os ${filteredStudents.length} alunos`}
-                </Button>
-              ) : null}
-            </div>
-          </section>
+              </section>
 
-          <section
-            id={sectionId("horario")}
-            aria-labelledby={`${sectionId("horario")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={Calendar} size="sm" label="Horário" />
-              <h2
-                id={`${sectionId("horario")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+              <section
+                id={sectionId("horario")}
+                aria-labelledby={`${sectionId("horario")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Horário ({horario.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {horario.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {visibleSchedule.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="font-medium text-foreground">
-                        {weekdayLabels[slot.weekday] ?? slot.weekday}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {slot.starts_at}–{slot.ends_at} · {slot.subject_name || slot.label || "—"}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={Calendar} size="sm" label="Horário" />
+                  <h2
+                    id={`${sectionId("horario")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
+                  >
+                    Horário ({horario.length})
+                  </h2>
                 </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Sem horário definido para esta turma.
-                </p>
-              )}
-              {horario.length > 8 ? (
-                <Button type="button" variant="ghost" size="sm" className="mt-2 w-full gap-1.5"
-                  aria-expanded={expanded.horario} onClick={() => toggleList("horario")}>
-                  {expanded.horario ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                  {expanded.horario ? "Mostrar menos" : `Ver todos os ${horario.length} tempos`}
-                </Button>
-              ) : null}
-            </div>
-          </section>
-
+                <div className="mt-4">
+                  {horario.length ? (
+                    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                      {visibleSchedule.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className="flex items-center justify-between gap-2 p-3 text-xs"
+                        >
+                          <span className="font-medium text-foreground">
+                            {weekdayLabels[slot.weekday] ?? slot.weekday}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {slot.starts_at}–{slot.ends_at} ·{" "}
+                            {slot.subject_name || slot.label || "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      Sem horário definido para esta turma.
+                    </p>
+                  )}
+                  {horario.length > 8 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full gap-1.5"
+                      aria-expanded={expanded.horario}
+                      onClick={() => toggleList("horario")}
+                    >
+                      {expanded.horario ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                      {expanded.horario ? "Mostrar menos" : `Ver todos os ${horario.length} tempos`}
+                    </Button>
+                  ) : null}
+                </div>
+              </section>
             </div>
             <div className="min-w-0 space-y-4">
-          <section
-            id={sectionId("disciplinas")}
-            aria-labelledby={`${sectionId("disciplinas")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
-              <h2
-                id={`${sectionId("disciplinas")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+              <section
+                id={sectionId("disciplinas")}
+                aria-labelledby={`${sectionId("disciplinas")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Professores &amp; Disciplinas ({disciplinas.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {disciplinas.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {disciplinas.map((row) => (
-                    <div
-                      key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <Link to="/pedagogica/disciplinas/$subjectId" params={{ subjectId: row.subject_id }}
-                        className="min-w-0 font-medium text-foreground hover:text-primary hover:underline">
-                        {row.subject_name}
-                      </Link>
-                      {row.teacher_id && row.teacher_name ? (
-                        <Link to="/professores/$teacherId" params={{ teacherId: row.teacher_id }}
-                          className="min-w-0 truncate text-right text-muted-foreground hover:text-primary hover:underline">
-                          {row.teacher_name}
-                        </Link>
-                      ) : (
-                        <span className="text-warning">Sem professor atribuído</span>
-                      )}
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
+                  <h2
+                    id={`${sectionId("disciplinas")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
+                  >
+                    Professores &amp; Disciplinas ({disciplinas.length})
+                  </h2>
                 </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhuma disciplina associada a esta turma ainda.
-                </p>
-              )}
-            </div>
-          </section>
+                <div className="mt-4">
+                  {disciplinas.length ? (
+                    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                      {disciplinas.map((row) => (
+                        <div
+                          key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
+                          className="flex items-center justify-between gap-2 p-3 text-xs"
+                        >
+                          <Link
+                            to="/pedagogica/disciplinas/$subjectId"
+                            params={{ subjectId: row.subject_id }}
+                            className="min-w-0 font-medium text-foreground hover:text-primary hover:underline"
+                          >
+                            {row.subject_name}
+                          </Link>
+                          {row.teacher_id && row.teacher_name ? (
+                            <Link
+                              to="/professores/$teacherId"
+                              params={{ teacherId: row.teacher_id }}
+                              className="min-w-0 truncate text-right text-muted-foreground hover:text-primary hover:underline"
+                            >
+                              {row.teacher_name}
+                            </Link>
+                          ) : (
+                            <span className="text-warning">Sem professor atribuído</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      Nenhuma disciplina associada a esta turma ainda.
+                    </p>
+                  )}
+                </div>
+              </section>
 
-          <section
-            id={sectionId("avaliacoes")}
-            aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
-              <h2
-                id={`${sectionId("avaliacoes")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
+              <section
+                id={sectionId("avaliacoes")}
+                aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
+                className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
               >
-                Avaliações
-              </h2>
-            </div>
-            <div className="mt-4">
-              {avaliacoes.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {visibleGrades.map((grade) => (
-                    <div
-                      key={grade.id}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {grade.student_name} · {grade.term}º trimestre
-                      </span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">
-                        Média: {grade.average?.toFixed(1) ?? "—"}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2.5">
+                  <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
+                  <h2
+                    id={`${sectionId("avaliacoes")}-titulo`}
+                    tabIndex={-1}
+                    className="font-display text-base font-bold"
+                  >
+                    Avaliações
+                  </h2>
                 </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Ainda sem avaliações lançadas para os alunos desta turma.
-                </p>
-              )}
-              {avaliacoes.length > 8 ? (
-                <Button type="button" variant="ghost" size="sm" className="mt-2 w-full gap-1.5"
-                  aria-expanded={expanded.avaliacoes} onClick={() => toggleList("avaliacoes")}>
-                  {expanded.avaliacoes ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                  {expanded.avaliacoes ? "Mostrar menos" : `Ver todas as ${avaliacoes.length} avaliações`}
-                </Button>
-              ) : null}
-            </div>
-          </section>
+                <div className="mt-4">
+                  {avaliacoes.length ? (
+                    <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                      {visibleGrades.map((grade) => (
+                        <div
+                          key={grade.id}
+                          className="flex items-center justify-between gap-2 p-3 text-xs"
+                        >
+                          <span className="min-w-0 truncate font-medium text-foreground">
+                            {grade.student_name} · {grade.term}º trimestre
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">
+                            Média: {grade.average?.toFixed(1) ?? "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                      Ainda sem avaliações lançadas para os alunos desta turma.
+                    </p>
+                  )}
+                  {avaliacoes.length > 8 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2 w-full gap-1.5"
+                      aria-expanded={expanded.avaliacoes}
+                      onClick={() => toggleList("avaliacoes")}
+                    >
+                      {expanded.avaliacoes ? (
+                        <ChevronUp className="size-4" />
+                      ) : (
+                        <ChevronDown className="size-4" />
+                      )}
+                      {expanded.avaliacoes
+                        ? "Mostrar menos"
+                        : `Ver todas as ${avaliacoes.length} avaliações`}
+                    </Button>
+                  ) : null}
+                </div>
+              </section>
             </div>
           </div>
           {account.role === "Professor" ? (
