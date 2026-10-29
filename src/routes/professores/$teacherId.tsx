@@ -1,19 +1,15 @@
 import { useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileDown, GraduationCap, Pencil, UserPlus, UserMinus } from "lucide-react";
+import { FileDown, Pencil, UserPlus, UserMinus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { listTeachers, updateTeacher, deleteTeacher } from "@/features/people/server";
-import { whatsappHref } from "@/features/integrations/actions";
-import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
-import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel";
+import { TeacherProfile360 } from "@/features/people/TeacherProfile360";
 import {
   assignClassSubjectTeacher,
   getTeacherWorkspace,
@@ -34,6 +30,8 @@ import { toast } from "@/lib/toast";
 import { idOptions } from "@/lib/option-label";
 
 export const Route = createFileRoute("/professores/$teacherId")({
+  validateSearch: (search: Record<string, unknown>): { tab?: "documentos" } =>
+    search.tab === "documentos" ? { tab: "documentos" } : {},
   head: () => ({
     meta: [{ title: "Perfil do professor · SIGA" }],
   }),
@@ -42,19 +40,19 @@ export const Route = createFileRoute("/professores/$teacherId")({
 
 function TeacherProfilePage() {
   const { teacherId } = Route.useParams();
+  const { tab: initialTab } = Route.useSearch();
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { selectedYearId, school, selectedYearLabel } = useSchoolSettings();
-  const canManage = canWriteModule(account.role, "pedagogica");
-  const installed = useInstalledIntegrations();
-  const whatsappOn = installed.hasCapability("whatsapp.notices");
-  const resendOn = installed.hasCapability("resend.send");
+  const isAcademicManager =
+    account.roles.includes("Administrador") || account.roles.includes("Secretaria");
+  const canManage = isAcademicManager && canWriteModule(account.role, "pedagogica", account.grants);
   const teachersQuery = useQuery({
-    queryKey: ["people", "teachers", "profile"],
+    queryKey: ["people", "teachers", "profile", account.schoolId, account.id],
     queryFn: () => listTeachers({ data: { status: "all", limit: 200 } }),
   });
   const workspaceQuery = useQuery({
-    queryKey: ["academic", "pedagogical-workspace", selectedYearId],
+    queryKey: ["academic", "pedagogical-workspace", account.schoolId, selectedYearId],
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
@@ -63,10 +61,14 @@ function TeacherProfilePage() {
   });
   const teacher = (teachersQuery.data ?? []).find((row) => row.id === teacherId);
   const teacherWorkspaceQuery = useQuery({
-    queryKey: ["academic", "teacher-workspace", teacherId ?? "me"],
+    queryKey: ["academic", "teacher-workspace", account.schoolId, account.id, teacherId ?? "me"],
     queryFn: () => getTeacherWorkspace({ data: teacherId ? { teacherId } : {} }),
     retry: false,
   });
+  const mismatchedTeacher =
+    !isAcademicManager &&
+    teacherWorkspaceQuery.isSuccess &&
+    teacherWorkspaceQuery.data?.teacherId !== teacherId;
   const teacherRelationsSnapshot = useMemo(
     () => (teacher ? mapTeacherWorkspaceToSnapshot(teacher, teacherWorkspaceQuery.data) : null),
     [teacher, teacherWorkspaceQuery.data],
@@ -75,23 +77,23 @@ function TeacherProfilePage() {
   // lê o RH, e o servidor confirma.
   const canReadHr = canAccessPath("/financeiro/rh", account.role, account.grants);
   const hrEmploymentQuery = useQuery({
-    queryKey: ["hr", "teacher-employment", teacherId],
+    queryKey: ["hr", "teacher-employment", account.schoolId, teacherId],
     queryFn: () => getTeacherHrEmployment({ data: { teacherId } }),
     enabled: canReadHr && Boolean(teacherId),
     retry: false,
   });
   const employmentId = canReadHr ? hrEmploymentQuery.data?.employmentId : undefined;
   const focusedTeacherEntity = useMemo(() => {
-    if (!teacher || !teacherRelationsSnapshot) return null;
+    if (!teacher || !teacherRelationsSnapshot || mismatchedTeacher) return null;
     return {
       type: "teacher" as const,
       id: teacher.id,
       label: teacher.full_name,
-      schoolId: school?.id ?? "",
+      schoolId: account.schoolId ?? "",
       data: teacherRelationsSnapshot,
       ...(employmentId ? { relations: { employee: employmentId } } : {}),
     };
-  }, [teacher, teacherRelationsSnapshot, school?.id, employmentId]);
+  }, [teacher, teacherRelationsSnapshot, account.schoolId, employmentId, mismatchedTeacher]);
   useDeclareEntityFocus(focusedTeacherEntity);
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const subjects = workspaceQuery.data?.subjects ?? [];
@@ -104,13 +106,13 @@ function TeacherProfilePage() {
         <PageHeader
           group="Académico"
           title={teacher?.full_name ?? "Professor"}
-          description="Perfil, turmas atribuídas, matrículas e sincronização do horário com o calendário móvel."
+          description="Identificação, agenda, cursos, disciplinas, carreira e histórico profissional."
           avatar={
             teacher ? (
               <MediaAvatar
                 src={teacher.photo_url}
                 alt={teacher.full_name}
-                className="size-16 rounded-2xl object-cover shadow-2xs"
+                className="size-16 rounded-full object-cover ring-1 ring-border"
                 textClassName="text-lg"
               />
             ) : null
@@ -309,78 +311,42 @@ function TeacherProfilePage() {
             </div>
           }
         />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Dados" description="Registo do docente">
-            <dl className="grid gap-3 text-sm">
-              <div>
-                <dt className="text-xs text-muted-foreground">Nº funcionário</dt>
-                <dd className="font-semibold">{teacher?.employee_number ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Email</dt>
-                <dd className="flex flex-wrap items-center gap-2">
-                  {teacher?.email ?? "—"}
-                  {resendOn && teacher?.email ? (
-                    <button
-                      type="button"
-                      className="text-[11px] font-semibold text-primary hover:underline"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          `Credenciais SIGA — ${teacher.full_name}\n${teacher.email}`,
-                        );
-                        toast.success("Texto copiado para e-mail Resend");
-                      }}
-                    >
-                      E-mail Resend
-                    </button>
-                  ) : null}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Telefone</dt>
-                <dd className="flex flex-wrap items-center gap-2">
-                  {teacher?.phone ?? "—"}
-                  {whatsappOn && teacher?.phone ? (
-                    <a
-                      href={whatsappHref(teacher.phone)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] font-semibold text-primary hover:underline"
-                    >
-                      WhatsApp
-                    </a>
-                  ) : null}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Estado</dt>
-                <dd className="mt-1">
-                  <StatusBadge status={teacher?.status === "active" ? "active" : "inactive"} />
-                </dd>
-              </div>
-            </dl>
-            <Button asChild variant="outline" className="mt-4 gap-2">
-              <Link
-                to="/pedagogica"
-                // A vista por professor do horário da escola é de quem gere o Pedagógico.
-                search={
-                  canManage && teacher
-                    ? { tab: "horarios", professor: teacher.id }
-                    : { tab: "horarios" }
-                }
-              >
-                <GraduationCap className="size-4" /> Ver horários
-              </Link>
-            </Button>
-          </Panel>
-        </div>
-        <InstalledModuleTools module="pedagogica" />
-        <TeacherWorkspacePanel
-          teacherId={teacherId}
-          title="Turmas e horário"
-          canManage={canManage}
-          showInstalledTools={false}
-        />
+        {teachersQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">A carregar perfil do professor…</p>
+        ) : teachersQuery.isError || !teacher ? (
+          <p className="rounded-xl border border-border p-5 text-sm text-muted-foreground">
+            Não foi possível encontrar este professor na escola activa.
+          </p>
+        ) : mismatchedTeacher ? (
+          <p className="rounded-xl border border-border p-5 text-sm text-destructive">
+            Só pode consultar a sua própria ficha docente nesta escola.
+          </p>
+        ) : teacherWorkspaceQuery.isError ? (
+          <p className="rounded-xl border border-border p-5 text-sm text-destructive">
+            Não foi possível carregar as atribuições académicas deste professor.
+          </p>
+        ) : (
+          <TeacherProfile360
+            key={`${account.schoolId ?? "sem-escola"}:${teacher.id}`}
+            teacher={teacher}
+            initialTab={initialTab === "documentos" ? "documentos" : "resumo"}
+            workspace={teacherWorkspaceQuery.data}
+            schoolId={account.schoolId}
+            schoolName={school?.name ?? account.schoolName ?? "Escola"}
+            yearLabel={selectedYearLabel}
+            configuredLevels={school?.pedagogy?.teachingLevels ?? []}
+            selfTeacherId={account.linkedEntities.teacher_id}
+            canManage={canManage}
+            canManageDocuments={
+              ["Administrador", "Secretaria"].includes(account.role) &&
+              canWriteModule(account.role, "pessoas", account.grants)
+            }
+            canReadHr={canReadHr}
+            employmentId={employmentId}
+            role={account.role}
+            grants={account.grants}
+          />
+        )}
       </div>
     </AppShell>
   );
