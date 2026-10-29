@@ -142,6 +142,7 @@ import { StudentRowActions } from "@/features/students/components/StudentRowActi
 import { StudentBulkTools } from "@/features/students/components/StudentBulkTools";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { canReadStudentFinance, canIssueStudentTuition } from "@/features/students/student-sections";
+import { visibleSelectedRows, restrictSelectionToVisibleRows } from "@/features/students/visible-selection";
 
 const alunosSearchSchema = z
   .object({
@@ -442,7 +443,7 @@ function StudentsPage() {
   // A selecção pode abranger várias páginas, mas não registos excluídos pelos filtros.
   // Assim a contagem e as operações aplicam-se exactamente ao que está visível.
   const selectedStudents = useMemo(
-    () => filtered.filter((student) => selectedIds.includes(student.id)),
+    () => visibleSelectedRows(filtered, selectedIds),
     [filtered, selectedIds],
   );
   const effectiveSelectedIds = useMemo(
@@ -450,9 +451,8 @@ function StudentsPage() {
     [selectedStudents],
   );
   useEffect(() => {
-    const visibleIds = new Set(filtered.map((student) => student.id));
     setSelectedIds((previous) => {
-      const next = previous.filter((id) => visibleIds.has(id));
+      const next = restrictSelectionToVisibleRows(previous, filtered);
       return next.length === previous.length ? previous : next;
     });
   }, [filtered]);
