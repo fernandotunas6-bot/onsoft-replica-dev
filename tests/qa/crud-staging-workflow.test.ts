@@ -5,7 +5,7 @@ const workflow = readFileSync(".github/workflows/crud-staging-readonly.yml", "ut
 
 describe("workflow E2E CRUD: execução deliberada e exclusiva em staging", () => {
   it("exige dispatch manual com confirmação e ambiente isolado", () => {
-    expect(workflow).toMatch(/^on:\n  workflow_dispatch:/m);
+    expect(workflow).toMatch(/^on:\n {2}workflow_dispatch:/m);
     expect(workflow).toContain("environment: staging");
     expect(workflow).toContain('"$CONFIRMATION" != "STAGING"');
     expect(workflow).not.toMatch(/^ {2}(push|pull_request|schedule|workflow_run):/m);
@@ -32,7 +32,7 @@ describe("workflow E2E CRUD: execução deliberada e exclusiva em staging", () =
 
   it("executa somente o teste autenticado de leitura entre duas escolas", () => {
     expect(workflow).toContain("tests/e2e/crud-tenant-readonly.spec.ts");
-    expect(workflow).toContain("SIGA_CRUD_E2E: \"1\"");
+    expect(workflow).toContain('SIGA_CRUD_E2E: "1"');
     expect(workflow).toContain("SIGA_CRUD_E2E_PROJECT_REF:");
     expect(workflow).toContain("VITE_SIGA_URL: http://127.0.0.1:3006");
     expect(workflow).not.toMatch(/(migrate\s+up|db\s+reset|siga:seed-demo|deploy:all)/);
