@@ -234,7 +234,8 @@ function PersonWizardPage() {
       toast.success("Pessoa criada com sucesso no Núcleo Unificado de Identidade!");
       if (res.hrRegistration === "pending") {
         toast.warning("A ficha de Funcionários/RH ainda está pendente de sincronização.", {
-          description: "A pessoa foi criada e não deve ser cadastrada novamente. Verifique o módulo RH.",
+          description:
+            "A pessoa foi criada e não deve ser cadastrada novamente. Verifique o módulo RH.",
         });
       }
     } catch (err) {

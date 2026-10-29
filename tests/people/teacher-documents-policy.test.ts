@@ -67,15 +67,20 @@ describe("requisitos de documentação de docentes", () => {
   });
   it("não marca todos os requisitos como completos numa escola mista sem atribuições", () => {
     const policy = parseTeacherDocumentPolicy({
-      enabled: true, required: ["bi"],
+      enabled: true,
+      required: ["bi"],
       requiredByLevel: { superior: ["pos_graduacao"], primario: ["formacao_pedagogica"] },
     });
-    expect(resolveTeacherDocumentLevelContext(policy, [], ["primario", "superior"]))
-      .toEqual({ levels: [], levelPending: true });
-    expect(resolveTeacherDocumentLevelContext(policy, ["superior"], ["primario", "superior"]))
-      .toEqual({ levels: ["superior"], levelPending: false });
-    expect(resolveTeacherDocumentLevelContext(policy, [], ["superior"]))
-      .toEqual({ levels: ["superior"], levelPending: false });
+    expect(resolveTeacherDocumentLevelContext(policy, [], ["primario", "superior"])).toEqual({
+      levels: [],
+      levelPending: true,
+    });
+    expect(
+      resolveTeacherDocumentLevelContext(policy, ["superior"], ["primario", "superior"]),
+    ).toEqual({ levels: ["superior"], levelPending: false });
+    expect(resolveTeacherDocumentLevelContext(policy, [], ["superior"])).toEqual({
+      levels: ["superior"],
+      levelPending: false,
+    });
   });
-
 });

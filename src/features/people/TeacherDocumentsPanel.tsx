@@ -4,13 +4,23 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileCheck2, FolderOpen, Upload } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FilePickerModal } from "@/features/arquivos/FilePickerModal";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { TEACHER_DOCUMENTS, type TeacherDocumentCode } from "./teacher-documents-policy";
-import { attachTeacherDocument, getTeacherDocuments, reviewTeacherDocument } from "./teacher-documents-server";
+import {
+  attachTeacherDocument,
+  getTeacherDocuments,
+  reviewTeacherDocument,
+} from "./teacher-documents-server";
 
 export function TeacherDocumentsPanel({
   teacherId,
@@ -27,7 +37,10 @@ export function TeacherDocumentsPanel({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedCode, setSelectedCode] = useState<TeacherDocumentCode>("bi");
   const [saving, setSaving] = useState(false);
-  const [reviewTarget, setReviewTarget] = useState<{ entryId: string; decision: "verified" | "rejected" } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{
+    entryId: string;
+    decision: "verified" | "rejected";
+  } | null>(null);
   const [reviewReason, setReviewReason] = useState("");
   const queryKey = ["teacher", "documents", schoolId, teacherId] as const;
   const query = useQuery({
@@ -83,9 +96,11 @@ export function TeacherDocumentsPanel({
           </div>
           {query.data?.policyEnabled ? (
             <Badge variant={missing.length || query.data.levelPending ? "outline" : "default"}>
-              {query.data.levelPending ? "Nível docente por definir"
-                : missing.length ? `${missing.length} obrigatório(s) em falta`
-                : "Requisitos recebidos — por validar"}
+              {query.data.levelPending
+                ? "Nível docente por definir"
+                : missing.length
+                  ? `${missing.length} obrigatório(s) em falta`
+                  : "Requisitos recebidos — por validar"}
             </Badge>
           ) : (
             <Badge variant="outline">Exigência desactivada</Badge>
@@ -105,8 +120,8 @@ export function TeacherDocumentsPanel({
             </p>
             {query.data.levelPending ? (
               <p className="mt-2 text-xs text-warning">
-                A escola tem vários níveis de ensino. Atribua primeiro o contexto lectivo
-                deste docente para determinar todos os documentos obrigatórios.
+                A escola tem vários níveis de ensino. Atribua primeiro o contexto lectivo deste
+                docente para determinar todos os documentos obrigatórios.
               </p>
             ) : null}
             <ul className="mt-3 divide-y divide-border">
@@ -120,10 +135,15 @@ export function TeacherDocumentsPanel({
                     </p>
                   </div>
                   <Badge variant={item.verified ? "default" : "outline"}>
-                    {item.status === "validado" ? "Validado"
-                      : item.status === "recebido" ? "Recebido — por validar"
-                      : item.status === "rejeitado" ? "Rejeitado — substituir"
-                      : item.required ? "Em falta" : "Não entregue"}
+                    {item.status === "validado"
+                      ? "Validado"
+                      : item.status === "recebido"
+                        ? "Recebido — por validar"
+                        : item.status === "rejeitado"
+                          ? "Rejeitado — substituir"
+                          : item.required
+                            ? "Em falta"
+                            : "Não entregue"}
                   </Badge>
                 </li>
               ))}
@@ -153,61 +173,109 @@ export function TeacherDocumentsPanel({
         <div className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
           <h3 className="text-sm font-semibold">Conferir documentos recebidos</h3>
           <p className="text-xs text-muted-foreground">
-            Verifique os originais e a autenticidade pelos procedimentos da instituição.
-            O sistema regista o revisor e o motivo da decisão.
+            Verifique os originais e a autenticidade pelos procedimentos da instituição. O sistema
+            regista o revisor e o motivo da decisão.
           </p>
           <ul className="divide-y divide-border">
             {query.data.files.map((file) => (
-              <li key={file.entryId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <li
+                key={file.entryId}
+                className="flex flex-wrap items-center justify-between gap-3 py-3"
+              >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{TEACHER_DOCUMENTS.find((doc) => doc.code === file.code)?.label ?? file.code}</p>
+                  <p className="text-sm font-medium">
+                    {TEACHER_DOCUMENTS.find((doc) => doc.code === file.code)?.label ?? file.code}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    {file.title} · {file.validationStatus === "verified" ? "Validado"
-                      : file.validationStatus === "rejected" ? "Rejeitado" : "Aguarda revisão"}
+                    {file.title} ·{" "}
+                    {file.validationStatus === "verified"
+                      ? "Validado"
+                      : file.validationStatus === "rejected"
+                        ? "Rejeitado"
+                        : "Aguarda revisão"}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setReviewReason(""); setReviewTarget({ entryId: file.entryId, decision: "verified" });
-                  }}>Validar</Button>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setReviewReason(""); setReviewTarget({ entryId: file.entryId, decision: "rejected" });
-                  }}>Rejeitar</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setReviewReason("");
+                      setReviewTarget({ entryId: file.entryId, decision: "verified" });
+                    }}
+                  >
+                    Validar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setReviewReason("");
+                      setReviewTarget({ entryId: file.entryId, decision: "rejected" });
+                    }}
+                  >
+                    Rejeitar
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
         </div>
       ) : null}
-      <Dialog open={Boolean(reviewTarget)} onOpenChange={(open) => { if (!open) setReviewTarget(null); }}>
+      <Dialog
+        open={Boolean(reviewTarget)}
+        onOpenChange={(open) => {
+          if (!open) setReviewTarget(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{reviewTarget?.decision === "verified" ? "Confirmar verificação" : "Rejeitar documento"}</DialogTitle>
+            <DialogTitle>
+              {reviewTarget?.decision === "verified"
+                ? "Confirmar verificação"
+                : "Rejeitar documento"}
+            </DialogTitle>
             <DialogDescription>
               Registe o motivo da decisão. Será guardado no processo documental deste professor.
             </DialogDescription>
           </DialogHeader>
-          <Textarea rows={3} aria-label="Motivo da revisão documental"
-            value={reviewReason} onChange={(event) => setReviewReason(event.target.value)}
-            placeholder="Descreva a conferência realizada ou o motivo da rejeição" />
+          <Textarea
+            rows={3}
+            aria-label="Motivo da revisão documental"
+            value={reviewReason}
+            onChange={(event) => setReviewReason(event.target.value)}
+            placeholder="Descreva a conferência realizada ou o motivo da rejeição"
+          />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setReviewTarget(null)} disabled={saving}>Cancelar</Button>
-            <Button disabled={saving || !reviewTarget || reviewReason.trim().length < 3}
+            <Button variant="outline" onClick={() => setReviewTarget(null)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={saving || !reviewTarget || reviewReason.trim().length < 3}
               onClick={async () => {
                 if (!reviewTarget) return;
                 setSaving(true);
                 try {
-                  await reviewTeacherDocument({ data: {
-                    teacherId, entryId: reviewTarget.entryId, decision: reviewTarget.decision,
-                    reason: reviewReason.trim(),
-                  } });
+                  await reviewTeacherDocument({
+                    data: {
+                      teacherId,
+                      entryId: reviewTarget.entryId,
+                      decision: reviewTarget.decision,
+                      reason: reviewReason.trim(),
+                    },
+                  });
                   await queryClient.invalidateQueries({ queryKey });
                   toast.success("Estado documental actualizado.");
                   setReviewTarget(null);
                 } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "Não foi possível rever o documento.");
-                } finally { setSaving(false); }
-              }}>
+                  toast.error(
+                    error instanceof Error ? error.message : "Não foi possível rever o documento.",
+                  );
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
               Guardar decisão
             </Button>
           </div>

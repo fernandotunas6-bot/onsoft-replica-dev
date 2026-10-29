@@ -106,8 +106,11 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
     const [policy, levels, entriesResult, pedagogy] = await Promise.all([
       readSettingsDomain(db, membership.schoolId, "teacher_documents"),
       assignedTeachingLevels(db, membership.schoolId, data.teacherId),
-      db.from("teacher_document_entries")
-        .select("id, file_id, document_code, validation_status, validation_notes, verified_at, created_at")
+      db
+        .from("teacher_document_entries")
+        .select(
+          "id, file_id, document_code, validation_status, validation_notes, verified_at, created_at",
+        )
         .eq("school_id", membership.schoolId)
         .eq("teacher_id", data.teacherId)
         .eq("person_id", teacher.personId)
@@ -116,33 +119,39 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
       readSettingsDomain(db, membership.schoolId, "pedagogy"),
     ]);
     if (entriesResult.error) {
-      throw publicDatabaseError(entriesResult.error,
-        "Não foi possível ler o processo documental. Verifique a migração teacher_document_entries.");
+      throw publicDatabaseError(
+        entriesResult.error,
+        "Não foi possível ler o processo documental. Verifique a migração teacher_document_entries.",
+      );
     }
     const entries = entriesResult.data ?? [];
     const identifiers = entries.map((entry) => entry.file_id);
     const fileResult = identifiers.length
-      ? await db.from("siga_files")
-        .select("id, title, name")
-        .eq("school_id", membership.schoolId)
-        .eq("related_person_id", teacher.personId)
-        .eq("area", "secretaria")
-        .eq("visibility", "private")
-        .eq("storage_backend", "sga")
-        .eq("is_folder", false)
-        .eq("is_system", false)
-        .is("deleted_at", null)
-        .in("id", identifiers)
+      ? await db
+          .from("siga_files")
+          .select("id, title, name")
+          .eq("school_id", membership.schoolId)
+          .eq("related_person_id", teacher.personId)
+          .eq("area", "secretaria")
+          .eq("visibility", "private")
+          .eq("storage_backend", "sga")
+          .eq("is_folder", false)
+          .eq("is_system", false)
+          .is("deleted_at", null)
+          .in("id", identifiers)
       : { data: [] as Array<{ id: string; title: string | null; name: string }>, error: null };
     if (fileResult.error) {
       throw publicDatabaseError(fileResult.error, "Não foi possível validar os anexos reservados.");
     }
     const fileById = new Map((fileResult.data ?? []).map((file) => [file.id, file]));
-    const files = entries.filter((entry) => fileById.has(entry.file_id))
+    const files = entries
+      .filter((entry) => fileById.has(entry.file_id))
       .map((entry) => ({
         id: entry.file_id,
         entryId: entry.id,
-        title: String(fileById.get(entry.file_id)?.title || fileById.get(entry.file_id)?.name || "Documento"),
+        title: String(
+          fileById.get(entry.file_id)?.title || fileById.get(entry.file_id)?.name || "Documento",
+        ),
         code: entry.document_code,
         validationStatus: entry.validation_status,
         validationNotes: managerial ? entry.validation_notes : null,
@@ -150,21 +159,29 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
         receivedAt: entry.created_at,
       }));
     const { levels: effectiveLevels, levelPending } = resolveTeacherDocumentLevelContext(
-      policy, levels, pedagogy.teachingLevels ?? [],
+      policy,
+      levels,
+      pedagogy.teachingLevels ?? [],
     );
     const base = teacherDocumentChecklist(policy, [], effectiveLevels);
     const items = base.map((item) => {
       const matches = files.filter((file) => file.code === item.code);
-      const latest = matches.find((file) => file.validationStatus === "verified")
-        ?? matches.find((file) => file.validationStatus === "received")
-        ?? matches[0];
+      const latest =
+        matches.find((file) => file.validationStatus === "verified") ??
+        matches.find((file) => file.validationStatus === "received") ??
+        matches[0];
       const received = Boolean(latest && latest.validationStatus !== "rejected");
-      return { ...item, received,
+      return {
+        ...item,
+        received,
         verified: latest?.validationStatus === "verified",
-        status: !latest ? "em_falta" as const
-          : latest.validationStatus === "rejected" ? "rejeitado" as const
-          : latest.validationStatus === "verified" ? "validado" as const
-          : "recebido" as const,
+        status: !latest
+          ? ("em_falta" as const)
+          : latest.validationStatus === "rejected"
+            ? ("rejeitado" as const)
+            : latest.validationStatus === "verified"
+              ? ("validado" as const)
+              : ("recebido" as const),
       };
     });
     return {
@@ -183,35 +200,47 @@ export const attachTeacherDocument = createServerFn({ method: "POST" })
   .validator((input: unknown) => linkInput.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
-      "Administrador", "Secretaria",
+      "Administrador",
+      "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
     const teacher = await requireTeacherDocumentTarget(db, membership.schoolId, data.teacherId);
-    const { data: file, error } = await db.from("siga_files")
+    const { data: file, error } = await db
+      .from("siga_files")
       .select("id, is_folder, is_system, storage_backend")
       .eq("id", data.fileId)
       .eq("school_id", membership.schoolId)
       .eq("related_person_id", teacher.personId)
       .eq("area", "secretaria")
       .eq("visibility", "private")
-      .is("deleted_at", null).maybeSingle();
+      .is("deleted_at", null)
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível validar o anexo.");
     if (!file || file.is_folder || file.is_system || file.storage_backend !== "sga") {
-      throw new Error("Escolha um documento privado e relacionado com este professor na Secretaria.");
+      throw new Error(
+        "Escolha um documento privado e relacionado com este professor na Secretaria.",
+      );
     }
     const doc = TEACHER_DOCUMENTS.find((item) => item.code === data.documentCode);
     if (!doc) throw new Error("Tipo de documento não reconhecido.");
     const { data: existing, error: existingError } = await db
-      .from("teacher_document_entries").select("id, document_code")
-      .eq("school_id", membership.schoolId).eq("file_id", data.fileId).maybeSingle();
-    if (existingError) throw publicDatabaseError(existingError, "Não foi possível validar o registo documental.");
+      .from("teacher_document_entries")
+      .select("id, document_code")
+      .eq("school_id", membership.schoolId)
+      .eq("file_id", data.fileId)
+      .maybeSingle();
+    if (existingError)
+      throw publicDatabaseError(existingError, "Não foi possível validar o registo documental.");
     if (existing) {
       if (existing.document_code !== doc.code) {
-        throw new Error("Este arquivo já está associado a outro tipo documental. Seleccione outro ficheiro.");
+        throw new Error(
+          "Este arquivo já está associado a outro tipo documental. Seleccione outro ficheiro.",
+        );
       }
       return { id: String(existing.id), documentCode: doc.code, state: "recebido" as const };
     }
-    const { data: result, error: insertError } = await db.from("teacher_document_entries")
+    const { data: result, error: insertError } = await db
+      .from("teacher_document_entries")
       .insert({
         school_id: membership.schoolId,
         teacher_id: data.teacherId,
@@ -220,8 +249,11 @@ export const attachTeacherDocument = createServerFn({ method: "POST" })
         document_code: doc.code,
         created_by: context.userId,
         updated_by: context.userId,
-      }).select("id").single();
-    if (insertError) throw publicDatabaseError(insertError, "Não foi possível associar o documento.");
+      })
+      .select("id")
+      .single();
+    if (insertError)
+      throw publicDatabaseError(insertError, "Não foi possível associar o documento.");
     return { id: String(result.id), documentCode: doc.code, state: "recebido" as const };
   });
 
@@ -236,11 +268,14 @@ export const reviewTeacherDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => reviewInput.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId,
-      ["Administrador", "Secretaria"]);
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     const teacher = await requireTeacherDocumentTarget(db, membership.schoolId, data.teacherId);
-    const { data: reviewed, error } = await db.from("teacher_document_entries")
+    const { data: reviewed, error } = await db
+      .from("teacher_document_entries")
       .update({
         validation_status: data.decision,
         validation_notes: data.reason,
@@ -248,11 +283,13 @@ export const reviewTeacherDocument = createServerFn({ method: "POST" })
         verified_at: new Date().toISOString(),
         updated_by: context.userId,
         updated_at: new Date().toISOString(),
-      }).eq("id", data.entryId)
+      })
+      .eq("id", data.entryId)
       .eq("school_id", membership.schoolId)
       .eq("teacher_id", data.teacherId)
       .eq("person_id", teacher.personId)
-      .select("id, validation_status").maybeSingle();
+      .select("id, validation_status")
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível validar este documento.");
     if (!reviewed) throw new Error("O documento não pertence ao processo deste professor.");
     return { id: reviewed.id, status: reviewed.validation_status };

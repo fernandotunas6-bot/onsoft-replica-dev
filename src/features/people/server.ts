@@ -580,10 +580,17 @@ export const createPerson = createServerFn({ method: "POST" })
     // cria-se a ficha RH em preparação na mesma escola, sem exigir contrato
     // nem atribuir permissões de acesso ao sistema.
     let hrRegistration: "not_applicable" | "ready" | "pending" = "not_applicable";
-    if (roles.some((role) => ["professor", "funcionario", "diretor", "coordenador"].includes(role))) {
+    if (
+      roles.some((role) => ["professor", "funcionario", "diretor", "coordenador"].includes(role))
+    ) {
       try {
         const db = await loadSgaAdminClient();
-        await ensureStaffEmploymentDraft(db, membership.schoolId, String(person.id), context.userId);
+        await ensureStaffEmploymentDraft(
+          db,
+          membership.schoolId,
+          String(person.id),
+          context.userId,
+        );
         hrRegistration = "ready";
       } catch (employmentError) {
         // Nunca fingir que a criação da pessoa foi revertida: a RPC já gravou.

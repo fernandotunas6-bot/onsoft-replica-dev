@@ -215,10 +215,15 @@ export function resolveTeacherDocumentLevelContext(
   assignedLevels: readonly string[],
   schoolLevels: readonly string[],
 ): { levels: string[]; levelPending: boolean } {
-  const levels = assignedLevels.length > 0
-    ? [...new Set(assignedLevels)]
-    : schoolLevels.length === 1 ? [schoolLevels[0]!] : [];
-  const levelPending = policy.enabled && assignedLevels.length === 0 &&
+  const levels =
+    assignedLevels.length > 0
+      ? [...new Set(assignedLevels)]
+      : schoolLevels.length === 1
+        ? [schoolLevels[0]!]
+        : [];
+  const levelPending =
+    policy.enabled &&
+    assignedLevels.length === 0 &&
     schoolLevels.length > 1 &&
     Object.values(policy.requiredByLevel).some((codes) => (codes?.length ?? 0) > 0);
   return { levels, levelPending };
