@@ -102,7 +102,7 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
       throw new Error("Só pode consultar os documentos da sua própria ficha.");
     }
 
-    const [policy, levels, entriesResult] = await Promise.all([
+    const [policy, levels, entriesResult, pedagogy] = await Promise.all([
       readSettingsDomain(db, membership.schoolId, "teacher_documents"),
       assignedTeachingLevels(db, membership.schoolId, data.teacherId),
       db.from("teacher_document_entries")
@@ -112,6 +112,7 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
         .eq("person_id", teacher.personId)
         .order("created_at", { ascending: false })
         .limit(200),
+      readSettingsDomain(db, membership.schoolId, "pedagogy"),
     ]);
     if (entriesResult.error) {
       throw publicDatabaseError(entriesResult.error,
@@ -147,7 +148,13 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
         verifiedAt: entry.verified_at,
         receivedAt: entry.created_at,
       }));
-    const base = teacherDocumentChecklist(policy, [], levels);
+    const configuredLevels = pedagogy.teachingLevels ?? [];
+    const effectiveLevels = levels.length ? levels
+      : configuredLevels.length === 1 ? configuredLevels : [];
+    const levelPending = policy.enabled && levels.length === 0 &&
+      configuredLevels.length > 1 &&
+      Object.values(policy.requiredByLevel).some((items) => (items?.length ?? 0) > 0);
+    const base = teacherDocumentChecklist(policy, [], effectiveLevels);
     const items = base.map((item) => {
       const matches = files.filter((file) => file.code === item.code);
       const latest = matches.find((file) => file.validationStatus === "verified")
@@ -165,7 +172,8 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
     return {
       teacherId: data.teacherId,
       policyEnabled: policy.enabled,
-      levels,
+      levels: effectiveLevels,
+      levelPending,
       items,
       files,
     };
