@@ -449,13 +449,22 @@ export const setStudentAccountDisabled = createServerFn({ method: "POST" })
     }
     const nextStatus = data.disabled ? "suspended" : "active";
     if (member.status !== nextStatus) {
-      const { error: updateError } = await db
+      // Confirmar a linha alterada: sem isto, um vínculo removido ou mudado entre a
+      // leitura e a escrita dava «bloqueado» sem ter bloqueado nada.
+      const { data: updated, error: updateError } = await db
         .from("school_memberships")
         .update({ status: nextStatus })
         .eq("id", member.id)
-        .eq("school_id", actor.schoolId);
+        .eq("school_id", actor.schoolId)
+        .eq("user_id", userId)
+        .eq("status", member.status)
+        .select("id")
+        .maybeSingle();
       if (updateError) {
         throw publicDatabaseError(updateError, "Não foi possível actualizar o acesso do aluno.");
+      }
+      if (!updated) {
+        throw new Error("O acesso deste aluno mudou entretanto. Actualize a lista e repita.");
       }
       await recordAccessAudit({
         schoolId: actor.schoolId,

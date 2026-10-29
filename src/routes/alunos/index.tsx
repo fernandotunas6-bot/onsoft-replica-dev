@@ -145,6 +145,8 @@ import { useCurrentAccount } from "@/features/auth/use-current-account";
 import {
   canReadStudentFinance,
   canIssueStudentTuition,
+  canOpenStudentAccounts,
+  canReadStudentSection,
 } from "@/features/students/student-sections";
 import {
   visibleSelectedRows,
@@ -1232,10 +1234,16 @@ function StudentsPage() {
                 whatsappEnabled={whatsappOn}
                 whatsappHref={whatsappHref}
                 financeAllowed={canReadFinance}
-                academicAllowed={
-                  ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
-                  currentAccount.grants.pedagogica !== "Nenhum"
-                }
+                // A mesma regra do menu da tabela (StudentRowActions) no computador.
+                academicAllowed={canReadStudentSection(
+                  "academico",
+                  currentAccount.role,
+                  currentAccount.grants,
+                )}
+                studentAccountsAllowed={canOpenStudentAccounts(
+                  currentAccount.role,
+                  currentAccount.grants,
+                )}
               />
             }
             desktop={

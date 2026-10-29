@@ -72,6 +72,22 @@ export function canIssueStudentTuition(role: string, grants: ModuleGrantMap = {}
 }
 
 /**
+ * Quem o servidor deixa abrir Pessoas → Acessos dos alunos (`listStudentAccounts`:
+ * requireSgaWriterFor("pessoas") com Administração/Secretaria). Os cargos eleváveis
+ * só com permissão de Pessoas; «Nenhum» retira-a a todos. Sem isto, o menu do aluno
+ * levava encarregados e professores a uma página que o servidor recusa.
+ */
+export function canOpenStudentAccounts(role: string, grants: ModuleGrantMap = {}): boolean {
+  const level = grants.pessoas;
+  if (level === "Nenhum") return false;
+  if (role === "Administrador" || role === "Secretaria") return true;
+  return (
+    GRANT_ELEVATABLE_ROLES.some((allowed) => allowed === role) &&
+    (level === "Leitura" || level === "Escrita" || level === "Total")
+  );
+}
+
+/**
  * Quem o servidor deixa ler o histórico académico de vários anos
  * (`getStudentAcademicHistory`): Administração e Secretaria. O professor só vê as
  * turmas que lecciona e o encarregado recebe a recusa. «Nenhum» no módulo
