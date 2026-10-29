@@ -82,6 +82,7 @@ export function TeacherDocumentsSettingsPanel() {
       <span className="font-semibold">Aplicar obrigatoriedade</span>
       <select
         className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm sm:max-w-md"
+        aria-label="Nível de ensino ao qual aplicar a obrigatoriedade"
         value={scope} onChange={(event) => setScope(event.target.value as TeacherDocumentLevel | "all")}
       >
         <option value="all">A todos os professores (requisitos gerais)</option>
