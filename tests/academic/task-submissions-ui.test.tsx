@@ -567,8 +567,9 @@ describe("entregas: aluno e encarregado", () => {
     });
     await waitFor(() => {
       expect(screen.queryByText("valido.pdf")).toBeNull();
-      expect((screen.getByRole("button", { name: "Entregar" }) as HTMLButtonElement).disabled)
-        .toBe(true);
+      expect((screen.getByRole("button", { name: "Entregar" }) as HTMLButtonElement).disabled).toBe(
+        true,
+      );
     });
     expect(server.submitTaskWork).not.toHaveBeenCalled();
   });
