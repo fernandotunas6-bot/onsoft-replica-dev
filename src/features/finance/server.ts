@@ -1658,9 +1658,7 @@ export const issueTuitionBatch = createServerFn({ method: "POST" })
           .in("student_id", selectedIds)
           .eq("academic_year_id", academicYearId!)
           .limit(TUITION_BATCH_LIMIT + 1)
-      : await baseQuery
-          .eq("class_group_id", data.classGroupId!)
-          .limit(TUITION_BATCH_LIMIT + 1);
+      : await baseQuery.eq("class_group_id", data.classGroupId!).limit(TUITION_BATCH_LIMIT + 1);
     if (error) throw publicDatabaseError(error, "Não foi possível ler os alunos da turma.");
     const studentIds = [...new Set((rows ?? []).map((row) => String(row.student_id)))];
     if (selectedIds && studentIds.length !== selectedIds.length) {
