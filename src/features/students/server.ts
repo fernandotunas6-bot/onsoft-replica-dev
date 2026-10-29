@@ -142,7 +142,10 @@ export const searchStudents = createServerFn({ method: "GET" })
       context.userId,
       ["Administrador", "Secretaria", "Tesouraria"],
       membership.schoolId,
-    ).then(() => true, () => false);
+    ).then(
+      () => true,
+      () => false,
+    );
 
     // A lista pede até 1000 alunos e, a seguir, as fichas, matrículas, encarregados e
     // faturas de todos eles por `.in(...)`: com mais de ~200 alunos o URL passava o
