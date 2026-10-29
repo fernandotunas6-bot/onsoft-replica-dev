@@ -207,6 +207,23 @@ export function parseTeacherDocumentPolicy(raw: unknown): TeacherDocumentPolicy 
   return { enabled: value.enabled === true, required, requiredByLevel, collection: "apos_criacao" };
 }
 
+/** O nível nunca é inventado numa instituição mista com várias opções.
+ * Só é herdado da escola quando esta tem exactamente um nível configurado.
+ */
+export function resolveTeacherDocumentLevelContext(
+  policy: TeacherDocumentPolicy,
+  assignedLevels: readonly string[],
+  schoolLevels: readonly string[],
+): { levels: string[]; levelPending: boolean } {
+  const levels = assignedLevels.length > 0
+    ? [...new Set(assignedLevels)]
+    : schoolLevels.length === 1 ? [schoolLevels[0]!] : [];
+  const levelPending = policy.enabled && assignedLevels.length === 0 &&
+    schoolLevels.length > 1 &&
+    Object.values(policy.requiredByLevel).some((codes) => (codes?.length ?? 0) > 0);
+  return { levels, levelPending };
+}
+
 export function requiredTeacherDocuments(
   policy: TeacherDocumentPolicy,
   levels: readonly string[] = [],
