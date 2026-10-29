@@ -59,6 +59,13 @@ const constraintMessages: Record<string, string> = {
  * lotação chegava ao ecrã como «Um ou mais valores não respeitam as regras».
  */
 const businessMessages = new Set([
+  "Uma nota foi alterada por outra sessão. Actualize a avaliação antes de tentar novamente.",
+  // RPCs académicas: mensagens fixas, sem dados pessoais ou SQL.
+  "O período está fechado.",
+  "A pauta deste período já é oficial.",
+  "Esta entrega já foi devolvida ou não existe.",
+  "A avaliação não pertence à turma e disciplina da tarefa.",
+  "A nota não respeita a cotação da avaliação.",
   // Gatilho 20261025090000: segunda propina do mesmo mês, em emissões paralelas.
   "Este aluno já tem a propina deste mês. Anule-a antes de emitir outra.",
   "A turma atingiu a capacidade configurada.",

@@ -124,26 +124,36 @@ function AcessosPage() {
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const accountsQuery = useQuery({
-    queryKey: ["access", "accounts"],
+    queryKey: ["access", "accounts", currentUser.id, currentUser.schoolId, currentUser.role],
+    enabled: Boolean(currentUser.id && currentUser.schoolId),
+    placeholderData: undefined,
     queryFn: () => listSystemAccounts(),
     retry: false,
   });
   const staffQuery = useQuery({
-    queryKey: ["people", "staff"],
+    queryKey: ["people", "staff", currentUser.id, currentUser.schoolId, currentUser.role],
+    enabled: Boolean(currentUser.id && currentUser.schoolId),
+    placeholderData: undefined,
     queryFn: () => listStaffDirectory(),
   });
   const grantsQuery = useQuery({
-    queryKey: ["access", "grants"],
+    queryKey: ["access", "grants", currentUser.id, currentUser.schoolId, currentUser.role],
+    enabled: Boolean(currentUser.id && currentUser.schoolId),
+    placeholderData: undefined,
     queryFn: () => listStaffModuleGrants(),
     retry: false,
   });
   const invitationsQuery = useQuery({
-    queryKey: ["access", "invitations"],
+    queryKey: ["access", "invitations", currentUser.id, currentUser.schoolId, currentUser.role],
+    enabled: Boolean(currentUser.id && currentUser.schoolId),
+    placeholderData: undefined,
     queryFn: () => listSchoolInvitations(),
     retry: false,
   });
   const rolesQuery = useQuery({
-    queryKey: ["access", "roles"],
+    queryKey: ["access", "roles", currentUser.id, currentUser.schoolId, currentUser.role],
+    enabled: Boolean(currentUser.id && currentUser.schoolId),
+    placeholderData: undefined,
     queryFn: () => listSchoolRoles(),
     retry: false,
   });
@@ -764,6 +774,7 @@ function AcessosPage() {
                             />
                             <AccountRowActions
                               account={account}
+                              whatsappEnabled={whatsappOn}
                               canAdminister={currentUser.role === "Administrador"}
                               onChanged={() =>
                                 queryClient.invalidateQueries({ queryKey: ["access", "accounts"] })

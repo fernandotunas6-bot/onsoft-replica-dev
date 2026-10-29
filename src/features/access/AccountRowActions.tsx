@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Copy,
   Ellipsis,
   KeyRound,
   LockKeyhole,
   Mail,
+  MessageCircle,
   Printer,
   UnlockKeyhole,
   UserRound,
   UserX,
 } from "lucide-react";
+import { whatsappHref } from "@/features/integrations/actions";
 import { toast } from "@/lib/toast";
 import { reportPossibleStepUp } from "@/lib/step-up";
 import { passwordMeetsPolicy, PASSWORD_POLICY_HINT } from "@/lib/password-policy-error";
@@ -33,15 +35,17 @@ import {
 } from "@/features/access/server";
 
 type Account = Awaited<ReturnType<typeof listSystemAccounts>>[number];
-type Dialog = "profile" | "password" | "remove" | null;
+type Dialog = "profile" | "password" | "remove" | "share" | null;
 
 export function AccountRowActions({
   account,
+  whatsappEnabled = false,
   canAdminister,
   onChanged,
   onPrint,
 }: {
   account: Account;
+  whatsappEnabled?: boolean;
   canAdminister: boolean;
   onChanged: () => Promise<unknown>;
   onPrint: () => Promise<unknown>;
@@ -49,17 +53,21 @@ export function AccountRowActions({
   const [dialog, setDialog] = useState<Dialog>(null);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [shareHref, setShareHref] = useState<string | null>(null);
   const close = () => {
-    if (busy) return;
+    if (busyRef.current) return;
     setDialog(null);
     setPassword("");
+    setShareHref(null);
   };
   const notifyError = (error: unknown) => {
     if (reportPossibleStepUp(error)) return;
     toast.error(error instanceof Error ? error.message : "Não foi possível concluir a operação.");
   };
   const execute = async (action: () => Promise<unknown>, success: string) => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     try {
       await action();
@@ -69,6 +77,7 @@ export function AccountRowActions({
     } catch (error) {
       notifyError(error);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
@@ -97,6 +106,23 @@ export function AccountRowActions({
       const link = await resendSystemInvite({ data: { userId: account.id } });
       await navigator.clipboard.writeText(link.actionLink);
     }, "Ligação de recuperação copiada. Partilhe apenas com o titular.");
+
+  const prepareWhatsApp = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setShareHref(null);
+    try {
+      const link = await resendSystemInvite({ data: { userId: account.id } });
+      setShareHref(whatsappHref("", `Acesso SIGA: ${link.actionLink}`));
+      setDialog("share");
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
 
   return (
     <>
@@ -127,6 +153,11 @@ export function AccountRowActions({
                   <DropdownMenuItem disabled={busy} onSelect={() => void copyRecovery()}>
                     <Copy className="mr-2 size-4" /> Copiar ligação de recuperação
                   </DropdownMenuItem>
+                  {whatsappEnabled ? (
+                    <DropdownMenuItem disabled={busy} onSelect={() => void prepareWhatsApp()}>
+                      <MessageCircle className="mr-2 size-4" /> Partilhar acesso por WhatsApp
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem onSelect={() => setDialog("password")}>
                     <KeyRound className="mr-2 size-4" /> Definir nova senha
                   </DropdownMenuItem>
@@ -163,9 +194,11 @@ export function AccountRowActions({
           title={
             dialog === "profile"
               ? "Perfil de acesso"
-              : dialog === "password"
-                ? "Definir nova senha"
-                : "Remover acesso à escola"
+              : dialog === "share"
+                ? "Partilhar acesso por WhatsApp"
+                : dialog === "password"
+                  ? "Definir nova senha"
+                  : "Remover acesso à escola"
           }
           subtitle={account.full_name}
           onClose={close}
@@ -191,6 +224,21 @@ export function AccountRowActions({
               <dt className="text-muted-foreground">E-mail confirmado</dt>
               <dd>{account.email_confirmed ? "Sim" : "Não"}</dd>
             </dl>
+          ) : dialog === "share" && shareHref ? (
+            <div className="space-y-3 text-sm">
+              <p>
+                Confirme o contacto de <strong>{account.full_name}</strong> no WhatsApp antes de
+                enviar a ligação de acesso.
+              </p>
+              <Button asChild>
+                <a href={shareHref} target="_blank" rel="noopener noreferrer">
+                  Abrir WhatsApp
+                </a>
+              </Button>
+              <p className="text-muted-foreground">
+                A mensagem fica preparada; só será enviada quando confirmar no WhatsApp.
+              </p>
+            </div>
           ) : dialog === "password" ? (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
@@ -225,7 +273,7 @@ export function AccountRowActions({
           onCancel={close}
           isSubmitting={busy}
           onSubmit={
-            dialog === "profile"
+            dialog === "profile" || dialog === "share"
               ? undefined
               : dialog === "password"
                 ? () =>

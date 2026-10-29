@@ -20,7 +20,7 @@ export const Route = createFileRoute("/verificar")({
       { title: "Verificar documento · SIGA" },
       {
         name: "description",
-        content: "Confirme a autenticidade de um documento emitido por uma escola no SIGA.",
+        content: "Consulte o registo de emissão de um documento escolar no SIGA.",
       },
     ],
   }),
@@ -85,7 +85,11 @@ function VerifyDocumentPage() {
         ) : query.data?.valid ? (
           <section className="space-y-2 rounded-xl border border-border p-4">
             <p className="flex items-center gap-2 font-medium text-success">
-              <ValidIcon className="size-5" /> Documento válido
+              <ValidIcon className="size-5" /> Emissão registada
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Este código confirma o registo da emissão. Para confirmar notas, valores ou alterações
+              ao documento, contacte a escola emissora.
             </p>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
               <dt className="text-muted-foreground">Documento</dt>

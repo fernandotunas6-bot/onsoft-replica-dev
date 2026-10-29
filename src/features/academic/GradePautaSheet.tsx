@@ -511,6 +511,7 @@ export function GradePautaSheet({
       void issuePrintDocument({
         tipo: "Pauta disciplinar",
         school: printSchool,
+        classGroupIds: [classGroupId],
         overlay: overlayPauta({
           ...(selectedSubject?.name ? { subjectName: selectedSubject.name } : {}),
           periodName: `${term}º ${periodNoun.toLowerCase()}`,
@@ -572,6 +573,7 @@ export function GradePautaSheet({
       void issuePrintDocument({
         tipo: "Pauta geral da turma",
         school: printSchool,
+        classGroupIds: [classGroupId],
         overlay: overlayPauta({
           periodName: `${term}º ${periodNoun.toLowerCase()}`,
           className: turma,
@@ -641,6 +643,7 @@ export function GradePautaSheet({
     void issuePrintDocument({
       tipo: "Pauta anual (lista)",
       school: printSchool,
+      classGroupIds: [classGroupId],
       overlay: overlayServico({
         name: "Pauta anual",
         areaLabel: "Pedagógica",

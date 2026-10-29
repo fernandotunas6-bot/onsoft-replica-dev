@@ -1,5 +1,13 @@
 # Execução do padrão visual — 23/10/2026
 
+**29/10/2026 — Acessos e documentos (implementado em ramo de revisão):**
+cache de contas/equipa/grants/convites/cargos por conta, escola e cargo, sem dados
+provisórios; diálogo pequeno para preparar WhatsApp e botão explícito para abrir,
+sem envio automático nem dependência do Clipboard. A verificação pública distingue
+registo da emissão de validação dos dados impressos. Testes DOM de troca de escola
+e menu/diálogo aprovados; aparelhos, sessões reais e homologação da migração académica
+continuam pendentes. Evidências em `docs/agents/HANDOFF_AUDIT_CONSOLIDATION_2026-10-29.md`.
+
 **28/10/2026 — destinos das secções da turma (implementado):**
 os deep links `?secao=` passam a reservar 88 px antes da secção e a colocar o foco
 no título sem criar uma nova paragem de Tab. O acesso explícito a Resumo deixa de

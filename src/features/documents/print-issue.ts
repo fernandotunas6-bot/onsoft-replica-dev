@@ -70,6 +70,7 @@ async function resolveIssuingSchool(school: PrintSchoolContext): Promise<PrintSc
 
 export async function issuePrintDocument(input: {
   tipo: string;
+  classGroupIds?: string[];
   school: PrintSchoolContext;
   student?: PrintStudentContext;
   overlay?: Record<string, unknown>;
@@ -106,6 +107,7 @@ export async function issuePrintDocument(input: {
         title: input.tipo,
         holderName: input.student?.fullName,
         templateKey: key,
+        classGroupIds: input.classGroupIds,
         reference: input.student?.documentTitle,
         amountLabel: input.amountLabel,
         subjects: printedSubjectNames(payload),
@@ -150,6 +152,7 @@ async function registerForVerification(details: {
   title: string;
   holderName?: string | undefined;
   templateKey: string;
+  classGroupIds?: string[] | undefined;
   reference?: string | undefined;
   amountLabel?: string | undefined;
   subjects?: string[] | undefined;
