@@ -386,7 +386,8 @@ function StudentsPage() {
         (s.primary_guardian_name ?? "").toLowerCase().includes(q);
       const matchStatus = estado === "todos" || s.student_status === estado;
       const matchTurma = turma === "todas" || (s.class_name ?? "") === turma;
-      const matchPagamento = pagamento === "todos" || (s.payment_status ?? "") === pagamento;
+      const matchPagamento =
+        !canReadFinance || pagamento === "todos" || (s.payment_status ?? "") === pagamento;
       const studentYear = (s.academic_year ?? "").toLowerCase();
       const matchYear =
         !selectedYear ||
@@ -431,6 +432,7 @@ function StudentsPage() {
     estado,
     turma,
     pagamento,
+    canReadFinance,
     sortKey,
     sortDir,
     selectedYear,
@@ -442,6 +444,10 @@ function StudentsPage() {
   const selectedStudents = useMemo(
     () => filtered.filter((student) => selectedIds.includes(student.id)),
     [filtered, selectedIds],
+  );
+  const effectiveSelectedIds = useMemo(
+    () => selectedStudents.map((student) => student.id),
+    [selectedStudents],
   );
   useEffect(() => {
     const visibleIds = new Set(filtered.map((student) => student.id));
@@ -836,7 +842,7 @@ function StudentsPage() {
             ...(turma !== "todas"
               ? [{ name: "turma", label: "Turma", value: turma, emptyValue: "todas" }]
               : []),
-            ...(pagamento !== "todos"
+            ...(canReadFinance && pagamento !== "todos"
               ? [
                   {
                     name: "pagamento",
@@ -878,16 +884,18 @@ function StudentsPage() {
                 ),
               ],
             },
-            {
-              name: "pagamento",
-              type: "select",
-              label: "Pagamento",
-              emptyValue: "todos",
-              options: [
-                { value: "todos", label: "Todos os pagamentos" },
-                ...Object.entries(pagamentoLabels).map(([value, label]) => ({ value, label })),
-              ],
-            },
+            ...(canReadFinance
+              ? [{
+                  name: "pagamento",
+                  type: "select" as const,
+                  label: "Pagamento",
+                  emptyValue: "todos",
+                  options: [
+                    { value: "todos", label: "Todos os pagamentos" },
+                    ...Object.entries(pagamentoLabels).map(([value, label]) => ({ value, label })),
+                  ],
+                }]
+              : []),
           ]}
         />
 
@@ -1548,20 +1556,20 @@ function StudentsPage() {
           />
 
           {/* Barra Flutuante de Ações em Massa */}
-          {selectedIds.length > 0 ? (
+          {effectiveSelectedIds.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary-soft/80 p-3 shadow-sm animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2">
                 <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                  {selectedIds.length}
+                  {effectiveSelectedIds.length}
                 </span>
                 <span className="text-xs font-semibold text-foreground">
-                  {selectedIds.length === 1 ? "aluno seleccionado" : "alunos seleccionados"}
+                  {effectiveSelectedIds.length === 1 ? "aluno seleccionado" : "alunos seleccionados"}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {turmaOptions.length > 0 ? (
                   <QuickFormModal
-                    title={`Atribuir turma a ${selectedIds.length} alunos`}
+                    title={`Atribuir turma a ${effectiveSelectedIds.length} alunos`}
                     description="Matricula em massa os alunos seleccionados na turma indicada."
                     submitLabel="Atribuir turma em lote"
                     successDescription="Turma atribuída aos alunos seleccionados."
@@ -1581,7 +1589,7 @@ function StudentsPage() {
                         throw new Error("Seleccione uma turma com ano lectivo.");
                       const result = await batchAssignClass({
                         data: {
-                          studentIds: selectedIds,
+                          studentIds: effectiveSelectedIds,
                           classGroupId: group.id,
                           academicYearId: yearId,
                         },
@@ -1609,7 +1617,7 @@ function StudentsPage() {
                 ) : null}
 
                 <QuickFormModal
-                  title={`Alterar estado de ${selectedIds.length} alunos`}
+                  title={`Alterar estado de ${effectiveSelectedIds.length} alunos`}
                   description="Actualiza o estado institucional de todos os alunos seleccionados."
                   submitLabel="Actualizar estado em lote"
                   successDescription="Estado dos alunos actualizado."
@@ -1632,12 +1640,12 @@ function StudentsPage() {
                   onSubmit={async (values) => {
                     const result = await batchUpdateStudentStatus({
                       data: {
-                        studentIds: selectedIds,
+                        studentIds: effectiveSelectedIds,
                         newStatus: values["estado"] as (typeof studentStatusOptions)[number],
                         reason: values["motivo"] || undefined,
                       },
                     });
-                    const unchanged = selectedIds.length - result.count;
+                    const unchanged = effectiveSelectedIds.length - result.count;
                     toast.success(
                       unchanged > 0
                         ? `Estado de ${result.count} aluno(s) actualizado; ${unchanged} já estava(m) nesse estado.`
