@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verificar configuração do staging (manual: falhar, nunca omitir)
+      - name: 'Verificar configuração do staging (manual: falhar, nunca omitir)'
         id: secrets
         env:
           STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
