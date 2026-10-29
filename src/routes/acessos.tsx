@@ -18,6 +18,10 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { AccessRequestsPanel } from "@/features/access/AccessRequestsPanel";
+import {
+  AccessOnboardingDialog,
+  isUnassignedStaffCandidate,
+} from "@/features/access/AccessOnboardingDialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
@@ -54,8 +58,7 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import {
   createSchoolInvitation,
-  inviteSystemUser,
-  listSchoolInvitations,
+   listSchoolInvitations,
   listSchoolRoles,
   listSystemAccounts,
   resendSystemInvite,
@@ -71,7 +74,7 @@ import {
   setStaffModuleGrant,
 } from "@/features/access/grants";
 import type { AccessLevel } from "@/features/auth/access-policy";
-import { createPerson, listStaffDirectory, updatePersonStatus } from "@/features/people/server";
+import { listStaffDirectory, updatePersonStatus } from "@/features/people/server";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { cn } from "@/lib/utils";
@@ -200,7 +203,11 @@ function AcessosPage() {
         estado === "todos" ||
         (estado === "activos" && !account.disabled) ||
         (estado === "suspensos" && account.disabled);
-      const matchesCargo = cargo === "todos" || String(account.cargo ?? "") === cargo;
+      const matchesCargo =
+        cargo === "todos" ||
+        (cargo === "sem_cargo" && isUnassignedStaffCandidate(account, "unassigned")) ||
+        (cargo === "sem_funcao" && isUnassignedStaffCandidate(account, "without_staff")) ||
+        String(account.cargo ?? "") === cargo;
       return (
         matchesEstado &&
         matchesCargo &&
@@ -400,11 +407,11 @@ function AcessosPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <PageHeader
           group="Secretaria"
           title="Gestão de Acessos"
-          description="Convide contas de login, ajuste cargos e mantenha a equipa escolar no registo de pessoas."
+          description="Atribua cargos, convide funcionários e organize os acessos da escola."
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <DocHelpButton title="Navegação — Acessos e permissões" />
@@ -446,108 +453,19 @@ function AcessosPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <QuickFormModal
-                title="Convidar utilizador"
-                eyebrow="Contas de sistema"
-                description="Envia um convite por email via Supabase Auth e atribui o cargo no SIGA."
-                icon={<MailPlus className="size-5" />}
-                submitLabel="Enviar convite"
-                note="Requer SUPABASE_SECRET_KEY no ambiente do servidor."
-                successDescription="Convite enviado. O utilizador define a senha pelo email recebido."
-                onSubmit={async (values) => {
-                  await inviteSystemUser({
-                    data: {
-                      fullName: values["nome"] ?? "",
-                      email: values["email"] ?? "",
-                      cargo: (values["cargo"] as ApplicationRole) ?? "Utilizador",
-                    },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["access", "accounts"] });
+              <AccessOnboardingDialog
+                accounts={accounts}
+                accountsLoading={accountsQuery.isLoading}
+                accountsError={accountsQuery.isError}
+                secretMissing={secretMissing}
+                isAdministrator={currentUser.role === "Administrador"}
+                onChanged={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["access", "accounts"] }),
+                    queryClient.invalidateQueries({ queryKey: ["people", "staff"] }),
+                    queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
+                  ]);
                 }}
-                fields={[
-                  {
-                    name: "nome",
-                    label: "Nome completo",
-                    placeholder: "Ex.: Paulo Neto",
-                    full: true,
-                  },
-                  { name: "email", label: "Email", placeholder: "nome@escola.ao" },
-                  {
-                    name: "cargo",
-                    label: "Cargo no SIGA",
-                    type: "select",
-                    options: [...applicationRoles],
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button className="gap-2" onClick={open} disabled={secretMissing}>
-                    <MailPlus className="size-4" /> Convidar utilizador
-                  </Button>
-                )}
-              />
-              <QuickFormModal
-                title="Novo membro da equipa"
-                eyebrow="Registo de pessoas"
-                description="Cria a pessoa no registo central com um papel escolar (sem login)."
-                icon={<UserPlus className="size-5" />}
-                submitLabel="Criar membro"
-                successDescription="Membro adicionado ao registo de pessoas."
-                onSubmit={async (values) => {
-                  const roleMap: Record<
-                    string,
-                    "professor" | "funcionario" | "diretor" | "coordenador"
-                  > = {
-                    Professor: "professor",
-                    Funcionário: "funcionario",
-                    Director: "diretor",
-                    Coordenador: "coordenador",
-                  };
-                  await createPerson({
-                    data: {
-                      person: {
-                        full_name: values["nome"] ?? "",
-                        email: values["email"] || undefined,
-                        phone_primary: values["telefone"] || undefined,
-                      },
-                      roles: [roleMap[values["perfil"] ?? ""] ?? "funcionario"],
-                      documents: [],
-                      relationships: [],
-                    },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["people", "staff"] });
-                  await queryClient.invalidateQueries({ queryKey: ["people", "search"] });
-                }}
-                fields={[
-                  {
-                    name: "nome",
-                    label: "Nome completo",
-                    placeholder: "Ex.: Paulo Neto",
-                    full: true,
-                  },
-                  {
-                    name: "email",
-                    label: "Email",
-                    placeholder: "nome@escola.ao",
-                    required: false,
-                  },
-                  {
-                    name: "perfil",
-                    label: "Papel escolar",
-                    type: "select",
-                    options: ["Professor", "Funcionário", "Director", "Coordenador"],
-                  },
-                  {
-                    name: "telefone",
-                    label: "Telefone",
-                    placeholder: "+244 9xx xxx xxx",
-                    required: false,
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <UserPlus className="size-4" /> Novo membro
-                  </Button>
-                )}
               />
             </div>
           }
@@ -613,6 +531,8 @@ function AcessosPage() {
               emptyValue: "todos",
               options: [
                 { value: "todos", label: "Todos os cargos" },
+                { value: "sem_cargo", label: "Sem cargo atribuído" },
+                { value: "sem_funcao", label: "Sem função de funcionário" },
                 ...applicationRoles.map((role) => ({ value: role, label: role })),
               ],
             },
