@@ -98,15 +98,15 @@ function TeacherProfilePage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          group="Académico"
+          group="Pessoas · Corpo docente"
           title={teacher?.full_name ?? "Professor"}
-          description="Perfil, turmas atribuídas, matrículas e sincronização do horário com o calendário móvel."
+          description="Identificação, agenda, cursos, disciplinas, carreira e histórico profissional."
           avatar={
             teacher ? (
               <MediaAvatar
                 src={teacher.photo_url}
                 alt={teacher.full_name}
-                className="size-16 rounded-2xl object-cover shadow-2xs"
+                className="size-16 rounded-full object-cover ring-1 ring-border"
                 textClassName="text-lg"
               />
             ) : null
@@ -321,6 +321,7 @@ function TeacherProfilePage() {
           </p>
         ) : (
           <TeacherProfile360
+            key={`${account.schoolId ?? "sem-escola"}:${teacher.id}`}
             teacher={teacher}
             workspace={teacherWorkspaceQuery.data}
             schoolId={account.schoolId}
