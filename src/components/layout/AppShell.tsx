@@ -122,11 +122,12 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
     activePlan,
   );
   const { unread, unreadCount } = useInboxUnread();
-  const { alerts, alertCount } = useSchoolAlerts();
-  const personalNotifications = usePersonalNotifications();
+  const { alerts } = useSchoolAlerts();
+  const personalNotifications = usePersonalNotifications(currentUser.id, currentUser.schoolId ?? "");
   const personalUnread = personalNotifications.data?.unread ?? 0;
   const personalCount = personalNotifications.data?.items.length ?? 0;
-  const noticeCount = unreadCount + alertCount + personalUnread;
+  // Pendências financeiras/pedagógicas são acções por resolver, não mensagens não lidas.
+  const noticeCount = unreadCount + personalUnread;
   const {
     selectedYearLabel,
     selectedYearId,
@@ -528,7 +529,18 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                   <SheetTitle>Notificações</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto [scrollbar-width:thin]">
-                  <PersonalNotificationsList open={notificationsOpen} />
+                  <PersonalNotificationsList
+                    open={notificationsOpen}
+                    onClose={() => setNotificationsOpen(false)}
+                    userId={currentUser.id}
+                    schoolId={currentUser.schoolId ?? ""}
+                    query={personalNotifications}
+                  />
+                  {alerts.length ? (
+                    <p className="pt-2 text-xs font-semibold text-muted-foreground">
+                      Pendências de gestão (permanecem até serem resolvidas)
+                    </p>
+                  ) : null}
                   {alerts.map((alert) => (
                     <SchoolAlertRow
                       key={alert.id}
@@ -565,7 +577,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       </span>
                     </button>
                   ))}
-                  {!alerts.length && !unread.length && !personalCount ? (
+                  {!alerts.length && !unread.length && !personalCount && !personalUnread && !personalNotifications.isError ? (
                     <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
                       Sem notificações novas. Candidaturas, documentos, faturas em atraso e
                       mensagens internas aparecem aqui.
