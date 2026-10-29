@@ -37,6 +37,20 @@ describe("alunos: permissões financeiras na lista", () => {
     expect(page).toContain("canReadFinance={canReadFinance}");
   });
 
+  it("particiona a cache da lista por utilizador, escola, cargo e permissão", () => {
+    const route = readFileSync("src/routes/alunos/index.tsx", "utf8");
+    expect(route).toContain("currentAccount.id,");
+    expect(route).toContain("currentAccount.schoolId,");
+    expect(route).toContain("currentAccount.role,");
+    expect(route).toContain("canReadFinance,");
+    expect(route).toContain("enabled: Boolean(currentAccount.id && currentAccount.schoolId)");
+  });
+
+  it("não exporta colunas financeiras sem autorização", () => {
+    const route = readFileSync("src/routes/alunos/index.tsx", "utf8");
+    expect(route).toContain('...(canReadFinance\n      ? [\n          {\n            label: "Pagamento"');
+  });
+
   it("a lista móvel não mostra a dívida sem autorização financeira", () => {
     const mobile = readFileSync("src/features/students/components/StudentMobileList.tsx", "utf8");
     expect(mobile).toContain("financeAllowed && student.debt_amount");
