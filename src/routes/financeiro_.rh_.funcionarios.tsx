@@ -39,11 +39,11 @@ function EmployeesPage() {
   const rows = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt");
     const all = employees.data ?? [];
-    return all.filter((row) => (statusFilter === "all" || row.status === statusFilter) &&
-      (!needle ||
-      [row.personName, row.employeeNumber, row.position, row.department]
+    return all.filter((row) =>
+      (statusFilter === "all" || row.status === statusFilter) &&
+      (!needle || [row.personName, row.employeeNumber, row.position, row.department]
         .filter(Boolean)
-        .some((value) => String(value).toLocaleLowerCase("pt").includes(needle)))),
+        .some((value) => String(value).toLocaleLowerCase("pt").includes(needle)))
     );
   }, [employees.data, query, statusFilter]);
 
