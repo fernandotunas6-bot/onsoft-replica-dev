@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
+import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
 import type { ApplicationRole } from "@/features/auth/access-policy";
 import {
   inviteSystemUser,
@@ -79,6 +80,10 @@ export function AccessOnboardingDialog({
     (mode === "existing" || name.trim().length >= 2) &&
     (mode !== "invite" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
 
+  const closeDialog = () => {
+    if (confirmDiscardChanges(dirty)) setOpen(false);
+  };
+
   const openDialog = () => {
     setMode("invite");
     setScope("unassigned");
@@ -150,7 +155,11 @@ export function AccessOnboardingDialog({
         });
         toast.success("Pessoa adicionada ao registo escolar.");
       }
-      await onChanged();
+      try {
+        await onChanged();
+      } catch {
+        toast.warning("O registo foi guardado, mas não foi possível actualizar a lista. Recarregue a página.");
+      }
       setDirty(false);
       setOpen(false);
     } catch (error) {
@@ -174,7 +183,7 @@ export function AccessOnboardingDialog({
         <ModalHeader
           title="Adicionar à equipa"
           subtitle="Escolha uma conta da escola, convide um funcionário ou registe uma pessoa sem login."
-          onClose={() => setOpen(false)}
+          onClose={closeDialog}
         />
         <ModalContent className="space-y-3">
           <div role="tablist" aria-label="Forma de adicionar" className="grid grid-cols-1 gap-1 rounded-lg bg-muted/50 p-1 sm:grid-cols-3">
@@ -381,7 +390,7 @@ export function AccessOnboardingDialog({
           </form>
         </ModalContent>
         <ModalFooter
-          onCancel={() => setOpen(false)}
+          onCancel={closeDialog}
           onSubmit={(event) => void submit(event)}
           disabled={!canSubmit}
           isSubmitting={busy}
