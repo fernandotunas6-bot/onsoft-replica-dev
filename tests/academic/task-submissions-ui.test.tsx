@@ -484,6 +484,46 @@ describe("entregas: aluno e encarregado", () => {
     );
   });
 
+  it("envia o último PDF escolhido mesmo quando a mutação ainda tinha opções anteriores", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    const input = await screen.findByLabelText("Anexar foto ou PDF");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF-1.7 antigo"], "antigo.pdf", { type: "application/pdf" })],
+      },
+    });
+    expect(await screen.findByText("antigo.pdf")).toBeTruthy();
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF-1.7 novo"], "novo.pdf", { type: "application/pdf" })],
+      },
+    });
+    expect(await screen.findByText("novo.pdf")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Entregar" }));
+    await waitFor(() =>
+      expect(server.submitTaskWork).toHaveBeenCalledWith({
+        data: {
+          taskId: TASK,
+          attachment: {
+            name: "novo.pdf",
+            contentType: "application/pdf",
+            base64: btoa("%PDF-1.7 novo"),
+          },
+        },
+      }),
+    );
+    expect(server.submitTaskWork).toHaveBeenCalledTimes(1);
+  });
+
   it("um ficheiro de outro tipo é recusado no ecrã, antes de enviar", async () => {
     server.getMyTaskSubmission.mockResolvedValue({
       submission: null,
