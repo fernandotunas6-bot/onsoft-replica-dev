@@ -145,6 +145,7 @@ function HrState({
  */
 export function TeacherProfile360({
   teacher,
+  initialTab = "resumo",
   workspace,
   schoolId,
   schoolName,
@@ -157,6 +158,7 @@ export function TeacherProfile360({
   employmentId,
 }: {
   teacher: Teacher;
+  initialTab?: "resumo" | "documentos";
   workspace: Workspace | undefined;
   schoolId: string | null;
   schoolName: string;
@@ -168,7 +170,7 @@ export function TeacherProfile360({
   canReadHr: boolean;
   employmentId: string | undefined;
 }) {
-  const [tab, setTab] = useState<TabId>("resumo");
+  const [tab, setTab] = useState<TabId>(initialTab);
   const isSelf = Boolean(selfTeacherId && selfTeacherId === teacher.id);
   const classes = workspace?.classes ?? [];
   const schedule = workspace?.schedule ?? [];
