@@ -30,9 +30,8 @@ import { toast } from "@/lib/toast";
 import { idOptions } from "@/lib/option-label";
 
 export const Route = createFileRoute("/professores/$teacherId")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: search.tab === "documentos" ? "documentos" as const : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { tab?: "documentos" } =>
+    search.tab === "documentos" ? { tab: "documentos" } : {},
   head: () => ({
     meta: [{ title: "Perfil do professor · SIGA" }],
   }),
