@@ -121,7 +121,7 @@ export function TeacherDocumentsPanel({
               {received.length} tipo(s) de documento recebido(s) · {required.length} obrigatório(s).
               A entrega não significa validação de autenticidade.
             </p>
-            {query.data.levelPending ? (
+            {query.data?.levelPending ? (
               <p className="mt-2 text-xs text-warning">
                 A escola tem vários níveis de ensino. Atribua primeiro o contexto lectivo deste
                 docente para determinar todos os documentos obrigatórios.
