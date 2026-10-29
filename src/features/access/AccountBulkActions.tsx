@@ -17,6 +17,7 @@ type Account = Awaited<ReturnType<typeof listSystemAccounts>>[number];
 
 export function AccountBulkActions({
   accounts,
+  schoolId,
   selectedIds,
   isAdministrator,
   onChanged,
@@ -25,6 +26,7 @@ export function AccountBulkActions({
   contextKey = "",
 }: {
   accounts: Account[];
+  schoolId: string | null;
   selectedIds: string[];
   isAdministrator: boolean;
   onChanged: () => Promise<unknown>;
@@ -94,6 +96,10 @@ export function AccountBulkActions({
   };
   const suspend = async () => {
     if (!isAdministrator || inFlight.current) return;
+    if (!schoolId) {
+      toast.error("Aguarde a identificação da escola antes de alterar acessos.");
+      return;
+    }
     const target = selected.filter((item) => !item.is_self && !item.disabled);
     if (!target.length) return;
     if (target.length > 25) {
@@ -117,7 +123,7 @@ export function AccountBulkActions({
         if (!stillActive()) return;
         try {
           const result = await setSystemAccountDisabled({
-            data: { userId: item.id, disabled: true },
+            data: { userId: item.id, disabled: true, expectedSchoolId: schoolId },
           });
           succeeded.add(item.id);
           if (stillActive() && result.notice) toast.warning(result.notice);

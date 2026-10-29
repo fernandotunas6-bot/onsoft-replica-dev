@@ -630,6 +630,9 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
     if (!isAdministrator) {
       throw new Error("Apenas Administradores podem suspender ou reactivar contas de acesso.");
     }
+    if (data.expectedSchoolId && data.expectedSchoolId !== schoolId) {
+      throw new Error("A escola activa mudou. Actualize a lista antes de repetir esta operação.");
+    }
     requireRecentVerification(context.claims ?? {}, "Suspender ou reactivar uma conta");
 
     const admin = await loadAdminClient();
@@ -669,11 +672,18 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
 
     // A operação global de Auth só pode acontecer quando a avaliação dos
     // vínculos e da conta chegou ao fim. Outras escolas mantêm os seus acessos.
-    const { error } = await admin
+    const { data: updatedMembership, error } = await admin
       .from("school_memberships")
       .update({ status: data.disabled ? "suspended" : "active" })
-      .eq("id", membership.id);
+      .eq("id", membership.id)
+      .eq("school_id", schoolId)
+      .eq("user_id", data.userId)
+      .select("id")
+      .maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
+    if (!updatedMembership) {
+      throw new Error("O vínculo da conta mudou. Actualize a lista antes de repetir a operação.");
+    }
 
     const appMetadata = (authUser.user.app_metadata ?? {}) as Record<string, unknown>;
     const plan = planSchoolBan({

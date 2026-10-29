@@ -11,16 +11,16 @@ homologação actual de todos os módulos.
 
 ## Matriz de correcções
 
-| Área | Problema | Correcção | Estado e limite |
-| --- | --- | --- | --- |
-| QuickFormModal | Senhas eram aparadas com `trim()` | Preserva senha exacta; mantém normalização dos campos de cadastro | Implementado; teste de valores enviados |
-| Labels/erros/sugestões | IDs de campo repetidos entre formulários | IDs por instância com `useId`, mantendo `name` e contrato do servidor | Teste com dois formulários abertos |
-| Gravação | Campos permaneciam editáveis durante pedido pendente | Desactiva os controlos até confirmação/falha; conserva valores e permite retentar | Teste de falha e segundo envio |
-| BI/NIF | O componente ignorava a indicação de obrigatório | Propaga `required` nativo sem mudar o padrão dos outros consumidores | Testes de obrigatório e opcional |
-| Pessoas/vínculos | Permissão/rede com mensagem `person_roles` podia ser ignorada | Compatibilidade só para códigos conhecidos de esquema ausente; falhas reais propagadas | Testes com cliente fictício, não RLS remoto |
-| Pesquisa institucional | Texto por papel institucional podia devolver zero após falha | Exige leitura dos vínculos também na pesquisa textual por esse papel | Testes de filtro e texto parcial |
-| Acessos em lote | Êxitos parciais e interrupção de identidade limpavam selecção | Retém apenas falhas e contas não tentadas; só limpa no êxito integral | Testes de sucesso, erro parcial e step-up |
-| Contexto do lote | Um pedido seguinte podia usar o contexto após troca de escola | Para pedidos subsequentes e callbacks ao mudar conta/escola/cargo ou desmontar | Não cancela nem reverte pedido já aceite; guardas do servidor preservadas |
+| Área                   | Problema                                                      | Correcção                                                                              | Estado e limite                                                           |
+| ---------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| QuickFormModal         | Senhas eram aparadas com `trim()`                             | Preserva senha exacta; mantém normalização dos campos de cadastro                      | Implementado; teste de valores enviados                                   |
+| Labels/erros/sugestões | IDs de campo repetidos entre formulários                      | IDs por instância com `useId`, mantendo `name` e contrato do servidor                  | Teste com dois formulários abertos                                        |
+| Gravação               | Campos permaneciam editáveis durante pedido pendente          | Desactiva os controlos até confirmação/falha; conserva valores e permite retentar      | Teste de falha e segundo envio                                            |
+| BI/NIF                 | O componente ignorava a indicação de obrigatório              | Propaga `required` nativo sem mudar o padrão dos outros consumidores                   | Testes de obrigatório e opcional                                          |
+| Pessoas/vínculos       | Permissão/rede com mensagem `person_roles` podia ser ignorada | Compatibilidade só para códigos conhecidos de esquema ausente; falhas reais propagadas | Testes com cliente fictício, não RLS remoto                               |
+| Pesquisa institucional | Texto por papel institucional podia devolver zero após falha  | Exige leitura dos vínculos também na pesquisa textual por esse papel                   | Testes de filtro e texto parcial                                          |
+| Acessos em lote        | Êxitos parciais e interrupção de identidade limpavam selecção | Retém apenas falhas e contas não tentadas; só limpa no êxito integral                  | Testes de sucesso, erro parcial e step-up                                 |
+| Contexto do lote       | Um pedido seguinte podia usar o contexto após troca de escola | Para pedidos subsequentes e callbacks ao mudar conta/escola/cargo ou desmontar         | Não cancela nem reverte pedido já aceite; guardas do servidor preservadas |
 
 ## Verificação executada
 
@@ -73,3 +73,17 @@ anterior enquanto o select nativo já mostrava outro.
   verificadores estáticos aprovados; a CI da nova SHA deve ser conferida. Sem alteração do contrato `name` dos campos ou dos endpoints.
 - A SHA anterior da #405 (`77002959`) passou a CI #4093. Esse resultado não
   constitui aprovação automática do novo incremento.
+
+## Seguimento — precondição da escola na suspensão em lote
+
+O lote envia `expectedSchoolId`; o servidor compara a escola autorizada antes de
+qualquer escrita. O parâmetro nunca concede permissões. Actualizar o vínculo
+exige ID, escola e utilizador coincidentes e uma linha confirmada antes de tocar
+no Auth. Alteração concorrente/linha inexistente interrompe a operação. Chamadores
+antigos continuam compatíveis; o lote aguarda escola identificada.
+
+Validação: 22 testes dirigidos aprovados; suite completa com 5.528 aprovados e
+19 ignorados. TypeScript, build e lint do escopo aprovados. Simulação local cobre
+administrador em duas escolas, falta de permissões, vínculo alterado e ausência
+de efeitos no Auth/auditoria quando a precondição falha. Não prova transacção
+atómica entre Auth e memberships nem substitui QA autenticado remoto.

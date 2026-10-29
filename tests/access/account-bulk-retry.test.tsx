@@ -30,6 +30,7 @@ const accounts = ["a", "b"].map((id) => ({
 function props() {
   return {
     accounts: accounts as never,
+    schoolId: "00000000-0000-4000-8000-000000000001",
     selectedIds: ["a", "b"],
     isAdministrator: true,
     contextKey: "user-a:school-a:Admin",
@@ -55,6 +56,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 describe("contas em lote: resultados parciais e contexto", () => {
+  it("não altera acessos antes de resolver a escola", async () => {
+    render(<AccountBulkActions {...props()} schoolId={null} />);
+    await start();
+    expect(m.suspend).not.toHaveBeenCalled();
+    expect(m.error).toHaveBeenCalledWith(
+      "Aguarde a identificação da escola antes de alterar acessos.",
+    );
+  });
   it("não continua pedidos nem callbacks depois de sair da página", async () => {
     let resolve!: (value: object) => void;
     m.suspend.mockImplementationOnce(
@@ -100,6 +109,12 @@ describe("contas em lote: resultados parciais e contexto", () => {
     await start();
     await waitFor(() => expect(p.onClear).toHaveBeenCalledOnce());
     expect(m.suspend).toHaveBeenCalledTimes(2);
+    expect(m.suspend).toHaveBeenNthCalledWith(1, {
+      data: { userId: "a", disabled: true, expectedSchoolId: p.schoolId },
+    });
+    expect(m.suspend).toHaveBeenNthCalledWith(2, {
+      data: { userId: "b", disabled: true, expectedSchoolId: p.schoolId },
+    });
     expect(p.onSelectionChange).not.toHaveBeenCalled();
   });
   it("não continua o lote nem modifica a nova selecção após trocar de escola", async () => {

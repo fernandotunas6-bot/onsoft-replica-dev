@@ -538,6 +538,7 @@ function AcessosPage() {
 
         <AccountBulkActions
           accounts={filteredAccounts}
+          schoolId={currentUser.schoolId}
           selectedIds={selectedAccountIds}
           contextKey={`${currentUser.id}:${currentUser.schoolId}:${currentUser.role}`}
           onSelectionChange={setSelectedAccountIds}
