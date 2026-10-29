@@ -51,7 +51,7 @@ import {
   type PedagogicalWorkspace,
 } from "@/features/academic/server";
 import { listTeachers } from "@/features/people/server";
-import { canWriteModule } from "@/features/auth/access-policy";
+import { canAccessPath, canWriteModule } from "@/features/auth/access-policy";
 import { canReadStudentSection } from "@/features/students/student-sections";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
@@ -143,6 +143,9 @@ function TurmaDetail() {
   const account = useCurrentAccount();
   const { school, selectedYearId } = useSchoolSettings();
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
+  // O Professor abre esta ficha, mas não /alunos (salvo permissão de Pessoas): sem
+  // isto, o nome e o menu do aluno levavam a uma página recusada.
+  const canOpenStudentProfile = canAccessPath("/alunos", account.role, account.grants);
   const canManageTurma =
     (account.role === "Administrador" || account.role === "Secretaria") && canManageAcademic;
   const canReadAcademic =
@@ -671,7 +674,7 @@ function TurmaDetail() {
                           key={aluno.id}
                           className="flex min-w-0 items-center gap-1 border-b border-border last:border-b-0 hover:bg-secondary/40"
                         >
-                          {aluno.student_id ? (
+                          {aluno.student_id && canOpenStudentProfile ? (
                             <Link
                               to="/alunos/$studentId"
                               params={{ studentId: aluno.student_id }}
@@ -692,7 +695,7 @@ function TurmaDetail() {
                               </span>
                             </div>
                           )}
-                          {aluno.student_id ? (
+                          {aluno.student_id && canOpenStudentProfile ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
