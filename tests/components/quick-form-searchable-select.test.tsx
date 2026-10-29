@@ -46,4 +46,38 @@ describe("QuickFormModal: pesquisa sem alterar a turma escolhida", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
     await waitFor(() => expect(submit).toHaveBeenCalledWith({ turma: "civil" }));
   });
+
+  it("Enter na pesquisa não submete e leva o foco para a lista", async () => {
+    const submit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <QuickFormModal
+        autoOpen
+        trigger={() => null}
+        title="Matrícula de teste"
+        fields={[
+          {
+            name: "turma",
+            label: "Turma",
+            type: "select",
+            searchable: true,
+            placeholder: "Seleccione uma turma",
+            defaultValue: "civil",
+            options: [
+              { value: "civil", label: "10.ª A · Construção Civil · Noite · Sala 31" },
+              { value: "informatica", label: "10.ª A · Informática · Manhã · Sala 32" },
+            ],
+          },
+        ]}
+        onSubmit={submit}
+      />,
+    );
+    const select = (await screen.findByRole("combobox", { name: "Turma" })) as HTMLSelectElement;
+    const search = screen.getByRole("searchbox", { name: "Procurar turma" });
+    fireEvent.change(search, { target: { value: "informatica" } });
+    // fireEvent devolve false quando o evento foi cancelado (preventDefault).
+    expect(fireEvent.keyDown(search, { key: "Enter" })).toBe(false);
+    expect(document.activeElement).toBe(select);
+    expect(select.value).toBe("civil");
+    expect(submit).not.toHaveBeenCalled();
+  });
 });

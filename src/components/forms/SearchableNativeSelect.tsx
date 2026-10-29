@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -28,6 +28,7 @@ export function SearchableNativeSelect({
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(defaultValue);
+  const selectRef = useRef<HTMLSelectElement>(null);
   const words = fold(query).trim().split(/\s+/).filter(Boolean);
   const matching = options.filter((option) =>
     words.every((word) => fold(option.label).includes(word)),
@@ -50,6 +51,14 @@ export function SearchableNativeSelect({
           event.stopPropagation();
           setQuery(event.target.value);
         }}
+        onKeyDown={(event) => {
+          // Enter num campo de texto submete o formulário: gravaria a matrícula
+          // com a turma anterior a meio da pesquisa. Passa o foco para a lista,
+          // onde a escolha é explícita (e conta como alteração do formulário).
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          selectRef.current?.focus();
+        }}
       />
       <p id={resultsId} role="status" className="text-xs text-muted-foreground">
         {matching.length} de {options.length} opções.
@@ -57,6 +66,7 @@ export function SearchableNativeSelect({
         {keepChosen ? " A selecção actual foi mantida." : ""}
       </p>
       <select
+        ref={selectRef}
         id={id}
         name={name}
         required={required}
