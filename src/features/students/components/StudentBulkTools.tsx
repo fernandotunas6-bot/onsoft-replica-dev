@@ -2,7 +2,13 @@ import { Copy, Download, FileText, GraduationCap, Layers3, Mail, ReceiptText } f
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { exportCsv } from "@/lib/export-csv";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 
@@ -42,7 +48,9 @@ export function StudentBulkTools({ students }: { students: SelectedStudent[] }) 
     }
   };
   const email = () => {
-    const addresses = [...new Set(students.map((s) => s.email).filter((e): e is string => Boolean(e)))];
+    const addresses = [
+      ...new Set(students.map((s) => s.email).filter((e): e is string => Boolean(e))),
+    ];
     if (!addresses.length) {
       toast.warning("Os alunos seleccionados não possuem e-mails registados.");
       return;
@@ -77,7 +85,22 @@ export function StudentBulkTools({ students }: { students: SelectedStudent[] }) 
       ],
       debtors,
     );
-    toast.message("Lista de cobrança preparada. Confirme as faturas no Financeiro antes de cobrar.");
+    toast.message(
+      "Lista de cobrança preparada. Confirme as faturas no Financeiro antes de cobrar.",
+    );
+  };
+
+  const exportSelected = () => exportCsv("alunos-seleccionados", selectedColumns, students);
+  const exportGrouped = () => exportCsv("alunos-agrupados-por-turma", selectedColumns, byClass);
+  const printSelected = () => {
+    void Promise.resolve(
+      exportPdfTable(
+        "alunos-seleccionados",
+        "Lista de alunos seleccionados",
+        selectedColumns,
+        students,
+      ),
+    ).catch(() => toast.error("Não foi possível gerar o PDF."));
   };
 
   if (!students.length) return null;
@@ -92,18 +115,13 @@ export function StudentBulkTools({ students }: { students: SelectedStudent[] }) 
         <DropdownMenuItem onSelect={() => void copy()}>
           <Copy className="mr-2 size-4" /> Copiar números e nomes
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => exportCsv("alunos-seleccionados", selectedColumns, students)}>
+        <DropdownMenuItem onSelect={exportSelected}>
           <Download className="mr-2 size-4" /> Exportar seleccionados (CSV)
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => exportCsv("alunos-agrupados-por-turma", selectedColumns, byClass)}>
+        <DropdownMenuItem onSelect={exportGrouped}>
           <Layers3 className="mr-2 size-4" /> Agrupar por turma (lista CSV)
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void Promise.resolve(exportPdfTable(
-          "alunos-seleccionados",
-          "Lista de alunos seleccionados",
-          selectedColumns,
-          students,
-        )).catch(() => toast.error("Não foi possível gerar o PDF."))}>
+        <DropdownMenuItem onSelect={printSelected}>
           <FileText className="mr-2 size-4" /> Imprimir seleccionados (PDF)
         </DropdownMenuItem>
         <DropdownMenuSeparator />
