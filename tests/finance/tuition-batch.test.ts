@@ -40,7 +40,7 @@ describe("propinas em lote", () => {
 
   it("é por turma, com tecto, e quem já tem a propina do mês fica de fora sem parar o lote", () => {
     const lote = bloco("export const issueTuitionBatch = ", "export const recordCashExpense");
-    expect(lote).toMatch(/\.eq\("class_group_id", data\.classGroupId\)/);
+    expect(lote).toMatch(/\.eq\("class_group_id", data\.classGroupId!?\)/);
     expect(lote).toMatch(/TUITION_BATCH_LIMIT \+ 1/);
     expect(lote).toMatch(/já tem a propina[\s\S]+skipped\.push[\s\S]+failed\.push/);
   });
