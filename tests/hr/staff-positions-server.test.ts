@@ -61,7 +61,8 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
   }),
 }));
 
-const { assignStaffPosition } = await import("@/features/hr/staff-positions-server");
+const { assignStaffPosition, ensureStaffEmploymentDraft } =
+  await import("@/features/hr/staff-positions-server");
 const assign = assignStaffPosition as unknown as (input: {
   data: Record<string, unknown>;
   context: { userId: string; supabase: unknown };
@@ -122,5 +123,39 @@ describe("assignStaffPosition — cargo novo", () => {
         context,
       }),
     ).rejects.not.toThrow(/Departamento inválido/);
+  });
+});
+
+describe("ensureStaffEmploymentDraft — concorrência", () => {
+  function dbWith(reads: Array<{ data: unknown; error: unknown }>, insertError: unknown) {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      is: () => query,
+      order: () => query,
+      insert: () => query,
+      single: async () => ({ data: null, error: insertError }),
+      then: (resolve: (value: unknown) => unknown) => resolve(reads.shift()),
+    };
+    return { from: () => query } as unknown as Parameters<typeof ensureStaffEmploymentDraft>[0];
+  }
+
+  it("se o índice recusar a ficha duplicada, devolve a ficha criada pelo outro pedido", async () => {
+    const db = dbWith(
+      [
+        { data: [], error: null },
+        { data: [{ id: "emp-other", status: "draft" }], error: null },
+      ],
+      { code: "23505", message: "duplicate key value" },
+    );
+    await expect(ensureStaffEmploymentDraft(db, "school-a", personId, "actor")).resolves.toEqual({
+      id: "emp-other",
+      created: false,
+    });
+  });
+
+  it("outra falha na criação continua a ser um erro", async () => {
+    const db = dbWith([{ data: [], error: null }], { code: "23503", message: "fk" });
+    await expect(ensureStaffEmploymentDraft(db, "school-a", personId, "actor")).rejects.toThrow();
   });
 });

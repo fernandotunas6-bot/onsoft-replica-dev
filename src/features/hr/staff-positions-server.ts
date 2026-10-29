@@ -27,7 +27,8 @@ export async function assertHrEmploymentStoreReady(db: Db, schoolId: string): Pr
  * O cargo profissional (hr_positions) não é uma permissão de login.
  * Garante um vínculo RH em rascunho, sem contrato nem salário, se a pessoa
  * recebeu um vínculo institucional de pessoal. Não cria duplicados se já
- * existir vínculo activo/em preparação na escola.
+ * existir vínculo activo/em preparação na escola; o índice
+ * hr_employments_one_current_per_person_idx garante-o também em concorrência.
  */
 export async function ensureStaffEmploymentDraft(
   db: Db,
@@ -35,22 +36,23 @@ export async function ensureStaffEmploymentDraft(
   personId: string,
   actorId: string,
 ): Promise<{ id: string; created: boolean }> {
-  const { data: existing, error } = await db
-    .from("hr_employments")
-    .select("id, status")
-    .eq("school_id", schoolId)
-    .eq("person_id", personId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-  if (error) {
-    if (isMissingHrTable(error)) {
-      throw new Error("O módulo RH ainda não está instalado nesta escola.");
+  const findCurrent = async () => {
+    const { data: existing, error } = await db
+      .from("hr_employments")
+      .select("id, status")
+      .eq("school_id", schoolId)
+      .eq("person_id", personId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+    if (error) {
+      if (isMissingHrTable(error)) {
+        throw new Error("O módulo RH ainda não está instalado nesta escola.");
+      }
+      throw publicDatabaseError(error, "Não foi possível verificar o vínculo laboral.");
     }
-    throw publicDatabaseError(error, "Não foi possível verificar o vínculo laboral.");
-  }
-  const current = (existing ?? []).find((item) =>
-    ["active", "draft", "suspended"].includes(item.status),
-  );
+    return (existing ?? []).find((item) => ["active", "draft", "suspended"].includes(item.status));
+  };
+  const current = await findCurrent();
   if (current) return { id: String(current.id), created: false };
   const { data: employment, error: createError } = await db
     .from("hr_employments")
@@ -66,6 +68,11 @@ export async function ensureStaffEmploymentDraft(
     })
     .select("id")
     .single();
+  if (createError?.code === "23505") {
+    // hr_employments_one_current_per_person_idx: outro pedido criou a ficha entretanto.
+    const concurrent = await findCurrent();
+    if (concurrent) return { id: String(concurrent.id), created: false };
+  }
   if (createError) throw publicDatabaseError(createError, "Não foi possível criar a ficha RH.");
   return { id: String(employment.id), created: true };
 }
