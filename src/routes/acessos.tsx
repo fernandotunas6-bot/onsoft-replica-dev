@@ -471,8 +471,6 @@ function AcessosPage() {
 
         <InstalledModuleTools module="comunicacoes" />
 
-        <AccessRequestsPanel />
-
         <StatGrid
           collapsible
           storageKey="acessos"
@@ -936,6 +934,8 @@ function AcessosPage() {
             </div>
           )}
         </Panel>
+
+        <AccessRequestsPanel />
 
         <Panel
           title="Convites institucionais"
