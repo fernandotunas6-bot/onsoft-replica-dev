@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { searchPeople } from "@/features/people/server";
+import { searchPeoplePage } from "@/features/people/server";
 import { assignStaffPosition, listStaffPositions } from "./staff-positions-server";
 
 export function AssignStaffPositionDialog({ person }: { person?: { id: string; name: string } }) {
@@ -47,7 +47,7 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
   });
   const people = useQuery({
     queryKey: ["people", "staff-position-search", account.schoolId, debounced],
-    queryFn: () => searchPeople({ data: { query: debounced, limit: 15 } }),
+    queryFn: () => searchPeoplePage({ data: { query: debounced, page: 1, pageSize: 15 } }),
     enabled: open && !person && debounced.length >= 2,
     retry: false,
   });
@@ -102,7 +102,7 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
                     <p className="text-xs text-destructive">Não foi possível procurar pessoas.</p>
                   ) : null}
                   <div className="max-h-40 overflow-auto rounded-lg border border-border">
-                    {(people.data ?? []).map((personRow) => (
+                    {(people.data?.items ?? []).map((personRow) => (
                       <button
                         type="button"
                         key={personRow.id}
@@ -114,7 +114,7 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
                         {personRow.full_name}
                       </button>
                     ))}
-                    {!people.isLoading && debounced.length >= 2 && !people.data?.length ? (
+                    {!people.isLoading && debounced.length >= 2 && !people.data?.items.length ? (
                       <p className="p-3 text-xs text-muted-foreground">
                         Nenhum resultado. Cadastre a pessoa em Pessoas.
                       </p>
