@@ -1194,7 +1194,10 @@ function StudentsPage() {
                           type="checkbox"
                           aria-label="Seleccionar todos nesta página"
                           className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                          checked={paged.length > 0 && paged.every((student) => selectedIds.includes(student.id))}
+                          checked={
+                            paged.length > 0 &&
+                            paged.every((student) => selectedIds.includes(student.id))
+                          }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedIds([
