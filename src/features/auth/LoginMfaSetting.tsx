@@ -88,10 +88,10 @@ export function LoginMfaSetting() {
             <ShieldCheck className="size-4 text-primary" /> Código ao iniciar sessão
           </h3>
           <p className="text-xs text-muted-foreground">
-            Opcional e desligado por omissão: pode entrar e trabalhar sem código adicional.
-            Depois de configurar o autenticador acima, active esta opção apenas se desejar
-            pedir um código ao iniciar sessão. Algumas operações financeiras e outras
-            acções sensíveis continuam a ter verificações próprias.
+            Opcional e desligado por omissão: pode entrar e trabalhar sem código adicional. Depois
+            de configurar o autenticador acima, active esta opção apenas se desejar pedir um código
+            ao iniciar sessão. Algumas operações financeiras e outras acções sensíveis continuam a
+            ter verificações próprias.
           </p>
           {!configured && !checking && !error ? (
             <p className="text-xs text-muted-foreground">
