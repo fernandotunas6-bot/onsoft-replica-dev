@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listMyNotifications, markMyNotificationsRead, type PersonalNotification } from "./personal";
+import {
+  listMyNotifications,
+  markMyNotificationsRead,
+  type PersonalNotification,
+} from "./personal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -28,7 +32,10 @@ export function usePersonalNotifications(userId: string, schoolId: string) {
           table: "notifications",
           filter: "user_id=eq." + userId,
         },
-        () => void queryClient.invalidateQueries({ queryKey: personalNotificationsKey(userId, schoolId) }),
+        () =>
+          void queryClient.invalidateQueries({
+            queryKey: personalNotificationsKey(userId, schoolId),
+          }),
       )
       .subscribe();
     return () => {
@@ -124,7 +131,11 @@ export function PersonalNotificationsList({
     return (
       <div role="alert" className="space-y-2 text-sm text-muted-foreground">
         <p>Não foi possível carregar as notificações.</p>
-        <button type="button" className="font-medium text-primary underline" onClick={() => void query.refetch()}>
+        <button
+          type="button"
+          className="font-medium text-primary underline"
+          onClick={() => void query.refetch()}
+        >
           Tentar novamente
         </button>
       </div>
@@ -139,7 +150,10 @@ export function PersonalNotificationsList({
             type="button"
             aria-pressed={filter === "unread"}
             onClick={() => setFilter("unread")}
-            className={cn("rounded-md px-2.5 py-1.5", filter === "unread" ? "bg-secondary font-semibold" : "text-muted-foreground")}
+            className={cn(
+              "rounded-md px-2.5 py-1.5",
+              filter === "unread" ? "bg-secondary font-semibold" : "text-muted-foreground",
+            )}
           >
             Por ler ({unread})
           </button>
@@ -147,7 +161,10 @@ export function PersonalNotificationsList({
             type="button"
             aria-pressed={filter === "all"}
             onClick={() => setFilter("all")}
-            className={cn("rounded-md px-2.5 py-1.5", filter === "all" ? "bg-secondary font-semibold" : "text-muted-foreground")}
+            className={cn(
+              "rounded-md px-2.5 py-1.5",
+              filter === "all" ? "bg-secondary font-semibold" : "text-muted-foreground",
+            )}
           >
             Todas
           </button>
@@ -165,7 +182,9 @@ export function PersonalNotificationsList({
       </div>
       {visible.length === 0 ? (
         <p className="rounded-xl border border-border bg-secondary/30 px-3 py-4 text-sm text-muted-foreground">
-          {filter === "unread" ? "Não há notificações por ler." : "Ainda não há notificações no histórico."}
+          {filter === "unread"
+            ? "Não há notificações por ler."
+            : "Ainda não há notificações no histórico."}
         </p>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
@@ -178,15 +197,26 @@ export function PersonalNotificationsList({
               <>
                 <span className="flex items-start justify-between gap-2">
                   <span className={cn("text-sm", !item.read && "font-semibold")}>{item.title}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(item.createdAt)}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {relativeTime(item.createdAt)}
+                  </span>
                 </span>
-                <span className="mt-1 block whitespace-pre-line text-xs text-muted-foreground line-clamp-4">{item.body}</span>
+                <span className="mt-1 block whitespace-pre-line text-xs text-muted-foreground line-clamp-4">
+                  {item.body}
+                </span>
               </>
             );
             return (
               <li key={item.id}>
                 {item.href ? (
-                  <Link to={item.href as never} className={className} onClick={() => { markOne(item); onClose?.(); }}>
+                  <Link
+                    to={item.href as never}
+                    className={className}
+                    onClick={() => {
+                      markOne(item);
+                      onClose?.();
+                    }}
+                  >
                     {body}
                   </Link>
                 ) : (
