@@ -304,3 +304,13 @@ Os placeholders `<REF_DO_STAGING>` devem ser substituídos pelo identificador re
 - Cada pedido do browser dirigido a `*.supabase.co` é conferido com a origem de staging declarada. Pedidos para outro projecto, incluindo produção, são bloqueados e fazem o teste falhar sem publicar identificadores de pedido nem tokens.
 - Também verifica que a aplicação não redirecciona para uma origem fora do servidor local.
 - `tests/qa/crud-staging-safety.test.ts` exerce essas regras sem necessitar de sessões reais. O smoke Playwright continua **não executado** até existirem credenciais fictícias e projecto de staging autorizado.
+
+
+## Lote 6 — entregas de trabalhos: anexo fiável e protecção contra duplo toque
+
+- `src/features/academic/components/TaskSubmissions.tsx`, formulário `MyTaskSubmission`: os dados do anexo e da resposta são recolhidos **no evento de envio** e entregues como argumento à mutação. Isto evita uma closure desactualizada de `useMutation`, que podia enviar só o `taskId` mesmo quando o aluno já via o nome do PDF no formulário.
+- O leitor de ficheiros recebeu contador de geração: se o aluno escolher dois anexos rapidamente, só a última leitura pode actualizar o formulário. Ao tentar substituir por um ficheiro inválido, o anexo anterior é descartado em vez de ser reenviado por acidente.
+- Uma guarda síncrona `submitInFlight` bloqueia duplo toque, independente da actualização posterior do estado React Query. Em erro ou êxito, a guarda é libertada para permitir nova tentativa.
+- `tests/academic/task-submissions-ui.test.tsx`: PDF enviado com conteúdo; substituição pelo último ficheiro; substituição inválida não reutiliza o anterior; duplo toque gera apenas um pedido. O validador do servidor continua a exigir texto ou anexo.
+- **Diagnóstico**: no CI antigo, a suite académica reportou 696/697 testes aprovados; a falha era o PDF presente no ecrã mas ausente do pedido. A suite académica voltou a passar após corrigir a mutação. A aprovação global depende do CI da **SHA final**.
+- **Pendente**: E2E autenticado em staging com aluno/encarregado, foto de caderno em rede lenta, reenvio, falhas de ligação e autorização real; não aplicar dados ou credenciais de produção.
