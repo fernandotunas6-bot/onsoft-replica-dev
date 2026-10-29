@@ -21,10 +21,14 @@ const DAY_ORDER = [
   ["Domingo", ["domingo", "dom"]],
 ] as const;
 function dayIndex(label: string): number {
-  const normalized = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-    .replace(/[.\-_]/g, " ").replace(/\s+/g, " ").trim();
-  const n = DAY_ORDER.findIndex(([, names]) =>
-    (names as readonly string[]).includes(normalized));
+  const normalized = label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[.\-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const n = DAY_ORDER.findIndex(([, names]) => (names as readonly string[]).includes(normalized));
   return n < 0 ? 7 : n;
 }
 function minutes(raw: string): number | null {
@@ -41,16 +45,22 @@ export type TeacherWeeklyDay = {
   conflicts: string[];
 };
 
-export function groupTeacherWeeklySchedule(slots: readonly TeacherScheduleSlot[]): TeacherWeeklyDay[] {
+export function groupTeacherWeeklySchedule(
+  slots: readonly TeacherScheduleSlot[],
+): TeacherWeeklyDay[] {
   const groups: TeacherWeeklyDay[] = [];
   for (let i = 0; i < DAY_ORDER.length; i++) {
-    const daySlots = slots.filter((slot) => dayIndex(slot.weekday_label) === i)
-      .sort((a,b) => (minutes(a.starts_at) ?? 9999) - (minutes(b.starts_at) ?? 9999) ||
-        a.class_group_name.localeCompare(b.class_group_name, "pt"));
+    const daySlots = slots
+      .filter((slot) => dayIndex(slot.weekday_label) === i)
+      .sort(
+        (a, b) =>
+          (minutes(a.starts_at) ?? 9999) - (minutes(b.starts_at) ?? 9999) ||
+          a.class_group_name.localeCompare(b.class_group_name, "pt"),
+      );
     if (!daySlots.length) continue;
     const conflicts: string[] = [];
     for (let j = 1; j < daySlots.length; j++) {
-      const prev = daySlots[j-1]!;
+      const prev = daySlots[j - 1]!;
       const current = daySlots[j]!;
       const a = minutes(prev.ends_at);
       const b = minutes(current.starts_at);
@@ -61,6 +71,7 @@ export function groupTeacherWeeklySchedule(slots: readonly TeacherScheduleSlot[]
     groups.push({ label: DAY_ORDER[i]![0], slots: daySlots, conflicts });
   }
   const unspecified = slots.filter((slot) => dayIndex(slot.weekday_label) === 7);
-  if (unspecified.length) groups.push({ label: "Dia por identificar", slots: [...unspecified], conflicts: [] });
+  if (unspecified.length)
+    groups.push({ label: "Dia por identificar", slots: [...unspecified], conflicts: [] });
   return groups;
 }

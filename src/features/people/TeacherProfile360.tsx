@@ -313,7 +313,9 @@ export function TeacherProfile360({
               )}
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/planos-aula" search={{ professor: teacher.id }}>Planos de aula</Link>
+                  <Link to="/planos-aula" search={{ professor: teacher.id }}>
+                    Planos de aula
+                  </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
                   <Link to="/pedagogica" search={{ tab: "notas" }}>
@@ -388,8 +390,8 @@ export function TeacherProfile360({
         <TabsContent value="disciplinas" className="space-y-4">
           <Section title="Turmas, disciplinas e horário">
             <p className="text-xs text-muted-foreground">
-              Atribuições activas da escola seleccionada. A filtragem completa por ano
-              lectivo será aplicada quando o serviço de horários a disponibilizar.
+              Atribuições activas da escola seleccionada. A filtragem completa por ano lectivo será
+              aplicada quando o serviço de horários a disponibilizar.
             </p>
             {courses.length ? (
               courses.map(([course, items]) => (

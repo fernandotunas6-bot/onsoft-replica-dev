@@ -5,10 +5,20 @@ import {
 } from "@/features/people/teacher-context-catalog";
 
 const validPaths = new Set([
-  "/professores", "/pedagogica", "/planos-aula", "/pedagogica/trabalhos",
-  "/pedagogica/risco", "/arquivos", "/aulas-virtuais", "/calendario",
-  "/comunicacoes", "/pessoas", "/financeiro/rh", "/financeiro/rh/faltas",
-  "/pedagogica/pautas-superior", "/pedagogica/superior",
+  "/professores",
+  "/pedagogica",
+  "/planos-aula",
+  "/pedagogica/trabalhos",
+  "/pedagogica/risco",
+  "/arquivos",
+  "/aulas-virtuais",
+  "/calendario",
+  "/comunicacoes",
+  "/pessoas",
+  "/financeiro/rh",
+  "/financeiro/rh/faltas",
+  "/pedagogica/pautas-superior",
+  "/pedagogica/superior",
 ]);
 const self = {
   assignedLevels: ["ii_ciclo"],
@@ -38,15 +48,20 @@ describe("Ferramentas contextuais do professor 360", () => {
   });
   it("o Superior é reconhecido para uma instituição exclusivamente superior", () => {
     const tools = availableTeacherTools({
-      ...self, assignedLevels: [], schoolLevels: ["superior"],
+      ...self,
+      assignedLevels: [],
+      schoolLevels: ["superior"],
     }).map((tool) => tool.id);
     expect(tools).toContain("superior_pautas");
     expect(tools).not.toContain("superior_planos");
   });
   it("direcção tem os contextos de RH e planos apenas com permissões autorizadas", () => {
     const tools = availableTeacherTools({
-      ...self, assignedLevels: ["superior"], isSelf: false,
-      canManage: true, canReadHr: true,
+      ...self,
+      assignedLevels: ["superior"],
+      isSelf: false,
+      canManage: true,
+      canReadHr: true,
       canOpen: (path) => path !== "/financeiro/rh/faltas",
     }).map((tool) => tool.id);
     expect(tools).toContain("identidade");
@@ -55,9 +70,14 @@ describe("Ferramentas contextuais do professor 360", () => {
     expect(tools).not.toContain("faltas");
   });
   it("nega tudo para um observador sem autorização própria nem de gestão", () => {
-    expect(availableTeacherTools({
-      ...self, isSelf: false, canManage: false, canReadHr: false,
-    })).toEqual([]);
+    expect(
+      availableTeacherTools({
+        ...self,
+        isSelf: false,
+        canManage: false,
+        canReadHr: false,
+      }),
+    ).toEqual([]);
   });
   it("não apresenta destinos bloqueados pelos grants mesmo com cargo", () => {
     expect(availableTeacherTools({ ...self, canOpen: () => false })).toEqual([]);
