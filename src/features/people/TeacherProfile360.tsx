@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel";
 import { TeacherTodayLessonsPanel } from "@/features/hr/TeacherTodayLessonsPanel";
+import { TeacherDocumentsPanel } from "@/features/people/TeacherDocumentsPanel";
 import { getHrEmployeeDetail } from "@/features/hr/server";
 import {
   ABSENCE_TYPE_LABELS, competenceLabel, contractState, employmentTypeLabel,
@@ -23,6 +24,7 @@ import { kwanza } from "@/lib/currency";
 
 type Teacher = {
   id: string;
+  person_id?: string | null;
   full_name: string;
   employee_number?: string | null;
   status?: string | null;
@@ -40,12 +42,13 @@ type Workspace = {
   }>;
   enrollments: Array<{ id: string }>;
 };
-type TabId = "resumo" | "hoje" | "disciplinas" | "avaliacao" | "contratos" | "vencimentos" | "historico";
+type TabId = "resumo" | "hoje" | "disciplinas" | "avaliacao" | "documentos" | "contratos" | "vencimentos" | "historico";
 const tabs: Array<{ id: TabId; label: string; icon: typeof BookOpen; hr?: boolean }> = [
   { id: "resumo", label: "Visão geral", icon: Users },
   { id: "hoje", label: "Aulas de hoje", icon: CalendarDays },
   { id: "disciplinas", label: "Cursos e disciplinas", icon: BookOpen },
   { id: "avaliacao", label: "Avaliação e tarefas", icon: ClipboardCheck },
+  { id: "documentos", label: "Documentos", icon: FileText },
   { id: "contratos", label: "Contrato e cargo", icon: BriefcaseBusiness, hr: true },
   { id: "vencimentos", label: "Salário e pagamentos", icon: Wallet, hr: true },
   { id: "historico", label: "Histórico", icon: History },
@@ -78,7 +81,7 @@ function HrState({ loading, error, employee, children }: {
  */
 export function TeacherProfile360({
   teacher, workspace, schoolId, schoolName, yearLabel, configuredLevels,
-  selfTeacherId, canManage, canReadHr, employmentId,
+  selfTeacherId, canManage, canManageDocuments, canReadHr, employmentId,
 }: {
   teacher: Teacher;
   workspace: Workspace | undefined;
@@ -88,6 +91,7 @@ export function TeacherProfile360({
   configuredLevels: readonly string[];
   selfTeacherId: string | null | undefined;
   canManage: boolean;
+  canManageDocuments: boolean;
   canReadHr: boolean;
   employmentId: string | undefined;
 }) {
@@ -253,6 +257,15 @@ export function TeacherProfile360({
               {canUseSuperior ? <Button asChild size="sm" variant="outline"><Link to="/pedagogica/pautas-superior"><Landmark className="mr-2 size-4" />Pautas do Superior</Link></Button> : null}
             </div>
           </Section>
+        </TabsContent>
+
+        <TabsContent value="documentos" className="space-y-4">
+          <TeacherDocumentsPanel
+            teacherId={teacher.id}
+            personId={teacher.person_id}
+            schoolId={schoolId}
+            canManage={canManageDocuments}
+          />
         </TabsContent>
 
         <TabsContent value="contratos" className="space-y-4">
