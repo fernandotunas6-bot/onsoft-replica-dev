@@ -327,11 +327,11 @@ function StudentsPage() {
           : null;
 
   const studentsQuery = useQuery({
-    queryKey: ["students", "search"],
+    queryKey: ["students", "search", currentAccount.schoolId],
     queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
   });
   const pendingApplicationsQuery = useQuery({
-    queryKey: ["enrollment", "applications", "pending-count"],
+    queryKey: ["enrollment", "applications", "pending-count", currentAccount.schoolId],
     queryFn: () => listEnrollmentApplications({ data: { status: "pending", limit: 100 } }),
   });
   const workspaceQuery = useQuery({
@@ -342,7 +342,7 @@ function StudentsPage() {
       }) as Promise<PedagogicalWorkspace>,
   });
   const peopleQuery = useQuery({
-    queryKey: ["people", "search", ""],
+    queryKey: ["people", "search", "", currentAccount.schoolId],
     queryFn: () => searchPeople({ data: { query: "", limit: 50 } }),
   });
   const allStudents = useMemo(
