@@ -1638,7 +1638,17 @@ function StudentsPage() {
                   )}
                 />
 
-                <StudentBulkTools students={selectedStudents} />
+                <StudentBulkTools
+                  students={selectedStudents}
+                  canUseFinance={
+                    ["Administrador", "Secretaria", "Tesouraria"].includes(currentAccount.role) &&
+                    currentAccount.grants.financeiro !== "Nenhum"
+                  }
+                  canUseGrades={
+                    ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                    currentAccount.grants.pedagogica !== "Nenhum"
+                  }
+                />
                 <Button
                   size="sm"
                   variant="ghost"
