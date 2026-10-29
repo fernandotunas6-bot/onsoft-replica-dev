@@ -124,26 +124,26 @@ function AcessosPage() {
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const accountsQuery = useQuery({
-    queryKey: ["access", "accounts"],
+    queryKey: ["access", "accounts", currentUser.schoolId],
     queryFn: () => listSystemAccounts(),
     retry: false,
   });
   const staffQuery = useQuery({
-    queryKey: ["people", "staff"],
+    queryKey: ["people", "staff", currentUser.schoolId],
     queryFn: () => listStaffDirectory(),
   });
   const grantsQuery = useQuery({
-    queryKey: ["access", "grants"],
+    queryKey: ["access", "grants", currentUser.schoolId],
     queryFn: () => listStaffModuleGrants(),
     retry: false,
   });
   const invitationsQuery = useQuery({
-    queryKey: ["access", "invitations"],
+    queryKey: ["access", "invitations", currentUser.schoolId],
     queryFn: () => listSchoolInvitations(),
     retry: false,
   });
   const rolesQuery = useQuery({
-    queryKey: ["access", "roles"],
+    queryKey: ["access", "roles", currentUser.schoolId],
     queryFn: () => listSchoolRoles(),
     retry: false,
   });
