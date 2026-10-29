@@ -12,7 +12,7 @@ import { parseTeacherDocumentPolicy } from "@/features/people/teacher-documents-
 const policyInput = z.object({
   enabled: z.boolean(),
   required: z.array(z.string().max(70)).max(30),
-  requiredByLevel: z.record(z.array(z.string().max(70)).max(30)).default({}),
+  requiredByLevel: z.record(z.string(), z.array(z.string().max(70)).max(30)).default({}),
 });
 
 /** Configuração da escola activa, nunca global nem inferida pela natureza jurídica. */
