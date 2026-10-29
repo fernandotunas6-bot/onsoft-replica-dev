@@ -3,7 +3,13 @@ import { CheckSquare2, Copy, Download, Mail, ShieldOff, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { reportPossibleStepUp } from "@/lib/step-up";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { exportCsv } from "@/lib/export-csv";
 import { listSystemAccounts, setSystemAccountDisabled } from "@/features/access/server";
 
@@ -31,10 +37,23 @@ export function AccountBulkActions({
     cargo: item.cargo,
     status: item.disabled ? "Bloqueado" : "Activo",
   }));
+  const exportSelected = () =>
+    exportCsv(
+      "contas-seleccionadas",
+      [
+        { label: "Nome", value: (row: (typeof rows)[number]) => row.name },
+        { label: "E-mail", value: (row: (typeof rows)[number]) => row.email },
+        { label: "Cargo", value: (row: (typeof rows)[number]) => row.cargo },
+        { label: "Estado", value: (row: (typeof rows)[number]) => row.status },
+      ],
+      rows,
+    );
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(
-        selected.map((item) => [item.full_name, item.email, item.cargo].filter(Boolean).join(" — ")).join("\n"),
+        selected
+          .map((item) => [item.full_name, item.email, item.cargo].filter(Boolean).join(" — "))
+          .join("\n"),
       );
       toast.success(`${selected.length} conta(s) copiadas.`);
     } catch {
@@ -42,7 +61,11 @@ export function AccountBulkActions({
     }
   };
   const email = () => {
-    const addresses = [...new Set(selected.map((item) => item.email).filter((value): value is string => Boolean(value)))];
+    const addresses = [
+      ...new Set(
+        selected.map((item) => item.email).filter((value): value is string => Boolean(value)),
+      ),
+    ];
     if (!addresses.length) {
       toast.warning("Os seleccionados não têm e-mail disponível.");
       return;
@@ -60,7 +83,12 @@ export function AccountBulkActions({
       toast.error("Seleccione no máximo 25 contas por operação.");
       return;
     }
-    if (!window.confirm(`Suspender o acesso de ${target.length} conta(s) nesta escola? Os registos não serão apagados.`)) return;
+    if (
+      !window.confirm(
+        `Suspender o acesso de ${target.length} conta(s) nesta escola? Os registos não serão apagados.`,
+      )
+    )
+      return;
     setBusy(true);
     let success = 0;
     const failed: string[] = [];
@@ -104,12 +132,7 @@ export function AccountBulkActions({
             <DropdownMenuItem onSelect={() => void copy()}>
               <Copy className="mr-2 size-4" /> Copiar lista
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => exportCsv("contas-seleccionadas", [
-              { label: "Nome", value: (row: (typeof rows)[number]) => row.name },
-              { label: "E-mail", value: (row: (typeof rows)[number]) => row.email },
-              { label: "Cargo", value: (row: (typeof rows)[number]) => row.cargo },
-              { label: "Estado", value: (row: (typeof rows)[number]) => row.status },
-            ], rows)}>
+            <DropdownMenuItem onSelect={exportSelected}>
               <Download className="mr-2 size-4" /> Exportar seleccionados (CSV)
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={email}>
