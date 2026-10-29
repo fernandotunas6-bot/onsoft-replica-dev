@@ -18,9 +18,7 @@ vi.mock("@/integrations/supabase/sga", () => ({
       const memberships = state.memberships.filter((item) => item.userId === userId);
       const chosen =
         memberships.find((item) => item.schoolId === preferredSchoolId) ?? memberships[0];
-      return chosen
-        ? { schoolId: chosen.schoolId, appRole: chosen.appRole, userId }
-        : null;
+      return chosen ? { schoolId: chosen.schoolId, appRole: chosen.appRole, userId } : null;
     },
   ),
 }));
@@ -68,10 +66,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
   },
 }));
 
-import {
-  requireSgaWriterFor,
-  requireSgaWriterForWrite,
-} from "@/integrations/supabase/sga-admin";
+import { requireSgaWriterFor, requireSgaWriterForWrite } from "@/integrations/supabase/sga-admin";
 
 const financeRoles = ["Administrador", "Secretaria", "Tesouraria"] as const;
 
