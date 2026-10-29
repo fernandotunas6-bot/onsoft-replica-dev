@@ -88,7 +88,40 @@ export const markMyNotificationsRead = createServerFn({ method: "POST" })
     if (schoolId) query = query.eq("school_id", schoolId);
     if (data.ids) query = query.in("id", data.ids);
     const { error } = await query;
-    // Não anunciar sucesso se a escrita falhou, incluindo schema em falta.
     if (error) throw new Error("Não foi possível marcar como lidas.");
+
+    // PostgREST pode devolver sucesso com zero linhas se uma política RLS impedir
+    // a escrita. Confirmar o estado na fonte de verdade antes de devolver ok.
+    if (data.ids) {
+      let check = db
+        .from("notifications")
+        .select("id, status, read_at")
+        .eq("user_id", context.userId)
+        .eq("channel", "in_app")
+        .in("id", data.ids);
+      if (schoolId) check = check.eq("school_id", schoolId);
+      const { data: checked, error: checkError } = await check;
+      const uniqueIds = new Set(data.ids);
+      if (
+        checkError ||
+        checked?.length !== uniqueIds.size ||
+        checked.some((row) => row.status !== "read" && !row.read_at)
+      ) {
+        throw new Error("Não foi possível confirmar a leitura das notificações.");
+      }
+    } else {
+      let pending = db
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", context.userId)
+        .eq("channel", "in_app")
+        .neq("status", "read")
+        .is("read_at", null);
+      if (schoolId) pending = pending.eq("school_id", schoolId);
+      const { count, error: countError } = await pending;
+      if (countError || count !== 0) {
+        throw new Error("Não foi possível confirmar a leitura de todos os avisos.");
+      }
+    }
     return { ok: true };
   });
