@@ -158,7 +158,7 @@ function EmployeesPage() {
           group="Finanças · RH"
           title="Funcionários"
           icon={moduleIcons.hr}
-          action={account.role === "Administrador" ? <AssignStaffPositionDialog /> : undefined}
+          actions={account.role === "Administrador" ? <AssignStaffPositionDialog /> : undefined}
           description="Os vínculos laborais da escola. Abra um funcionário para ver o contrato, as faltas e os recibos de vencimento."
           crumbs={[
             { label: "Início", to: "/portal" },
