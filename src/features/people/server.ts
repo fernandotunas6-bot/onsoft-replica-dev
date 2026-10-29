@@ -50,7 +50,10 @@ import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
 import { syncBiDocumentFromNif } from "./bi-document";
 import { insertTeacherWithNextNumber, isTeacherNumberTaken } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
-import { ensureStaffEmploymentDraft } from "@/features/hr/staff-positions-server";
+import {
+  assertHrEmploymentStoreReady,
+  ensureStaffEmploymentDraft,
+} from "@/features/hr/staff-positions-server";
 import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -1085,6 +1088,7 @@ export const createTeacher = createServerFn({ method: "POST" })
     // register_teacher exige 2FA: verificado antes de criar a pessoa, para não a deixar solta.
     requireAal2(context.claims, "Cadastrar o professor");
     const db = await loadSgaAdminClient();
+    await assertHrEmploymentStoreReady(db, membership.schoolId);
 
     const { data: person, error: personError } = await db
       .from("people")
@@ -1380,6 +1384,9 @@ export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
     if (personError) throw publicDatabaseError(personError, "Não foi possível validar a pessoa.");
     if (!person) throw new Error("Pessoa não encontrada nesta escola.");
 
+    if (data.roles.some((role) => ["funcionario", "diretor", "coordenador"].includes(role))) {
+      await assertHrEmploymentStoreReady(db, membership.schoolId);
+    }
     await assertPersonRoleStoreAvailable(db);
     const roles = await syncPersonInstitutionRoles(db, {
       schoolId: membership.schoolId,
