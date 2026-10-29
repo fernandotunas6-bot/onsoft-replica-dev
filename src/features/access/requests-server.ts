@@ -347,6 +347,7 @@ async function findInstitutionalRecord(
     const { data: links } = await db
       .from("student_guardians")
       .select("student_id, guardian_person_id")
+      .is("valid_until", null)
       .eq("school_id", schoolId)
       .in("guardian_person_id", personIds);
     const guardianLinks = (links ?? []) as Array<{

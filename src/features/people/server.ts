@@ -55,6 +55,7 @@ import {
   ensureStaffEmploymentDraft,
 } from "@/features/hr/staff-positions-server";
 import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
+import { reopenSurvivorGuardianLinks } from "@/features/students/guardian-links";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -310,6 +311,7 @@ export const searchPeople = createServerFn({ method: "GET" })
       db
         .from("student_guardians")
         .select("guardian_person_id")
+        .is("valid_until", null)
         .eq("school_id", membership.schoolId)
         .in("guardian_person_id", personIds),
       db
@@ -629,6 +631,16 @@ export const mergePeople = createServerFn({ method: "POST" })
     }
     requireAal2(context.claims, "Fundir fichas de pessoas");
     const db = await loadSgaAdminClient();
+
+    // A fusão apaga a ligação repetida do duplicado ao mesmo educando. Se a ficha que
+    // fica só tinha um vínculo fechado, reabre-o primeiro, ou o encarregado vigente
+    // perdia o acesso ao educando.
+    await reopenSurvivorGuardianLinks(db, {
+      schoolId: membership.schoolId,
+      survivorId: data.survivorId,
+      duplicateId: data.duplicateId,
+      today: schoolTodayIso(),
+    });
 
     // Numa só transacção (private.merge_people, migração 20261010110000): tudo ou
     // nada. Antes de a migração ser aplicada, segue o caminho em passos, abaixo.

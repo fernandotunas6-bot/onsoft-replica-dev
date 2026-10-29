@@ -1776,13 +1776,15 @@ function StudentDetail() {
                           {canManageStudent ? (
                             <ConfirmActionModal
                               title="Remover encarregado"
-                              description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ficar ligada a este aluno.`}
+                              description={`${g.guardian?.full_name ?? "Esta pessoa"} deixa de ser encarregada deste aluno e perde o acesso aos dados dele. O histórico do vínculo fica guardado.`}
                               confirmLabel="Remover"
-                              onConfirm={async () => {
+                              reasonLabel="Motivo"
+                              onConfirm={async (reason) => {
                                 await removeGuardian({
                                   data: {
                                     studentId,
                                     guardianPersonId: g.guardian_person_id,
+                                    reason,
                                   },
                                 });
                                 await Promise.all([
