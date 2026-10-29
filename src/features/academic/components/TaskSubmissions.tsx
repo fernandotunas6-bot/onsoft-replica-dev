@@ -788,6 +788,7 @@ export function MyTaskSubmission({
   const [attachment, setAttachment] = useState<PreparedAttachment | null>(null);
   const [preparing, setPreparing] = useState(false);
   const attachmentRequest = useRef(0);
+  const submitInFlight = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const query = useQuery({
@@ -812,6 +813,9 @@ export function MyTaskSubmission({
       void queryClient.invalidateQueries({ queryKey: ["subject-work"] });
     },
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível entregar.")),
+    onSettled: () => {
+      submitInFlight.current = false;
+    },
   });
   const pick = async (file: File | undefined) => {
     if (!file) return;
@@ -861,7 +865,8 @@ export function MyTaskSubmission({
           className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!ready || preparing || submit.isPending) return;
+            if (!ready || preparing || submit.isPending || submitInFlight.current) return;
+            submitInFlight.current = true;
             submit.mutate({
               ...(body.trim() ? { body } : {}),
               ...(attachment
