@@ -56,6 +56,18 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Documentos docentes: teacher_document_entries é uma tabela privada com FORCE RLS
+  // e sem GRANT para authenticated. O endpoint exige membership, valida teacher,
+  // person e escola e devolve apenas campos autorizados; a associação do ficheiro
+  // também é verificada por um trigger SQL contra school/person/file.
+  "src/features/people/teacher-documents-server.ts",
+  // Configuração institucional dos requisitos: school_settings tem escrita
+  // reservada à Administração; o servidor exige papel e escrita na Gestão.
+  "src/features/people/teacher-documents-settings-server.ts",
+  // Registo de pessoal: os vínculos e a tabela de cargos de RH são controlados
+  // pelo servidor. Atribuir o cargo exige Administrador, valida person/escola,
+  // não atribui privilégios de login e reutiliza o vínculo laboral existente.
+  "src/features/hr/staff-positions-server.ts",
   // Presença do professor na aula (2026-10-26): authenticated só tem SELECT em
   // siga_attendance_sessions (as chamadas escrevem-se no servidor), por isso a
   // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,
