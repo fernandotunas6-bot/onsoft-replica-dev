@@ -156,9 +156,10 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
       const received = Boolean(latest && latest.validationStatus !== "rejected");
       return { ...item, received,
         verified: latest?.validationStatus === "verified",
-        status: !latest || latest.validationStatus === "rejected"
-          ? "em_falta" as const : latest.validationStatus === "verified"
-            ? "validado" as const : "recebido" as const,
+        status: !latest ? "em_falta" as const
+          : latest.validationStatus === "rejected" ? "rejeitado" as const
+          : latest.validationStatus === "verified" ? "validado" as const
+          : "recebido" as const,
       };
     });
     return {
