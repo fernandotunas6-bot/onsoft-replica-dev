@@ -122,7 +122,10 @@ export function StudentBulkTools({
     }
     if (result.failed.length) {
       toast.warning(`${result.failed.length} emissão(ões) falharam.`, {
-        description: result.failed.slice(0, 3).map((entry) => entry.reason).join(" · "),
+        description: result.failed
+          .slice(0, 3)
+          .map((entry) => entry.reason)
+          .join(" · "),
       });
     }
   };
@@ -166,7 +169,9 @@ export function StudentBulkTools({
               disabled={students.length > 60}
               onClick={open}
               title={
-                students.length > 60 ? "Limite: 60 alunos por emissão" : "Emitir faturas de propinas"
+                students.length > 60
+                  ? "Limite: 60 alunos por emissão"
+                  : "Emitir faturas de propinas"
               }
             >
               <ReceiptText className="mr-1 size-4" />
@@ -176,39 +181,39 @@ export function StudentBulkTools({
         />
       ) : null}
       <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="h-9 gap-1 text-xs">
-          Escolher acção
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-64">
-        <DropdownMenuItem onSelect={() => void copy()}>
-          <Copy className="mr-2 size-4" /> Copiar números e nomes
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={exportSelected}>
-          <Download className="mr-2 size-4" /> Exportar seleccionados (CSV)
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={exportGrouped}>
-          <Layers3 className="mr-2 size-4" /> Agrupar por turma (lista CSV)
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={printSelected}>
-          <FileText className="mr-2 size-4" /> Imprimir seleccionados (PDF)
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={email}>
-          <Mail className="mr-2 size-4" /> Preparar mensagem por e-mail (BCC)
-        </DropdownMenuItem>
-        {canUseFinance ? (
-          <DropdownMenuItem onSelect={exportDebt}>
-            <ReceiptText className="mr-2 size-4" /> Preparar lista de cobrança
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="outline" size="sm" className="h-9 gap-1 text-xs">
+            Escolher acção
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-64">
+          <DropdownMenuItem onSelect={() => void copy()}>
+            <Copy className="mr-2 size-4" /> Copiar números e nomes
           </DropdownMenuItem>
-        ) : null}
-        {canUseGrades ? (
-          <DropdownMenuItem onSelect={openGrades}>
-            <GraduationCap className="mr-2 size-4" /> Abrir lançamento de notas
+          <DropdownMenuItem onSelect={exportSelected}>
+            <Download className="mr-2 size-4" /> Exportar seleccionados (CSV)
           </DropdownMenuItem>
-        ) : null}
-      </DropdownMenuContent>
+          <DropdownMenuItem onSelect={exportGrouped}>
+            <Layers3 className="mr-2 size-4" /> Agrupar por turma (lista CSV)
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={printSelected}>
+            <FileText className="mr-2 size-4" /> Imprimir seleccionados (PDF)
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={email}>
+            <Mail className="mr-2 size-4" /> Preparar mensagem por e-mail (BCC)
+          </DropdownMenuItem>
+          {canUseFinance ? (
+            <DropdownMenuItem onSelect={exportDebt}>
+              <ReceiptText className="mr-2 size-4" /> Preparar lista de cobrança
+            </DropdownMenuItem>
+          ) : null}
+          {canUseGrades ? (
+            <DropdownMenuItem onSelect={openGrades}>
+              <GraduationCap className="mr-2 size-4" /> Abrir lançamento de notas
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
       </DropdownMenu>
     </>
   );
