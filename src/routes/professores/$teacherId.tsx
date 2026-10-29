@@ -1,19 +1,15 @@
 import { useMemo } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileDown, GraduationCap, Pencil, UserPlus, UserMinus } from "lucide-react";
+import { FileDown, Pencil, UserPlus, UserMinus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel } from "@/components/layout/PageHeader";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import { listTeachers, updateTeacher, deleteTeacher } from "@/features/people/server";
-import { whatsappHref } from "@/features/integrations/actions";
-import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
-import { useInstalledIntegrations } from "@/features/integrations/use-installed-integrations";
-import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel";
+import { TeacherProfile360 } from "@/features/people/TeacherProfile360";
 import {
   assignClassSubjectTeacher,
   getTeacherWorkspace,
@@ -45,10 +41,7 @@ function TeacherProfilePage() {
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { selectedYearId, school, selectedYearLabel } = useSchoolSettings();
-  const canManage = canWriteModule(account.role, "pedagogica");
-  const installed = useInstalledIntegrations();
-  const whatsappOn = installed.hasCapability("whatsapp.notices");
-  const resendOn = installed.hasCapability("resend.send");
+  const canManage = canWriteModule(account.role, "pedagogica", account.grants);
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "profile"],
     queryFn: () => listTeachers({ data: { status: "all", limit: 200 } }),
@@ -309,78 +302,30 @@ function TeacherProfilePage() {
             </div>
           }
         />
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Dados" description="Registo do docente">
-            <dl className="grid gap-3 text-sm">
-              <div>
-                <dt className="text-xs text-muted-foreground">Nº funcionário</dt>
-                <dd className="font-semibold">{teacher?.employee_number ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Email</dt>
-                <dd className="flex flex-wrap items-center gap-2">
-                  {teacher?.email ?? "—"}
-                  {resendOn && teacher?.email ? (
-                    <button
-                      type="button"
-                      className="text-[11px] font-semibold text-primary hover:underline"
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(
-                          `Credenciais SIGA — ${teacher.full_name}\n${teacher.email}`,
-                        );
-                        toast.success("Texto copiado para e-mail Resend");
-                      }}
-                    >
-                      E-mail Resend
-                    </button>
-                  ) : null}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Telefone</dt>
-                <dd className="flex flex-wrap items-center gap-2">
-                  {teacher?.phone ?? "—"}
-                  {whatsappOn && teacher?.phone ? (
-                    <a
-                      href={whatsappHref(teacher.phone)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] font-semibold text-primary hover:underline"
-                    >
-                      WhatsApp
-                    </a>
-                  ) : null}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Estado</dt>
-                <dd className="mt-1">
-                  <StatusBadge status={teacher?.status === "active" ? "active" : "inactive"} />
-                </dd>
-              </div>
-            </dl>
-            <Button asChild variant="outline" className="mt-4 gap-2">
-              <Link
-                to="/pedagogica"
-                // A vista por professor do horário da escola é de quem gere o Pedagógico.
-                search={
-                  canManage && teacher
-                    ? { tab: "horarios", professor: teacher.id }
-                    : { tab: "horarios" }
-                }
-              >
-                <GraduationCap className="size-4" /> Ver horários
-              </Link>
-            </Button>
-          </Panel>
-        </div>
-        <InstalledModuleTools module="pedagogica" />
-        <TeacherWorkspacePanel
-          teacherId={teacherId}
-          title="Turmas e horário"
-          canManage={canManage}
-          showInstalledTools={false}
-        />
+        {teachersQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">A carregar perfil do professor…</p>
+        ) : teachersQuery.isError || !teacher ? (
+          <p className="rounded-xl border border-border p-5 text-sm text-muted-foreground">
+            Não foi possível encontrar este professor na escola activa.
+          </p>
+        ) : teacherWorkspaceQuery.isError ? (
+          <p className="rounded-xl border border-border p-5 text-sm text-destructive">
+            Não foi possível carregar as atribuições académicas deste professor.
+          </p>
+        ) : (
+          <TeacherProfile360
+            teacher={teacher}
+            workspace={teacherWorkspaceQuery.data}
+            schoolId={account.schoolId}
+            schoolName={school?.name ?? account.schoolName ?? "Escola"}
+            yearLabel={selectedYearLabel}
+            configuredLevels={school?.pedagogy?.teachingLevels ?? []}
+            selfTeacherId={account.linkedEntities.teacher_id}
+            canManage={canManage}
+            canReadHr={canReadHr}
+            employmentId={employmentId}
+          />
+        )}
       </div>
     </AppShell>
   );
