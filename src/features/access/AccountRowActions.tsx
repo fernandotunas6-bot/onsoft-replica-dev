@@ -1,12 +1,28 @@
 import { useState } from "react";
-import { Copy, Ellipsis, KeyRound, LockKeyhole, Mail, Printer, UnlockKeyhole, UserRound, UserX } from "lucide-react";
+import {
+  Copy,
+  Ellipsis,
+  KeyRound,
+  LockKeyhole,
+  Mail,
+  Printer,
+  UnlockKeyhole,
+  UserRound,
+  UserX,
+} from "lucide-react";
 import { toast } from "@/lib/toast";
 import { reportPossibleStepUp } from "@/lib/step-up";
 import { passwordMeetsPolicy, PASSWORD_POLICY_HINT } from "@/lib/password-policy-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import {
   listSystemAccounts,
@@ -57,33 +73,30 @@ export function AccountRowActions({
     }
   };
   const lock = async (disabled: boolean) => {
-    await execute(async () => {
-      const result = await setSystemAccountDisabled({
-        data: { userId: account.id, disabled },
-      });
-      try {
-        await onChanged();
-      } catch {
-        toast.warning("O acesso foi actualizado; recarregue a lista para confirmar.");
-      }
-      if (result.notice) toast.warning(result.notice);
-    }, disabled ? "Acesso suspenso nesta escola." : "Acesso reactivado nesta escola.");
+    await execute(
+      async () => {
+        const result = await setSystemAccountDisabled({
+          data: { userId: account.id, disabled },
+        });
+        try {
+          await onChanged();
+        } catch {
+          toast.warning("O acesso foi actualizado; recarregue a lista para confirmar.");
+        }
+        if (result.notice) toast.warning(result.notice);
+      },
+      disabled ? "Acesso suspenso nesta escola." : "Acesso reactivado nesta escola.",
+    );
   };
   const sendRecovery = () =>
-    execute(
-      async () => {
-        await sendSystemInviteEmail({ data: { userId: account.id } });
-      },
-      "E-mail para recuperar o acesso enviado.",
-    );
+    execute(async () => {
+      await sendSystemInviteEmail({ data: { userId: account.id } });
+    }, "E-mail para recuperar o acesso enviado.");
   const copyRecovery = () =>
-    execute(
-      async () => {
-        const link = await resendSystemInvite({ data: { userId: account.id } });
-        await navigator.clipboard.writeText(link.actionLink);
-      },
-      "Ligação de recuperação copiada. Partilhe apenas com o titular.",
-    );
+    execute(async () => {
+      const link = await resendSystemInvite({ data: { userId: account.id } });
+      await navigator.clipboard.writeText(link.actionLink);
+    }, "Ligação de recuperação copiada. Partilhe apenas com o titular.");
 
   return (
     <>
@@ -161,20 +174,28 @@ export function AccountRowActions({
         <ModalContent>
           {dialog === "profile" ? (
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm">
-              <dt className="text-muted-foreground">Nome</dt><dd className="break-words font-medium">{account.full_name}</dd>
-              <dt className="text-muted-foreground">E-mail</dt><dd className="break-all">{account.email ?? "Não indicado"}</dd>
-              <dt className="text-muted-foreground">Cargo</dt><dd>{account.cargo}</dd>
-              <dt className="text-muted-foreground">Estado</dt><dd>{account.disabled ? "Bloqueado" : "Activo"}</dd>
+              <dt className="text-muted-foreground">Nome</dt>
+              <dd className="break-words font-medium">{account.full_name}</dd>
+              <dt className="text-muted-foreground">E-mail</dt>
+              <dd className="break-all">{account.email ?? "Não indicado"}</dd>
+              <dt className="text-muted-foreground">Cargo</dt>
+              <dd>{account.cargo}</dd>
+              <dt className="text-muted-foreground">Estado</dt>
+              <dd>{account.disabled ? "Bloqueado" : "Activo"}</dd>
               <dt className="text-muted-foreground">Último acesso</dt>
-              <dd>{account.last_sign_in_at ? new Date(account.last_sign_in_at).toLocaleString("pt-AO") : "Nunca entrou"}</dd>
+              <dd>
+                {account.last_sign_in_at
+                  ? new Date(account.last_sign_in_at).toLocaleString("pt-AO")
+                  : "Nunca entrou"}
+              </dd>
               <dt className="text-muted-foreground">E-mail confirmado</dt>
               <dd>{account.email_confirmed ? "Sim" : "Não"}</dd>
             </dl>
           ) : dialog === "password" ? (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Acção administrativa protegida. Não envie senhas por e-mail ou WhatsApp.
-                Prefira «Recuperar senha por e-mail», para o titular definir a sua própria senha.
+                Acção administrativa protegida. Não envie senhas por e-mail ou WhatsApp. Prefira
+                «Recuperar senha por e-mail», para o titular definir a sua própria senha.
               </p>
               <Label htmlFor={`new-password-${account.id}`}>Nova senha</Label>
               <Input
@@ -189,10 +210,12 @@ export function AccountRowActions({
             </div>
           ) : dialog === "remove" ? (
             <div className="space-y-3 text-sm">
-              <p>Deseja retirar o acesso de <strong>{account.full_name}</strong> a esta escola?</p>
+              <p>
+                Deseja retirar o acesso de <strong>{account.full_name}</strong> a esta escola?
+              </p>
               <p className="text-muted-foreground">
-                Esta acção suspende o vínculo, sem eliminar a identidade, o histórico escolar
-                nem os acessos autorizados noutras escolas. Pode reactivar depois.
+                Esta acção suspende o vínculo, sem eliminar a identidade, o histórico escolar nem os
+                acessos autorizados noutras escolas. Pode reactivar depois.
               </p>
             </div>
           ) : null}
@@ -207,7 +230,9 @@ export function AccountRowActions({
               : dialog === "password"
                 ? () =>
                     void execute(async () => {
-                      await resetStaffPasswordDirect({ data: { userId: account.id, newPassword: password } });
+                      await resetStaffPasswordDirect({
+                        data: { userId: account.id, newPassword: password },
+                      });
                     }, "Senha redefinida.")
                 : () => void lock(true)
           }
