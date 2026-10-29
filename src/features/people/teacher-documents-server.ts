@@ -11,6 +11,7 @@ import { readSettingsDomain } from "@/features/school/settings-domains";
 import { resolveTeacherLevels } from "@/features/people/teacher-profile-context";
 import {
   teacherDocumentChecklist,
+  resolveTeacherDocumentLevelContext,
   teacherDocumentCodes,
   TEACHER_DOCUMENTS,
 } from "@/features/people/teacher-documents-policy";
@@ -148,12 +149,9 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
         verifiedAt: entry.verified_at,
         receivedAt: entry.created_at,
       }));
-    const configuredLevels = pedagogy.teachingLevels ?? [];
-    const effectiveLevels = levels.length ? levels
-      : configuredLevels.length === 1 ? configuredLevels : [];
-    const levelPending = policy.enabled && levels.length === 0 &&
-      configuredLevels.length > 1 &&
-      Object.values(policy.requiredByLevel).some((items) => (items?.length ?? 0) > 0);
+    const { levels: effectiveLevels, levelPending } = resolveTeacherDocumentLevelContext(
+      policy, levels, pedagogy.teachingLevels ?? [],
+    );
     const base = teacherDocumentChecklist(policy, [], effectiveLevels);
     const items = base.map((item) => {
       const matches = files.filter((file) => file.code === item.code);
