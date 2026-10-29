@@ -81,7 +81,7 @@ export function requiredTeacherDocuments(
  * do servidor a pode criar depois de validar school/person/privacidade.
  */
 export function teacherDocumentFileCode(code: TeacherDocumentCode, fileId: string): string {
-  return `TCHR-${code.toUpperCase()}-${fileId.slice(0, 8).toUpperCase()}`;
+  return `TCHR-${code.toUpperCase()}-${fileId.replace(/-/g, "").toUpperCase()}`;
 }
 export function teacherDocumentCodeFromFile(reference: string | null | undefined): TeacherDocumentCode | null {
   const normalized = (reference ?? "").trim().toUpperCase();
