@@ -118,6 +118,22 @@ export const TEACHER_DOCUMENTS = [
     note: "Conforme função e carreira.",
   },
   {
+    code: "declaracao_servico",
+    label: "Declaração de serviço ou efectividade",
+    group: "Habilitações",
+    category: "outro",
+    suggested: false,
+    note: "Exigível apenas no processo ou concurso em que é solicitada.",
+  },
+  {
+    code: "requerimento",
+    label: "Requerimento de candidatura ou contratação",
+    group: "Contrato e pagamentos",
+    category: "outro",
+    suggested: false,
+    note: "Conforme a modalidade de recrutamento.",
+  },
+  {
     code: "experiencia",
     label: "Declarações de experiência docente",
     group: "Habilitações",
