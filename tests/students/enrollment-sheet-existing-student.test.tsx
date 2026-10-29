@@ -77,7 +77,8 @@ describe("Nova matrícula de quem já é aluno", () => {
 
     fireEvent.click(within(list).getByRole("button", { name: "Matricular este aluno" }));
     const turma = (await screen.findByLabelText("Turma")) as HTMLSelectElement;
-    expect(turma.value).toBe("cg-8b");
+    expect(turma.value).toBe("");
+    fireEvent.change(turma, { target: { value: "cg-8b" } });
     fireEvent.click(screen.getByRole("button", { name: "Matricular" }));
 
     await waitFor(() =>
