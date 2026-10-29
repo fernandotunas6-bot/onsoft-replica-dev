@@ -1,7 +1,10 @@
 import { Copy, Download, FileText, GraduationCap, Layers3, Mail, ReceiptText } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { issueTuitionBatch } from "@/features/finance/server";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +43,7 @@ export function StudentBulkTools({
   canUseGrades: boolean;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const byClass = [...students].sort((a, b) => {
     const left = `${a.grade_name ?? ""} ${a.class_name ?? ""} ${a.full_name}`;
     const right = `${b.grade_name ?? ""} ${b.class_name ?? ""} ${b.full_name}`;
@@ -98,6 +102,31 @@ export function StudentBulkTools({
     );
   };
 
+  const issueSelectedTuition = async (values: Record<string, string>) => {
+    if (students.length > 60) {
+      throw new Error("Seleccione no máximo 60 alunos por lote de propinas.");
+    }
+    const result = await issueTuitionBatch({
+      data: {
+        studentIds: students.map((student) => student.id),
+        dueOn: values["vencimento"] ?? "",
+      },
+    });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["finance"] }),
+      queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+    ]);
+    if (result.issued.length) toast.success(`${result.issued.length} propinas emitidas.`);
+    if (result.skipped.length) {
+      toast.message(`${result.skipped.length} alunos já tinham propina do mês.`);
+    }
+    if (result.failed.length) {
+      toast.warning(`${result.failed.length} emissão(ões) falharam.`, {
+        description: result.failed.slice(0, 3).map((entry) => entry.reason).join(" · "),
+      });
+    }
+  };
+
   const exportSelected = () => exportCsv("alunos-seleccionados", selectedColumns, students);
   const exportGrouped = () => exportCsv("alunos-agrupados-por-turma", selectedColumns, byClass);
   const printSelected = () => {
@@ -113,7 +142,40 @@ export function StudentBulkTools({
 
   if (!students.length) return null;
   return (
-    <DropdownMenu>
+    <>
+      {canUseFinance ? (
+        <QuickFormModal
+          eyebrow="Tesouraria"
+          title={`Emitir propinas a ${students.length} alunos`}
+          description="Emite facturas apenas aos alunos seleccionados, com matrícula activa nesta escola e ano lectivo. Valores e bolsas vêm do plano financeiro. Facturas já emitidas para o mês são ignoradas. Esta operação não regista pagamentos."
+          submitLabel={`Emitir propinas (${students.length})`}
+          successDescription="Lote processado. Confirme os resultados em Faturas e Recibos."
+          fields={[
+            {
+              name: "vencimento",
+              label: "Data de vencimento das propinas",
+              type: "date",
+              required: true,
+            },
+          ]}
+          onSubmit={issueSelectedTuition}
+          trigger={(open) => (
+            <Button
+              type="button"
+              size="sm"
+              disabled={students.length > 60}
+              onClick={open}
+              title={
+                students.length > 60 ? "Limite: 60 alunos por emissão" : "Emitir faturas de propinas"
+              }
+            >
+              <ReceiptText className="mr-1 size-4" />
+              Emitir propinas
+            </Button>
+          )}
+        />
+      ) : null}
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button type="button" variant="outline" size="sm" className="h-9 gap-1 text-xs">
           Escolher acção
@@ -147,6 +209,7 @@ export function StudentBulkTools({
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </>
   );
 }
