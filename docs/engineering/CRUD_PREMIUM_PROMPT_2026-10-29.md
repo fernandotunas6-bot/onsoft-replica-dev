@@ -1,0 +1,174 @@
+# SIGA Plus — Prompt mestre de CRUD Premium e verificação do sistema
+
+Data: 29/10/2026 · Base verificada: `main@74695ea` · Continua [CRUD_PREMIUM_2026-10-28.md](CRUD_PREMIUM_2026-10-28.md) (lotes 1–7).
+
+Este documento tem duas partes:
+
+1. **Diagnóstico** — o que já existe no código e na base de produção para cada requisito das secções 8, 9 e 10, com evidência verificável (ficheiro, tabela ou função). Nada foi marcado como implementado sem ser encontrado no repositório ou em `supabase/PRODUCTION_SNAPSHOT.json`.
+2. **Prompt mestre** — texto pronto a entregar a um agente (Claude Code, Cursor ou Lovable) para evoluir todo o sistema até à qualidade premium, em lotes pequenos e verificáveis.
+
+Legenda: ✅ implementado e com teste · 🟡 parcial (existe, mas não cobre tudo ou não tem prova) · ❌ em falta · ⚠️ existe mas contraria a regra.
+
+---
+
+## Parte 1 — Diagnóstico verificado
+
+### 1.1 Números do esquema de produção (`PRODUCTION_SNAPSHOT.json`)
+
+| Indicador | Valor | Leitura |
+|---|---|---|
+| Tabelas | 216 | — |
+| Com RLS activo | 216 | ✅ negação por defeito na base |
+| Com `FORCE ROW LEVEL SECURITY` | 130 | 🟡 86 tabelas sem RLS forçada; rever as sensíveis (ex.: `audit_logs`, `grade_sheets`, `notifications`, `teacher_subjects`) |
+| Com `updated_at` | 130 | base para controlo de concorrência |
+| Com `version` | 49 | 🟡 bloqueio optimista disponível só em 23 % das tabelas |
+| Com `deleted_at` | 30 | 🟡 arquivo lógico desigual entre domínios |
+
+### 1.2 Secção 8 — CRUD consistente
+
+| Requisito | Estado | Evidência | Lacuna / acção |
+|---|---|---|---|
+| Listar: paginação no servidor com contagem | 🟡 | `.range(` em 38 ficheiros, `count: "exact"` em 32; `searchPeoplePage`/`listTeachersPage` em `src/features/people/directory-server.ts` | Restantes listas (alunos, turmas, faturas, comunicações, arquivos) ainda carregam janela fixa ou filtram em memória. Inventariar e migrar para contrato `page/pageSize/total`. |
+| Listar: filtros e pesquisa comuns | 🟡 | `src/components/filters/ListFilterBar.tsx` (16 usos), `ListPaginationBar.tsx` (4 usos), `debounced-search-input.tsx` (2 usos) | Componentes existem mas a adopção é baixa; padronizar. |
+| Exportação autorizada | 🟡 | `src/lib/export-csv.ts`, `export-pdf.ts` (23 ficheiros) | Exportação de Pessoas identifica "página actual"; falta endpoint de exportação integral filtrada e autorizada no servidor. |
+| Criar: acção principal + formulário curto | 🟡 | `QuickFormModal` (21 usos) com `validate`, foco no primeiro erro, guarda de duplo clique | `react-hook-form` só em `ui/form.tsx`; restantes formulários têm validação ad hoc. |
+| Consultar: página de detalhe com relações e histórico | 🟡 | Rotas `alunos/$studentId`, `faturas_.$invoiceId`, `pedagogica_.turmas.$turmaId`, `professores/…` (perfil 360, PR #406); `student_status_history` | Pessoas, encarregados, disciplinas e matrículas isoladas ainda sem detalhe com histórico; nomes nem sempre clicáveis. |
+| Editar: validação por campo e no servidor | 🟡 | `aria-invalid` em apenas 6 ficheiros; Zod em 150 ficheiros de servidor | Validação de servidor é ampla; associação acessível de erro ao campo é rara. |
+| Editar: conflito de edição | 🟡 | `expectedUpdatedAt` em `people/server.ts` e `auth/server.ts`; CAS de notas em `assessment-score-write.ts`; CAS de turma em `enrollment-batch.ts`; `.eq("version"…)` em 7 ficheiros | `updateTeacher` (duas tabelas, sem transacção), turmas, horários, faturas e definições sem CAS. |
+| Editar: aviso de alterações não guardadas | ❌ | Só `SettingsCenter.tsx` e `school-website/use-draft-unload-warning.ts` | Criar hook comum (`beforeunload` + bloqueio do router) e aplicar a todos os formulários longos. |
+| Arquivar/inactivar com motivo e reactivar | 🟡 | `student_status_history.reason`; `class_group_waitlist.cancel_reason`; `enrollments.end_reason` | Pessoas e professores mudam de estado sem motivo obrigatório nem histórico próprio. |
+| Cancelar/reverter auditável sem apagar histórico | 🟡 | Estornos financeiros (`payment-states.ts`, estados `reversed`); `previous_score` nas notas; `grade_sheets.reopen_reason` | ⚠️ `removeGuardian` (`src/features/students/server.ts`) faz `DELETE` em `student_guardians`, apesar de a tabela ter `valid_from/valid_until` e as funções da base já filtrarem `valid_until IS NULL`. Deve fechar a vigência, não apagar. |
+| Eliminar só elegível e com impacto real | ❌ | 35 chamadas `.delete()` em `src/features`; nenhum componente comum de "impacto da eliminação" | Criar verificação de elegibilidade no servidor (referências, retenção) e diálogo comum que mostre o impacto antes de confirmar. |
+| Acções em lote: simulação, resultado por registo, retentativa | 🟡 | `enrollment-batch.ts` e `alunos/index.tsx` (êxitos parciais, retenção só dos que falharam); importação com `dry run`/`idempotency_key` (`src/features/import`) | Falta simulação prévia nos lotes fora da importação; o lote de matrículas não é transaccional. |
+| Estados de ecrã (carregar, vazio, filtrado, sem permissão, erro, conflito) | 🟡 | `CrudListFeedbackRow` (5 estados) usado só em `pessoas/index.tsx`; `EmptyState` em 36 ficheiros; `isError` em 77 | Generalizar `CrudListFeedbackRow`/`DataTableShell` a todas as listas; procurar listas que mostram vazio em erro de rede. |
+| Conservar dados após erro de validação | 🟡 | `QuickFormModal` conserva valores (teste `tests/ui/quick-form-validation.test.tsx`) | Formulários fora do `QuickFormModal` sem prova. |
+| Evitar modais empilhados | 🟡 | `StackedModal` existe (7 ficheiros) | Contrato visual pede página/painel lateral para processos longos; rever cada uso de `StackedModal`. |
+| WCAG 2.2 AA, alvos 44 px | 🟡 | `scripts/a11y-check.mjs` (`npm run check:a11y`); `focus-visible` em 66 ficheiros; `min-h-11/h-11` em 45 | Sem Axe/Playwright em fluxos autenticados; erros associados aos campos em poucos formulários. |
+
+### 1.3 Secção 9 — Engenharia e organização
+
+| Requisito | Estado | Evidência | Lacuna / acção |
+|---|---|---|---|
+| Domínios explícitos | ✅ | `src/features/{access,people,school,academic,enrollment,students,pedagogica,finance,documents,communications,…}` | Manter; não criar camadas vazias. |
+| Componentes comuns (tabela, filtros, estados) | 🟡 | `data-table-shell.tsx`, `crud-list-feedback-row.tsx`, `empty-state.tsx`, `status-badge.tsx`, `lib/status-registry.ts` | `DataTableShell` usado num único ecrã. |
+| Uma fonte por conceito | ✅ | Identidade em `people`; `students`/`teachers` referenciam `person_id`; financeiro usa matrícula/contrato | Verificar projecções do LMS e alumni. |
+| Vínculo aluno–turma com início/fim | ✅ | `enrollments.enrolled_on/ended_on/end_reason`; RPC `enrollment_class_change` | — |
+| Professor–disciplina–turma com vigência | ⚠️ | `teacher_subjects` tem `valid_from/valid_until`, mas `class_subjects` (atribuição real à turma) tem só `teacher_id` e `status` | Migração aditiva: `assigned_from/assigned_until` (ou tabela de histórico) e usar a vigência em `enforce_teacher_assessment_score_scope`. |
+| Versões de currículo, horário e regra de avaliação | ✅ | `curricula.version`; `assessment_rule_sets.version` + `lock_after_publication`; `grade_sheets.rule_set_id`; `timetable_slots.schedule_id` | Falta teste que prove que alterar regra não muda pauta publicada. |
+| Escola resolvida pela sessão | 🟡 | `requireSgaWriterForWrite` devolve `membership.schoolId`; RPCs validam `is_school_member` + papel + permissão + AAL2 | `school_id`/`schoolId` aceite do cliente em 5 schemas (`finance/payflow-settlement.ts`, `access/request-schemas.ts`, `saas/web-site-schemas.ts`, `school-website/student-portal-server.ts`, `api/mobile/presence.tsx`) — confirmar que cada um revalida o vínculo. |
+| Isolamento de cache entre escolas | 🟡 | `resetQueries` ao trocar conta/escola (`use-current-account.ts`), `queryClient.clear()` no fim de sessão | Só 16 de 176 ficheiros com `queryKey` incluem `schoolId`; depender apenas do reset é frágil. |
+| Negação por defeito, autorização por acção | ✅ | RLS em todas as tabelas; `private.has_permission`; `staff_module_grants`; correcção multiescola (#402) | — |
+| Professor só altera atribuições autorizadas | ✅ | Gatilho `enforce_teacher_assessment_score_scope` (`20260903025000_enforce_teacher_grade_scope.sql`) | Sem teste directo à API com professor sem atribuição; sem vigência (ver acima). |
+| Verificação atómica de vagas e duplicados | ✅ | `FOR UPDATE` em `class_groups` e `schools` na RPC `siga_enroll_new_student_atomic`; `enrollment_class_change` | Falta ensaio concorrente real em staging. |
+| Idempotência | 🟡 | Matrícula nova: `p_request_id` + `pg_advisory_xact_lock` + impressão digital em `audit_logs`; financeiro e importação com `idempotency_key` | Outras criações (pessoa, professor, factura manual, comunicação) sem chave de pedido. |
+| Erros consistentes e identificador de correlação | ❌ | `publicDatabaseError`, `action-error-toast.ts`, `reportSigaError`; nenhum `correlation_id`/`x-request-id` | Gerar ID por pedido no middleware, devolvê-lo no erro público e gravá-lo em `audit_logs.request_id`. |
+| Auditoria (quem, quando, escola, registo, motivo) | 🟡 | `audit_logs` com `request_id`; `recordAudit`/`recordAuditBatch`/`recordAccessAudit`; política `audit_select_authorized` (`audit.logs.read`) | `audit_logs` sem `FORCE RLS`; sem coluna de motivo (vai em `metadata`); sem regra de retenção documentada. |
+| Migrações aditivas | ✅ | `docs/agents/DATABASE_RULES.md`, `npm run siga:sql` | — |
+| Medir antes de optimizar | 🟡 | `lib/vitals.ts`, `performance-supervisor.ts`, `lighthouserc*.json` | Sem orçamento de desempenho por ecrã nem medição de consultas lentas. |
+
+### 1.4 Secção 10 — Cenários de aceitação
+
+| Cenário | Estado | Evidência | Falta |
+|---|---|---|---|
+| Duplo clique em confirmar matrícula | ✅ | `p_request_id` + bloqueio consultivo; `placeStudentInClass` devolve `unchanged` | E2E em staging |
+| Disputa da última vaga | 🟡 | `FOR UPDATE` + contagem dentro da transacção | Ensaio concorrente PostgreSQL |
+| Perda de rede após confirmar | ✅ | A RPC devolve o resultado gravado para o mesmo `request_id` | E2E |
+| Aluno já cadastrado reutiliza pessoa | 🟡 | `create_person_bundle`; índices únicos de BI/e-mail por escola | Fluxo de matrícula deve oferecer "usar pessoa existente" antes de falhar com duplicado |
+| Renovação: novo vínculo anual | ✅ | Rota `pedagogica_.turmas.$turmaId_.renovar.tsx`; `enrollments` por `academic_year_id` | Teste de histórico intacto |
+| Transferência de turma preserva notas/presenças | ✅ | `enrollment_class_change` mantém a matrícula; notas ligadas a `enrollment_id` | Teste de regressão de pauta |
+| Professor sem atribuição negado no servidor | ✅ | Gatilho da base | Teste directo à API |
+| Acesso entre escolas negado | 🟡 | RLS + `school_id` da sessão; E2E `tests/e2e/crud-tenant-readonly.spec.ts` (não executado) | Executar em staging; cobrir anexos, exportações, cache |
+| Encarregado sem vínculo | 🟡 | Funções da base filtram `student_guardians.valid_until IS NULL` | ⚠️ `removeGuardian` apaga a linha (perde histórico) |
+| Mudança de ano/escola sem misturar dados | 🟡 | `resetQueries` na troca de escola; "um ano activo" | Chaves de cache sem `schoolId`/`yearId` |
+| Alteração de regra de avaliação | 🟡 | `assessment_rule_sets.version`, `lock_after_publication`, `grade_sheets.rule_set_id` | Teste de regressão |
+| Falha de e-mail não anula matrícula | 🟡 | A RPC de matrícula não envia e-mail; existe `notifications.status` | Confirmar que nenhum fluxo de matrícula falha por causa do envio; fila de reenvio visível e repetível |
+| Sem cobrança aplicável | 🟡 | `siga_enroll_new_student_atomic` não exige campos financeiros | Teste |
+| Edição simultânea de nota | ✅ | CAS sobre o valor anterior (`tests/academic/assessment-score-write.test.ts`) | Mensagem de conflito em mobile |
+| Teclado e telemóvel | 🟡 | `check:a11y`, `check:a11y:sidebar`, design mobile | Playwright + Axe em fluxos essenciais |
+| Dados de demonstração isolados e fictícios | ⚠️ | `scripts/siga/seed-demo-escola.mjs` gera SQL com ID fixo de escola e nomes realistas | Marcar como fictício, recusar execução em produção, cobrir os cenários pedidos (2 escolas, 2 anos, bolsa, isenção, turma cheia, vínculo docente expirado…) |
+
+### 1.5 Prioridades que saem do diagnóstico
+
+1. **Integridade:** `removeGuardian` passa a fechar vigência; vigência em `class_subjects`; `FORCE RLS` em `audit_logs` e tabelas sensíveis; revalidação dos 5 schemas que recebem `school_id`.
+2. **Rastreabilidade:** identificador de correlação de ponta a ponta; motivo obrigatório em arquivar/cancelar.
+3. **Concorrência:** CAS/`version` nas edições restantes; `updateTeacher` transaccional.
+4. **Experiência:** generalizar `CrudListFeedbackRow`/`DataTableShell`/`ListPaginationBar`; hook de alterações não guardadas; diálogo comum de impacto antes de eliminar.
+5. **Prova:** testes de concorrência, autorização directa e isolamento em staging; Axe nos fluxos essenciais; seed fictício seguro.
+
+---
+
+## Parte 2 — Prompt mestre (copiar a partir daqui)
+
+> **Papel:** és engenheiro de software sénior responsável por levar o SIGA Plus a qualidade premium em CRUD, backend e experiência, **sem remover funcionalidades, campos, fluxos nem dados**.
+>
+> **Antes de tocar em código, lê integralmente:** `AGENTS.md`, `docs/agents/DATABASE_RULES.md`, `docs/agents/ARCHITECTURE_HARMONIZATION.md`, `docs/design/VISUAL_MASTER_2026.md`, `docs/specs/SIGA_CONTEXT_ENGINE_2026.md`, `docs/specs/finance/FINANCE_MASTER_2026.md` (se tocares no financeiro), `docs/engineering/CRUD_PREMIUM_2026-10-28.md` e este documento. Confirma colunas em `supabase/PRODUCTION_SNAPSHOT.json` antes de escrever SQL. O Lovable está ligado à produção: nada de `DROP`, `TRUNCATE`, renomeações destrutivas, force-push ou rebase de commits publicados.
+>
+> **Método por módulo (repetir para cada um):**
+> 1. **Inventariar** as rotas, server functions, tabelas, RPCs, gatilhos e políticas do módulo. Para cada operação (listar, criar, consultar, editar, arquivar, cancelar/reverter, eliminar, lote) registar: existe? onde? autorização? auditoria? teste?
+> 2. **Classificar** cada requisito abaixo como implementado, parcial, em falta ou contrário à regra, com evidência (ficheiro:linha ou objecto da base). Não declarar nada implementado sem o ter lido.
+> 3. **Corrigir** primeiro o que põe dados em risco (integridade, isolamento, autorização), depois a experiência.
+> 4. **Provar** com testes (Vitest para contratos, PGlite/SQL para regras de base, Playwright em staging para fluxos) e registar o resultado em `docs/design/VISUAL_MASTER_STATUS.md` ou na secção do lote em `CRUD_PREMIUM_2026-10-28.md`.
+>
+> **Ordem dos módulos:** identidade/acessos → pessoas → organização escolar → currículo → matrículas → turmas → horários → assiduidade → avaliação → aprendizagem (LMS) → financeiro → documentos → comunicação.
+>
+> ### A. Regras de CRUD
+> - **Listar:** pesquisa, filtros contextuais (escola, ano, turma vindos do Context Engine), ordenação estável, paginação **no servidor** com `total` exacto, critérios aplicados **antes** de contar e paginar, exportação autorizada sobre o mesmo conjunto filtrado (indicar se é página ou integral). Usar `ListFilterBar`, `ListPaginationBar`, `DataTableShell`, `CrudListFeedbackRow`.
+> - **Criar:** uma acção principal clara; só os campos necessários; valores por omissão do contexto; chave de idempotência (`requestId` UUID gerado no cliente, verificado no servidor) para operações com efeitos.
+> - **Consultar:** página de detalhe com relações, estado, histórico e auditoria visível ao papel; nomes de entidades relacionadas são ligações.
+> - **Editar:** validação por campo no cliente (Zod partilhado) **e** no servidor; erro associado ao campo (`aria-invalid`, `aria-describedby`, foco no primeiro erro); controlo de concorrência por `updated_at`/`version` (`UPDATE … WHERE id AND school_id AND version = $esperada RETURNING id`); conflito devolvido como erro específico com opção de recarregar; aviso de alterações não guardadas.
+> - **Arquivar/inactivar:** motivo obrigatório, impacto mostrado, histórico gravado, reactivação quando a regra permitir.
+> - **Cancelar/reverter:** operação de domínio com motivo e auditoria. Nunca apagar matrícula, nota, presença, pagamento, recibo ou vínculo histórico — fechar vigência ou mudar estado.
+> - **Eliminar:** só registos elegíveis (sem referências, dentro da retenção), verificado no servidor; diálogo mostra o impacto real antes de confirmar.
+> - **Lote:** selecção explícita, simulação (`dryRun`), autorização por registo, resultado por registo, retentativa apenas dos falhados, idempotente.
+> - **Estados de ecrã obrigatórios:** a carregar, vazio real, filtro sem resultados, sem permissão, erro recuperável (com repetir), conflito, a gravar, sucesso. Erro de rede **nunca** se mostra como lista vazia. Após erro, conservar o que foi escrito.
+> - **Formato:** formulários curtos em painel lateral ou modal pequeno; processos longos em página ou assistente; sem modais empilhados; acções secundárias num menu com texto claro; acções perigosas separadas da principal.
+> - **Acessibilidade:** alvo WCAG 2.2 AA (teclado, foco visível, rótulos, contraste, estados que não dependem só da cor); preferência de 44 px para alvos tácteis (mínimo normativo AA: 24 px).
+>
+> ### B. Regras de engenharia e backend
+> - Evoluir a arquitectura existente (TanStack Start + server functions + Supabase/PostgreSQL). Sem microserviços, reescrita ou segundo backend.
+> - Separar componente visual, caso de uso (server function), regra de domínio (módulo puro testável) e persistência (RPC/SQL) **segundo as convenções já usadas**; não criar camadas vazias.
+> - Escola sempre da sessão/vínculo (`requireSgaWriterForWrite`, `membership.schoolId`, `is_school_member` + papel + permissão + AAL2 nas RPCs). Qualquer `school_id` recebido do cliente tem de ser revalidado contra o vínculo, ou removido.
+> - Isolamento por escola também em relações, ficheiros (Storage), filas, exportações e chaves de cache (`queryKey` com `userId`, `schoolId` e, quando aplicável, `academicYearId`).
+> - Negação por defeito. Escrita nunca protegida por `is_school_member` (inclui alunos e encarregados). Tabelas sensíveis com `FORCE ROW LEVEL SECURITY` e `REVOKE ALL … FROM PUBLIC, anon, authenticated`.
+> - Operações com várias escritas numa só RPC transaccional (`SECURITY DEFINER`, `search_path=''`, `FOR UPDATE` nos recursos disputados). Onde ainda não for possível, comunicar êxito parcial com rigor.
+> - Vigências: aluno–turma (`enrollments.enrolled_on/ended_on`), encarregado (`student_guardians.valid_from/valid_until`), professor–disciplina–turma (acrescentar vigência a `class_subjects` de forma aditiva). Regras de avaliação, currículo e horário versionados; resultados publicados não mudam silenciosamente.
+> - Erros: contrato único `{ code, message, field?, correlationId }`; mensagens em português claro via `publicDatabaseError`/`action-error-toast`; sem detalhes técnicos visíveis; `correlationId` gerado no middleware e gravado em `audit_logs.request_id` e na telemetria.
+> - Auditoria: quem, quando, escola, entidade, registo, acção, motivo, `request_id`. Sem palavras-passe, documentos completos nem dados de saúde nos registos técnicos. Acesso à auditoria por permissão (`audit.logs.read`) e retenção documentada.
+> - Migrações: aditivas, idempotentes, compatíveis com a versão anterior, gatilhos com `siga_touch_updated_at()`, SQL gerado por `npm run siga:sql`, preenchimentos incrementais verificáveis, plano de recuperação. Nunca aplicar SQL experimental na produção.
+> - Desempenho: medir (Web Vitals, consultas lentas, tamanho de resposta) antes de fixar metas; definir volume de referência por escola; não prometer milissegundos sem medição.
+>
+> ### C. Correcções já identificadas (começar por aqui)
+> 1. `src/features/students/server.ts` → `removeGuardian`: substituir `DELETE` por `UPDATE student_guardians SET valid_until = hoje` (com motivo em auditoria); listagens passam a mostrar só vínculos vigentes e o histórico no detalhe.
+> 2. `class_subjects`: migração aditiva de vigência da atribuição docente e uso dela em `enforce_teacher_assessment_score_scope`.
+> 3. `audit_logs` e outras tabelas sensíveis sem `FORCE RLS`: avaliar e aplicar conforme `DATABASE_RULES.md`.
+> 4. Revalidar `school_id` vindo do cliente em `finance/payflow-settlement.ts`, `access/request-schemas.ts`, `saas/web-site-schemas.ts`, `school-website/student-portal-server.ts`, `routes/api/mobile/presence.tsx`.
+> 5. Identificador de correlação de ponta a ponta.
+> 6. `updateTeacher` transaccional com controlo de versão.
+> 7. Hook comum de alterações não guardadas; diálogo comum de impacto antes de eliminar/arquivar.
+> 8. Generalizar `CrudListFeedbackRow` e paginação no servidor às listas de alunos, turmas, faturas, comunicações e arquivos.
+> 9. Seed de demonstração: dados claramente fictícios, recusa de execução contra produção, duas escolas, dois anos, alunos com e sem encarregados, matrícula activa, rascunho, renovação, transferência, bolsa, isenção, turma cheia, vínculo docente expirado, resultados qualitativos e quantitativos, documentos pendentes.
+>
+> ### D. Critérios de aceitação (cada um com teste)
+> | Cenário | Resultado exigido |
+> |---|---|
+> | Duplo clique em confirmar matrícula | Uma matrícula e uma única emissão de cada efeito |
+> | Dois operadores, última vaga | Uma confirmação; o outro recebe conflito claro, sem matrícula parcial |
+> | Perda de rede após confirmar | Retoma encontra a matrícula existente, sem duplicar |
+> | Aluno já cadastrado | Reutiliza a pessoa; cria só o vínculo necessário |
+> | Renovação | Novo vínculo anual; histórico anterior intacto |
+> | Transferência de turma | Datas correctas; presenças e notas anteriores preservadas |
+> | Professor sem atribuição | Pedido negado no servidor, mesmo por chamada directa |
+> | Acesso entre escolas | Negado em detalhe, listas, pesquisa, anexos, exportações e cache |
+> | Encarregado sem vínculo vigente | Não obtém informação do aluno |
+> | Mudança de ano ou escola | Nenhum dado antigo misturado nem gravado no novo contexto |
+> | Alteração de regra de avaliação | Resultados publicados não mudam silenciosamente |
+> | Falha de e-mail | Matrícula confirmada; notificação pendente e repetível |
+> | Sem cobrança aplicável | Matrícula não bloqueada por campos financeiros irrelevantes |
+> | Edição simultânea de nota | Conflito detectado, sem sobrescrever |
+> | Teclado e telemóvel | Fluxos essenciais completos, foco correcto, comandos acessíveis |
+>
+> ### E. Entrega
+> - Commits pequenos por módulo/lote; PR em rascunho até CI verde na última SHA e ensaio em staging com contas fictícias.
+> - Antes de cada push: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run siga:check`; para SQL, testes PGlite.
+> - Relatar com honestidade: o que foi feito, o que foi testado, o que ficou pendente e porquê. Nenhuma linha da matriz passa a ✅ sem teste.
+> - Não sobrescrever o trabalho das PRs #252, #259, #270, #332 nem da PR CRUD Premium de 28/10.

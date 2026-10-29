@@ -2,6 +2,8 @@
 
 Data: 28/10/2026 · Branch: `feat/crud-premium-engineering-20261028` · Base inicial: `main@8ea7851bb5c7ed72536ebbd6abc5e9675a4d8fbf`
 
+> Continuação (29/10/2026): diagnóstico verificado e prompt mestre em [CRUD_PREMIUM_PROMPT_2026-10-29.md](CRUD_PREMIUM_PROMPT_2026-10-29.md).
+
 ## Objectivo
 
 Melhorar progressivamente os CRUDs, a arquitectura, a integridade e a experiência do SIGA Plus, **sem remover funcionalidades**. Esta PR é deliberadamente mantida em **draft** até existirem provas de validação suficientes para as áreas efectivamente alteradas.
