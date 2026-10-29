@@ -43,6 +43,7 @@ export type StudentAccountLine = {
   classGroupId: string;
   classLabel: string;
   hasAccount: boolean;
+  accountSuspended: boolean;
   hasBi: boolean;
 };
 
@@ -147,6 +148,20 @@ async function loadStudentLines(
     : { data: [] as Row[], error: null };
   if (peopleError) throw publicDatabaseError(peopleError, "Não foi possível ler as fichas.");
   const personOf = new Map(((people ?? []) as Row[]).map((row) => [str(row.id), row]));
+  const accountIds = [...new Set(((people ?? []) as Row[]).map((person) => str(person.user_id)).filter(Boolean))];
+  const { data: accountMemberships, error: accountError } = accountIds.length
+    ? await db
+        .from("school_memberships")
+        .select("user_id, status")
+        .eq("school_id", schoolId)
+        .in("user_id", accountIds)
+    : { data: [] as Row[], error: null };
+  if (accountError) {
+    throw publicDatabaseError(accountError, "Não foi possível consultar o estado das contas.");
+  }
+  const accountStatus = new Map(
+    ((accountMemberships ?? []) as Row[]).map((row) => [str(row.user_id), str(row.status)]),
+  );
   return ((students ?? []) as Row[]).map((row) => {
     const person = personOf.get(str(row.person_id));
     return {
@@ -156,6 +171,7 @@ async function loadStudentLines(
       name: str(person?.full_name) || "—",
       studentNumber: str(row.student_number),
       hasAccount: Boolean(person?.user_id),
+      accountSuspended: Boolean(person?.user_id) && accountStatus.get(str(person?.user_id)) !== "active",
       hasBi: Boolean(person?.national_id),
     };
   });
@@ -382,6 +398,71 @@ export const resetStudentPassword = createServerFn({ method: "POST" })
       loginEmail: str(current.user?.email),
       password,
     } satisfies IssuedCredential;
+  });
+
+/**
+ * Suspende ou reactiva APENAS o acesso ao portal desta escola.
+ * Nunca altera o estado académico, matrícula, senha ou histórico do aluno.
+ * Rejeita identidades ligadas a outras escolas ou a papéis não estudantis.
+ */
+export const setStudentAccountDisabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) =>
+    z.object({ studentId: z.string().guid(), disabled: z.boolean() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    requireAal2(context.claims ?? {}, "Bloquear ou reactivar o acesso de um aluno");
+    const actor = await requireSgaWriterForWrite(
+      "pessoas",
+      context.supabase,
+      context.userId,
+      MANAGE_ROLES,
+    );
+    const db = await loadSgaAdminClient();
+    const [line] = await loadStudentLines(db, actor.schoolId, [data.studentId]);
+    if (!line) throw new Error("Aluno não encontrado nesta escola.");
+    const { data: person, error: personError } = await db
+      .from("people")
+      .select("user_id")
+      .eq("id", line.personId)
+      .eq("school_id", actor.schoolId)
+      .maybeSingle();
+    if (personError) {
+      throw publicDatabaseError(personError, "Não foi possível validar a conta do aluno.");
+    }
+    const userId = str(person?.user_id);
+    if (!userId) throw new Error("O aluno ainda não tem conta de acesso.");
+    if (userId === context.userId) throw new Error("Não pode bloquear a própria conta.");
+    await assertStudentOnlyAccount(db, actor.schoolId, userId);
+
+    const { data: member, error: membershipError } = await db
+      .from("school_memberships")
+      .select("id, status")
+      .eq("school_id", actor.schoolId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (membershipError || !member) {
+      throw new Error("Não existe vínculo de login deste aluno com a escola.");
+    }
+    const nextStatus = data.disabled ? "suspended" : "active";
+    if (member.status !== nextStatus) {
+      const { error: updateError } = await db
+        .from("school_memberships")
+        .update({ status: nextStatus })
+        .eq("id", member.id)
+        .eq("school_id", actor.schoolId);
+      if (updateError) {
+        throw publicDatabaseError(updateError, "Não foi possível actualizar o acesso do aluno.");
+      }
+      await recordAccessAudit({
+        schoolId: actor.schoolId,
+        actorUserId: context.userId,
+        action: data.disabled ? "access.student_disabled" : "access.student_enabled",
+        entityType: "student",
+        entityId: data.studentId,
+      });
+    }
+    return { studentId: data.studentId, disabled: data.disabled };
   });
 
 /**
