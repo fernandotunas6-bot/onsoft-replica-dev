@@ -41,7 +41,8 @@ function TeacherProfilePage() {
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { selectedYearId, school, selectedYearLabel } = useSchoolSettings();
-  const canManage = canWriteModule(account.role, "pedagogica", account.grants);
+  const isAcademicManager = account.roles.includes("Administrador") || account.roles.includes("Secretaria");
+  const canManage = isAcademicManager && canWriteModule(account.role, "pedagogica", account.grants);
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "profile"],
     queryFn: () => listTeachers({ data: { status: "all", limit: 200 } }),
@@ -60,6 +61,8 @@ function TeacherProfilePage() {
     queryFn: () => getTeacherWorkspace({ data: teacherId ? { teacherId } : {} }),
     retry: false,
   });
+  const mismatchedTeacher = !isAcademicManager && teacherWorkspaceQuery.isSuccess &&
+    teacherWorkspaceQuery.data?.teacherId !== teacherId;
   const teacherRelationsSnapshot = useMemo(
     () => (teacher ? mapTeacherWorkspaceToSnapshot(teacher, teacherWorkspaceQuery.data) : null),
     [teacher, teacherWorkspaceQuery.data],
@@ -75,7 +78,7 @@ function TeacherProfilePage() {
   });
   const employmentId = canReadHr ? hrEmploymentQuery.data?.employmentId : undefined;
   const focusedTeacherEntity = useMemo(() => {
-    if (!teacher || !teacherRelationsSnapshot) return null;
+    if (!teacher || !teacherRelationsSnapshot || mismatchedTeacher) return null;
     return {
       type: "teacher" as const,
       id: teacher.id,
@@ -84,7 +87,7 @@ function TeacherProfilePage() {
       data: teacherRelationsSnapshot,
       ...(employmentId ? { relations: { employee: employmentId } } : {}),
     };
-  }, [teacher, teacherRelationsSnapshot, school?.id, employmentId]);
+  }, [teacher, teacherRelationsSnapshot, school?.id, employmentId, mismatchedTeacher]);
   useDeclareEntityFocus(focusedTeacherEntity);
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const subjects = workspaceQuery.data?.subjects ?? [];
@@ -307,6 +310,10 @@ function TeacherProfilePage() {
         ) : teachersQuery.isError || !teacher ? (
           <p className="rounded-xl border border-border p-5 text-sm text-muted-foreground">
             Não foi possível encontrar este professor na escola activa.
+          </p>
+        ) : mismatchedTeacher ? (
+          <p className="rounded-xl border border-border p-5 text-sm text-destructive">
+            Só pode consultar a sua própria ficha docente nesta escola.
           </p>
         ) : teacherWorkspaceQuery.isError ? (
           <p className="rounded-xl border border-border p-5 text-sm text-destructive">
