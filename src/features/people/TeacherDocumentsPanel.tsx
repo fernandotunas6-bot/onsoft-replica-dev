@@ -82,10 +82,10 @@ export function TeacherDocumentsPanel({
             </p>
           </div>
           {query.data?.policyEnabled ? (
-            <Badge variant={missing.length ? "outline" : "default"}>
-              {missing.length
-                ? `${missing.length} obrigatório(s) em falta`
-                : "Requisitos recebidos"}
+            <Badge variant={missing.length || query.data.levelPending ? "outline" : "default"}>
+              {query.data.levelPending ? "Nível docente por definir"
+                : missing.length ? `${missing.length} obrigatório(s) em falta`
+                : "Requisitos recebidos — por validar"}
             </Badge>
           ) : (
             <Badge variant="outline">Exigência desactivada</Badge>
@@ -103,6 +103,12 @@ export function TeacherDocumentsPanel({
               {received.length} tipo(s) de documento recebido(s) · {required.length} obrigatório(s).
               A entrega não significa validação de autenticidade.
             </p>
+            {query.data.levelPending ? (
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                A escola tem vários níveis de ensino. Atribua primeiro o contexto lectivo
+                deste docente para determinar todos os documentos obrigatórios.
+              </p>
+            ) : null}
             <ul className="mt-3 divide-y divide-border">
               {items.map((item) => (
                 <li key={item.code} className="flex items-center justify-between gap-3 py-3">
