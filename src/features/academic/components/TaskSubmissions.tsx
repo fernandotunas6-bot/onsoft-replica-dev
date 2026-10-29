@@ -787,6 +787,7 @@ export function MyTaskSubmission({
   const [body, setBody] = useState("");
   const [attachment, setAttachment] = useState<PreparedAttachment | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const attachmentRequest = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const query = useQuery({
@@ -814,13 +815,20 @@ export function MyTaskSubmission({
   });
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    const request = ++attachmentRequest.current;
+    // Não reenviar um anexo antigo quando a substituição falha.
+    setAttachment(null);
     setPreparing(true);
     try {
-      setAttachment(await prepareAttachment(file));
+      const prepared = await prepareAttachment(file);
+      // A leitura de outro ficheiro pode ter terminado primeiro.
+      if (request === attachmentRequest.current) setAttachment(prepared);
     } catch (error) {
-      toast.error(publicErrorMessage(error, "Não foi possível usar este ficheiro."));
+      if (request === attachmentRequest.current) {
+        toast.error(publicErrorMessage(error, "Não foi possível usar este ficheiro."));
+      }
     } finally {
-      setPreparing(false);
+      if (request === attachmentRequest.current) setPreparing(false);
     }
   };
   // Sem acesso a esta tarefa (ex.: pessoal sem a disciplina): não há nada a mostrar.
