@@ -136,12 +136,20 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _markAllRead(NoticeFeed feed) async {
-    setState(() => _readHere.addAll(feed.items.map((n) => n.id)));
+    final ids = feed.items.where((n) => !n.read).map((n) => n.id).toSet();
+    setState(() => _readHere.addAll(ids));
     try {
       await ref.read(sgaNotificationsRepositoryProvider).markRead();
     } catch (_) {
-      // Sem rede: fica marcado aqui; o servidor acerta na próxima vez.
+      // Uma falha não pode deixar os avisos falsamente lidos até sair da app.
+      if (mounted) {
+        setState(() => _readHere.removeAll(ids));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Não foi possível marcar os avisos como lidos.'),
+        ));
+      }
     }
+    if (!mounted) return;
     ref.invalidate(personalNoticesProvider);
     _markAnnouncementsSeen();
   }
@@ -154,8 +162,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ref
             .read(sgaNotificationsRepositoryProvider)
             .markRead([personal.id])
-            .then((_) => ref.invalidate(personalNoticesProvider))
-            .catchError((_) {}),
+            .then((_) {
+              if (mounted) ref.invalidate(personalNoticesProvider);
+            })
+            .catchError((Object _) {
+              if (!mounted) return;
+              setState(() => _readHere.remove(personal.id));
+              ref.invalidate(personalNoticesProvider);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Não foi possível marcar o aviso como lido.'),
+              ));
+            }),
       );
     }
     final role = ref.read(authProvider)?.role;
