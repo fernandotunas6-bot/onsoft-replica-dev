@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -50,19 +50,19 @@ const tabs: Array<{ id: TabId; label: string; icon: typeof BookOpen; hr?: boolea
   { id: "historico", label: "Histórico", icon: History },
 ];
 
-function EmptyMessage({ children }: { children: React.ReactNode }) {
+function EmptyMessage({ children }: { children: ReactNode }) {
   return <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">{children}</p>;
 }
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({ label, children }: { label: string; children: ReactNode }) {
   return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 break-words text-sm font-medium">{children || "—"}</dd></div>;
 }
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return <section className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
     <h2 className="text-sm font-semibold">{title}</h2>{children}
   </section>;
 }
 function HrState({ loading, error, employee, children }: {
-  loading: boolean; error: boolean; employee: HrEmployeeDetail | null | undefined; children: (value: HrEmployeeDetail) => React.ReactNode;
+  loading: boolean; error: boolean; employee: HrEmployeeDetail | null | undefined; children: (value: HrEmployeeDetail) => ReactNode;
 }) {
   if (loading) return <EmptyMessage>A carregar dados autorizados do RH…</EmptyMessage>;
   if (error) return <EmptyMessage>Não foi possível consultar o RH. Confirme as permissões e tente novamente.</EmptyMessage>;
