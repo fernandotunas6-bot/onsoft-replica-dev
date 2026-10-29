@@ -123,7 +123,10 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
   );
   const { unread, unreadCount } = useInboxUnread();
   const { alerts } = useSchoolAlerts();
-  const personalNotifications = usePersonalNotifications(currentUser.id, currentUser.schoolId ?? "");
+  const personalNotifications = usePersonalNotifications(
+    currentUser.id,
+    currentUser.schoolId ?? "",
+  );
   const personalUnread = personalNotifications.data?.unread ?? 0;
   const personalCount = personalNotifications.data?.items.length ?? 0;
   // Pendências financeiras/pedagógicas são acções por resolver, não mensagens não lidas.
@@ -582,7 +585,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       </span>
                     </button>
                   ))}
-                  {!alerts.length && !unread.length && !personalCount && !personalUnread && !personalNotifications.isError ? (
+                  {!alerts.length &&
+                  !unread.length &&
+                  !personalCount &&
+                  !personalUnread &&
+                  !personalNotifications.isError ? (
                     <p className="rounded-2xl border border-border bg-secondary/40 px-4 py-5 text-sm text-muted-foreground">
                       Sem notificações novas. Candidaturas, documentos, faturas em atraso e
                       mensagens internas aparecem aqui.
