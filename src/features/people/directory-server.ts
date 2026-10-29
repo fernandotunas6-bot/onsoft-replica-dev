@@ -243,7 +243,7 @@ async function teacherRows(
   const { data: people, error } = ids.length
     ? await db
         .from("people")
-        .select("id, full_name, email, phone, photo_url")
+        .select("id, full_name, email, phone, photo_url, updated_at")
         .eq("school_id", schoolId)
         .in("id", ids)
     : { data: [] as Row[], error: null };
@@ -265,6 +265,7 @@ async function teacherRows(
         phone: (person?.phone as string | null) ?? null,
         photo_url: (person?.photo_url as string | null) ?? null,
         updated_at: String(teacher["updated_at"] ?? ""),
+        person_updated_at: (person?.updated_at as string | null | undefined) ?? null,
       };
     }),
     hidden,

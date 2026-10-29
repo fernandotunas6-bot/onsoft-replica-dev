@@ -204,6 +204,8 @@ function TeacherProfilePage() {
                         email: values["email"] || "",
                         phone: values["telefone"] || undefined,
                         status: values["estado"] === "Inactivo" ? "inactive" : "active",
+                        expectedUpdatedAt: teacher.updated_at || undefined,
+                        expectedPersonUpdatedAt: teacher.person_updated_at ?? undefined,
                       },
                     });
                     await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
