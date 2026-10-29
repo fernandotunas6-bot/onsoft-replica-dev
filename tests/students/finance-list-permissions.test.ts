@@ -48,7 +48,7 @@ describe("alunos: permissões financeiras na lista", () => {
 
   it("não exporta colunas financeiras sem autorização", () => {
     const route = readFileSync("src/routes/alunos/index.tsx", "utf8");
-    expect(route).toContain('...(canReadFinance\n      ? [\n          {\n            label: "Pagamento"');
+    expect(route).toMatch(/\.\.\.\(canReadFinance\s*\?\s*\[\s*\{\s*label:\s*"Pagamento"/);
   });
 
   it("a lista móvel não mostra a dívida sem autorização financeira", () => {
