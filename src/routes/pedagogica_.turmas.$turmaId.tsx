@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   GraduationCap,
+  MoreHorizontal,
   Pencil,
   RotateCcw,
   Trash2,
@@ -17,6 +18,13 @@ import {
 import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/layout/AppShell";
@@ -36,6 +44,7 @@ import {
 } from "@/features/academic/server";
 import { listTeachers } from "@/features/people/server";
 import { canWriteModule } from "@/features/auth/access-policy";
+import { canReadStudentSection } from "@/features/students/student-sections";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { useDeclareEntityFocus } from "@/features/intelligence/entity-focus-context";
@@ -601,21 +610,72 @@ function TurmaDetail() {
                 </div>
               ) : null}
               {filteredStudents.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                <div className="rounded-lg border border-border bg-card">
                   {visibleStudents.map((aluno) => (
-                    <Link
+                    <div
                       key={aluno.id}
-                      to="/alunos/$studentId"
-                      params={{ studentId: aluno.student_id ?? "" }}
-                      className="flex items-center justify-between gap-2 p-3 text-xs hover:bg-secondary/40"
+                      className="flex min-w-0 items-center gap-1 border-b border-border last:border-b-0 hover:bg-secondary/40"
                     >
-                      <span className="min-w-0 truncate font-medium text-foreground">
-                        {aluno.student_name}
-                      </span>
-                      <span className="shrink-0 text-muted-foreground">
-                        {aluno.registration_number || "—"}
-                      </span>
-                    </Link>
+                      {aluno.student_id ? (
+                        <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs focus-visible:outline-2">
+                          <span className="min-w-0 truncate font-medium text-foreground">
+                            {aluno.student_name}
+                          </span>
+                          <span className="shrink-0 text-muted-foreground">
+                            {aluno.registration_number || "—"}
+                          </span>
+                        </Link>
+                      ) : (
+                        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-xs">
+                          <span className="truncate font-medium">{aluno.student_name}</span>
+                          <span className="text-muted-foreground">{aluno.registration_number || "—"}</span>
+                        </div>
+                      )}
+                      {aluno.student_id ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button type="button" variant="ghost" size="icon"
+                              className="mr-1 shrink-0"
+                              aria-label={`Acções de ${aluno.student_name}`}>
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel className="truncate">{aluno.student_name}</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                              <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}>
+                                <Users className="size-4" /> Ver ficha do aluno
+                              </Link>
+                            </DropdownMenuItem>
+                            {canReadStudentSection("academico", account.role, account.grants) ? (
+                              <DropdownMenuItem asChild>
+                                <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
+                                  search={{ secao: "academico" }}>
+                                  <GraduationCap className="size-4" /> Dados académicos
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canReadStudentSection("financeiro", account.role, account.grants) ? (
+                              <DropdownMenuItem asChild>
+                                <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
+                                  search={{ secao: "financeiro" }}>
+                                  <BookOpen className="size-4" /> Propinas e finanças
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : null}
+                            {canReadStudentSection("documentos", account.role, account.grants) ? (
+                              <DropdownMenuItem asChild>
+                                <Link to="/alunos/$studentId" params={{ studentId: aluno.student_id }}
+                                  search={{ secao: "documentos" }}>
+                                  <BookOpen className="size-4" /> Documentos do aluno
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               ) : (
