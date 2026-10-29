@@ -29,9 +29,15 @@ try {
       is_folder boolean, is_system boolean, reference_code text
     );
   `);
-  await db.exec(readFileSync(new URL(
-    "../../supabase/migrations/20261029190000_teacher_document_entries.sql", import.meta.url
-  ), "utf8"));
+  await db.exec(
+    readFileSync(
+      new URL(
+        "../../supabase/migrations/20261029190000_teacher_document_entries.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
   await db.exec(`
     INSERT INTO auth.users VALUES ('${ids.actor}');
     INSERT INTO public.schools VALUES ('${ids.a}'),('${ids.b}');
@@ -49,19 +55,28 @@ try {
   `;
   await db.exec(insert(ids.a, ids.teacherA, ids.personA, ids.fileA));
   const { rows: references } = await db.query(
-    "SELECT reference_code FROM public.siga_files WHERE id = $1", [ids.fileA]
+    "SELECT reference_code FROM public.siga_files WHERE id = $1",
+    [ids.fileA],
   );
   assert.equal(references[0].reference_code, "BI-261029-X7Y8", "não alterar o ID do Arquivo");
-  await assert.rejects(db.exec(insert(ids.a, ids.teacherB, ids.personA, ids.fileB)),
-    /Anexo docente incompatível/);
-  await assert.rejects(db.exec(insert(ids.b, ids.teacherB, ids.personA, ids.fileA)),
-    /Anexo docente incompatível/);
-  await assert.rejects(db.exec(insert(ids.a, ids.teacherA, ids.personA, ids.fileB)),
-    /Anexo docente incompatível/);
-  await assert.rejects(db.exec(insert(ids.b, ids.teacherB, ids.personB, ids.fileB, "tipo_falso")),
-    /check constraint/);
+  await assert.rejects(
+    db.exec(insert(ids.a, ids.teacherB, ids.personA, ids.fileB)),
+    /Anexo docente incompatível/,
+  );
+  await assert.rejects(
+    db.exec(insert(ids.b, ids.teacherB, ids.personA, ids.fileA)),
+    /Anexo docente incompatível/,
+  );
+  await assert.rejects(
+    db.exec(insert(ids.a, ids.teacherA, ids.personA, ids.fileB)),
+    /Anexo docente incompatível/,
+  );
+  await assert.rejects(
+    db.exec(insert(ids.b, ids.teacherB, ids.personB, ids.fileB, "tipo_falso")),
+    /check constraint/,
+  );
   const { rows: security } = await db.query(
-    "SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid='public.teacher_document_entries'::regclass"
+    "SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid='public.teacher_document_entries'::regclass",
   );
   assert.equal(security[0].relrowsecurity, true);
   assert.equal(security[0].relforcerowsecurity, true);
