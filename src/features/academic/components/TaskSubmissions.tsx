@@ -794,23 +794,14 @@ export function MyTaskSubmission({
     queryFn: () => getMyTaskSubmission({ data: { taskId, ...(studentId ? { studentId } : {}) } }),
     retry: false,
   });
+  // Os dados são capturados no submit, não no closure de mutationFn:
+  // o React Query actualiza as opções num efeito posterior ao render, o que
+  // poderia enviar sem anexo se o aluno clicasse logo após escolher o PDF.
   const submit = useMutation({
-    mutationFn: () =>
-      submitTaskWork({
-        data: {
-          taskId,
-          ...(body.trim() ? { body } : {}),
-          ...(attachment
-            ? {
-                attachment: {
-                  name: attachment.name,
-                  contentType: attachment.contentType,
-                  base64: attachment.base64,
-                },
-              }
-            : {}),
-        },
-      }),
+    mutationFn: (payload: {
+      body?: string;
+      attachment?: Pick<PreparedAttachment, "name" | "contentType" | "base64">;
+    }) => submitTaskWork({ data: { taskId, ...payload } }),
     onSuccess: (result) => {
       toast.success(result.late ? "Trabalho entregue, com atraso." : "Trabalho entregue.");
       setBody("");
@@ -862,7 +853,19 @@ export function MyTaskSubmission({
           className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (ready) submit.mutate();
+            if (!ready || preparing || submit.isPending) return;
+            submit.mutate({
+              ...(body.trim() ? { body } : {}),
+              ...(attachment
+                ? {
+                    attachment: {
+                      name: attachment.name,
+                      contentType: attachment.contentType,
+                      base64: attachment.base64,
+                    },
+                  }
+                : {}),
+            });
           }}
         >
           <Textarea
