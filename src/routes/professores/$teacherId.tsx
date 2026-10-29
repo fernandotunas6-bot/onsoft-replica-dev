@@ -48,11 +48,11 @@ function TeacherProfilePage() {
     account.roles.includes("Administrador") || account.roles.includes("Secretaria");
   const canManage = isAcademicManager && canWriteModule(account.role, "pedagogica", account.grants);
   const teachersQuery = useQuery({
-    queryKey: ["people", "teachers", "profile"],
+    queryKey: ["people", "teachers", "profile", account.schoolId, account.id],
     queryFn: () => listTeachers({ data: { status: "all", limit: 200 } }),
   });
   const workspaceQuery = useQuery({
-    queryKey: ["academic", "pedagogical-workspace", selectedYearId],
+    queryKey: ["academic", "pedagogical-workspace", account.schoolId, selectedYearId],
     queryFn: () =>
       listPedagogicalWorkspace({
         data: selectedYearId ? { academicYearId: selectedYearId } : {},
@@ -61,7 +61,7 @@ function TeacherProfilePage() {
   });
   const teacher = (teachersQuery.data ?? []).find((row) => row.id === teacherId);
   const teacherWorkspaceQuery = useQuery({
-    queryKey: ["academic", "teacher-workspace", teacherId ?? "me"],
+    queryKey: ["academic", "teacher-workspace", account.schoolId, account.id, teacherId ?? "me"],
     queryFn: () => getTeacherWorkspace({ data: teacherId ? { teacherId } : {} }),
     retry: false,
   });
@@ -77,7 +77,7 @@ function TeacherProfilePage() {
   // lê o RH, e o servidor confirma.
   const canReadHr = canAccessPath("/financeiro/rh", account.role, account.grants);
   const hrEmploymentQuery = useQuery({
-    queryKey: ["hr", "teacher-employment", teacherId],
+    queryKey: ["hr", "teacher-employment", account.schoolId, teacherId],
     queryFn: () => getTeacherHrEmployment({ data: { teacherId } }),
     enabled: canReadHr && Boolean(teacherId),
     retry: false,
@@ -89,11 +89,11 @@ function TeacherProfilePage() {
       type: "teacher" as const,
       id: teacher.id,
       label: teacher.full_name,
-      schoolId: school?.id ?? "",
+      schoolId: account.schoolId ?? "",
       data: teacherRelationsSnapshot,
       ...(employmentId ? { relations: { employee: employmentId } } : {}),
     };
-  }, [teacher, teacherRelationsSnapshot, school?.id, employmentId, mismatchedTeacher]);
+  }, [teacher, teacherRelationsSnapshot, account.schoolId, employmentId, mismatchedTeacher]);
   useDeclareEntityFocus(focusedTeacherEntity);
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const subjects = workspaceQuery.data?.subjects ?? [];
@@ -343,6 +343,8 @@ function TeacherProfilePage() {
             }
             canReadHr={canReadHr}
             employmentId={employmentId}
+            role={account.role}
+            grants={account.grants}
           />
         )}
       </div>
