@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canReadStudentSection } from "@/features/students/student-sections";
+import { canIssueStudentTuition, canReadStudentSection } from "@/features/students/student-sections";
 
 describe("alunos: permissões financeiras na lista", () => {
   it("não expõe dados financeiros ao professor sem grant", () => {
@@ -12,6 +12,26 @@ describe("alunos: permissões financeiras na lista", () => {
     expect(canReadStudentSection("financeiro", "Tesouraria", {})).toBe(true);
     expect(canReadStudentSection("financeiro", "Secretaria", { financeiro: "Nenhum" })).toBe(false);
     expect(canReadStudentSection("financeiro", "Professor", { financeiro: "Leitura" })).toBe(true);
+  });
+
+  it("só permite emitir propinas com permissão de escrita", () => {
+    expect(canIssueStudentTuition("Tesouraria", {})).toBe(true);
+    expect(canIssueStudentTuition("Administrador", {})).toBe(true);
+    expect(canIssueStudentTuition("Secretaria", { financeiro: "Leitura" })).toBe(false);
+    expect(canIssueStudentTuition("Tesouraria", { financeiro: "Nenhum" })).toBe(false);
+    expect(canIssueStudentTuition("Professor", {})).toBe(false);
+    expect(canIssueStudentTuition("Professor", { financeiro: "Leitura" })).toBe(false);
+    expect(canIssueStudentTuition("Professor", { financeiro: "Escrita" })).toBe(true);
+    expect(canIssueStudentTuition("Aluno", { financeiro: "Total" })).toBe(false);
+  });
+
+  it("não mostra acções de escrita a quem só pode ler dívidas", () => {
+    const bulk = readFileSync("src/features/students/components/StudentBulkTools.tsx", "utf8");
+    const page = readFileSync("src/routes/alunos/index.tsx", "utf8");
+    expect(bulk).toContain("{canIssueTuition ? (");
+    expect(bulk).toContain("{canReadFinance ? (");
+    expect(page).toContain("canIssueTuition={canIssueTuition}");
+    expect(page).toContain("canReadFinance={canReadFinance}");
   });
 
   it("a lista móvel não mostra a dívida sem autorização financeira", () => {
