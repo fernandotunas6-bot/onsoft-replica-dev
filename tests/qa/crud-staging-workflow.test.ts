@@ -7,6 +7,7 @@ describe("workflow E2E CRUD: execução deliberada e exclusiva em staging", () =
   it("exige dispatch manual com confirmação e ambiente isolado", () => {
     expect(workflow).toMatch(/^on:\n {2}workflow_dispatch:/m);
     expect(workflow).toContain("environment: staging");
+    expect(workflow).toContain("if: github.ref == 'refs/heads/main'");
     expect(workflow).toContain('"$CONFIRMATION" != "STAGING"');
     expect(workflow).not.toMatch(/^ {2}(push|pull_request|schedule|workflow_run):/m);
   });
