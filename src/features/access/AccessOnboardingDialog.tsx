@@ -161,7 +161,9 @@ export function AccessOnboardingDialog({
       try {
         await onChanged();
       } catch {
-        toast.warning("O registo foi guardado, mas não foi possível actualizar a lista. Recarregue a página.");
+        toast.warning(
+          "O registo foi guardado, mas não foi possível actualizar a lista. Recarregue a página.",
+        );
       }
       setDirty(false);
       setOpen(false);
