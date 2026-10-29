@@ -13,24 +13,16 @@ import {
   updateSystemAccountCargo,
 } from "@/features/access/server";
 import { createPerson } from "@/features/people/server";
+import {
+  isUnassignedStaffCandidate,
+  type CandidateScope,
+} from "@/features/access/staff-candidates";
 
 type SystemAccount = Awaited<ReturnType<typeof listSystemAccounts>>[number];
 type Mode = "existing" | "invite" | "person";
-type CandidateScope = "unassigned" | "without_staff";
 type StaffRole = Extract<ApplicationRole, "Administrador" | "Secretaria" | "Tesouraria" | "Professor">;
 
 const STAFF_ROLES: StaffRole[] = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
-const NON_STAFF_ROLES = new Set(["Utilizador", "Aluno", "Encarregado"]);
-
-export function isUnassignedStaffCandidate(
-  account: Pick<SystemAccount, "cargo" | "is_self">,
-  scope: CandidateScope,
-): boolean {
-  if (account.is_self) return false;
-  if (scope === "unassigned") return !account.cargo || account.cargo === "Utilizador";
-  return !account.cargo || NON_STAFF_ROLES.has(account.cargo);
-}
-
 export function AccessOnboardingDialog({
   accounts,
   accountsLoading,
