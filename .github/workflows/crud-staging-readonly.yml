@@ -39,8 +39,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
       SIGA_CRUD_E2E_TENANT_A_MARKER: ${{ vars.SIGA_CRUD_E2E_TENANT_A_MARKER }}
       SIGA_CRUD_E2E_TENANT_B_MARKER: ${{ vars.SIGA_CRUD_E2E_TENANT_B_MARKER }}
-      SIGA_CRUD_E2E_TENANT_A_STATE: ${{ runner.temp }}/crud-school-a.json
-      SIGA_CRUD_E2E_TENANT_B_STATE: ${{ runner.temp }}/crud-school-b.json
+      SIGA_CRUD_E2E_TENANT_A_STATE: /tmp/siga-crud-${{ github.run_id }}-school-a.json
+      SIGA_CRUD_E2E_TENANT_B_STATE: /tmp/siga-crud-${{ github.run_id }}-school-b.json
       SESSION_A_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_A_STATE_B64 }}
       SESSION_B_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_B_STATE_B64 }}
     steps:
