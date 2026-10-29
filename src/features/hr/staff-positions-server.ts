@@ -14,11 +14,16 @@ type Db = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
 /** Falha antes de criar uma pessoa se a instalação ainda não suporta Funcionários/RH. */
 export async function assertHrEmploymentStoreReady(db: Db, schoolId: string): Promise<void> {
-  const { error } = await db.from("hr_employments")
-    .select("id").eq("school_id", schoolId).limit(1);
+  const { error } = await db
+    .from("hr_employments")
+    .select("id")
+    .eq("school_id", schoolId)
+    .limit(1);
   if (error) {
-    throw publicDatabaseError(error,
-      "O módulo Funcionários/RH deve estar pronto antes de atribuir vínculos laborais.");
+    throw publicDatabaseError(
+      error,
+      "O módulo Funcionários/RH deve estar pronto antes de atribuir vínculos laborais.",
+    );
   }
 }
 
