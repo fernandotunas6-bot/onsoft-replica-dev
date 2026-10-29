@@ -50,7 +50,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   m.allowed.mockResolvedValue([CLASS]);
   m.limit.mockResolvedValue(true);
-  m.write.mockResolvedValue({ schoolId: "school-a" });
+  // Como o guarda real: sem lista de cargos só aceita Administrador, Secretaria
+  // e Tesouraria (parseWriterArgs); o professor tem de estar na lista.
+  m.write.mockImplementation(async (_module: string, _userId: string, roles?: string[]) => {
+    const allowed = roles ?? ["Administrador", "Secretaria", "Tesouraria"];
+    if (!allowed.includes("Professor"))
+      throw new Error("Sem permissão para esta operação na escola.");
+    return { schoolId: "school-a" };
+  });
   m.insert.mockResolvedValue({ error: null });
 });
 describe("registo docente: autorização antes da emissão", () => {
@@ -75,6 +82,11 @@ describe("registo docente: autorização antes da emissão", () => {
         }),
       }),
     );
+  });
+  it("o professor passa no guarda de escrita da Pedagógica sem permissão extra", async () => {
+    await registerIssuedDocument({ data });
+    expect(m.write).toHaveBeenCalledWith("pedagogica", "teacher", ["Professor"]);
+    expect(m.insert).toHaveBeenCalledTimes(1);
   });
   it("não regista sem turma nem com turma alheia", async () => {
     for (const ids of [[], [OTHER], [CLASS, OTHER]]) {

@@ -66,6 +66,7 @@ const businessMessages = new Set([
   "Esta entrega já foi devolvida ou não existe.",
   "A avaliação não pertence à turma e disciplina da tarefa.",
   "A nota não respeita a cotação da avaliação.",
+  "A avaliação mudou. Actualize a avaliação antes de tentar novamente.",
   // Gatilho 20261025090000: segunda propina do mesmo mês, em emissões paralelas.
   "Este aluno já tem a propina deste mês. Anule-a antes de emitir outra.",
   "A turma atingiu a capacidade configurada.",

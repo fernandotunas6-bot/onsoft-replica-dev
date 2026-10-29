@@ -17,7 +17,7 @@ Ramo: `fix/audit-consolidation-integrity-20261029`.
 ## Migração e contribuições preservadas
 
 Recuperados da PR #345, sem a fundir integralmente: contrato das RPCs,
-`20261026110424_academic_write_integrity.sql`, ensaio SQL e adaptação dos testes
+`20261029220000_academic_write_integrity.sql`, ensaio SQL e adaptação dos testes
 da devolução. O pacote mantém também a RPC de organização etária, ainda sem
 consumidor novo neste ramo. Não criar outra migração com as mesmas funções.
 
@@ -95,3 +95,20 @@ coincidem com a main. #392 permanece aberta até integrar a recuperação da cac
 A CI inicial passou a auditoria de dependências e Academic Import Check, mas
 rejeitou a formatação de duas asserções no ensaio SQL (.mjs). A formatação foi
 corrigida e o lint integral repetido; não se desactivou nenhum controlo.
+
+## Revisão de 29/10 (Claude Code)
+
+- **Emissão docente:** `registerIssuedDocument` chamava
+  `requireSgaWriterForWrite("pedagogica", userId)` sem lista de cargos; o guarda
+  só aceita então Administrador/Secretaria/Tesouraria e recusava os professores sem
+  permissão extra. Passa `["Professor"]`; o teste simula o contrato real do guarda.
+- **Ordem da migração:** renomeada de `20261026110424` para `20261029220000`,
+  depois da última migração já aplicada (`20261029190000_teacher_document_entries`),
+  para o `supabase db push` não a recusar por estar fora de ordem.
+- **Bloqueios:** a escola passa de `FOR UPDATE` a `FOR SHARE` nas três funções
+  (deixa de travar as inserções com FK para `schools` em toda a escola e de pôr
+  todos os lançamentos de notas da escola em fila). A serialização passa a ser por
+  turma (`class_groups FOR UPDATE`), com a ordem turma → avaliação → matrículas nas
+  três funções; a devolução bloqueia a avaliação `FOR UPDATE` (não `FOR SHARE`)
+  para não haver deadlock por subida de lock. O ensaio SQL confere esta ordem no
+  texto; concorrência entre ligações continua por ensaiar em staging.

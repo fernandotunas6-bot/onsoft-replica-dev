@@ -177,7 +177,9 @@ export const registerIssuedDocument = createServerFn({ method: "POST" })
 
     const db = await loadSgaAdminClient();
     if (issuerRole === "Professor") {
-      await requireSgaWriterForWrite("pedagogica", context.userId);
+      // Sem a lista de cargos, o guarda só aceita Administração/Secretaria/Tesouraria
+      // e recusava todos os professores sem permissão extra na Pedagógica.
+      await requireSgaWriterForWrite("pedagogica", context.userId, ["Professor"]);
       const { resolveUserLinkedEntities } = await import("@/features/auth/server");
       const { resolveVerifiedAccountEmail, teacherClassGroupIds } =
         await import("@/features/students/student-scope");

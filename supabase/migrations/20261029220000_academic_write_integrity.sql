@@ -1,5 +1,11 @@
 -- Notas e devoluções: uma transacção, auditoria incluída. Só o servidor chama,
 -- depois de requireSgaWriterForWrite e do âmbito docente/turma. Sem grants ao browser.
+--
+-- Bloqueios: a escola fica FOR SHARE (o estado não muda durante a escrita, mas
+-- as inserções com FK para schools, que pedem FOR KEY SHARE, continuam). A
+-- serialização é por turma: class_groups FOR UPDATE impede pautas novas dessa
+-- turma entre a validação e a escrita. Ordem comum às três funções, para não
+-- haver deadlocks: escola → vínculo → turma → avaliação/entrega → matrículas.
 -- A base anterior continua intacta; sem estas RPC o cliente recusa a escrita,
 -- nunca regressa ao caminho não atómico. Aplicar primeiro em staging.
 CREATE OR REPLACE FUNCTION public.siga_write_assessment_scores_atomic(
@@ -11,14 +17,13 @@ DECLARE
   v_item public.siga_assessment_items%ROWTYPE;
   v_row record;
   v_old public.siga_assessment_scores%ROWTYPE;
+  v_group uuid;
   v_year uuid;
   v_term uuid;
   v_closed jsonb;
   v_count integer := 0;
 BEGIN
-  -- Ordem comum às duas RPC; impede também novas linhas filhas entre validação
-  -- e escrita (FKs). Os fechos de linhas existentes ficam sob locks abaixo.
-  PERFORM 1 FROM public.schools WHERE id = p_school_id AND status IN ('active', 'setup') FOR UPDATE;
+  PERFORM 1 FROM public.schools WHERE id = p_school_id AND status IN ('active', 'setup') FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'A escola não permite alterações.'; END IF;
   PERFORM 1 FROM public.school_memberships WHERE school_id = p_school_id
     AND user_id = p_actor_user_id AND status = 'active' FOR SHARE;
@@ -26,12 +31,19 @@ BEGIN
   IF jsonb_typeof(p_rows) IS DISTINCT FROM 'array' OR jsonb_array_length(p_rows) NOT BETWEEN 1 AND 500 THEN
     RAISE EXCEPTION 'Lote de notas inválido.';
   END IF;
-  SELECT * INTO v_item FROM public.siga_assessment_items
-    WHERE id = p_item_id AND school_id = p_school_id FOR UPDATE;
+  -- Turma primeiro (sem lock na leitura da avaliação), depois a avaliação; a
+  -- turma não pode ter mudado entre as duas leituras.
+  SELECT class_group_id INTO v_group FROM public.siga_assessment_items
+    WHERE id = p_item_id AND school_id = p_school_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'Avaliação não encontrada.'; END IF;
   SELECT academic_year_id INTO v_year FROM public.class_groups
-    WHERE id = v_item.class_group_id AND school_id = p_school_id FOR SHARE;
+    WHERE id = v_group AND school_id = p_school_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Turma inválida nesta escola.'; END IF;
+  SELECT * INTO v_item FROM public.siga_assessment_items
+    WHERE id = p_item_id AND school_id = p_school_id FOR UPDATE;
+  IF NOT FOUND OR v_item.class_group_id IS DISTINCT FROM v_group THEN
+    RAISE EXCEPTION 'A avaliação mudou. Actualize a avaliação antes de tentar novamente.';
+  END IF;
   SELECT value->'closedTerms' INTO v_closed FROM public.school_settings
     WHERE school_id = p_school_id AND domain = 'pedagogy' FOR SHARE;
   IF COALESCE(v_closed @> jsonb_build_array(v_item.term), false) THEN
@@ -109,7 +121,7 @@ DECLARE
   v_sub public.siga_class_task_submissions%ROWTYPE;
   v_to_pauta boolean;
 BEGIN
-  PERFORM 1 FROM public.schools WHERE id = p_school_id AND status IN ('active', 'setup') FOR UPDATE;
+  PERFORM 1 FROM public.schools WHERE id = p_school_id AND status IN ('active', 'setup') FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'A escola não permite alterações.'; END IF;
   PERFORM 1 FROM public.school_memberships WHERE school_id = p_school_id
     AND user_id = p_actor_user_id AND status = 'active' FOR SHARE;
@@ -120,6 +132,9 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Tarefa não encontrada.'; END IF;
   SELECT * INTO v_cs FROM public.class_subjects WHERE id = v_task.class_subject_id AND school_id = p_school_id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Disciplina da tarefa inválida.'; END IF;
+  -- Mesma ordem da gravação de notas: a turma antes da entrega e da avaliação.
+  PERFORM 1 FROM public.class_groups WHERE id = v_cs.class_group_id AND school_id = p_school_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Turma inválida nesta escola.'; END IF;
   SELECT * INTO v_sub FROM public.siga_class_task_submissions
     WHERE id = p_submission_id AND task_id = p_task_id AND school_id = p_school_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Entrega não encontrada.'; END IF;
@@ -142,7 +157,7 @@ BEGIN
   IF v_to_pauta THEN
     PERFORM 1 FROM public.siga_assessment_items WHERE id = v_task.assessment_item_id
       AND school_id = p_school_id AND class_group_id = v_cs.class_group_id
-      AND subject_id = v_cs.subject_id FOR SHARE;
+      AND subject_id = v_cs.subject_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'A avaliação não pertence à turma e disciplina da tarefa.'; END IF;
     PERFORM public.siga_write_assessment_scores_atomic(p_school_id, p_actor_user_id,
       v_task.assessment_item_id, jsonb_build_array(jsonb_build_object('enrollmentId', v_sub.enrollment_id, 'score', p_grade)));
@@ -169,7 +184,7 @@ LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
 AS $function$
 DECLARE v_enrollment public.enrollments%ROWTYPE;
 BEGIN
-  PERFORM 1 FROM public.schools WHERE id = p_school_id AND status IN ('active','setup') FOR UPDATE;
+  PERFORM 1 FROM public.schools WHERE id = p_school_id AND status IN ('active','setup') FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'A escola não permite alterações.'; END IF;
   PERFORM 1 FROM public.school_memberships WHERE school_id = p_school_id
     AND user_id = p_actor_user_id AND status = 'active' FOR SHARE;

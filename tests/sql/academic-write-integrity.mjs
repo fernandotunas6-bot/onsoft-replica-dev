@@ -51,9 +51,24 @@ INSERT INTO class_groups VALUES ('${id(60)}','${school}','${year}','active');
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 `);
 const migration = readFileSync(
-  new URL("../../supabase/migrations/20261026110424_academic_write_integrity.sql", import.meta.url),
+  new URL("../../supabase/migrations/20261029220000_academic_write_integrity.sql", import.meta.url),
   "utf8",
 );
+// Bloqueios (PGlite tem uma só ligação, por isso confere-se o texto): a escola
+// nunca FOR UPDATE, que travava as inserções com FK para schools em toda a
+// escola; em cada função a turma é bloqueada antes da avaliação.
+assert.doesNotMatch(migration, /FROM public\.schools[^;]*FOR UPDATE/);
+const fnBody = (name) => {
+  const start = migration.indexOf(`FUNCTION public.${name}(`);
+  return migration.slice(start, migration.indexOf("$function$;", start));
+};
+for (const name of ["siga_write_assessment_scores_atomic", "siga_return_task_submission_atomic"]) {
+  const body = fnBody(name);
+  const groupLock = body.search(/FROM public\.class_groups[^;]*FOR UPDATE/);
+  const itemLock = body.search(/FROM public\.siga_assessment_items[^;]*FOR UPDATE/);
+  assert.ok(groupLock > 0 && itemLock > groupLock, `${name}: turma antes da avaliação`);
+  assert.doesNotMatch(body, /FROM public\.siga_assessment_items[^;]*FOR SHARE/);
+}
 await db.exec(migration);
 await db.exec(migration);
 const as = async (role, sql, args = []) => {
