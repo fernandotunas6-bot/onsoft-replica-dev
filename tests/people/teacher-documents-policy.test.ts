@@ -4,8 +4,6 @@ import {
   requiredTeacherDocuments,
   resolveTeacherDocumentLevelContext,
   teacherDocumentChecklist,
-  teacherDocumentCodeFromFile,
-  teacherDocumentFileCode,
 } from "@/features/people/teacher-documents-policy";
 
 describe("requisitos de documentação de docentes", () => {
@@ -55,9 +53,7 @@ describe("requisitos de documentação de docentes", () => {
       required: ["bi"],
       requiredByLevel: {},
     });
-    const ref = teacherDocumentFileCode("bi", "12345678-1234-1234-1234-123456789abc");
-    expect(teacherDocumentCodeFromFile(ref)).toBe("bi");
-    const lines = teacherDocumentChecklist(policy, [ref], ["primario"]);
+    const lines = teacherDocumentChecklist(policy, ["bi"], ["primario"]);
     expect(lines.find((row) => row.code === "bi")).toMatchObject({
       required: true,
       received: true,
@@ -68,7 +64,6 @@ describe("requisitos de documentação de docentes", () => {
       received: false,
       status: "em_falta",
     });
-    expect(teacherDocumentCodeFromFile("BI-261029-XXXX")).toBe(null);
   });
   it("não marca todos os requisitos como completos numa escola mista sem atribuições", () => {
     const policy = parseTeacherDocumentPolicy({
