@@ -576,8 +576,28 @@ export const createPerson = createServerFn({ method: "POST" })
       );
     const person = result as unknown as Database["public"]["Tables"]["people"]["Row"];
 
+    // O cadastro da pessoa é concluído na RPC. Se tiver papel laboral,
+    // cria-se a ficha RH em preparação na mesma escola, sem exigir contrato
+    // nem atribuir permissões de acesso ao sistema.
+    let hrRegistration: "not_applicable" | "ready" | "pending" = "not_applicable";
+    if (roles.some((role) => ["professor", "funcionario", "diretor", "coordenador"].includes(role))) {
+      try {
+        const db = await loadSgaAdminClient();
+        await ensureStaffEmploymentDraft(db, membership.schoolId, String(person.id), context.userId);
+        hrRegistration = "ready";
+      } catch (employmentError) {
+        // Nunca fingir que a criação da pessoa foi revertida: a RPC já gravou.
+        hrRegistration = "pending";
+        reportSigaError("people.create.staff_employment_pending", employmentError, {
+          school_id: membership.schoolId,
+          person_id: person.id,
+        });
+      }
+    }
+
     return {
       ...person,
+      hrRegistration,
       phone_primary: person.phone,
       birth_date: person.date_of_birth,
       nif: person.national_id,
