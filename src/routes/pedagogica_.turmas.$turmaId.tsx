@@ -400,7 +400,10 @@ function TurmaDetail() {
                       exportCsv(
                         `alunos-turma-${turma.code}`,
                         [
-                          { label: "Nome", value: (row: (typeof alunos)[number]) => row.student_name },
+                          {
+                            label: "Nome",
+                            value: (row: (typeof alunos)[number]) => row.student_name,
+                          },
                           {
                             label: "N.º de processo",
                             value: (row: (typeof alunos)[number]) =>
@@ -831,7 +834,12 @@ function TurmaDetail() {
                         setExpandedLists((current) => ({
                           ...(current.classId === turmaId
                             ? current
-                            : { classId: turmaId, alunos: false, horario: false, avaliacoes: false }),
+                            : {
+                                classId: turmaId,
+                                alunos: false,
+                                horario: false,
+                                avaliacoes: false,
+                              }),
                           horario: false,
                         }));
                       }}
@@ -887,7 +895,9 @@ function TurmaDetail() {
                       ) : (
                         <ChevronDown className="size-4" />
                       )}
-                      {expanded.horario ? "Mostrar menos" : `Ver todos os ${scheduleSelection.total} tempos`}
+                      {expanded.horario
+                        ? "Mostrar menos"
+                        : `Ver todos os ${scheduleSelection.total} tempos`}
                     </Button>
                   ) : null}
                   {horario.length ? (
