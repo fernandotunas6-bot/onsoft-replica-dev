@@ -1,8 +1,24 @@
-import { Copy, Ellipsis, FileText, GraduationCap, KeyRound, Mail, Printer, Wallet, FolderOpen } from "lucide-react";
+import {
+  Copy,
+  Ellipsis,
+  FileText,
+  GraduationCap,
+  KeyRound,
+  Mail,
+  Printer,
+  Wallet,
+  FolderOpen,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { exportPdfTable } from "@/lib/export-pdf-loader";
 import { canReadStudentSection } from "@/features/students/student-sections";
 import type { ApplicationRole, ModuleGrantMap } from "@/features/auth/access-policy";
@@ -74,21 +90,33 @@ export function StudentRowActions({
         </DropdownMenuItem>
         {finance ? (
           <DropdownMenuItem asChild>
-            <Link to="/alunos/$studentId" params={{ studentId: student.id }} search={{ secao: "financeiro" }}>
+            <Link
+              to="/alunos/$studentId"
+              params={{ studentId: student.id }}
+              search={{ secao: "financeiro" }}
+            >
               <Wallet className="mr-2 size-4" /> Propinas e cobranças
             </Link>
           </DropdownMenuItem>
         ) : null}
         {academic ? (
           <DropdownMenuItem asChild>
-            <Link to="/alunos/$studentId" params={{ studentId: student.id }} search={{ secao: "academico" }}>
+            <Link
+              to="/alunos/$studentId"
+              params={{ studentId: student.id }}
+              search={{ secao: "academico" }}
+            >
               <GraduationCap className="mr-2 size-4" /> Ver notas e avaliações
             </Link>
           </DropdownMenuItem>
         ) : null}
         {documents ? (
           <DropdownMenuItem asChild>
-            <Link to="/alunos/$studentId" params={{ studentId: student.id }} search={{ secao: "documentos" }}>
+            <Link
+              to="/alunos/$studentId"
+              params={{ studentId: student.id }}
+              search={{ secao: "documentos" }}
+            >
               <FolderOpen className="mr-2 size-4" /> Documentos e anexos
             </Link>
           </DropdownMenuItem>
@@ -102,13 +130,19 @@ export function StudentRowActions({
         <DropdownMenuItem onSelect={() => void copy()}>
           <Copy className="mr-2 size-4" /> Copiar número e nome
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void Promise.resolve(print()).catch(() => toast.error("Falha ao gerar PDF."))}>
+        <DropdownMenuItem
+          onSelect={() =>
+            void Promise.resolve(print()).catch(() => toast.error("Falha ao gerar PDF."))
+          }
+        >
           <Printer className="mr-2 size-4" /> Imprimir resumo PDF
         </DropdownMenuItem>
         {student.email ? (
-          <DropdownMenuItem onSelect={() => {
-            window.location.href = `mailto:${encodeURIComponent(student.email!)}?subject=${encodeURIComponent("Comunicação escolar · SIGA Plus")}`;
-          }}>
+          <DropdownMenuItem
+            onSelect={() => {
+              window.location.href = `mailto:${encodeURIComponent(student.email ?? "")}?subject=${encodeURIComponent("Comunicação escolar · SIGA Plus")}`;
+            }}
+          >
             <Mail className="mr-2 size-4" /> Preparar e-mail
           </DropdownMenuItem>
         ) : null}
