@@ -33,8 +33,13 @@ const weekdayAliases: readonly (readonly string[])[] = [
 ];
 
 function normalizeDay(value: string): string {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[-.]/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-.]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** A agenda é apenas prevista; não afirma que a aula ocorreu ou teve chamada. */
@@ -43,9 +48,20 @@ export function plannedLessonsToday<T extends { weekday_label: string }>(
   instant: Date = new Date(),
 ): T[] {
   const today = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Africa/Luanda", weekday: "long",
-  }).format(instant).toLowerCase();
-  const index = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"].indexOf(today);
+    timeZone: "Africa/Luanda",
+    weekday: "long",
+  })
+    .format(instant)
+    .toLowerCase();
+  const index = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ].indexOf(today);
   if (index < 0) return [];
   return slots.filter((slot) => weekdayAliases[index].includes(normalizeDay(slot.weekday_label)));
 }

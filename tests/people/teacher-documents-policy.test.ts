@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseTeacherDocumentPolicy, requiredTeacherDocuments, teacherDocumentChecklist,
-  teacherDocumentCodeFromFile, teacherDocumentFileCode,
+  parseTeacherDocumentPolicy,
+  requiredTeacherDocuments,
+  teacherDocumentChecklist,
+  teacherDocumentCodeFromFile,
+  teacherDocumentFileCode,
 } from "@/features/people/teacher-documents-policy";
 
 describe("requisitos de documentação de docentes", () => {
@@ -15,20 +18,29 @@ describe("requisitos de documentação de docentes", () => {
     const policy = parseTeacherDocumentPolicy({
       enabled: true,
       required: ["bi", "habilitacoes"],
-      requiredByLevel: { superior: ["pos_graduacao", "inaarees"], primario: ["formacao_pedagogica"] },
+      requiredByLevel: {
+        superior: ["pos_graduacao", "inaarees"],
+        primario: ["formacao_pedagogica"],
+      },
     });
     expect(requiredTeacherDocuments(policy, ["superior"])).toEqual([
-      "bi", "habilitacoes", "inaarees", "pos_graduacao",
+      "bi",
+      "habilitacoes",
+      "inaarees",
+      "pos_graduacao",
     ]);
     expect(requiredTeacherDocuments(policy, ["primario"])).toEqual([
-      "bi", "habilitacoes", "formacao_pedagogica",
+      "bi",
+      "habilitacoes",
+      "formacao_pedagogica",
     ]);
     expect(requiredTeacherDocuments(policy, [])).toEqual(["bi", "habilitacoes"]);
   });
 
   it("limita códigos e níveis à lista autorizada do SIGA", () => {
     const policy = parseTeacherDocumentPolicy({
-      enabled: true, required: ["bi", "outro_tenant"],
+      enabled: true,
+      required: ["bi", "outro_tenant"],
       requiredByLevel: { superior: ["docencia", "credit_card"], inexistente: ["contrato"] },
     });
     expect(policy.required).toEqual(["bi"]);
@@ -37,12 +49,24 @@ describe("requisitos de documentação de docentes", () => {
   });
 
   it("diferencia entrega de confirmação de autenticidade e mantém opcionais", () => {
-    const policy = parseTeacherDocumentPolicy({ enabled: true, required: ["bi"], requiredByLevel: {} });
+    const policy = parseTeacherDocumentPolicy({
+      enabled: true,
+      required: ["bi"],
+      requiredByLevel: {},
+    });
     const ref = teacherDocumentFileCode("bi", "12345678-1234-1234-1234-123456789abc");
     expect(teacherDocumentCodeFromFile(ref)).toBe("bi");
     const lines = teacherDocumentChecklist(policy, [ref], ["primario"]);
-    expect(lines.find((row) => row.code === "bi")).toMatchObject({ required: true, received: true, status: "recebido" });
-    expect(lines.find((row) => row.code === "contrato")).toMatchObject({ required: false, received: false, status: "em_falta" });
+    expect(lines.find((row) => row.code === "bi")).toMatchObject({
+      required: true,
+      received: true,
+      status: "recebido",
+    });
+    expect(lines.find((row) => row.code === "contrato")).toMatchObject({
+      required: false,
+      received: false,
+      status: "em_falta",
+    });
     expect(teacherDocumentCodeFromFile("BI-261029-XXXX")).toBe(null);
   });
 });

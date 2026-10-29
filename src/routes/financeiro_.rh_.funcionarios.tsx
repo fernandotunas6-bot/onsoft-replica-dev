@@ -39,11 +39,13 @@ function EmployeesPage() {
   const rows = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt");
     const all = employees.data ?? [];
-    return all.filter((row) =>
-      (statusFilter === "all" || row.status === statusFilter) &&
-      (!needle || [row.personName, row.employeeNumber, row.position, row.department]
-        .filter(Boolean)
-        .some((value) => String(value).toLocaleLowerCase("pt").includes(needle)))
+    return all.filter(
+      (row) =>
+        (statusFilter === "all" || row.status === statusFilter) &&
+        (!needle ||
+          [row.personName, row.employeeNumber, row.position, row.department]
+            .filter(Boolean)
+            .some((value) => String(value).toLocaleLowerCase("pt").includes(needle))),
     );
   }, [employees.data, query, statusFilter]);
 
@@ -80,20 +82,21 @@ function EmployeesPage() {
     body = (
       <section aria-label="Funcionários" className="space-y-3">
         <div className="flex flex-wrap items-end gap-3">
-        <label className="block max-w-sm space-y-1 text-sm">
-          <span className="text-xs font-semibold text-muted-foreground">Procurar</span>
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Nome, número ou cargo"
-            aria-label="Procurar funcionários"
-          />
-        </label>
+          <label className="block max-w-sm space-y-1 text-sm">
+            <span className="text-xs font-semibold text-muted-foreground">Procurar</span>
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Nome, número ou cargo"
+              aria-label="Procurar funcionários"
+            />
+          </label>
           <label className="block space-y-1 text-sm">
             <span className="text-xs font-semibold text-muted-foreground">Situação laboral</span>
             <select
               aria-label="Filtrar funcionários por situação laboral"
-              value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
               className="h-10 min-w-44 rounded-lg border border-input bg-background px-3 text-sm"
             >
               <option value="all">Todos os vínculos</option>

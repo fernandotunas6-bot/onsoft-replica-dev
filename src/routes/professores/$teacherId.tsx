@@ -41,7 +41,8 @@ function TeacherProfilePage() {
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { selectedYearId, school, selectedYearLabel } = useSchoolSettings();
-  const isAcademicManager = account.roles.includes("Administrador") || account.roles.includes("Secretaria");
+  const isAcademicManager =
+    account.roles.includes("Administrador") || account.roles.includes("Secretaria");
   const canManage = isAcademicManager && canWriteModule(account.role, "pedagogica", account.grants);
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "profile"],
@@ -61,7 +62,9 @@ function TeacherProfilePage() {
     queryFn: () => getTeacherWorkspace({ data: teacherId ? { teacherId } : {} }),
     retry: false,
   });
-  const mismatchedTeacher = !isAcademicManager && teacherWorkspaceQuery.isSuccess &&
+  const mismatchedTeacher =
+    !isAcademicManager &&
+    teacherWorkspaceQuery.isSuccess &&
     teacherWorkspaceQuery.data?.teacherId !== teacherId;
   const teacherRelationsSnapshot = useMemo(
     () => (teacher ? mapTeacherWorkspaceToSnapshot(teacher, teacherWorkspaceQuery.data) : null),
@@ -330,7 +333,10 @@ function TeacherProfilePage() {
             configuredLevels={school?.pedagogy?.teachingLevels ?? []}
             selfTeacherId={account.linkedEntities.teacher_id}
             canManage={canManage}
-            canManageDocuments={["Administrador", "Secretaria"].includes(account.role) && canWriteModule(account.role, "pessoas", account.grants)}
+            canManageDocuments={
+              ["Administrador", "Secretaria"].includes(account.role) &&
+              canWriteModule(account.role, "pessoas", account.grants)
+            }
             canReadHr={canReadHr}
             employmentId={employmentId}
           />

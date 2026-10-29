@@ -1189,8 +1189,10 @@ export const createTeacher = createServerFn({ method: "POST" })
     try {
       await ensureStaffEmploymentDraft(db, membership.schoolId, person.id, context.userId);
     } catch (employmentError) {
-      throw new Error("Professor criado, mas a ficha de Funcionários/RH ficou pendente. " +
-        (employmentError instanceof Error ? employmentError.message : "Verifique o módulo RH."));
+      throw new Error(
+        "Professor criado, mas a ficha de Funcionários/RH ficou pendente. " +
+          (employmentError instanceof Error ? employmentError.message : "Verifique o módulo RH."),
+      );
     }
     return teacher;
   });
@@ -1365,8 +1367,10 @@ export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
       try {
         await ensureStaffEmploymentDraft(db, membership.schoolId, data.personId, context.userId);
       } catch (error) {
-        throw new Error("Vínculos institucionais guardados, mas não foi possível sincronizar a ficha RH. Abra Funcionários para concluir. " +
-          (error instanceof Error ? error.message : ""));
+        throw new Error(
+          "Vínculos institucionais guardados, mas não foi possível sincronizar a ficha RH. Abra Funcionários para concluir. " +
+            (error instanceof Error ? error.message : ""),
+        );
       }
     }
     return { personId: data.personId, roles };
