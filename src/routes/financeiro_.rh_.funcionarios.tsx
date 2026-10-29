@@ -92,6 +92,7 @@ function EmployeesPage() {
           <label className="block space-y-1 text-sm">
             <span className="text-xs font-semibold text-muted-foreground">Situação laboral</span>
             <select
+              aria-label="Filtrar funcionários por situação laboral"
               value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}
               className="h-10 min-w-44 rounded-lg border border-input bg-background px-3 text-sm"
             >
