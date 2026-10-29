@@ -1,3 +1,13 @@
+**29/10/2026 — Pessoas e Ficha da Turma (implementado no ramo, por validar):**
+o cabeçalho de Pessoas agrupa exportações e importação em «Mais opções»;
+professores e pessoas ganham menus de linha e ligação à ficha. A Ficha da Turma
+passa a ter cartões compactos, colunas independentes, listas progressivas,
+ligações a professores/disciplinas e relações recolhíveis. Não há SQL nem
+alterações de permissões. **CI, QA autenticado, dispositivos e publicação
+pendentes**. Provas e roteiro em
+[handoff do refinamento](../agents/HANDOFF_PESSOAS_TURMA_VISUAL_2026-10-29.md).
+As outras páginas continuam parciais e não foram modificadas nesta PR.
+
 # Execução do padrão visual — 23/10/2026
 
 **28/10/2026 — destinos das secções da turma (implementado):**
