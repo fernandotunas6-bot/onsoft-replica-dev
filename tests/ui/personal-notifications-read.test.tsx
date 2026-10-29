@@ -97,7 +97,7 @@ describe("centro de notificações pessoais", () => {
     expect(await screen.findByText("Trabalho de Matemática")).toBeTruthy();
     expect(mocks.read).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Trabalho de Matemática"));
-    await waitFor(() => expect(mocks.read).toHaveBeenCalledWith({ data: { ids: [idA] } });)
+    await waitFor(() => expect(mocks.read).toHaveBeenCalledWith({ data: { ids: [idA] } }))
     await waitFor(() => expect(screen.queryByText("Trabalho de Matemática")).toBeNull());
     expect(screen.getByText("Aviso da escola")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Todas" }));
@@ -108,7 +108,7 @@ describe("centro de notificações pessoais", () => {
     mount();
     await screen.findByText("Aviso da escola");
     fireEvent.click(screen.getByText("Aviso da escola"));
-    await waitFor(() => expect(mocks.read).toHaveBeenCalledWith({ data: { ids: [idB] } });)
+    await waitFor(() => expect(mocks.read).toHaveBeenCalledWith({ data: { ids: [idB] } }))
     await waitFor(() => expect(screen.queryByText("Aviso da escola")).toBeNull());
   });
 
@@ -117,7 +117,7 @@ describe("centro de notificações pessoais", () => {
     mount();
     await screen.findByText("Por ler (47)");
     fireEvent.click(screen.getByText("Marcar tudo como lido"));
-    await waitFor(() => expect(mocks.read).toHaveBeenCalledWith({ data: {} });)
+    await waitFor(() => expect(mocks.read).toHaveBeenCalledWith({ data: {} }))
     await waitFor(() => expect(screen.getByText("Por ler (0)")).toBeTruthy());
     expect(screen.getByText("Não há notificações por ler.")).toBeTruthy();
   });
