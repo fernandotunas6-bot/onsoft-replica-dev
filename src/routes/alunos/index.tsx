@@ -251,6 +251,8 @@ function StudentsPage() {
   const setPage = (next: number) => setFilter("page", String(next));
   const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Uma selecção nunca deve sobreviver a uma mudança de escola ou ano lectivo.
+  useEffect(() => setSelectedIds([]), [activeTenant?.id, selectedYearId]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
