@@ -1,4 +1,13 @@
-import { FileText, GraduationCap, MessageCircle, Users, Wallet, KeyRound, Copy, Printer } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  MessageCircle,
+  Users,
+  Wallet,
+  KeyRound,
+  Copy,
+  Printer,
+} from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -118,20 +127,22 @@ export function StudentMobileList({
         {
           label: "Propinas e situação financeira",
           icon: Wallet,
-          onSelect: () => void navigate({
-            to: "/alunos/$studentId",
-            params: { studentId: actionsFor.id },
-            search: { secao: "financeiro" },
-          }),
+          onSelect: () =>
+            void navigate({
+              to: "/alunos/$studentId",
+              params: { studentId: actionsFor.id },
+              search: { secao: "financeiro" },
+            }),
         },
         {
           label: "Ver notas e avaliações",
           icon: GraduationCap,
-          onSelect: () => void navigate({
-            to: "/alunos/$studentId",
-            params: { studentId: actionsFor.id },
-            search: { secao: "academico" },
-          }),
+          onSelect: () =>
+            void navigate({
+              to: "/alunos/$studentId",
+              params: { studentId: actionsFor.id },
+              search: { secao: "academico" },
+            }),
         },
         {
           label: "Recuperar senha de aluno",
@@ -142,7 +153,8 @@ export function StudentMobileList({
           label: "Copiar número e nome",
           icon: Copy,
           onSelect: () => {
-            void navigator.clipboard.writeText(`${actionsFor.registration_number} — ${actionsFor.full_name}`)
+            void navigator.clipboard
+              .writeText(`${actionsFor.registration_number} — ${actionsFor.full_name}`)
               .then(() => toast.success("Número e nome copiados."))
               .catch(() => toast.error("Não foi possível copiar."));
           },
@@ -152,16 +164,18 @@ export function StudentMobileList({
           icon: Printer,
           onSelect: () => {
             const student = actionsFor;
-            void Promise.resolve(exportPdfTable(
-              `ficha-aluno-${student.registration_number}`,
-              "Resumo do aluno",
-              [
-                { label: "Número", value: (row: StudentMobileRow) => row.registration_number },
-                { label: "Aluno", value: (row: StudentMobileRow) => row.full_name },
-                { label: "Turma", value: (row: StudentMobileRow) => row.class_name ?? "" },
-              ],
-              [student],
-            )).catch(() => toast.error("Não foi possível imprimir o resumo."));
+            void Promise.resolve(
+              exportPdfTable(
+                `ficha-aluno-${student.registration_number}`,
+                "Resumo do aluno",
+                [
+                  { label: "Número", value: (row: StudentMobileRow) => row.registration_number },
+                  { label: "Aluno", value: (row: StudentMobileRow) => row.full_name },
+                  { label: "Turma", value: (row: StudentMobileRow) => row.class_name ?? "" },
+                ],
+                [student],
+              ),
+            ).catch(() => toast.error("Não foi possível imprimir o resumo."));
           },
         },
         {
