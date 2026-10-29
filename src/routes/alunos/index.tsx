@@ -1351,13 +1351,11 @@ function StudentsPage() {
                                   <FileText className="size-3.5" /> Ficha
                                 </Link>
                               </Button>
-                              <div onClick={(event) => event.stopPropagation()}>
-                                <StudentRowActions
-                                  student={s}
-                                  role={currentAccount.role}
-                                  grants={currentAccount.grants}
-                                />
-                              </div>
+                              <StudentRowActions
+                                student={s}
+                                role={currentAccount.role}
+                                grants={currentAccount.grants}
+                              />
                               {s.student_status === "applicant" &&
                               !s.class_name &&
                               turmaOptions.length > 0 ? (
