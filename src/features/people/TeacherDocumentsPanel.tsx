@@ -52,6 +52,7 @@ export function TeacherDocumentsPanel({
   const items = query.data?.items ?? [];
   const required = items.filter((item) => item.required);
   const missing = required.filter((item) => !item.received);
+  const awaitingValidation = required.filter((item) => item.received && !item.verified);
   const received = items.filter((item) => item.received);
   const canUpload = canManage && Boolean(personId);
 
@@ -100,7 +101,9 @@ export function TeacherDocumentsPanel({
                 ? "Nível docente por definir"
                 : missing.length
                   ? `${missing.length} obrigatório(s) em falta`
-                  : "Requisitos recebidos — por validar"}
+                  : awaitingValidation.length
+                    ? `${awaitingValidation.length} por validar`
+                    : "Documentação verificada"}
             </Badge>
           ) : (
             <Badge variant="outline">Exigência desactivada</Badge>
