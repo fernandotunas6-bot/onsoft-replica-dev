@@ -59,6 +59,8 @@ export function StudentMobileList({
   onToggleSelect,
   whatsappEnabled = false,
   whatsappHref,
+  financeAllowed = false,
+  academicAllowed = false,
 }: {
   students: StudentMobileRow[];
   loading?: boolean;
@@ -72,6 +74,8 @@ export function StudentMobileList({
   onToggleSelect?: (id: string) => void;
   whatsappEnabled?: boolean;
   whatsappHref?: (phone: string) => string;
+  financeAllowed?: boolean;
+  academicAllowed?: boolean;
 }) {
   const navigate = useNavigate();
   const [actionsFor, setActionsFor] = useState<StudentMobileRow | null>(null);
@@ -127,6 +131,7 @@ export function StudentMobileList({
         {
           label: "Propinas e situação financeira",
           icon: Wallet,
+          hidden: !financeAllowed,
           onSelect: () =>
             void navigate({
               to: "/alunos/$studentId",
@@ -137,6 +142,7 @@ export function StudentMobileList({
         {
           label: "Ver notas e avaliações",
           icon: GraduationCap,
+          hidden: !academicAllowed,
           onSelect: () =>
             void navigate({
               to: "/alunos/$studentId",
