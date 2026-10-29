@@ -25,6 +25,7 @@ describe("menus de contas por escola", () => {
 
   it("processa selecções sem tentar mudar contas de outra escola", () => {
     expect(route).toContain("<AccountBulkActions");
+    expect(route).toContain('queryKey: ["access", "accounts", currentUser.schoolId]');
     expect(bulk).toContain("accounts.filter((item) => selectedIds.includes(item.id))");
     expect(bulk).toContain("setSystemAccountDisabled");
     expect(bulk).toContain("target.length > 25");
@@ -41,6 +42,7 @@ describe("alunos: acções individuais e lote", () => {
   it("oferece menu na lista sem substituir os fluxos académicos existentes", () => {
     expect(route).toContain("<StudentRowActions");
     expect(route).toContain("<StudentBulkTools");
+    expect(route).toContain('queryKey: ["students", "search", currentAccount.schoolId]');
     expect(route).toContain("batchAssignClass");
     expect(route).toContain("batchUpdateStudentStatus");
     expect(row).toContain('search={{ secao: "financeiro" }}');
