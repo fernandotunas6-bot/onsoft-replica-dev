@@ -10,7 +10,7 @@ describe("menus de contas por escola", () => {
 
   it("monta o menu por conta, sem apagar a identidade global", () => {
     expect(route).toContain("<AccountRowActions");
-    expect(menu).toContain('aria-label={`Mais acções para ${account.full_name}`}');
+    expect(menu).toContain("aria-label={`Mais acções para ${account.full_name}`}");
     expect(menu).toContain("setSystemAccountDisabled(");
     expect(menu).not.toMatch(/deleteUser\(|\.from\("profiles"\)\.delete/);
     expect(menu).toContain("Esta acção suspende o vínculo");
