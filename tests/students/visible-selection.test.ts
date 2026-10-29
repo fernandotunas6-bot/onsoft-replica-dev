@@ -19,10 +19,7 @@ describe("alunos: selecção em lote sob os filtros", () => {
 
   it("preserva a selecção entre páginas, mas remove IDs não visíveis", () => {
     expect(visibleSelectedRows(allRows, ["c", "a"])).toEqual([allRows[0], allRows[2]]);
-    expect(restrictSelectionToVisibleRows(["c", "a", "missing"], allRows)).toEqual([
-      "c",
-      "a",
-    ]);
+    expect(restrictSelectionToVisibleRows(["c", "a", "missing"], allRows)).toEqual(["c", "a"]);
   });
 
   it("aceita selecção vazia, filtros vazios e dados actualizados", () => {
