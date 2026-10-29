@@ -13,6 +13,7 @@ import {
   GitMerge,
   GraduationCap,
   KeyRound,
+  MoreHorizontal,
   Pencil,
   Trash2,
   User,
@@ -30,6 +31,14 @@ import { signSchoolFile } from "@/features/arquivos/server";
 import type { SchoolFileRecord } from "@/features/arquivos/schemas";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -385,7 +394,7 @@ function PeoplePage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <InstalledModuleTools module="pessoas" />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -411,36 +420,48 @@ function PeoplePage() {
                 <KeyRound className="size-4" /> Acessos dos alunos
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => exportCsv("professores-pagina", teacherExportColumns, teachers)}
-            >
-              <Download className="size-4" /> Prof. CSV · página
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() =>
-                exportPdfTable(
-                  "professores-filtrados",
-                  "Professores",
-                  teacherExportColumns,
-                  teachers,
-                  `Filtros activos: ${activeCount || "nenhum"}`,
-                )
-              }
-            >
-              <FileDown className="size-4" /> Prof. PDF
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={exportarProfessoresOficial}>
-              <FileBadge className="size-4" /> Oficial
-            </Button>
-            <Button variant="outline" className="gap-2" asChild>
-              <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
-                <FileUp className="size-4 text-primary" /> Importar Docentes
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2" aria-label="Mais opções de professores">
+                  <MoreHorizontal className="size-4" /> Mais opções
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Professores · página actual</DropdownMenuLabel>
+                <DropdownMenuItem
+                  disabled={teachersQuery.isLoading || teachersQuery.isError || !teachers.length}
+                  onSelect={() => exportCsv("professores-pagina", teacherExportColumns, teachers)}
+                >
+                  <Download className="size-4" /> Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={teachersQuery.isLoading || teachersQuery.isError || !teachers.length}
+                  onSelect={() =>
+                    exportPdfTable(
+                      "professores-filtrados",
+                      "Professores",
+                      teacherExportColumns,
+                      teachers,
+                      `Filtros activos: ${activeCount || "nenhum"}`,
+                    )
+                  }
+                >
+                  <FileDown className="size-4" /> Exportar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={teachersQuery.isLoading || teachersQuery.isError || !teachers.length}
+                  onSelect={exportarProfessoresOficial}
+                >
+                  <FileBadge className="size-4" /> Documento oficial
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/importar" search={{ tab: "novo", modulo: "professores" }}>
+                    <FileUp className="size-4" /> Importar docentes
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <QuickFormModal
               title="Novo professor"
               eyebrow="Corpo docente"
@@ -747,7 +768,12 @@ function PeoplePage() {
                           <TableCell className="font-mono text-xs">
                             {teacher.employee_number}
                           </TableCell>
-                          <TableCell className="font-semibold">{teacher.full_name}</TableCell>
+                          <TableCell className="font-semibold">
+                            <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}
+                              className="rounded-sm text-foreground hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">
+                              {teacher.full_name}
+                            </Link>
+                          </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             <span className="inline-flex items-center gap-2">
                               {teacher.email ?? teacher.phone ?? "—"}
@@ -783,14 +809,32 @@ function PeoplePage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button asChild size="sm" variant="ghost">
-                                <Link
-                                  to="/professores/$teacherId"
-                                  params={{ teacherId: teacher.id }}
-                                >
-                                  Ficha
-                                </Link>
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button type="button" size="icon" variant="ghost"
+                                    aria-label={`Acções de ${teacher.full_name}`} title={`Acções de ${teacher.full_name}`}>
+                                    <MoreHorizontal className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuLabel className="truncate">{teacher.full_name}</DropdownMenuLabel>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}>
+                                      <User className="size-4" /> Ver perfil completo
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/professores/$teacherId" params={{ teacherId: teacher.id }}
+                                      search={{ tab: "documentos" }}>
+                                      <FolderOpen className="size-4" /> Processo documental
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onSelect={() => exportCsv("professor", teacherExportColumns, [teacher])}>
+                                    <Download className="size-4" /> Exportar esta ficha (CSV)
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                               <QuickFormModal
                                 title="Editar professor"
                                 eyebrow="Corpo docente"
@@ -842,8 +886,8 @@ function PeoplePage() {
                                   },
                                 ]}
                                 trigger={(open) => (
-                                  <Button size="sm" variant="ghost" onClick={open}>
-                                    <Pencil className="size-3.5" />
+                                  <Button size="icon" variant="ghost" onClick={open} aria-label={`Editar ${teacher.full_name}`} title="Editar professor">
+                                    <Pencil className="size-4" />
                                   </Button>
                                 )}
                               />
@@ -859,9 +903,11 @@ function PeoplePage() {
                                 }}
                                 trigger={(open) => (
                                   <Button
-                                    size="sm"
+                                    size="icon"
                                     variant="ghost"
                                     className="text-destructive"
+                                    aria-label={`Desactivar ${teacher.full_name}`}
+                                    title="Desactivar professor"
                                     onClick={open}
                                   >
                                     <Trash2 className="size-3.5" />
@@ -997,13 +1043,14 @@ function PeoplePage() {
                       <TableHead>Email</TableHead>
                       <TableHead>Telefone</TableHead>
                       <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acções</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {peopleQuery.isLoading ? (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={5}
                           className="py-10 text-center text-sm text-muted-foreground"
                         >
                           <div className="space-y-3 p-4">
@@ -1017,14 +1064,14 @@ function PeoplePage() {
                       </TableRow>
                     ) : peopleQuery.isError ? (
                       <CrudListFeedbackRow
-                        colSpan={4}
+                        colSpan={5}
                         kind="error"
                         entityLabel="pessoas"
                         onRetry={() => void peopleQuery.refetch()}
                       />
                     ) : people.length === 0 ? (
                       <CrudListFeedbackRow
-                        colSpan={4}
+                        colSpan={5}
                         kind={activeCount ? "filtered" : "empty"}
                         entityLabel="pessoas"
                         onClearFilters={resetDirectoryFilters}
@@ -1042,6 +1089,7 @@ function PeoplePage() {
                           }
                           tabIndex={0}
                           onKeyDown={(event) => {
+                            if (event.target !== event.currentTarget) return;
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
                               void navigate({
@@ -1101,6 +1149,26 @@ function PeoplePage() {
                               label={statusLabels[row.status] ?? row.status}
                               size="sm"
                             />
+                          </TableCell>
+                          <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button type="button" size="icon" variant="ghost"
+                                  aria-label={`Acções de ${row.full_name}`}>
+                                  <MoreHorizontal className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52" onClick={(event) => event.stopPropagation()}>
+                                <DropdownMenuItem asChild>
+                                  <Link to="/pessoas/$personId" params={{ personId: row.id }}>
+                                    <User className="size-4" /> Ver ficha completa
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => exportCsv("pessoa", peopleExportColumns, [row])}>
+                                  <Download className="size-4" /> Exportar registo (CSV)
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
