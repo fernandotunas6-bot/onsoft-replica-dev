@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
@@ -25,6 +26,21 @@ function fakeAdmin(memberships: Membership[], roleCodes: Record<string, string[]
 }
 
 describe("acções sobre a conta inteira (senha, bloqueio) entre escolas", () => {
+  it("verifica os vínculos e o cargo de Administrador antes de suspender uma conta", () => {
+    const source = readFileSync("src/features/access/server.ts", "utf8");
+    const handler = source.split("export const setSystemAccountDisabled = ")[1]?.split(
+      "export const resendSystemInvite = ",
+    )[0];
+    expect(handler).toBeDefined();
+    const check = handler!.indexOf("const access = await otherSchoolAccess(");
+    const blockAdmin = handler!.indexOf("if (access.adminAnywhere)");
+    const write = handler!.indexOf('.update({ status: data.disabled ? "suspended" : "active" })');
+    expect(check).toBeGreaterThanOrEqual(0);
+    expect(blockAdmin).toBeGreaterThan(check);
+    expect(write).toBeGreaterThan(blockAdmin);
+    expect(handler!.indexOf("getUserById(")).toBeLessThan(write);
+  });
+
   it("só esta escola: pode agir sobre a conta", async () => {
     const access = await otherSchoolAccess(
       fakeAdmin([{ id: "m1", school_id: "A", status: "active" }], { m1: ["teacher"] }),
