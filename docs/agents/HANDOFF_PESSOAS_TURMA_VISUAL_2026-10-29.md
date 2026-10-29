@@ -31,3 +31,12 @@ Mudanças isoladas nas páginas visíveis em capturas do proprietário: `/pessoa
 
 ## Continuação após integração
 Aplicar o mesmo padrão aos perfis de pessoas e docentes, turmas, alunos, matrículas, disciplinas, notas, horários, documentos e RH seguindo o contrato em `docs/design/VISUAL_MASTER_2026.md`, sem duplicar os refinamentos de outras PRs.
+
+
+## Continuação solicitada — 29/10, segunda passagem
+- Menu «Mais opções» na Ficha da Turma reúne editar, aplicar currículo e exportar alunos da turma (CSV com nome e número de processo); a matrícula e a atribuição docente continuam em destaque e a desactivação conserva confirmação.
+- O horário passa a ser filtrável por dia, exclusivamente nos tempos que o servidor já devolveu, com contagem exacta no filtro e alternância Mostrar todos/menos. A troca de turma isola o dia escolhido.
+- Link de disciplina corrigido: a rota `/pedagogica/disciplinas/$subjectId` é específica do trabalho de aluno, pelo que a equipa passa a abrir `/pedagogica?tab=notas&turma=<id>&disciplina=<id>`.
+- No telemóvel, a lista de Pessoas e Professores usa `ActionSheet` partilhada, mantendo ficha, processo documental e exportação individual; o registo activo é revalidado na página actual e na escola activa.
+- Testes do helper `class-timetable-visibility.ts`: dias ordenados, filtro, limite progressivo e ausência de resultados. Não há SQL nem novas mutações.
+- Validar CI da versão final e QA autenticado antes de fundir/publicar.
