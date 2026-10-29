@@ -54,7 +54,16 @@ export const listMyNotifications = createServerFn({ method: "GET" })
       createdAt: String(row.created_at),
       href: safeNotificationHref(row.payload),
     }));
-    return { items, unread: items.filter((item) => !item.read).length };
+    // O sino não pode limitar o total por ler aos últimos 20 avisos da lista.
+    const { count, error: countError } = await db
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("channel", "in_app")
+      .neq("status", "read")
+      .is("read_at", null);
+    if (countError) throw new Error("Não foi possível contar as notificações por ler.");
+    return { items, unread: count ?? 0 };
   });
 
 export const markMyNotificationsRead = createServerFn({ method: "POST" })
@@ -63,16 +72,19 @@ export const markMyNotificationsRead = createServerFn({ method: "POST" })
     z.object({ ids: z.array(z.string().guid()).max(50).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
+    // [] significa «nenhuma», não «todas». Só a ausência de ids marca tudo.
+    if (data.ids && data.ids.length === 0) return { ok: true };
     const db = sgaClient(context.supabase);
     let query = db
       .from("notifications")
       .update({ status: "read", read_at: new Date().toISOString() })
       .eq("user_id", context.userId)
+      .eq("channel", "in_app")
+      .neq("status", "read")
       .is("read_at", null);
-    if (data.ids?.length) query = query.in("id", data.ids);
+    if (data.ids) query = query.in("id", data.ids);
     const { error } = await query;
-    if (error && !isMissing(error.message)) {
-      throw new Error("Não foi possível marcar como lidas.");
-    }
+    // Não anunciar sucesso se a escrita falhou, incluindo schema em falta.
+    if (error) throw new Error("Não foi possível marcar como lidas.");
     return { ok: true };
   });
