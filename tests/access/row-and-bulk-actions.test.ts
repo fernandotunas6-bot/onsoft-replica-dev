@@ -25,6 +25,8 @@ describe("menus de contas por escola", () => {
 
   it("processa selecções sem tentar mudar contas de outra escola", () => {
     expect(route).toContain("<AccountBulkActions");
+    expect(route).toContain("accounts={filteredAccounts}");
+    expect(route).toContain("const next = previous.filter((id) => visible.has(id))");
     expect(bulk).toContain("accounts.filter((item) => selectedIds.includes(item.id))");
     expect(bulk).toContain("setSystemAccountDisabled");
     expect(bulk).toContain("target.length > 25");
