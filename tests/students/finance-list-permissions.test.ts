@@ -20,6 +20,12 @@ describe("alunos: permissões financeiras na lista", () => {
     );
   });
 
+  it("a lista móvel não mostra a dívida sem autorização financeira", () => {
+    const mobile = readFileSync("src/features/students/components/StudentMobileList.tsx", "utf8");
+    expect(mobile).toContain("financeAllowed && student.debt_amount");
+    expect(mobile).toContain("hidden: !financeAllowed");
+  });
+
   it("o servidor verifica o direito antes de ler facturas e omite os valores sem acesso", () => {
     const server = readFileSync("src/features/students/server.ts", "utf8");
     expect(server).toContain('const canReadFinance = await requireSgaWriterFor(');
