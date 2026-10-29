@@ -25,11 +25,17 @@ jobs:
   tenant-isolation:
     # O ambiente staging contém sessões autenticadas. Nunca entregá-las
     # a um workflow executado a partir de uma branch de desenvolvimento.
+    # Esta linha não basta: um ramo que edite o ficheiro pode retirá-la. A
+    # protecção efectiva é o ambiente «staging» limitado ao main, com
+    # aprovação obrigatória (docs/qa/CRUD_STAGING_E2E_2026-10-29.md).
     if: github.ref == 'refs/heads/main'
     name: Duas escolas — leitura autenticada sem produção
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 20
+    # Só valores públicos ao nível do job. Os segredos entram apenas nos passos
+    # que os usam: checkout, setup-bun, `bun install` (scripts de instalação de
+    # todas as dependências) e a instalação do browser nunca os vêem.
     env:
       CI: "1"
       SIGA_CRUD_E2E: "1"
@@ -37,19 +43,19 @@ jobs:
       VITE_SIGA_URL: http://127.0.0.1:3006
       VITE_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
       SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
       SIGA_CRUD_E2E_TENANT_A_MARKER: ${{ vars.SIGA_CRUD_E2E_TENANT_A_MARKER }}
       SIGA_CRUD_E2E_TENANT_B_MARKER: ${{ vars.SIGA_CRUD_E2E_TENANT_B_MARKER }}
       SIGA_CRUD_E2E_TENANT_A_STATE: /tmp/siga-crud-${{ github.run_id }}-school-a.json
       SIGA_CRUD_E2E_TENANT_B_STATE: /tmp/siga-crud-${{ github.run_id }}-school-b.json
-      SESSION_A_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_A_STATE_B64 }}
-      SESSION_B_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_B_STATE_B64 }}
     steps:
       - name: Confirmar destino exclusivamente staging
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
+          # Só para confirmar que existem; este passo não corre código de terceiros.
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_A_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_A_STATE_B64 }}
+          SESSION_B_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_B_STATE_B64 }}
         shell: bash
         run: |
           set -euo pipefail
@@ -83,7 +89,12 @@ jobs:
           bun-version: latest
       - name: Instalar dependências sem alterar o lockfile
         run: bun install --frozen-lockfile
+      - name: Instalar Chrome para Playwright
+        run: bunx playwright install --with-deps chrome
       - name: Preparar sessões privadas e validar contrato de segurança
+        env:
+          SESSION_A_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_A_STATE_B64 }}
+          SESSION_B_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_B_STATE_B64 }}
         shell: bash
         run: |
           set -euo pipefail
@@ -106,9 +117,12 @@ jobs:
               }
             }
           '
-      - name: Instalar Chrome para Playwright
-        run: bunx playwright install --with-deps chrome
       - name: Iniciar aplicação local com Supabase exclusivamente de staging
+        # O servidor em segundo plano herda estas chaves; os passos seguintes não.
+        env:
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
         shell: bash
         run: |
           set -euo pipefail
