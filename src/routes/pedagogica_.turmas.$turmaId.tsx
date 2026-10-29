@@ -504,9 +504,9 @@ function TurmaDetail() {
               ) : null}
             </dl>
             {classRelations.length > 0 || classSuggestions.length > 0 ? (
-              <div className="mt-4 rounded-xl border border-border bg-secondary/10 p-5">
-                <p className="mb-3 text-xs font-semibold text-muted-foreground">Relacionado</p>
-                <div className="mb-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              <details className="mt-3 rounded-lg border border-border bg-secondary/10 p-3">
+                <summary className="cursor-pointer text-xs font-semibold text-foreground focus-visible:outline-2">Relações e próximas acções</summary>
+                <div className="mb-3 mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {classRelations.map((relation) => (
                     <div key={relation.key} className="flex items-center gap-2 text-xs">
                       <span
@@ -548,10 +548,18 @@ function TurmaDetail() {
                     </div>
                   </>
                 ) : null}
-              </div>
+              </details>
             ) : null}
           </section>
 
+          <div
+            className={
+              account.role === "Professor"
+                ? "grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 xl:col-start-1 xl:grid-cols-1 2xl:grid-cols-2"
+                : "grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2"
+            }
+          >
+            <div className="min-w-0 space-y-4">
           <section
             id={sectionId("alunos")}
             aria-labelledby={`${sectionId("alunos")}-titulo`}
@@ -638,52 +646,6 @@ function TurmaDetail() {
           </section>
 
           <section
-            id={sectionId("disciplinas")}
-            aria-labelledby={`${sectionId("disciplinas")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
-          >
-            <div className="flex items-center gap-2.5">
-              <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
-              <h2
-                id={`${sectionId("disciplinas")}-titulo`}
-                tabIndex={-1}
-                className="font-display text-base font-bold"
-              >
-                Professores &amp; Disciplinas ({disciplinas.length})
-              </h2>
-            </div>
-            <div className="mt-4">
-              {disciplinas.length ? (
-                <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {disciplinas.map((row) => (
-                    <div
-                      key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
-                      className="flex items-center justify-between gap-2 p-3 text-xs"
-                    >
-                      <Link to="/pedagogica/disciplinas/$subjectId" params={{ subjectId: row.subject_id }}
-                        className="min-w-0 font-medium text-foreground hover:text-primary hover:underline">
-                        {row.subject_name}
-                      </Link>
-                      {row.teacher_id && row.teacher_name ? (
-                        <Link to="/professores/$teacherId" params={{ teacherId: row.teacher_id }}
-                          className="min-w-0 truncate text-right text-muted-foreground hover:text-primary hover:underline">
-                          {row.teacher_name}
-                        </Link>
-                      ) : (
-                        <span className="text-warning">Sem professor atribuído</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhuma disciplina associada a esta turma ainda.
-                </p>
-              )}
-            </div>
-          </section>
-
-          <section
             id={sectionId("horario")}
             aria-labelledby={`${sectionId("horario")}-titulo`}
             className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
@@ -727,6 +689,54 @@ function TurmaDetail() {
                   {expanded.horario ? "Mostrar menos" : `Ver todos os ${horario.length} tempos`}
                 </Button>
               ) : null}
+            </div>
+          </section>
+
+            </div>
+            <div className="min-w-0 space-y-4">
+          <section
+            id={sectionId("disciplinas")}
+            aria-labelledby={`${sectionId("disciplinas")}-titulo`}
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
+          >
+            <div className="flex items-center gap-2.5">
+              <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
+              <h2
+                id={`${sectionId("disciplinas")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
+                Professores &amp; Disciplinas ({disciplinas.length})
+              </h2>
+            </div>
+            <div className="mt-4">
+              {disciplinas.length ? (
+                <div className="divide-y divide-border rounded-lg border border-border bg-card">
+                  {disciplinas.map((row) => (
+                    <div
+                      key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
+                      className="flex items-center justify-between gap-2 p-3 text-xs"
+                    >
+                      <Link to="/pedagogica/disciplinas/$subjectId" params={{ subjectId: row.subject_id }}
+                        className="min-w-0 font-medium text-foreground hover:text-primary hover:underline">
+                        {row.subject_name}
+                      </Link>
+                      {row.teacher_id && row.teacher_name ? (
+                        <Link to="/professores/$teacherId" params={{ teacherId: row.teacher_id }}
+                          className="min-w-0 truncate text-right text-muted-foreground hover:text-primary hover:underline">
+                          {row.teacher_name}
+                        </Link>
+                      ) : (
+                        <span className="text-warning">Sem professor atribuído</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                  Nenhuma disciplina associada a esta turma ainda.
+                </p>
+              )}
             </div>
           </section>
 
@@ -776,6 +786,8 @@ function TurmaDetail() {
               ) : null}
             </div>
           </section>
+            </div>
+          </div>
           {account.role === "Professor" ? (
             <TurmaTeacherContextPanel classGroupId={turma.id} weeklySlots={horario.length} />
           ) : null}
