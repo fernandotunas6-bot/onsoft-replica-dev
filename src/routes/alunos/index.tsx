@@ -337,7 +337,17 @@ function StudentsPage() {
           : null;
 
   const studentsQuery = useQuery({
-    queryKey: ["students", "search"],
+    // Evita reutilizar respostas de outro utilizador, escola ou cargo após mudar
+    // o contexto. O prefixo permite manter as invalidações já existentes.
+    queryKey: [
+      "students",
+      "search",
+      currentAccount.id,
+      currentAccount.schoolId,
+      currentAccount.role,
+      canReadFinance,
+    ],
+    enabled: Boolean(currentAccount.id && currentAccount.schoolId),
     queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
   });
   const pendingApplicationsQuery = useQuery({
@@ -492,11 +502,17 @@ function StudentsPage() {
       label: "Estado",
       value: (row: StudentRow) => academicStatusLabel(row.student_status),
     },
-    {
-      label: "Pagamento",
-      value: (row: StudentRow) =>
-        row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
-    },
+    ...(canReadFinance
+      ? [
+          {
+            label: "Pagamento",
+            value: (row: StudentRow) =>
+              row.payment_status
+                ? (pagamentoLabels[row.payment_status] ?? row.payment_status)
+                : "",
+          },
+        ]
+      : []),
     { label: "Telefone", value: (row: StudentRow) => row.phone ?? "" },
     { label: "Email", value: (row: StudentRow) => row.email ?? "" },
   ];
