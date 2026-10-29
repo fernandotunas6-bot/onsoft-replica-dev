@@ -21,7 +21,10 @@ import {
 
 type SystemAccount = Awaited<ReturnType<typeof listSystemAccounts>>[number];
 type Mode = "existing" | "invite" | "person";
-type StaffRole = Extract<ApplicationRole, "Administrador" | "Secretaria" | "Tesouraria" | "Professor">;
+type StaffRole = Extract<
+  ApplicationRole,
+  "Administrador" | "Secretaria" | "Tesouraria" | "Professor"
+>;
 
 const STAFF_ROLES: StaffRole[] = ["Administrador", "Secretaria", "Tesouraria", "Professor"];
 export function AccessOnboardingDialog({
@@ -186,12 +189,18 @@ export function AccessOnboardingDialog({
           onClose={closeDialog}
         />
         <ModalContent className="space-y-3">
-          <div role="tablist" aria-label="Forma de adicionar" className="grid grid-cols-1 gap-1 rounded-lg bg-muted/50 p-1 sm:grid-cols-3">
-            {([
-              ["existing", "Conta existente", Users],
-              ["invite", "Convidar", MailPlus],
-              ["person", "Sem login", UserPlus],
-            ] as const).map(([key, label, Icon]) => (
+          <div
+            role="tablist"
+            aria-label="Forma de adicionar"
+            className="grid grid-cols-1 gap-1 rounded-lg bg-muted/50 p-1 sm:grid-cols-3"
+          >
+            {(
+              [
+                ["existing", "Conta existente", Users],
+                ["invite", "Convidar", MailPlus],
+                ["person", "Sem login", UserPlus],
+              ] as const
+            ).map(([key, label, Icon]) => (
               <button
                 key={key}
                 type="button"
@@ -213,8 +222,8 @@ export function AccessOnboardingDialog({
             {mode === "existing" ? (
               <>
                 <p className="text-xs text-muted-foreground">
-                  Só aparecem contas da escola seleccionada sem função de funcionário.
-                  Quem já tem um cargo de funcionário não aparece nesta lista.
+                  Só aparecem contas da escola seleccionada sem função de funcionário. Quem já tem
+                  um cargo de funcionário não aparece nesta lista.
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
@@ -247,7 +256,9 @@ export function AccessOnboardingDialog({
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="access-candidate">Utilizador disponível ({candidates.length})</Label>
+                  <Label htmlFor="access-candidate">
+                    Utilizador disponível ({candidates.length})
+                  </Label>
                   <select
                     id="access-candidate"
                     value={eligibleSelected ? accountId : ""}
@@ -262,12 +273,15 @@ export function AccessOnboardingDialog({
                     <option value="">Seleccione uma conta…</option>
                     {candidates.map((account) => (
                       <option key={account.id} value={account.id}>
-                        {account.full_name} — {account.email || "Sem e-mail"} ({account.cargo || "Sem cargo"})
+                        {account.full_name} — {account.email || "Sem e-mail"} ({" "}
+                        {account.cargo || "Sem cargo"})
                       </option>
                     ))}
                   </select>
                   {accountsError ? (
-                    <p role="alert" className="mt-1 text-xs text-destructive">Não foi possível consultar as contas da escola.</p>
+                    <p role="alert" className="mt-1 text-xs text-destructive">
+                      Não foi possível consultar as contas da escola.
+                    </p>
                   ) : !accountsLoading && candidates.length === 0 ? (
                     <p className="mt-1 text-xs text-muted-foreground">
                       Nenhuma conta elegível. Use «Convidar» para adicionar uma nova.
@@ -276,7 +290,8 @@ export function AccessOnboardingDialog({
                 </div>
                 {selected && ["Aluno", "Encarregado"].includes(selected.cargo) ? (
                   <p className="text-xs text-warning">
-                    Esta conta já tem acesso ao portal. Alterar o cargo substituirá o papel actual nesta escola.
+                    Esta conta já tem acesso ao portal. Alterar o cargo substituirá o papel actual
+                    nesta escola.
                   </p>
                 ) : null}
               </>
@@ -379,12 +394,14 @@ export function AccessOnboardingDialog({
               </div>
             ) : mode === "person" ? (
               <p className="text-xs text-muted-foreground">
-                Este registo não cria uma conta de login. Para dar acesso ao sistema, use «Convidar».
+                Este registo não cria uma conta de login. Para dar acesso ao sistema, use
+                «Convidar».
               </p>
             ) : null}
             {secretMissing && mode !== "person" ? (
               <p role="alert" className="text-xs text-destructive">
-                A gestão de contas está indisponível neste ambiente. O registo sem login continua disponível.
+                A gestão de contas está indisponível neste ambiente. O registo sem login continua
+                disponível.
               </p>
             ) : null}
           </form>
@@ -395,7 +412,11 @@ export function AccessOnboardingDialog({
           disabled={!canSubmit}
           isSubmitting={busy}
           submitLabel={
-            mode === "invite" ? "Criar e enviar convite" : mode === "existing" ? "Atribuir cargo" : "Adicionar pessoa"
+            mode === "invite"
+              ? "Criar e enviar convite"
+              : mode === "existing"
+                ? "Atribuir cargo"
+                : "Adicionar pessoa"
           }
         />
       </ModalShell>
