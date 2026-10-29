@@ -7,6 +7,7 @@ import {
   realtimeBindingsFor,
   renderRoute,
   resetCurrentAccount,
+  setCurrentAccount,
   resetPersistedFilters,
   resetRealtime,
   resetRouteLocation,
@@ -40,6 +41,9 @@ vi.mock("@/components/layout/AppShell", async () => (await import("./_harness"))
 vi.mock("@/components/ui/media-frame", async () => (await import("./_harness")).mediaFrameMock());
 vi.mock("@/integrations/supabase/client", async () =>
   (await import("./_harness")).supabaseClientMock(),
+);
+vi.mock("@/features/auth/use-current-account", async () =>
+  (await import("./_harness")).currentAccountMock(),
 );
 
 const searchStudentsMock = vi.fn();
@@ -133,6 +137,16 @@ afterEach(() => {
 });
 
 describe("/alunos — render", () => {
+  it("não consulta lista com sessão sem escola activa", async () => {
+    seed({ students: [aluno] });
+    setCurrentAccount({ schoolId: null });
+    renderRoute(Alunos);
+
+    await waitFor(() => {
+      expect(searchStudentsMock).not.toHaveBeenCalled();
+    });
+  });
+
   it("atravessa a transição loading → carregado e lista o aluno", async () => {
     seed({ students: [aluno] });
 
