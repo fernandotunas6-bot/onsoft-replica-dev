@@ -10,6 +10,7 @@ import { canAccessPath } from "@/features/auth/access-policy";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { employmentState, employmentTypeLabel } from "@/features/hr/employee-detail";
 import { listHrEmployees } from "@/features/hr/server";
+import { AssignStaffPositionDialog } from "@/features/hr/AssignStaffPositionDialog";
 import { moduleIcons } from "@/lib/app-icons";
 import { publicErrorMessage } from "@/lib/public-error";
 
@@ -27,6 +28,7 @@ function EmployeesPage() {
   const account = useCurrentAccount();
   const allowed = canAccessPath("/financeiro/rh", account.role, account.grants);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const employees = useQuery({
     queryKey: ["hr", "employees"],
     queryFn: () => listHrEmployees(),
@@ -37,13 +39,13 @@ function EmployeesPage() {
   const rows = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt");
     const all = employees.data ?? [];
-    if (!needle) return all;
-    return all.filter((row) =>
+    return all.filter((row) => (statusFilter === "all" || row.status === statusFilter) &&
+      (!needle ||
       [row.personName, row.employeeNumber, row.position, row.department]
         .filter(Boolean)
-        .some((value) => String(value).toLocaleLowerCase("pt").includes(needle)),
+        .some((value) => String(value).toLocaleLowerCase("pt").includes(needle)))),
     );
-  }, [employees.data, query]);
+  }, [employees.data, query, statusFilter]);
 
   let body: ReactNode;
   if (!allowed) {
@@ -77,6 +79,7 @@ function EmployeesPage() {
   } else {
     body = (
       <section aria-label="Funcionários" className="space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
         <label className="block max-w-sm space-y-1 text-sm">
           <span className="text-xs font-semibold text-muted-foreground">Procurar</span>
           <Input
@@ -86,6 +89,20 @@ function EmployeesPage() {
             aria-label="Procurar funcionários"
           />
         </label>
+          <label className="block space-y-1 text-sm">
+            <span className="text-xs font-semibold text-muted-foreground">Situação laboral</span>
+            <select
+              value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}
+              className="h-10 min-w-44 rounded-lg border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">Todos os vínculos</option>
+              <option value="draft">Em preparação</option>
+              <option value="active">Activos</option>
+              <option value="suspended">Suspensos</option>
+              <option value="terminated">Cessados</option>
+            </select>
+          </label>
+        </div>
         <p className="text-xs text-muted-foreground">
           {rows.length === 1 ? "1 funcionário" : `${rows.length} funcionários`}
         </p>
@@ -137,6 +154,7 @@ function EmployeesPage() {
           group="Finanças · RH"
           title="Funcionários"
           icon={moduleIcons.hr}
+          action={account.role === "Administrador" ? <AssignStaffPositionDialog /> : undefined}
           description="Os vínculos laborais da escola. Abra um funcionário para ver o contrato, as faltas e os recibos de vencimento."
           crumbs={[
             { label: "Início", to: "/portal" },
