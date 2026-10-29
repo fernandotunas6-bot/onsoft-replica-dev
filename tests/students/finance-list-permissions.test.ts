@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { canIssueStudentTuition, canReadStudentSection } from "@/features/students/student-sections";
+import {
+  canIssueStudentTuition,
+  canReadStudentSection,
+} from "@/features/students/student-sections";
 
 describe("alunos: permissões financeiras na lista", () => {
   it("não expõe dados financeiros ao professor sem grant", () => {
