@@ -31,7 +31,8 @@ type Teacher = {
 };
 type Workspace = {
   classes: Array<{
-    id: string; name: string; subject_id?: string | null; subject_name: string;
+    id: string; name: string; grade_name?: string | null; course_name?: string | null;
+    subject_id?: string | null; subject_name: string;
   }>;
   schedule: Array<{
     id: string; weekday_label: string; starts_at: string; ends_at: string;
@@ -96,10 +97,19 @@ export function TeacherProfile360({
   const schedule = workspace?.schedule ?? [];
   const assignedSubjects = new Set(classes.map((item) => item.subject_id || item.subject_name));
   const levels = useMemo(
-    () => resolveTeacherLevels(classes.map((item) => item.name), configuredLevels),
+    () => resolveTeacherLevels(classes.map((item) => item.grade_name || item.name), configuredLevels),
     [workspace, configuredLevels],
   );
   const today = useMemo(() => plannedLessonsToday(schedule), [workspace]);
+  const courses = useMemo(() => {
+    const groups = new Map<string, typeof classes>();
+    for (const item of classes) {
+      const course = item.course_name && item.course_name !== "—"
+        ? item.course_name : "Curso não definido";
+      groups.set(course, [...(groups.get(course) ?? []), item]);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b, "pt"));
+  }, [workspace]);
   const hrVisible = canReadHr && Boolean(employmentId);
   const hrQuery = useQuery({
     queryKey: ["hr", "employee", schoolId, employmentId],
@@ -215,15 +225,20 @@ export function TeacherProfile360({
         <TabsContent value="disciplinas" className="space-y-4">
           <Section title="Turmas, disciplinas e horário">
             <p className="text-xs text-muted-foreground">Atribuições reais por turma e disciplina na escola activa. O ano lectivo é o seleccionado no topo do sistema.</p>
-            {classes.length ? <ul className="grid gap-2 md:grid-cols-2">
-              {classes.map((item) => <li key={`${item.id}:${item.subject_id ?? item.subject_name}`} className="rounded-lg border border-border p-3">
-                <p className="text-sm font-semibold">{item.subject_name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{item.name}</p>
-                <Button asChild variant="link" size="sm" className="mt-1 h-auto p-0 text-xs">
-                  <Link to="/pedagogica" search={{ tab: "notas", turma: item.id, disciplina: item.subject_id ?? undefined }}>Abrir disciplina</Link>
-                </Button>
-              </li>)}
-            </ul> : <EmptyMessage>Ainda não existem disciplinas atribuídas a este professor na escola activa.</EmptyMessage>}
+            {courses.length ? courses.map(([course, items]) => (
+              <div key={course} className="space-y-2">
+                <h3 className="text-sm font-semibold">{course} <span className="text-xs font-normal text-muted-foreground">· {items.length} atribuições</span></h3>
+                <ul className="grid gap-2 md:grid-cols-2">
+                  {items.map((item) => <li key={`${item.id}:${item.subject_id ?? item.subject_name}`} className="rounded-lg border border-border p-3">
+                    <p className="text-sm font-semibold">{item.subject_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.grade_name || "Classe por definir"} · {item.name}</p>
+                    <Button asChild variant="link" size="sm" className="mt-1 h-auto p-0 text-xs">
+                      <Link to="/pedagogica" search={{ tab: "notas", turma: item.id, disciplina: item.subject_id ?? undefined }}>Abrir disciplina</Link>
+                    </Button>
+                  </li>)}
+                </ul>
+              </div>
+            )) : <EmptyMessage>Ainda não existem disciplinas atribuídas a este professor na escola activa.</EmptyMessage>}
           </Section>
           <TeacherWorkspacePanel teacherId={teacher.id} title="Área lectiva" canManage={canManage} showInstalledTools={false} />
         </TabsContent>
