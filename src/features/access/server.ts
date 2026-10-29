@@ -73,6 +73,17 @@ export function cargoRequiresAdministrator(cargoOrRoleCode: string): boolean {
   );
 }
 
+/**
+ * Activar um Administrador é permitido sem 2FA, mas só por quem já administra
+ * a escola e mediante reconfirmação recente da identidade. O requisito AAL2
+ * mantém-se exclusivamente para atribuir Tesouraria neste fluxo.
+ */
+const TREASURY_ROLE_CODES = new Set(mapAppRoleToSgaCodes("Tesouraria"));
+
+export function cargoRequiresMfaForAssignment(cargoOrRoleCode: string): boolean {
+  return TREASURY_ROLE_CODES.has(cargoOrRoleCode.trim().toLowerCase());
+}
+
 type SchoolBanPlan = {
   update: boolean;
   banDuration?: "876000h" | "none";
@@ -282,11 +293,13 @@ export const inviteSystemUser = createServerFn({ method: "POST" })
         `Apenas um Administrador pode convidar ou criar contas com cargo de ${data.cargo}.`,
       );
     }
-    // Dar administração ou tesouraria a alguém vale mais do que pagar um salário,
-    // que já exige 2FA: a mesma exigência aqui.
+    // Atribuir Administração não exige 2FA; conserva autorização por escola
+    // e reconfirmação recente. Tesouraria mantém o requisito adicional AAL2.
     if (cargoRequiresAdministrator(data.cargo)) {
-      requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
       requireRecentVerification(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
+    }
+    if (cargoRequiresMfaForAssignment(data.cargo)) {
+      requireAal2(context.claims ?? {}, `Criar uma conta com cargo de ${data.cargo}`);
     }
     const admin = await loadAdminClient();
 
@@ -503,7 +516,7 @@ export const updateSystemAccountCargo = createServerFn({ method: "POST" })
       throw new Error(`Apenas um Administrador pode atribuir o cargo de ${data.cargo}.`);
     }
     requireRecentVerification(context.claims ?? {}, "Mudar o cargo de uma conta");
-    if (cargoRequiresAdministrator(data.cargo)) {
+    if (cargoRequiresMfaForAssignment(data.cargo)) {
       requireAal2(context.claims ?? {}, `Atribuir o cargo de ${data.cargo}`);
     }
 
@@ -1066,7 +1079,13 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
       );
     }
     if (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) {
-      requireAal2(context.claims ?? {}, "Convidar com cargo de Administrador ou Tesouraria");
+      requireRecentVerification(
+        context.claims ?? {},
+        "Convidar com cargo de Administrador ou Tesouraria",
+      );
+    }
+    if (cargoRequiresMfaForAssignment(data.roleCode)) {
+      requireAal2(context.claims ?? {}, "Convidar com cargo de Tesouraria");
     }
     const admin = await loadAdminClient();
 
