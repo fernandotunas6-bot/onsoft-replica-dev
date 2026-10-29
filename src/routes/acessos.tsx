@@ -18,10 +18,8 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { AccessRequestsPanel } from "@/features/access/AccessRequestsPanel";
-import {
-  AccessOnboardingDialog,
-  isUnassignedStaffCandidate,
-} from "@/features/access/AccessOnboardingDialog";
+import { AccessOnboardingDialog } from "@/features/access/AccessOnboardingDialog";
+import { isUnassignedStaffCandidate } from "@/features/access/staff-candidates";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
@@ -58,7 +56,7 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import {
   createSchoolInvitation,
-   listSchoolInvitations,
+  listSchoolInvitations,
   listSchoolRoles,
   listSystemAccounts,
   resendSystemInvite,
