@@ -542,6 +542,37 @@ describe("entregas: aluno e encarregado", () => {
     );
   });
 
+  it("um anexo inválido escolhido depois de um PDF válido não envia o PDF antigo", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    const input = await screen.findByLabelText("Anexar foto ou PDF");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF-1.7 valido"], "valido.pdf", { type: "application/pdf" })],
+      },
+    });
+    expect(await screen.findByText("valido.pdf")).toBeTruthy();
+
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["nao"], "invalido.exe", { type: "application/x-msdownload" })],
+      },
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("valido.pdf")).toBeNull();
+      expect((screen.getByRole("button", { name: "Entregar" }) as HTMLButtonElement).disabled)
+        .toBe(true);
+    });
+    expect(server.submitTaskWork).not.toHaveBeenCalled();
+  });
+
   it("o anexo entregue abre num separador, por URL assinado", async () => {
     server.getMyTaskSubmission.mockResolvedValue({
       submission: {
