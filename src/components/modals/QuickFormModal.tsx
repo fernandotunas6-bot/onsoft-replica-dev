@@ -1,5 +1,5 @@
 import { reportPossibleStepUp } from "@/lib/step-up";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { toast } from "@/lib/toast";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
@@ -102,6 +102,8 @@ export function QuickFormModal({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const formId = useId();
+  const fieldId = (name: string) => `${formId}-${name}`;
   const didAutoOpen = useRef(false);
   // Guarda síncrona: o botão só fica desactivado depois de o React voltar a desenhar,
   // e dois cliques no mesmo instante enviavam duas vezes (dois recibos do mesmo
@@ -128,7 +130,11 @@ export function QuickFormModal({
     const out: Record<string, string> = {};
     if (!formRef.current) return out;
     for (const [key, val] of new FormData(formRef.current).entries()) {
-      out[key] = String(val ?? "").trim();
+      const raw = String(val ?? "");
+      const control = formRef.current.elements.namedItem(key);
+      // A senha é um segredo exacto: não a normalizar como texto de cadastro.
+      out[key] =
+        control instanceof HTMLInputElement && control.type === "password" ? raw : raw.trim();
     }
     return out;
   };
@@ -219,17 +225,20 @@ export function QuickFormModal({
             >
               {fields.map((field) => (
                 <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
-                  <Label htmlFor={field.name} className="text-xs font-semibold">
+                  <Label htmlFor={fieldId(field.name)} className="text-xs font-semibold">
                     {field.label}
                   </Label>
                   {field.type === "textarea" ? (
                     <Textarea
-                      id={field.name}
+                      id={fieldId(field.name)}
                       name={field.name}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      disabled={saving}
                       aria-invalid={Boolean(fieldErrors[field.name])}
-                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                      aria-describedby={
+                        fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                      }
                       defaultValue={field.defaultValue}
                       className="mt-1"
                     />
@@ -248,12 +257,13 @@ export function QuickFormModal({
                               ? normalizedOptions.map((option) => option.value).join("\u0000")
                               : undefined
                           }
-                          id={field.name}
+                          id={fieldId(field.name)}
                           name={field.name}
                           required={field.required ?? true}
+                          disabled={saving}
                           aria-invalid={Boolean(fieldErrors[field.name])}
                           aria-describedby={
-                            fieldErrors[field.name] ? `${field.name}-error` : undefined
+                            fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
                           }
                           className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
                           defaultValue={
@@ -272,33 +282,39 @@ export function QuickFormModal({
                     })()
                   ) : field.type === "angola-identity" ? (
                     <AngolaIdentityField
-                      id={field.name}
+                      id={fieldId(field.name)}
                       name={field.name}
                       defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
-                      disabled={false}
+                      required={field.required ?? true}
+                      disabled={saving}
                       ariaInvalid={Boolean(fieldErrors[field.name])}
-                      errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                      errorId={fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined}
                       placeholder={field.placeholder ?? ""}
                       className="mt-1.5"
                     />
                   ) : (
                     <Input
-                      id={field.name}
+                      id={fieldId(field.name)}
                       name={field.name}
                       type={field.type ?? "text"}
                       {...(inferInputMode(field) ? { inputMode: inferInputMode(field) } : {})}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      disabled={saving}
                       aria-invalid={Boolean(fieldErrors[field.name])}
-                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                      aria-describedby={
+                        fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                      }
                       defaultValue={field.defaultValue}
                       className="mt-1.5"
-                      {...(field.suggestions?.length ? { list: `${field.name}-suggestions` } : {})}
+                      {...(field.suggestions?.length
+                        ? { list: `${fieldId(field.name)}-suggestions` }
+                        : {})}
                     />
                   )}
                   {fieldErrors[field.name] ? (
                     <p
-                      id={`${field.name}-error`}
+                      id={`${fieldId(field.name)}-error`}
                       role="alert"
                       className="mt-1 text-xs text-destructive"
                     >
@@ -306,7 +322,7 @@ export function QuickFormModal({
                     </p>
                   ) : null}
                   {field.suggestions?.length ? (
-                    <datalist id={`${field.name}-suggestions`}>
+                    <datalist id={`${fieldId(field.name)}-suggestions`}>
                       {field.suggestions.map((option) => (
                         <option key={option} value={option} />
                       ))}

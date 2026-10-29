@@ -539,6 +539,8 @@ function AcessosPage() {
         <AccountBulkActions
           accounts={filteredAccounts}
           selectedIds={selectedAccountIds}
+          contextKey={`${currentUser.id}:${currentUser.schoolId}:${currentUser.role}`}
+          onSelectionChange={setSelectedAccountIds}
           isAdministrator={currentUser.role === "Administrador"}
           onChanged={() => queryClient.invalidateQueries({ queryKey: ["access", "accounts"] })}
           onClear={() => setSelectedAccountIds([])}

@@ -489,3 +489,11 @@ visita primeiro. No Android o cartão «SIGA Plus para Android» (APK de 64 bits
 para o de 32 bits, passos e certificado recolhidos) vem em cima e destacado; no computador fica
 por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã de entrada a ligação
 «Transferir a app do SIGA» aparece em todos os tamanhos (fora da app de computador).
+
+**29/10/2026 — Continuação do CRUD (implementado em ramo independente):**
+labels/erros/datalists por instância de formulário, bloqueio dos campos durante
+gravação e recuperação em falha, BI obrigatório quando configurado, selecção
+preservada após resultados parciais em Acessos. Sem alteração de layout, fontes
+ou cores. Testes DOM e verificadores estáticos aprovados; QA autenticado,
+dispositivos e assistivas continuam pendentes. Evidência em
+`docs/agents/HANDOFF_CRUD_CONTINUATION_2026-10-29.md`.

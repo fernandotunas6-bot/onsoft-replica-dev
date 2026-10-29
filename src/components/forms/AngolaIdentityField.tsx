@@ -11,6 +11,7 @@ type AngolaIdentityFieldProps = {
   defaultValue?: string;
   onChange?: (value: string) => void;
   disabled?: boolean;
+  required?: boolean;
   className?: string;
   placeholder?: string;
   ariaInvalid?: boolean;
@@ -25,6 +26,7 @@ export function AngolaIdentityField({
   defaultValue,
   onChange,
   disabled,
+  required,
   className,
   placeholder = "BI ou NIF (9–10 dígitos / 14 caracteres)",
   ariaInvalid,
@@ -68,6 +70,7 @@ export function AngolaIdentityField({
         defaultValue={defaultValue}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         disabled={disabled}
+        required={required}
         aria-invalid={ariaInvalid}
         aria-describedby={errorId}
         className={className}

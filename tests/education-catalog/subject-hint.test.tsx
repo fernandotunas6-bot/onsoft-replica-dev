@@ -71,8 +71,9 @@ describe("QuickFormModal: sugestões e aviso", () => {
     );
     fireEvent.click(screen.getByText("abrir"));
     const input = screen.getByLabelText("Disciplina");
-    expect(input.getAttribute("list")).toBe("nome-suggestions");
-    expect(document.querySelectorAll("#nome-suggestions option")).toHaveLength(2);
+    const listId = input.getAttribute("list");
+    expect(listId).toBeTruthy();
+    expect(document.getElementById(listId!)?.querySelectorAll("option")).toHaveLength(2);
     fireEvent.change(input, { target: { value: "Quimica" } });
     expect(screen.getByText("escrito: Quimica")).toBeTruthy();
   });
