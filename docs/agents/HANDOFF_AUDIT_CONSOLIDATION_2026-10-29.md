@@ -42,7 +42,7 @@ resolvido. Não foram alterados valores históricos nem registos de emissão.
 
 ## Verificação executada
 
-- Suite global: 791 ficheiros aprovados, 3 ignorados; 5.505 testes aprovados,
+- Suite global: 792 ficheiros aprovados, 3 ignorados; 5.510 testes aprovados,
   19 ignorados. Sem credenciais ou pedidos institucionais reais.
 - Após completar contexto do boletim e mapa de turmas: 47 testes em seis
   ficheiros aprovados; não somar esta contagem à suite global.
@@ -85,3 +85,13 @@ Produção, migrações remotas, envio de mensagens e merge não executados.
   de interacção com o menu/diálogo e negações de permissão/integração.
 - Git HTTPS local não tinha credenciais; a publicação usa o conector GitHub
   autorizado pelo proprietário em 29/10, preservando conteúdo e histórico remoto.
+
+
+## Estado de consolidação
+
+A PR #404 foi aberta em rascunho. #390/#391/#393/#395 foram encerradas como
+substituídas pela #396, com ramos e histórico preservados; package.json e bun.lock
+coincidem com a main. #392 permanece aberta até integrar a recuperação da cache.
+A CI inicial passou a auditoria de dependências e Academic Import Check, mas
+rejeitou a formatação de duas asserções no ensaio SQL (.mjs). A formatação foi
+corrigida e o lint integral repetido; não se desactivou nenhum controlo.

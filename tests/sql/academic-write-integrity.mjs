@@ -143,12 +143,18 @@ await db.exec(
 await assert.rejects(ret(), /oficial/);
 await db.exec("DELETE FROM grade_sheets");
 // A versão observada mudou: recusar o lote antes de sobrepor a nota.
-await assert.rejects(write([{ enrollmentId: e1, score: 12, expectedExists: true, expectedScore: 9 }]), /outra sessão/);
+await assert.rejects(
+  write([{ enrollmentId: e1, score: 12, expectedExists: true, expectedScore: 9 }]),
+  /outra sessão/,
+);
 assert.equal(await score(), null);
-await assert.rejects(write([
-  { enrollmentId: e1, score: 12, expectedExists: true, expectedScore: null },
-  { enrollmentId: e2, score: 13, expectedExists: true, expectedScore: 8 },
-]), /outra sessão/);
+await assert.rejects(
+  write([
+    { enrollmentId: e1, score: 12, expectedExists: true, expectedScore: null },
+    { enrollmentId: e2, score: 13, expectedExists: true, expectedScore: 8 },
+  ]),
+  /outra sessão/,
+);
 assert.equal(await score(), null, "o conflito posterior reverte a primeira nota");
 // Falha na auditoria: nem nota nem devolução escapam à transacção.
 await db.exec(`CREATE FUNCTION public.reject_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'audit failed'; END $$;
