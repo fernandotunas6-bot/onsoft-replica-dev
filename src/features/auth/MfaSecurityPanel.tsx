@@ -105,16 +105,72 @@ export function MfaSecurityPanel() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="flex items-center gap-2 text-sm font-semibold">
-            <Shield className="size-4 text-primary" /> Autenticação de dois fatores
+            <Shield className="size-4 text-primary" /> Verificação em dois passos (opcional)
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Configure uma única vez. O código no início de sessão é activado separadamente abaixo.
+            Pode trabalhar no SIGA Plus sem configurar esta opção. Para reforçar a segurança da
+            conta, siga o guia abaixo quando desejar.
           </p>
         </div>
         <Badge variant={enabled ? "default" : "outline"}>
           {checking ? "A verificar…" : enabled ? "Configurado" : "Não configurado"}
         </Badge>
       </div>
+
+      {!checking && !enabled ? (
+        <div className="mt-4 space-y-3 border-t border-border pt-4 text-sm">
+          <h4 className="font-medium">Como activar, passo a passo</h4>
+          <ol className="list-decimal space-y-2 pl-5 text-xs leading-relaxed text-muted-foreground">
+            <li>
+              Instale uma aplicação autenticadora no seu telemóvel. Escolha uma das opções abaixo.
+            </li>
+            <li>
+              Nesta página, clique em <strong>Configurar 2FA</strong>.
+            </li>
+            <li>
+              Na aplicação do telemóvel, toque em <strong>Adicionar conta</strong> e leia o código
+              QR apresentado no SIGA.
+            </li>
+            <li>
+              Introduza no SIGA os seis números mostrados pela aplicação e clique em{" "}
+              <strong>Activar</strong>.
+            </li>
+            <li>
+              Se também quiser pedir o código ao entrar, active{" "}
+              <strong>Código ao iniciar sessão</strong> no painel seguinte.
+            </li>
+          </ol>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+            <a
+              href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-4"
+            >
+              Google Authenticator — Android
+            </a>
+            <a
+              href="https://apps.apple.com/us/app/google-authenticator/id388497605"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-4"
+            >
+              Google Authenticator — iPhone
+            </a>
+            <a
+              href="https://support.microsoft.com/en-us/authenticator/download-microsoft-authenticator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-4"
+            >
+              Microsoft Authenticator — Android e iPhone
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A configuração é facultativa. Não partilhe o código QR nem os códigos de seis números.
+          </p>
+        </div>
+      ) : null}
 
       {!checking && !enabled && !pending && !incompleteFactorId ? (
         <Button
@@ -161,6 +217,10 @@ export function MfaSecurityPanel() {
             className="size-40 border"
             imgClassName="siga-official-paper object-contain p-2"
           />
+          <p className="text-xs text-muted-foreground">
+            Abra a aplicação autenticadora no telemóvel, escolha adicionar conta e leia este QR.
+            Depois introduza abaixo o código de seis números.
+          </p>
           <Label htmlFor="mfa-setup-code">Código da aplicação autenticadora</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
