@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Ellipsis, FileText, KeyRound, LockKeyhole, Mail, Printer, Shield, UnlockKeyhole, UserRound, UserX } from "lucide-react";
+import { Copy, Ellipsis, KeyRound, LockKeyhole, Mail, Printer, UnlockKeyhole, UserRound, UserX } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { reportPossibleStepUp } from "@/lib/step-up";
 import { passwordMeetsPolicy, PASSWORD_POLICY_HINT } from "@/lib/password-policy-error";
@@ -48,7 +48,8 @@ export function AccountRowActions({
     try {
       await action();
       toast.success(success);
-      close();
+      setDialog(null);
+      setPassword("");
     } catch (error) {
       notifyError(error);
     } finally {
@@ -60,7 +61,11 @@ export function AccountRowActions({
       const result = await setSystemAccountDisabled({
         data: { userId: account.id, disabled },
       });
-      await onChanged();
+      try {
+        await onChanged();
+      } catch {
+        toast.warning("O acesso foi actualizado; recarregue a lista para confirmar.");
+      }
       if (result.notice) toast.warning(result.notice);
     }, disabled ? "Acesso suspenso nesta escola." : "Acesso reactivado nesta escola.");
   };
