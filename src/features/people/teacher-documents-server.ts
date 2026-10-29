@@ -11,9 +11,7 @@ import { readSettingsDomain } from "@/features/school/settings-domains";
 import { resolveTeacherLevels } from "@/features/people/teacher-profile-context";
 import {
   teacherDocumentChecklist,
-  teacherDocumentCodeFromFile,
   teacherDocumentCodes,
-  teacherDocumentFileCode,
   TEACHER_DOCUMENTS,
 } from "@/features/people/teacher-documents-policy";
 
@@ -104,97 +102,151 @@ export const getTeacherDocuments = createServerFn({ method: "GET" })
       throw new Error("Só pode consultar os documentos da sua própria ficha.");
     }
 
-    const [policy, levels, fileResult] = await Promise.all([
+    const [policy, levels, entriesResult] = await Promise.all([
       readSettingsDomain(db, membership.schoolId, "teacher_documents"),
       assignedTeachingLevels(db, membership.schoolId, data.teacherId),
-      db
-        .from("siga_files")
-        .select("id, title, name, reference_code, category, created_at")
+      db.from("teacher_document_entries")
+        .select("id, file_id, document_code, validation_status, validation_notes, verified_at, created_at")
+        .eq("school_id", membership.schoolId)
+        .eq("teacher_id", data.teacherId)
+        .eq("person_id", teacher.personId)
+        .order("created_at", { ascending: false })
+        .limit(200),
+    ]);
+    if (entriesResult.error) {
+      throw publicDatabaseError(entriesResult.error,
+        "Não foi possível ler o processo documental. Verifique a migração teacher_document_entries.");
+    }
+    const entries = entriesResult.data ?? [];
+    const identifiers = entries.map((entry) => entry.file_id);
+    const fileResult = identifiers.length
+      ? await db.from("siga_files")
+        .select("id, title, name")
         .eq("school_id", membership.schoolId)
         .eq("related_person_id", teacher.personId)
         .eq("area", "secretaria")
         .eq("visibility", "private")
         .eq("storage_backend", "sga")
+        .eq("is_folder", false)
+        .eq("is_system", false)
         .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(200),
-    ]);
+        .in("id", identifiers)
+      : { data: [] as Array<{ id: string; title: string | null; name: string }>, error: null };
     if (fileResult.error) {
-      throw publicDatabaseError(
-        fileResult.error,
-        "Não foi possível consultar os documentos do professor.",
-      );
+      throw publicDatabaseError(fileResult.error, "Não foi possível validar os anexos reservados.");
     }
-    const files = (fileResult.data ?? [])
-      .filter((file) => teacherDocumentCodeFromFile(file.reference_code))
-      .map((file) => ({
-        id: String(file.id),
-        title: String(file.title || file.name),
-        code: teacherDocumentCodeFromFile(file.reference_code)!,
-        receivedAt: String(file.created_at),
+    const fileById = new Map((fileResult.data ?? []).map((file) => [file.id, file]));
+    const files = entries.filter((entry) => fileById.has(entry.file_id))
+      .map((entry) => ({
+        id: entry.file_id,
+        entryId: entry.id,
+        title: String(fileById.get(entry.file_id)?.title || fileById.get(entry.file_id)?.name || "Documento"),
+        code: entry.document_code,
+        validationStatus: entry.validation_status,
+        validationNotes: managerial ? entry.validation_notes : null,
+        verifiedAt: entry.verified_at,
+        receivedAt: entry.created_at,
       }));
+    const base = teacherDocumentChecklist(policy, [], levels);
+    const items = base.map((item) => {
+      const matches = files.filter((file) => file.code === item.code);
+      const latest = matches.find((file) => file.validationStatus === "verified")
+        ?? matches.find((file) => file.validationStatus === "received")
+        ?? matches[0];
+      const received = Boolean(latest && latest.validationStatus !== "rejected");
+      return { ...item, received,
+        verified: latest?.validationStatus === "verified",
+        status: !latest || latest.validationStatus === "rejected"
+          ? "em_falta" as const : latest.validationStatus === "verified"
+            ? "validado" as const : "recebido" as const,
+      };
+    });
     return {
       teacherId: data.teacherId,
       policyEnabled: policy.enabled,
       levels,
-      items: teacherDocumentChecklist(
-        policy,
-        files.map((file) => teacherDocumentFileCode(file.code, file.id)),
-        levels,
-      ),
+      items,
       files,
     };
   });
 
-/** Classifica um ficheiro privado já carregado para ESTA pessoa, sem mudar o proprietário. */
+/** Liga documento privado existente ao processo individual; preserva reference_code, título e histórico do Arquivo. */
 export const attachTeacherDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => linkInput.parse(input))
   .handler(async ({ data, context }) => {
     const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId, [
-      "Administrador",
-      "Secretaria",
+      "Administrador", "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
     const teacher = await requireTeacherDocumentTarget(db, membership.schoolId, data.teacherId);
-    const { data: file, error } = await db
-      .from("siga_files")
+    const { data: file, error } = await db.from("siga_files")
       .select("id, is_folder, is_system, storage_backend")
       .eq("id", data.fileId)
       .eq("school_id", membership.schoolId)
       .eq("related_person_id", teacher.personId)
       .eq("area", "secretaria")
       .eq("visibility", "private")
-      .is("deleted_at", null)
-      .maybeSingle();
+      .is("deleted_at", null).maybeSingle();
     if (error) throw publicDatabaseError(error, "Não foi possível validar o anexo.");
     if (!file || file.is_folder || file.is_system || file.storage_backend !== "sga") {
-      throw new Error(
-        "Seleccione um documento privado, associado a esta pessoa e guardado na Secretaria.",
-      );
+      throw new Error("Escolha um documento privado e relacionado com este professor na Secretaria.");
     }
     const doc = TEACHER_DOCUMENTS.find((item) => item.code === data.documentCode);
     if (!doc) throw new Error("Tipo de documento não reconhecido.");
-    const { data: result, error: updateError } = await db
-      .from("siga_files")
+    const { data: existing, error: existingError } = await db
+      .from("teacher_document_entries").select("id, document_code")
+      .eq("school_id", membership.schoolId).eq("file_id", data.fileId).maybeSingle();
+    if (existingError) throw publicDatabaseError(existingError, "Não foi possível validar o registo documental.");
+    if (existing) {
+      if (existing.document_code !== doc.code) {
+        throw new Error("Este arquivo já está associado a outro tipo documental. Seleccione outro ficheiro.");
+      }
+      return { id: String(existing.id), documentCode: doc.code, state: "recebido" as const };
+    }
+    const { data: result, error: insertError } = await db.from("teacher_document_entries")
+      .insert({
+        school_id: membership.schoolId,
+        teacher_id: data.teacherId,
+        person_id: teacher.personId,
+        file_id: data.fileId,
+        document_code: doc.code,
+        created_by: context.userId,
+        updated_by: context.userId,
+      }).select("id").single();
+    if (insertError) throw publicDatabaseError(insertError, "Não foi possível associar o documento.");
+    return { id: String(result.id), documentCode: doc.code, state: "recebido" as const };
+  });
+
+const reviewInput = teacherInput.extend({
+  entryId: z.string().uuid(),
+  decision: z.enum(["verified", "rejected"]),
+  reason: z.string().trim().min(3).max(700),
+});
+
+/** A validação é explícita e auditável; enviar não equivale a documento verificado. */
+export const reviewTeacherDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => reviewInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterForWrite("pessoas", context.supabase, context.userId,
+      ["Administrador", "Secretaria"]);
+    const db = await loadSgaAdminClient();
+    const teacher = await requireTeacherDocumentTarget(db, membership.schoolId, data.teacherId);
+    const { data: reviewed, error } = await db.from("teacher_document_entries")
       .update({
-        category: doc.category,
-        reference_code: teacherDocumentFileCode(doc.code, data.fileId),
+        validation_status: data.decision,
+        validation_notes: data.reason,
+        verified_by: context.userId,
+        verified_at: new Date().toISOString(),
         updated_by: context.userId,
         updated_at: new Date().toISOString(),
-        last_action: "metadata_updated",
-        last_action_at: new Date().toISOString(),
-        last_action_by: context.userId,
-      })
-      .eq("id", data.fileId)
+      }).eq("id", data.entryId)
       .eq("school_id", membership.schoolId)
-      .eq("related_person_id", teacher.personId)
-      .eq("area", "secretaria")
-      .eq("visibility", "private")
-      .select("id")
-      .maybeSingle();
-    if (updateError)
-      throw publicDatabaseError(updateError, "Não foi possível classificar o documento.");
-    if (!result) throw new Error("O documento já não está disponível nesta escola.");
-    return { id: String(result.id), documentCode: doc.code, state: "recebido" as const };
+      .eq("teacher_id", data.teacherId)
+      .eq("person_id", teacher.personId)
+      .select("id, validation_status").maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível validar este documento.");
+    if (!reviewed) throw new Error("O documento não pertence ao processo deste professor.");
+    return { id: reviewed.id, status: reviewed.validation_status };
   });
