@@ -35,11 +35,13 @@ const selectedColumns = [
 
 export function StudentBulkTools({
   students,
-  canUseFinance,
+  canReadFinance,
+  canIssueTuition,
   canUseGrades,
 }: {
   students: SelectedStudent[];
-  canUseFinance: boolean;
+  canReadFinance: boolean;
+  canIssueTuition: boolean;
   canUseGrades: boolean;
 }) {
   const navigate = useNavigate();
@@ -81,6 +83,7 @@ export function StudentBulkTools({
     void navigate({ to: "/pedagogica", search: { tab: "notas" } });
   };
   const exportDebt = () => {
+    if (!canReadFinance) return;
     const debtors = students.filter(
       (s) => s.payment_status === "overdue" || Number(s.debt_amount ?? 0) > 0,
     );
@@ -103,6 +106,9 @@ export function StudentBulkTools({
   };
 
   const issueSelectedTuition = async (values: Record<string, string>) => {
+    if (!canIssueTuition) {
+      throw new Error("Esta conta não tem permissão para emitir propinas.");
+    }
     if (students.length > 60) {
       throw new Error("Seleccione no máximo 60 alunos por lote de propinas.");
     }
@@ -112,6 +118,15 @@ export function StudentBulkTools({
         dueOn: values["vencimento"] ?? "",
       },
     });
+    // Não fechar o formulário com mensagem de sucesso se todas as emissões falharam.
+    if (result.failed.length && !result.issued.length && !result.skipped.length) {
+      throw new Error(
+        `Nenhuma propina foi emitida. ${result.failed
+          .slice(0, 2)
+          .map((item) => item.reason)
+          .join(" · ")}`,
+      );
+    }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["finance"] }),
       queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
@@ -146,7 +161,7 @@ export function StudentBulkTools({
   if (!students.length) return null;
   return (
     <>
-      {canUseFinance ? (
+      {canIssueTuition ? (
         <QuickFormModal
           eyebrow="Tesouraria"
           title={`Emitir propinas a ${students.length} alunos`}
@@ -203,7 +218,7 @@ export function StudentBulkTools({
           <DropdownMenuItem onSelect={email}>
             <Mail className="mr-2 size-4" /> Preparar mensagem por e-mail (BCC)
           </DropdownMenuItem>
-          {canUseFinance ? (
+          {canReadFinance ? (
             <DropdownMenuItem onSelect={exportDebt}>
               <ReceiptText className="mr-2 size-4" /> Preparar lista de cobrança
             </DropdownMenuItem>

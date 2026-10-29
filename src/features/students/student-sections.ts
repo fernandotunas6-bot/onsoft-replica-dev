@@ -56,6 +56,22 @@ export function canReadStudentFinance(role: string, grants: ModuleGrantMap = {})
 }
 
 /**
+ * Mesma regra de requireSgaWriterForWrite("financeiro") no servidor:
+ * os cargos do departamento podem escrever por omissão, mas grants Leitura/Nenhum
+ * impedem mutações; outros funcionários só podem fazê-lo com Escrita/Total.
+ * Não reutilizar canReadStudentFinance para mostrar botões de emissão de facturas.
+ */
+export function canIssueStudentTuition(role: string, grants: ModuleGrantMap = {}): boolean {
+  const level = grants.financeiro;
+  if (level === "Nenhum" || level === "Leitura") return false;
+  if (STUDENT_FINANCE_ROLES.some((allowed) => allowed === role)) return true;
+  return (
+    GRANT_ELEVATABLE_ROLES.some((allowed) => allowed === role) &&
+    (level === "Escrita" || level === "Total")
+  );
+}
+
+/**
  * Quem o servidor deixa ler o histórico académico de vários anos
  * (`getStudentAcademicHistory`): Administração e Secretaria. O professor só vê as
  * turmas que lecciona e o encarregado recebe a recusa. «Nenhum» no módulo

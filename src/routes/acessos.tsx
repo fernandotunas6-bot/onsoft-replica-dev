@@ -215,6 +215,15 @@ function AcessosPage() {
     });
   }, [accounts, cargo, estado, query]);
 
+  // Evita acções em lote sobre contas que desapareceram dos filtros actuais.
+  useEffect(() => {
+    const visible = new Set(filteredAccounts.map((account) => account.id));
+    setSelectedAccountIds((previous) => {
+      const next = previous.filter((id) => visible.has(id));
+      return next.length === previous.length ? previous : next;
+    });
+  }, [filteredAccounts]);
+
   const filteredStaff = useMemo(() => {
     const q = query.trim().toLowerCase();
     return staff.filter(
@@ -528,7 +537,7 @@ function AcessosPage() {
         />
 
         <AccountBulkActions
-          accounts={accounts}
+          accounts={filteredAccounts}
           selectedIds={selectedAccountIds}
           isAdministrator={currentUser.role === "Administrador"}
           onChanged={() => queryClient.invalidateQueries({ queryKey: ["access", "accounts"] })}
