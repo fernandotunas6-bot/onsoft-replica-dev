@@ -416,6 +416,30 @@ describe("entregas: aluno e encarregado", () => {
     );
   });
 
+  it("um duplo toque em Entregar efectua um único pedido", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    expect(await screen.findByText("Ainda não entregue.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("O meu trabalho"), {
+      target: { value: "Resposta rápida" },
+    });
+    const button = screen.getByRole("button", { name: "Entregar" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    await waitFor(() => expect(server.submitTaskWork).toHaveBeenCalledTimes(1));
+    expect(server.submitTaskWork).toHaveBeenCalledWith({
+      data: { taskId: TASK, body: "Resposta rápida" },
+    });
+  });
+
   it("depois de devolvido: vê a nota e o comentário, e já não reenvia", async () => {
     server.getMyTaskSubmission.mockResolvedValue({
       submission: {
