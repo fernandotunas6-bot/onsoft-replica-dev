@@ -460,7 +460,11 @@ function PeoplePage() {
                 });
                 await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
                 await queryClient.invalidateQueries({ queryKey: ["people", "search"] });
-                await navigate({ to: "/professores/$teacherId", params: { teacherId: created.id }, search: { tab: "documentos" } });
+                await navigate({
+                  to: "/professores/$teacherId",
+                  params: { teacherId: created.id },
+                  search: { tab: "documentos" },
+                });
               }}
               fields={[
                 { name: "nome", label: "Nome completo", full: true },
