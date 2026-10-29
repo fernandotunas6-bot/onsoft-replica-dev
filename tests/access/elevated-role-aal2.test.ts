@@ -25,8 +25,12 @@ describe("Administrador sem 2FA obrigatório, Tesouraria protegida", () => {
     (name) => {
       const body = handler(server, name);
       expect(body).toContain("!isAdministrator");
-      expect(body).toMatch(/if \(cargoRequiresMfaForAssignment\(data\.(cargo|roleCode)\)\) \{\s*requireAal2\(/);
-      expect(body).not.toMatch(/if \(cargoRequiresAdministrator\(data\.(cargo|roleCode)\)\) \{\s*requireAal2\(/);
+      expect(body).toMatch(
+        /if \(cargoRequiresMfaForAssignment\(data\.(cargo|roleCode)\)\) \{\s*requireAal2\(/,
+      );
+      expect(body).not.toMatch(
+        /if \(cargoRequiresAdministrator\(data\.(cargo|roleCode)\)\) \{\s*requireAal2\(/,
+      );
       expect(body).toContain("requireRecentVerification(");
     },
   );
