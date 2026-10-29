@@ -239,32 +239,13 @@ export function requiredTeacherDocuments(
   return teacherDocumentCodes.filter((code) => combined.has(code));
 }
 
-/**
- * Sufixo único por ficheiro; não substitui o número oficial do documento.
- * A tag é metadado reservado da Secretaria; só uma operação autenticada
- * do servidor a pode criar depois de validar school/person/privacidade.
- */
-export function teacherDocumentFileCode(code: TeacherDocumentCode, fileId: string): string {
-  return `TCHR-${code.toUpperCase()}-${fileId.replace(/-/g, "").toUpperCase()}`;
-}
-export function teacherDocumentCodeFromFile(
-  reference: string | null | undefined,
-): TeacherDocumentCode | null {
-  const normalized = (reference ?? "").trim().toUpperCase();
-  return (
-    teacherDocumentCodes.find((code) => normalized.startsWith(`TCHR-${code.toUpperCase()}-`)) ??
-    null
-  );
-}
-
+/** Os anexos são registados em teacher_document_entries, nunca no reference_code do Arquivo. */
 export function teacherDocumentChecklist(
   policy: TeacherDocumentPolicy,
-  fileReferences: readonly (string | null)[],
+  receivedCodes: readonly TeacherDocumentCode[],
   levels: readonly string[] = [],
 ) {
-  const delivered = new Set(
-    fileReferences.map((reference) => teacherDocumentCodeFromFile(reference)).filter(Boolean),
-  );
+  const delivered = new Set(receivedCodes);
   const required = requiredTeacherDocuments(policy, levels);
   return TEACHER_DOCUMENTS.map((doc) => ({
     ...doc,
