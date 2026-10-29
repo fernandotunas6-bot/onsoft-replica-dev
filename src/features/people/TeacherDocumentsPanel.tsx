@@ -104,7 +104,7 @@ export function TeacherDocumentsPanel({
               A entrega não significa validação de autenticidade.
             </p>
             {query.data.levelPending ? (
-              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              <p className="mt-2 text-xs text-warning">
                 A escola tem vários níveis de ensino. Atribua primeiro o contexto lectivo
                 deste docente para determinar todos os documentos obrigatórios.
               </p>
