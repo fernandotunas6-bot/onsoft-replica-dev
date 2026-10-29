@@ -88,9 +88,10 @@ export function LoginMfaSetting() {
             <ShieldCheck className="size-4 text-primary" /> Código ao iniciar sessão
           </h3>
           <p className="text-xs text-muted-foreground">
-            Desligado por omissão para todas as contas e escolas. Depois de configurar um
-            autenticador ou chave de acesso, pode activar ou desactivar esta exigência aqui.
-            Operações sensíveis continuam a pedir uma confirmação de segurança.
+            Opcional e desligado por omissão: pode entrar e trabalhar sem código adicional. Depois
+            de configurar o autenticador acima, active esta opção apenas se desejar pedir um código
+            ao iniciar sessão. Algumas operações financeiras e outras acções sensíveis continuam a
+            ter verificações próprias.
           </p>
           {!configured && !checking && !error ? (
             <p className="text-xs text-muted-foreground">
