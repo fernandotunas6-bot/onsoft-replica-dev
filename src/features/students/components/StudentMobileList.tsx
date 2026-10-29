@@ -107,7 +107,7 @@ export function StudentMobileList({
     // A dívida é o número que faz alguém agir nesta lista — por isso é a única
     // que sobe à linha de meta, e só quando existe.
     meta:
-      student.debt_amount && student.debt_amount > 0 ? (
+      financeAllowed && student.debt_amount && student.debt_amount > 0 ? (
         <span className="text-destructive-strong">
           <MoneyValue amount={student.debt_amount} tone="negative" size="sm" /> em dívida
           {student.overdue_count ? ` · ${student.overdue_count} fatura(s)` : ""}
