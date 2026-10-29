@@ -64,6 +64,22 @@ describe("acções sobre a conta inteira (senha, bloqueio) entre escolas", () =>
     expect(access.hasOtherActiveSchools).toBe(false);
   });
 
+  it.each([
+    { data: null, error: { message: "falha de ligação" } },
+    { data: null, error: null },
+  ])("falha fechado quando não pode confirmar as outras escolas: %o", async (response) => {
+    const broken = {
+      from: () => ({
+        select: () => ({
+          eq: async () => response,
+        }),
+      }),
+    } as unknown as Parameters<typeof otherSchoolAccess>[0];
+    await expect(otherSchoolAccess(broken, "u", "A")).rejects.toThrow(
+      "Não foi possível confirmar os vínculos da conta às escolas.",
+    );
+  });
+
   it("administrador noutra escola conta como administrador (o cargo global não chega)", async () => {
     const access = await otherSchoolAccess(
       fakeAdmin(
