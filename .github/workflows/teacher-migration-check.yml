@@ -1,0 +1,23 @@
+name: Teacher document migration isolated test
+on:
+  push:
+    branches:
+      - feat/teacher-profile-360-context-20261029
+    paths:
+      - .github/workflows/teacher-migration-check.yml
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Prepare local ephemeral PostgreSQL with PGlite
+        run: |
+          npm install --no-save --silent --prefix "$RUNNER_TEMP/pglite" @electric-sql/pglite@0.3.14
+          echo "SIGA_SQL_TEST_MODULE_PATH=$RUNNER_TEMP/pglite/node_modules/@electric-sql/pglite/dist/index.js" >> "$GITHUB_ENV"
+      - name: Exercise actual teacher-document migration, tenant isolation, and grants
+        run: node tests/sql/teacher-document-entries.mjs
