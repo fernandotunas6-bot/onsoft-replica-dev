@@ -552,6 +552,11 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                       }}
                     />
                   ))}
+                  {unread.length ? (
+                    <p className="pt-2 text-xs font-semibold text-muted-foreground">
+                      Mensagens por ler
+                    </p>
+                  ) : null}
                   {unread.map((row) => (
                     <button
                       key={row.conversationId}
