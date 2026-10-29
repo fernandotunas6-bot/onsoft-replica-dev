@@ -27,7 +27,9 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
   const [selectedPerson, setSelectedPerson] = useState(person ?? null);
   const [positionId, setPositionId] = useState("");
   const [positionName, setPositionName] = useState("");
-  const [positionCategory, setPositionCategory] = useState<"teacher" | "staff" | "director" | "management" | "support" | "other">("staff");
+  const [positionCategory, setPositionCategory] = useState<
+    "teacher" | "staff" | "director" | "management" | "support" | "other"
+  >("staff");
   const [departmentId, setDepartmentId] = useState("");
   const [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -156,7 +158,9 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
                 <select
                   aria-label="Categoria do novo cargo"
                   value={positionCategory}
-                  onChange={(event) => setPositionCategory(event.target.value as typeof positionCategory)}
+                  onChange={(event) =>
+                    setPositionCategory(event.target.value as typeof positionCategory)
+                  }
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="staff">Funcionário administrativo</option>
@@ -204,7 +208,10 @@ export function AssignStaffPositionDialog({ person }: { person?: { id: string; n
                         personId: selectedPerson.id,
                         ...(positionId !== "new"
                           ? { positionId }
-                          : { newPositionName: positionName.trim(), newPositionCategory: positionCategory }),
+                          : {
+                              newPositionName: positionName.trim(),
+                              newPositionCategory: positionCategory,
+                            }),
                         ...(departmentId ? { departmentId } : {}),
                       },
                     });

@@ -64,7 +64,9 @@ const assignInput = z
     personId: z.string().uuid(),
     positionId: z.string().uuid().optional(),
     newPositionName: z.string().trim().min(2).max(120).optional(),
-    newPositionCategory: z.enum(["teacher", "staff", "director", "management", "support", "other"]).optional(),
+    newPositionCategory: z
+      .enum(["teacher", "staff", "director", "management", "support", "other"])
+      .optional(),
     departmentId: z.string().uuid().optional(),
   })
   .refine((value) => Boolean(value.positionId || value.newPositionName), {
@@ -211,22 +213,48 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
       throw publicDatabaseError(updateError, "Não foi possível associar o cargo ao funcionário.");
     if (!updated) throw new Error("Não foi possível encontrar a ficha RH desta pessoa.");
     // Vínculo institucional, sem atribuir nenhuma permissão de login.
-    const { data: personRole, error: roleError } = await db.from("person_roles")
-      .select("id, active").eq("school_id", membership.schoolId)
-      .eq("person_id", data.personId).eq("role", "funcionario").maybeSingle();
-    if (roleError) throw publicDatabaseError(roleError, "Cargo atribuído, mas não foi possível verificar o vínculo em Pessoas.");
+    const { data: personRole, error: roleError } = await db
+      .from("person_roles")
+      .select("id, active")
+      .eq("school_id", membership.schoolId)
+      .eq("person_id", data.personId)
+      .eq("role", "funcionario")
+      .maybeSingle();
+    if (roleError)
+      throw publicDatabaseError(
+        roleError,
+        "Cargo atribuído, mas não foi possível verificar o vínculo em Pessoas.",
+      );
     if (personRole && !personRole.active) {
-      const { error: reactivateError } = await db.from("person_roles").update({
-        active: true, deleted_at: null, updated_at: new Date().toISOString(),
-        updated_by: context.userId,
-      }).eq("id", personRole.id).eq("school_id", membership.schoolId);
-      if (reactivateError) throw publicDatabaseError(reactivateError, "Cargo atribuído, mas não foi possível reactivar o vínculo.");
+      const { error: reactivateError } = await db
+        .from("person_roles")
+        .update({
+          active: true,
+          deleted_at: null,
+          updated_at: new Date().toISOString(),
+          updated_by: context.userId,
+        })
+        .eq("id", personRole.id)
+        .eq("school_id", membership.schoolId);
+      if (reactivateError)
+        throw publicDatabaseError(
+          reactivateError,
+          "Cargo atribuído, mas não foi possível reactivar o vínculo.",
+        );
     } else if (!personRole) {
       const { error: insertRoleError } = await db.from("person_roles").insert({
-        school_id: membership.schoolId, person_id: data.personId, role: "funcionario",
-        active: true, created_by: context.userId, updated_by: context.userId,
+        school_id: membership.schoolId,
+        person_id: data.personId,
+        role: "funcionario",
+        active: true,
+        created_by: context.userId,
+        updated_by: context.userId,
       });
-      if (insertRoleError) throw publicDatabaseError(insertRoleError, "Cargo atribuído, mas não foi possível adicionar o vínculo em Pessoas.");
+      if (insertRoleError)
+        throw publicDatabaseError(
+          insertRoleError,
+          "Cargo atribuído, mas não foi possível adicionar o vínculo em Pessoas.",
+        );
     }
     return { employmentId: String(updated.id), status: String(updated.status), positionId };
   });
