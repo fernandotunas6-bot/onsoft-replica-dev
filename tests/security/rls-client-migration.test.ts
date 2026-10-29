@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
-import { resolve, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Progresso do ARQ-01, travado por teste.
@@ -334,22 +335,18 @@ function usaClientePrivilegiado(código: string): boolean {
 }
 
 function ficheirosComClientePrivilegiado(): string[] {
-  const encontrados: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = resolve(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.tsx?$/.test(entry)) continue;
-      if (usaClientePrivilegiado(readFileSync(full, "utf8"))) {
-        encontrados.push(relative(REPO, full));
-      }
-    }
-  };
-  walk(resolve(REPO, "src"));
-  return encontrados.sort();
+  // Apenas fontes rastreadas pelo Git. Ficheiros efémeros gerados durante
+  // builds ou outros testes paralelos não são parte da dívida versionada.
+  // Isto evita contagens instáveis sem aumentar o tecto nem criar excepções.
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", "src"], {
+    cwd: REPO,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter((file) => /\.tsx?$/.test(file));
+  return tracked
+    .filter((file) => usaClientePrivilegiado(readFileSync(resolve(REPO, file), "utf8")))
+    .sort();
 }
 
 const privilegiados = ficheirosComClientePrivilegiado();
@@ -395,6 +392,11 @@ describe("migração para o cliente que respeita RLS (ARQ-01)", () => {
       ).toBe(true);
     },
   );
+
+  it("a nova consulta paginada não abre um novo cliente privilegiado", () => {
+    const source = readFileSync(resolve(REPO, "src/features/people/directory-server.ts"), "utf8");
+    expect(usaClientePrivilegiado(source)).toBe(false);
+  });
 
   it("a dívida não cresce", () => {
     const emDívida = privilegiados.filter((f) => !PRIVILEGIO_POR_DESENHO.has(f));

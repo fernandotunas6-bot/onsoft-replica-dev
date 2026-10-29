@@ -60,6 +60,16 @@ describe("verificação de documentos oficiais", () => {
     expect(pdf).not.toMatch(/charCodeAt\(\(row \+ col\)/);
   });
 
+  it("falhas de consulta não são apresentadas como códigos inválidos", () => {
+    const source = read("src/features/documents/verification.ts");
+    const verify = source.slice(source.indexOf("export const verifyIssuedDocument"));
+    expect(verify.indexOf("if (verificationError)")).toBeGreaterThan(-1);
+    expect(verify.indexOf("if (verificationError)")).toBeLessThan(
+      verify.indexOf("if (!row) return { valid: false }"),
+    );
+    expect(verify).toContain("if (schoolError)");
+  });
+
   it("a página de verificação é pública", () => {
     expect(isPublicAppPath("/verificar")).toBe(true);
   });

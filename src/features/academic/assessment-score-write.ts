@@ -52,6 +52,31 @@ export function sameScore(before: unknown, after: unknown): boolean {
   return value(before) === value(after);
 }
 
+/**
+ * Recusa um lote ambíguo antes da primeira gravação. A UI valida a escala,
+ * mas os outros consumidores do núcleo também passam por esta protecção.
+ */
+export function validateAssessmentScoreBatch(
+  rows: readonly AssessmentScoreRow[],
+  maxScore: number | null,
+) {
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!row.enrollmentId.trim()) throw new Error("Identifique o aluno antes de lançar notas.");
+    if (seen.has(row.enrollmentId)) {
+      throw new Error("O mesmo aluno foi incluído duas vezes no lote de notas.");
+    }
+    seen.add(row.enrollmentId);
+    if (row.score === null) continue;
+    if (!Number.isFinite(row.score) || row.score < 0 || row.score > 20) {
+      throw new Error("As notas devem ser valores finitos entre 0 e 20.");
+    }
+    if (maxScore != null && row.score > maxScore) {
+      throw new Error(`Esta avaliação vale ${maxScore} valores: nenhuma nota pode passar disso.`);
+    }
+  }
+}
+
 export async function writeAssessmentScores(
   db: Db,
   input: { schoolId: string; userId: string; itemId: string; rows: AssessmentScoreRow[] },
@@ -74,9 +99,7 @@ export async function writeAssessmentScores(
   // O esquema aceita até 20 para qualquer avaliação; uma prova cotada para 10
   // aceitava 18, e o domínio por competência passava dos 100%.
   const maxScore = item.max_score == null ? null : Number(item.max_score);
-  if (maxScore != null && input.rows.some((row) => row.score != null && row.score > maxScore)) {
-    throw new Error(`Esta avaliação vale ${maxScore} valores: nenhuma nota pode passar disso.`);
-  }
+  validateAssessmentScoreBatch(input.rows, maxScore);
   await assertTermOpen(db, input.schoolId, Number(item.term));
   // Pauta homologada/publicada: as notas das avaliações também ficam fechadas
   // (a alteração passa a pedido), como as de MAC/NPP/NPT.
@@ -109,6 +132,7 @@ export async function writeAssessmentScores(
   const { data: existingRows, error: existingError } = await db
     .from("siga_assessment_scores")
     .select("id, score, enrollment_id")
+    .eq("school_id", input.schoolId)
     .eq("item_id", input.itemId)
     .in("enrollment_id", enrollmentIds);
   if (existingError) {
@@ -118,40 +142,85 @@ export async function writeAssessmentScores(
     (existingRows ?? []).map((row) => [row.enrollment_id, row] as const),
   );
   const toInsert = input.rows.filter((row) => !existingByEnrollment.has(row.enrollmentId));
-  const toUpdate = input.rows.filter((row) => existingByEnrollment.has(row.enrollmentId));
+  // O mesmo valor não é nova avaliação: não tocar em updated_at, gatilhos
+  // nem no histórico quando o professor reenviar a pauta sem alterar a nota.
+  const toUpdate = input.rows.filter((row) => {
+    const current = existingByEnrollment.get(row.enrollmentId);
+    return current && !sameScore(current.score, row.score);
+  });
 
-  const [insertResult, ...updateResults] = await Promise.all([
-    toInsert.length
-      ? db.from("siga_assessment_scores").insert(
-          toInsert.map((row) => ({
-            school_id: input.schoolId,
-            item_id: input.itemId,
-            enrollment_id: row.enrollmentId,
-            score: row.score,
-            recorded_by: input.userId,
-          })),
-        )
-      : Promise.resolve({ error: null }),
-    ...toUpdate.map((row) => {
-      const existing = existingByEnrollment.get(row.enrollmentId)!;
-      return db
-        .from("siga_assessment_scores")
-        .update({
-          previous_score: existing.score,
+  // Manter os tipos dos resultados de INSERT e UPDATE separados: o lote de
+  // alterações devolve as linhas confirmadas pelo PostgREST (RETURNING id).
+  const insertPromise = toInsert.length
+    ? db.from("siga_assessment_scores").insert(
+        toInsert.map((row) => ({
+          school_id: input.schoolId,
+          item_id: input.itemId,
+          enrollment_id: row.enrollmentId,
           score: row.score,
           recorded_by: input.userId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .eq("school_id", input.schoolId);
-    }),
+        })),
+      )
+    : Promise.resolve({ error: null });
+  const updatePromises = toUpdate.map((row) => {
+    const existing = existingByEnrollment.get(row.enrollmentId)!;
+    // Não sobrepor uma nota alterada por outro professor ou pela secretaria
+    // entre a leitura e o UPDATE (compare-and-swap, incluindo valor null).
+    let update = db
+      .from("siga_assessment_scores")
+      .update({
+        previous_score: existing.score,
+        score: row.score,
+        recorded_by: input.userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .eq("school_id", input.schoolId)
+      .eq("item_id", input.itemId)
+      .eq("enrollment_id", row.enrollmentId);
+    update = existing.score == null ? update.is("score", null) : update.eq("score", existing.score);
+    return update.select("id");
+  });
+  const [insertResult, updateResults] = await Promise.all([
+    insertPromise,
+    Promise.all(updatePromises),
   ]);
-  // Lançar notas é a escrita de maior consequência do sistema. Sem registo,
-  // um lote que falha a meio — uns alunos gravados, outros não — chega ao
-  // professor como uma mensagem genérica e não deixa rasto nenhum.
-  const failure = insertResult.error ?? updateResults.find((result) => result.error)?.error;
-  if (failure) {
-    reportSigaError("assessment.score.write_failed", failure, {
+
+  // Se o lote tiver resultados mistos, auditar as notas efectivamente alteradas
+  // ANTES de notificar o erro. Nunca atribuir uma alteração a uma linha cuja
+  // condição de concorrência falhou.
+  const changed = toUpdate.filter((_, index) => {
+    const result = updateResults[index];
+    return !result?.error && result?.data?.length === 1;
+  });
+  if (changed.length) {
+    await recordAuditBatch(
+      changed.map((row) => {
+        const existing = existingByEnrollment.get(row.enrollmentId)!;
+        return {
+          schoolId: input.schoolId,
+          actorUserId: input.userId,
+          action: "grades.assessment_score_changed",
+          entityType: "siga_assessment_scores",
+          entityId: existing.id,
+          metadata: {
+            item_id: input.itemId,
+            enrollment_id: row.enrollmentId,
+            from: existing.score,
+            to: row.score,
+          },
+        };
+      }),
+    );
+  }
+
+  // Sem uma transacção/RPC para todo o lote, podem existir êxitos parciais.
+  // O erro é explícito e rastreável; o professor deve actualizar antes de
+  // repetir, para não perder modificações concorrentes.
+  const writeError = insertResult.error ?? updateResults.find((result) => result.error)?.error;
+  const conflicted = updateResults.some((result) => !result.error && result.data?.length !== 1);
+  if (writeError || conflicted) {
+    reportSigaError("assessment.score.write_failed", writeError ?? new Error("score_conflict"), {
       module: "academic",
       action: "score.upsert",
       school_id: input.schoolId,
@@ -165,26 +234,11 @@ export async function writeAssessmentScores(
   for (const result of updateResults) {
     if (result.error)
       throw publicDatabaseError(result.error, "Não foi possível actualizar as notas.");
+    if (result.data?.length !== 1) {
+      throw new Error(
+        "Uma nota foi alterada por outra sessão. Actualize a avaliação antes de tentar novamente.",
+      );
+    }
   }
-  // A tabela só guarda a nota anterior: uma nota mudada duas vezes perdia a
-  // original. Cada alteração de uma nota já lançada fica em audit_logs.
-  await recordAuditBatch(
-    toUpdate
-      .map((row) => ({ row, existing: existingByEnrollment.get(row.enrollmentId)! }))
-      .filter(({ row, existing }) => !sameScore(existing.score, row.score))
-      .map(({ row, existing }) => ({
-        schoolId: input.schoolId,
-        actorUserId: input.userId,
-        action: "grades.assessment_score_changed",
-        entityType: "siga_assessment_scores",
-        entityId: existing.id,
-        metadata: {
-          item_id: input.itemId,
-          enrollment_id: row.enrollmentId,
-          from: existing.score,
-          to: row.score,
-        },
-      })),
-  );
   return { saved: input.rows.length };
 }

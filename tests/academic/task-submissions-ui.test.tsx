@@ -416,6 +416,30 @@ describe("entregas: aluno e encarregado", () => {
     );
   });
 
+  it("um duplo toque em Entregar efectua um único pedido", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    expect(await screen.findByText("Ainda não entregue.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("O meu trabalho"), {
+      target: { value: "Resposta rápida" },
+    });
+    const button = screen.getByRole("button", { name: "Entregar" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    await waitFor(() => expect(server.submitTaskWork).toHaveBeenCalledTimes(1));
+    expect(server.submitTaskWork).toHaveBeenCalledWith({
+      data: { taskId: TASK, body: "Resposta rápida" },
+    });
+  });
+
   it("depois de devolvido: vê a nota e o comentário, e já não reenvia", async () => {
     server.getMyTaskSubmission.mockResolvedValue({
       submission: {
@@ -484,6 +508,46 @@ describe("entregas: aluno e encarregado", () => {
     );
   });
 
+  it("envia o último PDF escolhido mesmo quando a mutação ainda tinha opções anteriores", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    const input = await screen.findByLabelText("Anexar foto ou PDF");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF-1.7 antigo"], "antigo.pdf", { type: "application/pdf" })],
+      },
+    });
+    expect(await screen.findByText("antigo.pdf")).toBeTruthy();
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF-1.7 novo"], "novo.pdf", { type: "application/pdf" })],
+      },
+    });
+    expect(await screen.findByText("novo.pdf")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Entregar" }));
+    await waitFor(() =>
+      expect(server.submitTaskWork).toHaveBeenCalledWith({
+        data: {
+          taskId: TASK,
+          attachment: {
+            name: "novo.pdf",
+            contentType: "application/pdf",
+            base64: btoa("%PDF-1.7 novo"),
+          },
+        },
+      }),
+    );
+    expect(server.submitTaskWork).toHaveBeenCalledTimes(1);
+  });
+
   it("um ficheiro de outro tipo é recusado no ecrã, antes de enviar", async () => {
     server.getMyTaskSubmission.mockResolvedValue({
       submission: null,
@@ -500,6 +564,38 @@ describe("entregas: aluno e encarregado", () => {
     expect((screen.getByRole("button", { name: "Entregar" }) as HTMLButtonElement).disabled).toBe(
       true,
     );
+  });
+
+  it("um anexo inválido escolhido depois de um PDF válido não envia o PDF antigo", async () => {
+    server.getMyTaskSubmission.mockResolvedValue({
+      submission: null,
+      canSubmit: true,
+      acceptsLate: true,
+      dueOn: null,
+    });
+    server.submitTaskWork.mockResolvedValue({ attempt: 1, late: false });
+    wrap(<MyTaskSubmission taskId={TASK} />);
+
+    const input = await screen.findByLabelText("Anexar foto ou PDF");
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["%PDF-1.7 valido"], "valido.pdf", { type: "application/pdf" })],
+      },
+    });
+    expect(await screen.findByText("valido.pdf")).toBeTruthy();
+
+    fireEvent.change(input, {
+      target: {
+        files: [new File(["nao"], "invalido.exe", { type: "application/x-msdownload" })],
+      },
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("valido.pdf")).toBeNull();
+      expect((screen.getByRole("button", { name: "Entregar" }) as HTMLButtonElement).disabled).toBe(
+        true,
+      );
+    });
+    expect(server.submitTaskWork).not.toHaveBeenCalled();
   });
 
   it("o anexo entregue abre num separador, por URL assinado", async () => {

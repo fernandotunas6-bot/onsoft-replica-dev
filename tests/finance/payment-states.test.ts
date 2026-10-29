@@ -34,6 +34,23 @@ describe("estado da fatura", () => {
     });
   });
 
+  it("uma fatura anteriormente paga volta a ter dívida depois de um estorno", () => {
+    const invoice = { status: "paid", total: 10_000, paid: 4_000, dueOn: "2026-10-01" };
+    expect(invoiceState(invoice, hoje)).toEqual({
+      status: "overdue",
+      label: "Vencida · paga em parte",
+    });
+    expect(invoiceState({ ...invoice, paid: 0 }, hoje).status).toBe("overdue");
+    expect(invoiceState({ ...invoice, paid: 10_000 }, hoje).status).toBe("paid");
+  });
+
+  it("arredondamento em cêntimos não deixa fatura paga artificialmente em dívida", () => {
+    expect(
+      invoiceState({ status: "issued", total: 0.3, paid: 0.1 + 0.2, dueOn: "2026-10-01" }, hoje)
+        .status,
+    ).toBe("paid");
+  });
+
   it("anulada nunca aparece como dívida", () => {
     expect(
       invoiceState({ status: "void", total: 10_000, paid: 0, dueOn: "2026-10-01" }, hoje).status,

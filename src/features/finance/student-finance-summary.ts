@@ -1,4 +1,5 @@
 import { invoiceState, type PaymentStateView } from "./payment-states";
+import { invoiceOpenAmount } from "./invoice-settlement";
 
 /**
  * Situação financeira de um aluno (secção Financeiro da ficha, SIGA Context
@@ -40,10 +41,12 @@ export function summarizeStudentInvoices<T extends StudentInvoiceLike>(
 ): StudentFinanceSummary<T> {
   const open: StudentInvoiceView<T>[] = [];
   const settled: StudentInvoiceView<T>[] = [];
-  let billed = 0;
-  let paid = 0;
-  let outstanding = 0;
-  let overdue = 0;
+  // Agregar em cêntimos evita resíduos de vírgula flutuante e garante que
+  // a dívida apresentada na ficha coincide com a liquidação da fatura.
+  let billedCents = 0;
+  let paidCents = 0;
+  let outstandingCents = 0;
+  let overdueCents = 0;
   for (const invoice of invoices) {
     const total = Number(invoice.total_amount ?? 0);
     const amountPaid = Number(invoice.amount_paid ?? 0);
@@ -53,16 +56,26 @@ export function summarizeStudentInvoices<T extends StudentInvoiceLike>(
     );
     // Uma anulada não conta para nada: nem faturado, nem dívida.
     if (state.status === "cancelled") continue;
-    const openAmount = state.status === "paid" ? 0 : Math.max(total - amountPaid, 0);
-    billed += total;
-    paid += Math.min(amountPaid, total);
-    outstanding += openAmount;
-    if (state.status === "overdue") overdue += openAmount;
+    const totalCents = Math.max(0, Math.round(total * 100));
+    const receiptCents = Math.max(0, Math.round(amountPaid * 100));
+    const openAmount = invoiceOpenAmount(total, amountPaid);
+    const openCents = Math.round(openAmount * 100);
+    billedCents += totalCents;
+    paidCents += Math.min(receiptCents, totalCents);
+    outstandingCents += openCents;
+    if (state.status === "overdue") overdueCents += openCents;
     (state.status === "paid" ? settled : open).push({ ...invoice, state, openAmount });
   }
   open.sort((a, b) => (a.due_on ?? "9999-12-31").localeCompare(b.due_on ?? "9999-12-31"));
   settled.sort((a, b) => (b.due_on ?? "").localeCompare(a.due_on ?? ""));
-  return { billed, paid, outstanding, overdue, open, settled };
+  return {
+    billed: billedCents / 100,
+    paid: paidCents / 100,
+    outstanding: outstandingCents / 100,
+    overdue: overdueCents / 100,
+    open,
+    settled,
+  };
 }
 
 /** «2026-10-05» → «05/10/2026», sem passar por Date (que mudaria o dia no fuso). */

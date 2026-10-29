@@ -32,8 +32,10 @@ import {
   findPersonDuplicatesInputSchema,
   getPersonInputSchema,
   listTeachersInputSchema,
+  listTeachersPageInputSchema,
   mergePeopleInputSchema,
   searchPeopleInputSchema,
+  searchPeoplePageInputSchema,
   setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
@@ -48,6 +50,7 @@ import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
 import { syncBiDocumentFromNif } from "./bi-document";
 import { insertTeacherWithNextNumber, isTeacherNumberTaken } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
+import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -1284,11 +1287,16 @@ export const updatePerson = createServerFn({ method: "POST" })
       personPatch["address"] = data.address || null;
     }
 
-    const { data: person, error } = await db
+    let updateQuery = db
       .from("people")
       .update(personPatch)
       .eq("id", data.personId)
-      .eq("school_id", membership.schoolId)
+      .eq("school_id", membership.schoolId);
+    // CAS: quem abriu a ficha antes de outra edição recebe conflito, não sobrescreve.
+    if (data.expectedUpdatedAt) {
+      updateQuery = updateQuery.eq("updated_at", data.expectedUpdatedAt);
+    }
+    const { data: person, error } = await updateQuery
       .select("id, full_name, email, phone, status")
       .maybeSingle();
     if (error && hasGeography && isMissingPeopleGeography(error)) {
@@ -1297,6 +1305,11 @@ export const updatePerson = createServerFn({ method: "POST" })
       );
     }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
+    if (!person && data.expectedUpdatedAt) {
+      throw new Error(
+        "Esta ficha foi alterada por outra pessoa. Actualize os dados antes de guardar.",
+      );
+    }
     if (!person) throw new Error("Pessoa não encontrada.");
     await syncBiDocumentFromNif(
       db,
@@ -1605,3 +1618,37 @@ export async function ensureTeacherHrRecord(input: {
 
   return { teacherId, personId: person.id };
 }
+
+/**
+ * Directório paginado — a autorização e o acesso privilegiado continuam neste
+ * módulo já existente, ao lado dos fluxos legados. As consultas e as regras
+ * de filtragem vivem no helper puro directory-server, que nunca abre a service key.
+ * Os endpoints antigos ficam disponíveis para consumidores não migrados.
+ */
+export const searchPeoplePage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => searchPeoplePageInputSchema.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return searchPeopleDirectoryPage(db, membership, context.userId, data);
+  });
+
+export const listTeachersPage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listTeachersPageInputSchema.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    // Directório de Pessoas: a membership isoladamente inclui aluno/encarregado.
+    // Exigir cargo de Secretaria/Administração e permissão do módulo no servidor.
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return listTeachersDirectoryPage(db, membership, data);
+  });

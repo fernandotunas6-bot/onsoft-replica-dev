@@ -787,6 +787,8 @@ export function MyTaskSubmission({
   const [body, setBody] = useState("");
   const [attachment, setAttachment] = useState<PreparedAttachment | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const attachmentRequest = useRef(0);
+  const submitInFlight = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const query = useQuery({
@@ -794,23 +796,14 @@ export function MyTaskSubmission({
     queryFn: () => getMyTaskSubmission({ data: { taskId, ...(studentId ? { studentId } : {}) } }),
     retry: false,
   });
+  // Os dados são capturados no submit, não no closure de mutationFn:
+  // o React Query actualiza as opções num efeito posterior ao render, o que
+  // poderia enviar sem anexo se o aluno clicasse logo após escolher o PDF.
   const submit = useMutation({
-    mutationFn: () =>
-      submitTaskWork({
-        data: {
-          taskId,
-          ...(body.trim() ? { body } : {}),
-          ...(attachment
-            ? {
-                attachment: {
-                  name: attachment.name,
-                  contentType: attachment.contentType,
-                  base64: attachment.base64,
-                },
-              }
-            : {}),
-        },
-      }),
+    mutationFn: (payload: {
+      body?: string;
+      attachment?: Pick<PreparedAttachment, "name" | "contentType" | "base64">;
+    }) => submitTaskWork({ data: { taskId, ...payload } }),
     onSuccess: (result) => {
       toast.success(result.late ? "Trabalho entregue, com atraso." : "Trabalho entregue.");
       setBody("");
@@ -820,16 +813,26 @@ export function MyTaskSubmission({
       void queryClient.invalidateQueries({ queryKey: ["subject-work"] });
     },
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível entregar.")),
+    onSettled: () => {
+      submitInFlight.current = false;
+    },
   });
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    const request = ++attachmentRequest.current;
+    // Não reenviar um anexo antigo quando a substituição falha.
+    setAttachment(null);
     setPreparing(true);
     try {
-      setAttachment(await prepareAttachment(file));
+      const prepared = await prepareAttachment(file);
+      // A leitura de outro ficheiro pode ter terminado primeiro.
+      if (request === attachmentRequest.current) setAttachment(prepared);
     } catch (error) {
-      toast.error(publicErrorMessage(error, "Não foi possível usar este ficheiro."));
+      if (request === attachmentRequest.current) {
+        toast.error(publicErrorMessage(error, "Não foi possível usar este ficheiro."));
+      }
     } finally {
-      setPreparing(false);
+      if (request === attachmentRequest.current) setPreparing(false);
     }
   };
   // Sem acesso a esta tarefa (ex.: pessoal sem a disciplina): não há nada a mostrar.
@@ -862,7 +865,20 @@ export function MyTaskSubmission({
           className="space-y-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (ready) submit.mutate();
+            if (!ready || preparing || submit.isPending || submitInFlight.current) return;
+            submitInFlight.current = true;
+            submit.mutate({
+              ...(body.trim() ? { body } : {}),
+              ...(attachment
+                ? {
+                    attachment: {
+                      name: attachment.name,
+                      contentType: attachment.contentType,
+                      base64: attachment.base64,
+                    },
+                  }
+                : {}),
+            });
           }}
         >
           <Textarea

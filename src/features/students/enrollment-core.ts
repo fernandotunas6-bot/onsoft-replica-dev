@@ -380,6 +380,8 @@ export type PlacementResult = {
   status: "active";
   /** true: mudou de turma na matrícula do ano; false: matrícula nova. */
   moved: boolean;
+  /** Operação repetida sem alterações na matrícula: evita nova escrita. */
+  unchanged?: boolean;
 };
 
 /**
@@ -433,7 +435,7 @@ export async function placeStudentInClass(
   // anulada fica no histórico; nunca é reactivada.
   const { data: current, error: currentError } = await db
     .from("enrollments")
-    .select("id, enrollment_number")
+    .select("id, enrollment_number, class_group_id, status")
     .eq("student_id", input.studentId)
     .eq("academic_year_id", academicYearId)
     .eq("school_id", input.schoolId)
@@ -447,19 +449,77 @@ export async function placeStudentInClass(
 
   let result: PlacementResult;
   if (current) {
-    const { error } = await db
-      .from("enrollments")
-      .update({ class_group_id: input.classGroupId, status: "active", updated_by: input.userId })
-      .eq("id", current.id)
-      .eq("school_id", input.schoolId);
-    if (error) throw publicDatabaseError(error, "Não foi possível mudar o aluno de turma.");
+    const sameClass = current.class_group_id === input.classGroupId;
+    const alreadyActive = current.status === "active";
+
+    // Repetir o mesmo pedido (por exemplo, duplo clique depois de uma resposta
+    // lenta) é idempotente. A sessão e a AAL2 já foram verificadas acima.
+    // A sincronização do estado continua necessária em dados legados incoerentes.
+    if (sameClass && alreadyActive) {
+      // A matrícula pode ter sido movida/anulada por outra sessão depois da
+      // primeira leitura. Reconfirmar o no-op com escola, aluno e turma;
+      // nunca declarar êxito apenas com um snapshot desactualizado.
+      const { data: stillCurrent, error: stillCurrentError } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", input.schoolId)
+        .eq("id", current.id)
+        .eq("student_id", input.studentId)
+        .eq("class_group_id", input.classGroupId)
+        .eq("status", "active")
+        .maybeSingle();
+      if (stillCurrentError) {
+        throw publicDatabaseError(stillCurrentError, "Não foi possível confirmar a matrícula.");
+      }
+      if (!stillCurrent) {
+        throw new Error(
+          "Esta matrícula foi alterada por outra sessão. Actualize a lista e confirme a turma antes de repetir.",
+        );
+      }
+      if (studentStatusAfterPlacement(previousStatus) === previousStatus) {
+        return {
+          enrollmentId: String(current.id),
+          enrollmentNumber: (current.enrollment_number as string | null) ?? null,
+          classGroupId: input.classGroupId,
+          academicYearId,
+          status: "active",
+          moved: false,
+          unchanged: true,
+        };
+      }
+    }
+
+    if (!sameClass || !alreadyActive) {
+      // Compare-and-swap: duas secretarias podem abrir a mesma matrícula.
+      // Não sobrepor uma mudança de turma ou anulação feita entretanto.
+      let change = db
+        .from("enrollments")
+        .update({ class_group_id: input.classGroupId, status: "active", updated_by: input.userId })
+        .eq("id", current.id)
+        .eq("school_id", input.schoolId)
+        .eq("status", current.status);
+      change =
+        current.class_group_id == null
+          ? change.is("class_group_id", null)
+          : change.eq("class_group_id", current.class_group_id);
+      const { data: updated, error } = await change.select("id");
+      if (error) throw publicDatabaseError(error, "Não foi possível mudar o aluno de turma.");
+      if (!updated?.length) {
+        throw new Error(
+          "Esta matrícula foi alterada por outra sessão. Actualize a lista e confirme a turma antes de repetir.",
+        );
+      }
+    }
+
     result = {
       enrollmentId: String(current.id),
       enrollmentNumber: (current.enrollment_number as string | null) ?? null,
       classGroupId: input.classGroupId,
       academicYearId,
       status: "active",
-      moved: true,
+      moved: !sameClass,
+      // Também pode haver reparação do estado do aluno; não é um no-op.
+      unchanged: false,
     };
   } else {
     const held = heldStudentMessage(previousStatus);
