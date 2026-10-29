@@ -26,10 +26,19 @@ export const TEACHER_DOCUMENTS = [
 ] as const;
 export type TeacherDocumentCode = (typeof TEACHER_DOCUMENTS)[number]["code"];
 export const teacherDocumentCodes = TEACHER_DOCUMENTS.map((item) => item.code);
+export const TEACHER_DOCUMENT_LEVELS = [
+  { id: "pre_escolar", label: "Pré-escolar" },
+  { id: "primario", label: "Primário" },
+  { id: "i_ciclo", label: "I Ciclo" },
+  { id: "ii_ciclo", label: "II Ciclo / Médio" },
+  { id: "superior", label: "Ensino Superior" },
+] as const;
+export type TeacherDocumentLevel = (typeof TEACHER_DOCUMENT_LEVELS)[number]["id"];
 export type TeacherDocumentPolicy = {
   enabled: boolean;
   required: TeacherDocumentCode[];
-  /** A primeira fase pede os anexos depois de criar a pessoa/docente. */
+  /** Requisitos adicionais por nível efectivo do docente. */
+  requiredByLevel: Partial<Record<TeacherDocumentLevel, TeacherDocumentCode[]>>;
   collection: "apos_criacao";
 };
 
@@ -40,7 +49,30 @@ export function parseTeacherDocumentPolicy(raw: unknown): TeacherDocumentPolicy 
   const required = codes
     ? teacherDocumentCodes.filter((code) => codes.includes(code))
     : TEACHER_DOCUMENTS.filter((item) => item.suggested).map((item) => item.code);
-  return { enabled: value.enabled === true, required, collection: "apos_criacao" };
+  const inputLevels = value.requiredByLevel && typeof value.requiredByLevel === "object" &&
+    !Array.isArray(value.requiredByLevel)
+    ? value.requiredByLevel as Record<string, unknown> : {};
+  const requiredByLevel: TeacherDocumentPolicy["requiredByLevel"] = {};
+  for (const { id } of TEACHER_DOCUMENT_LEVELS) {
+    const configured = inputLevels[id];
+    if (Array.isArray(configured)) {
+      requiredByLevel[id] = teacherDocumentCodes.filter((code) => configured.includes(code));
+    }
+  }
+  return { enabled: value.enabled === true, required, requiredByLevel, collection: "apos_criacao" };
+}
+
+export function requiredTeacherDocuments(
+  policy: TeacherDocumentPolicy, levels: readonly string[] = [],
+): TeacherDocumentCode[] {
+  if (!policy.enabled) return [];
+  const combined = new Set<TeacherDocumentCode>(policy.required);
+  for (const level of levels) {
+    if (level in policy.requiredByLevel) {
+      for (const code of policy.requiredByLevel[level as TeacherDocumentLevel] ?? []) combined.add(code);
+    }
+  }
+  return teacherDocumentCodes.filter((code) => combined.has(code));
 }
 
 /**
@@ -59,13 +91,15 @@ export function teacherDocumentCodeFromFile(reference: string | null | undefined
 export function teacherDocumentChecklist(
   policy: TeacherDocumentPolicy,
   fileReferences: readonly (string | null)[],
+  levels: readonly string[] = [],
 ) {
   const delivered = new Set(
     fileReferences.map((reference) => teacherDocumentCodeFromFile(reference)).filter(Boolean),
   );
+  const required = requiredTeacherDocuments(policy, levels);
   return TEACHER_DOCUMENTS.map((doc) => ({
     ...doc,
-    required: policy.enabled && policy.required.includes(doc.code),
+    required: required.includes(doc.code),
     received: delivered.has(doc.code),
     /** Recebido não significa autenticidade verificada. */
     status: delivered.has(doc.code) ? "recebido" as const : "em_falta" as const,
