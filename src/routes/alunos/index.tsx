@@ -507,9 +507,7 @@ function StudentsPage() {
           {
             label: "Pagamento",
             value: (row: StudentRow) =>
-              row.payment_status
-                ? (pagamentoLabels[row.payment_status] ?? row.payment_status)
-                : "",
+              row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
           },
         ]
       : []),
