@@ -22,7 +22,7 @@ describe("workflow E2E CRUD: execução deliberada e exclusiva em staging", () =
     expect(workflow).toContain("secrets.STAGING_SUPABASE_PUBLISHABLE_KEY");
     expect(workflow).toContain("secrets.SIGA_CRUD_E2E_TENANT_A_STATE_B64");
     expect(workflow).toContain("secrets.SIGA_CRUD_E2E_TENANT_B_STATE_B64");
-    expect(workflow).toContain("runner.temp");
+    expect(workflow).toContain("/tmp/siga-crud-${{ github.run_id }}-school-a.json");
     expect(workflow).toContain('rm -f "$SIGA_CRUD_E2E_TENANT_A_STATE"');
     expect(workflow).not.toContain("secrets.PRODUCTION_");
     expect(workflow).not.toContain("actions/upload-artifact");
