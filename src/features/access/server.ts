@@ -1079,7 +1079,10 @@ export const createSchoolInvitation = createServerFn({ method: "POST" })
       );
     }
     if (isAdministratorRole(data.roleCode) || cargoRequiresAdministrator(data.roleCode)) {
-      requireRecentVerification(context.claims ?? {}, "Convidar com cargo de Administrador ou Tesouraria");
+      requireRecentVerification(
+        context.claims ?? {},
+        "Convidar com cargo de Administrador ou Tesouraria",
+      );
     }
     if (cargoRequiresMfaForAssignment(data.roleCode)) {
       requireAal2(context.claims ?? {}, "Convidar com cargo de Tesouraria");
