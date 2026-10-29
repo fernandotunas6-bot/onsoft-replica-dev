@@ -13,7 +13,9 @@ describe("workflow E2E CRUD: execução deliberada e exclusiva em staging", () =
 
   it("recusa referenciar produção ou outra origem Supabase", () => {
     expect(workflow).toContain('"$SIGA_CRUD_E2E_PROJECT_REF" == "xodgfmxiaunpamctfeea"');
-    expect(workflow).toContain('"$SUPABASE_URL" != "https://${SIGA_CRUD_E2E_PROJECT_REF}.supabase.co"');
+    expect(workflow).toContain(
+      '"$SUPABASE_URL" != "https://${SIGA_CRUD_E2E_PROJECT_REF}.supabase.co"',
+    );
     expect(workflow).toContain("resolveCrudStagingConfig(process.env)");
   });
 
