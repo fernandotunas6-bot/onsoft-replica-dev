@@ -30,7 +30,15 @@ const selectedColumns = [
   { label: "Turma", value: (row: SelectedStudent) => row.class_name ?? "" },
 ];
 
-export function StudentBulkTools({ students }: { students: SelectedStudent[] }) {
+export function StudentBulkTools({
+  students,
+  canUseFinance,
+  canUseGrades,
+}: {
+  students: SelectedStudent[];
+  canUseFinance: boolean;
+  canUseGrades: boolean;
+}) {
   const navigate = useNavigate();
   const byClass = [...students].sort((a, b) => {
     const left = `${a.grade_name ?? ""} ${a.class_name ?? ""} ${a.full_name}`;
@@ -128,12 +136,16 @@ export function StudentBulkTools({ students }: { students: SelectedStudent[] }) 
         <DropdownMenuItem onSelect={email}>
           <Mail className="mr-2 size-4" /> Preparar mensagem por e-mail (BCC)
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={exportDebt}>
-          <ReceiptText className="mr-2 size-4" /> Preparar lista de cobrança
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={openGrades}>
-          <GraduationCap className="mr-2 size-4" /> Abrir lançamento de notas
-        </DropdownMenuItem>
+        {canUseFinance ? (
+          <DropdownMenuItem onSelect={exportDebt}>
+            <ReceiptText className="mr-2 size-4" /> Preparar lista de cobrança
+          </DropdownMenuItem>
+        ) : null}
+        {canUseGrades ? (
+          <DropdownMenuItem onSelect={openGrades}>
+            <GraduationCap className="mr-2 size-4" /> Abrir lançamento de notas
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
