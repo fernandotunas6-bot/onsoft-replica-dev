@@ -88,6 +88,7 @@ import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { EntityAvatar, EntityList, type EntityListItem } from "@/components/mobile/EntityList";
 import { EntityListSkeleton } from "@/components/mobile/skeletons";
+import { ActionSheet, type SheetAction } from "@/components/mobile/ActionSheet";
 import { MobileEmptyState, MobileErrorState } from "@/components/mobile/states";
 import { angolaProvinces } from "@/lib/angola-territory";
 
@@ -170,6 +171,11 @@ function PeoplePage() {
     setFilter(name as keyof typeof filters, value);
   };
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileAction, setMobileAction] = useState<{
+    kind: "teacher" | "person";
+    id: string;
+    schoolId: string | null;
+  } | null>(null);
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
   const peopleQuery = useQuery({
@@ -391,6 +397,63 @@ function PeoplePage() {
         ),
     });
   };
+
+  // A folha móvel é resolvida exclusivamente a partir da página e escola actuais.
+  // Não mantém uma ficha de outra escola depois da troca de contexto.
+  const mobileContext = mobileAction?.schoolId === account.schoolId ? mobileAction : null;
+  const mobileTeacher =
+    mobileContext?.kind === "teacher"
+      ? teachers.find((teacher) => teacher.id === mobileContext.id)
+      : undefined;
+  const mobilePerson =
+    mobileContext?.kind === "person"
+      ? people.find((row) => row.id === mobileContext.id)
+      : undefined;
+  const mobileActions: SheetAction[] = mobileTeacher
+    ? [
+        {
+          label: "Ver perfil completo",
+          icon: User,
+          onSelect: () =>
+            void navigate({
+              to: "/professores/$teacherId",
+              params: { teacherId: mobileTeacher.id },
+            }),
+        },
+        {
+          label: "Processo documental",
+          icon: FolderOpen,
+          onSelect: () =>
+            void navigate({
+              to: "/professores/$teacherId",
+              params: { teacherId: mobileTeacher.id },
+              search: { tab: "documentos" },
+            }),
+        },
+        {
+          label: "Exportar registo CSV",
+          icon: Download,
+          onSelect: () => exportCsv("professor", teacherExportColumns, [mobileTeacher]),
+        },
+      ]
+    : mobilePerson
+      ? [
+          {
+            label: "Ver ficha completa",
+            icon: User,
+            onSelect: () =>
+              void navigate({
+                to: "/pessoas/$personId",
+                params: { personId: mobilePerson.id },
+              }),
+          },
+          {
+            label: "Exportar registo CSV",
+            icon: Download,
+            onSelect: () => exportCsv("pessoa", peopleExportColumns, [mobilePerson]),
+          },
+        ]
+      : [];
 
   return (
     <AppShell>
@@ -716,6 +779,12 @@ function PeoplePage() {
                     leading: <EntityAvatar name={teacher.full_name} />,
                     to: "/professores/$teacherId",
                     params: { teacherId: teacher.id },
+                    onActions: () =>
+                      setMobileAction({
+                        kind: "teacher",
+                        id: teacher.id,
+                        schoolId: account.schoolId,
+                      }),
                   }))}
                 />
               )
@@ -1056,6 +1125,12 @@ function PeoplePage() {
                     ),
                     onSelect: () =>
                       void navigate({ to: "/pessoas/$personId", params: { personId: row.id } }),
+                    onActions: () =>
+                      setMobileAction({
+                        kind: "person",
+                        id: row.id,
+                        schoolId: account.schoolId,
+                      }),
                   }))}
                 />
               )
@@ -1227,6 +1302,16 @@ function PeoplePage() {
           ) : null}
         </div>
       </div>
+
+      <ActionSheet
+        open={Boolean(mobileTeacher || mobilePerson)}
+        onOpenChange={(open) => {
+          if (!open) setMobileAction(null);
+        }}
+        title={mobileTeacher?.full_name ?? mobilePerson?.full_name ?? "Acções"}
+        description={mobileTeacher ? "Corpo docente" : "Registo central de pessoas"}
+        actions={mobileActions}
+      />
 
       <ModalShell
         open={Boolean(selectedId)}
