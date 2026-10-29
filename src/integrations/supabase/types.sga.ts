@@ -20,31 +20,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       academic_levels: {
@@ -12825,6 +12800,86 @@ export type Database = {
           },
         ]
       }
+      teacher_document_entries: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_code: string
+          file_id: string
+          id: string
+          person_id: string
+          school_id: string
+          teacher_id: string
+          updated_at: string
+          updated_by: string
+          validation_notes: string | null
+          validation_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_code: string
+          file_id: string
+          id?: string
+          person_id: string
+          school_id: string
+          teacher_id: string
+          updated_at?: string
+          updated_by: string
+          validation_notes?: string | null
+          validation_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_code?: string
+          file_id?: string
+          id?: string
+          person_id?: string
+          school_id?: string
+          teacher_id?: string
+          updated_at?: string
+          updated_by?: string
+          validation_notes?: string | null
+          validation_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_document_entries_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "siga_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_subjects: {
         Row: {
           created_at: string
@@ -12877,86 +12932,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "teachers"
             referencedColumns: ["school_id", "id"]
-          },
-        ]
-      }
-      teacher_document_entries: {
-        Row: {
-          id: string
-          school_id: string
-          teacher_id: string
-          person_id: string
-          file_id: string
-          document_code: string
-          validation_status: string
-          validation_notes: string | null
-          verified_by: string | null
-          verified_at: string | null
-          created_at: string
-          created_by: string
-          updated_at: string
-          updated_by: string
-        }
-        Insert: {
-          id?: string
-          school_id: string
-          teacher_id: string
-          person_id: string
-          file_id: string
-          document_code: string
-          validation_status?: string
-          validation_notes?: string | null
-          verified_by?: string | null
-          verified_at?: string | null
-          created_at?: string
-          created_by: string
-          updated_at?: string
-          updated_by: string
-        }
-        Update: {
-          id?: string
-          school_id?: string
-          teacher_id?: string
-          person_id?: string
-          file_id?: string
-          document_code?: string
-          validation_status?: string
-          validation_notes?: string | null
-          verified_by?: string | null
-          verified_at?: string | null
-          created_at?: string
-          created_by?: string
-          updated_at?: string
-          updated_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teacher_document_entries_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teacher_document_entries_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "teachers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teacher_document_entries_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teacher_document_entries_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "siga_files"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -15172,9 +15147,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       communication_channel: ["email", "sms", "whatsapp"],
