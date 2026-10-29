@@ -1,0 +1,138 @@
+name: CRUD Premium — E2E de staging (somente leitura)
+
+# Execução manual: não reutiliza segredos nem cookies de produção e nunca
+# impede deploys normais quando o ambiente de staging não está preparado.
+on:
+  workflow_dispatch:
+    inputs:
+      staging_project_ref:
+        description: "Ref do projecto Supabase de staging, nunca produção"
+        required: true
+        type: string
+      confirmation:
+        description: "Escreva STAGING para confirmar a execução em dados fictícios"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crud-premium-staging-readonly
+  cancel-in-progress: false
+
+jobs:
+  tenant-isolation:
+    name: Duas escolas — leitura autenticada sem produção
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 20
+    env:
+      CI: "1"
+      SIGA_CRUD_E2E: "1"
+      SIGA_CRUD_E2E_PROJECT_REF: ${{ inputs.staging_project_ref }}
+      VITE_SIGA_URL: http://127.0.0.1:3006
+      VITE_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+      SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      SIGA_CRUD_E2E_TENANT_A_MARKER: ${{ vars.SIGA_CRUD_E2E_TENANT_A_MARKER }}
+      SIGA_CRUD_E2E_TENANT_B_MARKER: ${{ vars.SIGA_CRUD_E2E_TENANT_B_MARKER }}
+      SIGA_CRUD_E2E_TENANT_A_STATE: ${{ runner.temp }}/crud-school-a.json
+      SIGA_CRUD_E2E_TENANT_B_STATE: ${{ runner.temp }}/crud-school-b.json
+      SESSION_A_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_A_STATE_B64 }}
+      SESSION_B_B64: ${{ secrets.SIGA_CRUD_E2E_TENANT_B_STATE_B64 }}
+    steps:
+      - name: Confirmar destino exclusivamente staging
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$CONFIRMATION" != "STAGING" ]]; then
+            echo "::error::Confirme STAGING antes de executar o ensaio."
+            exit 1
+          fi
+          if [[ -z "$SIGA_CRUD_E2E_PROJECT_REF" || ! "$SIGA_CRUD_E2E_PROJECT_REF" =~ ^[a-z0-9]{15,32}$ || "$SIGA_CRUD_E2E_PROJECT_REF" == "xodgfmxiaunpamctfeea" ]]; then
+            echo "::error::Projecto de staging inválido ou de produção."
+            exit 1
+          fi
+          if [[ "$SUPABASE_URL" != "https://${SIGA_CRUD_E2E_PROJECT_REF}.supabase.co" ]]; then
+            echo "::error::A URL não corresponde ao projecto de staging autorizado."
+            exit 1
+          fi
+          for secret in VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY SESSION_A_B64 SESSION_B_B64; do
+            if [[ -z "${!secret}" ]]; then
+              echo "::error::Falta a configuração de staging: $secret."
+              exit 1
+            fi
+          done
+          for value in SIGA_CRUD_E2E_TENANT_A_MARKER SIGA_CRUD_E2E_TENANT_B_MARKER; do
+            if [[ -z "${!value}" ]]; then
+              echo "::error::Falta o marcador fictício de staging: $value."
+              exit 1
+            fi
+          done
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Instalar dependências sem alterar o lockfile
+        run: bun install --frozen-lockfile
+      - name: Preparar sessões privadas e validar contrato de segurança
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$SESSION_A_B64" | base64 --decode > "$SIGA_CRUD_E2E_TENANT_A_STATE"
+          printf '%s' "$SESSION_B_B64" | base64 --decode > "$SIGA_CRUD_E2E_TENANT_B_STATE"
+          bun -e '
+            import { readFileSync } from "node:fs";
+            import { resolveCrudStagingConfig } from "./tests/e2e/helpers/crud-staging-safety.ts";
+            const config = resolveCrudStagingConfig(process.env);
+            if (!config) throw Error("Ensaio de staging não activo.");
+            for (const path of [config.stateA, config.stateB]) {
+              const raw = readFileSync(path, "utf8");
+              const state = JSON.parse(raw);
+              if (!Array.isArray(state.cookies) || !Array.isArray(state.origins)) {
+                throw Error("storageState Playwright inválido.");
+              }
+              if (raw.includes("xodgfmxiaunpamctfeea")) {
+                throw Error("É proibido usar sessões que referenciam a produção.");
+              }
+            }
+          '
+      - name: Instalar Chrome para Playwright
+        run: bunx playwright install --with-deps chrome
+      - name: Iniciar aplicação local com Supabase exclusivamente de staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run dev > "$RUNNER_TEMP/crud-staging-app.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/crud-staging-app.pid"
+          node -e '
+            (async () => {
+              for (let n = 0; n < 60; n++) {
+                try {
+                  const response = await fetch("http://127.0.0.1:3006", { redirect: "manual" });
+                  if (response.status < 500) process.exit(0);
+                } catch {}
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+              console.error("Servidor local de staging indisponível.");
+              process.exit(1);
+            })();
+          '
+      - name: E2E autenticado A/B — Pessoas somente leitura
+        run: bunx playwright test tests/e2e/crud-tenant-readonly.spec.ts --workers=1 --retries=0 --reporter=line
+      - name: Apagar sessões e terminar servidor
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$SIGA_CRUD_E2E_TENANT_A_STATE" "$SIGA_CRUD_E2E_TENANT_B_STATE"
+          if [[ -f "$RUNNER_TEMP/crud-staging-app.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/crud-staging-app.pid")" 2>/dev/null || true
+            rm -f "$RUNNER_TEMP/crud-staging-app.pid"
+          fi
+          rm -f "$RUNNER_TEMP/crud-staging-app.log"
