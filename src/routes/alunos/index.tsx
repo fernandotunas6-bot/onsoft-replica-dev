@@ -1182,6 +1182,14 @@ function StudentsPage() {
                 }
                 whatsappEnabled={whatsappOn}
                 whatsappHref={whatsappHref}
+                financeAllowed={
+                  ["Administrador", "Secretaria", "Tesouraria"].includes(currentAccount.role) &&
+                  currentAccount.grants.financeiro !== "Nenhum"
+                }
+                academicAllowed={
+                  ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                  currentAccount.grants.pedagogica !== "Nenhum"
+                }
               />
             }
             desktop={
