@@ -10,9 +10,7 @@ describe("mensagens de falha de autenticação", () => {
   });
 
   it("reconhece falhas de fetch e indisponibilidade da origem", () => {
-    expect(mapSignInError(new TypeError("Failed to fetch"))).toBe(
-      AUTH_TEMPORARILY_UNAVAILABLE,
-    );
+    expect(mapSignInError(new TypeError("Failed to fetch"))).toBe(AUTH_TEMPORARILY_UNAVAILABLE);
     expect(mapSignInError({ message: "Service unavailable", status: 503 })).toBe(
       AUTH_TEMPORARILY_UNAVAILABLE,
     );
