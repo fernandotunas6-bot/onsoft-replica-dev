@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
