@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileCheck2, FolderOpen, Upload } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -117,6 +118,24 @@ export function TeacherDocumentsPanel({
           </>
         )}
       </div>
+      {canManage && query.data?.files.length ? (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
+          <h3 className="text-sm font-semibold">Ficheiros recebidos no processo</h3>
+          <ul className="divide-y divide-border">
+            {query.data.files.map((file) => (
+              <li key={file.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="text-sm font-medium">{file.title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {TEACHER_DOCUMENTS.find((doc) => doc.code === file.code)?.label ?? file.code}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/arquivos">Consultar documentos no Arquivo</Link>
+          </Button>
+        </section>
+      ) : null}
       {canUpload ? (
         <div className="space-y-3 rounded-xl border border-border bg-card p-4 sm:p-5">
           <h3 className="text-sm font-semibold">Adicionar documento ao processo</h3>
