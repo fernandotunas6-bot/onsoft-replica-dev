@@ -8,7 +8,7 @@ describe("workflow E2E CRUD: execução deliberada e exclusiva em staging", () =
     expect(workflow).toMatch(/^on:\n  workflow_dispatch:/m);
     expect(workflow).toContain("environment: staging");
     expect(workflow).toContain('"$CONFIRMATION" != "STAGING"');
-    expect(workflow).not.toMatch(/^  (push|pull_request|schedule|workflow_run):/m);
+    expect(workflow).not.toMatch(/^ {2}(push|pull_request|schedule|workflow_run):/m);
   });
 
   it("recusa referenciar produção ou outra origem Supabase", () => {
