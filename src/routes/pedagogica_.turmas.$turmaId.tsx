@@ -7,6 +7,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Download,
   GraduationCap,
   MoreHorizontal,
   Pencil,
@@ -27,6 +28,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
 import {
@@ -54,6 +62,12 @@ import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { errorMessage } from "@/lib/error-message";
 import { safeHref } from "@/lib/safe-url";
 import { TURMA_SECTIONS, type TurmaSection } from "@/features/academic/turma-sections";
+import {
+  timetableDays,
+  visibleTimetableSlots,
+  type TimetableDay,
+} from "@/features/academic/class-timetable-visibility";
+import { exportCsv } from "@/lib/export-csv";
 import { TurmaTeacherContextPanel } from "@/features/academic/components/TurmaTeacherContextPanel";
 import { z } from "zod";
 
@@ -176,6 +190,10 @@ function TurmaDetail() {
       return { ...base, [section]: !base[section] };
     });
   const searchValue = studentSearch.classId === turmaId ? studentSearch.value : "";
+  const [scheduleDayFilter, setScheduleDayFilter] = useState<{
+    classId: string;
+    day: TimetableDay;
+  }>({ classId: turmaId, day: "todos" });
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -225,7 +243,14 @@ function TurmaDetail() {
         .sort((a, b) => a.weekday - b.weekday || a.starts_at.localeCompare(b.starts_at)),
     [workspace?.scheduleSlots, turmaId],
   );
-  const visibleSchedule = expanded.horario ? horario : horario.slice(0, 8);
+  const availableDays = timetableDays(horario);
+  const requestedDay = scheduleDayFilter.classId === turmaId ? scheduleDayFilter.day : "todos";
+  const selectedDay =
+    typeof requestedDay === "number" && !availableDays.includes(requestedDay)
+      ? "todos"
+      : requestedDay;
+  const scheduleSelection = visibleTimetableSlots(horario, selectedDay, expanded.horario);
+  const visibleSchedule = scheduleSelection.items;
   const avaliacoes = useMemo(() => {
     const alunoIds = new Set(alunos.map((a) => a.student_id).filter(Boolean));
     return (workspace?.termGrades ?? []).filter(
@@ -349,27 +374,47 @@ function TurmaDetail() {
               >
                 <UserPlus className="size-3.5" /> Professor
               </Button>
-              {turma.course_id ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={applyingCurriculum}
-                  onClick={handleApplyCurriculum}
-                >
-                  <BookOpen className="size-3.5" /> Aplicar currículo do curso
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setEditOpen(true)}
-              >
-                <Pencil className="size-3.5" /> Editar
-              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                    <MoreHorizontal className="size-4" /> Mais opções
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>Gestão da turma</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                    <Pencil className="size-4" /> Editar dados da turma
+                  </DropdownMenuItem>
+                  {turma.course_id ? (
+                    <DropdownMenuItem
+                      disabled={applyingCurriculum}
+                      onSelect={() => void handleApplyCurriculum()}
+                    >
+                      <BookOpen className="size-4" /> Aplicar currículo do curso
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    disabled={!alunos.length}
+                    onSelect={() =>
+                      exportCsv(
+                        `alunos-turma-${turma.code}`,
+                        [
+                          { label: "Nome", value: (row: (typeof alunos)[number]) => row.student_name },
+                          {
+                            label: "N.º de processo",
+                            value: (row: (typeof alunos)[number]) =>
+                              String(row.registration_number ?? ""),
+                          },
+                        ],
+                        alunos,
+                      )
+                    }
+                  >
+                    <Download className="size-4" /> Exportar alunos (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {turma.status !== "active" ? (
                 <Button
                   type="button"
@@ -774,7 +819,38 @@ function TurmaDetail() {
                     Horário ({horario.length})
                   </h2>
                 </div>
-                <div className="mt-4">
+                {availableDays.length > 1 ? (
+                  <div className="mt-3 max-w-56">
+                    <Select
+                      value={String(selectedDay)}
+                      onValueChange={(value) => {
+                        setScheduleDayFilter({
+                          classId: turmaId,
+                          day: value === "todos" ? "todos" : Number(value),
+                        });
+                        setExpandedLists((current) => ({
+                          ...(current.classId === turmaId
+                            ? current
+                            : { classId: turmaId, alunos: false, horario: false, avaliacoes: false }),
+                          horario: false,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger aria-label="Filtrar horário por dia" className="h-10">
+                        <SelectValue placeholder="Todos os dias" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos os dias</SelectItem>
+                        {availableDays.map((day) => (
+                          <SelectItem key={day} value={String(day)}>
+                            {weekdayLabels[day]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+                <div className="mt-3">
                   {horario.length ? (
                     <div className="divide-y divide-border rounded-lg border border-border bg-card">
                       {visibleSchedule.map((slot) => (
@@ -797,7 +873,7 @@ function TurmaDetail() {
                       Sem horário definido para esta turma.
                     </p>
                   )}
-                  {horario.length > 8 ? (
+                  {scheduleSelection.total > 8 ? (
                     <Button
                       type="button"
                       variant="ghost"
@@ -811,8 +887,13 @@ function TurmaDetail() {
                       ) : (
                         <ChevronDown className="size-4" />
                       )}
-                      {expanded.horario ? "Mostrar menos" : `Ver todos os ${horario.length} tempos`}
+                      {expanded.horario ? "Mostrar menos" : `Ver todos os ${scheduleSelection.total} tempos`}
                     </Button>
+                  ) : null}
+                  {horario.length ? (
+                    <p role="status" className="mt-2 text-xs text-muted-foreground">
+                      {visibleSchedule.length} de {scheduleSelection.total} tempos no filtro
+                    </p>
                   ) : null}
                 </div>
               </section>
@@ -842,8 +923,8 @@ function TurmaDetail() {
                           className="flex items-center justify-between gap-2 p-3 text-xs"
                         >
                           <Link
-                            to="/pedagogica/disciplinas/$subjectId"
-                            params={{ subjectId: row.subject_id }}
+                            to="/pedagogica"
+                            search={{ tab: "notas", turma: turma.id, disciplina: row.subject_id }}
                             className="min-w-0 font-medium text-foreground hover:text-primary hover:underline"
                           >
                             {row.subject_name}
