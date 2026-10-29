@@ -118,6 +118,15 @@ export function StudentBulkTools({
         dueOn: values["vencimento"] ?? "",
       },
     });
+    // Não fechar o formulário com mensagem de sucesso se todas as emissões falharam.
+    if (result.failed.length && !result.issued.length && !result.skipped.length) {
+      throw new Error(
+        `Nenhuma propina foi emitida. ${result.failed
+          .slice(0, 2)
+          .map((item) => item.reason)
+          .join(" · ")}`,
+      );
+    }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["finance"] }),
       queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
