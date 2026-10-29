@@ -141,8 +141,14 @@ import { StudentMobileList } from "@/features/students/components/StudentMobileL
 import { StudentRowActions } from "@/features/students/components/StudentRowActions";
 import { StudentBulkTools } from "@/features/students/components/StudentBulkTools";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
-import { canReadStudentFinance, canIssueStudentTuition } from "@/features/students/student-sections";
-import { visibleSelectedRows, restrictSelectionToVisibleRows } from "@/features/students/visible-selection";
+import {
+  canReadStudentFinance,
+  canIssueStudentTuition,
+} from "@/features/students/student-sections";
+import {
+  visibleSelectedRows,
+  restrictSelectionToVisibleRows,
+} from "@/features/students/visible-selection";
 
 const alunosSearchSchema = z
   .object({
@@ -885,16 +891,21 @@ function StudentsPage() {
               ],
             },
             ...(canReadFinance
-              ? [{
-                  name: "pagamento",
-                  type: "select" as const,
-                  label: "Pagamento",
-                  emptyValue: "todos",
-                  options: [
-                    { value: "todos", label: "Todos os pagamentos" },
-                    ...Object.entries(pagamentoLabels).map(([value, label]) => ({ value, label })),
-                  ],
-                }]
+              ? [
+                  {
+                    name: "pagamento",
+                    type: "select" as const,
+                    label: "Pagamento",
+                    emptyValue: "todos",
+                    options: [
+                      { value: "todos", label: "Todos os pagamentos" },
+                      ...Object.entries(pagamentoLabels).map(([value, label]) => ({
+                        value,
+                        label,
+                      })),
+                    ],
+                  },
+                ]
               : []),
           ]}
         />
@@ -1563,7 +1574,9 @@ function StudentsPage() {
                   {effectiveSelectedIds.length}
                 </span>
                 <span className="text-xs font-semibold text-foreground">
-                  {effectiveSelectedIds.length === 1 ? "aluno seleccionado" : "alunos seleccionados"}
+                  {effectiveSelectedIds.length === 1
+                    ? "aluno seleccionado"
+                    : "alunos seleccionados"}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
