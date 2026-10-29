@@ -156,11 +156,17 @@ export async function otherSchoolAccess(
   userId: string,
   schoolId: string,
 ) {
-  const { data: memberships } = await admin
+  const { data: memberships, error: membershipError } = await admin
     .from("school_memberships")
     .select("id, school_id, status")
     .eq("user_id", userId);
-  const rows = (memberships ?? []) as Array<{ id: string; school_id: string; status: string }>;
+  // Uma falha de leitura não significa "sem outras escolas". Em operações
+  // globais de Auth, assumir lista vazia permitiria alterar acessos de
+  // outra escola sem saber. Falhar fechado antes de decidir bloqueio ou senha.
+  if (membershipError || !Array.isArray(memberships)) {
+    throw new Error("Não foi possível confirmar os vínculos da conta às escolas.");
+  }
+  const rows = memberships as Array<{ id: string; school_id: string; status: string }>;
   const otherActive = rows.filter((m) => m.school_id !== schoolId && m.status === "active");
 
   let adminAnywhere = false;
