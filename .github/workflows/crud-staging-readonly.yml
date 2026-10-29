@@ -23,6 +23,9 @@ concurrency:
 
 jobs:
   tenant-isolation:
+    # O ambiente staging contém sessões autenticadas. Nunca entregá-las
+    # a um workflow executado a partir de uma branch de desenvolvimento.
+    if: github.ref == 'refs/heads/main'
     name: Duas escolas — leitura autenticada sem produção
     runs-on: ubuntu-latest
     environment: staging
