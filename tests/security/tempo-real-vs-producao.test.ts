@@ -18,6 +18,7 @@ const PUBLICADAS_NA_PRODUCAO = [
 ];
 const MIGRACAO_TEMPO_REAL =
   "supabase/migrations/20261004101000_realtime_publish_school_screens.sql";
+const MIGRACAO_AVISOS = "supabase/migrations/20261027100000_realtime_publish_notifications.sql";
 
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as {
   tabelas: Array<{ tabela: string }>;
@@ -44,8 +45,8 @@ function tabelasSubscritas() {
   return encontradas;
 }
 
-function publicadasPelaMigracao() {
-  const sql = readFileSync(MIGRACAO_TEMPO_REAL, "utf8");
+function publicadasPelaMigracao(caminho = MIGRACAO_TEMPO_REAL) {
+  const sql = readFileSync(caminho, "utf8");
   const lista = sql.match(/FOREACH t IN ARRAY ARRAY\[([\s\S]*?)\]/)?.[1] ?? "";
   return [...lista.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!);
 }
@@ -62,8 +63,12 @@ describe("tempo real contra a produção", () => {
     expect(inexistentes).toEqual([]);
   });
 
-  it("cada tabela subscrita está publicada (na produção ou pela migração de 2026-10-04)", () => {
-    const publicadas = new Set([...PUBLICADAS_NA_PRODUCAO, ...publicadasPelaMigracao()]);
+  it("cada tabela subscrita está publicada (na produção ou por migrações versionadas)", () => {
+    const publicadas = new Set([
+      ...PUBLICADAS_NA_PRODUCAO,
+      ...publicadasPelaMigracao(),
+      ...publicadasPelaMigracao(MIGRACAO_AVISOS),
+    ]);
     const porPublicar = [...subscritas.entries()]
       .filter(([t]) => !publicadas.has(t))
       .map(([t, onde]) => `${t} (${onde.join(", ")})`);
@@ -91,8 +96,6 @@ describe("pacote para o SQL Editor", () => {
  * `school_announcements` e `siga_chat_messages`, já publicadas. O código é Dart
  * (estudo/yft-school-system), por isso não aparece na procura acima.
  */
-const MIGRACAO_AVISOS = "supabase/migrations/20261027100000_realtime_publish_notifications.sql";
-
 describe("tempo real dos avisos da app móvel", () => {
   const sql = readFileSync(MIGRACAO_AVISOS, "utf8");
   const lista = [
