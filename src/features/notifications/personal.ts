@@ -27,9 +27,6 @@ export function safeNotificationHref(payload: unknown): string | null {
   return /^\/(?!\/)[A-Za-z0-9\-_/]*$/.test(href) && href.length <= 200 ? href : null;
 }
 
-const isMissing = (message?: string) =>
-  /schema cache|does not exist|42P01|PGRST205/i.test(message ?? "");
-
 export const listMyNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ items: PersonalNotification[]; unread: number }> => {
@@ -41,10 +38,8 @@ export const listMyNotifications = createServerFn({ method: "GET" })
       .eq("channel", "in_app")
       .order("created_at", { ascending: false })
       .limit(20);
-    if (error) {
-      if (isMissing(error.message)) return { items: [], unread: 0 };
-      throw new Error("Não foi possível carregar as notificações.");
-    }
+    // Ausência da tabela/RLS não é «sem avisos»: mostrar erro e permitir repetir.
+    if (error) throw new Error("Não foi possível carregar as notificações.");
     const items = (data ?? []).map((row) => ({
       id: String(row.id),
       title: String(row.title ?? ""),
