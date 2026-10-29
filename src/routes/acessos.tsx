@@ -7,7 +7,6 @@ import {
   Download,
   FileBadge,
   KeyRound,
-  MailPlus,
   ShieldCheck,
   UserPlus,
 } from "lucide-react";
@@ -34,7 +33,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
-import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -61,11 +59,7 @@ import {
   listSchoolInvitations,
   listSchoolRoles,
   listSystemAccounts,
-  resendSystemInvite,
-  resetStaffPasswordDirect,
   revokeSchoolInvitation,
-  sendSystemInviteEmail,
-  setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
 import {
@@ -133,7 +127,6 @@ function AcessosPage() {
   const cargo = filters.cargo;
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
-  const resendOn = installed.hasCapability("resend.send");
   const accountsQuery = useQuery({
     queryKey: ["access", "accounts"],
     queryFn: () => listSystemAccounts(),
