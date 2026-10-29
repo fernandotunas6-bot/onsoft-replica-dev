@@ -66,6 +66,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   /// Lidos aqui antes de o servidor responder.
   final Set<String> _readHere = {};
 
+  /// Comunicados lidos nesta visita, sem apagar o histórico da escola.
+  final Set<String> _readAnnouncementsHere = {};
+
   /// Os comunicados vistos até abrir o ecrã: os mais novos mostram-se como
   /// novos durante esta visita, e o sino fica limpo.
   DateTime? _seenOnOpen;
@@ -119,7 +122,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             title: a.title,
             body: a.body.isEmpty ? a.summary : a.body,
             at: at,
-            unread: _seenOnOpen != null && at.isAfter(_seenOnOpen!),
+            unread: _seenOnOpen != null &&
+                at.isAfter(_seenOnOpen!) &&
+                !_readAnnouncementsHere.contains(a.id),
             kind: NoticeKind.announcement,
             announcement: a,
           ),
@@ -137,7 +142,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   Future<void> _markAllRead(NoticeFeed feed) async {
     final ids = feed.items.where((n) => !n.read).map((n) => n.id).toSet();
-    setState(() => _readHere.addAll(ids));
+    final announcementIds = ref.read(parentNoticesProvider).whenOrNull(
+          data: (rows) => rows.map((a) => a.id).toSet(),
+        ) ??
+        <String>{};
+    setState(() {
+      _readHere.addAll(ids);
+      _readAnnouncementsHere.addAll(announcementIds);
+    });
     try {
       await ref.read(sgaNotificationsRepositoryProvider).markRead();
     } catch (_) {
@@ -155,6 +167,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   Future<void> _open(_Entry e) async {
+    if (e.announcement != null && e.unread) {
+      setState(() => _readAnnouncementsHere.add(e.announcement!.id));
+    }
     final personal = e.personal;
     if (personal != null && e.unread) {
       setState(() => _readHere.add(personal.id));
