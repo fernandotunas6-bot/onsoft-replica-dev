@@ -1555,11 +1555,16 @@ async function issueInvoiceFor(
  */
 const TUITION_BATCH_LIMIT = 60;
 
-const issueTuitionBatchInputSchema = z.object({
-  classGroupId: z.string().guid(),
-  dueOn: z.string().date(),
-  issuedOn: z.string().date().optional(),
-});
+const issueTuitionBatchInputSchema = z
+  .object({
+    classGroupId: z.string().guid().optional(),
+    studentIds: z.array(z.string().guid()).min(1).max(TUITION_BATCH_LIMIT).optional(),
+    dueOn: z.string().date(),
+    issuedOn: z.string().date().optional(),
+  })
+  .refine((value) => Boolean(value.classGroupId) !== Boolean(value.studentIds), {
+    message: "Seleccione uma turma ou alunos específicos, mas não ambos.",
+  });
 
 export type TuitionBatchResult = {
   issued: Array<{ studentId: string; invoiceNumber: string }>;
@@ -1624,18 +1629,48 @@ export const issueTuitionBatch = createServerFn({ method: "POST" })
       ["Administrador", "Tesouraria", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
-    const { data: rows, error } = await db
+    const selectedIds = data.studentIds ? [...new Set(data.studentIds)] : null;
+    // Se a origem for uma selecção, não aceitar alunos de outros anos ou escolas.
+    // O modo antigo por turma é preservado para compatibilidade com Faturas.
+    let academicYearId: string | null = null;
+    if (selectedIds) {
+      const { data: activeYear, error: yearError } = await db
+        .from("academic_years")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .order("starts_on", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (yearError) {
+        throw publicDatabaseError(yearError, "Não foi possível validar o ano lectivo.");
+      }
+      if (!activeYear) throw new Error("Defina um ano lectivo activo antes de emitir propinas.");
+      academicYearId = String(activeYear.id);
+    }
+    const baseQuery = db
       .from("enrollments")
       .select("student_id")
       .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .eq("status", "active")
-      .limit(TUITION_BATCH_LIMIT + 1);
+      .eq("status", "active");
+    const { data: rows, error } = selectedIds
+      ? await baseQuery
+          .in("student_id", selectedIds)
+          .eq("academic_year_id", academicYearId!)
+          .limit(TUITION_BATCH_LIMIT + 1)
+      : await baseQuery
+          .eq("class_group_id", data.classGroupId!)
+          .limit(TUITION_BATCH_LIMIT + 1);
     if (error) throw publicDatabaseError(error, "Não foi possível ler os alunos da turma.");
     const studentIds = [...new Set((rows ?? []).map((row) => String(row.student_id)))];
+    if (selectedIds && studentIds.length !== selectedIds.length) {
+      throw new Error(
+        "A selecção contém alunos sem matrícula activa nesta escola e ano lectivo. Reveja a lista.",
+      );
+    }
     if (studentIds.length > TUITION_BATCH_LIMIT) {
       throw new Error(
-        `A turma tem mais de ${TUITION_BATCH_LIMIT} alunos activos. Emita as propinas em duas vezes ou aluno a aluno.`,
+        `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
       );
     }
 
