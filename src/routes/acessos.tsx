@@ -2,14 +2,7 @@ import { reportPossibleStepUp } from "@/lib/step-up";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ChevronDown,
-  Download,
-  FileBadge,
-  KeyRound,
-  ShieldCheck,
-  UserPlus,
-} from "lucide-react";
+import { ChevronDown, Download, FileBadge, KeyRound, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
