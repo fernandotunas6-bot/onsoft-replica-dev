@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseTeacherDocumentPolicy,
   requiredTeacherDocuments,
+  resolveTeacherDocumentLevelContext,
   teacherDocumentChecklist,
   teacherDocumentCodeFromFile,
   teacherDocumentFileCode,
@@ -69,4 +70,17 @@ describe("requisitos de documentação de docentes", () => {
     });
     expect(teacherDocumentCodeFromFile("BI-261029-XXXX")).toBe(null);
   });
+  it("não marca todos os requisitos como completos numa escola mista sem atribuições", () => {
+    const policy = parseTeacherDocumentPolicy({
+      enabled: true, required: ["bi"],
+      requiredByLevel: { superior: ["pos_graduacao"], primario: ["formacao_pedagogica"] },
+    });
+    expect(resolveTeacherDocumentLevelContext(policy, [], ["primario", "superior"]))
+      .toEqual({ levels: [], levelPending: true });
+    expect(resolveTeacherDocumentLevelContext(policy, ["superior"], ["primario", "superior"]))
+      .toEqual({ levels: ["superior"], levelPending: false });
+    expect(resolveTeacherDocumentLevelContext(policy, [], ["superior"]))
+      .toEqual({ levels: ["superior"], levelPending: false });
+  });
+
 });
