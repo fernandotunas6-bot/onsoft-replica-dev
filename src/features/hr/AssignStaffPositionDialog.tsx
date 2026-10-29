@@ -74,7 +74,7 @@ export function AssignStaffPositionDialog({
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
                 <Input value={search} onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Procurar por nome, BI ou e-mail" className="pl-9" />
+                  placeholder="Procurar por nome, BI ou e-mail" aria-label="Procurar pessoa por nome, BI ou e-mail" className="pl-9" />
               </div>
               {people.isLoading ? <p className="text-xs text-muted-foreground">A procurar pessoas…</p> : null}
               {people.isError ? <p className="text-xs text-destructive">Não foi possível procurar pessoas.</p> : null}
@@ -93,7 +93,7 @@ export function AssignStaffPositionDialog({
           <label className="block space-y-2">
             <span className="text-sm font-semibold">Cargo</span>
             <select
-              value={positionId} onChange={(e) => setPositionId(e.target.value)}
+              aria-label="Cargo profissional" value={positionId} onChange={(e) => setPositionId(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">Seleccionar cargo</option>
@@ -111,7 +111,7 @@ export function AssignStaffPositionDialog({
           <label className="block space-y-2">
             <span className="text-sm font-semibold">Departamento (opcional)</span>
             <select
-              value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}
+              aria-label="Departamento do funcionário" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="">Utilizar o departamento do cargo / não atribuído</option>
