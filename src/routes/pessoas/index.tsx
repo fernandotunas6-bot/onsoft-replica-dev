@@ -967,79 +967,79 @@ function PeoplePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-            <QuickFormModal
-              title="Mesclar duplicado"
-              eyebrow="Registo central"
-              description="Mantém a ficha sobrevivente, transfere aluno/professor se só o duplicado os tiver, e desactiva o outro registo."
-              icon={<GitMerge className="size-5" />}
-              submitLabel="Mesclar"
-              note="Se ambas as fichas forem alunos ou ambas professores, a operação é recusada."
-              successDescription="Duplicado desactivado e ligações transferidas."
-              onSubmit={async (values) => {
-                const survivor = people.find(
-                  (row) => personOptionFor(row) === values["sobrevivente"],
-                );
-                const duplicate = people.find(
-                  (row) => personOptionFor(row) === values["duplicado"],
-                );
-                if (!survivor || !duplicate) {
-                  throw new Error("Seleccione a ficha sobrevivente e o duplicado.");
-                }
-                try {
-                  await mergePeople({
-                    data: {
-                      survivorId: survivor.id,
-                      duplicateId: duplicate.id,
-                      reason: values["motivo"] ?? "",
-                    },
-                  });
-                } catch (error) {
-                  toast.error("Mesclagem falhou", {
-                    description: error instanceof Error ? error.message : "Tenta novamente.",
-                    duration: 15000,
-                  });
-                  throw error;
-                }
-                setSelectedId(null);
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
-                  queryClient.invalidateQueries({ queryKey: ["people", "teachers"] }),
-                  queryClient.invalidateQueries({ queryKey: ["people", "detail"] }),
-                ]);
-              }}
-              fields={[
-                {
-                  name: "sobrevivente",
-                  label: "Ficha que fica",
-                  type: "select",
-                  options: personOptions,
-                  full: true,
-                },
-                {
-                  name: "duplicado",
-                  label: "Duplicado a desactivar",
-                  type: "select",
-                  options: personOptions,
-                  full: true,
-                },
-                {
-                  name: "motivo",
-                  label: "Motivo",
-                  placeholder: "Ex.: mesmo telefone e nome",
-                  full: true,
-                },
-              ]}
-              trigger={(open) => (
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={open}
-                  disabled={people.length < 2}
-                >
-                  <GitMerge className="size-4" /> Mesclar
-                </Button>
-              )}
-            />
+              <QuickFormModal
+                title="Mesclar duplicado"
+                eyebrow="Registo central"
+                description="Mantém a ficha sobrevivente, transfere aluno/professor se só o duplicado os tiver, e desactiva o outro registo."
+                icon={<GitMerge className="size-5" />}
+                submitLabel="Mesclar"
+                note="Se ambas as fichas forem alunos ou ambas professores, a operação é recusada."
+                successDescription="Duplicado desactivado e ligações transferidas."
+                onSubmit={async (values) => {
+                  const survivor = people.find(
+                    (row) => personOptionFor(row) === values["sobrevivente"],
+                  );
+                  const duplicate = people.find(
+                    (row) => personOptionFor(row) === values["duplicado"],
+                  );
+                  if (!survivor || !duplicate) {
+                    throw new Error("Seleccione a ficha sobrevivente e o duplicado.");
+                  }
+                  try {
+                    await mergePeople({
+                      data: {
+                        survivorId: survivor.id,
+                        duplicateId: duplicate.id,
+                        reason: values["motivo"] ?? "",
+                      },
+                    });
+                  } catch (error) {
+                    toast.error("Mesclagem falhou", {
+                      description: error instanceof Error ? error.message : "Tenta novamente.",
+                      duration: 15000,
+                    });
+                    throw error;
+                  }
+                  setSelectedId(null);
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
+                    queryClient.invalidateQueries({ queryKey: ["people", "teachers"] }),
+                    queryClient.invalidateQueries({ queryKey: ["people", "detail"] }),
+                  ]);
+                }}
+                fields={[
+                  {
+                    name: "sobrevivente",
+                    label: "Ficha que fica",
+                    type: "select",
+                    options: personOptions,
+                    full: true,
+                  },
+                  {
+                    name: "duplicado",
+                    label: "Duplicado a desactivar",
+                    type: "select",
+                    options: personOptions,
+                    full: true,
+                  },
+                  {
+                    name: "motivo",
+                    label: "Motivo",
+                    placeholder: "Ex.: mesmo telefone e nome",
+                    full: true,
+                  },
+                ]}
+                trigger={(open) => (
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={open}
+                    disabled={people.length < 2}
+                  >
+                    <GitMerge className="size-4" /> Mesclar
+                  </Button>
+                )}
+              />
               <Button
                 size="sm"
                 variant="outline"
