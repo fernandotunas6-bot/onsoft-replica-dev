@@ -50,6 +50,7 @@ import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
 import { syncBiDocumentFromNif } from "./bi-document";
 import { insertTeacherWithNextNumber, isTeacherNumberTaken } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
+import { ensureStaffEmploymentDraft } from "@/features/hr/staff-positions-server";
 import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
@@ -1185,6 +1186,12 @@ export const createTeacher = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId)
       .single();
     if (error) throw publicDatabaseError(error, "Professor criado, mas não foi possível lê-lo.");
+    try {
+      await ensureStaffEmploymentDraft(db, membership.schoolId, person.id, context.userId);
+    } catch (employmentError) {
+      throw new Error("Professor criado, mas a ficha de Funcionários/RH ficou pendente. " +
+        (employmentError instanceof Error ? employmentError.message : "Verifique o módulo RH."));
+    }
     return teacher;
   });
 
@@ -1351,6 +1358,17 @@ export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
       roles: data.roles,
       userId: context.userId,
     });
+    // Uma pessoa com vínculo laboral entra também no acompanhamento RH.
+    // A ficha fica em preparação: cargo profissional e salário são tratados no RH,
+    // e nunca activam privilégios de autenticação.
+    if (roles.some((role) => ["funcionario", "diretor", "coordenador"].includes(role))) {
+      try {
+        await ensureStaffEmploymentDraft(db, membership.schoolId, data.personId, context.userId);
+      } catch (error) {
+        throw new Error("Vínculos institucionais guardados, mas não foi possível sincronizar a ficha RH. Abra Funcionários para concluir. " +
+          (error instanceof Error ? error.message : ""));
+      }
+    }
     return { personId: data.personId, roles };
   });
 
