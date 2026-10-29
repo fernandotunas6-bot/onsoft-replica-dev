@@ -5,13 +5,19 @@ import { canReadStudentSection } from "@/features/students/student-sections";
 describe("alunos: permissões financeiras na lista", () => {
   it("não expõe dados financeiros ao professor sem grant", () => {
     expect(canReadStudentSection("financeiro", "Professor", {})).toBe(false);
-    expect(canReadStudentSection("financeiro", "Professor", { financeiro: "Nenhum" })).toBe(false);
+    expect(canReadStudentSection("financeiro", "Professor", { financeiro: "Nenhum" })).toBe(
+      false,
+    );
   });
 
   it("respeita a autorização e o bloqueio explícito do módulo", () => {
     expect(canReadStudentSection("financeiro", "Tesouraria", {})).toBe(true);
-    expect(canReadStudentSection("financeiro", "Secretaria", { financeiro: "Nenhum" })).toBe(false);
-    expect(canReadStudentSection("financeiro", "Professor", { financeiro: "Leitura" })).toBe(true);
+    expect(canReadStudentSection("financeiro", "Secretaria", { financeiro: "Nenhum" })).toBe(
+      false,
+    );
+    expect(canReadStudentSection("financeiro", "Professor", { financeiro: "Leitura" })).toBe(
+      true,
+    );
   });
 
   it("o servidor verifica o direito antes de ler facturas e omite os valores sem acesso", () => {
