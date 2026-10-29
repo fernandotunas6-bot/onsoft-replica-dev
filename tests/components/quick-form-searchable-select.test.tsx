@@ -80,4 +80,41 @@ describe("QuickFormModal: pesquisa sem alterar a turma escolhida", () => {
     expect(select.value).toBe("civil");
     expect(submit).not.toHaveBeenCalled();
   });
+  it("mantém a validação por campo ao pesquisar e limpa o erro só ao mudar a selecção", async () => {
+    render(
+      <QuickFormModal
+        autoOpen
+        trigger={() => null}
+        title="Matrícula de teste"
+        fields={[
+          {
+            name: "turma",
+            label: "Turma",
+            type: "select",
+            searchable: true,
+            defaultValue: "civil",
+            options: [
+              { value: "civil", label: "Construção Civil" },
+              { value: "informatica", label: "Informática" },
+            ],
+          },
+        ]}
+        validate={(values): Record<string, string> =>
+          values["turma"] === "civil" ? { turma: "Reveja a turma escolhida." } : {}
+        }
+        onSubmit={async () => {}}
+      />,
+    );
+    const select = await screen.findByRole("combobox", { name: "Turma" });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(select.getAttribute("aria-invalid")).toBe("true");
+    expect(select.getAttribute("aria-describedby")).toContain("turma-error");
+    fireEvent.change(screen.getByRole("searchbox", { name: "Procurar turma" }), {
+      target: { value: "informatica" },
+    });
+    expect(screen.getByRole("alert").textContent).toBe("Reveja a turma escolhida.");
+    fireEvent.change(select, { target: { value: "informatica" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(select.getAttribute("aria-invalid")).toBe("false");
+  });
 });

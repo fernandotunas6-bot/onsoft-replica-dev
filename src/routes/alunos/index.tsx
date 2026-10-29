@@ -58,6 +58,7 @@ import {
   type CandidateSubFilter,
 } from "@/features/students/academic-status";
 import { classGroupChoices } from "@/features/students/enrollment-directory";
+import { buildBulkClassFeedback } from "@/features/students/batch-feedback";
 import { studentStatusOptions } from "@/features/students/schemas";
 import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { MediaAvatar } from "@/components/ui/media-frame";
@@ -138,6 +139,17 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { StudentMobileList } from "@/features/students/components/StudentMobileList";
+import { StudentRowActions } from "@/features/students/components/StudentRowActions";
+import { StudentBulkTools } from "@/features/students/components/StudentBulkTools";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
+import {
+  canReadStudentFinance,
+  canIssueStudentTuition,
+} from "@/features/students/student-sections";
+import {
+  visibleSelectedRows,
+  restrictSelectionToVisibleRows,
+} from "@/features/students/visible-selection";
 
 const alunosSearchSchema = z
   .object({
@@ -225,6 +237,9 @@ type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 function StudentsPage() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
+  const currentAccount = useCurrentAccount();
+  const canReadFinance = canReadStudentFinance(currentAccount.role, currentAccount.grants);
+  const canIssueTuition = canIssueStudentTuition(currentAccount.role, currentAccount.grants);
   const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
     useSchoolSettings();
@@ -247,6 +262,8 @@ function StudentsPage() {
   const setPage = (next: number) => setFilter("page", String(next));
   const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Uma selecção nunca deve sobreviver a uma mudança de escola ou ano lectivo.
+  useEffect(() => setSelectedIds([]), [activeTenant?.id, selectedYearId]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
@@ -321,7 +338,17 @@ function StudentsPage() {
           : null;
 
   const studentsQuery = useQuery({
-    queryKey: ["students", "search"],
+    // Evita reutilizar respostas de outro utilizador, escola ou cargo após mudar
+    // o contexto. O prefixo permite manter as invalidações já existentes.
+    queryKey: [
+      "students",
+      "search",
+      currentAccount.id,
+      currentAccount.schoolId,
+      currentAccount.role,
+      canReadFinance,
+    ],
+    enabled: Boolean(currentAccount.id && currentAccount.schoolId),
     queryFn: () => searchStudents({ data: { limit: 1000, offset: 0 } }),
   });
   const pendingApplicationsQuery = useQuery({
@@ -377,7 +404,8 @@ function StudentsPage() {
         (s.primary_guardian_name ?? "").toLowerCase().includes(q);
       const matchStatus = estado === "todos" || s.student_status === estado;
       const matchTurma = turma === "todas" || (s.class_name ?? "") === turma;
-      const matchPagamento = pagamento === "todos" || (s.payment_status ?? "") === pagamento;
+      const matchPagamento =
+        !canReadFinance || pagamento === "todos" || (s.payment_status ?? "") === pagamento;
       const studentYear = (s.academic_year ?? "").toLowerCase();
       const matchYear =
         !selectedYear ||
@@ -422,11 +450,29 @@ function StudentsPage() {
     estado,
     turma,
     pagamento,
+    canReadFinance,
     sortKey,
     sortDir,
     selectedYear,
     activeYearLabel,
   ]);
+
+  // A selecção pode abranger várias páginas, mas não registos excluídos pelos filtros.
+  // Assim a contagem e as operações aplicam-se exactamente ao que está visível.
+  const selectedStudents = useMemo(
+    () => visibleSelectedRows(filtered, selectedIds),
+    [filtered, selectedIds],
+  );
+  const effectiveSelectedIds = useMemo(
+    () => selectedStudents.map((student) => student.id),
+    [selectedStudents],
+  );
+  useEffect(() => {
+    setSelectedIds((previous) => {
+      const next = restrictSelectionToVisibleRows(previous, filtered);
+      return next.length === previous.length ? previous : next;
+    });
+  }, [filtered]);
 
   const quickCounts = useMemo(
     () => computeDynamicCounters(allStudents, pendingApplicationsCount),
@@ -457,11 +503,15 @@ function StudentsPage() {
       label: "Estado",
       value: (row: StudentRow) => academicStatusLabel(row.student_status),
     },
-    {
-      label: "Pagamento",
-      value: (row: StudentRow) =>
-        row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
-    },
+    ...(canReadFinance
+      ? [
+          {
+            label: "Pagamento",
+            value: (row: StudentRow) =>
+              row.payment_status ? (pagamentoLabels[row.payment_status] ?? row.payment_status) : "",
+          },
+        ]
+      : []),
     { label: "Telefone", value: (row: StudentRow) => row.phone ?? "" },
     { label: "Email", value: (row: StudentRow) => row.email ?? "" },
   ];
@@ -759,13 +809,15 @@ function StudentsPage() {
             icon={GraduationCap}
             tone="success"
           />
-          <StatCard
-            title="Pagamentos em dívida"
-            value={allStudents.filter((s) => s.payment_status === "overdue").length}
-            subtitle="Requer regularização"
-            icon={ArrowDown}
-            tone="destructive"
-          />
+          {canReadFinance ? (
+            <StatCard
+              title="Pagamentos em dívida"
+              value={allStudents.filter((s) => s.payment_status === "overdue").length}
+              subtitle="Requer regularização"
+              icon={ArrowDown}
+              tone="destructive"
+            />
+          ) : null}
           <StatCard
             title="Transferidos / Concluídos"
             value={
@@ -811,7 +863,7 @@ function StudentsPage() {
             ...(turma !== "todas"
               ? [{ name: "turma", label: "Turma", value: turma, emptyValue: "todas" }]
               : []),
-            ...(pagamento !== "todos"
+            ...(canReadFinance && pagamento !== "todos"
               ? [
                   {
                     name: "pagamento",
@@ -853,16 +905,23 @@ function StudentsPage() {
                 ),
               ],
             },
-            {
-              name: "pagamento",
-              type: "select",
-              label: "Pagamento",
-              emptyValue: "todos",
-              options: [
-                { value: "todos", label: "Todos os pagamentos" },
-                ...Object.entries(pagamentoLabels).map(([value, label]) => ({ value, label })),
-              ],
-            },
+            ...(canReadFinance
+              ? [
+                  {
+                    name: "pagamento",
+                    type: "select" as const,
+                    label: "Pagamento",
+                    emptyValue: "todos",
+                    options: [
+                      { value: "todos", label: "Todos os pagamentos" },
+                      ...Object.entries(pagamentoLabels).map(([value, label]) => ({
+                        value,
+                        label,
+                      })),
+                    ],
+                  },
+                ]
+              : []),
           ]}
         />
 
@@ -1172,6 +1231,11 @@ function StudentsPage() {
                 }
                 whatsappEnabled={whatsappOn}
                 whatsappHref={whatsappHref}
+                financeAllowed={canReadFinance}
+                academicAllowed={
+                  ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                  currentAccount.grants.pedagogica !== "Nenhum"
+                }
               />
             }
             desktop={
@@ -1184,7 +1248,10 @@ function StudentsPage() {
                           type="checkbox"
                           aria-label="Seleccionar todos nesta página"
                           className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                          checked={paged.length > 0 && selectedIds.length >= paged.length}
+                          checked={
+                            paged.length > 0 &&
+                            paged.every((student) => selectedIds.includes(student.id))
+                          }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedIds([
@@ -1343,6 +1410,11 @@ function StudentsPage() {
                                   <FileText className="size-3.5" /> Ficha
                                 </Link>
                               </Button>
+                              <StudentRowActions
+                                student={s}
+                                role={currentAccount.role}
+                                grants={currentAccount.grants}
+                              />
                               {s.student_status === "applicant" &&
                               !s.class_name &&
                               turmaOptions.length > 0 ? (
@@ -1510,20 +1582,22 @@ function StudentsPage() {
           />
 
           {/* Barra Flutuante de Ações em Massa */}
-          {selectedIds.length > 0 ? (
+          {effectiveSelectedIds.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary-soft/80 p-3 shadow-sm animate-in fade-in slide-in-from-bottom-2">
               <div className="flex items-center gap-2">
                 <span className="inline-flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                  {selectedIds.length}
+                  {effectiveSelectedIds.length}
                 </span>
                 <span className="text-xs font-semibold text-foreground">
-                  {selectedIds.length === 1 ? "aluno seleccionado" : "alunos seleccionados"}
+                  {effectiveSelectedIds.length === 1
+                    ? "aluno seleccionado"
+                    : "alunos seleccionados"}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {turmaOptions.length > 0 ? (
                   <QuickFormModal
-                    title={`Atribuir turma a ${selectedIds.length} alunos`}
+                    title={`Atribuir turma a ${effectiveSelectedIds.length} alunos`}
                     description="Matricula em massa os alunos seleccionados na turma indicada."
                     submitLabel="Atribuir turma em lote"
                     successDescription="Turma atribuída aos alunos seleccionados."
@@ -1543,19 +1617,36 @@ function StudentsPage() {
                         throw new Error("Seleccione uma turma com ano lectivo.");
                       const result = await batchAssignClass({
                         data: {
-                          studentIds: selectedIds,
+                          studentIds: effectiveSelectedIds,
                           classGroupId: group.id,
                           academicYearId: yearId,
                         },
                       });
-                      toast.success(`${result.count} alunos na turma ${result.className}.`);
-                      if (result.failed.length) {
-                        toast.warning(
-                          `${result.failed.length} não ficaram matriculados: ${result.failed[0]?.message ?? ""}`,
+                      const feedback = buildBulkClassFeedback(
+                        result,
+                        selectedIds,
+                        new Map(allStudents.map((student) => [student.id, student.full_name])),
+                      );
+                      // Conservar só os alunos com falha: o utilizador pode
+                      // corrigir o problema e repetir sem nova pesquisa.
+                      setSelectedIds(feedback.retryStudentIds);
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["students", "search"] }),
+                        queryClient.invalidateQueries({
+                          queryKey: ["academic", "pedagogical-workspace"],
+                        }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                      ]);
+                      if (feedback.failureMessage) {
+                        if (feedback.successMessage) toast.success(feedback.successMessage);
+                        // O QuickFormModal mantém-se aberto e mostra o erro;
+                        // não anuncia sucesso total perante resultados parciais.
+                        throw new Error(
+                          [feedback.failureMessage, feedback.failureDetails]
+                            .filter(Boolean)
+                            .join("\n"),
                         );
                       }
-                      setSelectedIds([]);
-                      await queryClient.invalidateQueries({ queryKey: ["students", "search"] });
                     }}
                     trigger={(open) => (
                       <Button
@@ -1571,7 +1662,7 @@ function StudentsPage() {
                 ) : null}
 
                 <QuickFormModal
-                  title={`Alterar estado de ${selectedIds.length} alunos`}
+                  title={`Alterar estado de ${effectiveSelectedIds.length} alunos`}
                   description="Actualiza o estado institucional de todos os alunos seleccionados."
                   submitLabel="Actualizar estado em lote"
                   successDescription="Estado dos alunos actualizado."
@@ -1594,12 +1685,12 @@ function StudentsPage() {
                   onSubmit={async (values) => {
                     const result = await batchUpdateStudentStatus({
                       data: {
-                        studentIds: selectedIds,
+                        studentIds: effectiveSelectedIds,
                         newStatus: values["estado"] as (typeof studentStatusOptions)[number],
                         reason: values["motivo"] || undefined,
                       },
                     });
-                    const unchanged = selectedIds.length - result.count;
+                    const unchanged = effectiveSelectedIds.length - result.count;
                     toast.success(
                       unchanged > 0
                         ? `Estado de ${result.count} aluno(s) actualizado; ${unchanged} já estava(m) nesse estado.`
@@ -1620,6 +1711,15 @@ function StudentsPage() {
                   )}
                 />
 
+                <StudentBulkTools
+                  students={selectedStudents}
+                  canReadFinance={canReadFinance}
+                  canIssueTuition={canIssueTuition}
+                  canUseGrades={
+                    ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                    currentAccount.grants.pedagogica !== "Nenhum"
+                  }
+                />
                 <Button
                   size="sm"
                   variant="ghost"

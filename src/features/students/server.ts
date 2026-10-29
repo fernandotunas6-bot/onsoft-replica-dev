@@ -62,6 +62,7 @@ import { queueTenantUsageSync } from "@/features/saas/usage-sync";
 import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-server";
 import { schoolTodayIso } from "@/lib/school-date";
 import { pickCurrentEnrollment } from "./current-enrollment";
+import { commitExistingEnrollmentPlacements } from "./enrollment-batch";
 
 async function linkGuardian(
   db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
@@ -134,6 +135,18 @@ export const searchStudents = createServerFn({ method: "GET" })
     const db = await loadSgaAdminClient();
     const scope = await loadStudentScope(db, membership, context.userId);
     if (!scope.all && scope.studentIds.length === 0) return [];
+
+    // Mesmo com cliente privilegiado, não ler ou devolver facturas para quem não tem
+    // permissão financeira nesta escola. Falha fechado em caso de erro de autorização.
+    const canReadFinance = await requireSgaWriterFor(
+      "financeiro",
+      context.userId,
+      ["Administrador", "Secretaria", "Tesouraria"],
+      membership.schoolId,
+    ).then(
+      () => true,
+      () => false,
+    );
 
     // A lista pede até 1000 alunos e, a seguir, as fichas, matrículas, encarregados e
     // faturas de todos eles por `.in(...)`: com mais de ~200 alunos o URL passava o
@@ -234,7 +247,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     const enrollmentIds = (allEnrollments ?? []).map((e) => e.id);
     let invoicesByStudent = new Map<string, InvoiceLike[]>();
     try {
-      if (enrollmentIds.length) {
+      if (canReadFinance && enrollmentIds.length) {
         const { data: contracts } = await reads
           .from("finance_contracts")
           .select("id, enrollment_id")
@@ -429,12 +442,12 @@ export const searchStudents = createServerFn({ method: "GET" })
           photo_url: (person?.["photo_url"] as string | null) ?? null,
           national_id: (person?.["national_id"] as string | null) ?? null,
           student_status: effectiveStatus,
-          payment_status: finSnapshot.paymentStatus,
-          debt_amount: finSnapshot.debtAmount,
-          overdue_count: finSnapshot.overdueCount,
-          has_debt: finSnapshot.hasDebt,
-          total_billed: finSnapshot.totalBilled,
-          total_paid: finSnapshot.totalPaid,
+          payment_status: canReadFinance ? finSnapshot.paymentStatus : null,
+          debt_amount: canReadFinance ? finSnapshot.debtAmount : undefined,
+          overdue_count: canReadFinance ? finSnapshot.overdueCount : undefined,
+          has_debt: canReadFinance ? finSnapshot.hasDebt : undefined,
+          total_billed: canReadFinance ? finSnapshot.totalBilled : undefined,
+          total_paid: canReadFinance ? finSnapshot.totalPaid : undefined,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           class_group_id: (classGroup?.["id"] as string | null) ?? null,
@@ -905,7 +918,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       enrolledOn: data.enrolledOn ?? null,
       userId: context.userId,
     });
-    queueTenantUsageSync(membership.schoolId);
+    if (!placed.unchanged) queueTenantUsageSync(membership.schoolId);
     return {
       id: placed.enrollmentId,
       enrollment_number: placed.enrollmentNumber,
@@ -914,6 +927,7 @@ export const enrollStudentInClass = createServerFn({ method: "POST" })
       academic_year_id: placed.academicYearId,
       status: placed.status,
       moved: placed.moved,
+      unchanged: placed.unchanged ?? false,
     };
   });
 
@@ -1442,36 +1456,18 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       }
     }
 
-    const enrolled = new Set(
-      currentRows.filter((row) => row.class_group_id === group.id).map((row) => row.student_id),
-    );
-
-    if (toMove.length) {
-      const { error: moveError } = await db
-        .from("enrollments")
-        .update({ class_group_id: group.id, status: "active", updated_by: context.userId })
-        .eq("school_id", schoolId)
-        .in(
-          "id",
-          toMove.map((row) => row.id),
-        );
-      if (moveError)
-        throw publicDatabaseError(moveError, "Não foi possível mudar os alunos de turma.");
-      for (const row of toMove) enrolled.add(String(row.student_id));
-    }
-    if (toConfirm.length) {
-      const { error: confirmError } = await db
-        .from("enrollments")
-        .update({ status: "active", updated_by: context.userId })
-        .eq("school_id", schoolId)
-        .in(
-          "id",
-          toConfirm.map((row) => row.id),
-        );
-      if (confirmError) {
-        throw publicDatabaseError(confirmError, "Não foi possível confirmar as matrículas.");
-      }
-    }
+    // Todos os vínculos do ano (inclusive os já activos na turma) devem ser
+    // confirmados contra o estado actual: uma lista carregada antes de outra
+    // transferência não é prova de que o aluno ainda está neste destino.
+    // O helper não grava os no-op; mudanças e pendentes usam CAS.
+    const committed = await commitExistingEnrollmentPlacements(db, {
+      schoolId,
+      targetClassGroupId: group.id,
+      userId: context.userId,
+      rows: currentRows,
+    });
+    const enrolled = new Set(committed.placedIds);
+    failed.push(...committed.failed);
 
     // Quem tinha saído (anulado, desistente…) volta a candidato para enroll_student o aceitar.
     const returning = toEnroll.filter((id) =>
@@ -1509,7 +1505,7 @@ export const batchAssignClass = createServerFn({ method: "POST" })
     }
     await restoreStudentStatuses(db, { schoolId, students: toRestore, userId: context.userId });
 
-    await syncStudentStatusAfterPlacement(db, {
+    const reactivated = await syncStudentStatusAfterPlacement(db, {
       schoolId,
       students: [...enrolled].map((studentId) => ({
         studentId,
@@ -1519,7 +1515,9 @@ export const batchAssignClass = createServerFn({ method: "POST" })
       userId: context.userId,
     });
 
-    queueTenantUsageSync(schoolId);
+    if (committed.placedIds.length || toEnroll.length || reactivated > 0) {
+      queueTenantUsageSync(schoolId);
+    }
     return { success: failed.length === 0, count: enrolled.size, className: group.name, failed };
   });
 

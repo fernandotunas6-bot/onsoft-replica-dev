@@ -1,5 +1,14 @@
 # Execução do padrão visual — 23/10/2026
 
+**29/10/2026 — integração da escolha de turma com o formulário actual:**
+preservada a correcção de Claude que cancela Enter na pesquisa e coloca o foco
+na lista. Integração com `main` 74695eaa sem reescrever o histórico; o selector
+pesquisável passa também a anunciar os erros por campo introduzidos no formulário
+partilhado. Pesquisar conserva o erro associado à escolha; mudar a escolha limpa-o.
+171 testes locais de alunos e formulários passaram nesta integração; tipos,
+compilação, CI e conferência publicada continuam sujeitos aos respectivos resultados.
+Nenhuma matrícula foi criada ou alterada para este ensaio.
+
 **28/10/2026 — escolha de turma na matrícula existente (implementado):**
 o selector nativo recebe pesquisa opcional por palavras sem distinção de acentos.
 A matrícula existente exige escolha explícita quando não há turma de origem; a

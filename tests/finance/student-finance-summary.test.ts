@@ -59,6 +59,39 @@ describe("summarizeStudentInvoices", () => {
     expect(summary.settled.map((row) => row.id)).toEqual(["a"]);
   });
 
+  it("um estorno repõe dívida mesmo que a fatura conserve estado textual pago", () => {
+    const summary = summarizeStudentInvoices(
+      [invoice("set", "paid", "2026-10-01", 10_000, 4_000)],
+      TODAY,
+    );
+    expect(summary.settled).toEqual([]);
+    expect(summary.open[0]).toMatchObject({
+      id: "set",
+      openAmount: 6_000,
+      state: { status: "overdue" },
+    });
+    expect(summary.outstanding).toBe(6_000);
+    expect(summary.overdue).toBe(6_000);
+    expect(summary.paid).toBe(4_000);
+  });
+
+  it("acumula cêntimos de múltiplas faturas sem resíduos binários", () => {
+    const summary = summarizeStudentInvoices(
+      [
+        invoice("a", "issued", "2026-10-01", 0.3, 0.1),
+        invoice("b", "issued", "2026-10-01", 0.3, 0.2),
+        invoice("c", "issued", "2026-10-01", 0.3, 0.1 + 0.2),
+      ],
+      TODAY,
+    );
+    expect(summary.billed).toBe(0.9);
+    expect(summary.paid).toBe(0.6);
+    expect(summary.outstanding).toBe(0.3);
+    expect(summary.overdue).toBe(0.3);
+    expect(summary.open.map((row) => row.openAmount)).toEqual([0.2, 0.1]);
+    expect(summary.settled.map((row) => row.id)).toEqual(["c"]);
+  });
+
   it("sem faturas, tudo a zero", () => {
     expect(summarizeStudentInvoices([], TODAY)).toEqual({
       billed: 0,

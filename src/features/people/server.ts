@@ -32,8 +32,10 @@ import {
   findPersonDuplicatesInputSchema,
   getPersonInputSchema,
   listTeachersInputSchema,
+  listTeachersPageInputSchema,
   mergePeopleInputSchema,
   searchPeopleInputSchema,
+  searchPeoplePageInputSchema,
   setPersonInstitutionRolesInputSchema,
   setPersonPhotoUrlInputSchema,
   updatePersonInputSchema,
@@ -48,6 +50,11 @@ import { buildPersonInsert, isMissingPeopleGeography } from "./person-fields";
 import { syncBiDocumentFromNif } from "./bi-document";
 import { insertTeacherWithNextNumber, isTeacherNumberTaken } from "./teacher-number";
 import { schoolTodayIso } from "@/lib/school-date";
+import {
+  assertHrEmploymentStoreReady,
+  ensureStaffEmploymentDraft,
+} from "@/features/hr/staff-positions-server";
+import { listTeachersDirectoryPage, searchPeopleDirectoryPage } from "./directory-server";
 
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 
@@ -572,8 +579,35 @@ export const createPerson = createServerFn({ method: "POST" })
       );
     const person = result as unknown as Database["public"]["Tables"]["people"]["Row"];
 
+    // O cadastro da pessoa é concluído na RPC. Se tiver papel laboral,
+    // cria-se a ficha RH em preparação na mesma escola, sem exigir contrato
+    // nem atribuir permissões de acesso ao sistema.
+    let hrRegistration: "not_applicable" | "ready" | "pending" = "not_applicable";
+    if (
+      roles.some((role) => ["professor", "funcionario", "diretor", "coordenador"].includes(role))
+    ) {
+      try {
+        const db = await loadSgaAdminClient();
+        await ensureStaffEmploymentDraft(
+          db,
+          membership.schoolId,
+          String(person.id),
+          context.userId,
+        );
+        hrRegistration = "ready";
+      } catch (employmentError) {
+        // Nunca fingir que a criação da pessoa foi revertida: a RPC já gravou.
+        hrRegistration = "pending";
+        reportSigaError("people.create.staff_employment_pending", employmentError, {
+          school_id: membership.schoolId,
+          person_id: person.id,
+        });
+      }
+    }
+
     return {
       ...person,
+      hrRegistration,
       phone_primary: person.phone,
       birth_date: person.date_of_birth,
       nif: person.national_id,
@@ -1054,6 +1088,7 @@ export const createTeacher = createServerFn({ method: "POST" })
     // register_teacher exige 2FA: verificado antes de criar a pessoa, para não a deixar solta.
     requireAal2(context.claims, "Cadastrar o professor");
     const db = await loadSgaAdminClient();
+    await assertHrEmploymentStoreReady(db, membership.schoolId);
 
     const { data: person, error: personError } = await db
       .from("people")
@@ -1182,6 +1217,14 @@ export const createTeacher = createServerFn({ method: "POST" })
       .eq("school_id", membership.schoolId)
       .single();
     if (error) throw publicDatabaseError(error, "Professor criado, mas não foi possível lê-lo.");
+    try {
+      await ensureStaffEmploymentDraft(db, membership.schoolId, person.id, context.userId);
+    } catch (employmentError) {
+      throw new Error(
+        "Professor criado, mas a ficha de Funcionários/RH ficou pendente. " +
+          (employmentError instanceof Error ? employmentError.message : "Verifique o módulo RH."),
+      );
+    }
     return teacher;
   });
 
@@ -1284,11 +1327,16 @@ export const updatePerson = createServerFn({ method: "POST" })
       personPatch["address"] = data.address || null;
     }
 
-    const { data: person, error } = await db
+    let updateQuery = db
       .from("people")
       .update(personPatch)
       .eq("id", data.personId)
-      .eq("school_id", membership.schoolId)
+      .eq("school_id", membership.schoolId);
+    // CAS: quem abriu a ficha antes de outra edição recebe conflito, não sobrescreve.
+    if (data.expectedUpdatedAt) {
+      updateQuery = updateQuery.eq("updated_at", data.expectedUpdatedAt);
+    }
+    const { data: person, error } = await updateQuery
       .select("id, full_name, email, phone, status")
       .maybeSingle();
     if (error && hasGeography && isMissingPeopleGeography(error)) {
@@ -1297,6 +1345,11 @@ export const updatePerson = createServerFn({ method: "POST" })
       );
     }
     if (error) throw publicDatabaseError(error, "Não foi possível actualizar a ficha.");
+    if (!person && data.expectedUpdatedAt) {
+      throw new Error(
+        "Esta ficha foi alterada por outra pessoa. Actualize os dados antes de guardar.",
+      );
+    }
     if (!person) throw new Error("Pessoa não encontrada.");
     await syncBiDocumentFromNif(
       db,
@@ -1331,6 +1384,9 @@ export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
     if (personError) throw publicDatabaseError(personError, "Não foi possível validar a pessoa.");
     if (!person) throw new Error("Pessoa não encontrada nesta escola.");
 
+    if (data.roles.some((role) => ["funcionario", "diretor", "coordenador"].includes(role))) {
+      await assertHrEmploymentStoreReady(db, membership.schoolId);
+    }
     await assertPersonRoleStoreAvailable(db);
     const roles = await syncPersonInstitutionRoles(db, {
       schoolId: membership.schoolId,
@@ -1338,6 +1394,19 @@ export const setPersonInstitutionRoles = createServerFn({ method: "POST" })
       roles: data.roles,
       userId: context.userId,
     });
+    // Uma pessoa com vínculo laboral entra também no acompanhamento RH.
+    // A ficha fica em preparação: cargo profissional e salário são tratados no RH,
+    // e nunca activam privilégios de autenticação.
+    if (roles.some((role) => ["funcionario", "diretor", "coordenador"].includes(role))) {
+      try {
+        await ensureStaffEmploymentDraft(db, membership.schoolId, data.personId, context.userId);
+      } catch (error) {
+        throw new Error(
+          "Vínculos institucionais guardados, mas não foi possível sincronizar a ficha RH. Abra Funcionários para concluir. " +
+            (error instanceof Error ? error.message : ""),
+        );
+      }
+    }
     return { personId: data.personId, roles };
   });
 
@@ -1605,3 +1674,37 @@ export async function ensureTeacherHrRecord(input: {
 
   return { teacherId, personId: person.id };
 }
+
+/**
+ * Directório paginado — a autorização e o acesso privilegiado continuam neste
+ * módulo já existente, ao lado dos fluxos legados. As consultas e as regras
+ * de filtragem vivem no helper puro directory-server, que nunca abre a service key.
+ * Os endpoints antigos ficam disponíveis para consumidores não migrados.
+ */
+export const searchPeoplePage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => searchPeoplePageInputSchema.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return searchPeopleDirectoryPage(db, membership, context.userId, data);
+  });
+
+export const listTeachersPage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => listTeachersPageInputSchema.parse(input ?? {}))
+  .handler(async ({ context, data }) => {
+    if (!context) throw new Error("Sessão inválida. Termine e volte a entrar.");
+    // Directório de Pessoas: a membership isoladamente inclui aluno/encarregado.
+    // Exigir cargo de Secretaria/Administração e permissão do módulo no servidor.
+    const membership = await requireSgaWriterFor("pessoas", context.supabase, context.userId, [
+      "Administrador",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    return listTeachersDirectoryPage(db, membership, data);
+  });

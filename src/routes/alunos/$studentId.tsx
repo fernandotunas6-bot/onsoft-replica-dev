@@ -322,7 +322,7 @@ function StudentDetail() {
   });
   const invoicesQuery = useQuery({
     queryKey: ["finance", "invoices", "student", studentId],
-    queryFn: () => listInvoices({ data: { studentId, limit: 1000 } }),
+    queryFn: () => listInvoices({ data: { studentId, limit: 1000, includeOpen: true } }),
     // Só a quem o servidor deixa ler as faturas: os outros nem fazem o pedido recusado.
     enabled: canReadStudentSection("financeiro", account.role, account.grants),
     retry: false,

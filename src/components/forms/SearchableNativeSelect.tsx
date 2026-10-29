@@ -17,6 +17,8 @@ export function SearchableNativeSelect({
   defaultValue = "",
   required = true,
   placeholder,
+  invalid,
+  errorId,
 }: {
   id: string;
   name: string;
@@ -25,6 +27,8 @@ export function SearchableNativeSelect({
   defaultValue?: string;
   required?: boolean;
   placeholder?: string;
+  invalid?: boolean;
+  errorId?: string;
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(defaultValue);
@@ -70,7 +74,8 @@ export function SearchableNativeSelect({
         id={id}
         name={name}
         required={required}
-        aria-describedby={resultsId}
+        aria-invalid={invalid}
+        aria-describedby={[resultsId, errorId].filter(Boolean).join(" ")}
         className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9"
         value={chosen ? selected : ""}
         onChange={(event) => setSelected(event.target.value)}

@@ -58,6 +58,18 @@ describe("EmptyState rollout", () => {
     ];
     for (const file of routes) {
       const source = readFileSync(resolve(root, file), "utf8");
+      if (file === "src/routes/pessoas/index.tsx") {
+        // Pessoas compõe EmptyState através do CRUD partilhado, sem o duplicar na rota.
+        const component = readFileSync(
+          resolve(root, "src/components/ui/crud-list-feedback-row.tsx"),
+          "utf8",
+        );
+        expect(source, file).toContain('from "@/components/ui/crud-list-feedback-row"');
+        expect(source, file).toContain("<CrudListFeedbackRow");
+        expect(component).toContain('from "@/components/ui/empty-state"');
+        expect(component).toContain("<EmptyState");
+        continue;
+      }
       expect(source, file).toContain('from "@/components/ui/empty-state"');
       expect(source, file).toContain("<EmptyState");
     }

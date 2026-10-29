@@ -10,7 +10,7 @@ export type HrEmployeeState = { status: StatusKey; label: string };
 
 const EMPLOYMENT_STATES: Record<string, HrEmployeeState> = {
   active: { status: "active", label: "Activo" },
-  draft: { status: "draft", label: "Rascunho" },
+  draft: { status: "draft", label: "Em preparação" },
   suspended: { status: "suspended", label: "Suspenso" },
   terminated: { status: "inactive", label: "Cessado" },
 };
