@@ -5,6 +5,8 @@ import {
   ArrowLeft,
   BookOpen,
   Calendar,
+  ChevronDown,
+  ChevronUp,
   GraduationCap,
   Pencil,
   RotateCcw,
@@ -146,6 +148,19 @@ function TurmaDetail() {
   });
 
   const [studentSearch, setStudentSearch] = useState({ classId: turmaId, value: "" });
+  const [expandedLists, setExpandedLists] = useState({
+    classId: turmaId, alunos: false, horario: false, avaliacoes: false,
+  });
+  const expanded = expandedLists.classId === turmaId
+    ? expandedLists
+    : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
+  const toggleList = (section: "alunos" | "horario" | "avaliacoes") =>
+    setExpandedLists((current) => {
+      const base = current.classId === turmaId
+        ? current
+        : { classId: turmaId, alunos: false, horario: false, avaliacoes: false };
+      return { ...base, [section]: !base[section] };
+    });
   const searchValue = studentSearch.classId === turmaId ? studentSearch.value : "";
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
@@ -184,6 +199,7 @@ function TurmaDetail() {
       })
       .sort((a, b) => a.student_name.localeCompare(b.student_name, "pt"));
   }, [alunos, searchValue]);
+  const visibleStudents = expanded.alunos ? filteredStudents : filteredStudents.slice(0, 10);
   const disciplinas = useMemo(
     () => (workspace?.classSubjects ?? []).filter((row) => row.class_group_id === turmaId),
     [workspace?.classSubjects, turmaId],
@@ -195,6 +211,7 @@ function TurmaDetail() {
         .sort((a, b) => a.weekday - b.weekday || a.starts_at.localeCompare(b.starts_at)),
     [workspace?.scheduleSlots, turmaId],
   );
+  const visibleSchedule = expanded.horario ? horario : horario.slice(0, 8);
   const avaliacoes = useMemo(() => {
     const alunoIds = new Set(alunos.map((a) => a.student_id).filter(Boolean));
     return (workspace?.termGrades ?? []).filter(
@@ -202,6 +219,7 @@ function TurmaDetail() {
     );
   }, [workspace?.termGrades, alunos]);
 
+  const visibleGrades = expanded.avaliacoes ? avaliacoes : avaliacoes.slice(0, 8);
   const classRelationsSnapshot = useMemo(
     () =>
       turma ? mapClassGroupToSnapshot(turma, disciplinas, horario.length, avaliacoes.length) : null,
@@ -277,14 +295,14 @@ function TurmaDetail() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-2">
           <Link to="/pedagogica" search={{ tab: "turmas" }}>
             <ArrowLeft className="size-4" /> Turmas
           </Link>
         </Button>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-gradient-to-r from-card via-card to-secondary/30 p-5 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate font-display text-xl font-extrabold text-foreground">
@@ -407,8 +425,8 @@ function TurmaDetail() {
         <div
           className={
             account.role === "Professor"
-              ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"
-              : "grid grid-cols-1 gap-6 lg:grid-cols-2"
+              ? "grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]"
+              : "space-y-4"
           }
         >
           <section
@@ -416,8 +434,8 @@ function TurmaDetail() {
             aria-labelledby={`${sectionId("resumo")}-titulo`}
             className={
               account.role === "Professor"
-                ? "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
-                : "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+                ? "scroll-mt-[88px] rounded-xl border border-border bg-card p-4 xl:col-start-1"
+                : "scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
             }
           >
             <div className="flex items-center gap-2.5">
@@ -430,8 +448,8 @@ function TurmaDetail() {
                 Resumo
               </h2>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-border bg-secondary/10 p-4">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-secondary/10 p-3">
                 <span className="text-xs font-semibold text-muted-foreground">Ocupação</span>
                 <p className="mt-2 text-2xl font-extrabold tabular-nums">
                   {turma.enrolled_count}
@@ -447,20 +465,20 @@ function TurmaDetail() {
                   />
                 </div>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/10 p-4">
+              <div className="rounded-lg border border-border bg-secondary/10 p-3">
                 <span className="text-xs font-semibold text-muted-foreground">Média Geral</span>
                 <p className="mt-2 text-2xl font-extrabold tabular-nums">
                   {turma.average_score != null ? turma.average_score.toFixed(1) : "—"}
                 </p>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/10 p-4">
+              <div className="rounded-lg border border-border bg-secondary/10 p-3">
                 <span className="text-xs font-semibold text-muted-foreground">Assiduidade</span>
                 <p className="mt-2 text-2xl font-extrabold tabular-nums">
                   {turma.attendance_rate != null ? `${Math.round(turma.attendance_rate)}%` : "—"}
                 </p>
               </div>
             </div>
-            <dl className="mt-4 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-xs lg:grid-cols-4">
               <Field label="Código" value={turma.code} />
               <Field
                 label="Sala"
@@ -537,7 +555,7 @@ function TurmaDetail() {
           <section
             id={sectionId("alunos")}
             aria-labelledby={`${sectionId("alunos")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Users} size="sm" label="Alunos" />
@@ -576,7 +594,7 @@ function TurmaDetail() {
               ) : null}
               {filteredStudents.length ? (
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {filteredStudents.map((aluno) => (
+                  {visibleStudents.map((aluno) => (
                     <Link
                       key={aluno.id}
                       to="/alunos/$studentId"
@@ -609,13 +627,20 @@ function TurmaDetail() {
                   ) : null}
                 </div>
               )}
+              {filteredStudents.length > 10 ? (
+                <Button type="button" variant="ghost" size="sm" className="mt-2 w-full gap-1.5"
+                  aria-expanded={expanded.alunos} onClick={() => toggleList("alunos")}>
+                  {expanded.alunos ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  {expanded.alunos ? "Mostrar menos" : `Mostrar todos os ${filteredStudents.length} alunos`}
+                </Button>
+              ) : null}
             </div>
           </section>
 
           <section
             id={sectionId("disciplinas")}
             aria-labelledby={`${sectionId("disciplinas")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
@@ -635,10 +660,18 @@ function TurmaDetail() {
                       key={`${row.subject_id}-${row.teacher_id ?? "sem-professor"}`}
                       className="flex items-center justify-between gap-2 p-3 text-xs"
                     >
-                      <span className="font-medium text-foreground">{row.subject_name}</span>
-                      <span className={row.teacher_name ? "text-muted-foreground" : "text-warning"}>
-                        {row.teacher_name || "Sem professor atribuído"}
-                      </span>
+                      <Link to="/pedagogica/disciplinas/$subjectId" params={{ subjectId: row.subject_id }}
+                        className="min-w-0 font-medium text-foreground hover:text-primary hover:underline">
+                        {row.subject_name}
+                      </Link>
+                      {row.teacher_id && row.teacher_name ? (
+                        <Link to="/professores/$teacherId" params={{ teacherId: row.teacher_id }}
+                          className="min-w-0 truncate text-right text-muted-foreground hover:text-primary hover:underline">
+                          {row.teacher_name}
+                        </Link>
+                      ) : (
+                        <span className="text-warning">Sem professor atribuído</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -653,7 +686,7 @@ function TurmaDetail() {
           <section
             id={sectionId("horario")}
             aria-labelledby={`${sectionId("horario")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Calendar} size="sm" label="Horário" />
@@ -668,7 +701,7 @@ function TurmaDetail() {
             <div className="mt-4">
               {horario.length ? (
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {horario.map((slot) => (
+                  {visibleSchedule.map((slot) => (
                     <div
                       key={slot.id}
                       className="flex items-center justify-between gap-2 p-3 text-xs"
@@ -687,13 +720,20 @@ function TurmaDetail() {
                   Sem horário definido para esta turma.
                 </p>
               )}
+              {horario.length > 8 ? (
+                <Button type="button" variant="ghost" size="sm" className="mt-2 w-full gap-1.5"
+                  aria-expanded={expanded.horario} onClick={() => toggleList("horario")}>
+                  {expanded.horario ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  {expanded.horario ? "Mostrar menos" : `Ver todos os ${horario.length} tempos`}
+                </Button>
+              ) : null}
             </div>
           </section>
 
           <section
             id={sectionId("avaliacoes")}
             aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
-            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-4"
           >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
@@ -708,7 +748,7 @@ function TurmaDetail() {
             <div className="mt-4">
               {avaliacoes.length ? (
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {avaliacoes.map((grade) => (
+                  {visibleGrades.map((grade) => (
                     <div
                       key={grade.id}
                       className="flex items-center justify-between gap-2 p-3 text-xs"
@@ -727,6 +767,13 @@ function TurmaDetail() {
                   Ainda sem avaliações lançadas para os alunos desta turma.
                 </p>
               )}
+              {avaliacoes.length > 8 ? (
+                <Button type="button" variant="ghost" size="sm" className="mt-2 w-full gap-1.5"
+                  aria-expanded={expanded.avaliacoes} onClick={() => toggleList("avaliacoes")}>
+                  {expanded.avaliacoes ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  {expanded.avaliacoes ? "Mostrar menos" : `Ver todas as ${avaliacoes.length} avaliações`}
+                </Button>
+              ) : null}
             </div>
           </section>
           {account.role === "Professor" ? (
