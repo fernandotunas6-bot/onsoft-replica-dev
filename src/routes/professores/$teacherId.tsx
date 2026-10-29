@@ -330,6 +330,7 @@ function TeacherProfilePage() {
             configuredLevels={school?.pedagogy?.teachingLevels ?? []}
             selfTeacherId={account.linkedEntities.teacher_id}
             canManage={canManage}
+            canManageDocuments={["Administrador", "Secretaria"].includes(account.role) && canWriteModule(account.role, "pessoas", account.grants)}
             canReadHr={canReadHr}
             employmentId={employmentId}
           />
