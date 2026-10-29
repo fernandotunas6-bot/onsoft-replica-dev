@@ -36,7 +36,7 @@ import {
 } from "@/features/auth/trusted-device";
 import { AuthBrandIntro } from "./AuthBrandIntro";
 import { AuthCaptcha } from "./AuthCaptcha";
-import { authCaptchaConfigured } from "@/lib/auth-captcha-config";
+import { mapSignInError } from "@/features/auth/sign-in-error";
 import {
   createContext,
   lazy,
@@ -99,39 +99,6 @@ function warnToChangePassword(message: string) {
       onClick: () => window.location.assign("/alterar-senha"),
     },
   });
-}
-
-function mapSignInError(message: string) {
-  const value = message.toLowerCase();
-  // O projecto tem captcha activa: o servidor recusa ANTES de olhar para a senha, e a
-  // mensagem não casava com nenhum caso abaixo — saía o genérico, que faz parecer
-  // problema de credenciais. Ver AuthCaptcha.tsx.
-  if (value.includes("captcha")) {
-    return authCaptchaConfigured
-      ? "Confirme que não é um robô e tente novamente."
-      : "A verificação anti-robô está activa no servidor mas não está configurada nesta aplicação. Avise a administração: falta VITE_HCAPTCHA_SITE_KEY.";
-  }
-  if (value.includes("invalid login credentials") || value.includes("invalid_credentials")) {
-    return "Identificador ou senha incorrectos. Confirme os dados e tente novamente.";
-  }
-  if (value.includes("school_required")) {
-    return "Para entrar com o número de aluno, utilize o endereço do portal da sua escola.";
-  }
-  if (value.includes("email not confirmed")) {
-    return "Confirme o email da conta antes de iniciar sessão.";
-  }
-  if (value.includes("captcha")) {
-    // A protecção por captcha do Supabase Auth exige um token que esta
-    // aplicação não envia: ligada no painel, bloqueia todas as entradas.
-    return "O início de sessão está bloqueado por uma configuração do servidor (captcha). Avise a administração.";
-  }
-  if (value.includes("too many requests") || value.includes("rate limit")) {
-    return "Demasiadas tentativas. Aguarde um momento e tente outra vez.";
-  }
-  if (value.includes("network") || value.includes("fetch")) {
-    return "Não foi possível contactar o serviço de autenticação.";
-  }
-  return "Não foi possível iniciar sessão. Tente novamente.";
 }
 
 const identifierSignInErrors = {
@@ -537,9 +504,9 @@ export function AuthGate({
         }
         return;
       }
-      setError(mapSignInError(signInError.message));
-    } catch {
-      setError("Não foi possível contactar o serviço de autenticação.");
+      setError(mapSignInError(signInError));
+    } catch (failure) {
+      setError(mapSignInError(failure));
     } finally {
       setSubmitting(false);
       setCaptchaReset((value) => value + 1);
@@ -675,7 +642,7 @@ export function AuthGate({
           passwordPolicyMessage(signUpError) ??
             (/password/i.test(signUpError.message)
               ? "A senha não cumpre a política de segurança. Use uma senha mais forte."
-              : mapSignInError(signUpError.message)),
+              : mapSignInError(signUpError)),
         );
         return;
       }
