@@ -26,7 +26,7 @@ Os ficheiros `storageState` devem ter sido criados com Playwright em contas dist
 
 ## Como lançar o ensaio
 
-Em **GitHub → Actions → CRUD Premium — E2E de staging (somente leitura) → Run workflow**, selecionar a branch desejada, preencher `staging_project_ref` com a referência exacta do projecto de staging e `confirmation` com `STAGING`.
+Em **GitHub → Actions → CRUD Premium — E2E de staging (somente leitura) → Run workflow**, seleccionar **apenas a `main`**, preencher `staging_project_ref` com a referência exacta do projecto de staging e `confirmation` com `STAGING`. Por segurança, o job com credenciais é **ignorado em qualquer outra branch**. Enquanto a PR estiver aberta, executar a mesma suite localmente apenas com staging autorizado (ver `docs/engineering/CRUD_PREMIUM_2026-10-28.md`); o workflow manual só fica disponível no GitHub depois de integrado no ramo principal.
 
 A execução confirma que a URL Supabase corresponde à referência declarada, recusa a referência conhecida de produção e exige os segredos/nomes fictícios. Depois instala as dependências, descodifica os dois estados de sessão em ficheiros temporários com permissões restritas, verifica o contrato de segurança, levanta uma aplicação local ligada ao staging, instala o navegador e executa os dois contextos Playwright. Por fim remove os ficheiros de sessão.
 
