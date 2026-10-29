@@ -653,25 +653,28 @@ export const setSystemAccountDisabled = createServerFn({ method: "POST" })
       throw publicDatabaseError(profileError, "Não foi possível localizar a conta.");
     if (!membership) throw new Error("Conta não encontrada nesta escola.");
 
-    const { error } = await admin
-      .from("school_memberships")
-      .update({ status: data.disabled ? "suspended" : "active" })
-      .eq("id", membership.id);
-    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
-
-    // O bloqueio de auth.users vale para todas as escolas. Com acesso activo a
-    // outra escola, suspende-se só a membership desta — as outras escolas
-    // decidem por si. Cada escola que bloqueia fica anotada na conta; ao
-    // reactivar, só se levanta o bloqueio global se foi esta escola que o pôs e
-    // nenhuma outra o mantém. Um bloqueio da plataforma (ou de outra escola)
-    // não é desfeito por aqui.
+    // Antes de suspender ou reactivar, verificar os vínculos e cargos em TODAS
+    // as escolas. Se a consulta falhar, nenhuma escrita deve ter começado.
+    // O cargo em profiles pode não reflectir um Administrador de outra escola.
     const access = await otherSchoolAccess(admin, data.userId, schoolId);
+    if (access.adminAnywhere) {
+      throw new Error("Não é permitido suspender a conta de outro Administrador.");
+    }
     const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(
       data.userId,
     );
     if (authUserError || !authUser.user) {
       throw new Error("Não foi possível ler a conta de acesso.");
     }
+
+    // A operação global de Auth só pode acontecer quando a avaliação dos
+    // vínculos e da conta chegou ao fim. Outras escolas mantêm os seus acessos.
+    const { error } = await admin
+      .from("school_memberships")
+      .update({ status: data.disabled ? "suspended" : "active" })
+      .eq("id", membership.id);
+    if (error) throw publicDatabaseError(error, "Não foi possível actualizar o estado da conta.");
+
     const appMetadata = (authUser.user.app_metadata ?? {}) as Record<string, unknown>;
     const plan = planSchoolBan({
       disabled: data.disabled,
