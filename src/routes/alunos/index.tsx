@@ -141,6 +141,7 @@ import { StudentMobileList } from "@/features/students/components/StudentMobileL
 import { StudentRowActions } from "@/features/students/components/StudentRowActions";
 import { StudentBulkTools } from "@/features/students/components/StudentBulkTools";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { canReadStudentFinance, canIssueStudentTuition } from "@/features/students/student-sections";
 
 const alunosSearchSchema = z
   .object({
@@ -229,6 +230,8 @@ function StudentsPage() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
   const currentAccount = useCurrentAccount();
+  const canReadFinance = canReadStudentFinance(currentAccount.role, currentAccount.grants);
+  const canIssueTuition = canIssueStudentTuition(currentAccount.role, currentAccount.grants);
   const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
     useSchoolSettings();
@@ -349,10 +352,6 @@ function StudentsPage() {
     () => (studentsQuery.data ?? []) as StudentRow[],
     [studentsQuery.data],
   );
-  const selectedStudents = useMemo(
-    () => allStudents.filter((student) => selectedIds.includes(student.id)),
-    [allStudents, selectedIds],
-  );
   const pendingApplicationsCount = pendingApplicationsQuery.data?.length ?? 0;
   const classGroups = workspaceQuery.data?.classGroups ?? [];
   const turmaOptions = classGroupChoices(classGroups);
@@ -437,6 +436,20 @@ function StudentsPage() {
     selectedYear,
     activeYearLabel,
   ]);
+
+  // A selecção pode abranger várias páginas, mas não registos excluídos pelos filtros.
+  // Assim a contagem e as operações aplicam-se exactamente ao que está visível.
+  const selectedStudents = useMemo(
+    () => filtered.filter((student) => selectedIds.includes(student.id)),
+    [filtered, selectedIds],
+  );
+  useEffect(() => {
+    const visibleIds = new Set(filtered.map((student) => student.id));
+    setSelectedIds((previous) => {
+      const next = previous.filter((id) => visibleIds.has(id));
+      return next.length === previous.length ? previous : next;
+    });
+  }, [filtered]);
 
   const quickCounts = useMemo(
     () => computeDynamicCounters(allStudents, pendingApplicationsCount),
@@ -769,13 +782,15 @@ function StudentsPage() {
             icon={GraduationCap}
             tone="success"
           />
-          <StatCard
-            title="Pagamentos em dívida"
-            value={allStudents.filter((s) => s.payment_status === "overdue").length}
-            subtitle="Requer regularização"
-            icon={ArrowDown}
-            tone="destructive"
-          />
+          {canReadFinance ? (
+            <StatCard
+              title="Pagamentos em dívida"
+              value={allStudents.filter((s) => s.payment_status === "overdue").length}
+              subtitle="Requer regularização"
+              icon={ArrowDown}
+              tone="destructive"
+            />
+          ) : null}
           <StatCard
             title="Transferidos / Concluídos"
             value={
@@ -1182,10 +1197,7 @@ function StudentsPage() {
                 }
                 whatsappEnabled={whatsappOn}
                 whatsappHref={whatsappHref}
-                financeAllowed={
-                  ["Administrador", "Secretaria", "Tesouraria"].includes(currentAccount.role) &&
-                  currentAccount.grants.financeiro !== "Nenhum"
-                }
+                financeAllowed={canReadFinance}
                 academicAllowed={
                   ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
                   currentAccount.grants.pedagogica !== "Nenhum"
@@ -1648,10 +1660,8 @@ function StudentsPage() {
 
                 <StudentBulkTools
                   students={selectedStudents}
-                  canUseFinance={
-                    ["Administrador", "Secretaria", "Tesouraria"].includes(currentAccount.role) &&
-                    currentAccount.grants.financeiro !== "Nenhum"
-                  }
+                  canReadFinance={canReadFinance}
+                  canIssueTuition={canIssueTuition}
                   canUseGrades={
                     ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
                     currentAccount.grants.pedagogica !== "Nenhum"
