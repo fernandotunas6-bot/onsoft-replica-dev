@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { TeacherWorkspacePanel } from "@/features/academic/TeacherWorkspacePanel";
 import { TeacherTodayLessonsPanel } from "@/features/hr/TeacherTodayLessonsPanel";
 import { TeacherDocumentsPanel } from "@/features/people/TeacherDocumentsPanel";
+import { TeacherContextHub } from "@/features/people/TeacherContextHub";
+import type { ModuleGrantMap } from "@/features/auth/access-policy";
 import { getHrEmployeeDetail } from "@/features/hr/server";
 import {
   ABSENCE_TYPE_LABELS,
@@ -73,6 +75,7 @@ type TabId =
   | "hoje"
   | "disciplinas"
   | "avaliacao"
+  | "ferramentas"
   | "documentos"
   | "contratos"
   | "vencimentos"
@@ -82,6 +85,7 @@ const tabs: Array<{ id: TabId; label: string; icon: typeof BookOpen; hr?: boolea
   { id: "hoje", label: "Aulas de hoje", icon: CalendarDays },
   { id: "disciplinas", label: "Cursos e disciplinas", icon: BookOpen },
   { id: "avaliacao", label: "Avaliação e tarefas", icon: ClipboardCheck },
+  { id: "ferramentas", label: "Ferramentas", icon: BookOpen },
   { id: "documentos", label: "Documentos", icon: FileText },
   { id: "contratos", label: "Contrato e cargo", icon: BriefcaseBusiness, hr: true },
   { id: "vencimentos", label: "Salário e pagamentos", icon: Wallet, hr: true },
@@ -156,6 +160,8 @@ export function TeacherProfile360({
   canManageDocuments,
   canReadHr,
   employmentId,
+  role,
+  grants,
 }: {
   teacher: Teacher;
   initialTab?: "resumo" | "documentos";
@@ -169,6 +175,8 @@ export function TeacherProfile360({
   canManageDocuments: boolean;
   canReadHr: boolean;
   employmentId: string | undefined;
+  role: string;
+  grants: ModuleGrantMap;
 }) {
   const [tab, setTab] = useState<TabId>(initialTab);
   const isSelf = Boolean(selfTeacherId && selfTeacherId === teacher.id);
@@ -203,7 +211,7 @@ export function TeacherProfile360({
   const hr = hrQuery.data ?? null;
   const canUseSuperior =
     levels.assigned.includes("superior") ||
-    (levels.assigned.length === 0 && levels.school.includes("superior"));
+    (levels.assigned.length === 0 && levels.school.length === 1 && levels.school[0] === "superior");
 
   return (
     <div className="space-y-4">
@@ -305,7 +313,7 @@ export function TeacherProfile360({
               )}
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link to="/planos-aula">Planos de aula</Link>
+                  <Link to="/planos-aula" search={{ professor: teacher.id }}>Planos de aula</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
                   <Link to="/pedagogica" search={{ tab: "notas" }}>
@@ -323,6 +331,21 @@ export function TeacherProfile360({
               </p>
             </Section>
           </div>
+          <Section title="Ferramentas contextuais">
+            <TeacherContextHub
+              compact
+              teacherId={teacher.id}
+              personId={teacher.person_id}
+              assignedLevels={levels.assigned}
+              schoolLevels={levels.school}
+              isSelf={isSelf}
+              canManage={canManage}
+              canReadHr={hrVisible}
+              role={role}
+              grants={grants}
+              onSelectTab={setTab}
+            />
+          </Section>
           <InstalledModuleTools module="pedagogica" />
         </TabsContent>
 
@@ -365,8 +388,8 @@ export function TeacherProfile360({
         <TabsContent value="disciplinas" className="space-y-4">
           <Section title="Turmas, disciplinas e horário">
             <p className="text-xs text-muted-foreground">
-              Atribuições reais por turma e disciplina na escola activa. O ano lectivo é o
-              seleccionado no topo do sistema.
+              Atribuições activas da escola seleccionada. A filtragem completa por ano
+              lectivo será aplicada quando o serviço de horários a disponibilizar.
             </p>
             {courses.length ? (
               courses.map(([course, items]) => (
@@ -443,7 +466,7 @@ export function TeacherProfile360({
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link to="/pedagogica/trabalhos">
+                <Link to="/pedagogica/trabalhos" search={{ professor: teacher.id }}>
                   <ClipboardCheck className="mr-2 size-4" />
                   Trabalhos
                 </Link>
@@ -457,6 +480,23 @@ export function TeacherProfile360({
                 </Button>
               ) : null}
             </div>
+          </Section>
+        </TabsContent>
+
+        <TabsContent value="ferramentas" className="space-y-4">
+          <Section title="Todos os contextos do professor">
+            <TeacherContextHub
+              teacherId={teacher.id}
+              personId={teacher.person_id}
+              assignedLevels={levels.assigned}
+              schoolLevels={levels.school}
+              isSelf={isSelf}
+              canManage={canManage}
+              canReadHr={hrVisible}
+              role={role}
+              grants={grants}
+              onSelectTab={setTab}
+            />
           </Section>
         </TabsContent>
 
