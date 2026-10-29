@@ -104,7 +104,8 @@ export const markMyNotificationsRead = createServerFn({ method: "POST" })
       const uniqueIds = new Set(data.ids);
       if (
         checkError ||
-        checked?.length !== uniqueIds.size ||
+        !checked ||
+        checked.length !== uniqueIds.size ||
         checked.some((row) => row.status !== "read" && !row.read_at)
       ) {
         throw new Error("Não foi possível confirmar a leitura das notificações.");
