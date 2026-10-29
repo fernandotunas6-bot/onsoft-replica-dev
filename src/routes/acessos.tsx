@@ -1,5 +1,5 @@
 import { reportPossibleStepUp } from "@/lib/step-up";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -117,6 +117,8 @@ function AcessosPage() {
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  // Não transportar selecções entre escolas quando o utilizador muda de instituição.
+  useEffect(() => setSelectedAccountIds([]), [currentUser.schoolId]);
   const { school, selectedYearLabel } = useSchoolSettings();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "acessos",
