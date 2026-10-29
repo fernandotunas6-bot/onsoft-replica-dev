@@ -30,6 +30,9 @@ import { toast } from "@/lib/toast";
 import { idOptions } from "@/lib/option-label";
 
 export const Route = createFileRoute("/professores/$teacherId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "documentos" ? "documentos" as const : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Perfil do professor · SIGA" }],
   }),
@@ -38,6 +41,7 @@ export const Route = createFileRoute("/professores/$teacherId")({
 
 function TeacherProfilePage() {
   const { teacherId } = Route.useParams();
+  const { tab: initialTab } = Route.useSearch();
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { selectedYearId, school, selectedYearLabel } = useSchoolSettings();
@@ -326,6 +330,7 @@ function TeacherProfilePage() {
           <TeacherProfile360
             key={`${account.schoolId ?? "sem-escola"}:${teacher.id}`}
             teacher={teacher}
+            initialTab={initialTab === "documentos" ? "documentos" : "resumo"}
             workspace={teacherWorkspaceQuery.data}
             schoolId={account.schoolId}
             schoolName={school?.name ?? account.schoolName ?? "Escola"}
