@@ -578,7 +578,6 @@ function PeoplePage() {
                 <UserPlus className="size-4" /> Nova Pessoa
               </Link>
             </Button>
-
           </div>
         </div>
 
