@@ -31,13 +31,17 @@ export const listMyNotifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ items: PersonalNotification[]; unread: number }> => {
     const db = sgaClient(context.supabase);
-    const { data, error } = await db
+    const { readActiveSchoolCookie } = await import("@/features/auth/active-school-cookie.server");
+    const schoolId = await readActiveSchoolCookie();
+    let listQuery = db
       .from("notifications")
       .select("id, title, body, event_type, status, read_at, created_at, payload")
       .eq("user_id", context.userId)
-      .eq("channel", "in_app")
-      .order("created_at", { ascending: false })
-      .limit(20);
+      .eq("channel", "in_app");
+    // Num portal multiescola, mostrar só avisos da escola seleccionada.
+    // No Mobile, que pode não enviar cookie, a RLS continua a restringir à própria conta.
+    if (schoolId) listQuery = listQuery.eq("school_id", schoolId);
+    const { data, error } = await listQuery.order("created_at", { ascending: false }).limit(20);
     // Ausência da tabela/RLS não é «sem avisos»: mostrar erro e permitir repetir.
     if (error) throw new Error("Não foi possível carregar as notificações.");
     const items = (data ?? []).map((row) => ({
@@ -50,13 +54,15 @@ export const listMyNotifications = createServerFn({ method: "GET" })
       href: safeNotificationHref(row.payload),
     }));
     // O sino não pode limitar o total por ler aos últimos 20 avisos da lista.
-    const { count, error: countError } = await db
+    let countQuery = db
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", context.userId)
       .eq("channel", "in_app")
       .neq("status", "read")
       .is("read_at", null);
+    if (schoolId) countQuery = countQuery.eq("school_id", schoolId);
+    const { count, error: countError } = await countQuery;
     if (countError) throw new Error("Não foi possível contar as notificações por ler.");
     return { items, unread: count ?? 0 };
   });
@@ -70,6 +76,8 @@ export const markMyNotificationsRead = createServerFn({ method: "POST" })
     // [] significa «nenhuma», não «todas». Só a ausência de ids marca tudo.
     if (data.ids && data.ids.length === 0) return { ok: true };
     const db = sgaClient(context.supabase);
+    const { readActiveSchoolCookie } = await import("@/features/auth/active-school-cookie.server");
+    const schoolId = await readActiveSchoolCookie();
     let query = db
       .from("notifications")
       .update({ status: "read", read_at: new Date().toISOString() })
@@ -77,6 +85,7 @@ export const markMyNotificationsRead = createServerFn({ method: "POST" })
       .eq("channel", "in_app")
       .neq("status", "read")
       .is("read_at", null);
+    if (schoolId) query = query.eq("school_id", schoolId);
     if (data.ids) query = query.in("id", data.ids);
     const { error } = await query;
     // Não anunciar sucesso se a escrita falhou, incluindo schema em falta.
