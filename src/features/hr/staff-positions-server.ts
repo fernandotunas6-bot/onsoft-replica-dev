@@ -140,7 +140,7 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
 
     let departmentId = data.departmentId ?? null;
     if (departmentId) {
-      const { data: department } = await db
+      const { data: department, error: departmentError } = await db
         .from("hr_departments")
         .select("id")
         .eq("school_id", membership.schoolId)
@@ -148,6 +148,8 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
         .eq("active", true)
         .is("deleted_at", null)
         .maybeSingle();
+      if (departmentError)
+        throw publicDatabaseError(departmentError, "Não foi possível verificar o departamento.");
       if (!department) throw new Error("Departamento inválido nesta escola.");
     }
 
@@ -167,18 +169,32 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
       departmentId ??= position.department_id;
     } else if (data.newPositionName) {
       const name = data.newPositionName.trim();
-      const { data: matches } = await db
-        .from("hr_positions")
-        .select("id, name, department_id")
-        .eq("school_id", membership.schoolId)
-        .is("deleted_at", null)
-        .eq("active", true);
-      const existing = (matches ?? []).find(
-        (entry) => entry.name.toLocaleLowerCase("pt") === name.toLocaleLowerCase("pt"),
-      );
+      // O índice único (school_id, lower(name)) inclui cargos inactivos: procurar
+      // todos, para não tentar criar um nome que a base de dados recusa.
+      const findByName = async () => {
+        const { data: matches, error: matchError } = await db
+          .from("hr_positions")
+          .select("id, name, department_id, active")
+          .eq("school_id", membership.schoolId)
+          .is("deleted_at", null);
+        if (matchError)
+          throw publicDatabaseError(matchError, "Não foi possível verificar os cargos existentes.");
+        return (matches ?? []).find(
+          (entry) => entry.name.toLocaleLowerCase("pt") === name.toLocaleLowerCase("pt"),
+        );
+      };
+      const useExisting = (entry: NonNullable<Awaited<ReturnType<typeof findByName>>>) => {
+        if (!entry.active) {
+          throw new Error(
+            "Já existe um cargo inactivo com este nome. Reactive-o no catálogo de cargos do RH.",
+          );
+        }
+        positionId = String(entry.id);
+        departmentId ??= entry.department_id;
+      };
+      const existing = await findByName();
       if (existing) {
-        positionId = String(existing.id);
-        departmentId ??= existing.department_id;
+        useExisting(existing);
       } else {
         const { data: created, error: createError } = await db
           .from("hr_positions")
@@ -193,9 +209,17 @@ export const assignStaffPosition = createServerFn({ method: "POST" })
           })
           .select("id")
           .single();
-        if (createError)
+        if (createError?.code === "23505") {
+          // Outro pedido criou o mesmo cargo entretanto: reutilizar esse registo.
+          const concurrent = await findByName();
+          if (!concurrent)
+            throw publicDatabaseError(createError, "Não foi possível registar o cargo.");
+          useExisting(concurrent);
+        } else if (createError) {
           throw publicDatabaseError(createError, "Não foi possível registar o cargo.");
-        positionId = String(created.id);
+        } else {
+          positionId = String(created.id);
+        }
       }
     }
     if (!positionId) throw new Error("Cargo não encontrado.");
