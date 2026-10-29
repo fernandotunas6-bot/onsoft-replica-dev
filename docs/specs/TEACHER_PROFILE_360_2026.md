@@ -104,3 +104,57 @@ vir das atribuições verificadas. Não activar uma acção sem serviço e permi
 
 Nenhum contador de «aulas feitas», «salários pagos» ou «alunos aprovados»
 deve ser fabricado a partir de previsões, folhas em rascunho ou matrículas.
+
+
+## Complemento — Documentos de docentes, cargos e RH (29-10-2026)
+
+- **Configurações → Documentos de professores:** política por escola em
+  `school_settings.teacher_documents`, com activação geral, documentos
+  obrigatórios comuns e adicionais por nível (Pré-escolar a Superior).
+  O catálogo contém BI, habilitações, formação pedagógica, diplomas,
+  CV, contrato, declarações, NIF/IBAN e documentos condicionais.
+  A natureza jurídica da escola não determina os documentos.
+- **Após criar professor em Pessoas:** abrir automaticamente
+  `/professores/$teacherId?tab=documentos`. A ficha continua disponível
+  depois para anexos que ainda não foram entregues.
+- **Processo documental:** anexos ficam no Arquivo privado da Secretaria;
+  `teacher_document_entries` só guarda a associação do ficheiro e o estado
+  (`received`, `verified`, `rejected`), com quem revisou e quando.
+  **Nunca alterar o `reference_code` original de `siga_files`.**
+- **Isolamento:** validar `school_id`, `person_id`, `teacher_id` e
+  `file_id` no endpoint e no trigger de banco. A tabela documental não
+  concede `SELECT` directo a `authenticated` ou `anon`.
+  O professor só consulta os estados da sua ficha; Administração/Secretaria
+  podem associar/rever (não se mostram ficheiros médicos em áreas públicas).
+- **Escolas mistas:** se não há atribuições e existem vários níveis possíveis
+  com requisitos adicionais, sinalizar «Nível docente por definir» e não
+  apresentar o processo como concluído.
+- **Cargo/Funcionários:** `hr_positions` dá o cargo profissional e
+  `hr_employments` é o vínculo de trabalho na escola. Atribuir cargo a uma
+  pessoa existente cria ou reutiliza ficha laboral em estado `draft`,
+  visível em `/financeiro/rh/funcionarios`, sem criar contratos/salários
+  fictícios e **sem atribuir privilégios de login**.
+
+### Migração exigida antes do lançamento
+
+Aplicar `supabase/migrations/20261029190000_teacher_document_entries.sql`
+numa base de staging isolada; confirmar constraints, triggers, permissão de
+serviço, `siga_files` privado, RLS e comunicação de erro em instalações
+antigas. **Não aplicar automaticamente em produção.**
+
+### Limites conhecidos / validações seguintes
+
+1. O cadastro rápido abre o separador dos documentos depois de criar. A
+   exigência impede declarar a documentação completa; não bloqueia ainda
+   automaticamente a activação de vínculo laboral ou a colocação de notas,
+   porque o servidor de activação precisa de incorporar a política e a
+   dispensa autorizada.
+2. No contexto multi-nível, o docente sem turmas precisa de atribuição
+   explícita de nível para aplicar os requisitos adicionais.
+3. Documentos «recebidos» não são «validados». Confirmar autenticidade
+   e validade com entidade competente; configurar vencimento/renovação.
+4. O histórico de mudanças de cargo e múltiplas posições simultâneas requer
+   registo próprio; a atribuição actual mantém o vínculo RH principal.
+5. Executar os testes SQL `tests/sql/teacher-document-entries.mjs` com PGlite
+   num ambiente isolado e QA autenticada multi-tenant. Resultados só podem
+   ser declarados depois de executados.
