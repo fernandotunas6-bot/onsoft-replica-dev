@@ -1,3 +1,12 @@
+
+**29/10/2026 — segunda passagem de Pessoas e Turmas (implementado em PR, por validar):**
+menus de acções móveis em Pessoas, opções contextuais da turma e exportação CSV;
+horário com filtro por dia e testes puros; atalho da disciplina corrigido para a
+pauta no contexto da turma. Acesso a acções continua delimitado pelos papéis.
+Nenhum dado alterado. CI da revisão, QA autenticado, dispositivos e deploy
+continuam por validar. Ver
+[handoff](../agents/HANDOFF_PESSOAS_TURMA_VISUAL_2026-10-29.md).
+
 **29/10/2026 — Pessoas e Ficha da Turma (implementado no ramo, por validar):**
 o cabeçalho de Pessoas agrupa exportações e importação em «Mais opções»;
 professores e pessoas ganham menus de linha e ligação à ficha. A Ficha da Turma
