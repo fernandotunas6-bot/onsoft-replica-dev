@@ -138,6 +138,9 @@ import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { StudentMobileList } from "@/features/students/components/StudentMobileList";
+import { StudentRowActions } from "@/features/students/components/StudentRowActions";
+import { StudentBulkTools } from "@/features/students/components/StudentBulkTools";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
 
 const alunosSearchSchema = z
   .object({
@@ -225,6 +228,7 @@ type SortKey = "processo" | "nome" | "email" | "telefone" | "estado";
 function StudentsPage() {
   const realtimeInstanceId = useId();
   const queryClient = useQueryClient();
+  const currentAccount = useCurrentAccount();
   const { activePlan, activeTenant, refreshTenant } = useTenant();
   const { activeYearLabel, selectedYearId, selectedYear, selectedYearLabel, school } =
     useSchoolSettings();
@@ -247,6 +251,8 @@ function StudentsPage() {
   const setPage = (next: number) => setFilter("page", String(next));
   const navigate = useNavigate();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // Uma selecção nunca deve sobreviver a uma mudança de escola ou ano lectivo.
+  useEffect(() => setSelectedIds([]), [activeTenant?.id, selectedYearId]);
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
   const sigeOn = installed.hasCapability("sige.export_students");
@@ -342,6 +348,10 @@ function StudentsPage() {
   const allStudents = useMemo(
     () => (studentsQuery.data ?? []) as StudentRow[],
     [studentsQuery.data],
+  );
+  const selectedStudents = useMemo(
+    () => allStudents.filter((student) => selectedIds.includes(student.id)),
+    [allStudents, selectedIds],
   );
   const pendingApplicationsCount = pendingApplicationsQuery.data?.length ?? 0;
   const classGroups = workspaceQuery.data?.classGroups ?? [];
@@ -1172,6 +1182,14 @@ function StudentsPage() {
                 }
                 whatsappEnabled={whatsappOn}
                 whatsappHref={whatsappHref}
+                financeAllowed={
+                  ["Administrador", "Secretaria", "Tesouraria"].includes(currentAccount.role) &&
+                  currentAccount.grants.financeiro !== "Nenhum"
+                }
+                academicAllowed={
+                  ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                  currentAccount.grants.pedagogica !== "Nenhum"
+                }
               />
             }
             desktop={
@@ -1184,7 +1202,10 @@ function StudentsPage() {
                           type="checkbox"
                           aria-label="Seleccionar todos nesta página"
                           className="size-4 rounded border-border text-primary cursor-pointer accent-primary"
-                          checked={paged.length > 0 && selectedIds.length >= paged.length}
+                          checked={
+                            paged.length > 0 &&
+                            paged.every((student) => selectedIds.includes(student.id))
+                          }
                           onChange={(e) => {
                             if (e.target.checked) {
                               setSelectedIds([
@@ -1343,6 +1364,11 @@ function StudentsPage() {
                                   <FileText className="size-3.5" /> Ficha
                                 </Link>
                               </Button>
+                              <StudentRowActions
+                                student={s}
+                                role={currentAccount.role}
+                                grants={currentAccount.grants}
+                              />
                               {s.student_status === "applicant" &&
                               !s.class_name &&
                               turmaOptions.length > 0 ? (
@@ -1620,6 +1646,17 @@ function StudentsPage() {
                   )}
                 />
 
+                <StudentBulkTools
+                  students={selectedStudents}
+                  canUseFinance={
+                    ["Administrador", "Secretaria", "Tesouraria"].includes(currentAccount.role) &&
+                    currentAccount.grants.financeiro !== "Nenhum"
+                  }
+                  canUseGrades={
+                    ["Administrador", "Secretaria", "Professor"].includes(currentAccount.role) &&
+                    currentAccount.grants.pedagogica !== "Nenhum"
+                  }
+                />
                 <Button
                   size="sm"
                   variant="ghost"

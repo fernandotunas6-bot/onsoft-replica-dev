@@ -81,7 +81,8 @@ describe("reconfirmação antes de acções críticas", () => {
       expect(payments).toContain(`requireRecentVerification(context.claims, "${action}")`);
     }
     const access = read("src/features/access/server.ts");
-    expect(access.match(/requireRecentVerification\(/g)?.length).toBe(3);
+    // Admin via convite também exige reconfirmação recente, sem 2FA obrigatório.
+    expect(access.match(/requireRecentVerification\(/g)?.length).toBe(4);
     expect(read("src/features/access/grants.ts")).toMatch(/requireRecentVerification\(/);
   });
 

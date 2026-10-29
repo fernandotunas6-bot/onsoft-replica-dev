@@ -1,16 +1,8 @@
 import { reportPossibleStepUp } from "@/lib/step-up";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ChevronDown,
-  Download,
-  FileBadge,
-  KeyRound,
-  MailPlus,
-  ShieldCheck,
-  UserPlus,
-} from "lucide-react";
+import { ChevronDown, Download, FileBadge, KeyRound, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { whatsappHref } from "@/features/integrations/actions";
 import { InstalledModuleTools } from "@/features/integrations/InstalledModuleTools";
@@ -18,6 +10,10 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader, Panel, StatGrid, badgeBase, toneClass } from "@/components/layout/PageHeader";
 import { AccessRequestsPanel } from "@/features/access/AccessRequestsPanel";
+import { AccessOnboardingDialog } from "@/features/access/AccessOnboardingDialog";
+import { AccountRowActions } from "@/features/access/AccountRowActions";
+import { AccountBulkActions } from "@/features/access/AccountBulkActions";
+import { isUnassignedStaffCandidate } from "@/features/access/staff-candidates";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
 import { Button } from "@/components/ui/button";
@@ -54,15 +50,10 @@ import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf } from "@/lib/export-pdf-loader";
 import {
   createSchoolInvitation,
-  inviteSystemUser,
   listSchoolInvitations,
   listSchoolRoles,
   listSystemAccounts,
-  resendSystemInvite,
-  resetStaffPasswordDirect,
   revokeSchoolInvitation,
-  sendSystemInviteEmail,
-  setSystemAccountDisabled,
   updateSystemAccountCargo,
 } from "@/features/access/server";
 import {
@@ -71,7 +62,7 @@ import {
   setStaffModuleGrant,
 } from "@/features/access/grants";
 import type { AccessLevel } from "@/features/auth/access-policy";
-import { createPerson, listStaffDirectory, updatePersonStatus } from "@/features/people/server";
+import { listStaffDirectory, updatePersonStatus } from "@/features/people/server";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { cn } from "@/lib/utils";
@@ -119,6 +110,9 @@ const roleLabels: Record<string, string> = {
 function AcessosPage() {
   const queryClient = useQueryClient();
   const currentUser = useCurrentAccount();
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  // Não transportar selecções entre escolas quando o utilizador muda de instituição.
+  useEffect(() => setSelectedAccountIds([]), [currentUser.schoolId]);
   const { school, selectedYearLabel } = useSchoolSettings();
   const { filters, setFilter, resetFilters, activeCount } = usePersistedListFilters(
     "acessos",
@@ -129,7 +123,6 @@ function AcessosPage() {
   const cargo = filters.cargo;
   const installed = useInstalledIntegrations();
   const whatsappOn = installed.hasCapability("whatsapp.notices");
-  const resendOn = installed.hasCapability("resend.send");
   const accountsQuery = useQuery({
     queryKey: ["access", "accounts"],
     queryFn: () => listSystemAccounts(),
@@ -200,7 +193,11 @@ function AcessosPage() {
         estado === "todos" ||
         (estado === "activos" && !account.disabled) ||
         (estado === "suspensos" && account.disabled);
-      const matchesCargo = cargo === "todos" || String(account.cargo ?? "") === cargo;
+      const matchesCargo =
+        cargo === "todos" ||
+        (cargo === "sem_cargo" && isUnassignedStaffCandidate(account, "unassigned")) ||
+        (cargo === "sem_funcao" && isUnassignedStaffCandidate(account, "without_staff")) ||
+        String(account.cargo ?? "") === cargo;
       return (
         matchesEstado &&
         matchesCargo &&
@@ -400,11 +397,11 @@ function AcessosPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <PageHeader
           group="Secretaria"
           title="Gestão de Acessos"
-          description="Convide contas de login, ajuste cargos e mantenha a equipa escolar no registo de pessoas."
+          description="Atribua cargos, convide funcionários e organize os acessos da escola."
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <DocHelpButton title="Navegação — Acessos e permissões" />
@@ -446,116 +443,25 @@ function AcessosPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <QuickFormModal
-                title="Convidar utilizador"
-                eyebrow="Contas de sistema"
-                description="Envia um convite por email via Supabase Auth e atribui o cargo no SIGA."
-                icon={<MailPlus className="size-5" />}
-                submitLabel="Enviar convite"
-                note="Requer SUPABASE_SECRET_KEY no ambiente do servidor."
-                successDescription="Convite enviado. O utilizador define a senha pelo email recebido."
-                onSubmit={async (values) => {
-                  await inviteSystemUser({
-                    data: {
-                      fullName: values["nome"] ?? "",
-                      email: values["email"] ?? "",
-                      cargo: (values["cargo"] as ApplicationRole) ?? "Utilizador",
-                    },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["access", "accounts"] });
+              <AccessOnboardingDialog
+                accounts={accounts}
+                accountsLoading={accountsQuery.isLoading}
+                accountsError={accountsQuery.isError}
+                secretMissing={secretMissing}
+                isAdministrator={currentUser.role === "Administrador"}
+                onChanged={async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["access", "accounts"] }),
+                    queryClient.invalidateQueries({ queryKey: ["people", "staff"] }),
+                    queryClient.invalidateQueries({ queryKey: ["people", "search"] }),
+                  ]);
                 }}
-                fields={[
-                  {
-                    name: "nome",
-                    label: "Nome completo",
-                    placeholder: "Ex.: Paulo Neto",
-                    full: true,
-                  },
-                  { name: "email", label: "Email", placeholder: "nome@escola.ao" },
-                  {
-                    name: "cargo",
-                    label: "Cargo no SIGA",
-                    type: "select",
-                    options: [...applicationRoles],
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button className="gap-2" onClick={open} disabled={secretMissing}>
-                    <MailPlus className="size-4" /> Convidar utilizador
-                  </Button>
-                )}
-              />
-              <QuickFormModal
-                title="Novo membro da equipa"
-                eyebrow="Registo de pessoas"
-                description="Cria a pessoa no registo central com um papel escolar (sem login)."
-                icon={<UserPlus className="size-5" />}
-                submitLabel="Criar membro"
-                successDescription="Membro adicionado ao registo de pessoas."
-                onSubmit={async (values) => {
-                  const roleMap: Record<
-                    string,
-                    "professor" | "funcionario" | "diretor" | "coordenador"
-                  > = {
-                    Professor: "professor",
-                    Funcionário: "funcionario",
-                    Director: "diretor",
-                    Coordenador: "coordenador",
-                  };
-                  await createPerson({
-                    data: {
-                      person: {
-                        full_name: values["nome"] ?? "",
-                        email: values["email"] || undefined,
-                        phone_primary: values["telefone"] || undefined,
-                      },
-                      roles: [roleMap[values["perfil"] ?? ""] ?? "funcionario"],
-                      documents: [],
-                      relationships: [],
-                    },
-                  });
-                  await queryClient.invalidateQueries({ queryKey: ["people", "staff"] });
-                  await queryClient.invalidateQueries({ queryKey: ["people", "search"] });
-                }}
-                fields={[
-                  {
-                    name: "nome",
-                    label: "Nome completo",
-                    placeholder: "Ex.: Paulo Neto",
-                    full: true,
-                  },
-                  {
-                    name: "email",
-                    label: "Email",
-                    placeholder: "nome@escola.ao",
-                    required: false,
-                  },
-                  {
-                    name: "perfil",
-                    label: "Papel escolar",
-                    type: "select",
-                    options: ["Professor", "Funcionário", "Director", "Coordenador"],
-                  },
-                  {
-                    name: "telefone",
-                    label: "Telefone",
-                    placeholder: "+244 9xx xxx xxx",
-                    required: false,
-                  },
-                ]}
-                trigger={(open) => (
-                  <Button variant="outline" className="gap-2" onClick={open}>
-                    <UserPlus className="size-4" /> Novo membro
-                  </Button>
-                )}
               />
             </div>
           }
         />
 
         <InstalledModuleTools module="comunicacoes" />
-
-        <AccessRequestsPanel />
 
         <StatGrid
           collapsible
@@ -613,10 +519,20 @@ function AcessosPage() {
               emptyValue: "todos",
               options: [
                 { value: "todos", label: "Todos os cargos" },
+                { value: "sem_cargo", label: "Sem cargo atribuído" },
+                { value: "sem_funcao", label: "Sem função de funcionário" },
                 ...applicationRoles.map((role) => ({ value: role, label: role })),
               ],
             },
           ]}
+        />
+
+        <AccountBulkActions
+          accounts={accounts}
+          selectedIds={selectedAccountIds}
+          isAdministrator={currentUser.role === "Administrador"}
+          onChanged={() => queryClient.invalidateQueries({ queryKey: ["access", "accounts"] })}
+          onClear={() => setSelectedAccountIds([])}
         />
 
         <Panel
@@ -645,6 +561,25 @@ function AcessosPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        aria-label="Seleccionar todas as contas filtradas"
+                        checked={
+                          filteredAccounts.length > 0 &&
+                          filteredAccounts.every((item) => selectedAccountIds.includes(item.id))
+                        }
+                        onChange={(event) => {
+                          const visible = new Set(filteredAccounts.map((item) => item.id));
+                          setSelectedAccountIds((previous) =>
+                            event.target.checked
+                              ? [...new Set([...previous, ...visible])]
+                              : previous.filter((id) => !visible.has(id)),
+                          );
+                        }}
+                        className="size-4 accent-primary"
+                      />
+                    </TableHead>
                     <TableHead>Utilizador</TableHead>
                     <TableHead>Cargo</TableHead>
                     <TableHead>Último acesso</TableHead>
@@ -655,7 +590,7 @@ function AcessosPage() {
                 <TableBody>
                   {accounts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="p-4">
+                      <TableCell colSpan={6} className="p-4">
                         <EmptyState
                           icon={UserPlus}
                           firstUse
@@ -667,7 +602,7 @@ function AcessosPage() {
                     </TableRow>
                   ) : filteredAccounts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="p-4">
+                      <TableCell colSpan={6} className="p-4">
                         <EmptyState
                           icon={ShieldCheck}
                           title="Nenhuma conta corresponde aos filtros"
@@ -679,6 +614,21 @@ function AcessosPage() {
                   ) : (
                     filteredAccounts.map((account) => (
                       <TableRow key={account.id}>
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            aria-label={`Seleccionar ${account.full_name}`}
+                            checked={selectedAccountIds.includes(account.id)}
+                            onChange={(event) =>
+                              setSelectedAccountIds((previous) =>
+                                event.target.checked
+                                  ? [...new Set([...previous, account.id])]
+                                  : previous.filter((id) => id !== account.id),
+                              )
+                            }
+                            className="size-4 accent-primary"
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <MediaAvatar alt={account.full_name} className="size-9 rounded-xl" />
@@ -803,210 +753,18 @@ function AcessosPage() {
                                 </Button>
                               )}
                             />
-                            {!account.is_self && account.email ? (
-                              <>
-                                <QuickFormModal
-                                  eyebrow="Segurança e Acessos"
-                                  title={`Definir Nova Senha · ${account.full_name}`}
-                                  description="Redefina diretamente a senha de acesso deste funcionário para restabelecer o seu login no sistema."
-                                  icon={<KeyRound className="size-5" />}
-                                  submitLabel="Guardar Nova Senha"
-                                  successDescription="Senha redefinida com sucesso. O funcionário já pode entrar com a nova senha."
-                                  onSubmit={async (values) => {
-                                    const newPassword = String(values["novaSenha"] ?? "").trim();
-                                    if (newPassword.length < 8) {
-                                      throw new Error(
-                                        "A senha deve conter pelo menos 8 caracteres.",
-                                      );
-                                    }
-                                    await resetStaffPasswordDirect({
-                                      data: {
-                                        userId: account.id,
-                                        newPassword,
-                                      },
-                                    });
-                                    toast.success(`Senha de ${account.full_name} redefinida!`);
-                                  }}
-                                  fields={[
-                                    {
-                                      name: "novaSenha",
-                                      label: "Nova senha (mínimo 8 caracteres)",
-                                      type: "password",
-                                      placeholder: "Ex.: Siga@Pass2026!",
-                                    },
-                                  ]}
-                                  trigger={(open) => (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={open}
-                                      className="h-8 gap-1 text-xs"
-                                    >
-                                      <KeyRound className="size-3 text-primary" /> Nova Senha
-                                    </Button>
-                                  )}
-                                />
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={async () => {
-                                    try {
-                                      const result = await resendSystemInvite({
-                                        data: { userId: account.id },
-                                      });
-                                      await navigator.clipboard.writeText(result.actionLink);
-                                      toast.success(
-                                        result.kind === "invite"
-                                          ? "Link de convite copiado"
-                                          : "Link de recuperação copiado",
-                                        { description: result.email },
-                                      );
-                                    } catch (error) {
-                                      toast.error("Não foi possível gerar o link", {
-                                        description:
-                                          error instanceof Error
-                                            ? error.message
-                                            : "Tente novamente.",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  Reenviar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={async () => {
-                                    try {
-                                      const result = await sendSystemInviteEmail({
-                                        data: { userId: account.id },
-                                      });
-                                      toast.success("E-mail de acesso enviado", {
-                                        description: result.email,
-                                      });
-                                    } catch (error) {
-                                      toast.error("Não foi possível enviar o e-mail", {
-                                        description:
-                                          error instanceof Error
-                                            ? error.message
-                                            : "Tente novamente ou use Copiar/WhatsApp.",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <MailPlus className="size-3 text-primary" /> Enviar E-mail
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() =>
-                                    void printStaffCredentials({
-                                      full_name: account.full_name,
-                                      email: account.email,
-                                    }).catch((error) =>
-                                      toast.error(
-                                        error instanceof Error
-                                          ? error.message
-                                          : "Não foi possível imprimir as credenciais.",
-                                      ),
-                                    )
-                                  }
-                                >
-                                  Credenciais
-                                </Button>
-                                {whatsappOn ? (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={async () => {
-                                      try {
-                                        const result = await resendSystemInvite({
-                                          data: { userId: account.id },
-                                        });
-                                        const label =
-                                          result.kind === "invite" ? "convite" : "recuperação";
-                                        await navigator.clipboard.writeText(result.actionLink);
-                                        window.open(
-                                          whatsappHref(
-                                            "",
-                                            `Acesso SIGA (${label}): ${result.actionLink}`,
-                                          ),
-                                          "_blank",
-                                          "noopener,noreferrer",
-                                        );
-                                        toast.success("Link copiado", {
-                                          description: "WhatsApp aberto para enviar o acesso.",
-                                        });
-                                      } catch (error) {
-                                        toast.error("Não foi possível gerar o link", {
-                                          description:
-                                            error instanceof Error
-                                              ? error.message
-                                              : "Tente novamente.",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    WhatsApp
-                                  </Button>
-                                ) : null}
-                                {resendOn ? (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={async () => {
-                                      try {
-                                        const result = await resendSystemInvite({
-                                          data: { userId: account.id },
-                                        });
-                                        await navigator.clipboard.writeText(result.actionLink);
-                                        window.open(
-                                          `mailto:${encodeURIComponent(result.email)}?subject=${encodeURIComponent("Acesso SIGA")}&body=${encodeURIComponent(result.actionLink)}`,
-                                        );
-                                        toast.success(
-                                          "Texto do convite copiado para e-mail Resend",
-                                          {
-                                            description: result.email,
-                                          },
-                                        );
-                                      } catch (error) {
-                                        toast.error("Não foi possível gerar o link", {
-                                          description:
-                                            error instanceof Error
-                                              ? error.message
-                                              : "Tente novamente.",
-                                        });
-                                      }
-                                    }}
-                                  >
-                                    E-mail
-                                  </Button>
-                                ) : null}
-                              </>
-                            ) : null}
-                            <Switch
-                              checked={!account.disabled}
-                              disabled={account.is_self}
-                              onCheckedChange={async (checked) => {
-                                try {
-                                  const result = await setSystemAccountDisabled({
-                                    data: { userId: account.id, disabled: !checked },
-                                  });
-                                  await queryClient.invalidateQueries({
-                                    queryKey: ["access", "accounts"],
-                                  });
-                                  if (result.notice) toast.warning(result.notice);
-                                  else
-                                    toast.success(checked ? "Conta reactivada" : "Conta suspensa");
-                                } catch (error) {
-                                  if (reportPossibleStepUp(error)) return;
-                                  toast.error("Não foi possível actualizar o acesso", {
-                                    description:
-                                      error instanceof Error ? error.message : "Tente novamente.",
-                                  });
-                                }
-                              }}
-                              aria-label={`Permitir acesso de ${account.full_name}`}
+                            <AccountRowActions
+                              account={account}
+                              canAdminister={currentUser.role === "Administrador"}
+                              onChanged={() =>
+                                queryClient.invalidateQueries({ queryKey: ["access", "accounts"] })
+                              }
+                              onPrint={() =>
+                                printStaffCredentials({
+                                  full_name: account.full_name,
+                                  email: account.email,
+                                })
+                              }
                             />
                           </div>
                         </TableCell>
@@ -1018,6 +776,8 @@ function AcessosPage() {
             </div>
           )}
         </Panel>
+
+        <AccessRequestsPanel />
 
         <Panel
           title="Convites institucionais"

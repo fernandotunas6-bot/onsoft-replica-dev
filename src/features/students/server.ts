@@ -135,6 +135,18 @@ export const searchStudents = createServerFn({ method: "GET" })
     const scope = await loadStudentScope(db, membership, context.userId);
     if (!scope.all && scope.studentIds.length === 0) return [];
 
+    // Mesmo com cliente privilegiado, não ler ou devolver facturas para quem não tem
+    // permissão financeira nesta escola. Falha fechado em caso de erro de autorização.
+    const canReadFinance = await requireSgaWriterFor(
+      "financeiro",
+      context.userId,
+      ["Administrador", "Secretaria", "Tesouraria"],
+      membership.schoolId,
+    ).then(
+      () => true,
+      () => false,
+    );
+
     // A lista pede até 1000 alunos e, a seguir, as fichas, matrículas, encarregados e
     // faturas de todos eles por `.in(...)`: com mais de ~200 alunos o URL passava o
     // tamanho máximo e a página de alunos deixava de abrir. Estas leituras vão por
@@ -234,7 +246,7 @@ export const searchStudents = createServerFn({ method: "GET" })
     const enrollmentIds = (allEnrollments ?? []).map((e) => e.id);
     let invoicesByStudent = new Map<string, InvoiceLike[]>();
     try {
-      if (enrollmentIds.length) {
+      if (canReadFinance && enrollmentIds.length) {
         const { data: contracts } = await reads
           .from("finance_contracts")
           .select("id, enrollment_id")
@@ -429,12 +441,12 @@ export const searchStudents = createServerFn({ method: "GET" })
           photo_url: (person?.["photo_url"] as string | null) ?? null,
           national_id: (person?.["national_id"] as string | null) ?? null,
           student_status: effectiveStatus,
-          payment_status: finSnapshot.paymentStatus,
-          debt_amount: finSnapshot.debtAmount,
-          overdue_count: finSnapshot.overdueCount,
-          has_debt: finSnapshot.hasDebt,
-          total_billed: finSnapshot.totalBilled,
-          total_paid: finSnapshot.totalPaid,
+          payment_status: canReadFinance ? finSnapshot.paymentStatus : null,
+          debt_amount: canReadFinance ? finSnapshot.debtAmount : undefined,
+          overdue_count: canReadFinance ? finSnapshot.overdueCount : undefined,
+          has_debt: canReadFinance ? finSnapshot.hasDebt : undefined,
+          total_billed: canReadFinance ? finSnapshot.totalBilled : undefined,
+          total_paid: canReadFinance ? finSnapshot.totalPaid : undefined,
           grade_name: (grade?.["name"] as string | null) ?? null,
           class_name: (classGroup?.["name"] as string | null) ?? null,
           class_group_id: (classGroup?.["id"] as string | null) ?? null,
