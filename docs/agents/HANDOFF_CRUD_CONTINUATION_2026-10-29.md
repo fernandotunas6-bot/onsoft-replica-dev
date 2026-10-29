@@ -50,3 +50,26 @@ reais, isolamento remoto ou concorrência PostgreSQL.
    continua bloqueada pela homologação/instalação da migração de notas.
 4. Preservar os ramos antigos até reconciliar contribuições exclusivas; não
    integrar automaticamente #128/#338/#345 ou outras PRs sobrepostas.
+
+## Seguimento — selectores dependentes
+
+Reproduzidas duas falhas antes da correcção: defaults de um campo não chegavam à
+cadeia de opções seguinte e uma alteração da lista remontava o select, apagando
+uma escolha que ainda era válida. Os avisos também podiam conservar o valor
+anterior enquanto o select nativo já mostrava outro.
+
+- `QuickSelectField` conserva o select nativo e sincroniza o valor efectivamente
+  seleccionado depois de o browser reconciliar as opções, sem remontar o campo.
+- O formulário inicializa os valores acompanhados a partir dos defaults reais;
+  formulários sem avisos/selectores dependentes não ganham esta sincronização.
+- Opção ainda válida é preservada; opção removida dá lugar à escolha nativa
+  disponível. Campo obrigatório sem opções continua a impedir submissão e campo
+  opcional aceita vazio.
+- Testes: defaults em cadeia de três campos; troca de turma; coerência do aviso e
+  do pedido enviado; preservação da opção válida; obrigatório/opcional vazio.
+- 30 testes dirigidos aprovados em três ficheiros (formulário, sugestões e rota
+  pedagógica). Suite global do incremento: 5.519 testes aprovados / 19 ignorados
+  (792 ficheiros aprovados / 3 ignorados). TypeScript, build, lint do escopo e
+  verificadores estáticos aprovados; a CI da nova SHA deve ser conferida. Sem alteração do contrato `name` dos campos ou dos endpoints.
+- A SHA anterior da #405 (`77002959`) passou a CI #4093. Esse resultado não
+  constitui aprovação automática do novo incremento.

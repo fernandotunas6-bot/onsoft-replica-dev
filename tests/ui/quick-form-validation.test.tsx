@@ -72,6 +72,137 @@ function setup({
 }
 
 describe("QuickFormModal — registos seguros", () => {
+  it("não envia um select obrigatório sem opções e aceita o opcional vazio", async () => {
+    const onSubmit = vi.fn(async () => {});
+    const fields = [
+      { name: "turma", label: "Turma", type: "select" as const, options: ["A", "B"] },
+      { name: "disciplina", label: "Disciplina", type: "select" as const, optionsFor: () => [] },
+    ];
+    const { rerender } = render(
+      <QuickFormModal
+        title="Selecção"
+        fields={fields}
+        onSubmit={onSubmit}
+        trigger={(open) => <button onClick={open}>Abrir</button>}
+      />,
+    );
+    fireEvent.click(screen.getByText("Abrir"));
+    fireEvent.click(screen.getByText("Guardar"));
+    expect(onSubmit).not.toHaveBeenCalled();
+    rerender(
+      <QuickFormModal
+        title="Selecção"
+        fields={[fields[0]!, { ...fields[1]!, required: false }]}
+        onSubmit={onSubmit}
+        trigger={(open) => <button onClick={open}>Abrir</button>}
+      />,
+    );
+    fireEvent.click(screen.getByText("Guardar"));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledExactlyOnceWith({ turma: "A", disciplina: "" }),
+    );
+  });
+
+  it("resolve os valores iniciais de selectores dependentes antes da submissão", async () => {
+    const onSubmit = vi.fn(async () => {});
+    render(
+      <QuickFormModal
+        title="Selecção"
+        fields={[
+          { name: "turma", label: "Turma", type: "select", options: ["A", "B"], defaultValue: "B" },
+          {
+            name: "disciplina",
+            label: "Disciplina",
+            type: "select",
+            optionsFor: (values) => (values.turma === "B" ? ["Física"] : []),
+          },
+          {
+            name: "recurso",
+            label: "Recurso",
+            type: "select",
+            optionsFor: (values) => (values.disciplina === "Física" ? ["Laboratório"] : []),
+          },
+        ]}
+        renderHint={(values) => (
+          <p>
+            Selecção: {values.turma}/{values.disciplina}/{values.recurso}
+          </p>
+        )}
+        onSubmit={onSubmit}
+        trigger={(open) => <button onClick={open}>Abrir</button>}
+      />,
+    );
+    fireEvent.click(screen.getByText("Abrir"));
+    await screen.findByText("Selecção: B/Física/Laboratório");
+    fireEvent.click(screen.getByText("Guardar"));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+        turma: "B",
+        disciplina: "Física",
+        recurso: "Laboratório",
+      }),
+    );
+  });
+
+  it("actualiza o aviso com a opção real após mudar a turma", async () => {
+    const onSubmit = vi.fn(async () => {});
+    render(
+      <QuickFormModal
+        title="Selecção"
+        fields={[
+          { name: "turma", label: "Turma", type: "select", options: ["A", "B"] },
+          {
+            name: "disciplina",
+            label: "Disciplina",
+            type: "select",
+            optionsFor: (values) => (values.turma === "A" ? ["Matemática"] : ["Física"]),
+          },
+        ]}
+        renderHint={(values) => (
+          <p>
+            Selecção: {values.turma}/{values.disciplina}
+          </p>
+        )}
+        onSubmit={onSubmit}
+        trigger={(open) => <button onClick={open}>Abrir</button>}
+      />,
+    );
+    fireEvent.click(screen.getByText("Abrir"));
+    fireEvent.change(screen.getByLabelText("Turma"), { target: { value: "B" } });
+    await screen.findByText("Selecção: B/Física");
+    fireEvent.click(screen.getByText("Guardar"));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledExactlyOnceWith({ turma: "B", disciplina: "Física" }),
+    );
+  });
+
+  it("preserva uma escolha que continua válida quando a lista de opções cresce", async () => {
+    render(
+      <QuickFormModal
+        title="Selecção"
+        fields={[
+          { name: "turma", label: "Turma", type: "select", options: ["A", "B"] },
+          {
+            name: "disciplina",
+            label: "Disciplina",
+            type: "select",
+            optionsFor: (values) =>
+              values.turma === "A" ? ["Matemática", "Física"] : ["Matemática", "Física", "Química"],
+          },
+        ]}
+        renderHint={(values) => <p>Escolhida: {values.disciplina}</p>}
+        onSubmit={vi.fn()}
+        trigger={(open) => <button onClick={open}>Abrir</button>}
+      />,
+    );
+    fireEvent.click(screen.getByText("Abrir"));
+    fireEvent.change(screen.getByLabelText("Turma"), { target: { value: "A" } });
+    fireEvent.change(screen.getByLabelText("Disciplina"), { target: { value: "Física" } });
+    fireEvent.change(screen.getByLabelText("Turma"), { target: { value: "B" } });
+    expect((screen.getByLabelText("Disciplina") as HTMLSelectElement).value).toBe("Física");
+    await screen.findByText("Escolhida: Física");
+  });
+
   it("preserva espaços da senha e normaliza apenas campos de cadastro", async () => {
     const onSubmit = vi.fn(async () => {});
     render(

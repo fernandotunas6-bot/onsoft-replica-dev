@@ -1,5 +1,13 @@
 import { reportPossibleStepUp } from "@/lib/step-up";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "@/lib/toast";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
@@ -20,7 +28,7 @@ export type QuickField = {
   options?: QuickOptions | undefined;
   /**
    * Opções que dependem do que já está escolhido noutros campos (ex.: as disciplinas
-   * da turma do aluno). Substitui `options`; ao mudarem, o campo volta à primeira.
+   * da turma do aluno). Substitui `options`; conserva a escolha se ainda existir nas opções.
    */
   optionsFor?: ((values: Record<string, string>) => QuickOptions) | undefined;
   /**
@@ -57,6 +65,69 @@ function inferInputMode(field: QuickField): QuickField["inputMode"] {
     return "decimal";
   if (/(nif|bi\b|número|numero|quantidade|capacidade|nº)/.test(hint)) return "numeric";
   return undefined;
+}
+
+function readQuickFormValues(form: HTMLFormElement | null) {
+  const out: Record<string, string> = {};
+  if (!form) return out;
+  for (const [key, val] of new FormData(form).entries()) {
+    const raw = String(val ?? "");
+    const control = form.elements.namedItem(key);
+    // A senha é um segredo exacto: não a normalizar como texto de cadastro.
+    out[key] =
+      control instanceof HTMLInputElement && control.type === "password" ? raw : raw.trim();
+  }
+  return out;
+}
+
+function QuickSelectField({
+  field,
+  values,
+  id,
+  disabled,
+  invalid,
+  errorId,
+  onValueResolved,
+}: {
+  field: QuickField;
+  values: Record<string, string>;
+  id: string;
+  disabled: boolean;
+  invalid: boolean;
+  errorId?: string | undefined;
+  onValueResolved?: ((name: string, value: string) => void) | undefined;
+}) {
+  const select = useRef<HTMLSelectElement>(null);
+  const options = ((field.optionsFor ? field.optionsFor(values) : field.options) ?? []).map(
+    (option) => (typeof option === "string" ? { value: option, label: option } : option),
+  );
+  // O browser mantém a opção válida ou escolhe outra quando as opções mudam.
+  // Sincronizar depois do commit evita avisos e cascatas com o valor antigo.
+  useLayoutEffect(() => {
+    if (select.current && onValueResolved) onValueResolved(field.name, select.current.value.trim());
+  });
+  return (
+    <select
+      ref={select}
+      id={id}
+      name={field.name}
+      required={field.required ?? true}
+      disabled={disabled}
+      aria-invalid={invalid}
+      aria-describedby={errorId}
+      className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
+      defaultValue={
+        field.defaultValue ?? (field.required === false ? "" : (options[0]?.value ?? ""))
+      }
+    >
+      {field.required === false ? <option value="">—</option> : null}
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 /** Modal de criação e edição rápida com validação nativa dos campos. */
@@ -126,18 +197,14 @@ export function QuickFormModal({
     }
   }, [open]);
 
-  const readValues = () => {
-    const out: Record<string, string> = {};
-    if (!formRef.current) return out;
-    for (const [key, val] of new FormData(formRef.current).entries()) {
-      const raw = String(val ?? "");
-      const control = formRef.current.elements.namedItem(key);
-      // A senha é um segredo exacto: não a normalizar como texto de cadastro.
-      out[key] =
-        control instanceof HTMLInputElement && control.type === "password" ? raw : raw.trim();
-    }
-    return out;
-  };
+  const readValues = () => readQuickFormValues(formRef.current);
+  const syncSelectValue = useCallback((name: string, value: string) => {
+    setValues((previous) => (previous[name] === value ? previous : { ...previous, [name]: value }));
+  }, []);
+  // Ler os defaults reais, incluindo selects nativos, antes de mostrar avisos.
+  useLayoutEffect(() => {
+    if (open && tracksValues && !inFlight.current) setValues(readQuickFormValues(formRef.current));
+  }, [open, tracksValues]);
 
   const guardedClose = () => {
     if (inFlight.current) return;
@@ -243,43 +310,15 @@ export function QuickFormModal({
                       className="mt-1"
                     />
                   ) : field.type === "select" ? (
-                    (() => {
-                      const normalizedOptions = (
-                        (field.optionsFor ? field.optionsFor(values) : field.options) ?? []
-                      ).map((option) =>
-                        typeof option === "string" ? { value: option, label: option } : option,
-                      );
-                      return (
-                        <select
-                          // Opções novas: monta de novo, para não ficar um valor que já não está na lista.
-                          key={
-                            field.optionsFor
-                              ? normalizedOptions.map((option) => option.value).join("\u0000")
-                              : undefined
-                          }
-                          id={fieldId(field.name)}
-                          name={field.name}
-                          required={field.required ?? true}
-                          disabled={saving}
-                          aria-invalid={Boolean(fieldErrors[field.name])}
-                          aria-describedby={
-                            fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
-                          }
-                          className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
-                          defaultValue={
-                            field.defaultValue ??
-                            (field.required === false ? "" : (normalizedOptions[0]?.value ?? ""))
-                          }
-                        >
-                          {field.required === false ? <option value="">—</option> : null}
-                          {normalizedOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      );
-                    })()
+                    <QuickSelectField
+                      field={field}
+                      values={values}
+                      id={fieldId(field.name)}
+                      disabled={saving}
+                      invalid={Boolean(fieldErrors[field.name])}
+                      errorId={fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined}
+                      onValueResolved={tracksValues ? syncSelectValue : undefined}
+                    />
                   ) : field.type === "angola-identity" ? (
                     <AngolaIdentityField
                       id={fieldId(field.name)}
