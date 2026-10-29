@@ -12,7 +12,7 @@ describe("suspensão de login do aluno", () => {
 
   it("exige autenticação forte, papel administrativo e vínculo na escola", () => {
     expect(block).toContain("requireAal2(");
-    expect(block).toContain('requireSgaWriterForWrite(');
+    expect(block).toContain("requireSgaWriterForWrite(");
     expect(block).toContain("assertStudentOnlyAccount(db, actor.schoolId, userId)");
     expect(block).toContain('.eq("school_id", actor.schoolId)');
     expect(block).toContain("if (userId === context.userId)");
@@ -20,7 +20,7 @@ describe("suspensão de login do aluno", () => {
 
   it("altera apenas o vínculo do login sem apagar matrícula, pessoa ou notas", () => {
     expect(block).toContain('data.disabled ? "suspended" : "active"');
-    expect(block).toContain(".from(\"school_memberships\")");
+    expect(block).toContain('.from("school_memberships")');
     expect(block).toContain("recordAccessAudit(");
     expect(block).not.toContain('.from("students").update');
     expect(block).not.toContain("deleteUser");
