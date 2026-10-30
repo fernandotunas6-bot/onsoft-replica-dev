@@ -391,16 +391,9 @@ function TurmaDetail() {
                 confirmLabel="Desactivar turma"
                 loadImpact={() => getClassGroupDeletionImpact({ data: { id: turma.id } })}
                 onConfirm={async () => {
-                  try {
-                    await deleteClassGroup({ data: { id: turma.id } });
-                    await refreshAcademic();
-                    toast.success("Turma desactivada.");
-                  } catch (err) {
-                    toast.error(
-                      err instanceof Error ? err.message : "Não foi possível desactivar a turma.",
-                    );
-                    throw err;
-                  }
+                  await deleteClassGroup({ data: { id: turma.id } });
+                  await refreshAcademic();
+                  toast.success("Turma desactivada.");
                 }}
               />
             </div>

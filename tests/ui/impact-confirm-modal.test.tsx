@@ -4,10 +4,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { ImpactConfirmModal } from "@/components/modals/ImpactConfirmModal";
 import type { DeletionImpact } from "@/features/school/deletion-impact";
 
+const toastMocks = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
+vi.mock("@/lib/toast", () => ({ toast: toastMocks }));
+
 afterEach(cleanup);
 
-function setup(loadImpact: () => Promise<DeletionImpact>) {
-  const onConfirm = vi.fn(async () => {});
+function setup(loadImpact: () => Promise<DeletionImpact>, onConfirm = vi.fn(async () => {})) {
   render(
     <ImpactConfirmModal
       title="Desactivar esta turma?"
@@ -63,5 +65,24 @@ describe("confirmação com impacto contado no servidor", () => {
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Sem ligação"));
     expect(confirm().disabled).toBe(true);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("a recusa do servidor ao confirmar chega ao utilizador com a razão", async () => {
+    toastMocks.error.mockClear();
+    const { confirm } = setup(
+      async () => ({ impacts: [], blocker: null, warning: null }),
+      vi.fn(async () => {
+        throw new Error("Este professor ainda está ligado a disciplinas activas.");
+      }),
+    );
+    await waitFor(() => expect(confirm().disabled).toBe(false));
+    fireEvent.click(confirm());
+    await waitFor(() =>
+      expect(toastMocks.error).toHaveBeenCalledWith("Não foi possível concluir", {
+        description: "Este professor ainda está ligado a disciplinas activas.",
+      }),
+    );
+    // O diálogo continua aberto para tentar de novo ou cancelar.
+    expect(screen.getByRole("button", { name: "Desactivar turma" })).toBeTruthy();
   });
 });

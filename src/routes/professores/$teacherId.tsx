@@ -236,6 +236,7 @@ function TeacherProfilePage() {
                     await queryClient.invalidateQueries({
                       queryKey: ["academic", "teacher-workspace"],
                     });
+                    toast.success("Professor desligado.");
                   }}
                   trigger={(open: () => void) => (
                     <Button

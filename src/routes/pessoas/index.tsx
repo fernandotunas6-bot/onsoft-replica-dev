@@ -865,6 +865,7 @@ function PeoplePage() {
                                   await queryClient.invalidateQueries({
                                     queryKey: ["people", "teachers"],
                                   });
+                                  toast.success("Professor desactivado.");
                                 }}
                                 trigger={(open) => (
                                   <Button
