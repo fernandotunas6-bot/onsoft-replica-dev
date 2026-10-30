@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
+import { ImpactConfirmModal } from "@/components/modals/ImpactConfirmModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { documentValidationCode } from "@/features/academic/assessment-views";
@@ -59,6 +59,7 @@ import {
   updatePerson,
   updatePersonStatus,
   updateTeacher,
+  getTeacherDeletionImpact,
 } from "@/features/people/server";
 import { personDocumentTypeOptions, personRoleOptions } from "@/features/people/schemas";
 import {
@@ -807,6 +808,9 @@ function PeoplePage() {
                                       phone: values["telefone"] || undefined,
                                       status:
                                         values["estado"] === "Inactivo" ? "inactive" : "active",
+                                      expectedUpdatedAt: teacher.updated_at || undefined,
+                                      expectedPersonUpdatedAt:
+                                        teacher.person_updated_at ?? undefined,
                                     },
                                   });
                                   await queryClient.invalidateQueries({
@@ -847,10 +851,15 @@ function PeoplePage() {
                                   </Button>
                                 )}
                               />
-                              <ConfirmActionModal
+                              <ImpactConfirmModal
                                 title="Desactivar professor"
-                                description={`${teacher.full_name} será marcado como inactivo.`}
-                                confirmLabel="Desactivar"
+                                verb="Desactivar"
+                                itemType="o professor"
+                                itemName={teacher.full_name}
+                                confirmLabel="Desactivar professor"
+                                loadImpact={() =>
+                                  getTeacherDeletionImpact({ data: { teacherId: teacher.id } })
+                                }
                                 onConfirm={async () => {
                                   await deleteTeacher({ data: { teacherId: teacher.id } });
                                   await queryClient.invalidateQueries({

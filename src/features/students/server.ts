@@ -63,43 +63,7 @@ import { assertCanAddStudentForSchool } from "@/features/saas/tenant-limits-serv
 import { schoolTodayIso } from "@/lib/school-date";
 import { pickCurrentEnrollment } from "./current-enrollment";
 import { commitExistingEnrollmentPlacements } from "./enrollment-batch";
-
-async function linkGuardian(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
-  input: {
-    schoolId: string;
-    studentId: string;
-    guardianPersonId: string;
-    relationship: string;
-    isPrimary: boolean;
-    userId: string;
-  },
-) {
-  if (input.isPrimary) {
-    // Se falhar, o aluno ficava com dois encarregados principais.
-    const { error: primaryError } = await db
-      .from("student_guardians")
-      .update({ is_primary: false })
-      .eq("school_id", input.schoolId)
-      .eq("student_id", input.studentId)
-      .eq("is_primary", true);
-    if (primaryError) {
-      throw publicDatabaseError(primaryError, "Não foi possível trocar o encarregado principal.");
-    }
-  }
-
-  // SGA: id PK, is_pickup_authorized, created_by NOT NULL; no updated_by / authorized_pickup.
-  const { error } = await db.from("student_guardians").insert({
-    school_id: input.schoolId,
-    student_id: input.studentId,
-    guardian_person_id: input.guardianPersonId,
-    relationship: mapSgaGuardianRelationship(input.relationship),
-    is_primary: input.isPrimary,
-    is_pickup_authorized: true,
-    created_by: input.userId,
-  });
-  if (error) throw publicDatabaseError(error, "Não foi possível associar o encarregado.");
-}
+import { closeGuardianLink, linkGuardian } from "./guardian-links";
 
 type StudentListRow = {
   id: string;
@@ -219,6 +183,7 @@ export const searchStudents = createServerFn({ method: "GET" })
         ? reads
             .from("student_guardians")
             .select("student_id, guardian_person_id, is_primary")
+            .is("valid_until", null)
             .in("student_id", studentIds)
             .eq("school_id", membership.schoolId)
             .eq("is_primary", true)
@@ -551,6 +516,7 @@ export const getStudentProfile = createServerFn({ method: "GET" })
       db
         .from("student_guardians")
         .select("guardian_person_id, relationship, is_primary")
+        .is("valid_until", null)
         .eq("student_id", student.id)
         .eq("school_id", membership.schoolId),
       // Matrículas correntes (activa ou pendente, que já ocupa lugar na turma). Com a
@@ -1220,13 +1186,14 @@ export const assignGuardian = createServerFn({ method: "POST" })
       throw new Error("Esta ficha está inactiva. Reactive-a em Pessoas antes de associar.");
     }
 
-    await linkGuardian(db, {
+    const link = await linkGuardian(db, {
       schoolId: membership.schoolId,
       studentId: data.studentId,
       guardianPersonId: data.guardianPersonId,
-      relationship: data.relationship,
+      relationship: mapSgaGuardianRelationship(data.relationship),
       isPrimary: data.isPrimary,
       userId: context.userId,
+      today: schoolTodayIso(),
     });
     // Quem é encarregado decide quem vê os dados do aluno: fica registado.
     await recordAccessAudit({
@@ -1238,6 +1205,13 @@ export const assignGuardian = createServerFn({ method: "POST" })
       metadata: {
         guardian_person_id: data.guardianPersonId,
         relationship: data.relationship ?? null,
+        ...(link.previous
+          ? {
+              reopened: true,
+              previous_valid_from: link.previous.validFrom,
+              previous_valid_until: link.previous.validUntil,
+            }
+          : {}),
       },
     });
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
@@ -1253,13 +1227,13 @@ export const removeGuardian = createServerFn({ method: "POST" })
       "Secretaria",
     ]);
     const db = await loadSgaAdminClient();
-    const { error } = await db
-      .from("student_guardians")
-      .delete()
-      .eq("student_id", data.studentId)
-      .eq("guardian_person_id", data.guardianPersonId)
-      .eq("school_id", membership.schoolId);
-    if (error) throw publicDatabaseError(error, "Não foi possível remover o encarregado.");
+    // Fecha a vigência em vez de apagar: o histórico do vínculo fica.
+    const closed = await closeGuardianLink(db, {
+      schoolId: membership.schoolId,
+      studentId: data.studentId,
+      guardianPersonId: data.guardianPersonId,
+      today: schoolTodayIso(),
+    });
     // Quem é encarregado decide quem vê os dados do aluno: fica registado.
     await recordAccessAudit({
       schoolId: membership.schoolId,
@@ -1267,7 +1241,15 @@ export const removeGuardian = createServerFn({ method: "POST" })
       action: "students.guardian_unlinked",
       entityType: "student",
       entityId: data.studentId,
-      metadata: { guardian_person_id: data.guardianPersonId },
+      metadata: {
+        guardian_person_id: data.guardianPersonId,
+        link_id: closed.id,
+        relationship: closed.relationship,
+        was_primary: closed.wasPrimary,
+        valid_from: closed.validFrom,
+        valid_until: closed.validUntil,
+        reason: data.reason ?? null,
+      },
     });
     return { studentId: data.studentId, guardianPersonId: data.guardianPersonId };
   });

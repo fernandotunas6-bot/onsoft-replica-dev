@@ -199,6 +199,7 @@ async function resolveSiblingDiscountPercent(
   const { data: guardians } = await db
     .from("student_guardians")
     .select("guardian_person_id")
+    .is("valid_until", null)
     .eq("school_id", schoolId)
     .eq("student_id", studentId);
   const guardianIds = (guardians ?? [])
@@ -209,6 +210,7 @@ async function resolveSiblingDiscountPercent(
   const { data: siblingLinks } = await db
     .from("student_guardians")
     .select("student_id")
+    .is("valid_until", null)
     .eq("school_id", schoolId)
     .in("guardian_person_id", guardianIds)
     .neq("student_id", studentId);

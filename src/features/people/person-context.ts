@@ -55,6 +55,7 @@ export async function resolvePersonContext(
     db
       .from("student_guardians")
       .select("student_id")
+      .is("valid_until", null)
       .eq("school_id", schoolId)
       .eq("guardian_person_id", personId)
       .limit(1)

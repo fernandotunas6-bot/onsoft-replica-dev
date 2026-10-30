@@ -808,6 +808,8 @@ export function StudentEnrollmentSheet({
               name: "turma",
               label: "Turma",
               type: "select",
+              searchable: true,
+              placeholder: "Seleccione uma turma",
               full: true,
               defaultValue: existing.classGroupId,
               options: buildEnrollmentDirectory(classGroups, {}).classGroups.map((group) => ({

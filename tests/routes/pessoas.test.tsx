@@ -104,6 +104,7 @@ const sampleTeacher: TeacherRow = {
   hired_on: "2024-02-01",
   employment_type: "full_time",
   updated_at: "2026-03-01T10:00:00Z",
+  person_updated_at: "2026-03-01T09:00:00Z",
 };
 
 const samplePerson: PersonRow = {
