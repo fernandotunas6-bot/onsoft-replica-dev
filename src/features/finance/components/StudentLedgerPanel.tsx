@@ -262,7 +262,7 @@ function Ledger({
               disabled={!filtered.length || query.isFetching || exportingExcel}
               onClick={() => {
                 setExportingExcel(true);
-                void exportStudentLedgerExcel(filtered, {
+                void exportStudentLedgerExcel(selectedRows.length ? selectedRows : filtered, {
                   schoolName,
                   academicYear: yearLabel,
                   checkedOn: schoolTodayIso(),
@@ -274,7 +274,11 @@ function Ledger({
                   .finally(() => setExportingExcel(false));
               }}
             >
-              {exportingExcel ? "A preparar Excel…" : "Exportar Excel"}
+              {exportingExcel
+                ? "A preparar Excel…"
+                : selectedRows.length
+                  ? `Excel seleccionados (${selectedRows.length})`
+                  : "Exportar Excel filtrados"}
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
