@@ -51,7 +51,6 @@ Web Vitals p75.
 **PARTE I — O CONTRATO** · `docs/design/VISUAL_MASTER_2026.md`, verbatim
 
 ---
-
 # PROMPT MASTER — SIGA PLUS 2026
 
 Refinamento Visual, Fluidez, Interactividade e Performance de Alto Nível
@@ -728,7 +727,7 @@ sem `<Outlet />`.
 | 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
 | 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
 | 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz tipográfica do portátil alinhada com a do monitor por decisão do proprietário. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
-| 2.3 — componentes universais    | parcial     | StackedModal, SettingsCenter, FormModal, QuickModal, WizardModal, PremiumModal e SequentialSheetModal refinados; falta revisão integral de inputs, selectores, listas, filtros, paginação, pesquisa, calendário, abas, notificações, estados e dashboards.                  |
+| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector no desktop por decidir. Regressão em `tests/ui/target-size-contract.test.ts`. Faltam listas, filtros, notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
 | 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
 | 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
 | 4.2 — animações                 | parcial     | Não foi adicionado vídeo nem alterado o logótipo. Falta medir durações/frames e movimento reduzido em todas as superfícies.                                                                                                                                                 |
@@ -1012,3 +1011,49 @@ componentes, layout, rotas, dados nem permissões: só nove valores de token em
 
 Sem validação em sessão autenticada nem em dispositivo físico: a medição é sobre
 os tokens declarados, não sobre ecrãs renderizados. Não substitui a fase 8.
+
+## Alvo de toque e foco dos controlos universais (30/10/2026)
+
+Segundo incremento do dia, na fase 2.3, para além dos modais. Toca três
+ficheiros de componente e acrescenta um teste; não altera layout, rotas, dados
+nem permissões.
+
+- **A medição em `rem` dá valores errados neste projecto.** A raiz é de 12px no
+  telemóvel e 11,5px no desktop, logo a escala do Tailwind está ~25% abaixo do
+  nominal: `h-11` são 33px, não 44. É por isso que o campo de texto usa
+  `h-[44px]` explícito. O limite aplicável é o dos **24×24px da SC 2.5.8 da
+  WCAG 2.2, que é AA**, não os 44px de preferência da fase 4.3.
+- **Três controlos falhavam o mínimo AA:** caixa de verificação e opção de rádio
+  a 12px, interruptor a 15px de altura. A caixa de verificação é o próprio
+  elemento clicável, sem área maior nem preenchimento.
+- **Corrigido sem aumentar o controlo:** área de toque de 24×24px num
+  pseudo-elemento centrado, que não ocupa espaço no layout nem altera o aspecto —
+  respeitando a instrução de não aumentar dimensões. Verificado no browser do
+  projecto com `document.elementFromPoint`: acerta a 11px fora da caixa visual,
+  falha a 14px. A medição apanhou um defeito na primeira tentativa, em que
+  `before:w-full` deixava o interruptor a 23px por causa das bordas de 2px.
+- **Por decidir:** no desktop o campo de texto tem 25,9px (`lg:h-9`) e o
+  selector 44px (sem override), 18px de diferença entre dois campos adjacentes.
+  Alinhar pelo campo preserva a densidade e reduz o alvo do selector; alinhar
+  pelo selector respeita os 44px do contrato e aumenta a densidade. As duas
+  instruções são do proprietário, pelo que a escolha é dele.
+- **Foco visível, medido:** o `select` usa `focus:` em vez de `focus-visible:`
+  (anel também ao rato). Menus e paleta de comandos indicam o foco por cor de
+  texto: o realce de fundo mede 1,16:1 no claro e 1,26:1 no escuro, não
+  perceptível por si. Não é falha clara de 2.4.7, mas é fraco; reforçá-lo altera
+  todos os menus, pelo que fica registado e não alterado.
+- **Efeito colateral da 2.2 que não previ:** `switch.tsx` é o único consumidor
+  de `bg-input` em todo o `src` e usa-o na pista do interruptor desligado. Ao
+  escurecer `--input` mudei o aspecto dessa pista — de 1,28:1 contra o cartão
+  (praticamente invisível) para 3,24:1, o que corrige uma segunda falha de
+  1.4.11 não identificada, mas é uma mudança visível que não anunciei. Separar é
+  trivial se o aspecto não agradar: dar à pista um token próprio.
+- **Continua por medir nesta fase:** listas, filtros, notificações, estados e
+  dashboards; espaçamento entre alvos adjacentes; o dia do calendário, que
+  recebe a dimensão da célula da grelha e exige medição em runtime; e a
+  duplicação entre `ListPaginationBar`, `pagination.tsx` e consumidores directos.
+
+A geometria foi verificada sobre as cadeias de classes que os componentes
+emitem, com o CSS compilado, **não sobre instâncias renderizadas na aplicação**:
+sem sessão autenticada todas as rotas desenham o ecrã de entrada e nenhum destes
+controlos aparece lá.
