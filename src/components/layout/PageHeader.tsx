@@ -15,6 +15,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { crumbsAfterTitle, useActiveContext } from "@/features/intelligence/active-context";
 import { cn } from "@/lib/utils";
 
 export type PageCrumb = {
@@ -66,12 +67,19 @@ export function PageHeader({
   const showGroup =
     Boolean(groupLabel) &&
     groupLabel.localeCompare(title.trim(), "pt", { sensitivity: "accent" }) !== 0;
+  // Turma e disciplina da URL seguem o título («Área Pedagógica / 10.ª A /
+  // Matemática»); um breadcrumb explícito da página manda sobre o contexto.
+  const activeContext = useActiveContext();
+  const contextFrames =
+    !crumbs && activeContext ? crumbsAfterTitle(activeContext.crumbs, title) : [];
+  const page = contextFrames.length > 0 ? activeContext?.crumbs.page : null;
   const trail: PageCrumb[] =
     crumbs ??
     ([
       { label: "Início", to: "/portal" },
       ...(showGroup ? [{ label: groupLabel }] : []),
-      { label: title },
+      page ? { label: title, to: page.to, search: page.search } : { label: title },
+      ...contextFrames,
     ] satisfies PageCrumb[]);
 
   return (

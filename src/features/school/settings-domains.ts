@@ -21,6 +21,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isMissingTable, publicDatabaseError } from "@/integrations/supabase/server-error";
 import { isSchoolTypeId, type AngolaSchoolTypeId } from "@/lib/school-config";
 import { pedagogySettingsSchema, type PedagogySettings } from "./schemas";
+import { parseTeacherDocumentPolicy } from "@/features/people/teacher-documents-policy";
 
 type Raw = Record<string, unknown>;
 
@@ -248,6 +249,10 @@ export type StudentAccessSettings = {
 };
 
 export const SETTINGS_DOMAINS = {
+  teacher_documents: {
+    label: "Documentos de recrutamento docente",
+    parse: parseTeacherDocumentPolicy,
+  },
   student_access: {
     label: "Acesso dos alunos",
     parse: (value: unknown): StudentAccessSettings => ({

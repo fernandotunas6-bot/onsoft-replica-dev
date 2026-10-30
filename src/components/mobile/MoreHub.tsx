@@ -8,7 +8,9 @@ import { useSignOut } from "@/features/auth/use-sign-out";
 import { useTenant } from "@/features/saas/tenant-context";
 import { canAccessPath } from "@/features/auth/access-policy";
 import { cn } from "@/lib/utils";
+import { useActiveContext } from "@/features/intelligence/active-context";
 import { BottomSheet, BottomSheetBody, BottomSheetHeader } from "./BottomSheet";
+import { MobileEntityNav } from "./MobileEntityNav";
 import { MobileSearch } from "./MobileSearch";
 import { getPortalNavigation } from "@/features/auth/portal-engine";
 import { withHigherEdVocabulary } from "@/features/auth/nav-vocabulary";
@@ -71,6 +73,12 @@ export function MoreHub({
   const selectedContext = areas.find((group) => group.title === area);
   const current = selectedContext ?? (!allAreas ? context : null);
   const needle = normalizeSearch(query);
+  // Turma, disciplina ou aluno aberto e confirmado pelo servidor: como na sidebar
+  // do computador, o hub mostra o menu dessa entidade em vez do catálogo do
+  // módulo. «Todas as áreas» e a pesquisa continuam a levar a todo o lado.
+  const entityNavigation = useActiveContext()?.navigation ?? null;
+  const showEntity =
+    !needle && !selectedContext && !allAreas && context !== null && entityNavigation !== null;
   const filtered = needle
     ? areas
         .map(flattenNavigationGroup)
@@ -144,7 +152,13 @@ export function MoreHub({
             ) : null}
           </div>
         ) : null}
-        {!needle && !current ? (
+        {showEntity && entityNavigation ? (
+          <MobileEntityNav
+            navigation={entityNavigation}
+            areaTitle={context?.title ?? null}
+            onNavigate={() => onOpenChange(false)}
+          />
+        ) : !needle && !current ? (
           <ul className="space-y-1" aria-label="Áreas de trabalho">
             {areas.map((group) =>
               group.title === "Principal" ? (

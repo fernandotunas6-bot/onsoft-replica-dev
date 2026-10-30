@@ -7,6 +7,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yft_school_system/core/utils/responsive_utils.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class StudentDirectoryScreen extends ConsumerStatefulWidget {
   const StudentDirectoryScreen({super.key});
@@ -100,7 +101,7 @@ class _StudentDirectoryScreenState
                             color: AppColors.textSecondary
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Não há alunos.',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 14),
@@ -121,7 +122,7 @@ class _StudentDirectoryScreenState
                             color: AppColors.textSecondary
                                 .withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Nada corresponde à pesquisa.',
                           style: TextStyle(
                               color: AppColors.textSecondary, fontSize: 14),
@@ -145,14 +146,14 @@ class _StudentDirectoryScreenState
                           (context, index) {
                             final student = visible[index];
                             final balanceText = student.hasDebt
-                                ? '$currency ${student.balance.abs().toStringAsFixed(2)}'
+                                ? formatMoneyDisplay(currency, student.balance.abs())
                                 : student.isOverpaid
-                                    ? '+$currency ${student.balance.toStringAsFixed(2)}'
+                                    ? '+${formatMoneyDisplay(currency, student.balance)}'
                                     : 'Limpo';
                             final balanceColor = student.hasDebt
-                                ? Colors.red.shade700
+                                ? AppColors.error
                                 : student.isOverpaid
-                                    ? Colors.green.shade700
+                                    ? AppColors.success
                                     : AppColors.textSecondary;
 
                             return Column(
@@ -172,7 +173,7 @@ class _StudentDirectoryScreenState
                                           .withValues(alpha: 0.12),
                                       child: Text(
                                         _initials(student),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.secondary,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
@@ -192,7 +193,7 @@ class _StudentDirectoryScreenState
                                       '${student.id} • ${student.className ?? student.classId}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textSecondary,
                                       ),
@@ -271,10 +272,10 @@ class _StudentDirectoryScreenState
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/admission'),
         backgroundColor: AppColors.primary,
-        icon: const Icon(LucideIcons.userPlus, color: Colors.white),
-        label: const Text(
+        icon: Icon(LucideIcons.userPlus, color: AppColors.onPrimary),
+        label: Text(
           'Nova admissão',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: AppColors.onPrimary),
         ),
       ),
     );

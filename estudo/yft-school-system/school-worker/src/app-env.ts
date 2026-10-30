@@ -1,4 +1,6 @@
-export interface Env {
+import type { SgaEnv } from './sga/rest';
+
+export interface Env extends SgaEnv {
   DB: D1Database;
   MEDIA_BUCKET: R2Bucket;
   FIREBASE_PROJECT_ID: string;

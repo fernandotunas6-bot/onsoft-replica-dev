@@ -7,6 +7,7 @@ import {
   resetPersistedFilters,
   resetRouteLocation,
   routeComponentOf,
+  setRouteSearch,
 } from "./_harness";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 import type { LessonPlansResult } from "@/features/lesson-plans/server";
@@ -281,5 +282,60 @@ describe("/planos-aula", () => {
         data: { id: "plan-1" },
       });
     });
+  });
+});
+
+describe("/planos-aula?professor= (menu do professor)", () => {
+  const PROF = "66666666-6666-4666-8666-666666666666";
+  const withTeacher: PedagogicalWorkspace = {
+    ...sampleWorkspace,
+    classSubjects: [
+      {
+        class_group_id: "turma-1",
+        subject_id: "sub-1",
+        subject_name: "Matemática",
+        teacher_id: PROF,
+        teacher_name: "João Neto",
+      },
+      {
+        class_group_id: "turma-1",
+        subject_id: "sub-2",
+        subject_name: "Língua Portuguesa",
+        teacher_id: "outro",
+        teacher_name: "Ana Costa",
+      },
+    ],
+  };
+
+  it("mostra só os planos das disciplinas que o professor dá, com o nome dele", async () => {
+    listPedagogicalWorkspaceMock.mockResolvedValue(withTeacher);
+    setRouteSearch({ professor: PROF });
+    renderRoute(Page);
+
+    await waitFor(() => {
+      expect(screen.getByText("Geometria Espacial & Álgebra")).toBeDefined();
+    });
+    expect(screen.queryByText("Gramática e Sintaxe")).toBeNull();
+    expect(screen.getByText("João Neto")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Ver todos os planos" })).toBeDefined();
+    // Os filtros vazios dizem «todas», não a primeira turma da lista.
+    expect((screen.getByLabelText("Turma") as HTMLSelectElement).selectedOptions[0]?.text).toBe(
+      "Todas",
+    );
+  });
+
+  it("um professor sem disciplinas na escola não vê planos de outros", async () => {
+    listPedagogicalWorkspaceMock.mockResolvedValue(withTeacher);
+    setRouteSearch({ professor: "77777777-7777-4777-8777-777777777777" });
+    renderRoute(Page);
+
+    // O estado vazio também aparece enquanto carrega: espera pelas duas respostas.
+    await waitFor(() => {
+      expect(listLessonPlansMock).toHaveBeenCalled();
+      expect(listPedagogicalWorkspaceMock).toHaveBeenCalled();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByText("Ainda não há planos de aula")).toBeDefined();
+    expect(screen.queryByText("Geometria Espacial & Álgebra")).toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import {
 import {
   financeListInputSchema,
   listInvoicesInputSchema,
+  getInvoiceDetailInputSchema,
   issueInvoiceInputSchema,
   EXPENSE_APPROVAL_THRESHOLD,
   type IssueInvoiceInput,
@@ -41,6 +42,13 @@ import {
 // gerador de XML continua a ser carregado dinamicamente dentro do handler.
 import { generateSaftInputSchema } from "./saft-generator";
 import { invoiceNetTotal, invoiceOpenAmount } from "./invoice-settlement";
+import { loadCompleteInvoiceReceipts, receiptsPaidByInvoice } from "./invoice-receipts";
+import {
+  buildInvoiceDetail,
+  type InvoiceChargeRow,
+  type InvoiceDetail,
+  type InvoiceDetailStudent,
+} from "./invoice-detail";
 import { splitCashBalances } from "./cash-balances";
 import { discountAmountFor, effectiveDiscountPercent, scholarshipPercentFor } from "./scholarships";
 import { scholarshipsOfStudent } from "./student-scholarship-server";
@@ -191,6 +199,7 @@ async function resolveSiblingDiscountPercent(
   const { data: guardians } = await db
     .from("student_guardians")
     .select("guardian_person_id")
+    .is("valid_until", null)
     .eq("school_id", schoolId)
     .eq("student_id", studentId);
   const guardianIds = (guardians ?? [])
@@ -201,6 +210,7 @@ async function resolveSiblingDiscountPercent(
   const { data: siblingLinks } = await db
     .from("student_guardians")
     .select("student_id")
+    .is("valid_until", null)
     .eq("school_id", schoolId)
     .in("guardian_person_id", guardianIds)
     .neq("student_id", studentId);
@@ -675,16 +685,22 @@ export const listInvoices = createServerFn({ method: "GET" })
     // As mais recentes não chegam: numa escola com mais de 250 faturas, as vencidas
     // antigas — as que mais importa cobrar — ficavam fora da lista, do filtro e do
     // «Receber». Com `includeOpen`, todas as por pagar entram, por mais antigas que sejam.
-    if (data.includeOpen && !studentContractIds) {
+    if (data.includeOpen) {
       const seen = new Set(invoices.map((row: { id: string }) => row.id));
       for (let from = 0; ; from += OPEN_INVOICES_PAGE) {
-        const page = await db
+        let openQuery = db
           .from("finance_invoices")
           .select(
             "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at",
           )
           .eq("school_id", membership.schoolId)
-          .in("status", ["open", "partially_paid"])
+          .in("status", ["open", "partially_paid"]);
+        // Ficha de um aluno: mesmo na leitura completa das dívidas antigas,
+        // nunca pesquisar faturas de contratos de outros alunos da escola.
+        if (studentContractIds) {
+          openQuery = openQuery.in("contract_id", studentContractIds);
+        }
+        const page = await openQuery
           .order("created_at", { ascending: false })
           .range(from, from + OPEN_INVOICES_PAGE - 1);
         if (page.error) {
@@ -719,43 +735,77 @@ export const listInvoices = createServerFn({ method: "GET" })
       ),
     ] as string[];
 
-    const [{ data: contracts }, { data: feeItems }, { data: receipts }] = await Promise.all([
+    const [contractsResult, feeItemsResult, receiptResult] = await Promise.all([
       contractIds.length
-        ? db.from("finance_contracts").select("id, enrollment_id").in("id", contractIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; enrollment_id: string }> }),
-      feeIds.length
-        ? db.from("fee_items").select("id, name, kind").in("id", feeIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string; kind: string }> }),
-      invoiceIds.length
         ? db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .in("invoice_id", invoiceIds)
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .eq("school_id", membership.schoolId)
+            .in("id", contractIds)
         : Promise.resolve({
-            data: [] as Array<{ invoice_id: string; amount: number; status: string }>,
+            data: [] as Array<{ id: string; enrollment_id: string }>,
+            error: null,
           }),
+      feeIds.length
+        ? db
+            .from("fee_items")
+            .select("id, name, kind")
+            .eq("school_id", membership.schoolId)
+            .in("id", feeIds)
+        : Promise.resolve({
+            data: [] as Array<{ id: string; name: string; kind: string }>,
+            error: null,
+          }),
+      loadCompleteInvoiceReceipts(invoiceIds, (ids, from, to) =>
+        db
+          .from("finance_receipts")
+          .select("id, invoice_id, amount, status")
+          .eq("school_id", membership.schoolId)
+          .in("invoice_id", ids)
+          .order("id")
+          .range(from, to),
+      ),
     ]);
+    if (contractsResult.error) {
+      throw publicDatabaseError(
+        contractsResult.error,
+        "Não foi possível identificar os contratos.",
+      );
+    }
+    if (feeItemsResult.error) {
+      throw publicDatabaseError(feeItemsResult.error, "Não foi possível consultar as rubricas.");
+    }
+    if (receiptResult.error) {
+      throw publicDatabaseError(receiptResult.error, "Não foi possível verificar os recibos.");
+    }
+    const contracts = contractsResult.data;
+    const feeItems = feeItemsResult.data;
+    const receipts = receiptResult.data;
 
     const enrollmentIds = [
       ...new Set((contracts ?? []).map((row) => row.enrollment_id).filter(Boolean)),
     ];
-    const { data: enrollments } = enrollmentIds.length
-      ? await db.from("enrollments").select("id, student_id").in("id", enrollmentIds)
-      : { data: [] as Array<{ id: string; student_id: string }> };
+    const enrollmentResult = enrollmentIds.length
+      ? await db
+          .from("enrollments")
+          .select("id, student_id")
+          .eq("school_id", membership.schoolId)
+          .in("id", enrollmentIds)
+      : { data: [] as Array<{ id: string; student_id: string }>, error: null };
+    if (enrollmentResult.error) {
+      throw publicDatabaseError(
+        enrollmentResult.error,
+        "Não foi possível consultar as matrículas.",
+      );
+    }
+    const enrollments = enrollmentResult.data;
     const studentIds = [...new Set((enrollments ?? []).map((row) => row.student_id))];
     const students = await loadStudentDirectory(db, membership.schoolId, studentIds);
     const studentById = new Map(students.map((row) => [row.student_id, row]));
     const enrollmentById = new Map((enrollments ?? []).map((row) => [row.id, row]));
     const contractById = new Map((contracts ?? []).map((row) => [row.id, row]));
     const feeById = new Map((feeItems ?? []).map((row) => [row.id, row]));
-    const paidByInvoice = new Map<string, number>();
-    for (const receipt of receipts ?? []) {
-      if (receipt.status === "reversed") continue;
-      paidByInvoice.set(
-        receipt.invoice_id,
-        (paidByInvoice.get(receipt.invoice_id) ?? 0) + Number(receipt.amount ?? 0),
-      );
-    }
+    const paidByInvoice = receiptsPaidByInvoice(receipts);
     // A multa que um pagamento registado hoje levaria (late-fee.ts): a tesouraria vê-a
     // antes de receber, em vez de a fatura ficar «parcial» depois.
     const billing = await readSettingsDomain(db, membership.schoolId, "billing");
@@ -804,6 +854,105 @@ export const listInvoices = createServerFn({ method: "GET" })
         };
       },
     );
+  });
+
+/**
+ * Uma fatura da escola activa, com o aluno a quem foi emitida e os recibos
+ * (contexto financeiro do SIGA Context Engine). Os mesmos que lêem a lista de
+ * faturas; uma fatura de outra escola, ou que não existe, devolve null.
+ */
+export const getInvoiceDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => getInvoiceDetailInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<InvoiceDetail | null> => {
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
+    const db = await loadSgaAdminClient();
+    const { data: invoice, error } = await db
+      .from("finance_invoices")
+      .select(
+        "id, contract_id, fee_item_id, invoice_number, competence_month, amount, discount_amount, penalty_amount, due_date, status, created_at, cancellation_reason",
+      )
+      .eq("id", data.invoiceId)
+      .eq("school_id", membership.schoolId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível abrir a fatura.");
+    if (!invoice) return null;
+
+    const [contractResult, feeResult, receiptsResult] = await Promise.all([
+      invoice.contract_id
+        ? db
+            .from("finance_contracts")
+            .select("id, enrollment_id")
+            .eq("id", invoice.contract_id)
+            .eq("school_id", membership.schoolId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      invoice.fee_item_id
+        ? db.from("fee_items").select("id, name").eq("id", invoice.fee_item_id).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      db
+        .from("finance_receipts")
+        .select("id, receipt_number, amount, paid_on, payment_method, status, reversal_reason")
+        .eq("school_id", membership.schoolId)
+        .eq("invoice_id", invoice.id),
+    ]);
+    if (receiptsResult.error) {
+      throw publicDatabaseError(receiptsResult.error, "Não foi possível carregar os recibos.");
+    }
+
+    // As cobranças electrónicas são da tesouraria (as mesmas contas de `listGatewayCharges`).
+    const seesCharges = ["Administrador", "Tesouraria"].includes(membership.appRole);
+    let charges: InvoiceChargeRow[] | null = null;
+    if (seesCharges) {
+      const chargesResult = await db
+        .from("payment_gateway_charges")
+        .select(
+          "id, method, amount, reference_entity, reference_number, status, status_message, receipt_number, created_at",
+        )
+        .eq("school_id", membership.schoolId)
+        .eq("invoice_id", invoice.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (chargesResult.error && !isMissingSgaTable(chargesResult.error)) {
+        throw publicDatabaseError(chargesResult.error, "Não foi possível carregar as cobranças.");
+      }
+      charges = chargesResult.data ?? [];
+    }
+
+    let student: InvoiceDetailStudent | null = null;
+    const enrollmentId = (contractResult.data as { enrollment_id?: string } | null)?.enrollment_id;
+    if (enrollmentId) {
+      const { data: enrollment } = await db
+        .from("enrollments")
+        .select("id, student_id")
+        .eq("id", enrollmentId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (enrollment?.student_id) {
+        const [row] = await loadStudentDirectory(db, membership.schoolId, [enrollment.student_id]);
+        if (row) {
+          student = {
+            id: row.student_id,
+            name: row.full_name,
+            registrationNumber: row.registration_number,
+          };
+        }
+      }
+    }
+
+    return buildInvoiceDetail({
+      schoolId: membership.schoolId,
+      invoice,
+      receipts: receiptsResult.data ?? [],
+      student,
+      feeName: (feeResult.data as { name?: string } | null)?.name ?? null,
+      today: todayIso(),
+      charges,
+    });
   });
 
 export const listCashEntries = createServerFn({ method: "GET" })
@@ -1449,11 +1598,16 @@ async function issueInvoiceFor(
  */
 const TUITION_BATCH_LIMIT = 60;
 
-const issueTuitionBatchInputSchema = z.object({
-  classGroupId: z.string().guid(),
-  dueOn: z.string().date(),
-  issuedOn: z.string().date().optional(),
-});
+const issueTuitionBatchInputSchema = z
+  .object({
+    classGroupId: z.string().guid().optional(),
+    studentIds: z.array(z.string().guid()).min(1).max(TUITION_BATCH_LIMIT).optional(),
+    dueOn: z.string().date(),
+    issuedOn: z.string().date().optional(),
+  })
+  .refine((value) => Boolean(value.classGroupId) !== Boolean(value.studentIds), {
+    message: "Seleccione uma turma ou alunos específicos, mas não ambos.",
+  });
 
 export type TuitionBatchResult = {
   issued: Array<{ studentId: string; invoiceNumber: string }>;
@@ -1518,18 +1672,48 @@ export const issueTuitionBatch = createServerFn({ method: "POST" })
       ["Administrador", "Tesouraria", "Secretaria"],
     );
     const db = await loadSgaAdminClient();
-    const { data: rows, error } = await db
+    const selectedIds = data.studentIds ? [...new Set(data.studentIds)] : null;
+    // Se a origem for uma selecção, não aceitar alunos de outros anos ou escolas.
+    // O modo antigo por turma é preservado para compatibilidade com Faturas.
+    let academicYearId: string | null = null;
+    if (selectedIds) {
+      const { data: activeYear, error: yearError } = await db
+        .from("academic_years")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("status", "active")
+        .order("starts_on", { ascending: false })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (yearError) {
+        throw publicDatabaseError(yearError, "Não foi possível validar o ano lectivo.");
+      }
+      if (!activeYear) throw new Error("Defina um ano lectivo activo antes de emitir propinas.");
+      academicYearId = String(activeYear.id);
+    }
+    const baseQuery = db
       .from("enrollments")
       .select("student_id")
       .eq("school_id", membership.schoolId)
-      .eq("class_group_id", data.classGroupId)
-      .eq("status", "active")
-      .limit(TUITION_BATCH_LIMIT + 1);
+      .eq("status", "active");
+    const { data: rows, error } = selectedIds
+      ? await baseQuery
+          .in("student_id", selectedIds)
+          .eq("academic_year_id", academicYearId!)
+          .limit(TUITION_BATCH_LIMIT + 1)
+      : await baseQuery.eq("class_group_id", data.classGroupId!).limit(TUITION_BATCH_LIMIT + 1);
     if (error) throw publicDatabaseError(error, "Não foi possível ler os alunos da turma.");
     const studentIds = [...new Set((rows ?? []).map((row) => String(row.student_id)))];
+    if (selectedIds && studentIds.length !== selectedIds.length) {
+      throw new Error(
+        "A selecção contém alunos sem matrícula activa nesta escola e ano lectivo. Reveja a lista.",
+      );
+    }
     if (studentIds.length > TUITION_BATCH_LIMIT) {
       throw new Error(
-        `A turma tem mais de ${TUITION_BATCH_LIMIT} alunos activos. Emita as propinas em duas vezes ou aluno a aluno.`,
+        `O lote excede ${TUITION_BATCH_LIMIT} alunos. Divida a selecção em lotes menores.`,
       );
     }
 

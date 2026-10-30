@@ -64,7 +64,9 @@ export function TodayAtSchoolCard() {
             : undefined,
       icon: Users,
       tone: ops && ops.teachersPendingCheckIn > 0 ? "warning" : "default",
-      href: canTeacherQr ? "/professor/presenca" : undefined,
+      // As aulas do dia, com a presença de cada professor (e o registo pela Direcção).
+      href: canPedagogica ? "/pedagogica" : canTeacherQr ? "/professor/presenca" : undefined,
+      search: canPedagogica ? { tab: "chamada" } : undefined,
     },
     {
       label: "A iniciar (30 min)",

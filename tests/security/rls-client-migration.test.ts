@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
-import { resolve, relative } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Progresso do ARQ-01, travado por teste.
@@ -55,6 +56,28 @@ const MIGRADOS = [
  * na contagem de dívida abaixo.
  */
 const PRIVILEGIO_POR_DESENHO = new Set([
+  // Documentos docentes: teacher_document_entries é uma tabela privada com FORCE RLS
+  // e sem GRANT para authenticated. O endpoint exige membership, valida teacher,
+  // person e escola e devolve apenas campos autorizados; a associação do ficheiro
+  // também é verificada por um trigger SQL contra school/person/file.
+  "src/features/people/teacher-documents-server.ts",
+  // Configuração institucional dos requisitos: school_settings tem escrita
+  // reservada à Administração; o servidor exige papel e escrita na Gestão.
+  "src/features/people/teacher-documents-settings-server.ts",
+  // Registo de pessoal: os vínculos e a tabela de cargos de RH são controlados
+  // pelo servidor. Atribuir o cargo exige Administrador, valida person/escola,
+  // não atribui privilégios de login e reutiliza o vínculo laboral existente.
+  "src/features/hr/staff-positions-server.ts",
+  // Presença do professor na aula (2026-10-26): authenticated só tem SELECT em
+  // siga_attendance_sessions (as chamadas escrevem-se no servidor), por isso a
+  // entrada/saída do professor também. Aqui decide-se quem: o professor da aula,
+  // na janela da aula, ou a Direcção/Secretaria com motivo.
+  "src/features/pedagogica/teacher-presence-server.ts",
+  // QR da escola (2026-10-26): siga_school_presence_settings guarda o segredo que
+  // assina o QR e siga_teacher_presence_scans a assiduidade do pessoal; as duas
+  // nascem com FORCE RLS e sem privilégios para authenticated. Aqui decide-se quem:
+  // a Direcção vê e decide, o professor só regista a sua leitura.
+  "src/features/pedagogica/school-qr-server.ts",
   // Entregas de trabalhos (2026-10-25): siga_class_task_submissions nasce sem
   // políticas e sem privilégios para authenticated (trabalhos de menores), por
   // isso só o service role a lê. Aqui decide-se o âmbito: professor da
@@ -324,22 +347,18 @@ function usaClientePrivilegiado(código: string): boolean {
 }
 
 function ficheirosComClientePrivilegiado(): string[] {
-  const encontrados: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of readdirSync(dir)) {
-      const full = resolve(dir, entry);
-      if (statSync(full).isDirectory()) {
-        walk(full);
-        continue;
-      }
-      if (!/\.tsx?$/.test(entry)) continue;
-      if (usaClientePrivilegiado(readFileSync(full, "utf8"))) {
-        encontrados.push(relative(REPO, full));
-      }
-    }
-  };
-  walk(resolve(REPO, "src"));
-  return encontrados.sort();
+  // Apenas fontes rastreadas pelo Git. Ficheiros efémeros gerados durante
+  // builds ou outros testes paralelos não são parte da dívida versionada.
+  // Isto evita contagens instáveis sem aumentar o tecto nem criar excepções.
+  const tracked = execFileSync("git", ["ls-files", "-z", "--", "src"], {
+    cwd: REPO,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter((file) => /\.tsx?$/.test(file));
+  return tracked
+    .filter((file) => usaClientePrivilegiado(readFileSync(resolve(REPO, file), "utf8")))
+    .sort();
 }
 
 const privilegiados = ficheirosComClientePrivilegiado();
@@ -385,6 +404,11 @@ describe("migração para o cliente que respeita RLS (ARQ-01)", () => {
       ).toBe(true);
     },
   );
+
+  it("a nova consulta paginada não abre um novo cliente privilegiado", () => {
+    const source = readFileSync(resolve(REPO, "src/features/people/directory-server.ts"), "utf8");
+    expect(usaClientePrivilegiado(source)).toBe(false);
+  });
 
   it("a dívida não cresce", () => {
     const emDívida = privilegiados.filter((f) => !PRIVILEGIO_POR_DESENHO.has(f));

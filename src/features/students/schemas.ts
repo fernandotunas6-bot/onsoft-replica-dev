@@ -211,6 +211,8 @@ export type AssignGuardianInput = z.infer<typeof assignGuardianInputSchema>;
 export const removeGuardianInputSchema = z.object({
   studentId: z.string().guid(),
   guardianPersonId: z.string().guid(),
+  /** Motivo do fim do vínculo, guardado na auditoria. */
+  reason: z.string().trim().max(500).optional(),
 });
 export type RemoveGuardianInput = z.infer<typeof removeGuardianInputSchema>;
 

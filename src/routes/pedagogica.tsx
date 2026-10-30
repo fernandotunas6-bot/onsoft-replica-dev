@@ -1,6 +1,15 @@
 import { AcademicStructureTab } from "@/features/academic/AcademicStructureTab";
 import { useActiveAssessmentRule } from "@/features/academic/use-passing-value";
-import { useEffect, useMemo, useRef, useState, lazy, Suspense, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  lazy,
+  Suspense,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -177,6 +186,8 @@ const pedagogicaSearchSchema = z
       .optional(),
     turma: z.string().guid().optional(),
     disciplina: z.string().guid().optional(),
+    // O horário de um professor (menu do professor, SIGA Context Engine).
+    professor: z.string().guid().optional(),
     pauta: z.enum(["1"]).optional(),
     dia: z
       .string()
@@ -247,6 +258,7 @@ function PedagogicaPage() {
     tab: tabFromSearch,
     turma: turmaFromSearch,
     disciplina: disciplinaFromSearch,
+    professor: professorFromSearch,
     pauta,
     dia: diaFromSearch,
   } = Route.useSearch();
@@ -735,8 +747,8 @@ function PedagogicaPage() {
       <div className="space-y-6">
         <PageHeader
           group="Académico"
-          title="Área Pedagógica"
-          description="Turmas, disciplinas, notas e horários ligados ao Supabase."
+          title="Ensino e aprendizagem"
+          description="Organize turmas, horários, avaliações e a actividade lectiva da escola."
           actions={
             <>
               {teachingLevels.includes("superior") &&
@@ -989,32 +1001,32 @@ function PedagogicaPage() {
               linhas empurrava (e tapava) o conteúdo. */}
           <TabsList
             ref={tabsListRef}
-            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto"
+            className="no-scrollbar flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-lg border border-border/70 bg-muted/30 p-1.5"
           >
             {/* Pela ordem do ano lectivo (academic-architecture.ts): cada
                 informação nasce numa etapa e segue para a seguinte. */}
             <TabStageLabel>{STAGE_LABELS.estrutura}</TabStageLabel>
             {canReadAcademic ? (
-              <TabsTrigger value="estrutura">Estrutura académica</TabsTrigger>
+              <AcademicTab value="estrutura">Estrutura académica</AcademicTab>
             ) : null}
             {canReadAcademic ? (
-              <TabsTrigger value="modelos">Modelos de avaliação</TabsTrigger>
+              <AcademicTab value="modelos">Modelos de avaliação</AcademicTab>
             ) : null}
-            {!isFamily ? <TabsTrigger value="curriculo">Currículo & Turnos</TabsTrigger> : null}
-            {!isFamily ? <TabsTrigger value="disciplinas">Disciplinas</TabsTrigger> : null}
-            {canReadAcademic ? <TabsTrigger value="competencias">Competências</TabsTrigger> : null}
+            {!isFamily ? <AcademicTab value="curriculo">Currículo & Turnos</AcademicTab> : null}
+            {!isFamily ? <AcademicTab value="disciplinas">Disciplinas</AcademicTab> : null}
+            {canReadAcademic ? <AcademicTab value="competencias">Competências</AcademicTab> : null}
             <TabStageLabel>{STAGE_LABELS.pessoas}</TabStageLabel>
-            {!isFamily ? <TabsTrigger value="turmas">Turmas</TabsTrigger> : null}
-            <TabsTrigger value="horarios">Horários</TabsTrigger>
-            {!isFamily ? <TabsTrigger value="salas">Salas & Espaços</TabsTrigger> : null}
-            <TabsTrigger value="presencas">Presenças / Chamada</TabsTrigger>
+            {!isFamily ? <AcademicTab value="turmas">Turmas</AcademicTab> : null}
+            <AcademicTab value="horarios">Horários</AcademicTab>
+            {!isFamily ? <AcademicTab value="salas">Salas & Espaços</AcademicTab> : null}
+            <AcademicTab value="presencas">Presenças / Chamada</AcademicTab>
             <TabStageLabel>{STAGE_LABELS.avaliacao}</TabStageLabel>
-            <TabsTrigger value="notas">Notas</TabsTrigger>
-            {!isFamily ? <TabsTrigger value="pautas">Pautas</TabsTrigger> : null}
+            <AcademicTab value="notas">Notas</AcademicTab>
+            {!isFamily ? <AcademicTab value="pautas">Pautas</AcademicTab> : null}
             {canReadAcademic ? (
               <>
                 <TabStageLabel>{STAGE_LABELS.resultado}</TabStageLabel>
-                <TabsTrigger value="exames">Exames e resultado final</TabsTrigger>
+                <AcademicTab value="exames">Exames e resultado final</AcademicTab>
               </>
             ) : null}
           </TabsList>
@@ -1076,6 +1088,7 @@ function PedagogicaPage() {
               workspace={workspace}
               teacherNameById={teacherNameById}
               canvasWork={canvasWork}
+              // A ficha da turma tem página própria.
               onOpenTurma={(id) =>
                 void navigate({ to: "/pedagogica/turmas/$turmaId", params: { turmaId: id } })
               }
@@ -1352,6 +1365,8 @@ function PedagogicaPage() {
               <LazyTab>
                 <SchoolNowWidget />
                 <ScheduleWorkspace
+                  initialClassGroupId={turmaFromSearch}
+                  initialTeacherId={professorFromSearch}
                   activeYearLabel={activeYearLabel}
                   activeYearId={selectedYearId ?? undefined}
                   canManage={canManageAcademic}
@@ -1422,6 +1437,11 @@ function PedagogicaPage() {
                   initialClassGroupId={turmaFromSearch}
                   initialSubjectId={disciplinaFromSearch}
                   initialDate={diaFromSearch}
+                  teacherId={professorFromSearch}
+                  teacherName={
+                    teachers.find((teacher) => teacher.id === professorFromSearch)?.full_name
+                  }
+                  classGroupName={classGroups.find((group) => group.id === turmaFromSearch)?.name}
                 />
               </LazyTab>
             )}
@@ -1500,5 +1520,18 @@ function TabStageLabel({ children }: { children: string }) {
     >
       {children}
     </span>
+  );
+}
+
+/** O separador activo é identificado pela cor, fundo e sublinhado. */
+function AcademicTab({ className, ...props }: ComponentProps<typeof TabsTrigger>) {
+  return (
+    <TabsTrigger
+      {...props}
+      className={cn(
+        "min-h-10 border-b-2 border-transparent bg-transparent px-3.5 font-medium text-muted-foreground shadow-none hover:bg-secondary/70 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:font-semibold data-[state=active]:text-primary data-[state=active]:shadow-none",
+        className,
+      )}
+    />
   );
 }

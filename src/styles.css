@@ -367,12 +367,7 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   transition:
     background-color var(--siga-motion-fast) var(--siga-ease),
     color var(--siga-motion-fast) var(--siga-ease),
-    box-shadow var(--siga-motion-fast) var(--siga-ease),
-    transform var(--siga-motion-fast) var(--siga-ease);
-
-  &:active {
-    transform: scale(0.99);
-  }
+    box-shadow var(--siga-motion-fast) var(--siga-ease);
 
   &[data-active="true"] {
     box-shadow: var(--shadow-nav-active);
@@ -395,24 +390,10 @@ html[data-density="spacious"] #conteudo-principal > .space-y-6 > :not([hidden]) 
   border-radius: 9999px;
   transition:
     background-color var(--siga-motion-fast) var(--siga-ease),
-    color var(--siga-motion-fast) var(--siga-ease),
-    transform var(--siga-motion-fast) var(--siga-ease),
-    opacity var(--siga-motion-fast) var(--siga-ease);
+    color var(--siga-motion-fast) var(--siga-ease);
 
   &:hover {
     background-color: var(--color-secondary);
-  }
-
-  &:active {
-    transition-duration: 75ms;
-    transform: scale(0.985);
-    opacity: 0.96;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &:active {
-      transform: none;
-    }
   }
 }
 
@@ -1183,76 +1164,10 @@ h6,
   }
 }
 
-/* Microinteracções CSS: só o glifo se move; os alvos de toque mantêm-se fixos.
- * Sem timers ou animações decorativas contínuas. Ícones de carregamento
- * conservam a sua rotação e os controlos indisponíveis não dão feedback.
+/* Feedback dos controlos: estados de cor, foco visível e carregamento.
+ * Não rodar/deslocar/escalar ícones no hover ou no toque. As animações
+ * funcionais de progresso continuam nos respectivos componentes.
  */
-@media (prefers-reduced-motion: no-preference) {
-  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"])
-    > svg:not(.animate-spin),
-  [data-nav-row] [data-nav-icon] > svg,
-  .siga-motion-nav svg,
-  .header-icon-btn:not(:disabled):not([aria-disabled="true"]) > svg:not(.animate-spin) {
-    transition: transform var(--siga-motion-fast) var(--siga-ease);
-    transform-origin: center;
-  }
-
-  /* Teclado e toque recebem o mesmo feedback, sem alterar o foco. */
-  .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):is(
-      :focus-visible,
-      :active
-    )
-    > svg:not(.animate-spin),
-  [data-nav-row]:is(:focus-visible, :active) [data-nav-icon] > svg,
-  .siga-motion-nav:is(:focus-visible, :active) svg,
-  .header-icon-btn:not(:disabled):not([aria-disabled="true"]):is(:focus-visible, :active)
-    > svg:not(.animate-spin) {
-    transform: scale(1.08);
-  }
-
-  .siga-check-indicator[data-state="checked"] {
-    animation: siga-check-enter var(--siga-motion-fast) var(--siga-ease);
-  }
-
-  /* Hover apenas para rato/trackpad; evita estados presos no telemóvel. */
-  @media (hover: hover) and (pointer: fine) {
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > svg:not(.animate-spin),
-    [data-nav-row]:hover [data-nav-icon] > svg,
-    .siga-motion-nav:hover svg,
-    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > svg:not(.animate-spin) {
-      transform: scale(1.08);
-    }
-
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > .lucide-download {
-      transform: translateY(2px);
-    }
-
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > .lucide-upload {
-      transform: translateY(-2px);
-    }
-
-    .siga-motion-control:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover
-      > :is(.lucide-settings, .lucide-refresh-cw),
-    [data-nav-row]:hover [data-nav-icon] > .lucide-settings,
-    .header-icon-btn:not(:disabled):not([aria-disabled="true"]):hover > .lucide-settings {
-      transform: rotate(12deg);
-    }
-  }
-}
-
-@keyframes siga-check-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
 /* Marca: movimento apenas na entrada, sem vídeo e sem animação contínua. */
 .siga-wordmark {

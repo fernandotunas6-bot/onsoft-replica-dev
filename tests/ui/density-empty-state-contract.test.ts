@@ -50,14 +50,26 @@ describe("EmptyState rollout", () => {
       "src/routes/faturas.tsx",
       "src/routes/planos-aula.tsx",
       "src/routes/acessos.tsx",
-      "src/routes/financeiro.rh.tsx",
-      "src/routes/financeiro.rh.folha.tsx",
-      "src/routes/financeiro.rh.faltas.tsx",
-      "src/routes/financeiro.rh.pagamentos.tsx",
-      "src/routes/financeiro.rh.presenca.tsx",
+      "src/routes/financeiro_.rh.tsx",
+      "src/routes/financeiro_.rh_.folha.tsx",
+      "src/routes/financeiro_.rh_.faltas.tsx",
+      "src/routes/financeiro_.rh_.pagamentos.tsx",
+      "src/routes/financeiro_.rh_.presenca.tsx",
     ];
     for (const file of routes) {
       const source = readFileSync(resolve(root, file), "utf8");
+      if (file === "src/routes/pessoas/index.tsx") {
+        // Pessoas compõe EmptyState através do CRUD partilhado, sem o duplicar na rota.
+        const component = readFileSync(
+          resolve(root, "src/components/ui/crud-list-feedback-row.tsx"),
+          "utf8",
+        );
+        expect(source, file).toContain('from "@/components/ui/crud-list-feedback-row"');
+        expect(source, file).toContain("<CrudListFeedbackRow");
+        expect(component).toContain('from "@/components/ui/empty-state"');
+        expect(component).toContain("<EmptyState");
+        continue;
+      }
       expect(source, file).toContain('from "@/components/ui/empty-state"');
       expect(source, file).toContain("<EmptyState");
     }
@@ -65,10 +77,10 @@ describe("EmptyState rollout", () => {
 
   it("drops the ad-hoc empty blocks in the RH operational routes", () => {
     const legacy: Array<[string, string]> = [
-      ["src/routes/financeiro.rh.folha.tsx", "Ainda não existem folhas salariais."],
-      ["src/routes/financeiro.rh.faltas.tsx", "Nenhuma falta neste estado."],
-      ["src/routes/financeiro.rh.pagamentos.tsx", "Ainda não existem ordens salariais."],
-      ["src/routes/financeiro.rh.presenca.tsx", "Ainda não existem evidências registadas."],
+      ["src/routes/financeiro_.rh_.folha.tsx", "Ainda não existem folhas salariais."],
+      ["src/routes/financeiro_.rh_.faltas.tsx", "Nenhuma falta neste estado."],
+      ["src/routes/financeiro_.rh_.pagamentos.tsx", "Ainda não existem ordens salariais."],
+      ["src/routes/financeiro_.rh_.presenca.tsx", "Ainda não existem evidências registadas."],
     ];
     for (const [file, phrase] of legacy) {
       const source = readFileSync(resolve(root, file), "utf8");

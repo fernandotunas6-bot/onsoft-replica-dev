@@ -31,6 +31,9 @@ interface nem alterar a identidade. Medir antes/depois e preservar segurança e 
 
 **Visual mestre (sidebar/modais):** [docs/design/SIGA_VISUAL_MASTER_2026-10-23.md](docs/design/SIGA_VISUAL_MASTER_2026-10-23.md) — concavidade à direita e margem esquerda recta; catálogo autorizado, contexto por papel/escola e diálogos simples, sem eliminar campos nem fluxos. Evitar conflitos com a PR #259.
 
+**Navegação contextual (Context Engine):** [docs/specs/SIGA_CONTEXT_ENGINE_2026.md](docs/specs/SIGA_CONTEXT_ENGINE_2026.md) —
+motor único em `context-resolver.ts`/`context-registry.ts` (PR #332), menu em `ContextEntityNav`; opção A (sem coluna nova); não criar segunda sidebar nem segundo painel.
+
 **Identidade Digital (domínios, e-mail, subdomínios):** skill `siga-identity` + docs em `docs/domains/`, `docs/email/`, `docs/cloudflare/`, `docs/multi-tenant/`, `docs/provisioning/`.
 
 Auto-construção:
@@ -42,6 +45,10 @@ npm run siga:scaffold -- <modulo> [--route=/caminho] [--with-page]
 ```
 
 No SGA não aplicar migrações Lovable. SQL correcto: `npm run siga:sql`.
+
+**Publicação (deploy):** contínua a cada merge na `main`, com vigilância que repete publicações
+falhadas e abre a issue «Deploy de produção parado». Vias alternativas, segredos e diagnóstico:
+[docs/releases/DEPLOY_VIAS.md](docs/releases/DEPLOY_VIAS.md).
 
 **Base de dados — ler antes de qualquer SQL:** [docs/agents/DATABASE_RULES.md](docs/agents/DATABASE_RULES.md).
 O Lovable está ligado à base de **produção**: uma migração aprovada corre nas escolas reais.

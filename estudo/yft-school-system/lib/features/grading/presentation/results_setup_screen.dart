@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:yft_school_system/features/academics/application/academic_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
+import 'package:yft_school_system/core/utils/term_label.dart';
+import 'package:yft_school_system/features/calendar/application/school_events.dart';
 
 class ResultsSetupScreen extends ConsumerStatefulWidget {
   const ResultsSetupScreen({super.key});
@@ -16,14 +19,27 @@ class ResultsSetupScreen extends ConsumerStatefulWidget {
 class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
   String? _selectedClassId;
   String? _selectedTerm;
+  String? _selectedYear;
   String? _selectedStudentId;
 
-  final List<String> _terms = ['1.º Período', '2.º Período', '3.º Período'];
 
   @override
   Widget build(BuildContext context) {
+    // Semestres ou trimestres, conforme o calendário da escola.
+    final termSystem =
+        ref.watch(academicCalendarProvider).whenOrNull(data: (c) => c?.termSystem) ?? 3;
+    final terms = [for (var i = 1; i <= termSystem; i++) 'Term $i'];
     final academicYear = ref.watch(academicYearProvider);
-    final classesAsync = ref.watch(classesProvider);
+    // Com horário, o professor só vê as turmas onde dá aulas (o servidor
+    // recusa as outras). Sem horário, aparecem todas.
+    final mine =
+        ref.watch(teacherClassIdsProvider).whenOrNull(data: (s) => s) ??
+        const <String>{};
+    final classesAsync = ref.watch(classesProvider).whenData(
+          (all) => mine.isEmpty
+              ? all
+              : all.where((c) => mine.contains(c.id)).toList(),
+        );
     final studentsAsync = _selectedClassId != null
         ? ref.watch(studentsProvider((classId: _selectedClassId, page: 1)))
         : null;
@@ -31,7 +47,7 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Lançamento de notas', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Notas', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.secondary,
@@ -44,34 +60,36 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(20)),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(LucideIcons.calendarDays, color: AppColors.primary, size: 20),
+                    child: Icon(LucideIcons.calendarDays, color: AppColors.primary, size: 20),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      Text('${academicYear.academicYear} • ${academicYear.activeTerm}',
-                          style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Ano lectivo', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Text('${academicYear.academicYear} • ${termLabel(academicYear.activeTerm, termSystem: termSystem)}',
+                            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 16)),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Escolha os parâmetros para lançar ou consultar notas.',
+            Text('Escolha a turma, o período e o aluno para lançar ou ver as notas.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
             const SizedBox(height: 32),
 
-            const Text('Escolher turma',
+            Text('Turma',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             classesAsync.when(
@@ -89,18 +107,18 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Text('Escolher período',
+            Text('Período',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             _buildDropdown(
               icon: LucideIcons.calendarDays,
-              value: _selectedTerm,
-              items: _terms.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              value: terms.contains(_selectedTerm) ? _selectedTerm : null,
+              items: terms.map((t) => DropdownMenuItem(value: t, child: Text(termLabel(t, termSystem: termSystem)))).toList(),
               onChanged: (val) => setState(() => _selectedTerm = val),
             ),
 
             const SizedBox(height: 24),
-            const Text('Escolher aluno',
+            Text('Aluno',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
             const SizedBox(height: 8),
             if (studentsAsync == null)
@@ -120,8 +138,37 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
                   items: paginated.data
                       .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
                       .toList(),
-                  onChanged: (val) => setState(() => _selectedStudentId = val),
+                  onChanged: (val) => setState(() {
+                    _selectedStudentId = val;
+                    _selectedYear = null;
+                  }),
                 ),
+              ),
+            // Ano lectivo: o actual por omissão; anos anteriores só se o
+            // aluno tiver notas neles (para corrigir depois de mudar de ano).
+            if (_selectedStudentId != null)
+              ...ref.watch(gradeYearsProvider(_selectedStudentId!)).maybeWhen(
+                data: (y) => y.years.length < 2
+                    ? const <Widget>[]
+                    : [
+                        const SizedBox(height: 24),
+                        Text('Ano lectivo',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.secondary)),
+                        const SizedBox(height: 8),
+                        _buildDropdown<String>(
+                          icon: LucideIcons.calendarRange,
+                          value: y.years.contains(_selectedYear) ? _selectedYear : y.current,
+                          items: [
+                            for (final year in y.years)
+                              DropdownMenuItem(
+                                value: year,
+                                child: Text(year == y.current ? '$year (actual)' : year),
+                              ),
+                          ],
+                          onChanged: (val) => setState(() => _selectedYear = val),
+                        ),
+                      ],
+                orElse: () => const <Widget>[],
               ),
 
             const SizedBox(height: 48),
@@ -129,19 +176,20 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _selectedClassId != null && _selectedTerm != null && _selectedStudentId != null
+                onPressed: _selectedClassId != null && terms.contains(_selectedTerm) && _selectedStudentId != null
                     ? () {
                         context.push('/results-input', extra: {
                           'studentId': _selectedStudentId,
                           'className': _selectedClassId,
                           'term': _selectedTerm,
+                          'academicYear': ?_selectedYear,
                         });
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.3),
-                  foregroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
@@ -170,8 +218,8 @@ class _ResultsSetupScreenState extends ConsumerState<ResultsSetupScreen> {
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          icon: const Icon(LucideIcons.chevronDown, color: AppColors.textSecondary),
-          hint: Text('Escolher...', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5))),
+          icon: Icon(LucideIcons.chevronDown, color: AppColors.textSecondary),
+          hint: Text('Escolher…', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5))),
           items: items,
           onChanged: onChanged,
         ),

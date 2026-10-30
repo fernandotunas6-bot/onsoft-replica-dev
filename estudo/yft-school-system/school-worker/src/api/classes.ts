@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
 import type { AppEnv } from '../app-env';
-import { requireAdmin, requireAdminOrTeacher } from '../lib/auth-guards';
+import { requireAdmin, requireRoles } from '../lib/auth-guards';
+import { wardClassIds } from '../lib/ward-classes';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
@@ -29,8 +30,19 @@ async function requireAcademicCalendar(c: Context<AppEnv>, schoolId: string) {
 
 const classes = new Hono<AppEnv>();
 
-classes.get('/', requireAdminOrTeacher, async (c) => {
+classes.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   const user = c.get('user');
+  // O encarregado vê só as turmas dos educandos, sem os dados de propinas.
+  if (user.role === 'parent') {
+    const mine = await wardClassIds(c);
+    if (mine.length === 0) return jsonOk(c, { data: [] });
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, school_id, class_name, level, created_at FROM Classes
+       WHERE school_id = ? AND id IN (${mine.map(() => '?').join(',')})
+       ORDER BY COALESCE(level, 9999), class_name`
+    ).bind(user.schoolId, ...mine).all();
+    return jsonOk(c, { data: results });
+  }
   const { results } = await c.env.DB.prepare(
     'SELECT id, school_id, class_name, level, fee_amount, fee_collection_cycle, fee_last_applied_period, created_at FROM Classes WHERE school_id = ? ORDER BY COALESCE(level, 9999), class_name'
   ).bind(user.schoolId).all();

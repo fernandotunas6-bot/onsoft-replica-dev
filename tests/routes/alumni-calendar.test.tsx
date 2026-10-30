@@ -53,7 +53,7 @@ const draftEvent: EventRow = {
 } as EventRow;
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.calendar");
+  const mod = await import("@/routes/alumni_.calendar");
   return routeComponentOf(mod);
 }
 

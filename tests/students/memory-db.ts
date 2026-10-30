@@ -37,7 +37,10 @@ export function memoryDb(tables: Record<string, Row[]>) {
       }
       const hit = matching();
       return {
-        data: head ? null : hit.slice(start, end + 1),
+        // PostgREST serializa cada SELECT: a resposta é um snapshot, não uma
+        // referência mutável para a linha interna. Isto é essencial ao testar
+        // compare-and-swap perante uma segunda sessão concorrente.
+        data: head ? null : hit.slice(start, end + 1).map((row) => ({ ...row })),
         error: null,
         count: withCount ? hit.length : null,
       };

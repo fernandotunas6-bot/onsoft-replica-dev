@@ -69,7 +69,7 @@ const sampleEvidence = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/financeiro.rh.presenca");
+  const mod = await import("@/routes/financeiro_.rh_.presenca");
   return routeComponentOf(mod);
 }
 

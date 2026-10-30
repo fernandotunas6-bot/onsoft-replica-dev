@@ -59,6 +59,7 @@ export async function notifyTaskReturned(
       db
         .from("student_guardians")
         .select("guardian_person_id")
+        .is("valid_until", null)
         .eq("school_id", input.schoolId)
         .eq("student_id", studentId),
       db.from("subjects").select("name").eq("id", input.subjectId).maybeSingle(),
@@ -78,6 +79,7 @@ export async function notifyTaskReturned(
         ? db
             .from("student_guardians")
             .select("guardian_person_id")
+            .is("valid_until", null)
             .eq("school_id", input.schoolId)
             .in("guardian_person_id", guardianIds)
         : Promise.resolve({ data: [] as Row[] }),

@@ -7,11 +7,14 @@ export type AcademicNavAssignment = {
   courseName?: string | null;
   subjectId?: string | null;
   subjectName?: string | null;
+  /** Professor da disciplina nesta turma, quando o servidor o devolve. */
+  teacherId?: string | null;
 };
 
 export type AcademicNavSubject = {
   id: string;
   name: string;
+  teacherId?: string | null;
 };
 
 export type AcademicNavClass = {
@@ -93,7 +96,11 @@ export function buildAcademicNavTree(assignments: AcademicNavAssignment[]): Acad
 
     if (row.subjectId && row.subjectName) {
       if (!turma.subjects.some((subject) => subject.id === row.subjectId)) {
-        turma.subjects.push({ id: row.subjectId, name: row.subjectName });
+        turma.subjects.push({
+          id: row.subjectId,
+          name: row.subjectName,
+          ...(row.teacherId ? { teacherId: row.teacherId } : {}),
+        });
       }
     }
 

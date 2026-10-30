@@ -6,6 +6,7 @@ import 'package:yft_school_system/core/settings/academic_year_state.dart';
 import 'package:yft_school_system/core/theme/app_colors.dart';
 import 'package:yft_school_system/core/widgets/profile_photo_avatar.dart';
 import 'package:yft_school_system/features/reports/presentation/providers/wards_provider.dart';
+import 'package:yft_school_system/core/utils/currency_display.dart';
 
 class PaymentHistoryScreen extends ConsumerWidget {
   const PaymentHistoryScreen({super.key});
@@ -19,7 +20,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Pagamento de propinas',
+          'Propinas',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.transparent,
@@ -41,7 +42,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
               Text(
                 'Não foi possível carregar os saldos: $error',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -64,7 +65,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
+                  color: AppColors.ink,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: Column(
@@ -76,8 +77,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '$currency ${totalOutstanding.toStringAsFixed(2)}',
-                      style: const TextStyle(
+                      formatMoneyDisplay(currency, totalOutstanding),
+                      style: TextStyle(
                         color: AppColors.primary,
                         fontSize: 32,
                         fontWeight: FontWeight.w600,
@@ -86,8 +87,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       hasOutstanding
-                          ? 'Os saldos reflectem as propinas em vigor nas turmas dos seus educandos.'
-                          : 'Não há propinas em dívida de momento.',
+                          ? 'Saldos calculados com as propinas actuais das turmas dos seus educandos.'
+                          : 'Os seus educandos não têm propinas em dívida.',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ],
@@ -106,12 +107,12 @@ class PaymentHistoryScreen extends ConsumerWidget {
                       ? 'Em dívida'
                       : credit > 0
                           ? 'Com crédito'
-                          : 'Regularizado';
+                          : 'Em dia';
                   final statusColor = due > 0
                       ? AppColors.error
                       : credit > 0
-                          ? Colors.blue.shade700
-                          : Colors.green;
+                          ? AppColors.primary
+                          : AppColors.success;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -139,8 +140,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   Text(
-                                    ward.className ?? 'Turma desconhecida',
-                                    style: const TextStyle(
+                                    ward.className ?? 'Turma por definir',
+                                    style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 12,
                                     ),
@@ -176,17 +177,17 @@ class PaymentHistoryScreen extends ConsumerWidget {
                               due > 0
                                   ? 'Valor em dívida'
                                   : credit > 0
-                                      ? 'Saldo credor'
+                                      ? 'Saldo a favor'
                                       : 'Valor em dívida',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textSecondary,
                               ),
                             ),
                             Text(
                               due > 0
-                                  ? '$currency ${due.toStringAsFixed(2)}'
+                                  ? formatMoneyDisplay(currency, due)
                                   : credit > 0
-                                      ? '$currency ${credit.toStringAsFixed(2)}'
+                                      ? formatMoneyDisplay(currency, credit)
                                       : '$currency 0.00',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
@@ -212,7 +213,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'O pagamento em linha pode ser activado para a escola quando for preciso.',
+                                        'O pagamento pela app ainda não está activo na sua escola.',
                                       ),
                                     ),
                                   );
@@ -254,7 +255,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 14,
             ),

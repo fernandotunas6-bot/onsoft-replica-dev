@@ -22,6 +22,10 @@ import { listTeacherAttendanceSessions } from "@/features/pedagogica/attendance-
 import { listPedagogicalWorkspace } from "@/features/academic/server";
 import { nowTimeInLuanda, pickNextLesson } from "@/features/dashboard/school-today";
 import { AttendanceCallDialog } from "@/features/pedagogica/components/AttendanceCallDialog";
+import {
+  TeacherCheckinButton,
+  TeacherPresenceLine,
+} from "@/features/pedagogica/components/TeacherLessonPresence";
 import { SpotlightRail } from "@/features/spotlight/SpotlightRail";
 import { DashboardCalendarCard } from "@/features/dashboard/components/DashboardCalendarCard";
 import { StudentTimetableCard } from "@/features/dashboard/components/StudentTimetableCard";
@@ -45,6 +49,7 @@ import {
   type PortalQuickLink,
 } from "./portal-ui";
 import { greetingFor } from "./portal-format";
+import { roomLabel } from "@/lib/room-label";
 
 export function TeacherPortalDashboard() {
   const currentUser = useCurrentAccount();
@@ -68,6 +73,8 @@ export function TeacherPortalDashboard() {
 
   const sessions = sessionsQuery.data?.sessions ?? [];
   const pendingCount = sessionsQuery.data?.pendingCount ?? 0;
+  const presenceMode = sessionsQuery.data?.presenceMode ?? "button";
+  const presenceEnabled = sessionsQuery.data?.presenceEnabled === true && presenceMode !== "off";
   const teacherClasses = workspaceQuery.data?.classGroups ?? [];
   const nextLesson = pickNextLesson(sessions, nowTimeInLuanda());
 
@@ -97,7 +104,11 @@ export function TeacherPortalDashboard() {
       <PortalHeader
         eyebrow={`Portal do Professor · ${selectedYearLabel}`}
         title={`${greetingFor()}, Professor ${firstName}`}
-        subtitle="Assine o QR de presença antes da chamada: é o que conta para a hora/aula."
+        subtitle={
+          presenceMode === "qr"
+            ? "No início de cada aula, leia o QR da escola e faça a chamada dos alunos."
+            : "No início de cada aula, toque «Estou na sala» e faça a chamada dos alunos."
+        }
         actions={
           <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs font-medium">
             <Link to="/professor/presenca">
@@ -124,10 +135,16 @@ export function TeacherPortalDashboard() {
             <p className="text-sm text-muted-foreground">
               {time(nextLesson.starts_at)}–{time(nextLesson.ends_at)} ·{" "}
               {nextLesson.class_group_name}
-              {nextLesson.room ? ` · Sala ${nextLesson.room}` : ""}
+              {nextLesson.room ? ` · ${roomLabel(nextLesson.room)}` : ""}
             </p>
           </div>
+          {presenceEnabled ? (
+            <TeacherPresenceLine session={nextLesson} self className="w-full sm:w-auto" />
+          ) : null}
           <div className="flex flex-wrap gap-2">
+            {presenceEnabled ? (
+              <TeacherCheckinButton session={nextLesson} mode={presenceMode} />
+            ) : null}
             <Button size="sm" className="gap-1.5 text-xs" onClick={() => openCall(nextLesson.id)}>
               <CheckSquare className="size-3.5" /> Fazer chamada
             </Button>
@@ -204,9 +221,13 @@ export function TeacherPortalDashboard() {
                       <p className="text-xs text-muted-foreground">
                         {pending ? "Chamada por fazer" : "Chamada feita"}
                       </p>
+                      {presenceEnabled ? <TeacherPresenceLine session={sess} self /> : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {presenceEnabled ? (
+                      <TeacherCheckinButton session={sess} mode={presenceMode} className="h-8" />
+                    ) : null}
                     <Button
                       type="button"
                       size="sm"

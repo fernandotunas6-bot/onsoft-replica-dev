@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Printer, ShieldCheck, UserCheck, UserPlus, Users, UserX } from "lucide-react";
+import {
+  KeyRound,
+  LockKeyhole,
+  Printer,
+  ShieldCheck,
+  UnlockKeyhole,
+  UserCheck,
+  UserPlus,
+  Users,
+  UserX,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
 import { InlineLoading } from "@/components/ui/inline-loading";
@@ -14,6 +24,7 @@ import {
   createStudentAccounts,
   listStudentAccounts,
   resetStudentPassword,
+  setStudentAccountDisabled,
   type IssuedCredential,
 } from "@/features/students/student-accounts-server";
 
@@ -88,6 +99,28 @@ export function StudentAccountsView() {
     },
     onError: (error) => toast.error(publicErrorMessage(error, "Não foi possível dar nova senha.")),
   });
+  const accountAccess = useMutation({
+    mutationFn: (input: { studentId: string; disabled: boolean }) =>
+      setStudentAccountDisabled({ data: input }),
+    onSuccess: (result) => {
+      toast.success(result.disabled ? "Acesso do aluno bloqueado." : "Acesso do aluno reactivado.");
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (error) =>
+      toast.error(publicErrorMessage(error, "Não foi possível alterar o acesso do aluno.")),
+  });
+  const toggleStudentAccess = (studentId: string, name: string, disabled: boolean) => {
+    const verb = disabled ? "bloquear" : "reactivar";
+    if (
+      !window.confirm(
+        `Confirma ${verb} o acesso de ${name} ao portal? A ficha e as notas serão preservadas.`,
+      )
+    ) {
+      return;
+    }
+    accountAccess.mutate({ studentId, disabled });
+  };
+
   const numberLogin = useMutation({
     mutationFn: (enabled: boolean) => setStudentNumberLogin({ data: { enabled } }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey }),
@@ -217,26 +250,55 @@ export function StudentAccountsView() {
                     <span
                       className={cn(
                         "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                        student.hasAccount
-                          ? "bg-success/10 text-success-strong"
-                          : "bg-muted text-muted-foreground",
+                        student.accountSuspended
+                          ? "bg-warning/10 text-warning-foreground"
+                          : student.hasAccount
+                            ? "bg-success/10 text-success-strong"
+                            : "bg-muted text-muted-foreground",
                       )}
                     >
-                      {student.hasAccount ? "Activa" : "Sem conta"}
+                      {student.accountSuspended
+                        ? "Bloqueada"
+                        : student.hasAccount
+                          ? "Activa"
+                          : "Sem conta"}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right">
                     {student.hasAccount ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 gap-1 text-xs"
-                        disabled={reset.isPending}
-                        onClick={() => reset.mutate(student.studentId)}
-                      >
-                        <KeyRound className="size-3.5" aria-hidden /> Nova senha
-                      </Button>
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 text-xs"
+                          disabled={reset.isPending || accountAccess.isPending}
+                          onClick={() => reset.mutate(student.studentId)}
+                        >
+                          <KeyRound className="size-3.5" aria-hidden /> Nova senha
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 text-xs"
+                          disabled={accountAccess.isPending}
+                          onClick={() =>
+                            toggleStudentAccess(
+                              student.studentId,
+                              student.name,
+                              !student.accountSuspended,
+                            )
+                          }
+                        >
+                          {student.accountSuspended ? (
+                            <UnlockKeyhole className="size-3.5" aria-hidden />
+                          ) : (
+                            <LockKeyhole className="size-3.5" aria-hidden />
+                          )}
+                          {student.accountSuspended ? "Reactivar" : "Bloquear"}
+                        </Button>
+                      </div>
                     ) : null}
                   </td>
                 </tr>

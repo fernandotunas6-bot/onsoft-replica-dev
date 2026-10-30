@@ -1,3 +1,4 @@
+import { SCHOOL_SHIFT_LABELS } from "@/lib/school-display";
 import { useState } from "react";
 import { Pencil, UserPlus } from "lucide-react";
 import { toast } from "@/lib/toast";
@@ -8,11 +9,7 @@ import { isClassTeacherLevel } from "@/lib/academic-nav";
 
 export type SalaOption = { id: string; name: string; capacity: number | null };
 
-export const shiftLabelMap: Record<string, string> = {
-  morning: "Manhã",
-  afternoon: "Tarde",
-  evening: "Noite",
-};
+export const shiftLabelMap = SCHOOL_SHIFT_LABELS;
 const shiftValueMap: Record<string, string> = {
   Manhã: "morning",
   Tarde: "afternoon",

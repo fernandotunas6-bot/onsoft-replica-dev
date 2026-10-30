@@ -135,6 +135,7 @@
     "input-otp": "^1.4.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "jsqr": "1.4.0",
     "lucide-react": "^0.575.0",
     "papaparse": "^5.7.0",
     "qrcode": "^1.5.4",
@@ -189,6 +190,7 @@
     "@modelcontextprotocol/sdk": "1.32.1",
     "@modelcontextprotocol/server": "2.3.0",
     "launch-editor": "2.14.2",
+    "re2js": "2.8.7",
     "shell-quote": "1.12.0"
   }
 }

@@ -347,6 +347,7 @@ async function findInstitutionalRecord(
     const { data: links } = await db
       .from("student_guardians")
       .select("student_id, guardian_person_id")
+      .is("valid_until", null)
       .eq("school_id", schoolId)
       .in("guardian_person_id", personIds);
     const guardianLinks = (links ?? []) as Array<{
@@ -983,8 +984,9 @@ export const reviewAccessRequest = createServerFn({ method: "POST" })
     } else {
       const decision = canGrantRole(membership.appRole, request.requested_profile, data.role);
       if (!decision.ok) throw new Error(decision.reason);
-      // Como nos convites: conceder administração ou tesouraria exige 2FA.
-      if (data.role === "Administrador" || data.role === "Tesouraria") {
+      // Pedidos de acesso nunca concedem Administrador (canGrantRole).
+      // Tesouraria continua a exigir AAL2.
+      if (data.role === "Tesouraria") {
         requireAal2(context.claims ?? {}, `Aprovar o acesso com cargo de ${data.role}`);
       }
 

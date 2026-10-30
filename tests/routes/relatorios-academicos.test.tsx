@@ -9,6 +9,7 @@ import {
   resetRouteLocation,
   routeComponentOf,
   setCurrentAccount,
+  setRouteSearch,
 } from "./_harness";
 import type { PedagogicalWorkspace } from "@/features/academic/server";
 
@@ -190,5 +191,40 @@ describe("/relatorios/academicos — render", () => {
       expect(screen.getByText("Sem membership activa nesta escola.")).toBeDefined();
     });
     expect(screen.queryByText("Ainda não há turmas na escola.")).toBeNull();
+  });
+
+  it("com `?turma=` (o menu da turma), o filtro de turma segue a URL", async () => {
+    const turmaB = { ...turma, id: "turma-2", name: "10ª B", code: "10B" };
+    const notaB = {
+      ...nota,
+      id: "nota-2",
+      enrollment_id: "mat-2",
+      average: 9,
+      student_id: "aluno-2",
+      student_name: "Kiala Bento",
+      class_group_id: "turma-2",
+      class_group_name: "10ª B",
+    };
+    seed({ classGroups: [turma, turmaB], termGrades: [nota, notaB] });
+    setRouteSearch({ turma: "turma-2" });
+
+    renderRoute(Relatorios);
+
+    const select = (await screen.findByLabelText("Turma")) as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe("10ª B"));
+    // Os indicadores contam só as notas da turma da URL.
+    const media = screen.getByText("Média geral").closest("div")?.parentElement;
+    expect(media?.textContent).toContain("9.0");
+    expect(media?.textContent).not.toContain("12.0");
+  });
+
+  it("uma turma da URL que a escola não devolve não filtra nada", async () => {
+    seed({ classGroups: [turma], termGrades: [nota] });
+    setRouteSearch({ turma: "turma-de-outra-escola" });
+
+    renderRoute(Relatorios);
+
+    const select = (await screen.findByLabelText("Turma")) as HTMLSelectElement;
+    expect(select.value).toBe("todas");
   });
 });

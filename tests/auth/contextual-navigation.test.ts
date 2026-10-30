@@ -31,6 +31,12 @@ describe("contextual navigation", () => {
     );
     expect(getNavigationContext(student, "/pedagogica", { tab: "notas" })?.title).toBe("Académico");
   });
+  it("o perfil do professor fica na área de Pessoas, sem colidir com outros caminhos", () => {
+    expect(getNavigationContext(groups, "/professores/123")).toEqual(
+      getNavigationContext(groups, "/pessoas"),
+    );
+    expect(getNavigationContext(groups, "/professor/presenca")?.title).not.toBe("Secretaria");
+  });
   it("mantém a Secretaria estável entre alunos, importações e documentos", () => {
     const context = getNavigationContext(groups, "/alunos/123");
     for (const path of ["/importar", "/documentos", "/pessoas"]) {

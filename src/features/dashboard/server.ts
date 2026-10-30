@@ -957,41 +957,55 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
       /* horário indisponível */
     }
 
+    // Presença do professor na aula (migração 20261026083707): `*` traz as colunas
+    // quando existem. Conta com a do QR do RH, mais abaixo.
+    const sessionChecked = new Set<string>();
+    const sessionPending = new Set<string>();
     try {
       const { data: sessions } = await db
         .from("siga_attendance_sessions")
-        .select("id, status")
+        .select("*")
         .eq("school_id", schoolId)
         .eq("lesson_date", today);
-      for (const session of sessions ?? []) {
+      for (const session of (sessions ?? []) as Array<Record<string, unknown>>) {
         const status = String(session.status ?? "");
         if (status === "completed") ops.attendanceSessionsDone += 1;
         else if (status !== "cancelled") ops.attendanceSessionsOpen += 1;
+        const teacherId = session.teacher_id ? String(session.teacher_id) : "";
+        if (!teacherId || status === "cancelled") continue;
+        if (session.teacher_checked_in_at || status === "completed") sessionChecked.add(teacherId);
+        else if (
+          "teacher_checked_in_at" in session &&
+          String(session.starts_at ?? "99:99").slice(0, 5) <= nowHhMm
+        ) {
+          // Só conta como «sem presença» depois de a aula começar.
+          sessionPending.add(teacherId);
+        }
       }
     } catch {
       /* chamadas indisponíveis */
     }
 
+    const checked = new Set<string>(sessionChecked);
+    const pending = new Set<string>(sessionPending);
     try {
       const { data: occurrences } = await db
         .from("hr_teacher_lesson_occurrences")
         .select("id, teacher_id, actual_started_at, status")
         .eq("school_id", schoolId)
         .eq("lesson_date", today);
-      const checked = new Set<string>();
-      const pending = new Set<string>();
       for (const row of occurrences ?? []) {
         const teacherId = row.teacher_id ? String(row.teacher_id) : "";
         if (!teacherId) continue;
         if (row.actual_started_at) checked.add(teacherId);
         else if (String(row.status ?? "") !== "cancelled") pending.add(teacherId);
       }
-      for (const id of checked) pending.delete(id);
-      ops.teachersCheckedIn = checked.size;
-      ops.teachersPendingCheckIn = pending.size;
     } catch {
       /* RH opcional */
     }
+    for (const id of checked) pending.delete(id);
+    ops.teachersCheckedIn = checked.size;
+    ops.teachersPendingCheckIn = pending.size;
 
     try {
       const mmDd = today.slice(5);
@@ -1019,18 +1033,24 @@ export const getSchoolTodayOps = createServerFn({ method: "GET" })
 
     if (["Administrador", "Tesouraria"].includes(role)) {
       try {
-        const [{ data: invoices }, { data: receipts }] = await Promise.all([
-          db
-            .from("finance_invoices")
-            .select("id, amount, discount_amount, penalty_amount, status, due_date")
-            .eq("school_id", schoolId)
-            .limit(250),
-          db
-            .from("finance_receipts")
-            .select("invoice_id, amount, status")
-            .eq("school_id", schoolId)
-            .limit(250),
-        ]);
+        // Só as vencidas e não anuladas, todas, e os recibos dessas mesmas faturas.
+        // Antes eram 250 faturas e 250 recibos quaisquer, sem ordem: uma fatura paga
+        // cujo recibo ficava de fora contava como atrasada, e as outras não contavam.
+        const reads = pagedReadClient(db);
+        const { data: invoices } = await reads
+          .from("finance_invoices")
+          .select("id, amount, discount_amount, penalty_amount, status, due_date")
+          .eq("school_id", schoolId)
+          .neq("status", "cancelled")
+          .lt("due_date", today);
+        const invoiceIds = (invoices ?? []).map((invoice) => String(invoice.id));
+        const { data: receipts } = invoiceIds.length
+          ? await reads
+              .from("finance_receipts")
+              .select("invoice_id, amount, status")
+              .eq("school_id", schoolId)
+              .in("invoice_id", invoiceIds)
+          : { data: [] as Array<{ invoice_id: string; amount: number; status: string }> };
         const paidByInvoice = new Map<string, number>();
         for (const receipt of receipts ?? []) {
           if (receipt.status === "reversed") continue;

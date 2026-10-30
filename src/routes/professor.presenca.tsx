@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { TeacherAttendancePanel } from "@/features/hr/TeacherAttendancePanel";
+import { TeacherTodayLessonsPanel } from "@/features/hr/TeacherTodayLessonsPanel";
 
 const presenceSearchSchema = z.object({
   chamada: z.coerce.number().optional().catch(undefined),
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/professor/presenca")({
       {
         name: "description",
         content:
-          "Check-in por QR, chamada da turma e histórico de aulas ministradas no telemóvel ou tablet.",
+          "Confirmação de presença na sala, chamada da turma, check-in por QR e histórico de aulas no telemóvel ou tablet.",
       },
     ],
   }),
@@ -58,7 +59,7 @@ function TeacherAttendancePage() {
         <PageHeader
           group="Professor"
           title="Presença e Hora/Aula"
-          description="Leia o QR no telemóvel ou tablet para assinar a sua presença. Depois da entrada, o SIGA abre a lista de alunos da turma e da disciplina para a chamada."
+          description="Confirme que está na sala e faça a chamada dos alunos."
           actions={
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">
@@ -72,6 +73,7 @@ function TeacherAttendancePage() {
             </div>
           }
         />
+        <TeacherTodayLessonsPanel />
         <TeacherAttendancePanel initialCall={initialCall} focusLesson={focusLesson} />
       </div>
     </AppShell>

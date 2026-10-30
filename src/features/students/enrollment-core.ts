@@ -5,7 +5,7 @@
  * `enrollNewStudent`, `enrollStudentInClass`, `updateEnrollment`,
  * `batchAssignClass`, `decideEnrollmentApplication` e nos importadores de alunos
  * e de matrículas: a chamada a `register_student` e a `enroll_student`, a
- * tradução da recusa por falta de 2FA (cinco cópias, com expressões diferentes),
+ * tradução das recusas de autorização,
  * «colocar ou mudar de turma» (três caminhos) e o estado do aluno depois disso.
  * Ficam aqui, uma vez.
  *
@@ -27,10 +27,10 @@ import { recordStudentStatusHistoryBatch } from "./status-history";
 type AdminDb = Awaited<ReturnType<typeof loadSgaAdminClient>>;
 type DbError = { code?: string | undefined; message?: string | undefined };
 
-export const ENROLLMENT_2FA_MESSAGE =
-  "Esta conta precisa de verificação em duas etapas (2FA) activa para matricular alunos ou mudá-los de turma.";
+export const ENROLLMENT_AUTHORIZATION_MESSAGE =
+  "Sem autorização para matricular alunos. Confirme o vínculo à escola e as permissões de escrita.";
 
-/** `register_student` e `enroll_student` recusam sem 2FA (`private.is_aal2`) ou sem permissão. */
+/** `register_student` e `enroll_student` recusam sem permissão. */
 export { isRpcAuthDenied };
 
 export type RpcFailure = {
@@ -49,7 +49,7 @@ export function rpcFailureError(
   messages: { auth?: string; fallback: string },
 ): Error {
   if (outcome.userMessage) return new Error(outcome.userMessage);
-  if (outcome.authDenied) return new Error(messages.auth ?? ENROLLMENT_2FA_MESSAGE);
+  if (outcome.authDenied) return new Error(messages.auth ?? ENROLLMENT_AUTHORIZATION_MESSAGE);
   return publicDatabaseError(outcome.error, messages.fallback);
 }
 
@@ -65,7 +65,7 @@ export type GuardianLink = {
 
 export type RegisteredStudent = { studentId: string; studentNumber: string; status: string };
 
-/** Cria o aluno (e o primeiro encarregado) por `register_student`: número de processo da sequência, 2FA. */
+/** Cria o aluno (e o primeiro encarregado) por `register_student`: número de processo da sequência e autorização escolar. */
 export async function registerStudentRpc(
   session: SupabaseClient,
   input: {
@@ -99,7 +99,7 @@ export type EnrolledStudent = {
   status: string;
 };
 
-/** Matrícula nova por `enroll_student`: tranca a turma, lotação, ano activo, data, número, 2FA. */
+/** Matrícula nova por `enroll_student`: tranca a turma, lotação, ano activo, data, número e autorização escolar. */
 export async function enrollStudentRpc(
   session: SupabaseClient,
   input: { schoolId: string; studentId: string; classGroupId: string; enrolledOn?: string | null },
@@ -380,6 +380,8 @@ export type PlacementResult = {
   status: "active";
   /** true: mudou de turma na matrícula do ano; false: matrícula nova. */
   moved: boolean;
+  /** Operação repetida sem alterações na matrícula: evita nova escrita. */
+  unchanged?: boolean;
 };
 
 /**
@@ -403,8 +405,6 @@ export async function placeStudentInClass(
     academicYearId?: string | null;
     enrolledOn?: string | null;
     userId: string;
-    /** Sessão com 2FA (aal2): exigida para matricular e para mudar de turma. */
-    hasAal2: boolean;
   },
 ): Promise<PlacementResult> {
   const { data: group, error: groupError } = await db
@@ -435,7 +435,7 @@ export async function placeStudentInClass(
   // anulada fica no histórico; nunca é reactivada.
   const { data: current, error: currentError } = await db
     .from("enrollments")
-    .select("id, enrollment_number")
+    .select("id, enrollment_number, class_group_id, status")
     .eq("student_id", input.studentId)
     .eq("academic_year_id", academicYearId)
     .eq("school_id", input.schoolId)
@@ -445,25 +445,81 @@ export async function placeStudentInClass(
     throw publicDatabaseError(currentError, "Não foi possível verificar matrículas existentes.");
   }
 
-  // Matricular e mudar de turma exigem 2FA (auditoria 14, A3, decidido pelo dono):
-  // antes só a matrícula nova o exigia, na base; a mudança de turma gravava sem ele.
-  if (!input.hasAal2) throw new Error(ENROLLMENT_2FA_MESSAGE);
+  // A autorização por escola e perfil é validada pelo chamador e pela RPC.
 
   let result: PlacementResult;
   if (current) {
-    const { error } = await db
-      .from("enrollments")
-      .update({ class_group_id: input.classGroupId, status: "active", updated_by: input.userId })
-      .eq("id", current.id)
-      .eq("school_id", input.schoolId);
-    if (error) throw publicDatabaseError(error, "Não foi possível mudar o aluno de turma.");
+    const sameClass = current.class_group_id === input.classGroupId;
+    const alreadyActive = current.status === "active";
+
+    // Repetir o mesmo pedido (por exemplo, duplo clique depois de uma resposta
+    // lenta) é idempotente. A sessão e a AAL2 já foram verificadas acima.
+    // A sincronização do estado continua necessária em dados legados incoerentes.
+    if (sameClass && alreadyActive) {
+      // A matrícula pode ter sido movida/anulada por outra sessão depois da
+      // primeira leitura. Reconfirmar o no-op com escola, aluno e turma;
+      // nunca declarar êxito apenas com um snapshot desactualizado.
+      const { data: stillCurrent, error: stillCurrentError } = await db
+        .from("enrollments")
+        .select("id")
+        .eq("school_id", input.schoolId)
+        .eq("id", current.id)
+        .eq("student_id", input.studentId)
+        .eq("class_group_id", input.classGroupId)
+        .eq("status", "active")
+        .maybeSingle();
+      if (stillCurrentError) {
+        throw publicDatabaseError(stillCurrentError, "Não foi possível confirmar a matrícula.");
+      }
+      if (!stillCurrent) {
+        throw new Error(
+          "Esta matrícula foi alterada por outra sessão. Actualize a lista e confirme a turma antes de repetir.",
+        );
+      }
+      if (studentStatusAfterPlacement(previousStatus) === previousStatus) {
+        return {
+          enrollmentId: String(current.id),
+          enrollmentNumber: (current.enrollment_number as string | null) ?? null,
+          classGroupId: input.classGroupId,
+          academicYearId,
+          status: "active",
+          moved: false,
+          unchanged: true,
+        };
+      }
+    }
+
+    if (!sameClass || !alreadyActive) {
+      // Compare-and-swap: duas secretarias podem abrir a mesma matrícula.
+      // Não sobrepor uma mudança de turma ou anulação feita entretanto.
+      let change = db
+        .from("enrollments")
+        .update({ class_group_id: input.classGroupId, status: "active", updated_by: input.userId })
+        .eq("id", current.id)
+        .eq("school_id", input.schoolId)
+        .eq("status", current.status);
+      change =
+        current.class_group_id == null
+          ? change.is("class_group_id", null)
+          : change.eq("class_group_id", current.class_group_id);
+      const { data: updated, error } = await change.select("id");
+      if (error) throw publicDatabaseError(error, "Não foi possível mudar o aluno de turma.");
+      if (!updated?.length) {
+        throw new Error(
+          "Esta matrícula foi alterada por outra sessão. Actualize a lista e confirme a turma antes de repetir.",
+        );
+      }
+    }
+
     result = {
       enrollmentId: String(current.id),
       enrollmentNumber: (current.enrollment_number as string | null) ?? null,
       classGroupId: input.classGroupId,
       academicYearId,
       status: "active",
-      moved: true,
+      moved: !sameClass,
+      // Também pode haver reparação do estado do aluno; não é um no-op.
+      unchanged: false,
     };
   } else {
     const held = heldStudentMessage(previousStatus);

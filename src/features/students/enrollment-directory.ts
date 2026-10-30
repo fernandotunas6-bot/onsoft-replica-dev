@@ -1,3 +1,4 @@
+import { schoolShiftLabel } from "@/lib/school-display";
 import { idOptions } from "@/lib/option-label";
 export type EnrollmentClassGroup = {
   id: string;
@@ -52,7 +53,7 @@ export function formatEnrollmentClassGroupLabel(group: EnrollmentClassGroup) {
     group.name,
     group.grade_name,
     group.course_name,
-    group.shift || null,
+    group.shift ? schoolShiftLabel(group.shift) : null,
     group.room_name && group.room_name !== "—" ? group.room_name : null,
     occupancy,
   ]
@@ -102,7 +103,7 @@ export function buildEnrollmentDirectory(
   const shifts = uniqueOptions(
     gradeRows.filter((group) => Boolean(group.shift)),
     (group) => group.shift || "",
-    (group) => group.shift || "",
+    (group) => schoolShiftLabel(group.shift),
   );
 
   const shiftRows = filters.shift
@@ -152,4 +153,21 @@ export function classGroupChoices(
         .filter((part) => part && part !== "—")
         .join(" · "),
   );
+}
+
+/** Resolve a navigation hint only within the workspace returned by the server. */
+export function enrollmentContextFromClass(
+  groups: readonly EnrollmentClassGroup[],
+  classGroupId: string | undefined,
+) {
+  const group = groups.find((row) => row.id === classGroupId);
+  if (!group || ["inactive", "archived", "closed"].includes(group.status ?? "")) return null;
+  return {
+    academicYearId: group.academic_year_id ?? "",
+    courseId: group.course_id || group.course_name,
+    gradeName: group.grade_name,
+    shift: group.shift ?? "",
+    roomName: group.room_name ?? "",
+    turmaId: group.id,
+  };
 }

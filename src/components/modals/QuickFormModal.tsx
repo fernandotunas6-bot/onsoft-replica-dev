@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableNativeSelect } from "@/components/forms/SearchableNativeSelect";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 
 type QuickOptions = string[] | { value: string; label: string }[];
@@ -18,6 +19,8 @@ export type QuickField = {
   type?:
     "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
   options?: QuickOptions | undefined;
+  /** Opt-in text filter; the selected value is preserved while searching. */
+  searchable?: boolean;
   /**
    * Opções que dependem do que já está escolhido noutros campos (ex.: as disciplinas
    * da turma do aluno). Substitui `options`; ao mudarem, o campo volta à primeira.
@@ -74,6 +77,7 @@ export function QuickFormModal({
   autoOpen = false,
   successDescription = "Registo guardado com sucesso.",
   renderHint,
+  validate,
 }: {
   trigger: (open: () => void) => ReactNode;
   eyebrow?: string | undefined;
@@ -91,11 +95,15 @@ export function QuickFormModal({
   successDescription?: string;
   /** Aviso calculado a partir do que está escrito (ex.: «já existe»), por baixo dos campos. */
   renderHint?: (values: Record<string, string>) => ReactNode;
+  /** Validação por campo antes da mutação, sem apagar os valores submetidos. */
+  validate?: (values: Record<string, string>) => Record<string, string>;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const didAutoOpen = useRef(false);
   // Guarda síncrona: o botão só fica desactivado depois de o React voltar a desenhar,
@@ -114,6 +122,8 @@ export function QuickFormModal({
     if (!open) {
       setDirty(false);
       setValues({});
+      setFieldErrors({});
+      setSubmitError(false);
     }
   }, [open]);
 
@@ -127,7 +137,13 @@ export function QuickFormModal({
   };
 
   const guardedClose = () => {
+    if (inFlight.current) return;
     if (confirmDiscardChanges(dirty)) setOpen(false);
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next && inFlight.current) return;
+    setOpen(next);
   };
 
   async function submit() {
@@ -135,15 +151,23 @@ export function QuickFormModal({
     if (!formRef.current.reportValidity()) return;
 
     if (inFlight.current) return;
+    const submittedValues = readValues();
+    const errors = validate?.(submittedValues) ?? {};
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      const first = formRef.current.elements.namedItem(Object.keys(errors)[0]!);
+      if (first instanceof HTMLElement) first.focus();
+      return;
+    }
     inFlight.current = true;
-    const values = readValues();
-
+    setSubmitError(false);
     setSaving(true);
     try {
-      await onSubmit(values);
+      await onSubmit(submittedValues);
       toast.success(title, { description: successDescription });
       setOpen(false);
     } catch (err) {
+      setSubmitError(true);
       // Acção protegida: abre «Confirme que é você» em vez de um erro.
       if (reportPossibleStepUp(err)) return;
       toast.error("Erro ao guardar", {
@@ -159,16 +183,40 @@ export function QuickFormModal({
     <>
       {trigger(() => setOpen(true))}
 
-      <ModalShell open={open} onOpenChange={setOpen} size={size} hasUnsavedChanges={dirty}>
+      <ModalShell open={open} onOpenChange={handleOpenChange} size={size} hasUnsavedChanges={dirty}>
         <div className="flex flex-col h-full">
           <ModalHeader title={title} subtitle={description ?? eyebrow} onClose={guardedClose} />
           <ModalContent>
+            {submitError ? (
+              <p role="alert" className="mb-3 text-sm text-destructive">
+                Não foi possível guardar. Os dados introduzidos foram mantidos para nova tentativa.
+              </p>
+            ) : null}
             <form
               ref={formRef}
               className="grid gap-3 sm:grid-cols-2"
-              onSubmit={(event) => event.preventDefault()}
-              onChange={() => {
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit();
+              }}
+              onChange={(event) => {
                 setDirty(true);
+                const target = event.target;
+                const name =
+                  target instanceof HTMLInputElement ||
+                  target instanceof HTMLSelectElement ||
+                  target instanceof HTMLTextAreaElement
+                    ? target.name
+                    : "";
+                if (name) {
+                  setFieldErrors((previous) => {
+                    if (!previous[name]) return previous;
+                    const next = { ...previous };
+                    delete next[name];
+                    return next;
+                  });
+                }
+                setSubmitError(false);
                 if (tracksValues) setValues(readValues());
               }}
             >
@@ -183,6 +231,8 @@ export function QuickFormModal({
                       name={field.name}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      aria-invalid={Boolean(fieldErrors[field.name])}
+                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                       defaultValue={field.defaultValue}
                       className="mt-1"
                     />
@@ -193,6 +243,31 @@ export function QuickFormModal({
                       ).map((option) =>
                         typeof option === "string" ? { value: option, label: option } : option,
                       );
+                      if (field.searchable) {
+                        return (
+                          <SearchableNativeSelect
+                            key={
+                              field.optionsFor
+                                ? normalizedOptions.map((option) => option.value).join("\u0000")
+                                : undefined
+                            }
+                            id={field.name}
+                            name={field.name}
+                            label={field.label}
+                            options={normalizedOptions}
+                            required={field.required ?? true}
+                            invalid={Boolean(fieldErrors[field.name])}
+                            errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                            placeholder={field.placeholder}
+                            defaultValue={String(
+                              field.defaultValue ??
+                                (field.placeholder || field.required === false
+                                  ? ""
+                                  : (normalizedOptions[0]?.value ?? "")),
+                            )}
+                          />
+                        );
+                      }
                       return (
                         <select
                           // Opções novas: monta de novo, para não ficar um valor que já não está na lista.
@@ -204,6 +279,10 @@ export function QuickFormModal({
                           id={field.name}
                           name={field.name}
                           required={field.required ?? true}
+                          aria-invalid={Boolean(fieldErrors[field.name])}
+                          aria-describedby={
+                            fieldErrors[field.name] ? `${field.name}-error` : undefined
+                          }
                           className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
                           defaultValue={
                             field.defaultValue ??
@@ -225,6 +304,8 @@ export function QuickFormModal({
                       name={field.name}
                       defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
                       disabled={false}
+                      ariaInvalid={Boolean(fieldErrors[field.name])}
+                      errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                       placeholder={field.placeholder ?? ""}
                       className="mt-1.5"
                     />
@@ -236,11 +317,22 @@ export function QuickFormModal({
                       {...(inferInputMode(field) ? { inputMode: inferInputMode(field) } : {})}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      aria-invalid={Boolean(fieldErrors[field.name])}
+                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
                       defaultValue={field.defaultValue}
                       className="mt-1.5"
                       {...(field.suggestions?.length ? { list: `${field.name}-suggestions` } : {})}
                     />
                   )}
+                  {fieldErrors[field.name] ? (
+                    <p
+                      id={`${field.name}-error`}
+                      role="alert"
+                      className="mt-1 text-xs text-destructive"
+                    >
+                      {fieldErrors[field.name]}
+                    </p>
+                  ) : null}
                   {field.suggestions?.length ? (
                     <datalist id={`${field.name}-suggestions`}>
                       {field.suggestions.map((option) => (

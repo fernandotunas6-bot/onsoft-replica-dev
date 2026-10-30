@@ -16,6 +16,25 @@ Introdução 3,2 s ou 650 ms após a primeira abertura, salto, movimento reduzid
 e restauração de sessão em paralelo. Só a preferência de intro/movimento é
 persistida pelo código; o SDK gere a sua própria sessão.
 
+## Presença do professor (QR da escola)
+
+«Mais → Presença na sala» e o botão «Ler QR da escola» no Início (perfil
+professor). A câmara (`mobile_scanner`) lê o QR que a Direcção mostra no ecrã
+(muda a cada 30 s e funciona sem internet nesse ecrã) ou o QR impresso da
+semana; o `geolocator` junta a localização e se ela é simulada. A app envia o
+texto do QR, a localização e a hora do telemóvel para `/api/mobile/presence`
+(API principal do SIGA, Bearer do Supabase): é o servidor que valida a
+assinatura, a hora e a zona da escola e marca as aulas.
+
+Sem rede (zonas remotas) a leitura fica numa fila no telemóvel
+(`shared_preferences`, até 50) e é enviada quando houver internet, à abertura
+do ecrã ou de 2 em 2 minutos; o servidor corrige a hora do aparelho e aceita
+até 72 h (definição da escola). Uma recusa do servidor sai da fila.
+
+Na Web a API é a mesma origem. A app instalada precisa de
+`--dart-define=SIGA_API_ORIGIN=https://app.<domínio>`, e as permissões de
+câmara e localização no Android/iOS quando forem empacotados.
+
 ## Identidade: limite explícito
 
 O painter é uma proposta tipográfica com expansão, recorte e dissolução.

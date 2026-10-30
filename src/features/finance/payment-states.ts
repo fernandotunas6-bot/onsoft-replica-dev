@@ -24,17 +24,25 @@ export function invoiceState(
   if (invoice.status === "void" || invoice.status === "cancelled") {
     return { status: "cancelled", label: "Anulada" };
   }
-  if (invoice.status === "paid" || (invoice.total > 0 && invoice.paid >= invoice.total)) {
+  // O estado textual pode ficar desactualizado depois de estornos. Nunca
+  // apresentar a obrigação como paga quando os recibos válidos já não
+  // cobrem o total. Arredondar para cêntimos, como o motor de liquidações.
+  const totalCents = Math.max(Math.round(invoice.total * 100), 0);
+  const paidCents = Math.max(Math.round(invoice.paid * 100), 0);
+  if (
+    (totalCents > 0 && paidCents >= totalCents) ||
+    (totalCents === 0 && invoice.status === "paid")
+  ) {
     return { status: "paid", label: "Paga" };
   }
   const overdue = Boolean(invoice.dueOn && invoice.dueOn < today);
   if (overdue) {
     return {
       status: "overdue",
-      label: invoice.paid > 0 ? "Vencida · paga em parte" : "Vencida",
+      label: paidCents > 0 ? "Vencida · paga em parte" : "Vencida",
     };
   }
-  if (invoice.paid > 0) return { status: "partial", label: "Paga em parte" };
+  if (paidCents > 0) return { status: "partial", label: "Paga em parte" };
   return { status: "pending", label: "Por pagar" };
 }
 

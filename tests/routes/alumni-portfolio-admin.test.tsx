@@ -64,7 +64,7 @@ function buildItem(overrides: Record<string, unknown> = {}) {
 }
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.$alumniId.portfolio");
+  const mod = await import("@/routes/alumni_.$alumniId_.portfolio");
   return routeComponentOf(mod);
 }
 

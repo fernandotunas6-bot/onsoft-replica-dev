@@ -60,7 +60,7 @@ const mentorMatch: Match = {
 };
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/alumni.matching");
+  const mod = await import("@/routes/alumni_.matching");
   return routeComponentOf(mod);
 }
 

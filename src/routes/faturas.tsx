@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { realtimeInvalidator } from "@/lib/realtime-invalidate";
@@ -119,7 +120,17 @@ type InvoiceExportRow = {
   situacao: PaymentStateView;
 };
 
+/**
+ * `?aluno=<id>`: as faturas de um aluno (todas, não só as 250 mais recentes da
+ * escola), abertas do menu da fatura (SIGA Context Engine). O servidor filtra pela
+ * escola activa; um id mal formado é ignorado.
+ */
+const faturasSearchSchema = z.object({
+  aluno: z.string().guid().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/faturas")({
+  validateSearch: (search: Record<string, unknown>) => faturasSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Faturas · SIGA" },
@@ -185,9 +196,13 @@ function FaturasPage() {
   const de = filters.de;
   const ate = filters.ate;
 
+  const { aluno } = Route.useSearch();
   const invoicesQuery = useQuery({
-    queryKey: ["finance", "invoices"],
-    queryFn: () => listInvoices({ data: { limit: 250, includeOpen: true } }),
+    queryKey: aluno ? ["finance", "invoices", { studentId: aluno }] : ["finance", "invoices"],
+    queryFn: () =>
+      aluno
+        ? listInvoices({ data: { limit: 1000, studentId: aluno } })
+        : listInvoices({ data: { limit: 250, includeOpen: true } }),
   });
   const financeStudentsQuery = useQuery({
     queryKey: ["finance", "students"],
@@ -1101,6 +1116,24 @@ function FaturasPage() {
           </Alert>
         ) : null}
 
+        {aluno ? (
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-soft"
+          >
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {invoicesQuery.isLoading
+                ? "A abrir as faturas do aluno…"
+                : faturas[0]
+                  ? `Faturas de ${faturas[0].aluno} · processo ${faturas[0].processo}`
+                  : "Este aluno não tem faturas nesta escola."}
+            </span>
+            <Link to="/faturas" className="text-xs font-semibold text-primary hover:underline">
+              Ver todas as faturas
+            </Link>
+          </div>
+        ) : null}
+
         <StatGrid
           collapsible
           storageKey="faturas-1"
@@ -1214,7 +1247,14 @@ function FaturasPage() {
                               {f.aluno}
                             </p>
                             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              <span className="tnum">{f.numero}</span> · {f.descricao}
+                              <Link
+                                to="/faturas/$invoiceId"
+                                params={{ invoiceId: f.id }}
+                                className="tnum font-medium text-primary hover:underline"
+                              >
+                                {f.numero}
+                              </Link>{" "}
+                              · {f.descricao}
                             </p>
                           </div>
                           <StatusBadge
@@ -1260,10 +1300,15 @@ function FaturasPage() {
                     {pagedFaturas.map((f) => (
                       <TableRow key={f.id}>
                         <TableCell className="font-mono text-xs">
-                          <span className="flex items-center gap-2">
+                          {/* O número abre a página da fatura, com o aluno e os recibos. */}
+                          <Link
+                            to="/faturas/$invoiceId"
+                            params={{ invoiceId: f.id }}
+                            className="flex items-center gap-2 hover:text-primary hover:underline"
+                          >
                             <FileText className="size-4 text-primary" />
                             {f.numero}
-                          </span>
+                          </Link>
                         </TableCell>
                         <TableCell className="font-semibold">{f.aluno}</TableCell>
                         <TableCell className="font-mono text-xs text-muted-foreground">

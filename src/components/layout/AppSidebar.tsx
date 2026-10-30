@@ -41,6 +41,12 @@ import { getCreateSchoolUrl, getPricingUrl, getSigaNavDocUrl } from "@/lib/ecosy
 import { useTenant } from "@/features/saas/tenant-context";
 import { AcademicNavTree } from "./AcademicNavTree";
 import {
+  ContextEntityNav,
+  ResumeContextLink,
+  useEntityNavigation,
+  useResumeNavigation,
+} from "./ContextEntityNav";
+import {
   NAV_ROW_BASE,
   NAV_ROW_ACTIVE,
   NAV_ROW_IDLE,
@@ -100,7 +106,7 @@ export function AppSidebar({
   const closeSchoolMenuAfterPointerLeave = (pointerType: string) => {
     if (pointerType !== "mouse") return;
     cancelSchoolMenuClose();
-    schoolMenuCloseTimer.current = setTimeout(() => setSchoolMenuOpen(false), 180);
+    schoolMenuCloseTimer.current = setTimeout(() => setSchoolMenuOpen(false), HOVER_CLOSE_DELAY_MS);
   };
   useEffect(
     () => () => {
@@ -177,12 +183,19 @@ export function AppSidebar({
         })),
     },
   ];
-  const displayedGroups = contextual && context ? [context] : generalGroups;
+  // Turma ou disciplina aberta (confirmada pelo servidor): a sidebar passa a ser
+  // o menu dessa entidade; «Voltar» e «Todas as áreas» repõem o módulo.
+  const entityNavigation = useEntityNavigation(pathname, locationSearch);
+  const entityActive = contextual && entityNavigation !== null;
+  // Sem turma aberta na área académica: retomar a turma ou disciplina onde estava.
+  const resumeLink = useResumeNavigation(pathname, locationSearch, contextual && !entityActive);
+  const displayedGroups = entityActive ? [] : contextual && context ? [context] : generalGroups;
 
   return (
     <>
       <aside
         data-sidebar="siga"
+        id="siga-sidebar-navigation"
         className={cn(
           "flex h-full shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200",
           "rounded-none",
@@ -400,6 +413,16 @@ export function AppSidebar({
               className={!context ? "hidden" : undefined}
             />
           </div>
+          {entityActive && entityNavigation ? (
+            <ContextEntityNav
+              navigation={entityNavigation}
+              areaTitle={context?.title ?? null}
+              collapsed={collapsed}
+            />
+          ) : null}
+          {!entityActive && resumeLink ? (
+            <ResumeContextLink link={resumeLink} collapsed={collapsed} />
+          ) : null}
           {contextual &&
           pathname.startsWith("/pedagogica") &&
           canAccessPath("/pedagogica", currentUser.role, currentUser.grants, activePlan) ? (
@@ -639,6 +662,9 @@ export function AppSidebar({
   );
 }
 
+/** Atraso de fecho do submenu ao sair com o rato (o mesmo do menu da escola). */
+const HOVER_CLOSE_DELAY_MS = 180;
+
 /** A portal keeps collapsed menus outside the sidebar's clipping/scroll container. */
 function CollapsedNavMenu({
   navigationKey,
@@ -656,15 +682,37 @@ function CollapsedNavMenu({
   active: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  // Com rato, o submenu abre ao apontar e fecha com um pequeno atraso, para o
+  // cursor passar do ícone para o submenu (§8 do Prompt Master). Toque e teclado
+  // continuam a abrir por clique/Enter; nada depende só de hover.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelClose = () => {
+    if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    closeTimer.current = null;
+  };
+  const closeAfterLeave = (pointerType: string) => {
+    if (pointerType !== "mouse") return;
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_DELAY_MS);
+  };
+  useEffect(() => cancelClose, []);
   useEffect(() => {
+    cancelClose();
     setOpen(false);
   }, [navigationKey]);
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
           title={item.label}
+          data-collapsed-menu={item.label}
+          onPointerEnter={(event) => {
+            if (event.pointerType !== "mouse") return;
+            cancelClose();
+            setOpen(true);
+          }}
+          onPointerLeave={(event) => closeAfterLeave(event.pointerType)}
           className={cn(
             NAV_ROW_BASE,
             "min-h-9 justify-center px-1 py-2",
@@ -679,6 +727,12 @@ function CollapsedNavMenu({
         side="right"
         align="start"
         sideOffset={8}
+        collisionPadding={12}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse") cancelClose();
+        }}
+        onPointerLeave={(event) => closeAfterLeave(event.pointerType)}
+        onCloseAutoFocus={cancelClose}
         className="max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] w-64 overflow-y-auto border-sidebar-border bg-sidebar text-sidebar-foreground"
       >
         <DropdownMenuLabel className="text-xs font-medium text-sidebar-muted">

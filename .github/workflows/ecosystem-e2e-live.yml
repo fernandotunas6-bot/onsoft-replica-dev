@@ -22,14 +22,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verificar secrets Supabase
+      - name: 'Verificar configuração do staging (manual: falhar, nunca omitir)'
         id: secrets
         env:
-          SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
         run: |
-          if [ -z "$SUPABASE_SECRET_KEY" ]; then
+          missing=0
+          for name in STAGING_SUPABASE_PROJECT_ID STAGING_SUPABASE_URL STAGING_SUPABASE_PUBLISHABLE_KEY STAGING_SUPABASE_SECRET_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::warning::Falta $name no ambiente staging."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "::error::Homologação manual bloqueada: staging incompleto."
+              exit 1
+            fi
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Secrets em falta — skip @live nocturno."
+            echo "Agendamento semanal omitido: configurar staging antes de validar."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
@@ -38,6 +52,15 @@ jobs:
         if: steps.secrets.outputs.skip != 'true'
         with:
           node-version: "24"
+
+      - name: Validar staging independente antes de qualquer escrita
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          STAGING_SUPABASE_PROJECT_ID: ${{ secrets.STAGING_SUPABASE_PROJECT_ID }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          STAGING_SUPABASE_SECRET_KEY: ${{ secrets.STAGING_SUPABASE_SECRET_KEY }}
+        run: node scripts/siga/release-staging-preflight.mjs
 
       - uses: oven-sh/setup-bun@v2
         if: steps.secrets.outputs.skip != 'true'
@@ -84,6 +107,18 @@ jobs:
           SIGA_E2E_LIVE: "1"
           CI: "true"
         run: node scripts/siga/e2e-ecosystem-live.mjs
+
+      - name: Registar evidência de homologação autenticada
+        if: success() && steps.secrets.outputs.skip != 'true'
+        run: |
+          {
+            echo "### Homologação E2E @live"
+            echo "- SHA validado: \`$GITHUB_SHA\`"
+            echo "- Workflow: \`$GITHUB_WORKFLOW\`"
+            echo "- Ambiente: staging isolado"
+            echo "- Testes: smoke, Playwright Python e Playwright TS"
+            echo "- Resultado: passos executados com sucesso"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publicar relatório Playwright (falhas @live)
         if: failure() && steps.secrets.outputs.skip != 'true'

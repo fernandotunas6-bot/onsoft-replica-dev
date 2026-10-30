@@ -48,6 +48,12 @@ Issue principal: **#289**.
   para notas e presenças, mesmo online; integrada no `main`.
 - **#316** reabrir portal escolar da janela local; PR ainda em validação
   nesta passagem: confirmar SHA, lint, Rust e CI antes de integrar.
+- **#351** (26/10) versão 1.3.1 com o Tauri 2.12.5 (CLI 2.12.4;
+  `tauri-plugin-updater` fica na 2.13 para não mexer no `bun.lock`). A chave
+  de assinatura das actualizações ficou configurada no mesmo dia: estado,
+  identificador e recuperação em [PUBLICAR_VERSOES.md](./PUBLICAR_VERSOES.md).
+  A v1.3.0 ficou em rascunho de propósito. Gravar segredos e publicar
+  releases é do dono do repositório: os agentes preparam e verificam.
 
 ## Não negociável — segurança e integridade
 

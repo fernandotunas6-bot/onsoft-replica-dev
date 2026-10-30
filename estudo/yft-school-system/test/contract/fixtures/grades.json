@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "subject_id": "q-mat",
+      "term_id": "Term 1",
+      "class_score": 24.5,
+      "exam_score": 58,
+      "academic_year": "2025/2026",
+      "subject_name": "Matemática"
+    }
+  ],
+  "academic_year": "2025/2026"
+}

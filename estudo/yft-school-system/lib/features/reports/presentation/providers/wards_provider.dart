@@ -3,6 +3,7 @@ import 'package:yft_school_system/core/models/student.dart';
 import 'package:yft_school_system/core/providers/repository_providers.dart';
 
 final wardsProvider = FutureProvider<List<Student>>((ref) async {
+  ref.watch(currentUidProvider);
   final studentRepo = ref.watch(studentRepositoryProvider);
   return await studentRepo.getWards();
 });

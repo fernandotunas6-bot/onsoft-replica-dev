@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,8 +16,9 @@ import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
+import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/layout/AppShell";
-import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
+import { ImpactConfirmModal } from "@/components/modals/ImpactConfirmModal";
 import {
   TurmaEditSubModal,
   TurmaAssignTeacherSubModal,
@@ -26,6 +27,7 @@ import {
 import {
   applyCurriculumToClassGroup,
   deleteClassGroup,
+  getClassGroupDeletionImpact,
   listPedagogicalWorkspace,
   listRooms,
   updateClassGroup,
@@ -41,8 +43,20 @@ import { useRelations } from "@/features/intelligence/use-relations";
 import { useSuggestions } from "@/features/intelligence/use-suggestions";
 import { errorMessage } from "@/lib/error-message";
 import { safeHref } from "@/lib/safe-url";
+import { TURMA_SECTIONS, type TurmaSection } from "@/features/academic/turma-sections";
+import { TurmaTeacherContextPanel } from "@/features/academic/components/TurmaTeacherContextPanel";
+import { z } from "zod";
+
+/**
+ * `?secao=` (SIGA Context Engine): o menu da turma abre a ficha numa secção
+ * («Alunos da turma» → `?secao=alunos`). A página mostra tudo e leva até lá.
+ */
+const turmaSearchSchema = z.object({
+  secao: z.enum(TURMA_SECTIONS).optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/pedagogica_/turmas/$turmaId")({
+  validateSearch: (search) => turmaSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Ficha da Turma · SIGA" },
@@ -61,6 +75,13 @@ export const Route = createFileRoute("/pedagogica_/turmas/$turmaId")({
   }),
   component: TurmaDetail,
 });
+
+const foldRosterSearch = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt")
+    .trim();
 
 const weekdayLabels = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -88,12 +109,18 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** O id de cada secção na página, para `?secao=` e para ligações directas. */
+const sectionId = (section: TurmaSection) => `turma-${section}`;
+
 function TurmaDetail() {
   const { turmaId } = Route.useParams();
+  const { secao } = Route.useSearch();
   const queryClient = useQueryClient();
   const account = useCurrentAccount();
   const { school, selectedYearId } = useSchoolSettings();
   const canManageAcademic = canWriteModule(account.role, "pedagogica", account.grants);
+  const canManageTurma =
+    (account.role === "Administrador" || account.role === "Secretaria") && canManageAcademic;
   const canReadAcademic =
     account.role === "Administrador" ||
     account.role === "Secretaria" ||
@@ -111,7 +138,7 @@ function TurmaDetail() {
   const teachersQuery = useQuery({
     queryKey: ["people", "teachers", "assign"],
     queryFn: () => listTeachers({ data: { status: "active", limit: 200 } }),
-    enabled: canManageAcademic,
+    enabled: canManageTurma,
   });
   const classroomsQuery = useQuery({
     queryKey: ["academic", "rooms"],
@@ -119,6 +146,8 @@ function TurmaDetail() {
     enabled: canReadAcademic,
   });
 
+  const [studentSearch, setStudentSearch] = useState({ classId: turmaId, value: "" });
+  const searchValue = studentSearch.classId === turmaId ? studentSearch.value : "";
   const [editOpen, setEditOpen] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -145,6 +174,17 @@ function TurmaDetail() {
     () => (workspace?.enrollmentOptions ?? []).filter((row) => row.class_group_id === turmaId),
     [workspace?.enrollmentOptions, turmaId],
   );
+  const filteredStudents = useMemo(() => {
+    const words = foldRosterSearch(searchValue).split(/\s+/).filter(Boolean);
+    return alunos
+      .filter((student) => {
+        const text = foldRosterSearch(
+          `${student.student_name} ${student.registration_number ?? ""}`,
+        );
+        return words.every((word) => text.includes(word));
+      })
+      .sort((a, b) => a.student_name.localeCompare(b.student_name, "pt"));
+  }, [alunos, searchValue]);
   const disciplinas = useMemo(
     () => (workspace?.classSubjects ?? []).filter((row) => row.class_group_id === turmaId),
     [workspace?.classSubjects, turmaId],
@@ -179,6 +219,13 @@ function TurmaDetail() {
     };
   }, [turma, classRelationsSnapshot, school?.id]);
   useDeclareEntityFocus(focusedClassEntity);
+  // Com a turma carregada, leva à secção pedida pelo menu.
+  const turmaLoaded = Boolean(turma);
+  useEffect(() => {
+    if (!turmaLoaded || !secao) return;
+    document.getElementById(sectionId(secao))?.scrollIntoView?.({ block: "start" });
+    document.getElementById(`${sectionId(secao)}-titulo`)?.focus({ preventScroll: true });
+  }, [turmaLoaded, turma?.id, secao]);
   const classRelations = useRelations();
   const classSuggestions = useSuggestions();
 
@@ -253,107 +300,131 @@ function TurmaDetail() {
               · {turma.academic_year_name}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setAssignOpen(true)}
-            >
-              <UserPlus className="size-3.5" /> Professor
-            </Button>
-            {turma.course_id ? (
+          {canManageTurma ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {turma.status === "active" ? (
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link to="/alunos" search={{ action: "matricular", classGroupId: turma.id }}>
+                    <UserPlus className="size-3.5" /> Matricular nesta turma
+                  </Link>
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                disabled={applyingCurriculum}
-                onClick={handleApplyCurriculum}
+                onClick={() => setAssignOpen(true)}
               >
-                <BookOpen className="size-3.5" /> Aplicar currículo do curso
+                <UserPlus className="size-3.5" /> Professor
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setEditOpen(true)}
-            >
-              <Pencil className="size-3.5" /> Editar
-            </Button>
-            {turma.status !== "active" ? (
+              {turma.course_id ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={applyingCurriculum}
+                  onClick={handleApplyCurriculum}
+                >
+                  <BookOpen className="size-3.5" /> Aplicar currículo do curso
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                disabled={reactivating}
-                onClick={async () => {
-                  setReactivating(true);
-                  try {
-                    await updateClassGroup({
-                      data: {
-                        id: turma.id,
-                        code: turma.code,
-                        name: turma.name,
-                        // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
-                        status: "active",
-                      },
-                    });
-                    await refreshAcademic();
-                    toast.success("Turma reactivada.");
-                  } catch (err) {
-                    toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
-                  } finally {
-                    setReactivating(false);
-                  }
-                }}
+                onClick={() => setEditOpen(true)}
               >
-                <RotateCcw className="size-3.5" /> Reactivar
+                <Pencil className="size-3.5" /> Editar
               </Button>
-            ) : null}
-            <ConfirmActionModal
-              trigger={(openConfirm) =>
-                turma.status === "active" ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="gap-1.5 text-destructive"
-                    onClick={openConfirm}
-                  >
-                    <Trash2 className="size-3.5" /> Desactivar
-                  </Button>
-                ) : null
-              }
-              eyebrow="Turma"
-              title="Desactivar esta turma?"
-              description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
-              confirmLabel="Desactivar turma"
-              onConfirm={async () => {
-                try {
+              {turma.status !== "active" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={reactivating}
+                  onClick={async () => {
+                    setReactivating(true);
+                    try {
+                      await updateClassGroup({
+                        data: {
+                          id: turma.id,
+                          code: turma.code,
+                          name: turma.name,
+                          // Só o estado: o turno, a lotação e o grupo de WhatsApp ficam.
+                          status: "active",
+                        },
+                      });
+                      await refreshAcademic();
+                      toast.success("Turma reactivada.");
+                    } catch (err) {
+                      toast.error(errorMessage(err, "Não foi possível reactivar a turma."));
+                    } finally {
+                      setReactivating(false);
+                    }
+                  }}
+                >
+                  <RotateCcw className="size-3.5" /> Reactivar
+                </Button>
+              ) : null}
+              <ImpactConfirmModal
+                trigger={(openConfirm) =>
+                  turma.status === "active" ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-destructive"
+                      onClick={openConfirm}
+                    >
+                      <Trash2 className="size-3.5" /> Desactivar
+                    </Button>
+                  ) : null
+                }
+                title="Desactivar esta turma?"
+                verb="Desactivar"
+                itemType="a turma"
+                itemName={turma.name}
+                confirmLabel="Desactivar turma"
+                loadImpact={() => getClassGroupDeletionImpact({ data: { id: turma.id } })}
+                onConfirm={async () => {
                   await deleteClassGroup({ data: { id: turma.id } });
                   await refreshAcademic();
                   toast.success("Turma desactivada.");
-                } catch (err) {
-                  toast.error(
-                    err instanceof Error ? err.message : "Não foi possível desactivar a turma.",
-                  );
-                  throw err;
-                }
-              }}
-            />
-          </div>
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2">
+        <div
+          className={
+            account.role === "Professor"
+              ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"
+              : "grid grid-cols-1 gap-6 lg:grid-cols-2"
+          }
+        >
+          <section
+            id={sectionId("resumo")}
+            aria-labelledby={`${sectionId("resumo")}-titulo`}
+            className={
+              account.role === "Professor"
+                ? "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+                : "scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft lg:col-span-2"
+            }
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Resumo" />
-              <h2 className="font-display text-base font-bold">Resumo</h2>
+              <h2
+                id={`${sectionId("resumo")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
+                Resumo
+              </h2>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-border bg-secondary/10 p-4">
@@ -459,15 +530,49 @@ function TurmaDetail() {
             ) : null}
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("alunos")}
+            aria-labelledby={`${sectionId("alunos")}-titulo`}
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Users} size="sm" label="Alunos" />
-              <h2 className="font-display text-base font-bold">Alunos ({alunos.length})</h2>
+              <h2
+                id={`${sectionId("alunos")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
+                Alunos ({alunos.length})
+              </h2>
             </div>
             <div className="mt-4">
-              {alunos.length ? (
+              {alunos.length > 0 ? (
+                <div className="mb-3 space-y-2">
+                  <label htmlFor="turma-alunos-pesquisa" className="text-xs font-medium">
+                    Procurar aluno nesta turma
+                  </label>
+                  <Input
+                    id="turma-alunos-pesquisa"
+                    type="search"
+                    placeholder="Nome ou número de processo"
+                    value={searchValue}
+                    onChange={(event) =>
+                      setStudentSearch({ classId: turmaId, value: event.target.value })
+                    }
+                    aria-describedby="turma-alunos-resultados"
+                  />
+                  <p
+                    id="turma-alunos-resultados"
+                    role="status"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {filteredStudents.length} de {alunos.length} alunos
+                  </p>
+                </div>
+              ) : null}
+              {filteredStudents.length ? (
                 <div className="divide-y divide-border rounded-lg border border-border bg-card">
-                  {alunos.map((aluno) => (
+                  {filteredStudents.map((aluno) => (
                     <Link
                       key={aluno.id}
                       to="/alunos/$studentId"
@@ -484,17 +589,37 @@ function TurmaDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
-                  Nenhum aluno matriculado nesta turma ainda.
-                </p>
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                  {alunos.length
+                    ? "Nenhum aluno corresponde à pesquisa nesta turma."
+                    : "Nenhum aluno matriculado nesta turma ainda."}
+                  {alunos.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="mt-2 block w-full"
+                      onClick={() => setStudentSearch({ classId: turmaId, value: "" })}
+                    >
+                      Limpar pesquisa
+                    </Button>
+                  ) : null}
+                </div>
               )}
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("disciplinas")}
+            aria-labelledby={`${sectionId("disciplinas")}-titulo`}
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={BookOpen} size="sm" label="Professores e disciplinas" />
-              <h2 className="font-display text-base font-bold">
+              <h2
+                id={`${sectionId("disciplinas")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
                 Professores &amp; Disciplinas ({disciplinas.length})
               </h2>
             </div>
@@ -521,10 +646,20 @@ function TurmaDetail() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("horario")}
+            aria-labelledby={`${sectionId("horario")}-titulo`}
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={Calendar} size="sm" label="Horário" />
-              <h2 className="font-display text-base font-bold">Horário ({horario.length})</h2>
+              <h2
+                id={`${sectionId("horario")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
+                Horário ({horario.length})
+              </h2>
             </div>
             <div className="mt-4">
               {horario.length ? (
@@ -551,10 +686,20 @@ function TurmaDetail() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-border bg-card p-6 shadow-soft">
+          <section
+            id={sectionId("avaliacoes")}
+            aria-labelledby={`${sectionId("avaliacoes")}-titulo`}
+            className="scroll-mt-[88px] rounded-xl border border-border bg-card p-6 shadow-soft"
+          >
             <div className="flex items-center gap-2.5">
               <IconChip icon={GraduationCap} size="sm" label="Avaliações" />
-              <h2 className="font-display text-base font-bold">Avaliações</h2>
+              <h2
+                id={`${sectionId("avaliacoes")}-titulo`}
+                tabIndex={-1}
+                className="font-display text-base font-bold"
+              >
+                Avaliações
+              </h2>
             </div>
             <div className="mt-4">
               {avaliacoes.length ? (
@@ -580,6 +725,9 @@ function TurmaDetail() {
               )}
             </div>
           </section>
+          {account.role === "Professor" ? (
+            <TurmaTeacherContextPanel classGroupId={turma.id} weeklySlots={horario.length} />
+          ) : null}
         </div>
       </div>
 

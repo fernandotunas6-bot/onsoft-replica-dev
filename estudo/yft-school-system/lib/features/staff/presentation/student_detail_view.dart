@@ -28,7 +28,7 @@ class StudentDetailView extends StatelessWidget {
                   size: 56,
                   color: AppColors.textSecondary.withValues(alpha: 0.35)),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Abra um aluno na lista para ver o perfil completo.',
                 textAlign: TextAlign.center,
                 style: TextStyle(

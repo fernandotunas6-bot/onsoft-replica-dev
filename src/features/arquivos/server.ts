@@ -24,6 +24,7 @@ import {
   kindFromFile,
 } from "./kinds";
 import { insertFinanceArchive } from "./archive-finance-core";
+import { buildSchoolFileDetail, type SchoolFileDetail } from "./file-detail";
 import { assertCanStoreBytesForSchool } from "@/features/saas/tenant-limits-server";
 import { generateDocumentCode, normalizeDocumentCode, prefixForCategory } from "./document-code";
 import {
@@ -1104,6 +1105,12 @@ export const moveSchoolFiles = createServerFn({ method: "POST" })
     return { ok: true, localOnly: false, moved: data.ids.length };
   });
 
+/**
+ * O caminho até uma pasta, da raiz para a pasta aberta. Só pastas desta escola,
+ * não apagadas e visíveis à conta pela mesma regra da lista (`canSeeRow`): uma
+ * pasta que a conta não veria devolve o caminho vazio, sem dizer porquê. A pasta
+ * aberta abre-se por `?pasta=` (deep link) e entra no menu do contexto.
+ */
 export const listFolderTrail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => listFolderTrailInputSchema.parse(input ?? {}))
@@ -1111,29 +1118,59 @@ export const listFolderTrail = createServerFn({ method: "GET" })
     if (!context) throw new Error("Sessão inválida.");
     const { supabase, userId } = context;
     const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
-    if (!data.folderId) return { trail: [] as Array<{ id: string; name: string }> };
+    const empty = {
+      schoolId: membership.schoolId,
+      area: null as SchoolFileRecord["area"] | null,
+      trail: [] as Array<{ id: string; name: string }>,
+    };
+    if (!data.folderId) return empty;
     const db = await loadSgaAdminClient();
     const trail: Array<{ id: string; name: string }> = [];
+    let area: SchoolFileRecord["area"] | null = null;
     let currentId: string | null = data.folderId;
     for (let depth = 0; depth < 12 && currentId; depth += 1) {
       const { data: row, error } = (await db
         .from("siga_files")
-        .select("id, name, parent_id, is_folder")
+        .select("id, name, parent_id, is_folder, area, owner_user_id, visibility")
         .eq("id", currentId)
         .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
         .maybeSingle()) as {
-        data: { id: unknown; name: unknown; parent_id: unknown; is_folder: unknown } | null;
+        data: {
+          id: unknown;
+          name: unknown;
+          parent_id: unknown;
+          is_folder: unknown;
+          area: unknown;
+          owner_user_id: unknown;
+          visibility: unknown;
+        } | null;
         error: { message?: string; code?: string } | null;
       };
       if (error) {
-        if (missingFilesTable(error) || missingOptionalColumn(error)) return { trail: [] };
+        if (missingFilesTable(error) || missingOptionalColumn(error)) return empty;
         throw publicDatabaseError(error, "Não foi possível ler o caminho da pasta.");
       }
       if (!row || !row.is_folder) break;
+      const visible = canSeeRow(
+        {
+          area: row.area as SchoolFileRecord["area"],
+          ownerUserId: String(row.owner_user_id ?? ""),
+          visibility: row.visibility as SchoolFileRecord["visibility"],
+        },
+        userId,
+        membership.appRole,
+      );
+      // A pasta aberta tem de ser visível; acima dela, o caminho pára na primeira que não é.
+      if (!visible) {
+        if (depth === 0) return empty;
+        break;
+      }
+      if (depth === 0) area = row.area as SchoolFileRecord["area"];
       trail.unshift({ id: String(row.id), name: String(row.name) });
       currentId = row.parent_id ? String(row.parent_id) : null;
     }
-    return { trail };
+    return { schoolId: membership.schoolId, area, trail };
   });
 
 export const archiveFinanceDocument = createServerFn({ method: "POST" })
@@ -1898,6 +1935,98 @@ async function loadSchoolFileRow(
   if (error) throw publicDatabaseError(error, "Não foi possível ler o ficheiro.");
   return row ? mapRow(row as Record<string, unknown>) : null;
 }
+
+/**
+ * Um ficheiro da escola activa para a sua página (`/arquivos/<id>`). Aplica as
+ * regras da lista (`canSeeRow`): um ficheiro que a conta não veria na lista, de
+ * outra escola, apagado, só local ou uma pasta devolve null, sem dizer porquê.
+ * Nunca devolve o `storage_path`; o conteúdo abre-se por `signSchoolFile`.
+ */
+export const getSchoolFileDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => schoolFileIdInputSchema.parse(input))
+  .handler(async ({ data, context }): Promise<SchoolFileDetail | null> => {
+    if (!context) throw new Error("Sessão inválida.");
+    const { supabase, userId } = context;
+    const membership = await requireSgaWriterFor("arquivos", supabase, userId, STAFF_ROLES);
+    const db = await loadSgaAdminClient();
+    const read = (select: string) =>
+      db
+        .from("siga_files")
+        .select(select)
+        .eq("id", data.id)
+        .eq("school_id", membership.schoolId)
+        .is("deleted_at", null)
+        .maybeSingle();
+    let { data: row, error } = await read(FILE_SELECT);
+    if (error && missingOptionalColumn(error))
+      ({ data: row, error } = await read(FILE_SELECT_BASIC));
+    if (error) {
+      if (missingFilesTable(error)) return null;
+      throw publicDatabaseError(error, "Não foi possível abrir o ficheiro.");
+    }
+    if (!row) return null;
+    const mapped = mapRow(row as unknown as Record<string, unknown>);
+    if (
+      mapped.isFolder ||
+      mapped.storageBackend === "local" ||
+      !canSeeRow(mapped, userId, membership.appRole)
+    ) {
+      return null;
+    }
+
+    const people = await profilePeople(
+      db,
+      [
+        mapped.ownerUserId,
+        mapped.updatedByUserId,
+        mapped.lastActionByUserId,
+        mapped.relatedUserId,
+      ].filter(Boolean) as string[],
+    );
+    const [enriched] = enrichPeople([mapped], people);
+    let file: SchoolFileRecord = {
+      ...enriched!,
+      relatedUserName: mapped.relatedUserId
+        ? (people.get(mapped.relatedUserId)?.name ?? mapped.relatedUserName)
+        : null,
+    };
+
+    let classGroup: { id: string; name: string } | null = null;
+    if (file.classGroupId) {
+      const { data: group } = await db
+        .from("class_groups")
+        .select("id, name")
+        .eq("id", file.classGroupId)
+        .eq("school_id", membership.schoolId)
+        .maybeSingle();
+      if (group?.id) classGroup = { id: String(group.id), name: String(group.name ?? "Turma") };
+    }
+
+    let studentId: string | null = null;
+    const personId = file.relatedPersonId;
+    if (personId) {
+      const personNames = await loadPersonNamesById(db, membership.schoolId, [personId]);
+      file = { ...file, relatedPersonName: personNames.get(personId) ?? null };
+      const { data: students } = await db
+        .from("students")
+        .select("id")
+        .eq("school_id", membership.schoolId)
+        .eq("person_id", personId)
+        .limit(1);
+      const first = (students ?? [])[0] as { id?: string } | undefined;
+      studentId = first?.id ? String(first.id) : null;
+    }
+
+    return buildSchoolFileDetail({
+      file,
+      userId,
+      role: membership.appRole,
+      contentOpen: canAccessFileContent(file, userId, membership.appRole),
+      classGroup,
+      studentId,
+    });
+  });
 
 /**
  * Interface central para módulos que pedem ficheiros do Arquivo, à maneira

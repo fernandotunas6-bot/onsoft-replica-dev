@@ -98,7 +98,7 @@ function detailFor(run: Run, items: PayrollItemReviewRow[]) {
 }
 
 async function loadPage(): Promise<ComponentType> {
-  const mod = await import("@/routes/financeiro.rh.folha");
+  const mod = await import("@/routes/financeiro_.rh_.folha");
   return routeComponentOf(mod);
 }
 

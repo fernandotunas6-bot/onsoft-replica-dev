@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { z } from "zod";
@@ -31,6 +31,8 @@ const filterDefaults = { q: "", turma: "", disciplina: "", trimestre: "" };
 const planosSearchSchema = z.object({
   turma: z.string().guid().optional().catch(undefined),
   disciplina: z.string().guid().optional().catch(undefined),
+  // Os planos de um professor (menu do professor, SIGA Context Engine).
+  professor: z.string().guid().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/planos-aula")({
@@ -120,9 +122,26 @@ function LessonPlansPage() {
     staleTime: 15_000,
   });
 
+  // `?professor=`: as disciplinas que o servidor diz que esse professor dá
+  // (`class_subjects.teacher_id`). Enquanto não chegam, nenhum plano passa.
+  const teacherFilter = useMemo(() => {
+    if (!search.professor) return null;
+    const rows = (workspaceQuery.data?.classSubjects ?? []).filter(
+      (row) => row.teacher_id === search.professor,
+    );
+    return {
+      name: rows.find((row) => row.teacher_name)?.teacher_name ?? null,
+      offerings: new Set(rows.map((row) => `${row.class_group_id}:${row.subject_id}`)),
+    };
+  }, [search.professor, workspaceQuery.data]);
+
   const plans = (plansQuery.data?.plans ?? []) as LessonPlanRow[];
   const query = filters.q.trim().toLowerCase();
-  const filtered = query ? plans.filter((plan) => plan.title.toLowerCase().includes(query)) : plans;
+  const filtered = plans.filter(
+    (plan) =>
+      (!query || plan.title.toLowerCase().includes(query)) &&
+      (!teacherFilter || teacherFilter.offerings.has(`${plan.class_group_id}:${plan.subject_id}`)),
+  );
 
   const grouped = useMemo(() => {
     const byTerm = new Map<number, LessonPlanRow[]>();
@@ -243,6 +262,20 @@ function LessonPlansPage() {
           ]}
         />
 
+        {teacherFilter ? (
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>
+              Planos das disciplinas de{" "}
+              <span className="font-semibold text-foreground">
+                {teacherFilter.name ?? "este professor"}
+              </span>
+            </span>
+            <Link to="/planos-aula" className="text-xs font-semibold text-primary hover:underline">
+              Ver todos os planos
+            </Link>
+          </p>
+        ) : null}
+
         {plansQuery.data?.available === false ? (
           <div className="rounded-xl border border-dashed border-border bg-secondary/30 p-6 text-sm text-muted-foreground">
             Tabelas de planos de aula em falta. Corra{" "}
@@ -251,7 +284,9 @@ function LessonPlansPage() {
           </div>
         ) : null}
 
-        {grouped.length === 0 && plansQuery.data?.available !== false ? (
+        {grouped.length === 0 &&
+        plansQuery.data?.available !== false &&
+        !(teacherFilter && workspaceQuery.isLoading) ? (
           <EmptyState
             icon={BookOpenCheck}
             firstUse

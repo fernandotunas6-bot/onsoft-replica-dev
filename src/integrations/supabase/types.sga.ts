@@ -20,31 +20,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       academic_levels: {
@@ -10173,7 +10148,13 @@ export type Database = {
           starts_at: string | null
           status: string
           subject_id: string
+          teacher_checked_in_at: string | null
+          teacher_checked_in_by: string | null
+          teacher_checked_out_at: string | null
+          teacher_checkin_method: string | null
           teacher_id: string | null
+          teacher_late_minutes: number | null
+          teacher_presence_note: string | null
           timetable_slot_id: string | null
           updated_at: string
           updated_by: string | null
@@ -10192,7 +10173,13 @@ export type Database = {
           starts_at?: string | null
           status?: string
           subject_id: string
+          teacher_checked_in_at?: string | null
+          teacher_checked_in_by?: string | null
+          teacher_checked_out_at?: string | null
+          teacher_checkin_method?: string | null
           teacher_id?: string | null
+          teacher_late_minutes?: number | null
+          teacher_presence_note?: string | null
           timetable_slot_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -10211,7 +10198,13 @@ export type Database = {
           starts_at?: string | null
           status?: string
           subject_id?: string
+          teacher_checked_in_at?: string | null
+          teacher_checked_in_by?: string | null
+          teacher_checked_out_at?: string | null
+          teacher_checkin_method?: string | null
           teacher_id?: string | null
+          teacher_late_minutes?: number | null
+          teacher_presence_note?: string | null
           timetable_slot_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -11530,6 +11523,158 @@ export type Database = {
         }
         Relationships: []
       }
+      siga_school_presence_settings: {
+        Row: {
+          allow_printed: boolean
+          center_latitude: number | null
+          center_longitude: number | null
+          created_at: string
+          geofence_radius_m: number
+          mode: string
+          offline_max_hours: number
+          qr_secret: string
+          qr_secret_version: number
+          require_location: boolean
+          rotation_seconds: number
+          school_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_printed?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string
+          geofence_radius_m?: number
+          mode?: string
+          offline_max_hours?: number
+          qr_secret: string
+          qr_secret_version?: number
+          require_location?: boolean
+          rotation_seconds?: number
+          school_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_printed?: boolean
+          center_latitude?: number | null
+          center_longitude?: number | null
+          created_at?: string
+          geofence_radius_m?: number
+          mode?: string
+          offline_max_hours?: number
+          qr_secret?: string
+          qr_secret_version?: number
+          require_location?: boolean
+          rotation_seconds?: number
+          school_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_school_presence_settings_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siga_teacher_presence_scans: {
+        Row: {
+          accuracy_m: number | null
+          client_op_id: string | null
+          created_at: string
+          decision: string
+          device_id: string | null
+          device_scanned_at: string | null
+          distance_m: number | null
+          id: string
+          inside_geofence: boolean | null
+          location_mocked: boolean | null
+          offline: boolean
+          qr_kind: string
+          qr_step: number
+          reasons: string[]
+          received_at: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scanned_at: string
+          school_id: string
+          session_ids: string[]
+          teacher_id: string
+          user_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          client_op_id?: string | null
+          created_at?: string
+          decision: string
+          device_id?: string | null
+          device_scanned_at?: string | null
+          distance_m?: number | null
+          id?: string
+          inside_geofence?: boolean | null
+          location_mocked?: boolean | null
+          offline?: boolean
+          qr_kind: string
+          qr_step: number
+          reasons?: string[]
+          received_at?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_at: string
+          school_id: string
+          session_ids?: string[]
+          teacher_id: string
+          user_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          client_op_id?: string | null
+          created_at?: string
+          decision?: string
+          device_id?: string | null
+          device_scanned_at?: string | null
+          distance_m?: number | null
+          id?: string
+          inside_geofence?: boolean | null
+          location_mocked?: boolean | null
+          offline?: boolean
+          qr_kind?: string
+          qr_step?: number
+          reasons?: string[]
+          received_at?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scanned_at?: string
+          school_id?: string
+          session_ids?: string[]
+          teacher_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siga_teacher_presence_scans_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siga_teacher_presence_scans_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siga_timetable_slot_details: {
         Row: {
           created_at: string
@@ -12648,6 +12793,86 @@ export type Database = {
           },
           {
             foreignKeyName: "teacher_availability_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_document_entries: {
+        Row: {
+          created_at: string
+          created_by: string
+          document_code: string
+          file_id: string
+          id: string
+          person_id: string
+          school_id: string
+          teacher_id: string
+          updated_at: string
+          updated_by: string
+          validation_notes: string | null
+          validation_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          document_code: string
+          file_id: string
+          id?: string
+          person_id: string
+          school_id: string
+          teacher_id: string
+          updated_at?: string
+          updated_by: string
+          validation_notes?: string | null
+          validation_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          document_code?: string
+          file_id?: string
+          id?: string
+          person_id?: string
+          school_id?: string
+          teacher_id?: string
+          updated_at?: string
+          updated_by?: string
+          validation_notes?: string | null
+          validation_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_document_entries_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "siga_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_document_entries_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"
@@ -14922,9 +15147,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       communication_channel: ["email", "sms", "whatsapp"],

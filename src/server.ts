@@ -6,13 +6,17 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { CSP_REPORT_PATH, handleCspReport } from "./lib/csp";
 import { withSecurityHeaders } from "./lib/security-headers";
-import { installKeepAlive } from "./lib/execution-context";
+import { installKeepAlive, installRequestIdSource } from "./lib/execution-context";
+import { REQUEST_ID_HEADER, acceptRequestId, newRequestId } from "./lib/request-id";
 
 type ExecutionContext = { waitUntil?: (promise: Promise<unknown>) => void };
+type RequestStore = { ctx: ExecutionContext; requestId: string };
 
-// `ctx` do pedido em curso, para `keepAlive` (alertas) o encontrar sem o passar à mão.
-const requestContext = new AsyncLocalStorage<ExecutionContext>();
-installKeepAlive((promise) => requestContext.getStore()?.waitUntil?.(promise));
+// `ctx` do pedido em curso, para `keepAlive` (alertas) o encontrar sem o passar à mão,
+// e o ID de correlação, para os logs e a auditoria o levarem.
+const requestContext = new AsyncLocalStorage<RequestStore>();
+installKeepAlive((promise) => requestContext.getStore()?.ctx.waitUntil?.(promise));
+installRequestIdSource(() => requestContext.getStore()?.requestId);
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -57,9 +61,40 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    return requestContext.run((ctx ?? {}) as ExecutionContext, () => handle(request, env, ctx));
+    const requestId = acceptRequestId(request.headers.get(REQUEST_ID_HEADER)) ?? newRequestId();
+    const store = { ctx: (ctx ?? {}) as ExecutionContext, requestId };
+    const response = await requestContext.run(store, () => handle(request, env, ctx));
+    return withTraceHeaders(response, requestId, releaseOf(env));
   },
 };
+
+/** Commit publicado (`SIGA_RELEASE_SHA`, posto por scripts/deploy-cf.mjs), ou nada. */
+function releaseOf(env: unknown): string | null {
+  // Nos Workers as `vars` chegam em `env`; com nodejs_compat também em process.env.
+  const value =
+    (env as { SIGA_RELEASE_SHA?: unknown } | null)?.SIGA_RELEASE_SHA ??
+    (typeof process === "undefined" ? undefined : process.env?.["SIGA_RELEASE_SHA"]);
+  return typeof value === "string" && /^[0-9a-f]{40}(?:-dirty)?$/.test(value) ? value : null;
+}
+
+/**
+ * Devolve o ID do pedido ao browser (a referência que o suporte procura nos logs) e a
+ * versão publicada, que a vigilância do deploy compara com a `main`.
+ */
+function withTraceHeaders(response: Response, requestId: string, release: string | null) {
+  if (response.status === 101) return response;
+  const apply = (target: Response) => {
+    target.headers.set("x-request-id", requestId);
+    if (release) target.headers.set("x-siga-release", release);
+    return target;
+  };
+  try {
+    return apply(response);
+  } catch {
+    // Cabeçalhos imutáveis (resposta vinda de fetch): copiar.
+    return apply(new Response(response.body, response));
+  }
+}
 
 async function handle(request: Request, env: unknown, ctx: unknown): Promise<Response> {
   try {

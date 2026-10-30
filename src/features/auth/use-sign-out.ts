@@ -1,6 +1,7 @@
 import { clearSigaCaches } from "@/lib/pwa";
 import { clearOfflineQueries } from "@/lib/offline/offline-queries";
 import { forgetAllTrustedDevices } from "@/features/auth/trusted-device";
+import { clearRecentNav } from "@/lib/navigation-memory";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -21,6 +22,8 @@ export function useSignOut() {
       }
       // Quem sai de propósito deixa de confiar neste dispositivo.
       forgetAllTrustedDevices();
+      // As páginas recentes não ficam para a próxima pessoa neste dispositivo.
+      clearRecentNav();
       queryClient.clear();
       await clearSigaCaches().catch(() => undefined);
       // A fila de envio sem rede fica: está no cofre do posto e só sai com esta pessoa.

@@ -1,5 +1,104 @@
 # Handoff — continuar o SIGA
 
+## Auditoria funcional: sessão, escola e API de faltas — 27/10/2026
+
+Base `ac9c8b1b20a3213594fb6ef73546115977e5ff64`, ramo
+`fix/system-audit-school-context-20261027`. Matriz por módulo, provas, alertas
+efectivos da base e limites em
+[auditoria funcional](../qa/system-audit-2026-10-27/README.md).
+O proprietário indicou depois o Colégio Adventista — Huambo como escola de testes.
+O registo está na base partilhada; não confundir esta indicação com staging isolado
+ou homologação integral. Não houve merge, deploy ou
+escritas na produção neste ciclo.
+
+`useCurrentAccount` partilha a selecção da escola, também entre abas, protege
+a hidratação e descarta a recuperação de pedidos ultrapassados. Contexto de
+conta não usa o `keepPreviousData` global. `AuthGate` limpa consultas ao mudar
+identidade/sair por outra via e descarta confirmações MFA atrasadas.
+`TenantProvider` só publica a resposta da geração actual.
+
+**Decisão de login do proprietário:** combinar com a PR #369,
+`fix/login-mfa-opt-in-20261027`, head
+`eed44e16503d82153e2d97b67dcb6ca1dfb0c8e9`. O MFA no login fica **desligado
+por omissão**, mesmo com factores antigos inscritos; só a preferência explícita
+da conta o activa. As correcções de ciclo de sessão não podem repor a regra
+anterior. A PR #369 foi combinada no candidato local para testar compatibilidade,
+sem merge deste agente no GitHub ou deploy. A PR foi depois integrada por trabalho externo;
+o candidato foi alinhado com a main `c061fb75`. Testes específicos em
+`tests/auth/pending-mfa-policy.test.ts`.
+
+Foi reproduzido no Worker compilado o erro de produção de
+`/api/mobile/absences`: `Server function info not found`, HTTP 400. A leitura
+de faltas só tinha consumidor servidor e a RPC era omitida do manifesto.
+A correcção chama o serviço interno após `resolveBearerUserId` (Auth e política
+MFA voluntária da conta),
+mantendo `resolveVisibleStudent` e a validação do identificador. Verificar
+sempre a saída compilada, além do teste com mocks:
+`node scripts/siga/check-built-mobile-absences.mjs`, com Wrangler **local**
+na porta 8787. A prova não autentica nem consulta dados de alunos.
+
+As 215 tabelas públicas e respectivas colunas coincidiram com o snapshot;
+as 88 tabelas com RLS sem políticas não tinham SELECT para anon/authenticated.
+Os avisos de SECURITY DEFINER e de índices continuam por avaliar por caso.
+As três tabelas `notifications`, `school_announcements` e `siga_chat_messages`
+constavam da publicação Realtime: não reaplicar pacotes só pelo handoff antigo.
+
+## App móvel: notificações em tempo real e alertas — 2026-10-27
+
+App SIGA Plus 1.2.0: centro de notificações (sino), tempo real com a app aberta,
+notificações no telemóvel com a app fechada (verificação de 30 em 30 min), lembretes
+da véspera, «Para ter em atenção» no Início, e funcionar sem rede (#364). Estado,
+desenho e pendências do dono em
+[estudo/yft-school-system/docs/ROADMAP_APP.md](../../estudo/yft-school-system/docs/ROADMAP_APP.md).
+**Pendente do dono:** colar `docs/agents/SIGA_aplicar_tempo_real_avisos.sql` no SQL
+Editor (tempo real dos avisos) e o Firebase para notificações instantâneas (FCM).
+
+## App móvel: estado e plano — 2026-10-27
+
+App SIGA Plus 1.1.0 publicada (Início «Hoje», trabalhos, aluno com menu próprio,
+entrada por n.º de aluno). **Para continuar, ler primeiro**
+[estudo/yft-school-system/docs/ROADMAP_APP.md](../../estudo/yft-school-system/docs/ROADMAP_APP.md):
+estado por área, plano por ordem (1. funcionar sem rede, 2. faltas por disciplina, 3. notificações, 4. capturas no CI, 5. retoque visual) e como trabalhar sem Flutter local.
+
+## Apps para descarregar: desktop e Android — 2026-10-26
+
+- **SIGA Desktop 1.3.1** publicado, a primeira versão com actualizações assinadas
+  (chave `8978E84141130A74`). Guia: [docs/desktop/PUBLICAR_VERSOES.md](../desktop/PUBLICAR_VERSOES.md).
+- **SIGA Plus para Android 1.0.0** (o estudo `estudo/yft-school-system` no modo SIGA)
+  na release `android` e em portal-siga.com/download. APK assinado com o certificado
+  `B3:40:33:FF:…:EF:57`; o workflow recusa publicar com outro. Guia:
+  [estudo/yft-school-system/docs/PUBLICAR_ANDROID.md](../../estudo/yft-school-system/docs/PUBLICAR_ANDROID.md).
+- **Worker do estudo no modo SIGA** em `siga-yft.valentinocanguele.workers.dev`, com a chave
+  de servidor do SIGA (decisão do dono, 26/10). `m.portal-siga.com` continua no Mobile V4.
+- **Login com o n.º de aluno** na app: rota `/api/mobile/login` do portal (o
+  `signInWithIdentifierFn`, no subdomínio da escola); o aluno vê a sua ficha como único
+  «educando».
+- Por fazer: testar num telemóvel real; assinatura do sistema operativo nos instaladores do
+  desktop (certificados pagos); fase 5 da migração (desligar Firebase/D1); e **trocar a
+  chave `sb_secret_…` do Supabase**, que foi colada numa conversa a 26/10 (não foi usada).
+
+## Presenças: professor na sala e chamada dos alunos — 2026-10-26
+
+- **Professor na sala:** o QR do RH não funcionava em nenhuma escola (0 vínculos e 0 contratos
+  de RH na produção, logo 0 aulas para QR). A presença passa a gravar-se na aula do horário
+  (`siga_attendance_sessions`), sem depender do RH. Regras e ecrãs na
+  [especificação, §11](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md).
+  SQL aplicado a 26/10 (versão registada `20261026083707`, nome do ficheiro alinhado).
+- **QR único da escola** ([§12](../specs/SGA_GATE_QR_LESSON_ATTENDANCE_PAYROLL_SPEC.md)): a
+  Direcção mostra um QR rotativo que funciona sem internet, o professor lê-o no portal ou na
+  app Flutter; zona GPS, fila sem rede, leituras por rever e modo qr/botão/desligado. SQL
+  `20261026100000` aplicado a 26/10 no SQL Editor (sem registo de versão). Retrato e tipos
+  das duas tabelas e das seis colunas acrescentados a partir de consultas à produção (os totais
+  de tabelas, políticas, funções, triggers, relações e valores conferem); uma recaptura completa
+  (`npm run siga:db-snapshot`, `npm run siga:gen-types`) deve dar o mesmo.
+- **Chamada dos alunos:** abrir a chamada por turma+disciplina com dois tempos da mesma
+  disciplina no dia (7 casos no horário de produção) lia com `maybeSingle()`, falhava e criava
+  uma terceira sessão sem hora; agora escolhe o tempo em curso ou o próximo e liga a sessão
+  nova ao tempo do horário (`pickLessonSession`, `pickLessonSlot`). O mesmo em
+  `ensureAttendanceSessionForOccurrence` (QR).
+- **Sincronizar 14 dias (QR):** a Secretaria passava a verificação do servidor e a RPC recusava
+  («Insufficient HR permission»); agora só Administração/Tesouraria, com mensagem clara.
+
 ## Backend: horários, agenda e matrículas — 2026-10-25
 
 Pedido deste ciclo: só backend. [Contrato, pesquisa comparativa e migrações](../architecture/ACADEMIC_AGENDA.md).
@@ -115,6 +214,41 @@ valor. A actualização automática de publicação aceita os modelos compatíve
 Ler isto **antes** de alterar código. Ecossistema (5 apps):
 [ARCHITECTURE_HARMONIZATION.md](./ARCHITECTURE_HARMONIZATION.md).
 Depois abrir o skill do módulo em `.cursor/skills/`.
+
+## App Flutter `estudo/yft-school-system` — SIGA Plus (2026-10-15)
+
+Branch `ccr-797179ec-129c5n`. App Flutter (Firebase Auth + worker Cloudflare D1 em
+`estudo/yft-school-system/school-worker`), **não** usa o Supabase do SIGA.
+
+- Visual do mockup SIGA Plus (ecrãs 1–12): paleta em `lib/core/theme/app_colors.dart`
+  (já não é `const`; cor principal e modo escuro em Aparência, `onPrimary` calculado para AA),
+  abertura + apresentação, login com escolas já usadas no aparelho, barra Início /
+  Disciplinas / Calendário / Mensagens / Mais. Detalhe: `estudo/yft-school-system/docs/IDENTIDADE_VISUAL.md`.
+- Tudo em português; períodos e sexo continuam gravados em inglês («Term 1», «Male») e são
+  mostrados por `lib/core/utils/term_label.dart`. Moeda por omissão: Kz.
+- Funcionalidades que **fingiam** gravar e agora gravam: presenças, comunicados (com público:
+  todos/encarregados/professores/turma), dados pessoais, palavra-passe (Firebase). Notificações
+  push/e-mail/SMS **não existem** no worker — o ecrã diz «Em breve».
+- Novas no worker: horário (`/api/timetable`, professor por tempo), presenças
+  (`/api/attendance`), boletim e disciplinas/turmas para o encarregado (só educandos activos),
+  lista de professores, `PATCH /api/users/me` e `POST /api/users/me/photo`, notas por ano lectivo (`/api/grades/years`; o boletim e o lançamento escolhem o ano), conversas 1:1
+  (`/api/conversations`: encarregado ↔ professor/direcção; sem push, o ecrã actualiza a cada 15 s; mensagens em páginas de 100 com `?before=<id>`).
+- Testes: `cd estudo/yft-school-system/school-worker && npx vitest run` (76, D1 real com
+  migrações). App: `flutter analyze` + `flutter test` com Flutter 3.41; os testes de contrato
+  (`test/contract/`) lêem respostas reais do worker — depois de mudar uma resposta, correr
+  `school-worker/scripts/update-contract-fixtures.sh` (o 3.47 parte o `lucide_icons`).
+- Presenças e notas: o professor com tempos no horário só marca/lança nessas turmas (403 nas outras); sem
+  horário marca qualquer uma, como antes.
+- **Supabase do SIGA:** a app passa por fases para as contas e os dados do SIGA — plano e regras em
+  `estudo/yft-school-system/docs/MIGRACAO_SUPABASE.md`. Feito: API de leitura do encarregado
+  `/api/sga/{me,wards,notices}` no `school-worker` (segredo `SGA_SUPABASE_SECRET_KEY`).
+  App: modo SIGA por `--dart-define` (login Supabase + hCaptcha na web), em `lib/core/sga/`.
+  Escritas no próprio SIGA: `src/routes/api/mobile/attendance.tsx` (chamada do professor), que chama
+  as funções de servidor da Pedagógica — não copiar regras para o Worker.
+- **Por aplicar (dono):** migrações D1 `0012`→`0018` e `npx wrangler deploy`. A `0015` atribui as
+  notas existentes ao ano lectivo actual de cada escola e troca a chave única — fazer
+  `npx wrangler d1 export school_management_db --remote --output=backup.sql` antes.
+  Sem o deploy, Horários, Faltas, Boletins, Conversas e Mensagens de professores/admin dão erro.
 
 ## Preparação da consolidação de produção (2026-10-21)
 

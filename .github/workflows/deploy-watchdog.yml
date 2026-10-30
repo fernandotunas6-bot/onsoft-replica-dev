@@ -1,0 +1,51 @@
+name: Deploy contínuo — vigilância
+
+# A publicação corre a cada push para a main (deploy-production.yml). Quando falhava, nada
+# a repetia e ninguém era avisado: a 29–30/10 a produção ficou mais de 12 horas atrás da
+# main (token recusado, depois segredos em falta). Esta vigilância (scripts/siga/
+# deploy-watchdog.mjs) compara a versão no ar (x-siga-release) com a main; se a última
+# publicação falhou a publicar, volta a correr só os jobs que falharam; e mantém a issue
+# «Deploy de produção parado» com a causa e a correcção, fechando-a quando a produção
+# apanhar a main. Não usa segredos de produção nem publica nada por si.
+# Vias de publicação: docs/releases/DEPLOY_VIAS.md.
+
+on:
+  schedule:
+    # De 2 em 2 horas: depois de corrigido um segredo, a produção apanha a main sozinha
+    # em menos de 2 horas, sem ninguém ter de relançar.
+    - cron: "41 */2 * * *"
+  workflow_run:
+    workflows: ["Deploy produção"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+
+concurrency:
+  group: deploy-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Comparar a produção com a main
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A diferença entre a versão no ar e a main precisa do histórico.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Verificar, repetir a publicação falhada e avisar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: node scripts/siga/deploy-watchdog.mjs

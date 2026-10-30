@@ -1,5 +1,5 @@
 import { describeError } from "@/lib/error-capture";
-import { keepAlive } from "@/lib/execution-context";
+import { currentRequestId, keepAlive } from "@/lib/execution-context";
 
 /**
  * Observabilidade do SIGA — espelha `painel/payflow/lib/ops-report.ts`, que já
@@ -32,6 +32,8 @@ const LOG_ALLOWLIST = new Set([
   "tenant_id",
   "user_id",
   "role",
+  // ID de correlação do pedido (UUID opaco, `request-id.ts`)
+  "request_id",
   // o que estava a ser feito
   "module",
   "action",
@@ -68,6 +70,7 @@ const LOG_ALLOWLIST = new Set([
  * de um erro pode arrastar o nome de um aluno numa mensagem de constraint.
  */
 const ALERT_ALLOWLIST = new Set([
+  "request_id",
   "school_id",
   "tenant_id",
   "module",
@@ -127,6 +130,12 @@ export function sanitizeAlertFields(fields: Record<string, unknown>): Record<str
   return sanitize(fields, ALERT_ALLOWLIST);
 }
 
+/** Junta o ID de correlação do pedido em curso, quando há um. */
+function withRequestId(fields: Record<string, unknown>): Record<string, unknown> {
+  const requestId = currentRequestId();
+  return requestId ? { request_id: requestId, ...fields } : fields;
+}
+
 /** Uma linha JSON por evento — consultável nos logs do Worker. */
 export function logSigaEvent(event: string, fields: Record<string, unknown> = {}): void {
   console.info(
@@ -134,7 +143,7 @@ export function logSigaEvent(event: string, fields: Record<string, unknown> = {}
       app: "siga",
       event,
       ts: new Date().toISOString(),
-      ...sanitizeLogFields(fields),
+      ...sanitizeLogFields(withRequestId(fields)),
     }),
   );
 }
@@ -158,7 +167,11 @@ async function dispatchAlert(event: string, fields: Record<string, unknown>): Pr
   const webhookUrl = resolveAlertWebhookUrl();
   if (!webhookUrl) return;
 
-  const payload = { app: "siga", event, ...sanitizeAlertFields(fields) };
+  const payload = {
+    app: "siga",
+    event,
+    ...sanitizeAlertFields(withRequestId(fields)),
+  };
   try {
     await fetch(webhookUrl, {
       method: "POST",

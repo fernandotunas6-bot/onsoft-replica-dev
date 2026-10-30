@@ -25,6 +25,7 @@ import {
   CircleCheck,
   CircleX,
   ClipboardCheck,
+  ClipboardList,
   Clock,
   Clock3,
   Copy,
@@ -102,6 +103,8 @@ export const moduleIcons = {
   documents: FileText,
   files: FolderOpen,
   lessonPlans: NotebookPen,
+  /** Trabalhos e TPC da turma. */
+  classTasks: ClipboardList,
   communications: Megaphone,
   alumni: Network,
   import: FileUp,

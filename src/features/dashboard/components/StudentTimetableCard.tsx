@@ -8,6 +8,7 @@ import { getMyStudentTimetable, type StudentTimetable } from "@/features/dashboa
 import { getMyTeacherTimetable } from "@/features/academic/timetable-lessons";
 import { LessonDetailDialog } from "@/features/dashboard/components/LessonDetailDialog";
 import { cn } from "@/lib/utils";
+import { roomLabel } from "@/lib/room-label";
 
 const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -149,9 +150,4 @@ export function StudentTimetableCard({
       />
     </section>
   );
-}
-
-/** "3" → "Sala 3"; nomes que já dizem o que são ("Sala 3", "Laboratório") ficam. */
-function roomLabel(room: string) {
-  return /^\d+[A-Za-z]?$/.test(room.trim()) ? `Sala ${room.trim()}` : room.trim();
 }

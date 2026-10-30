@@ -9,6 +9,7 @@ import {
   resetRealtime,
   resetRouteLocation,
   routeComponentOf,
+  setRouteSearch,
 } from "./_harness";
 import type {
   getFinanceReporting,
@@ -48,7 +49,7 @@ const getFinanceReportingMock = vi.fn();
 const getFinanceSchemaStatusMock = vi.fn();
 
 vi.mock("@/features/finance/server", () => ({
-  listInvoices: () => listInvoicesMock(),
+  listInvoices: (args: unknown) => listInvoicesMock(args),
   listFinanceStudents: () => listFinanceStudentsMock(),
   getFinanceReporting: () => getFinanceReportingMock(),
   getFinanceSchemaStatus: () => getFinanceSchemaStatusMock(),
@@ -243,5 +244,40 @@ describe("/faturas — render", () => {
     await waitFor(() => {
       expect(screen.getByText("Não foi possível carregar as faturas.")).toBeDefined();
     });
+  });
+});
+
+describe("/faturas?aluno= (menu da fatura e da ficha)", () => {
+  const ALUNO = "22222222-2222-4222-8222-222222222222";
+
+  it("pede só as faturas desse aluno, todas, e diz de quem são", async () => {
+    seed({ invoices: [sampleInvoice], students: [sampleStudent] });
+    setRouteSearch({ aluno: ALUNO });
+    renderRoute(FaturasRouteComponent);
+
+    await waitFor(() => {
+      expect(screen.getByText("Faturas de António Manuel · processo 2025-0100")).toBeDefined();
+    });
+    expect(listInvoicesMock).toHaveBeenCalledWith({ data: { limit: 1000, studentId: ALUNO } });
+    expect(screen.getByRole("link", { name: "Ver todas as faturas" })).toBeDefined();
+  });
+
+  it("sem faturas do aluno, di-lo em vez de uma lista vazia sem contexto", async () => {
+    seed();
+    setRouteSearch({ aluno: ALUNO });
+    renderRoute(FaturasRouteComponent);
+
+    await waitFor(() => {
+      expect(screen.getByText("Este aluno não tem faturas nesta escola.")).toBeDefined();
+    });
+  });
+
+  it("sem `aluno`, a lista é a da escola, como antes", async () => {
+    seed({ invoices: [sampleInvoice], students: [sampleStudent] });
+    renderRoute(FaturasRouteComponent);
+
+    await waitFor(() => expect(screen.getByText("FT-2025/001")).toBeDefined());
+    expect(listInvoicesMock).toHaveBeenCalledWith({ data: { limit: 250, includeOpen: true } });
+    expect(screen.queryByText(/^Faturas de /)).toBeNull();
   });
 });

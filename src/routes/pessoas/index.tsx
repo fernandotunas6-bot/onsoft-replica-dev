@@ -35,7 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MediaAvatar } from "@/components/ui/media-frame";
 import { IconChip } from "@/components/ui/icon-chip";
 import { DocHelpButton } from "@/components/ui/doc-help-button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { CrudListFeedbackRow } from "@/components/ui/crud-list-feedback-row";
 import {
   Table,
   TableBody,
@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
+import { ImpactConfirmModal } from "@/components/modals/ImpactConfirmModal";
 import { QuickFormModal } from "@/components/modals/QuickFormModal";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { documentValidationCode } from "@/features/academic/assessment-views";
@@ -53,14 +53,19 @@ import {
   createTeacher,
   deleteTeacher,
   getPerson,
-  listTeachers,
+  listTeachersPage,
   mergePeople,
-  searchPeople,
+  searchPeoplePage,
   updatePerson,
   updatePersonStatus,
   updateTeacher,
+  getTeacherDeletionImpact,
 } from "@/features/people/server";
 import { personDocumentTypeOptions, personRoleOptions } from "@/features/people/schemas";
+import {
+  validatePersonQuickEdit,
+  validateTeacherQuickForm,
+} from "@/features/people/quick-form-validation";
 import { exportCsv } from "@/lib/export-csv";
 import { exportOfficialPautaPdf, exportPdfTable } from "@/lib/export-pdf-loader";
 import { overlayServico } from "@/features/documents/print-overlays";
@@ -70,6 +75,7 @@ import { AngolaPhoneField } from "@/components/forms/AngolaPhoneField";
 import { useCurrentAccount } from "@/features/auth/use-current-account";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
+import { ListPaginationBar } from "@/components/filters/ListPaginationBar";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { ResponsiveEntityView } from "@/components/mobile/ResponsiveEntityView";
 import { EntityAvatar, EntityList, type EntityListItem } from "@/components/mobile/EntityList";
@@ -124,6 +130,8 @@ const pessoasFilterDefaults = {
   personStatus: "todos",
 };
 
+const DIRECTORY_PAGE_SIZE = 25;
+
 function PeoplePage() {
   const account = useCurrentAccount();
   const queryClient = useQueryClient();
@@ -141,6 +149,18 @@ function PeoplePage() {
   );
   const navigate = useNavigate();
   const deferredQuery = useDeferredValue(filters.q.trim());
+  const [peoplePage, setPeoplePage] = useState(1);
+  const [teachersPage, setTeachersPage] = useState(1);
+  const resetDirectoryFilters = () => {
+    setPeoplePage(1);
+    setTeachersPage(1);
+    resetFilters();
+  };
+  const changeDirectoryFilter = (name: string, value: string) => {
+    setPeoplePage(1);
+    setTeachersPage(1);
+    setFilter(name as keyof typeof filters, value);
+  };
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingDocFile, setPendingDocFile] = useState<{ id: string; name: string } | null>(null);
 
@@ -148,25 +168,31 @@ function PeoplePage() {
     queryKey: [
       "people",
       "search",
+      account.id,
+      account.schoolId,
       deferredQuery,
       filters.province,
       filters.municipality,
       filters.role,
+      filters.personStatus,
+      peoplePage,
     ],
     queryFn: () =>
-      searchPeople({
+      searchPeoplePage({
         data: {
           query: deferredQuery,
           province: filters.province || undefined,
           municipality: filters.municipality || undefined,
           role: (filters.role as (typeof personRoleOptions)[number] | "") || undefined,
-          limit: 50,
+          status: filters.personStatus as "todos" | "active" | "inactive",
+          page: peoplePage,
+          pageSize: DIRECTORY_PAGE_SIZE,
         },
       }),
-    placeholderData: (previous) => previous,
+    enabled: Boolean(account.id && account.schoolId),
   });
 
-  const peoplePhotoKey = (peopleQuery.data ?? [])
+  const peoplePhotoKey = (peopleQuery.data?.items ?? [])
     .map((row) => (typeof row.photo_url === "string" ? row.photo_url : ""))
     .filter(Boolean)
     .join("|");
@@ -176,31 +202,73 @@ function PeoplePage() {
   }, [peoplePhotoKey]);
 
   const teachersQuery = useQuery({
-    queryKey: ["people", "teachers", filters.q, filters.teacherStatus],
+    queryKey: [
+      "people",
+      "teachers",
+      account.id,
+      account.schoolId,
+      filters.q,
+      filters.teacherStatus,
+      teachersPage,
+    ],
     queryFn: () =>
-      listTeachers({
+      listTeachersPage({
         data: {
           query: filters.q || undefined,
           status: filters.teacherStatus as "all" | "active" | "inactive",
-          limit: 100,
+          page: teachersPage,
+          pageSize: DIRECTORY_PAGE_SIZE,
         },
       }),
+    enabled: Boolean(account.id && account.schoolId),
   });
 
+  // A troca de escola ou de filtros restaurados pela URL nunca herda uma
+  // página avançada de outro universo de resultados.
+  useEffect(() => {
+    setPeoplePage(1);
+    setTeachersPage(1);
+  }, [
+    account.id,
+    account.schoolId,
+    deferredQuery,
+    filters.province,
+    filters.municipality,
+    filters.role,
+    filters.personStatus,
+    filters.teacherStatus,
+  ]);
+
+  // Depois de uma desactivação ou de um filtro, a página actual pode deixar
+  // de existir. Corrige-a sem fingir que o universo inteiro está vazio.
+  useEffect(() => {
+    const total = peopleQuery.data?.total;
+    if (typeof total !== "number") return;
+    setPeoplePage((current) =>
+      Math.min(current, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE))),
+    );
+  }, [peopleQuery.data?.total]);
+
+  useEffect(() => {
+    const total = teachersQuery.data?.total;
+    if (typeof total !== "number") return;
+    setTeachersPage((current) =>
+      Math.min(current, Math.max(1, Math.ceil(total / DIRECTORY_PAGE_SIZE))),
+    );
+  }, [teachersQuery.data?.total]);
+
   const personQuery = useQuery({
-    queryKey: ["people", "detail", selectedId],
+    queryKey: ["people", "detail", account.id, account.schoolId, selectedId],
     queryFn: () => getPerson({ data: { id: selectedId! } }),
-    enabled: Boolean(selectedId),
+    enabled: Boolean(selectedId && account.id && account.schoolId),
   });
 
   const person = personQuery.data;
-  const people = (peopleQuery.data ?? []).filter(
-    (row) => filters.personStatus === "todos" || row.status === filters.personStatus,
-  );
+  const people = peopleQuery.data?.items ?? [];
   const personOptionFor = (row: { full_name: string; id: string }) =>
     `${row.full_name} · ${row.id.slice(0, 8)}`;
   const personOptions = people.map(personOptionFor);
-  const teachers = teachersQuery.data ?? [];
+  const teachers = teachersQuery.data?.items ?? [];
   const peopleExportColumns = [
     { label: "Nome", value: (row: (typeof people)[number]) => String(row.full_name ?? "") },
     { label: "Email", value: (row: (typeof people)[number]) => String(row.email ?? "") },
@@ -212,7 +280,7 @@ function PeoplePage() {
   ];
   const exportarRegistoOficial = () => {
     void issuePrintDocument({
-      tipo: "Registo de pessoas",
+      tipo: `Registo de pessoas · página ${peoplePage}`,
       school: {
         name: school?.name ?? "Escola",
         nif: school?.nif,
@@ -223,9 +291,9 @@ function PeoplePage() {
         academicYear: selectedYearLabel.replace(/^Ano Lectivo\s+/i, "") || school?.academic_year,
       },
       overlay: overlayServico({
-        name: "Registo de pessoas",
+        name: `Registo de pessoas · página ${peoplePage}`,
         areaLabel: "Secretaria",
-        reference: `PES-${people.length}`,
+        reference: `PES-${peoplePage}-${people.length}`,
         status: "Oficial",
         parties: [{ label: "Escola", value: school?.name ?? "Escola" }],
         sections: [
@@ -241,7 +309,7 @@ function PeoplePage() {
       }),
       fallback: () =>
         exportOfficialPautaPdf(
-          "pessoas-oficial",
+          `pessoas-oficial-pagina-${peoplePage}`,
           "Registo de pessoas",
           {
             schoolName: school?.name ?? "Escola",
@@ -347,9 +415,9 @@ function PeoplePage() {
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => exportCsv("professores-filtrados", teacherExportColumns, teachers)}
+              onClick={() => exportCsv("professores-pagina", teacherExportColumns, teachers)}
             >
-              <Download className="size-4" /> Prof. CSV
+              <Download className="size-4" /> Prof. CSV · página
             </Button>
             <Button
               variant="outline"
@@ -380,8 +448,9 @@ function PeoplePage() {
               description="Cria a pessoa e o registo de professor no SGA."
               icon={<GraduationCap className="size-5" />}
               submitLabel="Criar professor"
+              validate={validateTeacherQuickForm}
               onSubmit={async (values) => {
-                await createTeacher({
+                const created = await createTeacher({
                   data: {
                     fullName: values["nome"] ?? "",
                     email: values["email"] || undefined,
@@ -392,6 +461,11 @@ function PeoplePage() {
                 });
                 await queryClient.invalidateQueries({ queryKey: ["people", "teachers"] });
                 await queryClient.invalidateQueries({ queryKey: ["people", "search"] });
+                await navigate({
+                  to: "/professores/$teacherId",
+                  params: { teacherId: created.id },
+                  search: { tab: "documentos" },
+                });
               }}
               fields={[
                 { name: "nome", label: "Nome completo", full: true },
@@ -500,8 +574,8 @@ function PeoplePage() {
         <ListFilterBar
           values={filters}
           activeCount={activeCount}
-          onChange={(name, value) => setFilter(name as keyof typeof filters, value)}
-          onReset={resetFilters}
+          onChange={changeDirectoryFilter}
+          onReset={resetDirectoryFilters}
           fields={[
             {
               name: "q",
@@ -581,11 +655,23 @@ function PeoplePage() {
             mobile={
               teachersQuery.isLoading ? (
                 <EntityListSkeleton rows={5} />
+              ) : teachersQuery.isError ? (
+                <MobileErrorState
+                  what="os professores"
+                  error={teachersQuery.error}
+                  onRetry={() => void teachersQuery.refetch()}
+                />
               ) : teachers.length === 0 ? (
                 <MobileEmptyState
                   icon={GraduationCap}
-                  title="Nenhum professor neste filtro"
+                  title="Nenhum professor encontrado"
                   description="Ajuste a pesquisa ou o estado para encontrar docentes."
+                  actionLabel={
+                    filters.q.trim() || filters.teacherStatus !== "all"
+                      ? "Limpar filtros"
+                      : undefined
+                  }
+                  onAction={resetDirectoryFilters}
                 />
               ) : (
                 <EntityList
@@ -640,17 +726,22 @@ function PeoplePage() {
                           </div>
                         </TableCell>
                       </TableRow>
+                    ) : teachersQuery.isError ? (
+                      <CrudListFeedbackRow
+                        colSpan={5}
+                        kind="error"
+                        entityLabel="professores"
+                        onRetry={() => void teachersQuery.refetch()}
+                      />
                     ) : teachers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="p-4">
-                          <EmptyState
-                            icon={GraduationCap}
-                            title="Nenhum professor neste filtro"
-                            description="Ajuste a pesquisa ou o estado para encontrar docentes, ou registe um novo professor."
-                            compact
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <CrudListFeedbackRow
+                        colSpan={5}
+                        kind={
+                          filters.q.trim() || filters.teacherStatus !== "all" ? "filtered" : "empty"
+                        }
+                        entityLabel="professores"
+                        onClearFilters={resetDirectoryFilters}
+                      />
                     ) : (
                       teachers.map((teacher) => (
                         <TableRow key={teacher.id}>
@@ -707,6 +798,7 @@ function PeoplePage() {
                                 description="Actualize nome, contacto e estado."
                                 icon={<Pencil className="size-5" />}
                                 submitLabel="Guardar"
+                                validate={validateTeacherQuickForm}
                                 onSubmit={async (values) => {
                                   await updateTeacher({
                                     data: {
@@ -716,6 +808,9 @@ function PeoplePage() {
                                       phone: values["telefone"] || undefined,
                                       status:
                                         values["estado"] === "Inactivo" ? "inactive" : "active",
+                                      expectedUpdatedAt: teacher.updated_at || undefined,
+                                      expectedPersonUpdatedAt:
+                                        teacher.person_updated_at ?? undefined,
                                     },
                                   });
                                   await queryClient.invalidateQueries({
@@ -756,15 +851,21 @@ function PeoplePage() {
                                   </Button>
                                 )}
                               />
-                              <ConfirmActionModal
+                              <ImpactConfirmModal
                                 title="Desactivar professor"
-                                description={`${teacher.full_name} será marcado como inactivo.`}
-                                confirmLabel="Desactivar"
+                                verb="Desactivar"
+                                itemType="o professor"
+                                itemName={teacher.full_name}
+                                confirmLabel="Desactivar professor"
+                                loadImpact={() =>
+                                  getTeacherDeletionImpact({ data: { teacherId: teacher.id } })
+                                }
                                 onConfirm={async () => {
                                   await deleteTeacher({ data: { teacherId: teacher.id } });
                                   await queryClient.invalidateQueries({
                                     queryKey: ["people", "teachers"],
                                   });
+                                  toast.success("Professor desactivado.");
                                 }}
                                 trigger={(open) => (
                                   <Button
@@ -787,6 +888,14 @@ function PeoplePage() {
               </div>
             }
           />
+          {!teachersQuery.isError && !teachersQuery.isLoading ? (
+            <ListPaginationBar
+              page={teachersPage}
+              pageSize={DIRECTORY_PAGE_SIZE}
+              totalItems={teachersQuery.data?.total ?? 0}
+              onPageChange={setTeachersPage}
+            />
+          ) : null}
         </div>
 
         <div className="rounded-xl border border-border bg-card shadow-soft">
@@ -794,7 +903,8 @@ function PeoplePage() {
             <div>
               <h2 className="font-display text-base font-bold">Registo central</h2>
               <p className="text-xs text-muted-foreground">
-                Pessoas da escola — clique numa linha para ver a ficha.
+                Pessoas da escola — clique numa linha para ver a ficha. A exportação abrange a
+                página actual.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -802,10 +912,12 @@ function PeoplePage() {
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
-                onClick={() => exportCsv("pessoas-filtradas", peopleExportColumns, people)}
-                disabled={!people.length}
+                onClick={() =>
+                  exportCsv(`pessoas-pagina-${peoplePage}`, peopleExportColumns, people)
+                }
+                disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
-                <Download className="size-3.5" /> CSV
+                <Download className="size-3.5" /> CSV · página
               </Button>
               <Button
                 size="sm"
@@ -813,25 +925,25 @@ function PeoplePage() {
                 className="gap-1.5"
                 onClick={() =>
                   exportPdfTable(
-                    "pessoas-filtradas",
+                    `pessoas-pagina-${peoplePage}`,
                     "Registo de pessoas",
                     peopleExportColumns,
                     people,
                     `Filtros activos: ${activeCount || "nenhum"}`,
                   )
                 }
-                disabled={!people.length}
+                disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
-                <FileDown className="size-3.5" /> PDF
+                <FileDown className="size-3.5" /> PDF · página
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 className="gap-1.5"
                 onClick={exportarRegistoOficial}
-                disabled={!people.length}
+                disabled={peopleQuery.isError || peopleQuery.isLoading || !people.length}
               >
-                <FileBadge className="size-3.5" /> Oficial
+                <FileBadge className="size-3.5" /> Oficial · página
               </Button>
             </div>
           </div>
@@ -845,15 +957,25 @@ function PeoplePage() {
                   error={peopleQuery.error}
                   onRetry={() => void peopleQuery.refetch()}
                 />
-              ) : (peopleQuery.data ?? []).length === 0 ? (
+              ) : people.length === 0 ? (
                 <MobileEmptyState
                   icon={User}
-                  title="Nenhuma pessoa encontrada"
-                  description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo."
+                  title={
+                    activeCount
+                      ? "Nenhuma pessoa corresponde aos filtros"
+                      : "Ainda não existem pessoas"
+                  }
+                  description={
+                    activeCount
+                      ? "Altere os critérios para continuar."
+                      : "Utilize Nova pessoa para iniciar o registo."
+                  }
+                  actionLabel={activeCount ? "Limpar filtros" : undefined}
+                  onAction={resetDirectoryFilters}
                 />
               ) : (
                 <EntityList
-                  items={(peopleQuery.data ?? []).map<EntityListItem>((row) => ({
+                  items={people.map<EntityListItem>((row) => ({
                     id: row.id,
                     title: row.full_name,
                     subtitle: row.email ?? row.phone_primary ?? "Sem contacto",
@@ -904,30 +1026,21 @@ function PeoplePage() {
                         </TableCell>
                       </TableRow>
                     ) : peopleQuery.isError ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="py-10 text-center text-sm text-destructive"
-                        >
-                          Não foi possível pesquisar pessoas:{" "}
-                          {peopleQuery.error instanceof Error
-                            ? peopleQuery.error.message
-                            : "erro desconhecido"}
-                        </TableCell>
-                      </TableRow>
-                    ) : (peopleQuery.data ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="p-4">
-                          <EmptyState
-                            icon={User}
-                            title="Nenhuma pessoa encontrada"
-                            description="Ajuste a pesquisa ou o tipo de pessoa, ou registe alguém novo no botão «Nova pessoa»."
-                            compact
-                          />
-                        </TableCell>
-                      </TableRow>
+                      <CrudListFeedbackRow
+                        colSpan={4}
+                        kind="error"
+                        entityLabel="pessoas"
+                        onRetry={() => void peopleQuery.refetch()}
+                      />
+                    ) : people.length === 0 ? (
+                      <CrudListFeedbackRow
+                        colSpan={4}
+                        kind={activeCount ? "filtered" : "empty"}
+                        entityLabel="pessoas"
+                        onClearFilters={resetDirectoryFilters}
+                      />
                     ) : (
-                      (peopleQuery.data ?? []).map((row) => (
+                      people.map((row) => (
                         <TableRow
                           key={row.id}
                           className="cursor-pointer transition-colors hover:bg-secondary/50"
@@ -1007,6 +1120,14 @@ function PeoplePage() {
               </div>
             }
           />
+          {!peopleQuery.isError && !peopleQuery.isLoading ? (
+            <ListPaginationBar
+              page={peoplePage}
+              pageSize={DIRECTORY_PAGE_SIZE}
+              totalItems={peopleQuery.data?.total ?? 0}
+              onPageChange={setPeoplePage}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -1094,6 +1215,7 @@ function PeoplePage() {
                       description="Modifique os dados principais desta pessoa."
                       icon={<Pencil className="size-5" />}
                       submitLabel="Guardar Alterações"
+                      validate={(values) => validatePersonQuickEdit(values, person.id)}
                       fields={[
                         {
                           name: "nome",
@@ -1125,6 +1247,7 @@ function PeoplePage() {
                         await updatePerson({
                           data: {
                             personId: person.id,
+                            expectedUpdatedAt: person.updated_at ?? undefined,
                             fullName: values["nome"] ?? person.full_name,
                             email: values["email"] || undefined,
                             phone: values["telefone"] || undefined,

@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:123456789:android:abcdef123456",
         "android_client_info": {
-          "package_name": "com.example.yft_school_system"
+          "package_name": "ao.onsoft.sigaplus"
         }
       },
       "oauth_client": [],

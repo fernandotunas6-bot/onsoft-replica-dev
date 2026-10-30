@@ -130,7 +130,8 @@ function PasswordOrPasskey({
             <Fingerprint className="size-4" /> Criar chave de acesso e confirmar
           </Button>
           <p className="text-center text-[11px] text-muted-foreground">
-            Fica com 2FA activo: das próximas vezes basta um toque.
+            A chave fica disponível para acções sensíveis; a confirmação no início de sessão pode
+            ser activada nas Definições.
           </p>
         </>
       ) : null}

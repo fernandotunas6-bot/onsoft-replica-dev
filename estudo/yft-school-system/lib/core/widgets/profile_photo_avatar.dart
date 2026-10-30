@@ -47,6 +47,7 @@ void showFullscreenNetworkImage(BuildContext context, String imageUrl) {
                 top: 0,
                 right: 0,
                 child: IconButton(
+                  tooltip: 'Fechar',
                   icon: const Icon(Icons.close, color: Colors.white, size: 28),
                   onPressed: () => Navigator.of(ctx).pop(),
                 ),

@@ -1,0 +1,192 @@
+{
+  "engine": "PGlite 0.3.14",
+  "scope": "Local SQL fixtures, real migration code; no production writes; not a concurrency or complete production RLS test",
+  "total": 46,
+  "passed": 46,
+  "results": [
+    {
+      "test": "tests/sql/academic-year-covers-terms.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/access-cards-one-active.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/announcements-audience.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/annual-sheet-terms.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/assessment-closed-term.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/atomic-school-workflows.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/audit-transactions.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/cash-expenses-approval.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/cash-sessions-upgrade.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/cash-sessions.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/chat-integrity.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/class-task-submissions.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/direct-writes-mfa.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/document-code-index.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/early-enrollment.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/education-catalog.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/enrollment-class-change.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/enrollment-public-server-only.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/fee-items-grade-level.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/finance-2026-bundle.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/gateway-settlement.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/higher-ed-statuses.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/late-fee.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/lesson-meetings-server-only.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/merge-people.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/merge-school-subjects.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/numbering-one-year-digits.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/offline-sync-receipts.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/one-tuition-per-month.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/payment-destination.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/payment-integrity.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/payroll-confirmation.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/payroll-zero-net.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/realtime-notifications-package.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/realtime-package.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/saas-audit-logs-server-only.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/school-logos-no-svg.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/school-row-role-policies.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/school-settings-matches-catalog.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/school-website-content.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/staff-grants-mfa.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/subjects-catalog-link.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/teacher-scope-reads.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/tenant-billing-profiles.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/timetable-room-placeholders.mjs",
+      "exit_code": 0
+    },
+    {
+      "test": "tests/sql/web-site-content.mjs",
+      "exit_code": 0
+    }
+  ]
+}

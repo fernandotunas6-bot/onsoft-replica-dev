@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "id": "q-mat",
+      "school_id": "q1",
+      "name": "Matemática",
+      "created_at": "2026-10-16 06:37:54",
+      "class_ids": [
+        "q-c10"
+      ]
+    }
+  ]
+}

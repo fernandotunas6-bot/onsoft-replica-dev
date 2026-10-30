@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { schoolShiftLabel } from "@/lib/school-display";
 import { UserPlus } from "lucide-react";
+import { EnrollmentEntryDialog } from "./EnrollmentEntryDialog";
 import { toast } from "@/lib/toast";
 import { Input } from "@/components/ui/input";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
@@ -24,6 +26,7 @@ import { useInstalledIntegrations } from "@/features/integrations/use-installed-
 import { EducationWorkflowVisual } from "@/components/workflows/EducationWorkflowVisual";
 import {
   buildEnrollmentDirectory,
+  enrollmentContextFromClass,
   formatEnrollmentClassGroupLabel,
   type EnrollmentClassGroup,
 } from "@/features/students/enrollment-directory";
@@ -80,6 +83,7 @@ const emptyValues = {
 export function StudentEnrollmentSheet({
   trigger,
   autoOpen = false,
+  initialClassGroupId,
   classGroups,
   people,
   existingStudents = [],
@@ -87,6 +91,7 @@ export function StudentEnrollmentSheet({
 }: {
   trigger: (open: () => void) => ReactNode;
   autoOpen?: boolean;
+  initialClassGroupId?: string;
   classGroups: ClassGroupOption[];
   people: PersonOption[];
   /** Alunos da escola, para oferecer o existente em vez de criar outro. */
@@ -94,17 +99,28 @@ export function StudentEnrollmentSheet({
   onCreated: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(autoOpen);
+  const [entryMode, setEntryMode] = useState<"choose" | "new">("choose");
   const requestId = useRef("");
   const installed = useInstalledIntegrations();
   const resendOn = installed.hasCapability("resend.send");
   const [values, setValues] = useState(emptyValues);
+  // Resolve only against the authorised workspace; a URL is never authority.
+  useEffect(() => {
+    if (!open || !initialClassGroupId) return;
+    const context = enrollmentContextFromClass(classGroups, initialClassGroupId);
+    if (!context) return;
+    setValues((current) => (current.turmaId ? current : { ...current, ...context }));
+  }, [open, initialClassGroupId, classGroups]);
+
   const [guardianQuery, setGuardianQuery] = useState("");
   const [guardianResults, setGuardianResults] = useState<PersonOption[]>([]);
   const [searchingGuardians, setSearchingGuardians] = useState(false);
   // Aluno existente escolhido na folha: abre a matrícula curta (só a turma).
-  const [existing, setExisting] = useState<{ student: ExistingStudentOption; key: number } | null>(
-    null,
-  );
+  const [existing, setExisting] = useState<{
+    student: ExistingStudentOption;
+    key: number;
+    classGroupId?: string;
+  } | null>(null);
 
   // Fecho sem gravar (cancelado ou X) não deve deixar dados da tentativa
   // anterior visíveis da próxima vez que a folha abrir.
@@ -113,6 +129,7 @@ export function StudentEnrollmentSheet({
     if (wasOpen.current && !open) {
       requestId.current = "";
       setValues(emptyValues);
+      setEntryMode("choose");
       setGuardianQuery("");
       setGuardianResults([]);
     }
@@ -209,9 +226,25 @@ export function StudentEnrollmentSheet({
 
   return (
     <>
-      {trigger(() => setOpen(true))}
+      {trigger(() => {
+        setEntryMode("choose");
+        setOpen(true);
+      })}
+      <EnrollmentEntryDialog
+        open={open && entryMode === "choose"}
+        onOpenChange={setOpen}
+        onCreate={() => setEntryMode("new")}
+        onSelect={(student) => {
+          setExisting((previous) => ({
+            student,
+            key: (previous?.key ?? 0) + 1,
+            classGroupId: values.turmaId || undefined,
+          }));
+          setOpen(false);
+        }}
+      />
       <SequentialSheetModal
-        open={open}
+        open={open && entryMode === "new"}
         onOpenChange={setOpen}
         eyebrow="Secretaria"
         title="Nova matrícula"
@@ -411,7 +444,11 @@ export function StudentEnrollmentSheet({
                               type="button"
                               className="text-xs font-semibold text-primary hover:underline"
                               onClick={() => {
-                                setExisting((prev) => ({ student, key: (prev?.key ?? 0) + 1 }));
+                                setExisting((prev) => ({
+                                  student,
+                                  key: (prev?.key ?? 0) + 1,
+                                  classGroupId: values.turmaId || undefined,
+                                }));
                                 setOpen(false);
                               }}
                             >
@@ -700,7 +737,7 @@ export function StudentEnrollmentSheet({
                         {selectedTurma.room_name && selectedTurma.room_name !== "—"
                           ? `${selectedTurma.room_name} · `
                           : ""}
-                        {selectedTurma.shift ? `${selectedTurma.shift} · ` : ""}
+                        {selectedTurma.shift ? `${schoolShiftLabel(selectedTurma.shift)} · ` : ""}
                         {typeof selectedTurma.capacity === "number"
                           ? `${selectedTurma.enrolled_count ?? 0}/${selectedTurma.capacity} alunos`
                           : "Capacidade não definida"}
@@ -771,8 +808,11 @@ export function StudentEnrollmentSheet({
               name: "turma",
               label: "Turma",
               type: "select",
+              searchable: true,
+              placeholder: "Seleccione uma turma",
               full: true,
-              options: classGroups.map((group) => ({
+              defaultValue: existing.classGroupId,
+              options: buildEnrollmentDirectory(classGroups, {}).classGroups.map((group) => ({
                 value: group.id,
                 label: [formatEnrollmentClassGroupLabel(group), group.academic_year_name]
                   .filter(Boolean)
@@ -782,7 +822,9 @@ export function StudentEnrollmentSheet({
           ]}
           onSubmit={async (submitted) => {
             const turma = classGroups.find((group) => group.id === submitted["turma"]);
-            if (!turma) throw new Error("Seleccione uma turma válida.");
+            if (!turma || ["inactive", "archived", "closed"].includes(turma.status ?? "")) {
+              throw new Error("Seleccione uma turma activa válida.");
+            }
             await enrollStudentInClass({
               data: { studentId: existing.student.id, classGroupId: turma.id },
             });

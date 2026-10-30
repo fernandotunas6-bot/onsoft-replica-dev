@@ -6,6 +6,7 @@ class UserProfile {
   final String? phone;
   final String? email;
   final String? createdAt;
+  final String? residentialAddress;
 
   const UserProfile({
     required this.uid,
@@ -15,6 +16,7 @@ class UserProfile {
     this.phone,
     this.email,
     this.createdAt,
+    this.residentialAddress,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class UserProfile {
       phone: json['phone'] as String?,
       email: json['email'] as String?,
       createdAt: json['created_at'] as String?,
+      residentialAddress: json['residential_address'] as String?,
     );
   }
 }

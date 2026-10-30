@@ -1,0 +1,90 @@
+name: Estudo — Worker no modo SIGA (teste)
+# Publica o Worker do estudo (estudo/yft-school-system/school-worker) em
+# siga-yft.<conta>.workers.dev, com a app web no modo SIGA e a chave de servidor
+# do SIGA, para o APK e a web lerem os dados reais (/api/sga). Corre só à mão.
+# Decisão do dono (26/10/2026): o Worker do estudo recebe a chave de servidor do SIGA.
+#
+# Não toca em m.portal-siga.com (é o ambiente «dominio» do wrangler.siga.jsonc,
+# que este workflow não usa) nem nas migrações D1 (o modo SIGA não as lê).
+#
+# Usa os segredos do environment production, os mesmos da publicação do SIGA:
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+#   SUPABASE_SERVICE_ROLE_KEY → SGA_SUPABASE_SECRET_KEY do Worker. O Worker envia-a
+#     em apikey e em Authorization: Bearer, o que a chave JWT aceita nos dois.
+# Os outros segredos do Worker (FIREBASE_WEB_API_KEY, SUPER_ADMIN_API_KEY) ficam
+# como estão: o wrangler deploy mantém-nos.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yft-publicar
+  cancel-in-progress: false
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: estudo/yft-school-system
+    env:
+      ORIGIN: https://siga-yft.valentinocanguele.workers.dev
+      D1_ID: ee34a724-3f0a-4c0e-ac93-bb67463cfa57
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versão do autor (.metadata). Com Flutter 3.47, lucide_icons 0.257 não compila.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.5"
+          channel: stable
+          cache: true
+
+      # URL e chave publicável: as públicas do wrangler.siga.jsonc. Captcha vazio,
+      # como no portal do SIGA.
+      - name: App web no modo SIGA
+        run: |
+          read -r SGA_URL SGA_PUB < <(node -e '
+            const t = require("fs").readFileSync("school-worker/wrangler.siga.jsonc", "utf8");
+            const get = (k) => (t.match(new RegExp(`"${k}":\\s*"([^"]+)"`)) || [])[1] || "";
+            console.log(get("SGA_SUPABASE_URL"), get("SGA_SUPABASE_PUBLISHABLE_KEY"));
+          ')
+          [ -n "$SGA_URL" ] && [ -n "$SGA_PUB" ] || { echo "::error::URL/chave publicável em falta no wrangler.siga.jsonc"; exit 1; }
+          flutter pub get
+          flutter build web --release --no-web-resources-cdn \
+            --dart-define=API_BASE_URL="$ORIGIN" \
+            --dart-define=SGA_SUPABASE_URL="$SGA_URL" \
+            --dart-define=SGA_SUPABASE_PUBLISHABLE_KEY="$SGA_PUB" \
+            --dart-define=SGA_PORTAL_URL=https://portal-siga.com \
+            --dart-define=HCAPTCHA_SITE_KEY=
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Publicar o Worker (workers.dev) e gravar a chave do SIGA
+        working-directory: estudo/yft-school-system/school-worker
+        env:
+          SGA_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          [ -n "$SGA_KEY" ] || { echo "::error::SUPABASE_SERVICE_ROLE_KEY em falta no environment production"; exit 1; }
+          # A conta do Worker siga-yft (PUBLICAR_SIGA.md). Noutra conta, o deploy criava
+          # outro siga-yft sem dar erro, e a verificação no fim não o distinguia.
+          [ "$CLOUDFLARE_ACCOUNT_ID" = "701800d01d428c5141fa1fdb60ee01ae" ] || { echo "::error::CLOUDFLARE_ACCOUNT_ID do environment production não é a conta do siga-yft"; exit 1; }
+          npm ci --ignore-scripts
+          # Só a configuração por omissão (workers.dev): o ambiente «dominio» fica de fora.
+          sed "s/__D1_DATABASE_ID__/$D1_ID/g" wrangler.siga.jsonc > wrangler.ci.jsonc
+          npx wrangler deploy --config wrangler.ci.jsonc
+          printf '%s' "$SGA_KEY" | npx wrangler secret put SGA_SUPABASE_SECRET_KEY --config wrangler.ci.jsonc
+          rm -f wrangler.ci.jsonc
+
+      - name: Verificar
+        run: |
+          sleep 10
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$ORIGIN/health")
+          echo "/health → $code"; [ "$code" = "200" ] || exit 1
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$ORIGIN/api/sga/me")
+          echo "/api/sga/me sem sessão → $code (esperado 401)"; [ "$code" = "401" ] || exit 1
+          curl -s "$ORIGIN/" | grep -q "<!DOCTYPE html>" && echo "app web servida"

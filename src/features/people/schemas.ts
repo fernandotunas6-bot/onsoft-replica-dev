@@ -170,6 +170,13 @@ export const searchPeopleInputSchema = z.object({
 });
 export type SearchPeopleInput = z.infer<typeof searchPeopleInputSchema>;
 
+export const searchPeoplePageInputSchema = searchPeopleInputSchema.omit({ limit: true }).extend({
+  status: z.enum(["todos", "active", "inactive"]).default("todos"),
+  page: z.number().int().min(1).max(10_000).default(1),
+  pageSize: z.number().int().min(1).max(100).default(25),
+});
+export type SearchPeoplePageInput = z.infer<typeof searchPeoplePageInputSchema>;
+
 export const findPersonDuplicatesInputSchema = z.object({
   fullName: z.string().trim().min(2),
   birthDate: optionalText,
@@ -206,6 +213,8 @@ export type SetPersonInstitutionRolesInput = z.infer<typeof setPersonInstitution
 export const updatePersonInputSchema = z
   .object({
     personId: z.string().guid(),
+    /** Bloqueia gravações baseadas numa ficha desactualizada sem alterar o contrato legado. */
+    expectedUpdatedAt: z.string().min(1).max(100).optional(),
     fullName: z.string().trim().min(2).max(160),
     email: z.union([z.literal(""), z.string().trim().email()]).optional(),
     phone: optionalText,
@@ -266,6 +275,9 @@ export const updateTeacherInputSchema = z.object({
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
   phone: optionalText,
   status: z.enum(["active", "inactive"]).default("active"),
+  /** Carimbos lidos pelo ecrã (professor e ficha): conflito em vez de sobrescrever. */
+  expectedUpdatedAt: z.string().trim().min(10).max(64).optional(),
+  expectedPersonUpdatedAt: z.string().trim().min(10).max(64).optional(),
 });
 export type UpdateTeacherInput = z.infer<typeof updateTeacherInputSchema>;
 
@@ -280,3 +292,9 @@ export const listTeachersInputSchema = z.object({
   limit: z.number().int().min(1).max(200).default(100),
 });
 export type ListTeachersInput = z.infer<typeof listTeachersInputSchema>;
+
+export const listTeachersPageInputSchema = listTeachersInputSchema.omit({ limit: true }).extend({
+  page: z.number().int().min(1).max(10_000).default(1),
+  pageSize: z.number().int().min(1).max(100).default(25),
+});
+export type ListTeachersPageInput = z.infer<typeof listTeachersPageInputSchema>;

@@ -29,18 +29,18 @@ describe("2FA imposto na sessão", () => {
     expect(lookup).not.toHaveBeenCalled();
   });
 
-  it("aal1 de conta SEM 2FA passa", async () => {
+  it("aal1 com confirmação MFA de login desligada passa", async () => {
     await expect(assertSessionMfa("u1", "aal1", async () => false)).resolves.toBeUndefined();
   });
 
-  it("aal1 de conta COM 2FA é recusado com 401", async () => {
+  it("aal1 com confirmação MFA de login activada é recusado com 401", async () => {
     const error = await assertSessionMfa("u1", "aal1", async () => true).catch((e: unknown) => e);
     expect((error as Error).message).toBe(SESSION_MFA_REQUIRED);
     expect((error as { statusCode?: number }).statusCode).toBe(401);
     expect(isSessionMfaError(error)).toBe(true);
   });
 
-  it("sem conseguir consultar os factores, aal1 não passa", async () => {
+  it("sem conseguir consultar a preferência de login, aal1 não passa", async () => {
     const lookup = async () => {
       throw new Error("rede");
     };
@@ -69,7 +69,7 @@ describe("2FA imposto na sessão", () => {
 
   it("o ecrã de entrada pede o código em qualquer via de entrada", () => {
     const gate = readFileSync(join(process.cwd(), "src/components/auth/AuthGate.tsx"), "utf8");
-    expect(gate).toMatch(/await adoptSession\(data\.session\)/);
-    expect(gate).toMatch(/adoptSession\(nextSession\)/);
+    expect(gate).toMatch(/await adoptSession\(data\.session, version\)/);
+    expect(gate).toMatch(/adoptSession\(nextSession, version\)/);
   });
 });

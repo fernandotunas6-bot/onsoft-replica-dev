@@ -134,7 +134,13 @@ describe("aulas do dia (presença)", () => {
   });
 
   it("professor sem ficha de docente não vê as aulas da escola inteira", () => {
-    expect(fn).toMatch(/if \(!linked\.teacher_id\) return \{ sessions: \[\]/);
+    expect(fn).toMatch(/if \(!linked\.teacher_id\)\s*return \{\s*sessions: \[\]/);
+  });
+
+  it("o filtro por professor só estreita: o professor vê sempre só as suas aulas", () => {
+    expect(fn).toMatch(
+      /\.eq\("teacher_id", linked\.teacher_id\);\s*\} else if \(data\.teacherId\) \{\s*classSubjectQuery = classSubjectQuery\.eq\("teacher_id", data\.teacherId\)/,
+    );
   });
 
   it("as sessões em falta criam-se numa só escrita, com erro verificado", () => {

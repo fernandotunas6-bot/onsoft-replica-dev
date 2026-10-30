@@ -13,27 +13,66 @@
 (function () {
   "use strict";
 
-  function supported() {
+  // Diz o que falta neste motor, ou "" quando tem tudo.
+  function missingFeature() {
     try {
       // Lookbehind em expressões regulares: Safari 16.4, Chrome 62, Firefox 78.
       new RegExp("(?<=a)b");
     } catch (e) {
-      return false;
+      return "expressões regulares com lookbehind";
     }
     try {
       // color-mix(): Safari 16.2, Chrome 111, Firefox 113 (Tailwind 4 usa-o nas cores).
       if (window.CSS && CSS.supports && !CSS.supports("color", "color-mix(in srgb, red, blue)")) {
-        return false;
+        return "cores com color-mix()";
       }
+    } catch (e) {
+      return "cores com color-mix()";
+    }
+    return "";
+  }
+
+  var SKIP_KEY = "siga-browser-check-skip";
+  function skipped() {
+    try {
+      return window.sessionStorage.getItem(SKIP_KEY) === "1";
     } catch (e) {
       return false;
     }
-    return true;
   }
 
-  if (supported()) return;
+  var missing = missingFeature();
+  if (!missing || skipped()) return;
+
+  // Que motor é este, por saltos de funcionalidades (o user agent do Safari não diz).
+  function engineGuess() {
+    try {
+      if (!Array.prototype.at) return "anterior ao Safari 15.4";
+      if (window.CSS && CSS.supports && !CSS.supports("container-type", "inline-size")) {
+        return "Safari 15.4 a 15.6";
+      }
+      if (window.CSS && CSS.supports && !CSS.supports("color", "color-mix(in srgb, red, blue)")) {
+        return "Safari 16.0 ou 16.1";
+      }
+      return "Safari 16.2 ou 16.3";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // Na app SIGA Desktop o plugin «os» do Tauri deixa ler a versão do macOS.
+  function macosVersion() {
+    try {
+      var info = window.__TAURI_OS_PLUGIN_INTERNALS__;
+      return info && typeof info.version === "string" ? info.version : "";
+    } catch (e) {
+      return "";
+    }
+  }
 
   var ua = navigator.userAgent || "";
+  // O Safari diz a sua versão no user agent; a app (WKWebView) não.
+  var safariVersion = (/Version\/([\d.]+)[^)]*Safari/.exec(ua) || [])[1] || "";
   var iOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   var mac = !iOS && /Macintosh|Mac OS X/.test(ua);
   var desktopApp = Boolean(window.__TAURI_INTERNALS__ || window.isTauri);
@@ -55,7 +94,8 @@
     ];
     note =
       "No macOS 10.15 Catalina ou anterior não há Safari compatível: use o Firefox actualizado " +
-      "ou o SIGA Plus noutro computador.";
+      "ou o SIGA Plus noutro computador. Entretanto, o SIGA funciona no Chrome ou no Firefox " +
+      "actualizados, em portal-siga.com.";
   } else if (iOS) {
     title = "É preciso actualizar o iOS";
     intro = "O SIGA Plus precisa do iOS/iPadOS 16.4 ou mais recente.";
@@ -114,6 +154,44 @@
     }
     card.appendChild(list);
     if (note) card.appendChild(el("p", "margin:0;font-size:13px;color:#64748B;", note));
+
+    // O que foi encontrado, para quem ajuda a resolver (suporte, Direcção).
+    var found = [];
+    var engine = engineGuess();
+    if (engine) found.push("Motor encontrado: " + engine);
+    found.push("Falta: " + missing);
+    if (safariVersion) found.push("Safari " + safariVersion);
+    var macos = mac ? macosVersion() : "";
+    if (macos) found.push("macOS " + macos);
+    if (found.length) {
+      var detail = el(
+        "p",
+        "margin:16px 0 0;padding-top:12px;border-top:1px solid #E2E8F0;font-size:12px;color:#64748B;",
+        found.join(" · ") + ".",
+      );
+      detail.id = "siga-browser-check-detail";
+      card.appendChild(detail);
+    }
+
+    // Se a verificação se enganar, não deixa ninguém preso neste ecrã.
+    var skip = el(
+      "button",
+      "margin:16px 0 0;padding:8px 14px;border:1px solid #CBD5E1;border-radius:10px;" +
+        "background:#fff;color:#0F172A;font:inherit;font-size:13px;cursor:pointer;",
+      "Continuar mesmo assim",
+    );
+    skip.id = "siga-browser-check-continue";
+    skip.setAttribute("type", "button");
+    skip.addEventListener("click", function () {
+      try {
+        window.sessionStorage.setItem(SKIP_KEY, "1");
+      } catch (e) {
+        // Sem sessionStorage: continua só desta vez.
+      }
+      document.documentElement.removeAttribute("data-siga-browser");
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    });
+    card.appendChild(skip);
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);

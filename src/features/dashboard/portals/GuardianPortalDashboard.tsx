@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -322,7 +323,15 @@ export function GuardianPortalDashboard() {
               {announcements.slice(0, 3).map((item) => (
                 <PortalListItem
                   key={item.id}
-                  title={item.title}
+                  title={
+                    <Link
+                      to="/comunicacoes/$announcementId"
+                      params={{ announcementId: item.id }}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {item.title}
+                    </Link>
+                  }
                   meta={
                     item.published_at
                       ? new Date(item.published_at).toLocaleDateString("pt-PT")

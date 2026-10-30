@@ -18,6 +18,7 @@ const PUBLICADAS_NA_PRODUCAO = [
 ];
 const MIGRACAO_TEMPO_REAL =
   "supabase/migrations/20261004101000_realtime_publish_school_screens.sql";
+const MIGRACAO_AVISOS = "supabase/migrations/20261027100000_realtime_publish_notifications.sql";
 
 const snapshot = JSON.parse(readFileSync("supabase/PRODUCTION_SNAPSHOT.json", "utf8")) as {
   tabelas: Array<{ tabela: string }>;
@@ -44,8 +45,8 @@ function tabelasSubscritas() {
   return encontradas;
 }
 
-function publicadasPelaMigracao() {
-  const sql = readFileSync(MIGRACAO_TEMPO_REAL, "utf8");
+function publicadasPelaMigracao(caminho = MIGRACAO_TEMPO_REAL) {
+  const sql = readFileSync(caminho, "utf8");
   const lista = sql.match(/FOREACH t IN ARRAY ARRAY\[([\s\S]*?)\]/)?.[1] ?? "";
   return [...lista.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!);
 }
@@ -62,8 +63,12 @@ describe("tempo real contra a produção", () => {
     expect(inexistentes).toEqual([]);
   });
 
-  it("cada tabela subscrita está publicada (na produção ou pela migração de 2026-10-04)", () => {
-    const publicadas = new Set([...PUBLICADAS_NA_PRODUCAO, ...publicadasPelaMigracao()]);
+  it("cada tabela subscrita está publicada (na produção ou por migrações versionadas)", () => {
+    const publicadas = new Set([
+      ...PUBLICADAS_NA_PRODUCAO,
+      ...publicadasPelaMigracao(),
+      ...publicadasPelaMigracao(MIGRACAO_AVISOS),
+    ]);
     const porPublicar = [...subscritas.entries()]
       .filter(([t]) => !publicadas.has(t))
       .map(([t, onde]) => `${t} (${onde.join(", ")})`);
@@ -83,5 +88,46 @@ describe("pacote para o SQL Editor", () => {
     const pacote = readFileSync("docs/agents/SIGA_aplicar_tempo_real.sql", "utf8");
     expect(pacote).toContain(readFileSync(MIGRACAO_TEMPO_REAL, "utf8"));
     expect(pacote).toMatch(/══════════ Confirmar ══════════[\s\S]*pg_publication_tables/);
+  });
+});
+
+/**
+ * App móvel (2026-10-27): a app subscreve `notifications` (filtro `user_id`), e
+ * `school_announcements` e `siga_chat_messages`, já publicadas. O código é Dart
+ * (estudo/yft-school-system), por isso não aparece na procura acima.
+ */
+describe("tempo real dos avisos da app móvel", () => {
+  const sql = readFileSync(MIGRACAO_AVISOS, "utf8");
+  const lista = [
+    ...(sql.match(/FOREACH t IN ARRAY ARRAY\[([\s\S]*?)\]/)?.[1] ?? "").matchAll(/'([a-z_]+)'/g),
+  ].map((m) => m[1]!);
+
+  it("publica só `notifications`, que existe na produção, de forma idempotente", () => {
+    expect(lista).toEqual(["notifications"]);
+    expect(naProducao.has("notifications")).toBe(true);
+    expect(sql).toContain("to_regclass('public.' || t) IS NULL");
+    expect(sql).toMatch(/NOT EXISTS \(\s*SELECT 1 FROM pg_publication_tables/);
+    // Só publica: nada que apague ou mude dados (os comentários podem falar disso).
+    const codigo = sql.replace(/--.*$/gm, "");
+    expect(codigo).not.toMatch(/\b(DROP|DELETE|TRUNCATE|UPDATE|INSERT)\b/);
+  });
+
+  it("as tabelas que a app subscreve estão publicadas (na produção ou por migração)", () => {
+    const publicadas = new Set([...PUBLICADAS_NA_PRODUCAO, ...publicadasPelaMigracao(), ...lista]);
+    const app = readFileSync(
+      "estudo/yft-school-system/lib/core/realtime/realtime_service.dart",
+      "utf8",
+    );
+    const subscritas = [...app.matchAll(/table:\s*'([a-z_]+)'/g)].map((m) => m[1]!);
+    expect(subscritas.length).toBeGreaterThanOrEqual(3);
+    expect(subscritas.filter((t) => !publicadas.has(t))).toEqual([]);
+  });
+
+  it("o pacote para o SQL Editor leva a migração tal como está, com a confirmação", () => {
+    const pacote = readFileSync("docs/agents/SIGA_aplicar_tempo_real_avisos.sql", "utf8");
+    expect(pacote).toContain(sql);
+    expect(pacote).toMatch(/══════════ Confirmar ══════════[\s\S]*pg_publication_tables/);
+    const sondas = readFileSync("docs/agents/SIGA_confirmar_migracoes.sql", "utf8");
+    expect(sondas).toContain("('20261027100000_realtime_publish_notifications',");
   });
 });

@@ -15,5 +15,6 @@ export function useAppContext(): AppContext {
     grants: account.grants,
     pathname,
     focusedEntity,
+    schoolId: account.schoolId,
   });
 }

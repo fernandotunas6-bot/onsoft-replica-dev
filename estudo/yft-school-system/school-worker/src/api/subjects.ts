@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../app-env';
-import { requireAdmin, requireAdminOrTeacher } from '../lib/auth-guards';
+import { requireAdmin, requireRoles } from '../lib/auth-guards';
+import { wardClassIds } from '../lib/ward-classes';
 import { createPrefixedId } from '../lib/id';
 import { jsonError, jsonOk } from '../lib/response';
 import { z } from 'zod';
@@ -19,9 +20,43 @@ const updateSubjectSchema = z.object({
 
 const subjects = new Hono<AppEnv>();
 
-subjects.get('/', requireAdminOrTeacher, async (c) => {
+subjects.get('/', requireRoles('admin', 'teacher', 'parent'), async (c) => {
   const user = c.get('user');
   const classId = c.req.query('class_id')?.trim();
+
+  // O encarregado só vê as disciplinas das turmas dos seus educandos.
+  if (user.role === 'parent') {
+    const mine = await wardClassIds(c);
+    if (classId && !mine.includes(classId)) {
+      return jsonError(c, 'Forbidden', 403);
+    }
+    const scope = classId ? [classId] : mine;
+    if (scope.length === 0) return jsonOk(c, { data: [] });
+    const marks = scope.map(() => '?').join(',');
+    const { results } = await c.env.DB.prepare(
+      `
+        SELECT
+          s.id,
+          s.school_id,
+          s.name,
+          s.created_at,
+          GROUP_CONCAT(sc.class_id) AS class_ids
+        FROM Subjects s
+        JOIN SubjectClasses sc ON sc.subject_id = s.id AND sc.school_id = s.school_id
+        WHERE s.school_id = ? AND sc.class_id IN (${marks})
+        GROUP BY s.id
+        ORDER BY s.name
+      `
+    ).bind(user.schoolId, ...scope).all();
+    return jsonOk(c, {
+      data: results.map((row) => ({
+        ...row,
+        class_ids: typeof row.class_ids === 'string' && row.class_ids.length > 0
+          ? row.class_ids.split(',').filter(Boolean)
+          : [],
+      })),
+    });
+  }
 
   const sql = classId
     ? `

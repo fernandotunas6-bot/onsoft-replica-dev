@@ -6,7 +6,7 @@ vi.mock("@/integrations/supabase/sga-admin", () => ({
   requireSgaWriterForWrite: vi.fn(),
 }));
 vi.mock("@/features/students/enrollment-core", () => ({
-  ENROLLMENT_2FA_MESSAGE: "2FA",
+  ENROLLMENT_AUTHORIZATION_MESSAGE: "2FA",
   placeStudentInClass: vi.fn(),
 }));
 

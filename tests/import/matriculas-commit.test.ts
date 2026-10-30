@@ -64,14 +64,15 @@ describe("importador de matrículas: gravação", () => {
     });
   });
 
-  it("sem 2FA a linha falha com a explicação certa", async () => {
+  it("sem permissão a linha falha com a explicação certa", async () => {
     const rpc = vi.fn(async () => ({
       data: null,
       error: { code: "42501", message: "Sem autorização para matricular estudantes." },
     }));
     const result = await matriculasImporter.commitRow(row, context(rpc), cache());
     expect(result.status).toBe("error");
-    expect(result.errors[0]).toContain("2FA");
+    expect(result.errors[0]).toContain("permissões");
+    expect(result.errors[0]).not.toContain("2FA");
   });
 
   it("devolve o erro da base (ex.: turma cheia)", async () => {
