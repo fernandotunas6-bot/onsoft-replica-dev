@@ -4,7 +4,7 @@ import { buildStudentLedgerWorkbook, safeExcelText } from "@/features/finance/st
 const student = {
   studentId: "student-1",
   number: "00234567",
-  name: "=HYPERLINK(\"evil\")",
+  name: '=HYPERLINK("evil")',
   levelName: "Secundário",
   programName: "Ciências",
   gradeName: "10.ª",
@@ -29,7 +29,7 @@ describe("exportação financeira de estudantes", () => {
     expect(book.worksheets.map((sheet) => sheet.name)).toEqual(["Alunos", "Devedores", "Resumo"]);
     const row = book.getWorksheet("Alunos")!.getRow(2);
     expect(row.getCell(1).value).toBe("00234567");
-    expect(row.getCell(2).value).toBe("'=HYPERLINK(\"evil\")");
+    expect(row.getCell(2).value).toBe('\'=HYPERLINK("evil")');
     expect(row.getCell(8).value).toBe(4500);
     expect(row.getCell(9).value).toBe(10000);
     expect(book.getWorksheet("Devedores")!.rowCount).toBe(2);

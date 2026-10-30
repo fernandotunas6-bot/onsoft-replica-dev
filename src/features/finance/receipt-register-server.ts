@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { receiptLikeTerm, receiptPrintInputSchema, receiptRegisterInputSchema } from "./receipt-register-filter";
+import {
+  receiptLikeTerm,
+  receiptPrintInputSchema,
+  receiptRegisterInputSchema,
+} from "./receipt-register-filter";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -23,12 +27,14 @@ async function matchingStudentInvoiceIds(
 ): Promise<string[]> {
   const pattern = receiptLikeTerm(studentQuery);
   const [numberMatches, peopleMatches] = await Promise.all([
-    db.from("students")
+    db
+      .from("students")
       .select("id")
       .eq("school_id", schoolId)
       .ilike("student_number", pattern)
       .limit(MAX_STUDENT_MATCHES + 1),
-    db.from("people")
+    db
+      .from("people")
       .select("id")
       .eq("school_id", schoolId)
       .ilike("full_name", pattern)
@@ -44,18 +50,22 @@ async function matchingStudentInvoiceIds(
     (numberMatches.data?.length ?? 0) > MAX_STUDENT_MATCHES ||
     (peopleMatches.data?.length ?? 0) > MAX_STUDENT_MATCHES
   ) {
-    throw new Error("Há demasiados estudantes com esse nome. Escreva mais caracteres ou use o processo.");
+    throw new Error(
+      "Há demasiados estudantes com esse nome. Escreva mais caracteres ou use o processo.",
+    );
   }
 
   const peopleIds = nonEmptyIds((peopleMatches.data ?? []).map((row) => row.id));
   const byPeople = peopleIds.length
-    ? await db.from("students")
-      .select("id")
-      .eq("school_id", schoolId)
-      .in("person_id", peopleIds)
-      .limit(MAX_STUDENT_MATCHES + 1)
+    ? await db
+        .from("students")
+        .select("id")
+        .eq("school_id", schoolId)
+        .in("person_id", peopleIds)
+        .limit(MAX_STUDENT_MATCHES + 1)
     : { data: [], error: null };
-  if (byPeople.error) throw publicDatabaseError(byPeople.error, "Não foi possível pesquisar os estudantes.");
+  if (byPeople.error)
+    throw publicDatabaseError(byPeople.error, "Não foi possível pesquisar os estudantes.");
   const studentIds = nonEmptyIds([
     ...(numberMatches.data ?? []).map((row) => row.id),
     ...(byPeople.data ?? []).map((row) => row.id),
@@ -66,36 +76,42 @@ async function matchingStudentInvoiceIds(
   if (!studentIds.length) return [];
 
   const limit = MAX_INVOICES_FOR_STUDENT_SEARCH + 1;
-  const enrollments = await db.from("enrollments")
+  const enrollments = await db
+    .from("enrollments")
     .select("id")
     .eq("school_id", schoolId)
     .in("student_id", studentIds)
     .limit(limit);
-  if (enrollments.error) throw publicDatabaseError(enrollments.error, "Não foi possível procurar as matrículas.");
+  if (enrollments.error)
+    throw publicDatabaseError(enrollments.error, "Não foi possível procurar as matrículas.");
   if ((enrollments.data?.length ?? 0) >= limit) {
     throw new Error("Pesquisa demasiado ampla. Use o processo do estudante.");
   }
   const enrollmentIds = nonEmptyIds((enrollments.data ?? []).map((row) => row.id));
   if (!enrollmentIds.length) return [];
 
-  const contracts = await db.from("finance_contracts")
+  const contracts = await db
+    .from("finance_contracts")
     .select("id")
     .eq("school_id", schoolId)
     .in("enrollment_id", enrollmentIds)
     .limit(limit);
-  if (contracts.error) throw publicDatabaseError(contracts.error, "Não foi possível procurar os contratos.");
+  if (contracts.error)
+    throw publicDatabaseError(contracts.error, "Não foi possível procurar os contratos.");
   if ((contracts.data?.length ?? 0) >= limit) {
     throw new Error("Pesquisa demasiado ampla. Use o processo do estudante.");
   }
   const contractIds = nonEmptyIds((contracts.data ?? []).map((row) => row.id));
   if (!contractIds.length) return [];
 
-  const invoices = await db.from("finance_invoices")
+  const invoices = await db
+    .from("finance_invoices")
     .select("id")
     .eq("school_id", schoolId)
     .in("contract_id", contractIds)
     .limit(limit);
-  if (invoices.error) throw publicDatabaseError(invoices.error, "Não foi possível procurar as faturas.");
+  if (invoices.error)
+    throw publicDatabaseError(invoices.error, "Não foi possível procurar as faturas.");
   if ((invoices.data?.length ?? 0) >= limit) {
     throw new Error("Existem demasiadas faturas para esta pesquisa. Indique um número de fatura.");
   }
@@ -106,12 +122,11 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => receiptRegisterInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor(
-      "financeiro",
-      context.supabase,
-      context.userId,
-      ["Administrador", "Tesouraria", "Secretaria"],
-    );
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
     const schoolId = membership.schoolId;
     // Cliente privilegiado exclusivamente no servidor, com RBAC e escola obrigatórios.
     // Segue o mesmo contrato de leitura de getInvoiceDetail.
@@ -158,7 +173,11 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
     if (data.to) query = query.lte("paid_on", data.to);
 
     const start = (data.page - 1) * data.pageSize;
-    const { data: receipts, error, count } = await query
+    const {
+      data: receipts,
+      error,
+      count,
+    } = await query
       .order("paid_on", { ascending: false })
       .order("id", { ascending: false })
       .range(start, start + data.pageSize - 1);
@@ -168,46 +187,57 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
     if (!receiptRows.length) return { ...empty, total: count ?? 0 };
 
     const invoiceIds = nonEmptyIds(receiptRows.map((row) => row.invoice_id));
-    const { data: invoices, error: invoiceError } = invoiceIds.length ? await db
-      .from("finance_invoices")
-      .select("id, invoice_number, contract_id")
-      .eq("school_id", schoolId)
-      .in("id", invoiceIds) : { data: [], error: null };
-    if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível ligar os recibos às faturas.");
+    const { data: invoices, error: invoiceError } = invoiceIds.length
+      ? await db
+          .from("finance_invoices")
+          .select("id, invoice_number, contract_id")
+          .eq("school_id", schoolId)
+          .in("id", invoiceIds)
+      : { data: [], error: null };
+    if (invoiceError)
+      throw publicDatabaseError(invoiceError, "Não foi possível ligar os recibos às faturas.");
     const invoiceMap = new Map((invoices ?? []).map((row) => [row.id, row]));
 
     const contractIds = nonEmptyIds((invoices ?? []).map((row) => row.contract_id));
     const contracts = contractIds.length
-      ? await db.from("finance_contracts")
+      ? await db
+          .from("finance_contracts")
           .select("id, enrollment_id")
           .eq("school_id", schoolId)
           .in("id", contractIds)
       : { data: [], error: null };
-    if (contracts.error) throw publicDatabaseError(contracts.error, "Não foi possível consultar os contratos.");
+    if (contracts.error)
+      throw publicDatabaseError(contracts.error, "Não foi possível consultar os contratos.");
     const enrollmentIds = nonEmptyIds((contracts.data ?? []).map((row) => row.enrollment_id));
     const enrollments = enrollmentIds.length
-      ? await db.from("enrollments")
+      ? await db
+          .from("enrollments")
           .select("id, student_id")
           .eq("school_id", schoolId)
           .in("id", enrollmentIds)
       : { data: [], error: null };
-    if (enrollments.error) throw publicDatabaseError(enrollments.error, "Não foi possível consultar as matrículas.");
+    if (enrollments.error)
+      throw publicDatabaseError(enrollments.error, "Não foi possível consultar as matrículas.");
     const studentIds = nonEmptyIds((enrollments.data ?? []).map((row) => row.student_id));
     const students = studentIds.length
-      ? await db.from("students")
+      ? await db
+          .from("students")
           .select("id, person_id, student_number")
           .eq("school_id", schoolId)
           .in("id", studentIds)
       : { data: [], error: null };
-    if (students.error) throw publicDatabaseError(students.error, "Não foi possível consultar os alunos.");
+    if (students.error)
+      throw publicDatabaseError(students.error, "Não foi possível consultar os alunos.");
     const personIds = nonEmptyIds((students.data ?? []).map((row) => row.person_id));
     const people = personIds.length
-      ? await db.from("people")
+      ? await db
+          .from("people")
           .select("id, full_name")
           .eq("school_id", schoolId)
           .in("id", personIds)
       : { data: [], error: null };
-    if (people.error) throw publicDatabaseError(people.error, "Não foi possível consultar os nomes.");
+    if (people.error)
+      throw publicDatabaseError(people.error, "Não foi possível consultar os nomes.");
 
     const contractById = new Map((contracts.data ?? []).map((row) => [row.id, row]));
     const enrollmentById = new Map((enrollments.data ?? []).map((row) => [row.id, row]));
@@ -243,7 +273,6 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
     };
   });
 
-
 /**
  * Revalidar estado/montante no instante da reimpressão: o utilizador não pode
  * reproduzir um comprovativo aparentemente liquidado a partir de cache antiga
@@ -253,16 +282,17 @@ export const getReceiptPrintState = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => receiptPrintInputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const membership = await requireSgaWriterFor(
-      "financeiro",
-      context.supabase,
-      context.userId,
-      ["Administrador", "Tesouraria", "Secretaria"],
-    );
+    const membership = await requireSgaWriterFor("financeiro", context.supabase, context.userId, [
+      "Administrador",
+      "Tesouraria",
+      "Secretaria",
+    ]);
     const db = await loadSgaAdminClient();
     const { data: receipt, error } = await db
       .from("finance_receipts")
-      .select("id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversal_reason, external_id")
+      .select(
+        "id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversal_reason, external_id",
+      )
       .eq("school_id", membership.schoolId)
       .eq("id", data.receiptId)
       .maybeSingle();

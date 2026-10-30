@@ -10,11 +10,15 @@ describe("filtros do registo de recibos", () => {
     expect(receiptLikeTerm("F\\T")).toBe("%F\\\\T%");
   });
   it("não aceita datas invertidas, estados nem métodos arbitrários", () => {
-    expect(receiptRegisterInputSchema.safeParse({ from: "2026-10-30", to: "2026-10-01" }).success).toBe(false);
+    expect(
+      receiptRegisterInputSchema.safeParse({ from: "2026-10-30", to: "2026-10-01" }).success,
+    ).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ from: "2026-02-31" }).success).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ status: "deleted" }).success).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ method: "wire-magic" }).success).toBe(false);
-    expect(receiptRegisterInputSchema.safeParse({ paymentReference: "x".repeat(161) }).success).toBe(false);
+    expect(
+      receiptRegisterInputSchema.safeParse({ paymentReference: "x".repeat(161) }).success,
+    ).toBe(false);
   });
   it("tem paginação limitada e permite pesquisas por processo", () => {
     expect(receiptRegisterInputSchema.safeParse({ pageSize: 1001 }).success).toBe(false);

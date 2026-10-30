@@ -14,7 +14,11 @@ const sample = {
   reversalReason: "",
   externalId: "",
 };
-const context = { schoolName: "Escola Teste", exportedOn: "2026-10-30", filterDescription: "Outubro de 2026" };
+const context = {
+  schoolName: "Escola Teste",
+  exportedOn: "2026-10-30",
+  filterDescription: "Outubro de 2026",
+};
 
 describe("Excel de recibos", () => {
   it("preserva referências como texto e distingue emitidos e anulados", async () => {

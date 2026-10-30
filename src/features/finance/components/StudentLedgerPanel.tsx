@@ -273,7 +273,9 @@ function Ledger({
                 })
                   .then(() => toast.success("Lista financeira exportada para Excel."))
                   .catch((error: unknown) =>
-                    toast.error(error instanceof Error ? error.message : "Não foi possível exportar o Excel."),
+                    toast.error(
+                      error instanceof Error ? error.message : "Não foi possível exportar o Excel.",
+                    ),
                   )
                   .finally(() => setExportingExcel(false));
               }}
@@ -293,7 +295,9 @@ function Ledger({
               variant="outline"
               size="sm"
               disabled={
-                !visible.length || query.isFetching || (!pageSelected && pageSelection.length > MAX_REPORT_SELECTION)
+                !visible.length ||
+                query.isFetching ||
+                (!pageSelected && pageSelection.length > MAX_REPORT_SELECTION)
               }
               onClick={() =>
                 setSelected((old) =>
@@ -308,8 +312,11 @@ function Ledger({
             <Button
               variant="outline"
               size="sm"
-              disabled={!filtered.length || query.isFetching ||
-                (!allFilteredSelected && filtered.length > MAX_REPORT_SELECTION)}
+              disabled={
+                !filtered.length ||
+                query.isFetching ||
+                (!allFilteredSelected && filtered.length > MAX_REPORT_SELECTION)
+              }
               onClick={() =>
                 setSelected(allFilteredSelected ? [] : filtered.map((row) => row.studentId))
               }
@@ -384,9 +391,10 @@ function Ledger({
             />
           </div>
           <p className="px-3 pb-3 text-xs text-muted-foreground">
-            Pode seleccionar até 5 000 alunos para relatórios, inclusive entre páginas. Para emitir propinas, escolha no máximo 60 alunos activos da mesma turma. A
-            exportação de cobranças inclui apenas os seleccionados com dívida e não envia mensagens.
-            Para receber, abra as facturas do aluno. Sem facturas não significa pago.
+            Pode seleccionar até 5 000 alunos para relatórios, inclusive entre páginas. Para emitir
+            propinas, escolha no máximo 60 alunos activos da mesma turma. A exportação de cobranças
+            inclui apenas os seleccionados com dívida e não envia mensagens. Para receber, abra as
+            facturas do aluno. Sem facturas não significa pago.
           </p>
           {selectedDebtors.length ? (
             <p className="px-3 pb-3 text-sm" role="status">

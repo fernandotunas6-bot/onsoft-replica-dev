@@ -924,12 +924,17 @@ export function ImportWorkflowWizard({
             criado ou alterado.
           </p>
 
-          {["pagamentos", "historico_financeiro", "dividas", "propinas"].includes(selectedModule) ? (
-            <p role="alert" className="mx-auto max-w-xl rounded-lg border border-border bg-muted/30 p-3 text-sm text-foreground">
+          {["pagamentos", "historico_financeiro", "dividas", "propinas"].includes(
+            selectedModule,
+          ) ? (
+            <p
+              role="alert"
+              className="mx-auto max-w-xl rounded-lg border border-border bg-muted/30 p-3 text-sm text-foreground"
+            >
               Atenção: esta importação financeira pode criar faturas e/ou emitir recibos reais,
-              alterando os saldos dos alunos. Confirme os comprovativos, a escola, o ano
-              lectivo, os montantes e as duplicações antes de iniciar a importação definitiva.
-              A simulação não grava pagamentos.
+              alterando os saldos dos alunos. Confirme os comprovativos, a escola, o ano lectivo, os
+              montantes e as duplicações antes de iniciar a importação definitiva. A simulação não
+              grava pagamentos.
             </p>
           ) : null}
 

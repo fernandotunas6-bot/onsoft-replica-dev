@@ -49,9 +49,10 @@ export function ReceiptRegisterPanel() {
   const [exportProgress, setExportProgress] = useState(0);
   const query = useQuery({
     queryKey: ["finance", "receipt-register", school?.id, filters, page],
-    queryFn: () => listReceiptRegister({
-      data: { ...filters, page, pageSize: 25 },
-    }),
+    queryFn: () =>
+      listReceiptRegister({
+        data: { ...filters, page, pageSize: 25 },
+      }),
     enabled: Boolean(school?.id),
     staleTime: 15_000,
     retry: false,
@@ -73,9 +74,7 @@ export function ReceiptRegisterPanel() {
     }
     const MAX_EXPORT = 2000;
     if (initialTotal > MAX_EXPORT) {
-      toast.error(
-        "Esta pesquisa tem mais de 2 000 recibos. Refine os filtros antes de exportar.",
-      );
+      toast.error("Esta pesquisa tem mais de 2 000 recibos. Refine os filtros antes de exportar.");
       return;
     }
     setExporting(true);
@@ -98,27 +97,30 @@ export function ReceiptRegisterPanel() {
         setExportProgress(rows.length);
       }
       if (rows.length !== initialTotal || new Set(rows.map((row) => row.id)).size !== rows.length) {
-        throw new Error("A lista de recibos mudou durante a exportação. Actualize e repita sem gerar um ficheiro incompleto.");
+        throw new Error(
+          "A lista de recibos mudou durante a exportação. Actualize e repita sem gerar um ficheiro incompleto.",
+        );
       }
       await downloadReceiptWorkbook(rows, {
         schoolName: school?.name ?? "Escola",
         exportedOn: schoolTodayIso(),
-        filterDescription: [
-          filters.receiptNumber && "Recibo: " + filters.receiptNumber,
-          filters.invoiceNumber && "Fatura: " + filters.invoiceNumber,
-          filters.paymentReference && "Referência: " + filters.paymentReference,
-          filters.studentQuery && "Aluno: " + filters.studentQuery,
-          filters.status !== "all" && "Estado: " + filters.status,
-          filters.method !== "all" && "Método: " + filters.method,
-          filters.from && "Desde: " + filters.from,
-          filters.to && "Até: " + filters.to,
-        ].filter(Boolean).join("; ") || "Todos os recibos desta escola",
+        filterDescription:
+          [
+            filters.receiptNumber && "Recibo: " + filters.receiptNumber,
+            filters.invoiceNumber && "Fatura: " + filters.invoiceNumber,
+            filters.paymentReference && "Referência: " + filters.paymentReference,
+            filters.studentQuery && "Aluno: " + filters.studentQuery,
+            filters.status !== "all" && "Estado: " + filters.status,
+            filters.method !== "all" && "Método: " + filters.method,
+            filters.from && "Desde: " + filters.from,
+            filters.to && "Até: " + filters.to,
+          ]
+            .filter(Boolean)
+            .join("; ") || "Todos os recibos desta escola",
       });
       toast.success("Excel de " + rows.length + " recibos exportado.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Não foi possível exportar os recibos.",
-      );
+      toast.error(error instanceof Error ? error.message : "Não foi possível exportar os recibos.");
     } finally {
       setExportProgress(0);
       setExporting(false);
@@ -202,26 +204,31 @@ export function ReceiptRegisterPanel() {
             { label: "Aluno", value: confirmed.studentName },
             { label: "Processo", value: confirmed.studentNumber || "—" },
           ],
-          sections: [{
-            title: "Liquidação",
-            rows: [
-              { label: "Fatura", value: receipt.invoiceNumber },
-              { label: "Recibo", value: confirmed.receiptNumber },
-              { label: "Valor", value: kwanza(confirmed.amount) },
-              { label: "Data", value: confirmed.paidOn.slice(0, 10) || "—" },
-              { label: "Método", value: paymentMethodLabel(confirmed.method) },
-              ...(confirmed.reversalReason
-                ? [{ label: "Motivo da anulação", value: confirmed.reversalReason }]
-                : []),
-            ],
-          }],
-          term: confirmed.status === "reversed" ? "Recibo anulado — não comprova liquidação." : officialReceiptBody({
-            schoolName: school?.name ?? "Escola",
-            studentName: confirmed.studentName,
-            invoiceNumber: receipt.invoiceNumber,
-            receiptNumber: confirmed.receiptNumber,
-            amountLabel: kwanza(confirmed.amount),
-          }),
+          sections: [
+            {
+              title: "Liquidação",
+              rows: [
+                { label: "Fatura", value: receipt.invoiceNumber },
+                { label: "Recibo", value: confirmed.receiptNumber },
+                { label: "Valor", value: kwanza(confirmed.amount) },
+                { label: "Data", value: confirmed.paidOn.slice(0, 10) || "—" },
+                { label: "Método", value: paymentMethodLabel(confirmed.method) },
+                ...(confirmed.reversalReason
+                  ? [{ label: "Motivo da anulação", value: confirmed.reversalReason }]
+                  : []),
+              ],
+            },
+          ],
+          term:
+            confirmed.status === "reversed"
+              ? "Recibo anulado — não comprova liquidação."
+              : officialReceiptBody({
+                  schoolName: school?.name ?? "Escola",
+                  studentName: confirmed.studentName,
+                  invoiceNumber: receipt.invoiceNumber,
+                  receiptNumber: confirmed.receiptNumber,
+                  amountLabel: kwanza(confirmed.amount),
+                }),
         }),
       });
     } catch (error) {
@@ -232,11 +239,16 @@ export function ReceiptRegisterPanel() {
   };
 
   return (
-    <Panel title="Pesquisar recibos" description="Recibos emitidos e anulados nesta escola; consulta e reimpressão dos documentos registados.">
+    <Panel
+      title="Pesquisar recibos"
+      description="Recibos emitidos e anulados nesta escola; consulta e reimpressão dos documentos registados."
+    >
       <div className="space-y-3">
         <ListFilterBar
           values={filters}
-          activeCount={Object.entries(filters).filter(([, value]) => value && value !== "all").length}
+          activeCount={
+            Object.entries(filters).filter(([, value]) => value && value !== "all").length
+          }
           onChange={(key, value) => {
             setFilters((previous) => ({ ...previous, [key]: value }));
             setPage(1);
@@ -246,52 +258,90 @@ export function ReceiptRegisterPanel() {
             setPage(1);
           }}
           fields={[
-            { name: "receiptNumber", placeholder: "Número do recibo…", "aria-label": "Pesquisar recibo" },
-            { name: "invoiceNumber", placeholder: "Número exacto da fatura…", "aria-label": "Pesquisar fatura" },
-            { name: "paymentReference", placeholder: "Referência externa exacta…", "aria-label": "Pesquisar referência externa" },
-            { name: "studentQuery", placeholder: "Nome ou processo do aluno…", "aria-label": "Pesquisar estudante" },
-            { name: "status", type: "select", label: "Estado", options: [
-              { value: "all", label: "Todos" },
-              { value: "issued", label: "Emitidos" },
-              { value: "reversed", label: "Anulados" },
-            ] },
-            { name: "method", type: "select", label: "Método", options: [
-              { value: "all", label: "Todos os métodos" },
-              { value: "cash", label: "Numerário" },
-              { value: "bank_transfer", label: "Transferência" },
-              { value: "card", label: "TPA / Multicaixa" },
-              { value: "other", label: "Outros" },
-            ] },
+            {
+              name: "receiptNumber",
+              placeholder: "Número do recibo…",
+              "aria-label": "Pesquisar recibo",
+            },
+            {
+              name: "invoiceNumber",
+              placeholder: "Número exacto da fatura…",
+              "aria-label": "Pesquisar fatura",
+            },
+            {
+              name: "paymentReference",
+              placeholder: "Referência externa exacta…",
+              "aria-label": "Pesquisar referência externa",
+            },
+            {
+              name: "studentQuery",
+              placeholder: "Nome ou processo do aluno…",
+              "aria-label": "Pesquisar estudante",
+            },
+            {
+              name: "status",
+              type: "select",
+              label: "Estado",
+              options: [
+                { value: "all", label: "Todos" },
+                { value: "issued", label: "Emitidos" },
+                { value: "reversed", label: "Anulados" },
+              ],
+            },
+            {
+              name: "method",
+              type: "select",
+              label: "Método",
+              options: [
+                { value: "all", label: "Todos os métodos" },
+                { value: "cash", label: "Numerário" },
+                { value: "bank_transfer", label: "Transferência" },
+                { value: "card", label: "TPA / Multicaixa" },
+                { value: "other", label: "Outros" },
+              ],
+            },
             { name: "from", type: "date", label: "De" },
             { name: "to", type: "date", label: "Até" },
           ]}
         />
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 text-sm">
           <span aria-live="polite">
-            {query.isLoading ? "A carregar…" : String(query.data?.total ?? 0) + " recibos encontrados"}
+            {query.isLoading
+              ? "A carregar…"
+              : String(query.data?.total ?? 0) + " recibos encontrados"}
           </span>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => void query.refetch()}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
               Actualizar
             </Button>
             <Button
               variant="outline"
               size="sm"
               disabled={!entries.length || query.isFetching}
-              onClick={() => exportCsv(
-                "recibos-pagina-" + page,
-                [
-                  { label: "Número", value: (r: Receipt) => r.receiptNumber },
-                  { label: "Fatura", value: (r: Receipt) => r.invoiceNumber },
-                  { label: "Aluno", value: (r: Receipt) => r.studentName },
-                  { label: "Processo", value: (r: Receipt) => r.studentNumber },
-                  { label: "Data", value: (r: Receipt) => r.paidOn },
-                  { label: "Método", value: (r: Receipt) => paymentMethodLabel(r.method) },
-                  { label: "Valor (Kz)", value: (r: Receipt) => r.amount },
-                  { label: "Estado", value: (r: Receipt) => r.status === "reversed" ? "Anulado" : "Emitido" },
-                ],
-                entries,
-              )}
+              onClick={() =>
+                exportCsv(
+                  "recibos-pagina-" + page,
+                  [
+                    { label: "Número", value: (r: Receipt) => r.receiptNumber },
+                    { label: "Fatura", value: (r: Receipt) => r.invoiceNumber },
+                    { label: "Aluno", value: (r: Receipt) => r.studentName },
+                    { label: "Processo", value: (r: Receipt) => r.studentNumber },
+                    { label: "Data", value: (r: Receipt) => r.paidOn },
+                    { label: "Método", value: (r: Receipt) => paymentMethodLabel(r.method) },
+                    { label: "Valor (Kz)", value: (r: Receipt) => r.amount },
+                    {
+                      label: "Estado",
+                      value: (r: Receipt) => (r.status === "reversed" ? "Anulado" : "Emitido"),
+                    },
+                  ],
+                  entries,
+                )
+              }
             >
               Exportar página CSV
             </Button>
@@ -336,19 +386,30 @@ export function ReceiptRegisterPanel() {
                       <div>
                         <p className="font-semibold">{receipt.receiptNumber}</p>
                         <p className="text-xs text-muted-foreground">{receipt.studentName}</p>
-                        <p className="text-xs text-muted-foreground">{receipt.paidOn.slice(0, 10)} · {paymentMethodLabel(receipt.method)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {receipt.paidOn.slice(0, 10)} · {paymentMethodLabel(receipt.method)}
+                        </p>
                       </div>
                       <span className="text-sm font-semibold">{kwanza(receipt.amount)}</span>
                     </div>
-                    <p className="mt-2 text-xs">{receipt.status === "reversed" ? "Anulado" : "Emitido"}</p>
+                    <p className="mt-2 text-xs">
+                      {receipt.status === "reversed" ? "Anulado" : "Emitido"}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" disabled={Boolean(printing)} onClick={() => void printReceipt(receipt)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={Boolean(printing)}
+                        onClick={() => void printReceipt(receipt)}
+                      >
                         Imprimir / PDF
                       </Button>
                       {reversalControl(receipt)}
                       {receipt.invoiceId ? (
                         <Button asChild size="sm" variant="ghost">
-                          <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }}>Ver fatura</Link>
+                          <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }}>
+                            Ver fatura
+                          </Link>
                         </Button>
                       ) : null}
                     </div>
@@ -362,18 +423,35 @@ export function ReceiptRegisterPanel() {
                   <caption className="sr-only">Registo de recibos da escola</caption>
                   <thead>
                     <tr className="border-b border-border">
-                      {["Recibo", "Fatura", "Aluno", "Data", "Método", "Valor", "Estado", "Acções"].map((head) => (
-                        <th key={head} scope="col" className="p-3 font-medium">{head}</th>
+                      {[
+                        "Recibo",
+                        "Fatura",
+                        "Aluno",
+                        "Data",
+                        "Método",
+                        "Valor",
+                        "Estado",
+                        "Acções",
+                      ].map((head) => (
+                        <th key={head} scope="col" className="p-3 font-medium">
+                          {head}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {entries.map((receipt) => (
                       <tr key={receipt.id} className="border-b border-border">
-                        <td className="p-3 whitespace-nowrap font-medium">{receipt.receiptNumber}</td>
+                        <td className="p-3 whitespace-nowrap font-medium">
+                          {receipt.receiptNumber}
+                        </td>
                         <td className="p-3">
                           {receipt.invoiceId ? (
-                            <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }} className="text-primary hover:underline">
+                            <Link
+                              to="/faturas/$invoiceId"
+                              params={{ invoiceId: receipt.invoiceId }}
+                              className="text-primary hover:underline"
+                            >
                               {receipt.invoiceNumber}
                             </Link>
                           ) : (
@@ -383,11 +461,20 @@ export function ReceiptRegisterPanel() {
                         <td className="p-3">{receipt.studentName}</td>
                         <td className="p-3 whitespace-nowrap">{receipt.paidOn.slice(0, 10)}</td>
                         <td className="p-3">{paymentMethodLabel(receipt.method)}</td>
-                        <td className="p-3 whitespace-nowrap tabular-nums">{kwanza(receipt.amount)}</td>
-                        <td className="p-3">{receipt.status === "reversed" ? "Anulado" : "Emitido"}</td>
+                        <td className="p-3 whitespace-nowrap tabular-nums">
+                          {kwanza(receipt.amount)}
+                        </td>
+                        <td className="p-3">
+                          {receipt.status === "reversed" ? "Anulado" : "Emitido"}
+                        </td>
                         <td className="p-3">
                           <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" disabled={Boolean(printing)} onClick={() => void printReceipt(receipt)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={Boolean(printing)}
+                              onClick={() => void printReceipt(receipt)}
+                            >
                               Imprimir / PDF
                             </Button>
                             {reversalControl(receipt)}
@@ -408,9 +495,11 @@ export function ReceiptRegisterPanel() {
           onPageChange={setPage}
         />
         <p className="px-3 pb-3 text-xs text-muted-foreground">
-          A exportação dos resultados filtrados inclui até 2 000 recibos por operação; acima disso, refine os filtros. CSV contém apenas os recibos desta página. Para exportar todos os documentos contabilísticos do mês,
-          utilize a exportação mensal do contabilista. Os recibos anulados permanecem no histórico.
-          Estes documentos internos não substituem faturas fiscais certificadas.
+          A exportação dos resultados filtrados inclui até 2 000 recibos por operação; acima disso,
+          refine os filtros. CSV contém apenas os recibos desta página. Para exportar todos os
+          documentos contabilísticos do mês, utilize a exportação mensal do contabilista. Os recibos
+          anulados permanecem no histórico. Estes documentos internos não substituem faturas fiscais
+          certificadas.
         </p>
       </div>
     </Panel>
