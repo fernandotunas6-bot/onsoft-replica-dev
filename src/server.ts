@@ -6,13 +6,17 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { CSP_REPORT_PATH, handleCspReport } from "./lib/csp";
 import { withSecurityHeaders } from "./lib/security-headers";
-import { installKeepAlive } from "./lib/execution-context";
+import { installKeepAlive, installRequestIdSource } from "./lib/execution-context";
+import { REQUEST_ID_HEADER, acceptRequestId, newRequestId } from "./lib/request-id";
 
 type ExecutionContext = { waitUntil?: (promise: Promise<unknown>) => void };
+type RequestStore = { ctx: ExecutionContext; requestId: string };
 
-// `ctx` do pedido em curso, para `keepAlive` (alertas) o encontrar sem o passar à mão.
-const requestContext = new AsyncLocalStorage<ExecutionContext>();
-installKeepAlive((promise) => requestContext.getStore()?.waitUntil?.(promise));
+// `ctx` do pedido em curso, para `keepAlive` (alertas) o encontrar sem o passar à mão,
+// e o ID de correlação, para os logs e a auditoria o levarem.
+const requestContext = new AsyncLocalStorage<RequestStore>();
+installKeepAlive((promise) => requestContext.getStore()?.ctx.waitUntil?.(promise));
+installRequestIdSource(() => requestContext.getStore()?.requestId);
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -57,9 +61,26 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    return requestContext.run((ctx ?? {}) as ExecutionContext, () => handle(request, env, ctx));
+    const requestId = acceptRequestId(request.headers.get(REQUEST_ID_HEADER)) ?? newRequestId();
+    const store = { ctx: (ctx ?? {}) as ExecutionContext, requestId };
+    const response = await requestContext.run(store, () => handle(request, env, ctx));
+    return withRequestId(response, requestId);
   },
 };
+
+/** Devolve o ID ao browser: a referência que o suporte procura nos logs. */
+function withRequestId(response: Response, requestId: string): Response {
+  if (response.status === 101) return response;
+  try {
+    response.headers.set("x-request-id", requestId);
+    return response;
+  } catch {
+    // Cabeçalhos imutáveis (resposta vinda de fetch): copiar.
+    const copy = new Response(response.body, response);
+    copy.headers.set("x-request-id", requestId);
+    return copy;
+  }
+}
 
 async function handle(request: Request, env: unknown, ctx: unknown): Promise<Response> {
   try {

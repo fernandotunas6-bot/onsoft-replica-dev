@@ -2,6 +2,8 @@
 
 Data: 28/10/2026 · Branch: `feat/crud-premium-engineering-20261028` · Base inicial: `main@8ea7851bb5c7ed72536ebbd6abc5e9675a4d8fbf`
 
+> Continuação (29/10/2026): diagnóstico verificado e prompt mestre em [CRUD_PREMIUM_PROMPT_2026-10-29.md](CRUD_PREMIUM_PROMPT_2026-10-29.md).
+
 ## Objectivo
 
 Melhorar progressivamente os CRUDs, a arquitectura, a integridade e a experiência do SIGA Plus, **sem remover funcionalidades**. Esta PR é deliberadamente mantida em **draft** até existirem provas de validação suficientes para as áreas efectivamente alteradas.
@@ -33,35 +35,35 @@ Melhorar progressivamente os CRUDs, a arquitectura, a integridade e a experiênc
 
 ## Plano de implementação incremental (mesma branch isolada, commits pequenos)
 
-| Lote | Área | Critério antes de avançar |
-|---|---|---|
-| 1 | Estados partilhados, Pessoas | Testes React, tipo, lint, build |
-| 2 | Listagens do backend e paginação | Contrato paginado, pesquisa/filtros antes do limite; autorização escola/papel; testes de volume |
-| 3 | Formulários e edição | Erros por campo, conservação de dados, conflito optimista e confirmação |
-| 4 | Matrículas e turmas | Idempotência, último lugar concorrente, transferências, histórico e permissões |
-| 5 | Avaliação, horários e financeiro | Versões, operações auditáveis, autorização por atribuição e ausência de duplicação |
-| 6 | Documentos, comunicação e outros módulos | Ficheiros, exportações e filas por tenant, retries, acessibilidade |
-| 7 | Qualidade transversal e release | E2E autenticado em staging, regressão visual, recuperação, riscos e gate de produção |
+| Lote | Área                                     | Critério antes de avançar                                                                       |
+| ---- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1    | Estados partilhados, Pessoas             | Testes React, tipo, lint, build                                                                 |
+| 2    | Listagens do backend e paginação         | Contrato paginado, pesquisa/filtros antes do limite; autorização escola/papel; testes de volume |
+| 3    | Formulários e edição                     | Erros por campo, conservação de dados, conflito optimista e confirmação                         |
+| 4    | Matrículas e turmas                      | Idempotência, último lugar concorrente, transferências, histórico e permissões                  |
+| 5    | Avaliação, horários e financeiro         | Versões, operações auditáveis, autorização por atribuição e ausência de duplicação              |
+| 6    | Documentos, comunicação e outros módulos | Ficheiros, exportações e filas por tenant, retries, acessibilidade                              |
+| 7    | Qualidade transversal e release          | E2E autenticado em staging, regressão visual, recuperação, riscos e gate de produção            |
 
 Nenhuma etapa é considerada implementada apenas por constar nesta tabela.
 
 ## Matriz de testes e evidências exigidas
 
-| Caso | Mecanismo | Estado inicial |
-|---|---|---|
-| Vazio real / filtro sem resultados | Teste de componente React | Implementado no lote 1 |
-| Falha de rede ≠ lista vazia | Teste de componente + QA manual autenticado | Teste de componente no lote 1 |
-| Permissão negada e conflito visual | Teste React | Implementado no lote 1 |
-| Chaves de cache isoladas por conta/escola | Inspecção + E2E com duas sessões | Código adaptado; E2E pendente |
-| Pesquisa após os primeiros 150 resultados | Teste backend/DB com volume | Pendente do lote 2 |
-| Paginação, ordenação e contagem no servidor | Integração com DB | Pendente do lote 2 |
-| Duplo clique em matrícula | Integração transaccional + E2E | Pendente do lote 4 |
-| Última vaga disputada simultaneamente | Concorrência PostgreSQL | Pendente do lote 4 |
-| Professor sem vínculo tenta gravar nota | Teste de autorização directo à API | Pendente do lote 5 |
-| Pesquisa, ficheiros e exportações entre escolas | Teste de isolamento de tenant | Pendente dos lotes 2–6 |
-| Sem ligação durante retentativa | E2E autenticado/staging | Pendente |
-| Teclado, foco, leitor de ecrã e mobile | Playwright/Axe, QA visual | Pendente dos lotes correspondentes |
-| Migração segura + recuperação | PostgreSQL/PGlite e ensaio restaurado | Sem migrações no lote 1 |
+| Caso                                            | Mecanismo                                   | Estado inicial                     |
+| ----------------------------------------------- | ------------------------------------------- | ---------------------------------- |
+| Vazio real / filtro sem resultados              | Teste de componente React                   | Implementado no lote 1             |
+| Falha de rede ≠ lista vazia                     | Teste de componente + QA manual autenticado | Teste de componente no lote 1      |
+| Permissão negada e conflito visual              | Teste React                                 | Implementado no lote 1             |
+| Chaves de cache isoladas por conta/escola       | Inspecção + E2E com duas sessões            | Código adaptado; E2E pendente      |
+| Pesquisa após os primeiros 150 resultados       | Teste backend/DB com volume                 | Pendente do lote 2                 |
+| Paginação, ordenação e contagem no servidor     | Integração com DB                           | Pendente do lote 2                 |
+| Duplo clique em matrícula                       | Integração transaccional + E2E              | Pendente do lote 4                 |
+| Última vaga disputada simultaneamente           | Concorrência PostgreSQL                     | Pendente do lote 4                 |
+| Professor sem vínculo tenta gravar nota         | Teste de autorização directo à API          | Pendente do lote 5                 |
+| Pesquisa, ficheiros e exportações entre escolas | Teste de isolamento de tenant               | Pendente dos lotes 2–6             |
+| Sem ligação durante retentativa                 | E2E autenticado/staging                     | Pendente                           |
+| Teclado, foco, leitor de ecrã e mobile          | Playwright/Axe, QA visual                   | Pendente dos lotes correspondentes |
+| Migração segura + recuperação                   | PostgreSQL/PGlite e ensaio restaurado       | Sem migrações no lote 1            |
 
 ## Execução e aprovação
 
@@ -88,7 +90,6 @@ Manter o ecossistema WEB / ADMIN / SIGA / PAYFLOW / DOC, o contrato dos tipos `s
 - Resultados mensuráveis de desempenho, experiência mobile e acessibilidade.
 - PR revista, CI final aprovado, testes de staging documentados antes do deploy.
 
-
 ## Lote 2 — paginação real no servidor (em validação nesta PR)
 
 - `src/features/people/directory-server.ts`: contratos novos `searchPeoplePage` e `listTeachersPage`, sem remover `searchPeople` e `listTeachers` usados por outros consumidores.
@@ -112,7 +113,6 @@ Manter o ecossistema WEB / ADMIN / SIGA / PAYFLOW / DOC, o contrato dos tipos `s
 ### Limitações assumidas
 
 O varrimento avançado é correcto e limitado, mas não é ainda o desenho final de pesquisa optimizada para dezenas de milhares de matrículas e pessoas. Uma próxima iteração deverá avaliar selectividade, índices de pesquisa, estratégia de filtro por vínculos e execução no PostgreSQL, mantendo autorização e histórico. Nenhum SQL foi aplicado em produção.
-
 
 ## Lote 3 — formulários de edição rápida (em validação)
 
@@ -139,7 +139,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Conflitos multi-tenant e sessões MFA autenticadas testados directamente em staging.
 - E2E real com teclado/mobile/assistivas e reconciliação com trabalhos paralelos antes de fazer merge.
 - Nenhuma migração SQL, credencial ou dado de produção é modificado nesta iteração.
-
 
 ## Lote 4 — matrículas e turmas, primeira entrega
 
@@ -182,7 +181,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Regressão visual da matrícula, transferência, lote, fecho de ano, preservação de notas/pautas e caminhos de recuperação.
 - A PR permanece em `draft` até validação. Nenhum SQL ou dado de produção foi modificado.
 
-
 ## Lote 5 — primeira entrega: integridade da gravação de notas
 
 ### Implementação
@@ -205,7 +203,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Ainda falta validar autorização directa por atribuição de disciplina, contas de escolas distintas, pauta anual homologada, e visual das mensagens de conflito em mobile.
 - A aprovação exige o CI da **SHA final** e ensaio autenticado em staging; esta secção documenta código, não declara produção pronta.
 
-
 ### Horários — identificação rigorosa de conflitos de sala
 
 - `src/features/academic/schedule/utils/conflicts.ts` dá prioridade ao identificador físico `room_id`: duas aulas com IDs de sala diferentes não colidem apenas por terem o mesmo rótulo.
@@ -213,7 +210,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Quando uma aula tem `room_id` e a outra tem apenas texto, não se infere igualdade sem relação comprovada. Conservam-se os bloqueios de turma e professor e a separação entre versões de horário.
 - `src/features/academic/schedule/utils/conflicts.test.ts` verifica ID físico prevalecer sobre texto, deteção da mesma sala apesar de rótulos divergentes, compatibilidade com `Sala 12` legado, etiquetas genéricas e combinação ID/rótulo.
 - **Risco restante**: para instituições com salas históricas sem identificador, migrar cuidadosamente para `room_id` e validar sobreposições na base. A UI não substitui os bloqueios transaccionais nem decide se um texto é uma sala física.
-
 
 ### Financeiro — dívidas após estorno e precisão em cêntimos
 
@@ -223,7 +219,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Testes em `tests/finance/payment-states.test.ts` e `tests/finance/student-finance-summary.test.ts`: estorno de fatura anteriormente paga, valores parciais, vencimento e múltiplas faturas com cêntimos.
 - Estes cálculos são de leitura/apresentação e não registam pagamentos nem executam estornos. A fonte de verdade mantém-se no PostgreSQL e nas RPCs financeiras; ensaios de reconciliação real permanecem obrigatórios em staging.
 
-
 ### Lote 5 — recibos financeiros completos e dívida verdadeira
 
 - `src/features/finance/invoice-receipts.ts` carrega os recibos por **lotes de IDs** e por páginas com ordenação estável, porque o PostgREST pode devolver apenas 1.000 linhas, mesmo quando a consulta pede mais. Em erro ou limite excedido, nunca devolve uma soma parcial como se fosse definitiva.
@@ -231,7 +226,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Somatório de recibos em cêntimos, ignorando estados `reversed`; nunca converter um estorno em cobrança efectiva.
 - `tests/finance/invoice-receipts.test.ts` cobre mais de 1.200 recibos, paginação, divisão por ID, ausência de faturas, falhas intermédias, recusa de truncagem e arredondamento após estornos.
 - Ainda pendente: prova de integração com dados de volume no PostgreSQL de staging e ensaio com contabilista, tesoureiro e contas de duas escolas. Nenhuma migração nem dado de produção modificado.
-
 
 ### Financeiro — faturas antigas na ficha do aluno
 
@@ -251,7 +245,6 @@ O varrimento avançado é correcto e limitado, mas não é ainda o desenho final
 - Novo teste `tests/documents/request-relations.test.ts`: mesmo tenant, aluno externo, modelo externo, modelo inactivo e falha de leitura. `tests/documents/verification.test.ts` mantém o contrato de emissão/validação.
 - Não foram aplicadas migrações nem escritas em produção. Para bloquear também uma mudança de escola entre a validação e o INSERT, é necessário rever os constraints/FKs compostos tenant+aluno em PostgreSQL numa staging independente.
 - E2E autenticado com duas escolas e contas fictícias, emissão real de documento e simulação de falha de rede permanecem pendentes antes de remover `draft`.
-
 
 ## Lote 7 — ensaio transversal autenticado e seguro em staging
 
@@ -295,7 +288,6 @@ Os placeholders `<REF_DO_STAGING>` devem ser substituídos pelo identificador re
 - Revisão de segurança e permissões, contratos com PRs paralelas, UX mobile e recuperação de falhas.
 - PR mantém-se `draft` e sem deploy enquanto o E2E autenticado não for realizado.
 
-
 ### Reforço de segurança do ensaio E2E de duas escolas
 
 - Os ficheiros Playwright `storageState` devem ter caminhos absolutos `.json` fora do repositório (não colocar tokens de autenticação em `.auth/` versionável). Recusa também caminhos diferentes que apontem para o mesmo ficheiro.
@@ -304,7 +296,6 @@ Os placeholders `<REF_DO_STAGING>` devem ser substituídos pelo identificador re
 - Cada pedido do browser dirigido a `*.supabase.co` é conferido com a origem de staging declarada. Pedidos para outro projecto, incluindo produção, são bloqueados e fazem o teste falhar sem publicar identificadores de pedido nem tokens.
 - Também verifica que a aplicação não redirecciona para uma origem fora do servidor local.
 - `tests/qa/crud-staging-safety.test.ts` exerce essas regras sem necessitar de sessões reais. O smoke Playwright continua **não executado** até existirem credenciais fictícias e projecto de staging autorizado.
-
 
 ## Lote 6 — entregas de trabalhos: anexo fiável e protecção contra duplo toque
 

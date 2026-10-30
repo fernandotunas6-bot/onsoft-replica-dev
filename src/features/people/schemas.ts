@@ -275,6 +275,9 @@ export const updateTeacherInputSchema = z.object({
   email: z.union([z.literal(""), z.string().trim().email()]).optional(),
   phone: optionalText,
   status: z.enum(["active", "inactive"]).default("active"),
+  /** Carimbos lidos pelo ecrã (professor e ficha): conflito em vez de sobrescrever. */
+  expectedUpdatedAt: z.string().trim().min(10).max(64).optional(),
+  expectedPersonUpdatedAt: z.string().trim().min(10).max(64).optional(),
 });
 export type UpdateTeacherInput = z.infer<typeof updateTeacherInputSchema>;
 

@@ -6,6 +6,7 @@ import {
   CreditCard,
   GraduationCap,
   FolderOpen,
+  FileCheck2,
   Gauge,
   Globe,
   KeyRound,
@@ -34,6 +35,7 @@ import {
 import { EnrollmentCampaignPanel } from "@/features/enrollment/EnrollmentCampaignPanel";
 import { SpotlightSettingsPanel } from "@/features/spotlight/SpotlightSettingsPanel";
 import { FilesSettingsPanel } from "@/features/arquivos/FilesSettingsPanel";
+import { TeacherDocumentsSettingsPanel } from "@/features/people/TeacherDocumentsSettingsPanel";
 import { PerformancePanel } from "@/features/school/PerformancePanel";
 import { AppDownloads } from "@/features/desktop/AppDownloads";
 import { actionIcons } from "@/lib/app-icons";
@@ -133,6 +135,13 @@ function useSettingsPanels(): StackPanel[] {
             icon: FolderOpen,
             tone: "info",
             to: "arquivos",
+          },
+          {
+            label: "Documentos de professores",
+            description: "Obrigatórios por escola e nível de ensino",
+            icon: FileCheck2,
+            tone: "info",
+            to: "pessoas.documentos_professores",
           },
           {
             label: "Integrações",
@@ -288,6 +297,14 @@ function useSettingsPanels(): StackPanel[] {
         icon: FolderOpen,
         tone: "info",
         render: () => <FilesSettingsPanel />,
+      },
+      {
+        id: "pessoas.documentos_professores",
+        title: "Documentos de professores",
+        description: "Exigências institucionais por nível de ensino.",
+        icon: FileCheck2,
+        tone: "info",
+        render: () => <TeacherDocumentsSettingsPanel />,
       },
       {
         id: "integracoes",

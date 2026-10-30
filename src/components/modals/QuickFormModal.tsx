@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableNativeSelect } from "@/components/forms/SearchableNativeSelect";
 import { AngolaIdentityField } from "@/components/forms/AngolaIdentityField";
 
 type QuickOptions = string[] | { value: string; label: string }[];
@@ -26,6 +27,8 @@ export type QuickField = {
   type?:
     "text" | "number" | "date" | "time" | "textarea" | "select" | "angola-identity" | "password";
   options?: QuickOptions | undefined;
+  /** Opt-in text filter; the selected value is preserved while searching. */
+  searchable?: boolean;
   /**
    * Opções que dependem do que já está escolhido noutros campos (ex.: as disciplinas
    * da turma do aluno). Substitui `options`; conserva a escolha se ainda existir nas opções.
@@ -80,6 +83,12 @@ function readQuickFormValues(form: HTMLFormElement | null) {
   return out;
 }
 
+function quickOptions(field: QuickField, values: Record<string, string>) {
+  return ((field.optionsFor ? field.optionsFor(values) : field.options) ?? []).map((option) =>
+    typeof option === "string" ? { value: option, label: option } : option,
+  );
+}
+
 function QuickSelectField({
   field,
   values,
@@ -98,9 +107,7 @@ function QuickSelectField({
   onValueResolved?: ((name: string, value: string) => void) | undefined;
 }) {
   const select = useRef<HTMLSelectElement>(null);
-  const options = ((field.optionsFor ? field.optionsFor(values) : field.options) ?? []).map(
-    (option) => (typeof option === "string" ? { value: option, label: option } : option),
-  );
+  const options = quickOptions(field, values);
   // O browser mantém a opção válida ou escolhe outra quando as opções mudam.
   // Sincronizar depois do commit evita avisos e cascatas com o valor antigo.
   useLayoutEffect(() => {
@@ -310,15 +317,48 @@ export function QuickFormModal({
                       className="mt-1"
                     />
                   ) : field.type === "select" ? (
-                    <QuickSelectField
-                      field={field}
-                      values={values}
-                      id={fieldId(field.name)}
-                      disabled={saving}
-                      invalid={Boolean(fieldErrors[field.name])}
-                      errorId={fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined}
-                      onValueResolved={tracksValues ? syncSelectValue : undefined}
-                    />
+                    field.searchable ? (
+                      <SearchableNativeSelect
+                        // Opções novas (optionsFor): monta de novo, para não ficar uma
+                        // escolha que já não existe na lista.
+                        key={
+                          field.optionsFor
+                            ? quickOptions(field, values)
+                                .map((option) => option.value)
+                                .join("\u0000")
+                            : undefined
+                        }
+                        id={fieldId(field.name)}
+                        name={field.name}
+                        label={field.label}
+                        options={quickOptions(field, values)}
+                        required={field.required ?? true}
+                        disabled={saving}
+                        invalid={Boolean(fieldErrors[field.name])}
+                        errorId={
+                          fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                        }
+                        placeholder={field.placeholder}
+                        defaultValue={String(
+                          field.defaultValue ??
+                            (field.placeholder || field.required === false
+                              ? ""
+                              : (quickOptions(field, values)[0]?.value ?? "")),
+                        )}
+                      />
+                    ) : (
+                      <QuickSelectField
+                        field={field}
+                        values={values}
+                        id={fieldId(field.name)}
+                        disabled={saving}
+                        invalid={Boolean(fieldErrors[field.name])}
+                        errorId={
+                          fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                        }
+                        onValueResolved={tracksValues ? syncSelectValue : undefined}
+                      />
+                    )
                   ) : field.type === "angola-identity" ? (
                     <AngolaIdentityField
                       id={fieldId(field.name)}
