@@ -553,3 +553,36 @@ componentes, layout, rotas, dados nem permissões: só nove valores de token em
 
 Sem validação em sessão autenticada nem em dispositivo físico: a medição é sobre
 os tokens declarados, não sobre ecrãs renderizados. Não substitui a fase 8.
+
+### 28/10/2026 — Financeiro: lista por aluno
+
+| Fase / módulo | Estado | Evidência | Próximo passo |
+| --- | --- | --- | --- |
+| Faturas / lista financeira por aluno | implementado | StudentLedgerPanel; filtros partilhados, estados centralizados, tabela paginada, erros e carregamento; testes DOM de filtros/selecção | Ensaio visual desktop/tablet/Android, teclado e zoom |
+| Fluidez / desempenho da lista | parcial | Chunk e consulta carregados só ao abrir; cache por escola/ano; 25 linhas por página; backend por páginas e ids | Medir rede lenta, latência e Web Vitals reais |
+| Isolamento e perfis | parcial | Guarda financeira, school_id em todas as consultas; testes com duas escolas simuladas | Testar sessões e RLS reais |
+
+Refinamento da lista financeira: selecção/desmarcação por página, contador de
+dívida seleccionada e exportação só dos devedores escolhidos. Estado implementado;
+testes DOM cobrem exclusão de alunos sem dívida, matrícula inactiva, selecção
+entre páginas e limite de 60. Layout em aparelhos continua por validar.
+
+### 28/10/2026 — lista financeira em navegador
+
+| Âmbito | Estado | Evidência | Limite / próximo passo |
+| --- | --- | --- | --- |
+| Lista móvel e toque | validado em Chromium controlado | Cartões abaixo de 768 px; alvos de 44 px; nove viewports, 320–1440 px | Ensaiar aparelhos reais |
+| Teclado, contexto, CSV, diálogo | validado em Chromium controlado | `scripts/qa/finance-student-ledger.mjs`; foco/Escape em 320 × 800 e 640 × 360; descarga real CSV; API fictícia | Sessão/servidor real, leitores de ecrã e restantes browsers |
+
+Detalhes e limites: `docs/qa/finance/STUDENT_LEDGER_BROWSER_2026-10-28.md`.
+Não confundir este ensaio do componente com validação integral do portal ou dos
+pagamentos. A vista de tablet/desktop e os estados do dinheiro foram preservados.
+
+### 28/10/2026 — cartão de pagamento
+
+| Âmbito | Estado | Evidência | Próximo passo |
+| --- | --- | --- | --- |
+| Referência/confirmar/cópia | validado em Chromium controlado | 320/390/768/1440 px; alvos de 44 px, recálculo bloqueado, clipboard e confirmação única com API fictícia | Sessões reais e aparelhos |
+| Sucesso após recibo | implementado e testado local | Estado do recibo, cache/PDF separados da liquidação em Faturas, Caixa e ficha | Ensaio operacional com Tesouraria |
+
+Ver `docs/agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md` para os limites.

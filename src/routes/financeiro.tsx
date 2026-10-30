@@ -1,3 +1,4 @@
+import { finishRecordedPayment } from "@/features/finance/finish-recorded-payment";
 import { PageActionMenu } from "@/components/layout/PageActionMenu";
 import { useMemo, lazy, Suspense, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -834,44 +835,48 @@ function FinanceiroPage() {
                     },
                   });
                   paymentKey.settled(attempt);
-                  await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["finance", "invoices"] }),
-                    queryClient.invalidateQueries({ queryKey: ["finance", "cash-entries"] }),
-                    queryClient.invalidateQueries({ queryKey: ["finance", "reporting"] }),
-                  ]);
-                  // Número oficial vem do servidor (gerado atomicamente) — nunca do
-                  // valor digitado, para o PDF impresso bater sempre com a base de dados.
-                  await issuePrintDocument({
-                    tipo: "Recibo de pagamento",
-                    school: financeSchool,
-                    student: {
-                      fullName: invoice.student_name,
-                      academicNumber: invoice.number,
-                    },
-                    overlay: overlayServico({
-                      name: "Recibo de pagamento",
-                      reference: paid.receipt_number,
-                      status: "Pago",
-                      parties: [{ label: "Aluno", value: invoice.student_name }],
-                      sections: [
-                        {
-                          title: "Quitação",
-                          rows: [
-                            { label: "Fatura", value: invoice.number },
-                            { label: "Valor", value: kwanza(Number(values["valor"])) },
-                            { label: "Método", value: methodLabel },
-                          ],
+                  await finishRecordedPayment({
+                    receiptNumber: paid.receipt_number,
+                    refresh: () =>
+                      Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["finance"] }),
+                        queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] }),
+                        queryClient.invalidateQueries({ queryKey: ["arquivos"] }),
+                      ]),
+                    // O número oficial é o devolvido pelo servidor, mesmo que o PDF falhe.
+                    print: () =>
+                      issuePrintDocument({
+                        tipo: "Recibo de pagamento",
+                        school: financeSchool,
+                        student: {
+                          fullName: invoice.student_name,
+                          academicNumber: invoice.number,
                         },
-                      ],
-                      term: officialReceiptBody({
-                        schoolName: school?.name ?? "Escola",
-                        studentName: invoice.student_name,
-                        invoiceNumber: invoice.number,
-                        receiptNumber: paid.receipt_number,
-                        amountLabel: kwanza(Number(values["valor"])),
+                        overlay: overlayServico({
+                          name: "Recibo de pagamento",
+                          reference: paid.receipt_number,
+                          status: "Pago",
+                          parties: [{ label: "Aluno", value: invoice.student_name }],
+                          sections: [
+                            {
+                              title: "Quitação",
+                              rows: [
+                                { label: "Fatura", value: invoice.number },
+                                { label: "Valor", value: kwanza(Number(values["valor"])) },
+                                { label: "Método", value: methodLabel },
+                              ],
+                            },
+                          ],
+                          term: officialReceiptBody({
+                            schoolName: school?.name ?? "Escola",
+                            studentName: invoice.student_name,
+                            invoiceNumber: invoice.number,
+                            receiptNumber: paid.receipt_number,
+                            amountLabel: kwanza(Number(values["valor"])),
+                          }),
+                          ...(schoolBanking ? { banking: schoolBanking } : {}),
+                        }),
                       }),
-                      ...(schoolBanking ? { banking: schoolBanking } : {}),
-                    }),
                   });
                 }}
                 trigger={(open) => (
