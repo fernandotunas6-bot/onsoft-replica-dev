@@ -14,6 +14,7 @@ import { EntityListSkeleton } from "@/components/mobile/skeletons";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { exportCsv } from "@/lib/export-csv";
+import { exportStudentLedgerExcel } from "../student-ledger-excel";
 import { kwanza } from "@/lib/currency";
 import { schoolTodayIso } from "@/lib/school-date";
 import { toast } from "@/lib/toast";
@@ -30,6 +31,7 @@ export function StudentLedgerPanel({ blocked }: { blocked: boolean }) {
     <Ledger
       key={`${school?.id}:${selectedYearId}`}
       schoolId={school?.id ?? ""}
+      schoolName={school?.name ?? "Escola"}
       yearId={selectedYearId}
       yearLabel={selectedYearLabel}
       blocked={blocked}
@@ -39,11 +41,13 @@ export function StudentLedgerPanel({ blocked }: { blocked: boolean }) {
 
 function Ledger({
   schoolId,
+  schoolName,
   yearId,
   yearLabel,
   blocked,
 }: {
   schoolId: string;
+  schoolName: string;
   yearId: string | null;
   yearLabel: string;
   blocked: boolean;
@@ -63,6 +67,7 @@ function Ledger({
   const [selected, setSelected] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<TuitionBatchResult | null>(null);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const rows = useMemo(() => query.data ?? [], [query.data]);
   const filtered = useMemo(
     () =>
@@ -249,7 +254,32 @@ function Ledger({
                 )
               }
             >
-              Exportar lista
+              Exportar lista CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!filtered.length || query.isFetching || exportingExcel}
+              onClick={() => {
+                setExportingExcel(true);
+                void exportStudentLedgerExcel(filtered, {
+                  schoolName,
+                  academicYear: yearLabel,
+                  checkedOn: schoolTodayIso(),
+                })
+                  .then(() => toast.success("Lista financeira exportada para Excel."))
+                  .catch((error: unknown) =>
+                    toast.error(error instanceof Error ? error.message : "Não foi possível exportar o Excel."),
+                  )
+                  .finally(() => setExportingExcel(false));
+              }}
+            >
+              {exportingExcel ? "A preparar Excel…" : "Exportar Excel"}
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                Importar Excel
+              </Link>
             </Button>
             <Button
               variant="outline"
