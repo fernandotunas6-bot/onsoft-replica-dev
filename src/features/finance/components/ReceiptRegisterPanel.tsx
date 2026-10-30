@@ -29,6 +29,7 @@ import { schoolTodayIso } from "@/lib/school-date";
 const emptyFilters = {
   receiptNumber: "",
   invoiceNumber: "",
+  paymentReference: "",
   studentQuery: "",
   status: "all",
   method: "all",
@@ -97,6 +98,7 @@ export function ReceiptRegisterPanel() {
         filterDescription: [
           filters.receiptNumber && "Recibo: " + filters.receiptNumber,
           filters.invoiceNumber && "Fatura: " + filters.invoiceNumber,
+          filters.paymentReference && "Referência: " + filters.paymentReference,
           filters.studentQuery && "Aluno: " + filters.studentQuery,
           filters.status !== "all" && "Estado: " + filters.status,
           filters.method !== "all" && "Método: " + filters.method,
@@ -221,6 +223,7 @@ export function ReceiptRegisterPanel() {
           fields={[
             { name: "receiptNumber", placeholder: "Número do recibo…", "aria-label": "Pesquisar recibo" },
             { name: "invoiceNumber", placeholder: "Número exacto da fatura…", "aria-label": "Pesquisar fatura" },
+            { name: "paymentReference", placeholder: "Referência externa exacta…", "aria-label": "Pesquisar referência externa" },
             { name: "studentQuery", placeholder: "Nome ou processo do aluno…", "aria-label": "Pesquisar estudante" },
             { name: "status", type: "select", label: "Estado", options: [
               { value: "all", label: "Todos" },
