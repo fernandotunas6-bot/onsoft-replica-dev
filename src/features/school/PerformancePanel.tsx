@@ -107,7 +107,9 @@ export function PerformancePanel() {
                 className="rounded-lg border border-border bg-card px-3 py-2 text-xs"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-destructive">{entry.durationMs} ms</span>
+                  <span className="font-semibold text-destructive-strong">
+                    {entry.durationMs} ms
+                  </span>
                   <span className="text-muted-foreground">
                     {new Date(entry.at).toLocaleTimeString("pt-PT")}
                   </span>

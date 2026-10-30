@@ -26,7 +26,7 @@ const TONE: Record<TeacherPresenceState, string> = {
   late: "text-warning-strong",
   call_only: "text-success",
   awaiting: "text-warning-strong",
-  missing: "text-destructive",
+  missing: "text-destructive-strong",
   upcoming: "text-muted-foreground",
   cancelled: "text-muted-foreground",
 };

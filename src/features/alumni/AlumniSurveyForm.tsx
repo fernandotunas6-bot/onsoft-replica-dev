@@ -56,7 +56,7 @@ export function AlumniSurveyForm({
         <div key={question.id} className="space-y-2">
           <label className="text-sm font-semibold" htmlFor={`alumni-survey-${question.id}`}>
             {question.label}
-            {question.required ? <span className="ml-1 text-destructive">*</span> : null}
+            {question.required ? <span className="ml-1 text-destructive-strong">*</span> : null}
           </label>
           {question.helpText ? (
             <p className="text-xs text-muted-foreground">{question.helpText}</p>

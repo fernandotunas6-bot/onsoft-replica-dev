@@ -74,7 +74,7 @@ function AuditLogList() {
   const status = auditQuery.isLoading ? (
     <p className="text-sm text-muted-foreground">A carregar eventos…</p>
   ) : auditQuery.isError ? (
-    <p className="text-sm text-destructive">Não foi possível carregar a auditoria.</p>
+    <p className="text-sm text-destructive-strong">Não foi possível carregar a auditoria.</p>
   ) : !auditQuery.data?.length ? (
     <p className="text-sm text-muted-foreground">Ainda não existem eventos registados.</p>
   ) : null;
@@ -168,7 +168,9 @@ function StudentNumberLoginSetting() {
               vale no endereço da escola e para alunos com conta ligada. Mudar pede 2FA.
             </p>
             {settings.isError ? (
-              <p className="text-xs text-destructive">Não foi possível ler esta definição.</p>
+              <p className="text-xs text-destructive-strong">
+                Não foi possível ler esta definição.
+              </p>
             ) : null}
           </div>
           <Switch

@@ -1,0 +1,44 @@
+{
+  "base": "6e4aed387720d38057004aebe21fa37e99b5c10a",
+  "metodo": "OKLCH → sRGB com corte por canal; luminância WCAG. Cálculo estático dos valores CSS, sem sessão autenticada ou aparelho físico.",
+  "pares": [
+    {
+      "tema": ":root",
+      "uso": "texto destrutivo",
+      "superficie": "--background",
+      "antes": 4.4252,
+      "depois": 6.5653
+    },
+    {
+      "tema": ":root",
+      "uso": "texto destrutivo",
+      "superficie": "--card",
+      "antes": 4.6496,
+      "depois": 6.8982
+    },
+    {
+      "tema": ":root",
+      "uso": "hover destrutivo opaco",
+      "depois": 5.4573
+    },
+    {
+      "tema": ".dark",
+      "uso": "texto destrutivo",
+      "superficie": "--background",
+      "antes": 4.0557,
+      "depois": 8.8579
+    },
+    {
+      "tema": ".dark",
+      "uso": "texto destrutivo",
+      "superficie": "--card",
+      "antes": 3.7007,
+      "depois": 8.0825
+    },
+    {
+      "tema": ".dark",
+      "uso": "hover destrutivo opaco",
+      "depois": 5.257
+    }
+  ]
+}

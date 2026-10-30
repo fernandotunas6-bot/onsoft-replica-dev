@@ -112,7 +112,7 @@ export function TeacherDocumentsPanel({
         {query.isLoading ? (
           <p className="mt-4 text-sm text-muted-foreground">A consultar os documentos…</p>
         ) : query.isError ? (
-          <p className="mt-4 text-sm text-destructive">
+          <p className="mt-4 text-sm text-destructive-strong">
             Não foi possível consultar os documentos. Verifique as permissões.
           </p>
         ) : (

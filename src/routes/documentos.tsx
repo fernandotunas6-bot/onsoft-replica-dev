@@ -474,7 +474,7 @@ function DocumentosPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-destructive"
+                  className="text-destructive-strong"
                   disabled={advancingId === d.id}
                   onClick={open}
                 >
@@ -927,7 +927,7 @@ function DocumentosPage() {
                       <TableRow>
                         <TableCell
                           colSpan={7}
-                          className="py-8 text-center text-sm text-destructive"
+                          className="py-8 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar os pedidos de documentos.
                         </TableCell>

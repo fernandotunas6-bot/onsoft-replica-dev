@@ -230,7 +230,7 @@ export function TopbarCalendar() {
                               className={cn(
                                 "mt-0.5 inline-block rounded-full px-1.5 py-px text-[11px] font-semibold",
                                 item.category === "holiday"
-                                  ? "bg-destructive/12 text-destructive"
+                                  ? "bg-destructive/12 text-destructive-strong"
                                   : "bg-primary-soft text-primary-strong",
                               )}
                             >

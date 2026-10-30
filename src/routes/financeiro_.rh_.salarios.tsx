@@ -217,7 +217,7 @@ function SalaryOperationsPage() {
           {requests.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar pedidos…</p>
           ) : requests.isError ? (
-            <p className="text-sm text-destructive">{errorText(requests.error)}</p>
+            <p className="text-sm text-destructive-strong">{errorText(requests.error)}</p>
           ) : (requests.data ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Não existem pedidos nesta escola.</p>
           ) : (
@@ -288,7 +288,7 @@ function SalaryOperationsPage() {
           {ledger.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar histórico…</p>
           ) : ledger.isError ? (
-            <p className="text-sm text-destructive">{errorText(ledger.error)}</p>
+            <p className="text-sm text-destructive-strong">{errorText(ledger.error)}</p>
           ) : (ledger.data ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground">Ainda não existem alterações aplicadas.</p>
           ) : (

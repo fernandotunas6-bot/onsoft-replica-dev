@@ -64,7 +64,7 @@ function TranscriptPage() {
         {transcript.isLoading ? (
           <p className="text-sm text-muted-foreground">A preparar o histórico…</p>
         ) : !data ? (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive-strong">
             {transcript.error instanceof Error
               ? transcript.error.message
               : "Não foi possível abrir o histórico."}

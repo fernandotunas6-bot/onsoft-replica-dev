@@ -90,7 +90,7 @@ export function ChargeInvoiceButton(props: {
             : m.data.message}
         </p>
       ) : null}
-      {m.error ? <p className="text-xs text-destructive">{m.error.message}</p> : null}
+      {m.error ? <p className="text-xs text-destructive-strong">{m.error.message}</p> : null}
     </div>
   );
 }
@@ -142,7 +142,7 @@ export function AppyPayPanel() {
       {charges.isLoading ? (
         <p className="text-sm text-muted-foreground">A carregar…</p>
       ) : charges.error ? (
-        <p className="text-sm text-destructive">{(charges.error as Error).message}</p>
+        <p className="text-sm text-destructive-strong">{(charges.error as Error).message}</p>
       ) : !charges.data?.length ? (
         <EmptyState
           title="Sem cobranças"

@@ -59,7 +59,7 @@ export function BillingParametersSummary() {
     return <p className="text-sm text-muted-foreground">A carregar parâmetros…</p>;
   }
   if (!billingQuery.data) {
-    return <p className="text-sm text-destructive">Parâmetros financeiros indisponíveis.</p>;
+    return <p className="text-sm text-destructive-strong">Parâmetros financeiros indisponíveis.</p>;
   }
 
   const billing = billingQuery.data;
@@ -211,7 +211,7 @@ export function BillingSettingsForm() {
   if (billingQuery.isLoading)
     return <p className="text-sm text-muted-foreground">A carregar regras…</p>;
   if (!billingQuery.data)
-    return <p className="text-sm text-destructive">Regras de cobrança indisponíveis.</p>;
+    return <p className="text-sm text-destructive-strong">Regras de cobrança indisponíveis.</p>;
 
   const fields = [
     { id: "venc", key: "due", label: "Dia de vencimento", min: 1, max: 28 },

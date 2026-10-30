@@ -563,7 +563,7 @@ export function DigitalIdentityPanel() {
               )}
 
               {domainVerificationStatus === "error" && (
-                <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
+                <div className="flex items-center gap-2 text-xs text-destructive-strong bg-destructive/10 p-2.5 rounded-lg border border-destructive/20">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>
                     Erro ao verificar os registos DNS. Verifique a configuração e tente novamente.

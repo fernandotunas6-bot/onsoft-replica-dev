@@ -257,7 +257,7 @@ function ResetPasswordPage() {
 
             {!checking && tokenError && !success && (
               <div className="space-y-4">
-                <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+                <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive-strong">
                   <AlertTriangle className="size-5 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="font-semibold">Não foi possível continuar</p>

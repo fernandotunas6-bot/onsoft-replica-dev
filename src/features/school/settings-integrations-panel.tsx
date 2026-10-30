@@ -308,7 +308,7 @@ function AcademicIntegrationsCatalog() {
                       {installed ? (
                         <button
                           type="button"
-                          className="text-[11px] font-semibold text-destructive hover:underline"
+                          className="text-[11px] font-semibold text-destructive-strong hover:underline"
                           onClick={() => {
                             void revokeSchoolIntegration({ data: { provider: item.id } })
                               .then(() => {

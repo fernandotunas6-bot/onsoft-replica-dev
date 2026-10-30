@@ -99,7 +99,7 @@ export function SubjectWorkView({
       {work.isLoading ? (
         <InlineLoading label="A carregar os trabalhos…" />
       ) : work.isError || !work.data ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           Não foi possível carregar os trabalhos.
         </p>
       ) : (
@@ -139,7 +139,9 @@ function GradeHero({
         <p
           className={cn(
             "text-sm",
-            value != null && value < subject.passing ? "text-destructive" : "text-muted-foreground",
+            value != null && value < subject.passing
+              ? "text-destructive-strong"
+              : "text-muted-foreground",
           )}
         >
           {outlookLabel(subject.outlook)}

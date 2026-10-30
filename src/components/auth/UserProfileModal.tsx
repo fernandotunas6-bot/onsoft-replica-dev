@@ -216,7 +216,7 @@ export function UserProfileModal({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive text-xs"
+                className="gap-1.5 text-destructive-strong hover:bg-destructive/10 hover:text-destructive-strong text-xs"
                 onClick={() => {
                   onOpenChange(false);
                   void signOut();

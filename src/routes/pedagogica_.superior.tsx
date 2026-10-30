@@ -550,7 +550,9 @@ function PlanTab({ programId }: { programId: string }) {
             {issues.map((issue, index) => (
               <li
                 key={`${issue.code}-${index}`}
-                className={issue.level === "error" ? "text-destructive" : "text-muted-foreground"}
+                className={
+                  issue.level === "error" ? "text-destructive-strong" : "text-muted-foreground"
+                }
               >
                 {issue.message}
               </li>
@@ -1068,7 +1070,7 @@ function StudentPanel({ programId, studentId }: { programId: string; studentId: 
           </Button>
         ) : null}
         {!student.data.activeYearId ? (
-          <span className="text-xs text-destructive">
+          <span className="text-xs text-destructive-strong">
             Sem ano lectivo activo: não há inscrições.
           </span>
         ) : null}

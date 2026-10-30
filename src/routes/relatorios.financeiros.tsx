@@ -588,7 +588,9 @@ function RelatoriosFinanceiros() {
                       <TableCell className="text-right">{kwanza(m.recebido)}</TableCell>
                       <TableCell
                         className={
-                          desvio < 0 ? "text-right text-destructive" : "text-right text-success"
+                          desvio < 0
+                            ? "text-right text-destructive-strong"
+                            : "text-right text-success"
                         }
                       >
                         {kwanza(desvio)}
@@ -598,7 +600,7 @@ function RelatoriosFinanceiros() {
                           {eficiencia >= 90 ? (
                             <TrendingUp className="size-4 text-success" />
                           ) : (
-                            <TrendingDown className="size-4 text-destructive" />
+                            <TrendingDown className="size-4 text-destructive-strong" />
                           )}
                           {eficiencia}%
                         </span>

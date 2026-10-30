@@ -134,7 +134,7 @@ export function ProgramCurriculumPanel({
                         {canEdit ? (
                           <button
                             type="button"
-                            className="text-destructive hover:underline"
+                            className="text-destructive-strong hover:underline"
                             onClick={() => handleRemove(entry.id)}
                             aria-label={`Remover ${entry.subjectName} do currículo`}
                           >

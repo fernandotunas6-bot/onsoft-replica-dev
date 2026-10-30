@@ -95,7 +95,7 @@ function Consent() {
         {name} poderá consultar o SIGA Plus em seu nome, apenas com as permissões que já tem.
       </p>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           {error}
         </p>
       )}

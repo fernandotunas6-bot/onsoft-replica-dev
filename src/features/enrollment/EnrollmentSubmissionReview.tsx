@@ -116,7 +116,7 @@ export function EnrollmentSubmissionReview({
         <span>Revi os dados e confirmo o envio desta candidatura à escola.</span>
       </Label>
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           {error}
         </p>
       ) : null}

@@ -236,13 +236,13 @@ function WebsiteEditor({ schoolId }: { schoolId?: string }) {
       {error && (
         <p
           role="alert"
-          className="rounded-lg border border-destructive p-3 text-sm text-destructive"
+          className="rounded-lg border border-destructive p-3 text-sm text-destructive-strong"
         >
           {error}
         </p>
       )}
       {templateMismatch && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive-strong">
           O modelo foi actualizado. É necessário compatibilizar os campos do rascunho antes de
           publicar. Os conteúdos anteriores permanecem guardados.
         </p>

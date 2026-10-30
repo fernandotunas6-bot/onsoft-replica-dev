@@ -517,7 +517,7 @@ function FaturasPage() {
               ]);
             }}
             trigger={(open) => (
-              <Button size="sm" variant="ghost" className="text-destructive" onClick={open}>
+              <Button size="sm" variant="ghost" className="text-destructive-strong" onClick={open}>
                 <X className="size-3.5" /> Anular
               </Button>
             )}
@@ -1332,7 +1332,7 @@ function FaturasPage() {
                       <TableRow>
                         <TableCell
                           colSpan={9}
-                          className="py-8 text-center text-sm text-destructive"
+                          className="py-8 text-center text-sm text-destructive-strong"
                         >
                           Não foi possível carregar as faturas.
                         </TableCell>

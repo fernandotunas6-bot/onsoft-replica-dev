@@ -116,12 +116,15 @@ export function DeleteConfirmModal({
           ) : null}
 
           {cannotDeleteReason ? (
-            <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <p
+              role="alert"
+              className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive-strong"
+            >
               {cannotDeleteReason}
             </p>
           ) : null}
           {error ? (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-sm text-destructive-strong">
               {error}
             </p>
           ) : null}

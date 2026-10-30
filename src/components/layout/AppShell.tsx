@@ -644,7 +644,7 @@ function AuthenticatedAppShell({ children }: { children: ReactNode }) {
                 className={cn(
                   "mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-2.5 text-sm",
                   studentCapacity.atLimit
-                    ? "border-destructive/40 bg-destructive/10 text-destructive"
+                    ? "border-destructive/40 bg-destructive/10 text-destructive-strong"
                     : "border-warning/30 bg-warning/10 text-warning",
                 )}
               >

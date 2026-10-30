@@ -560,7 +560,7 @@ function AcessosPage() {
           ) : accountsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">A carregar contas…</p>
           ) : accountsQuery.isError ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm text-destructive-strong">
               {accountsQuery.error instanceof Error
                 ? accountsQuery.error.message
                 : "Não foi possível carregar as contas."}

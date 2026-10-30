@@ -74,7 +74,7 @@ const STATUS_OPTIONS = [
     short: "Falta",
     plural: "Faltas",
     icon: X,
-    text: "text-destructive",
+    text: "text-destructive-strong",
     ring: "ring-destructive/60",
     row: "border-destructive/30 bg-destructive/5",
     selected: "border-destructive bg-destructive text-destructive-foreground shadow-sm",

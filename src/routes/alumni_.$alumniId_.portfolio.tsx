@@ -66,7 +66,7 @@ function AlumniPortfolio360Page() {
   if (!profileQuery.data) {
     return (
       <AppShell>
-        <div className="mx-auto max-w-7xl p-6 text-sm text-destructive">
+        <div className="mx-auto max-w-7xl p-6 text-sm text-destructive-strong">
           Não foi possível carregar este Alumni.
         </div>
       </AppShell>
