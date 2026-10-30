@@ -211,6 +211,30 @@ describe("/ (painel principal)", () => {
     expect(screen.queryByText(/% do total/)).toBeNull();
   });
 
+  it("os números pequenos abrem o separador onde se gerem", async () => {
+    // Antes de 30/10/2026 eram `div` sem destino nenhum, mas com realce ao
+    // passar o rato: reagiam e não levavam a lado nenhum. Um número que parece
+    // clicável tem de abrir alguma coisa.
+    getDashboardOverviewMock.mockResolvedValue(withStudents);
+    getSchoolTodayOpsMock.mockResolvedValue(emptySchoolTodayOps());
+
+    const Page = await loadPage();
+    renderRoute(Page);
+
+    await waitFor(() => {
+      expect(screen.getByText("240")).toBeDefined();
+    });
+
+    // O destino concreto não se verifica aqui: neste arnês o router devolve
+    // `href="#"` para toda a gente. O que esta asserção prende é o que estava
+    // errado — serem `div` e não `a`. O destino em si está no código do portal
+    // e é guardado por `canAccessPath("/pedagogica", …)`.
+    for (const rotulo of ["Cursos", "Turmas activas", "Salas", "Taxa de presença"]) {
+      const ligacao = screen.getByText(rotulo).closest("a");
+      expect(ligacao, `«${rotulo}» não abre nada`).not.toBeNull();
+    }
+  });
+
   it("mostra '—' em vez de zero quando a conta não tem capacidade de leitura académica", async () => {
     getDashboardOverviewMock.mockResolvedValue(emptyOverview);
     getSchoolTodayOpsMock.mockResolvedValue(emptySchoolTodayOps());
