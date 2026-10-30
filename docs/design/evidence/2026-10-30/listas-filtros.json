@@ -1,0 +1,55 @@
+{
+  "medido_em": "2026-10-30",
+  "ambito": "fase 2.3 — listas, filtros, paginacao e pesquisa",
+  "tabelas": {
+    "ecras_com_tabela": 50,
+    "usam_o_componente_partilhado_ui_table": 19,
+    "tabela_crua_em_jsx": 31,
+    "usam_ambos": 0,
+    "nota": "a divisao e total: nenhum ficheiro usa as duas vias",
+    "falsos_positivos_corrigidos": "o grep inicial deu 32 cruas; ResponsiveEntityView.tsx so tem <table> dentro de um comentario"
+  },
+  "componentes_partilhados_sem_consumidor": {
+    "ui/data-table-shell.tsx": "importado apenas por tests/ui/responsive-layout-contract.test.tsx",
+    "ui/pagination.tsx": "importado apenas por tests/ui/pagination-localization.test.ts",
+    "nota": "ambos sao nomeados em docs/design/CONTEXTUAL_VISUAL_INTEGRATION.md como sitios onde aplicar o visual"
+  },
+  "componentes_vivos": {
+    "filters/ListFilterBar.tsx": "16 importacoes",
+    "filters/ListPaginationBar.tsx": "3 rotas de producao (alunos, faturas, pessoas) + 1 teste",
+    "filters/debounced-search-input.tsx": "usado atraves do ListFilterBar"
+  },
+  "alvo_de_toque": {
+    "resultado": "sem falhas",
+    "detalhe": "ListFilterBar, ListPaginationBar e debounced-search-input usam h-[44px] e min-h-[44px] explicitos"
+  },
+  "transbordo_horizontal": {
+    "resultado": "sem falhas reais",
+    "suspeitos_investigados": [
+      { "ficheiro": "features/arquivos/FileBrowserTable.tsx", "veredicto": "tem min-w-[720px] mas o contentor overflow-auto esta no pai FileBrowser.tsx" },
+      { "ficheiro": "features/academic/OfficialPautaView.tsx", "veredicto": "w-full sem largura minima: nao forca transbordo" },
+      { "ficheiro": "components/mobile/ResponsiveEntityView.tsx", "veredicto": "nao tem tabela; o <table> esta num comentario" }
+    ],
+    "licao": "a analise estatica por ficheiro sobre-reporta: o contentor costuma estar no componente pai"
+  },
+  "semantica_de_tabela": {
+    "tabelas_complexas_com_cabecalho_de_linha": 2,
+    "ja_corrigidas": "CatalogExplorer.tsx e StudentAcademicHistoryCard.tsx ja usam scope=\"col\" e scope=\"row\"",
+    "tabelas_simples_sem_scope": 49,
+    "leitura": "H63 e tecnica suficiente, nao requisito: para tabelas de cabecalho de coluna unico a ausencia de scope nao e falha de 1.3.1"
+  },
+  "mensagens_de_estado": {
+    "falha": "SC 4.1.3 Status Messages (AA)",
+    "onde": "ListPaginationBar renderiza «Mostrando X–Y de Z registos», que muda ao filtrar, pesquisar e paginar sem que o foco se mova, e nao tinha role nem aria-live",
+    "correccao": "role=\"status\" aria-atomic=\"true\" no span da contagem; zero efeito visual",
+    "alcance_da_correccao": "as 3 rotas que usam a barra",
+    "por_corrigir": "11 dos 14 ecras com ListFilterBar nao usam a ListPaginationBar, pelo que filtram sem contagem e sem anuncio nenhum",
+    "ja_correcto": "o selector de itens por pagina tem aria-label=\"Itens por pagina\""
+  },
+  "importacao_circular": {
+    "entre": "filters/ListFilterBar.tsx e filters/debounced-search-input.tsx",
+    "veredicto": "uma das direccoes e `import type`, apagada na compilacao: sem ciclo em tempo de execucao",
+    "accao": "nenhuma"
+  },
+  "teste_de_regressao": "tests/ui/pagination-bar.test.ts"
+}

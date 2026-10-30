@@ -727,7 +727,7 @@ sem `<Outlet />`.
 | 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
 | 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
 | 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz do portátil alinhada com a do monitor por decisão do proprietário — **sem efeito no texto**: a escala tem piso em px (`max(11px, 0.75rem)`), pelo que `text-xs` mede 11px e não 8,25px; medição corrigida em 30/10. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
-| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector resolvida por decisão do proprietário: o selector alinha pelo campo (`lg:h-9 lg:py-1 lg:text-sm lg:leading-5`), medido a 25,88px nos dois. Regressão em `tests/ui/target-size-contract.test.ts`. Faltam listas, filtros, notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
+| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector resolvida por decisão do proprietário: o selector alinha pelo campo (`lg:h-9 lg:py-1 lg:text-sm lg:leading-5`), medido a 25,88px nos dois. Regressão em `tests/ui/target-size-contract.test.ts`. **Listas e filtros medidos em 30/10:** área quase toda limpa — corrigida uma falha de SC 4.1.3 (a contagem de resultados não era anunciada); duplicação de 31 tabelas cruas contra 19 partilhadas e dois componentes partilhados sem consumidor ficam como decisão. Faltam notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
 | 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
 | 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
 | 4.2 — animações                 | parcial     | Não foi adicionado vídeo nem alterado o logótipo. Falta medir durações/frames e movimento reduzido em todas as superfícies.                                                                                                                                                 |
@@ -1066,3 +1066,38 @@ A geometria foi verificada sobre as cadeias de classes que os componentes
 emitem, com o CSS compilado, **não sobre instâncias renderizadas na aplicação**:
 sem sessão autenticada todas as rotas desenham o ecrã de entrada e nenhum destes
 controlos aparece lá.
+
+## Listas, filtros, paginação e pesquisa (30/10/2026)
+
+Terceiro incremento do dia, a fechar a parte de listas da fase 2.3. O resultado
+principal é que **esta área mede quase toda limpa**: o que a matriz dava como
+«falta revisão integral» não escondia defeitos, esconde duplicação estrutural e
+código morto.
+
+- **Corrigido, uma linha e zero efeito visual:** `ListPaginationBar` mostra
+  «Mostrando X–Y de Z registos», que muda ao filtrar, pesquisar e paginar sem o
+  foco se mover, e não tinha `role` nem `aria-live` — falha de **SC 4.1.3
+  Status Messages, nível AA**. Passa a `role="status" aria-atomic="true"`.
+  Cobre as 3 rotas que usam a barra. Regressão em `tests/ui/pagination-bar.test.ts`,
+  verificada a falhar com o atributo removido.
+- **Duplicação, por decidir:** 19 ecrãs usam o `<Table>` partilhado e **31 têm
+  tabela crua**; nenhum usa as duas vias. São 50 ecrãs com tabela, 31 a
+  reimplementar o que já existe. Uniformizar é uma migração, não um ajuste.
+- **Código morto que o contrato manda refinar:** `ui/data-table-shell.tsx` e
+  `ui/pagination.tsx` **não têm um único consumidor em `src`** — só testes os
+  importam, e são os testes que os mantêm verdes. Os dois são nomeados em
+  `CONTEXTUAL_VISUAL_INTEGRATION.md` como sítios onde aplicar o novo visual.
+  Decisão: remover com os seus testes, ou adoptá-los nos 31 ecrãs.
+- **Maior do que o corrigido:** 11 dos 14 ecrãs com `ListFilterBar` não usam a
+  `ListPaginationBar`, logo filtram sem contagem e sem anúncio nenhum. São 11
+  ficheiros, fora deste incremento.
+- **Medido e sem falhas:** alvos de toque das barras (já usam `h-[44px]`
+  explícito), rótulo do selector de página, transbordo horizontal (três
+  suspeitos, todos descartados) e semântica das tabelas — só 2 das 51 são
+  complexas e **ambas já têm `scope` correcto**; nas 49 simples a ausência não
+  é falha.
+- **Nota de método:** três medições minhas estavam erradas e foram corrigidas
+  antes de entrar no relatório — o contentor de scroll estava no componente pai,
+  um `<table>` era um comentário, e o `scope` que dei por ausente está presente.
+  A análise estática por ficheiro sobre-reporta; o que não foi confirmado a
+  abrir o ficheiro não serve.
