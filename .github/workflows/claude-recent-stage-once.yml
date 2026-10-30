@@ -1,0 +1,70 @@
+name: Claude recent staged integration once
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/claude-recent-stage-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.event.pull_request.head.ref == 'integration/claude-recent-20261030' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: integration/claude-recent-20261030
+          fetch-depth: 0
+      - name: Merge only vetted Claude PR heads into isolated integration branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for ref in claude/nifty-edison-nm5vik claude/announcement-current-guardians claude/teacher-periods-class-archive; do
+            git fetch origin "$ref"
+            if ! git merge --no-ff --no-commit "origin/$ref"; then
+              echo "::error::Conflitos ao integrar $ref:"
+              git diff --name-only --diff-filter=U
+              exit 1
+            fi
+            git commit -m "integration(claude): $ref"
+          done
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Locked installation
+        run: bun install --frozen-lockfile
+      - name: Verify migration order and no duplicate version
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files = sorted(Path('supabase/migrations').glob('*.sql'))
+          versions = [p.name.split('_')[0] for p in files]
+          duplicate = sorted({v for v in versions if versions.count(v) > 1})
+          assert not duplicate, f"Duplicate SQL migration versions: {duplicate}"
+          for version in ('20261029220000','20261030000000','20261030010000','20261030030000'):
+              assert version in versions, f"Missing prerequisite/Claude migration {version}"
+          print("Migration naming/order verified; NOT applied to database.")
+          PY
+      - name: Typecheck and build
+        run: |
+          bun run typecheck
+          bun run build
+      - name: Targeted Claude, finance and SQL regression tests
+        run: |
+          bun run test tests/hr/staff-positions-server.test.ts tests/students/student-row-actions.test.tsx tests/ui/personal-notifications-read.test.tsx tests/finance/receipt-register-rls.test.ts tests/finance/tuition-batch.test.ts
+          node tests/sql/hr-employments-one-current.mjs
+          node tests/sql/announcements-audience-current-guardians.mjs
+          node tests/sql/teacher-periods-class-archive.mjs
+      - name: Push audited changes only to Claude integration branch
+        run: |
+          git rm -f .github/workflows/claude-recent-stage-once.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "chore(ci): remove temporary Claude staging workflow"
+          git push origin HEAD:integration/claude-recent-20261030
