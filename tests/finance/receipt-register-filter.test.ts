@@ -11,6 +11,7 @@ describe("filtros do registo de recibos", () => {
   });
   it("não aceita datas invertidas, estados nem métodos arbitrários", () => {
     expect(receiptRegisterInputSchema.safeParse({ from: "2026-10-30", to: "2026-10-01" }).success).toBe(false);
+    expect(receiptRegisterInputSchema.safeParse({ from: "2026-02-31" }).success).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ status: "deleted" }).success).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ method: "wire-magic" }).success).toBe(false);
   });
