@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCurrentAccount } from "@/features/auth/use-current-account";
+import { QuickFormModal } from "@/components/modals/QuickFormModal";
+import { reverseCashEntry } from "../server";
 import { Panel } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { ListFilterBar } from "@/components/filters/ListFilterBar";
@@ -35,6 +38,9 @@ const emptyFilters = {
 
 export function ReceiptRegisterPanel() {
   const { school, selectedYearLabel } = useSchoolSettings();
+  const account = useCurrentAccount();
+  const canReverse = account.role === "Administrador" || account.role === "Tesouraria";
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState(emptyFilters);
   const [page, setPage] = useState(1);
   const [printing, setPrinting] = useState<string | null>(null);
@@ -108,6 +114,44 @@ export function ReceiptRegisterPanel() {
       setExporting(false);
     }
   };
+
+  /** A anulação usa o mesmo RPC protegido da tesouraria, sem apagar o histórico. */
+  const reversalControl = (receipt: Receipt) =>
+    canReverse && receipt.status !== "reversed" ? (
+      <QuickFormModal
+        eyebrow="Tesouraria"
+        title={"Anular recibo " + receipt.receiptNumber}
+        description={
+          "Esta operação estorna o recebimento e devolve a dívida à fatura. " +
+          "O recibo original permanece no histórico. Exige autorização financeira e 2FA."
+        }
+        submitLabel="Confirmar anulação"
+        fields={[
+          {
+            name: "motivo",
+            label: "Motivo da anulação",
+            type: "textarea",
+            required: true,
+            full: true,
+            placeholder: "Descreva o motivo da anulação (5 a 300 caracteres)",
+          },
+        ]}
+        onSubmit={async (values) => {
+          const reason = (values["motivo"] ?? "").trim();
+          if (reason.length < 5 || reason.length > 300) {
+            throw new Error("O motivo deve ter entre 5 e 300 caracteres.");
+          }
+          await reverseCashEntry({ data: { cashEntryId: receipt.id, reason } });
+          await queryClient.invalidateQueries({ queryKey: ["finance"] });
+          toast.success("Recibo anulado. O histórico foi preservado.");
+        }}
+        trigger={(open) => (
+          <Button size="sm" variant="outline" onClick={open}>
+            Anular
+          </Button>
+        )}
+      />
+    ) : null;
 
   const printReceipt = async (receipt: Receipt) => {
     if (printing) return;
@@ -273,6 +317,7 @@ export function ReceiptRegisterPanel() {
                       <Button size="sm" variant="outline" disabled={Boolean(printing)} onClick={() => void printReceipt(receipt)}>
                         Imprimir / PDF
                       </Button>
+                      {reversalControl(receipt)}
                       <Button asChild size="sm" variant="ghost">
                         <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }}>Ver fatura</Link>
                       </Button>
@@ -307,9 +352,12 @@ export function ReceiptRegisterPanel() {
                         <td className="p-3 whitespace-nowrap tabular-nums">{kwanza(receipt.amount)}</td>
                         <td className="p-3">{receipt.status === "reversed" ? "Anulado" : "Emitido"}</td>
                         <td className="p-3">
-                          <Button variant="outline" size="sm" disabled={Boolean(printing)} onClick={() => void printReceipt(receipt)}>
-                            Imprimir / PDF
-                          </Button>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" disabled={Boolean(printing)} onClick={() => void printReceipt(receipt)}>
+                              Imprimir / PDF
+                            </Button>
+                            {reversalControl(receipt)}
+                          </div>
                         </td>
                       </tr>
                     ))}
