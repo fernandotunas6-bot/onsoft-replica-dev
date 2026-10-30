@@ -12,7 +12,7 @@ const MAX_STUDENT_MATCHES = 20;
 const MAX_INVOICES_FOR_STUDENT_SEARCH = 150;
 
 export function receiptLikeTerm(text: string): string {
-  return "%" + text.replace(/[%_\\]/g, "\\const day = z.string()") + "%";
+  return "%" + text.replace(/[%_\\]/g, (character) => "\\" + character) + "%";
 }
 
 /**
