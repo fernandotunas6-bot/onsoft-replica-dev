@@ -267,7 +267,7 @@ sem `<Outlet />`.
 | 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
 | 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
 | 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz do portátil alinhada com a do monitor por decisão do proprietário — **sem efeito no texto**: a escala tem piso em px (`max(11px, 0.75rem)`), pelo que `text-xs` mede 11px e não 8,25px; medição corrigida em 30/10. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
-| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector no desktop por decidir. Regressão em `tests/ui/target-size-contract.test.ts`. Faltam listas, filtros, notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
+| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector resolvida por decisão do proprietário: o selector alinha pelo campo (`lg:h-9 lg:py-1 lg:text-sm lg:leading-5`), medido a 25,88px nos dois. Regressão em `tests/ui/target-size-contract.test.ts`. Faltam listas, filtros, notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
 | 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
 | 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
 | 4.2 — animações                 | parcial     | Não foi adicionado vídeo nem alterado o logótipo. Falta medir durações/frames e movimento reduzido em todas as superfícies.                                                                                                                                                 |
@@ -543,8 +543,9 @@ componentes, layout, rotas, dados nem permissões: só nove valores de token em
   mede 11px e não os 8,25px que foram reportados — esse valor era a aritmética do
   `rem` sem contar o `max()`. O que subiu ~4,5% foram os espaçamentos e as caixas
   declaradas em `rem`. A alteração é inócua e ficou. Subir os consumidores de
-  `text-xs` a `text-sm` move-os de 11px para 12px, um píxel, e continua
-  disponível.
+  `text-xs` a `text-sm` move-os de 11px para 12px, um píxel — **apresentado ao
+  proprietário com a medição corrigida e recusado em 30/10**, pelo que não fica
+  pendência de tamanho de texto nesta fase.
 - **Prova:** `evidence/2026-10-30/contrast-tokens.json` (76 pares, antes e
   depois) e `evidence/2026-10-30/typography-scale.json`. Teste verificado a
   falhar com os valores antigos antes de se dar por bom.
@@ -593,8 +594,9 @@ nem permissões.
   de `bg-input` em todo o `src` e usa-o na pista do interruptor desligado. Ao
   escurecer `--input` mudei o aspecto dessa pista — de 1,28:1 contra o cartão
   (praticamente invisível) para 3,24:1, o que corrige uma segunda falha de
-  1.4.11 não identificada, mas é uma mudança visível que não anunciei. Separar é
-  trivial se o aspecto não agradar: dar à pista um token próprio.
+  1.4.11 não identificada, mas é uma mudança visível que não anunciei.
+  **Apresentadas ao proprietário as duas lado a lado em 30/10: fica como está**,
+  com a pista a reutilizar `--input` e os 3,24:1.
 - **Continua por medir nesta fase:** listas, filtros, notificações, estados e
   dashboards; espaçamento entre alvos adjacentes; o dia do calendário, que
   recebe a dimensão da célula da grelha e exige medição em runtime; e a
