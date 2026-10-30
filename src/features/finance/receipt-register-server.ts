@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { receiptLikeTerm, receiptRegisterInputSchema } from "./receipt-register-filter";
+import { receiptLikeTerm, receiptPrintInputSchema, receiptRegisterInputSchema } from "./receipt-register-filter";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -239,5 +239,43 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
           studentNumber: student?.student_number ?? "",
         };
       }),
+    };
+  });
+
+
+/**
+ * Revalidar estado/montante no instante da reimpressão: o utilizador não pode
+ * reproduzir um comprovativo aparentemente liquidado a partir de cache antiga
+ * quando outra sessão já anulou o recibo.
+ */
+export const getReceiptPrintState = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => receiptPrintInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const membership = await requireSgaWriterFor(
+      "financeiro",
+      context.supabase,
+      context.userId,
+      ["Administrador", "Tesouraria", "Secretaria"],
+    );
+    const db = await loadSgaAdminClient();
+    const { data: receipt, error } = await db
+      .from("finance_receipts")
+      .select("id, invoice_id, receipt_number, amount, paid_on, payment_method, status, reversal_reason, external_id")
+      .eq("school_id", membership.schoolId)
+      .eq("id", data.receiptId)
+      .maybeSingle();
+    if (error) throw publicDatabaseError(error, "Não foi possível conferir o recibo.");
+    if (!receipt) throw new Error("Recibo inexistente ou sem acesso nesta escola.");
+    return {
+      id: receipt.id,
+      invoiceId: receipt.invoice_id ?? "",
+      receiptNumber: receipt.receipt_number ?? "Sem número",
+      amount: Number(receipt.amount ?? 0),
+      paidOn: receipt.paid_on ?? "",
+      method: receipt.payment_method ?? "",
+      status: receipt.status,
+      reversalReason: receipt.reversal_reason ?? "",
+      externalId: receipt.external_id ?? "",
     };
   });
