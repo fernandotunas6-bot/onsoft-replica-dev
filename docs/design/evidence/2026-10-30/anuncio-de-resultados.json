@@ -1,0 +1,41 @@
+{
+  "medido_em": "2026-10-30",
+  "problema": "filtrar troca a lista sem mover o foco; quem usa leitor de ecra nao tem como saber que o conjunto mudou",
+  "norma": "SC 4.1.3 Status Messages (AA) onde ha contagem visivel; onde nao ha, e ausencia de retorno e nao falha formal",
+  "ecras_com_ListFilterBar": 14,
+  "ja_tinham_barra_de_paginacao_com_contagem": {
+    "quantos": 3,
+    "quais": ["routes/alunos/index.tsx", "routes/faturas.tsx", "routes/pessoas/index.tsx"],
+    "correccao": "role=status + aria-atomic na contagem do ListPaginationBar (commit anterior)"
+  },
+  "sem_contagem_nenhuma": {
+    "quantos": 11,
+    "constatacao": "nenhum dos 11 mostrava contagem: o .length so aparecia em referencias de exportacao e estados desactivados",
+    "decisao": "acrescentar contador visivel seria acrescentar interface, que o contrato proibe; a via usada foi uma regiao anunciada invisivel (sr-only)"
+  },
+  "mecanismo": {
+    "onde": "src/components/filters/ListFilterBar.tsx",
+    "prop": "resultCount?: number — opcional; sem ela a barra nao anuncia nada e nada muda",
+    "plural": "resultNounPlural para palavras como «comunicacao», que a regra do «s» daria «comunicaçãos»",
+    "marcacao": "<span role=\"status\" aria-live=\"polite\" aria-atomic=\"true\" class=\"sr-only\">",
+    "efeito_visual": "nenhum"
+  },
+  "ecras_ligados": [
+    { "ficheiro": "routes/documentos.tsx", "contagem": "filtered.length", "substantivo": "documento" },
+    { "ficheiro": "routes/planos-aula.tsx", "contagem": "filtered.length", "substantivo": "plano" },
+    { "ficheiro": "routes/comunicacoes.tsx", "contagem": "filtered.length", "substantivo": "comunicacao/comunicacoes" },
+    { "ficheiro": "routes/calendario.tsx", "contagem": "filtered.length", "substantivo": "evento" },
+    { "ficheiro": "routes/acessos.tsx", "contagem": "filteredAccounts.length", "substantivo": "conta" },
+    { "ficheiro": "routes/financeiro.tsx", "contagem": "lista.length", "substantivo": "movimento" },
+    { "ficheiro": "features/pedagogica/components/TurmasWorkspaceTab.tsx", "contagem": "turmasComDados.length", "substantivo": "turma" },
+    { "ficheiro": "features/catracas/components/AccessCardsPanel.tsx", "contagem": "cards.length", "substantivo": "cartao/cartoes" }
+  ],
+  "deliberadamente_de_fora": [
+    { "ficheiro": "routes/relatorios.academicos.tsx", "razao": "rende graficos (8 ocorrencias), nao lista contavel: o filtro muda agregacoes e nao um numero de itens que o utilizador veja" },
+    { "ficheiro": "routes/relatorios.financeiros.tsx", "razao": "idem, 12 ocorrencias de grafico" },
+    { "ficheiro": "features/academic/AssessmentCenterPanels.tsx", "razao": "AssessmentFiltersPanel e um selector (turma, disciplina, periodo) que muda uma grelha; nao tem coleccao de resultados em ambito, e o historyLines do pai nao e o que a barra filtra" }
+  ],
+  "defeito_apanhado_antes_de_entrar": "a primeira versao pluralizava com «s» e daria «comunicaçãos»; corrigido com plural explicito antes de ligar qualquer ecra",
+  "erro_apanhado_pelo_typecheck": "AssessmentCenterPanels recebeu resultCount={lines.length} com base num grep que apanhou um «lines» de outro componente do mesmo ficheiro; tsc recusou e a prop foi retirada",
+  "teste_de_regressao": "tests/ui/filter-bar-result-announcement.test.ts"
+}

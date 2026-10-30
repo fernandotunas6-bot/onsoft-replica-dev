@@ -211,6 +211,8 @@ function LessonPlansPage() {
         />
 
         <ListFilterBar
+          resultCount={filtered.length}
+          resultNoun="plano"
           values={filters}
           activeCount={activeCount}
           onChange={(name, value) => {

@@ -268,8 +268,8 @@ sem `<Outlet />`.
 | ------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1 — auditoria integral          | parcial     | Branch/HEAD/estado inicial limpos, arquitectura e handoff lidos; 18 módulos/186 ficheiros do inventário verificados. Falta auditoria runtime completa de todos os módulos.                                                                                                  |
 | 2.1 — superfícies               | parcial     | Definições em página, coluna menor; PremiumModal mais discreto; rever cartões, bordas, sombras, composição e alinhamentos em cada módulo.                                                                                                                                   |
-| 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz tipográfica do portátil alinhada com a do monitor por decisão do proprietário. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
-| 2.3 — componentes universais    | parcial     | StackedModal, SettingsCenter, FormModal, QuickModal, WizardModal, PremiumModal e SequentialSheetModal refinados; falta revisão integral de inputs, selectores, listas, filtros, paginação, pesquisa, calendário, abas, notificações, estados e dashboards.                  |
+| 2.2 — tipografia/nitidez        | parcial     | **Medido em 30/10/2026:** 78 pares de contraste, 16 falhas, 10 corrigidas; restam 6 isenções com razão escrita (bordas decorativas). Raiz do portátil alinhada com a do monitor por decisão do proprietário — **sem efeito no texto**: a escala tem piso em px (`max(11px, 0.75rem)`), pelo que `text-xs` mede 11px e não 8,25px; medição corrigida em 30/10. Regressão em `tests/ui/theme-token-contrast.test.ts`. Faltam imagens, nitidez de SVG, pesos e hierarquia página a página. [Relatório](VISUAL_2026-10-30_FASE_2-2.md). |
+| 2.3 — componentes universais    | parcial     | Modais refinados. **Alvo de toque e foco medidos em 30/10/2026:** 3 controlos falhavam a SC 2.5.8 (caixa de verificação e rádio a 12px, interruptor a 15px) e foram corrigidos com área de toque em pseudo-elemento, sem mudar tamanho visual; geometria verificada no browser. Divergência campo/selector resolvida por decisão do proprietário: o selector alinha pelo campo (`lg:h-9 lg:py-1 lg:text-sm lg:leading-5`), medido a 25,88px nos dois. Regressão em `tests/ui/target-size-contract.test.ts`. **Listas e filtros medidos em 30/10:** área quase toda limpa — corrigida uma falha de SC 4.1.3 (a contagem de resultados não era anunciada); duplicação de 31 tabelas cruas contra 19 partilhadas e dois componentes partilhados sem consumidor ficam como decisão. Faltam notificações, estados e dashboards. [Relatório](VISUAL_2026-10-30_FASE_2-3.md). |
 | 3 — navegação contextual        | parcial     | Menu compacto, sem expansão automática; preferências institucionais; guardas de acesso mantidas. Falta validar todos os contextos, cabeçalhos, escola activa, rotas e teclado virtual.                                                                                      |
 | 4.1 — interacções               | parcial     | Pendência local e bloqueio de envios em três formulários; faltam estados, skeletons, scroll, cache de filtros e feedback dos outros consumidores.                                                                                                                           |
 | 4.2 — animações                 | parcial     | Não foi adicionado vídeo nem alterado o logótipo. Falta medir durações/frames e movimento reduzido em todas as superfícies.                                                                                                                                                 |
@@ -537,12 +537,17 @@ componentes, layout, rotas, dados nem permissões: só nove valores de token em
   `border-input` está em 71 ficheiros, pelo que a mudança atravessa todos os
   formulários: foi a escolha explícita. `--input` deixa de ser igual a
   `--border`, que fica subtil como estava.
-- **Decidido e aplicado:** a raiz tipográfica de 1024–1535px subiu de 68,75%
-  para os 71,875% que já vigoravam acima de 1536px, unificando as duas consultas
-  numa só. O portátil deixa de ser a largura mais apertada das três: 11px → 11,5px,
-  +4,5% de texto, sem tocar no telemóvel nem no monitor. Não torna o `text-xs`
-  confortável (8,25px → 8,63px); subir os consumidores de `text-xs` para
-  `text-sm` continua disponível e não foi escolhido.
+- **Decidido e aplicado, com a medição depois corrigida:** a raiz tipográfica de
+  1024–1535px subiu de 68,75% para os 71,875% que já vigoravam acima de 1536px,
+  unificando as duas consultas numa só. **Correcção de 30/10:** esta alteração
+  **não mexeu em nenhum tamanho de letra**. O tema trava a escala de texto com
+  piso em píxeis (`--text-xs: max(11px, 0.75rem)` e irmãos), pelo que o `text-xs`
+  mede 11px e não os 8,25px que foram reportados — esse valor era a aritmética do
+  `rem` sem contar o `max()`. O que subiu ~4,5% foram os espaçamentos e as caixas
+  declaradas em `rem`. A alteração é inócua e ficou. Subir os consumidores de
+  `text-xs` a `text-sm` move-os de 11px para 12px, um píxel — **apresentado ao
+  proprietário com a medição corrigida e recusado em 30/10**, pelo que não fica
+  pendência de tamanho de texto nesta fase.
 - **Prova:** `evidence/2026-10-30/contrast-tokens.json` (76 pares, antes e
   depois) e `evidence/2026-10-30/typography-scale.json`. Teste verificado a
   falhar com os valores antigos antes de se dar por bom.
@@ -553,3 +558,157 @@ componentes, layout, rotas, dados nem permissões: só nove valores de token em
 
 Sem validação em sessão autenticada nem em dispositivo físico: a medição é sobre
 os tokens declarados, não sobre ecrãs renderizados. Não substitui a fase 8.
+
+## Alvo de toque e foco dos controlos universais (30/10/2026)
+
+Segundo incremento do dia, na fase 2.3, para além dos modais. Toca três
+ficheiros de componente e acrescenta um teste; não altera layout, rotas, dados
+nem permissões.
+
+- **A medição em `rem` dá valores errados neste projecto.** A raiz é de 12px no
+  telemóvel e 11,5px no desktop, logo a escala do Tailwind está ~25% abaixo do
+  nominal: `h-11` são 33px, não 44. É por isso que o campo de texto usa
+  `h-[44px]` explícito. O limite aplicável é o dos **24×24px da SC 2.5.8 da
+  WCAG 2.2, que é AA**, não os 44px de preferência da fase 4.3.
+- **Três controlos falhavam o mínimo AA:** caixa de verificação e opção de rádio
+  a 12px, interruptor a 15px de altura. A caixa de verificação é o próprio
+  elemento clicável, sem área maior nem preenchimento.
+- **Corrigido sem aumentar o controlo:** área de toque de 24×24px num
+  pseudo-elemento centrado, que não ocupa espaço no layout nem altera o aspecto —
+  respeitando a instrução de não aumentar dimensões. Verificado no browser do
+  projecto com `document.elementFromPoint`: acerta a 11px fora da caixa visual,
+  falha a 14px. A medição apanhou um defeito na primeira tentativa, em que
+  `before:w-full` deixava o interruptor a 23px por causa das bordas de 2px.
+- **Decidido pelo proprietário e aplicado:** o selector alinha pelo campo de
+  texto. Divergiam em quatro propriedades, não numa — altura, espaçamento, letra
+  e altura da linha — e só a altura teria cortado o texto, porque 14px com
+  `leading-[20px]` e `py-2` somam 34px e não cabem em 25,9px. Aplicado
+  `lg:h-9 lg:py-1 lg:text-sm lg:leading-5` e medido no browser: ambos a 25,88px,
+  12px de letra, sem corte; abaixo do `lg` ambos continuam a 44px. Custo
+  explícito: a letra do selector desce de 14px para 12px e o seu alvo de 44px
+  para 25,9px, acima do mínimo AA por 1,9px.
+- **Foco visível, medido:** o `select` usa `focus:` em vez de `focus-visible:`
+  (anel também ao rato). Menus e paleta de comandos indicam o foco por cor de
+  texto: o realce de fundo mede 1,16:1 no claro e 1,26:1 no escuro, não
+  perceptível por si. Não é falha clara de 2.4.7, mas é fraco; reforçá-lo altera
+  todos os menus, pelo que fica registado e não alterado.
+- **Efeito colateral da 2.2 que não previ:** `switch.tsx` é o único consumidor
+  de `bg-input` em todo o `src` e usa-o na pista do interruptor desligado. Ao
+  escurecer `--input` mudei o aspecto dessa pista — de 1,28:1 contra o cartão
+  (praticamente invisível) para 3,24:1, o que corrige uma segunda falha de
+  1.4.11 não identificada, mas é uma mudança visível que não anunciei.
+  **Apresentadas ao proprietário as duas lado a lado em 30/10: fica como está**,
+  com a pista a reutilizar `--input` e os 3,24:1.
+- **Continua por medir nesta fase:** listas, filtros, notificações, estados e
+  dashboards; espaçamento entre alvos adjacentes; o dia do calendário, que
+  recebe a dimensão da célula da grelha e exige medição em runtime; e a
+  duplicação entre `ListPaginationBar`, `pagination.tsx` e consumidores directos.
+
+A geometria foi verificada sobre as cadeias de classes que os componentes
+emitem, com o CSS compilado, **não sobre instâncias renderizadas na aplicação**:
+sem sessão autenticada todas as rotas desenham o ecrã de entrada e nenhum destes
+controlos aparece lá.
+
+## Listas, filtros, paginação e pesquisa (30/10/2026)
+
+Terceiro incremento do dia, a fechar a parte de listas da fase 2.3. O resultado
+principal é que **esta área mede quase toda limpa**: o que a matriz dava como
+«falta revisão integral» não escondia defeitos, esconde duplicação estrutural e
+código morto.
+
+- **Corrigido, uma linha e zero efeito visual:** `ListPaginationBar` mostra
+  «Mostrando X–Y de Z registos», que muda ao filtrar, pesquisar e paginar sem o
+  foco se mover, e não tinha `role` nem `aria-live` — falha de **SC 4.1.3
+  Status Messages, nível AA**. Passa a `role="status" aria-atomic="true"`.
+  Cobre as 3 rotas que usam a barra. Regressão em `tests/ui/pagination-bar.test.ts`,
+  verificada a falhar com o atributo removido.
+- **Duplicação, por decidir:** 19 ecrãs usam o `<Table>` partilhado e **31 têm
+  tabela crua**; nenhum usa as duas vias. São 50 ecrãs com tabela, 31 a
+  reimplementar o que já existe. Uniformizar é uma migração, não um ajuste.
+- **Código morto que o contrato manda refinar:** `ui/data-table-shell.tsx` e
+  `ui/pagination.tsx` **não têm um único consumidor em `src`** — só testes os
+  importam, e são os testes que os mantêm verdes. Os dois são nomeados em
+  `CONTEXTUAL_VISUAL_INTEGRATION.md` como sítios onde aplicar o novo visual.
+  Decisão: remover com os seus testes, ou adoptá-los nos 31 ecrãs.
+- **Fechado a seguir, no mesmo dia:** os outros 11 ecrãs com `ListFilterBar`
+  filtravam **em silêncio absoluto** — verificados um a um, nenhum mostrava
+  contagem. Como acrescentar um contador visível seria acrescentar interface, a
+  `ListFilterBar` ganhou uma prop opcional `resultCount` que rende uma região
+  `role="status" aria-live="polite" aria-atomic="true" sr-only`: **zero efeito
+  visual**, e sem a prop nada muda. Ligados **8 ecrãs** — documentos, planos,
+  comunicações, calendário, acessos, financeiro, turmas e cartões de acesso.
+  Três ficaram de fora com razão escrita: dois são relatórios que rendem
+  gráficos e não listas contáveis, e o terceiro é um selector de turma/
+  disciplina/período que muda uma grelha. Anunciar ali seria anunciar um número
+  errado. Regressão em `tests/ui/filter-bar-result-announcement.test.ts`.
+- **Medido e sem falhas:** alvos de toque das barras (já usam `h-[44px]`
+  explícito), rótulo do selector de página, transbordo horizontal (três
+  suspeitos, todos descartados) e semântica das tabelas — só 2 das 51 são
+  complexas e **ambas já têm `scope` correcto**; nas 49 simples a ausência não
+  é falha.
+- **Nota de método:** três medições minhas estavam erradas e foram corrigidas
+  antes de entrar no relatório — o contentor de scroll estava no componente pai,
+  um `<table>` era um comentário, e o `scope` que dei por ausente está presente.
+  A análise estática por ficheiro sobre-reporta; o que não foi confirmado a
+  abrir o ficheiro não serve.
+
+## Dashboard, notificações e estados vazios (30/10/2026)
+
+Quarto incremento do dia na fase 2.3, a pedido do proprietário: tirar excesso do
+dashboard e simplificar botões que só navegam.
+
+- **O excesso não estava na contagem.** O `AdminPortalDashboard` tem 7 botões,
+  9 ligações, 6 cartões, **zero gradientes e zero badges**. Estava no
+  comportamento: três cartões cresciam ao passar o rato
+  (`transition-all hover:scale-[1.02]`). O cartão não revela nada ao crescer — é
+  decoração — e `transition-all` animava tudo em vez das duas propriedades que
+  mudam. Ficou `transition-[border-color,box-shadow] duration-150`, dentro da
+  faixa do contrato, com o retorno útil e o `motion-reduce` preservados.
+- **Dois botões passam a estilo de ligação:** «Ver todos» no Admin e «Abrir
+  calendário» no `TodayAtSchoolCard`. Ambos só navegam e já eram `<a>`. O
+  `portal-ui.tsx` **já rendia** o «Ver tudo» como ligação simples nos portais de
+  aluno e encarregado: o padrão existia e eram estes que destoavam. Usei
+  `variant="link"` e não ligação inline porque esta perderia o `min-h-[44px]`.
+- **Não mexi**, com razão escrita, nas duas acções primárias do cabeçalho, nos
+  quatro alternadores de vista com `aria-pressed`, nos três botões só de ícone
+  do professor, nem no `transition-all` da barra de progresso, onde a animação
+  é função.
+- **Notificações:** o botão de fechar do aviso media **21px** no telemóvel
+  (`size-7` = 1,75rem com a raiz a 12px), abaixo da SC 2.5.8. Passa a
+  `size-[24px]`. O resto do `Toaster` já estava cuidado — contraste da descrição
+  e alvo do botão de acção têm comentários a explicá-lo no código.
+- **Estados vazios: por auditar a sério.** 34 ficheiros usam o `EmptyState`
+  partilhado e 80 contêm texto de vazio à mão — **mas esse segundo número não é
+  conclusão**: «Nenhum» aparece em contextos que não são estados vazios e não
+  verifiquei ficheiro a ficheiro.
+- **Limite:** sem sessão autenticada o dashboard **não pôde ser visto nem
+  fotografado**. Tudo foi lido no código. Nenhuma destas alterações tem
+  confirmação visual.
+
+## O dashboard visto no ecrã real (30/10/2026)
+
+O proprietário autorizou e abriu sessão; o dashboard foi medido no ecrã, não
+lido no código. Conta de Administrador, ISPAB, 1440×900.
+
+- **O ecrã de entrada tem 3794px: 4,2 ecrãs de scroll.** O maior bloco isolado é
+  o «Arranque da escola», com **549px — 14% da página** — a listar 11 passos dos
+  quais 9 estavam feitos.
+- **Corrigido:** o guia só ficava compacto quando *todos* os passos estavam
+  concluídos. Passa a abrir minimizado a partir de 80%, sem escolha guardada.
+  Ficam o progresso e o próximo passo com a sua acção; recolhe só a lista
+  exaustiva, e a escolha de quem minimiza ou expande continua a mandar.
+  Medido no mesmo carregamento: **3794px → 3370px, −424px, −11,2%**, de 4,2 para
+  3,7 ecrãs. Preferência do navegador reposta ao estado pristino.
+- **Visto e não corrigido:** «Estudantes masculinos» e «Estudantes femininos»
+  duplicam o gráfico «Distribuição por género» logo abaixo — é o candidato mais
+  claro ao corte seguinte, mas tirar mosaicos é tirar informação e fica para
+  decisão. Dois mosaicos mostram zero («A iniciar», «Aniversários»); escondê-los
+  seria mudança de comportamento.
+- **Falso alarme desfeito:** o aviso «Toque lento detectado» que aparece no
+  carregamento está atrás de `import.meta.env.DEV` — só existe em
+  desenvolvimento e nunca chega ao utilizador. Ia propô-lo para remoção antes de
+  abrir o ficheiro.
+- **Correcção à secção anterior:** concluir que «o excesso não estava na
+  contagem» estava certo pela razão errada. O ficheiro não tem decoração a mais;
+  o ecrã composto tem 4,2 ecrãs de scroll. Isso não se via contando elementos —
+  só se via abrindo o dashboard.

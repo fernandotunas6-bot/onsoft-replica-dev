@@ -25,7 +25,9 @@ const Toaster = ({ icons, ...props }: ToasterProps) => {
           actionButton:
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground max-sm:group-[.toast]:!h-10 max-sm:group-[.toast]:!px-3 group-[.toast]:shrink-0",
           cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          closeButton: "max-sm:group-[.toast]:!size-7",
+          // `size-7` são 1,75rem = 21px com a raiz deste projecto a 12px, abaixo
+          // dos 24x24px da SC 2.5.8. Em píxeis explícitos, como no resto do sistema.
+          closeButton: "max-sm:group-[.toast]:!size-[24px]",
         },
       }}
       {...props}
