@@ -5,7 +5,8 @@ import {
   receiptRegisterInputSchema,
 } from "./receipt-register-filter";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
+import { sgaClient } from "@/integrations/supabase/sga";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 
 function nonEmptyIds(values: (string | null | undefined)[]): string[] {
@@ -21,7 +22,7 @@ const MAX_INVOICES_FOR_STUDENT_SEARCH = 150;
  * Limites explícitos recusam pesquisas demasiado amplas sem cortar os resultados.
  */
 async function matchingStudentInvoiceIds(
-  db: Awaited<ReturnType<typeof loadSgaAdminClient>>,
+  db: ReturnType<typeof sgaClient>,
   schoolId: string,
   studentQuery: string,
 ): Promise<string[]> {
@@ -128,9 +129,8 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
       "Secretaria",
     ]);
     const schoolId = membership.schoolId;
-    // Cliente privilegiado exclusivamente no servidor, com RBAC e escola obrigatórios.
-    // Segue o mesmo contrato de leitura de getInvoiceDetail.
-    const db = await loadSgaAdminClient();
+    // Consultar dados pessoais/financeiros sob o JWT, com RLS + RBAC + school_id.
+    const db = sgaClient(context.supabase);
     const empty = { schoolId, rows: [], total: 0, page: data.page, pageSize: data.pageSize };
 
     let invoiceId: string | null = null;
@@ -287,7 +287,7 @@ export const getReceiptPrintState = createServerFn({ method: "GET" })
       "Tesouraria",
       "Secretaria",
     ]);
-    const db = await loadSgaAdminClient();
+    const db = sgaClient(context.supabase);
     const { data: receipt, error } = await db
       .from("finance_receipts")
       .select(
