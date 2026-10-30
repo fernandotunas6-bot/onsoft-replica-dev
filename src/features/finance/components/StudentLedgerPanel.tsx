@@ -230,12 +230,14 @@ function Ledger({
         />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-3 p-3 text-sm" aria-live="polite">
+          <div className="space-y-3 p-3 text-sm" aria-live="polite">
             <span>
               {filtered.length} alunos · Pago: {kwanza(totals.paid)} · Dívida:{" "}
               {kwanza(totals.outstanding)} · Vencida: {kwanza(totals.overdue)}
             </span>
-            <Button
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Importação e exportação financeira">
+                <Button
               variant="outline"
               size="sm"
               disabled={!reportRows.length || query.isFetching}
@@ -294,7 +296,9 @@ function Ledger({
                 Importar pagamentos Excel
               </Link>
             </Button>
-            <Button
+              </div>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end" role="group" aria-label="Seleccionar estudantes">
+                <Button
               variant="outline"
               size="sm"
               disabled={
@@ -328,10 +332,13 @@ function Ledger({
                 ? "Desmarcar todos filtrados"
                 : `Seleccionar todos filtrados (${filtered.length})`}
             </Button>
-            <Button
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3" role="group" aria-label="Cobranças e emissão de propinas">
+              <Button
               variant="outline"
               size="sm"
-              disabled={!selectedDebtors.length || query.isFetching}
+              disabled={!selectedDebtors.length || query.isFetching
               onClick={() =>
                 exportCsv(
                   `cobrancas-seleccionadas-${schoolTodayIso()}`,
@@ -392,6 +399,7 @@ function Ledger({
                 </Button>
               )}
             />
+            </div>
           </div>
           <p className="px-3 pb-3 text-xs text-muted-foreground">
             Pode seleccionar até 5 000 alunos para relatórios CSV/Excel, inclusive entre páginas. Para emitir
