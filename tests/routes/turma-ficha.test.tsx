@@ -254,14 +254,17 @@ describe("/pedagogica/turmas/$turmaId", () => {
     expect(server.tasks).toHaveBeenCalledWith({ data: { classGroupId: TURMA } });
     expect(screen.getByRole("link", { name: "Ver trabalhos e entregas" })).toBeDefined();
     expect(screen.getByRole("link", { name: "Presenças e aulas realizadas" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Editar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Mais opções/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Professor" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Aplicar currículo do curso" })).toBeNull();
   });
 
   it("a Secretaria mantém gestão de turma e não carrega o painel do professor", async () => {
     open();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Editar" })).toBeDefined());
+    // A gestão da turma (editar, currículo, exportar) está no menu «Mais opções».
+    const menu = await screen.findByRole("button", { name: /Mais opções/ });
+    fireEvent.keyDown(menu, { key: "Enter" });
+    expect(await screen.findByRole("menuitem", { name: /Editar dados da turma/ })).toBeDefined();
     expect(screen.queryByRole("complementary", { name: "Contexto do professor" })).toBeNull();
     expect(server.tasks).not.toHaveBeenCalled();
   });
