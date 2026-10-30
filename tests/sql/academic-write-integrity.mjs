@@ -51,7 +51,7 @@ INSERT INTO class_groups VALUES ('${id(60)}','${school}','${year}','active');
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 `);
 const migration = readFileSync(
-  new URL("../../supabase/migrations/20261029220000_academic_write_integrity.sql", import.meta.url),
+  new URL("../../supabase/migrations/20261030020000_academic_write_integrity.sql", import.meta.url),
   "utf8",
 );
 // Bloqueios (PGlite tem uma só ligação, por isso confere-se o texto): a escola
