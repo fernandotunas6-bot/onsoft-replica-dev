@@ -19,10 +19,12 @@ import { exportCsv } from "@/lib/export-csv";
 import { kwanza } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import { listReceiptRegister } from "../receipt-register-server";
+import { AccountantExportDialog } from "./AccountantExportDialog";
 
 const emptyFilters = {
   receiptNumber: "",
   invoiceNumber: "",
+  studentQuery: "",
   status: "all",
   method: "all",
   from: "",
@@ -118,6 +120,7 @@ export function ReceiptRegisterPanel() {
           fields={[
             { name: "receiptNumber", placeholder: "Número do recibo…", "aria-label": "Pesquisar recibo" },
             { name: "invoiceNumber", placeholder: "Número exacto da fatura…", "aria-label": "Pesquisar fatura" },
+            { name: "studentQuery", placeholder: "Nome ou processo do aluno…", "aria-label": "Pesquisar estudante" },
             { name: "status", type: "select", label: "Estado", options: [
               { value: "all", label: "Todos" },
               { value: "issued", label: "Emitidos" },
@@ -126,10 +129,9 @@ export function ReceiptRegisterPanel() {
             { name: "method", type: "select", label: "Método", options: [
               { value: "all", label: "Todos os métodos" },
               { value: "cash", label: "Numerário" },
-              { value: "transfer", label: "Transferência" },
-              { value: "tpa", label: "TPA" },
-              { value: "multicaixa_express", label: "Multicaixa Express" },
-              { value: "unitel_money", label: "Unitel Money" },
+              { value: "bank_transfer", label: "Transferência" },
+              { value: "card", label: "TPA / Multicaixa" },
+              { value: "other", label: "Outros" },
             ] },
             { name: "from", type: "date", label: "De" },
             { name: "to", type: "date", label: "Até" },
@@ -164,6 +166,13 @@ export function ReceiptRegisterPanel() {
             >
               Exportar página CSV
             </Button>
+            <AccountantExportDialog
+              trigger={(open) => (
+                <Button variant="outline" size="sm" onClick={open}>
+                  Exportar mês completo Excel
+                </Button>
+              )}
+            />
           </div>
         </div>
         {query.isLoading ? (
