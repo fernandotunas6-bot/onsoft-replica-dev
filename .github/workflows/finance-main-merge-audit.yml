@@ -1,0 +1,37 @@
+name: Finance integration conflict audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/finance-main-merge-audit.yml"
+permissions:
+  contents: read
+
+jobs:
+  inspect-merge:
+    if: github.event.pull_request.number == 424
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare finance work against current main, without writes
+        run: |
+          git fetch origin feat/finance-excel-receipts-20261030
+          echo "Main at $(git rev-parse HEAD)"
+          echo "Finance at $(git rev-parse FETCH_HEAD)"
+          if git merge --no-commit --no-ff FETCH_HEAD; then
+            echo "RESULT: CLEAN MERGE INTO MAIN"
+            git diff --stat HEAD
+          else
+            echo "RESULT: CONFLICTS"
+            echo "Conflicted files:"
+            git diff --name-only --diff-filter=U
+            echo "Conflict count:"
+            git diff --name-only --diff-filter=U | wc -l
+            git status --short
+          fi
+          git merge --abort || true
