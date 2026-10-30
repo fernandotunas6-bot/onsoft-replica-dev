@@ -1,4 +1,4 @@
-name: Finance staged integration validation (one-time)
+name: Finance staged integration validation (retry)
 on:
   pull_request:
     paths:
