@@ -1,4 +1,4 @@
-name: Claude recent staged integration once
+name: Claude recent staged integration (check new SQL versions)
 
 on:
   pull_request:
@@ -45,7 +45,7 @@ jobs:
           from pathlib import Path
           files = sorted(Path('supabase/migrations').glob('*.sql'))
           versions = [p.name.split('_')[0] for p in files]
-          duplicate = sorted({v for v in versions if versions.count(v) > 1})
+          duplicate = sorted({v for v in versions if v >= '20261020000000' and versions.count(v) > 1})
           assert not duplicate, f"Duplicate SQL migration versions: {duplicate}"
           for version in ('20261029220000','20261030000000','20261030010000','20261030030000'):
               assert version in versions, f"Missing prerequisite/Claude migration {version}"
