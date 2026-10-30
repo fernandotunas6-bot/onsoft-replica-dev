@@ -168,6 +168,14 @@ from (values
                and tablename = 'notifications')),
   ('20261015120000_tenant_billing_profiles',
      to_regclass('public.tenant_billing_profiles') is not null
-     and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT'))
+     and not has_table_privilege('authenticated', 'public.tenant_billing_profiles', 'SELECT')),
+  -- Pacote docs/agents/SIGA_aplicar_vigencia_docente_auditoria_2026-10-29.sql.
+  ('20261029220000_class_subject_teacher_periods',
+     to_regclass('public.class_subject_teacher_periods') is not null
+     and exists (select 1 from pg_trigger
+                 where tgname = 'class_subjects_track_teacher_period' and not tgisinternal)),
+  ('20261029220100_audit_logs_force_rls',
+     (select relforcerowsecurity from pg_class where oid = 'public.audit_logs'::regclass)
+     and not has_table_privilege('authenticated', 'public.audit_logs', 'INSERT'))
 ) as m(migracao, ok)
 order by migracao;
