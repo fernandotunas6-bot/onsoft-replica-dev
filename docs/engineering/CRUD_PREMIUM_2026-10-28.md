@@ -305,3 +305,14 @@ Os placeholders `<REF_DO_STAGING>` devem ser substituídos pelo identificador re
 - `tests/academic/task-submissions-ui.test.tsx`: PDF enviado com conteúdo; substituição pelo último ficheiro; substituição inválida não reutiliza o anterior; duplo toque gera apenas um pedido. O validador do servidor continua a exigir texto ou anexo.
 - **Diagnóstico**: no CI antigo, a suite académica reportou 696/697 testes aprovados; a falha era o PDF presente no ecrã mas ausente do pedido. A suite académica voltou a passar após corrigir a mutação. A aprovação global depende do CI da **SHA final**.
 - **Pendente**: E2E autenticado em staging com aluno/encarregado, foto de caderno em rede lenta, reenvio, falhas de ligação e autorização real; não aplicar dados ou credenciais de produção.
+
+## Continuação verificada — 29/10/2026
+
+A PR #378 foi integrada na main. As secções anteriores conservam o histórico dos
+lotes e não substituem a evidência actual. A continuação independente em
+`fix/crud-shared-forms-20261029` corrige senhas aparadas, IDs de formulários,
+campos editáveis durante gravação, obrigatoriedade do BI, falhas de vínculos
+interpretadas como ausência e retoma/contexto das suspensões em lote.
+[Matriz, testes e limites](../agents/HANDOFF_CRUD_CONTINUATION_2026-10-29.md).
+A atomicidade da edição de professor e a homologação autenticada permanecem
+pendentes. As notas transaccionais estão separadas na PR #404.

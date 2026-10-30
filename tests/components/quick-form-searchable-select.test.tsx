@@ -117,4 +117,39 @@ describe("QuickFormModal: pesquisa sem alterar a turma escolhida", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(select.getAttribute("aria-invalid")).toBe("false");
   });
+
+  it("durante a gravação, a pesquisa e a lista ficam bloqueadas como os outros campos", async () => {
+    let finish: () => void = () => {};
+    const submit = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <QuickFormModal
+        autoOpen
+        trigger={() => null}
+        title="Matrícula de teste"
+        fields={[
+          {
+            name: "turma",
+            label: "Turma",
+            type: "select",
+            searchable: true,
+            defaultValue: "civil",
+            options: [{ value: "civil", label: "10.ª A · Construção Civil" }],
+          },
+        ]}
+        onSubmit={submit}
+      />,
+    );
+    const select = (await screen.findByRole("combobox", { name: "Turma" })) as HTMLSelectElement;
+    const search = screen.getByRole("searchbox", { name: "Procurar turma" }) as HTMLInputElement;
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => expect(submit).toHaveBeenCalledWith({ turma: "civil" }));
+    await waitFor(() => expect(select.disabled).toBe(true));
+    expect(search.disabled).toBe(true);
+    finish();
+  });
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CheckSquare2, Copy, Download, Mail, ShieldOff, X } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { reportPossibleStepUp } from "@/lib/step-up";
@@ -17,18 +17,36 @@ type Account = Awaited<ReturnType<typeof listSystemAccounts>>[number];
 
 export function AccountBulkActions({
   accounts,
+  schoolId,
   selectedIds,
   isAdministrator,
   onChanged,
   onClear,
+  onSelectionChange,
+  contextKey = "",
 }: {
   accounts: Account[];
+  schoolId: string | null;
   selectedIds: string[];
   isAdministrator: boolean;
   onChanged: () => Promise<unknown>;
   onClear: () => void;
+  onSelectionChange?: (ids: string[]) => void;
+  contextKey?: string;
 }) {
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const mounted = useRef(true);
+  const activeContext = useRef(contextKey);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  useLayoutEffect(() => {
+    activeContext.current = contextKey;
+  }, [contextKey]);
   const selected = accounts.filter((item) => selectedIds.includes(item.id));
   if (!selected.length) return null;
   const rows = selected.map((item) => ({
@@ -77,6 +95,11 @@ export function AccountBulkActions({
     window.location.href = `mailto:?bcc=${encodeURIComponent(addresses.join(","))}&subject=${encodeURIComponent("Comunicação institucional · SIGA Plus")}`;
   };
   const suspend = async () => {
+    if (!isAdministrator || inFlight.current) return;
+    if (!schoolId) {
+      toast.error("Aguarde a identificação da escola antes de alterar acessos.");
+      return;
+    }
     const target = selected.filter((item) => !item.is_self && !item.disabled);
     if (!target.length) return;
     if (target.length > 25) {
@@ -89,30 +112,47 @@ export function AccountBulkActions({
       )
     )
       return;
+    inFlight.current = true;
     setBusy(true);
-    let success = 0;
+    const requestContext = contextKey;
+    const stillActive = () => mounted.current && activeContext.current === requestContext;
+    const succeeded = new Set<string>();
     const failed: string[] = [];
-    for (const item of target) {
-      try {
-        await setSystemAccountDisabled({ data: { userId: item.id, disabled: true } });
-        success++;
-      } catch (error) {
-        if (reportPossibleStepUp(error)) {
-          toast.warning("Confirme a sua identidade e repita a operação.");
-          break;
-        }
-        failed.push(item.full_name);
-      }
-    }
     try {
-      await onChanged();
-    } catch {
-      toast.warning("Actualize a página para ver os resultados.");
+      for (const item of target) {
+        if (!stillActive()) return;
+        try {
+          const result = await setSystemAccountDisabled({
+            data: { userId: item.id, disabled: true, expectedSchoolId: schoolId },
+          });
+          succeeded.add(item.id);
+          if (stillActive() && result.notice) toast.warning(result.notice);
+        } catch (error) {
+          if (!stillActive()) return;
+          if (reportPossibleStepUp(error)) {
+            toast.warning("Confirme a sua identidade e repita apenas as contas por concluir.");
+            break;
+          }
+          failed.push(item.full_name);
+        }
+      }
+      if (!stillActive()) return;
+      try {
+        await onChanged();
+      } catch {
+        if (stillActive()) toast.warning("Actualize a página para ver os resultados.");
+      }
+      if (!stillActive()) return;
+      const retryIds = target.filter((item) => !succeeded.has(item.id)).map((item) => item.id);
+      if (retryIds.length) onSelectionChange?.(retryIds);
+      else onClear();
+      if (succeeded.size) toast.success(`${succeeded.size} conta(s) suspensas.`);
+      if (failed.length)
+        toast.error(`${failed.length} falha(s): ${failed.slice(0, 3).join(", ")}.`);
+    } finally {
+      inFlight.current = false;
+      if (mounted.current) setBusy(false);
     }
-    setBusy(false);
-    onClear();
-    if (success) toast.success(`${success} conta(s) suspensas.`);
-    if (failed.length) toast.error(`${failed.length} falha(s): ${failed.slice(0, 3).join(", ")}.`);
   };
 
   return (

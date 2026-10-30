@@ -19,6 +19,7 @@ export function SearchableNativeSelect({
   placeholder,
   invalid,
   errorId,
+  disabled = false,
 }: {
   id: string;
   name: string;
@@ -28,7 +29,9 @@ export function SearchableNativeSelect({
   required?: boolean;
   placeholder?: string;
   invalid?: boolean;
-  errorId?: string;
+  errorId?: string | undefined;
+  /** Durante a gravação, como os outros campos do formulário. */
+  disabled?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(defaultValue);
@@ -50,6 +53,7 @@ export function SearchableNativeSelect({
         type="search"
         placeholder="Escreva para filtrar a lista"
         aria-describedby={resultsId}
+        disabled={disabled}
         value={query}
         onChange={(event) => {
           event.stopPropagation();
@@ -74,6 +78,7 @@ export function SearchableNativeSelect({
         id={id}
         name={name}
         required={required}
+        disabled={disabled}
         aria-invalid={invalid}
         aria-describedby={[resultsId, errorId].filter(Boolean).join(" ")}
         className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9"

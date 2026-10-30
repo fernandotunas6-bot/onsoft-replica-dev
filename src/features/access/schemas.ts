@@ -16,6 +16,8 @@ export const updateAccountCargoInputSchema = z.object({
 export type UpdateAccountCargoInput = z.infer<typeof updateAccountCargoInputSchema>;
 
 export const setAccountDisabledInputSchema = z.object({
+  /** Apenas precondição de contexto; não selecciona nem autoriza uma escola. */
+  expectedSchoolId: z.string().guid().optional(),
   userId: z.string().guid(),
   disabled: z.boolean(),
 });

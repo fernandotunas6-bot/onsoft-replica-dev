@@ -511,6 +511,21 @@ para o de 32 bits, passos e certificado recolhidos) vem em cima e destacado; no 
 por baixo com o botão em contorno. Definições → «Apps do SIGA»; no ecrã de entrada a ligação
 «Transferir a app do SIGA» aparece em todos os tamanhos (fora da app de computador).
 
+**29/10/2026 — Continuação do CRUD (implementado em ramo independente):**
+labels/erros/datalists por instância de formulário, bloqueio dos campos durante
+gravação e recuperação em falha, BI obrigatório quando configurado, selecção
+preservada após resultados parciais em Acessos. Sem alteração de layout, fontes
+ou cores. Testes DOM e verificadores estáticos aprovados; QA autenticado,
+dispositivos e assistivas continuam pendentes. Evidência em
+`docs/agents/HANDOFF_CRUD_CONTINUATION_2026-10-29.md`.
+
+**29/10/2026 — Selectores dependentes (implementado em ramo de revisão #405):**
+valores iniciais e avisos acompanham as escolhas reais; listas actualizadas
+preservam opções ainda válidas. Mantidos select nativo, labels, teclado e nomes
+de campo. 30 testes dirigidos, TypeScript e build aprovados; dispositivos e
+homologação autenticada continuam pendentes. Evidência no handoff da continuação
+CRUD de 29/10/2026.
+
 ## Contraste dos tokens e tamanho tipográfico (30/10/2026)
 
 Primeiro trabalho registado na fase 2.2, que estava `por auditar`. Não altera

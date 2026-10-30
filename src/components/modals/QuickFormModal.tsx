@@ -1,5 +1,13 @@
 import { reportPossibleStepUp } from "@/lib/step-up";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "@/lib/toast";
 import { ModalShell, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal-system";
 import { confirmDiscardChanges } from "@/components/ui/modal-system/confirm-close";
@@ -23,7 +31,7 @@ export type QuickField = {
   searchable?: boolean;
   /**
    * Opções que dependem do que já está escolhido noutros campos (ex.: as disciplinas
-   * da turma do aluno). Substitui `options`; ao mudarem, o campo volta à primeira.
+   * da turma do aluno). Substitui `options`; conserva a escolha se ainda existir nas opções.
    */
   optionsFor?: ((values: Record<string, string>) => QuickOptions) | undefined;
   /**
@@ -60,6 +68,73 @@ function inferInputMode(field: QuickField): QuickField["inputMode"] {
     return "decimal";
   if (/(nif|bi\b|número|numero|quantidade|capacidade|nº)/.test(hint)) return "numeric";
   return undefined;
+}
+
+function readQuickFormValues(form: HTMLFormElement | null) {
+  const out: Record<string, string> = {};
+  if (!form) return out;
+  for (const [key, val] of new FormData(form).entries()) {
+    const raw = String(val ?? "");
+    const control = form.elements.namedItem(key);
+    // A senha é um segredo exacto: não a normalizar como texto de cadastro.
+    out[key] =
+      control instanceof HTMLInputElement && control.type === "password" ? raw : raw.trim();
+  }
+  return out;
+}
+
+function quickOptions(field: QuickField, values: Record<string, string>) {
+  return ((field.optionsFor ? field.optionsFor(values) : field.options) ?? []).map((option) =>
+    typeof option === "string" ? { value: option, label: option } : option,
+  );
+}
+
+function QuickSelectField({
+  field,
+  values,
+  id,
+  disabled,
+  invalid,
+  errorId,
+  onValueResolved,
+}: {
+  field: QuickField;
+  values: Record<string, string>;
+  id: string;
+  disabled: boolean;
+  invalid: boolean;
+  errorId?: string | undefined;
+  onValueResolved?: ((name: string, value: string) => void) | undefined;
+}) {
+  const select = useRef<HTMLSelectElement>(null);
+  const options = quickOptions(field, values);
+  // O browser mantém a opção válida ou escolhe outra quando as opções mudam.
+  // Sincronizar depois do commit evita avisos e cascatas com o valor antigo.
+  useLayoutEffect(() => {
+    if (select.current && onValueResolved) onValueResolved(field.name, select.current.value.trim());
+  });
+  return (
+    <select
+      ref={select}
+      id={id}
+      name={field.name}
+      required={field.required ?? true}
+      disabled={disabled}
+      aria-invalid={invalid}
+      aria-describedby={errorId}
+      className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
+      defaultValue={
+        field.defaultValue ?? (field.required === false ? "" : (options[0]?.value ?? ""))
+      }
+    >
+      {field.required === false ? <option value="">—</option> : null}
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 /** Modal de criação e edição rápida com validação nativa dos campos. */
@@ -105,6 +180,8 @@ export function QuickFormModal({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const formId = useId();
+  const fieldId = (name: string) => `${formId}-${name}`;
   const didAutoOpen = useRef(false);
   // Guarda síncrona: o botão só fica desactivado depois de o React voltar a desenhar,
   // e dois cliques no mesmo instante enviavam duas vezes (dois recibos do mesmo
@@ -127,14 +204,14 @@ export function QuickFormModal({
     }
   }, [open]);
 
-  const readValues = () => {
-    const out: Record<string, string> = {};
-    if (!formRef.current) return out;
-    for (const [key, val] of new FormData(formRef.current).entries()) {
-      out[key] = String(val ?? "").trim();
-    }
-    return out;
-  };
+  const readValues = () => readQuickFormValues(formRef.current);
+  const syncSelectValue = useCallback((name: string, value: string) => {
+    setValues((previous) => (previous[name] === value ? previous : { ...previous, [name]: value }));
+  }, []);
+  // Ler os defaults reais, incluindo selects nativos, antes de mostrar avisos.
+  useLayoutEffect(() => {
+    if (open && tracksValues && !inFlight.current) setValues(readQuickFormValues(formRef.current));
+  }, [open, tracksValues]);
 
   const guardedClose = () => {
     if (inFlight.current) return;
@@ -222,111 +299,101 @@ export function QuickFormModal({
             >
               {fields.map((field) => (
                 <div key={field.name} className={field.full ? "sm:col-span-2" : undefined}>
-                  <Label htmlFor={field.name} className="text-xs font-semibold">
+                  <Label htmlFor={fieldId(field.name)} className="text-xs font-semibold">
                     {field.label}
                   </Label>
                   {field.type === "textarea" ? (
                     <Textarea
-                      id={field.name}
+                      id={fieldId(field.name)}
                       name={field.name}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      disabled={saving}
                       aria-invalid={Boolean(fieldErrors[field.name])}
-                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                      aria-describedby={
+                        fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                      }
                       defaultValue={field.defaultValue}
                       className="mt-1"
                     />
                   ) : field.type === "select" ? (
-                    (() => {
-                      const normalizedOptions = (
-                        (field.optionsFor ? field.optionsFor(values) : field.options) ?? []
-                      ).map((option) =>
-                        typeof option === "string" ? { value: option, label: option } : option,
-                      );
-                      if (field.searchable) {
-                        return (
-                          <SearchableNativeSelect
-                            key={
-                              field.optionsFor
-                                ? normalizedOptions.map((option) => option.value).join("\u0000")
-                                : undefined
-                            }
-                            id={field.name}
-                            name={field.name}
-                            label={field.label}
-                            options={normalizedOptions}
-                            required={field.required ?? true}
-                            invalid={Boolean(fieldErrors[field.name])}
-                            errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
-                            placeholder={field.placeholder}
-                            defaultValue={String(
-                              field.defaultValue ??
-                                (field.placeholder || field.required === false
-                                  ? ""
-                                  : (normalizedOptions[0]?.value ?? "")),
-                            )}
-                          />
-                        );
-                      }
-                      return (
-                        <select
-                          // Opções novas: monta de novo, para não ficar um valor que já não está na lista.
-                          key={
-                            field.optionsFor
-                              ? normalizedOptions.map((option) => option.value).join("\u0000")
-                              : undefined
-                          }
-                          id={field.name}
-                          name={field.name}
-                          required={field.required ?? true}
-                          aria-invalid={Boolean(fieldErrors[field.name])}
-                          aria-describedby={
-                            fieldErrors[field.name] ? `${field.name}-error` : undefined
-                          }
-                          className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm md:h-9 md:text-sm"
-                          defaultValue={
-                            field.defaultValue ??
-                            (field.required === false ? "" : (normalizedOptions[0]?.value ?? ""))
-                          }
-                        >
-                          {field.required === false ? <option value="">—</option> : null}
-                          {normalizedOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      );
-                    })()
+                    field.searchable ? (
+                      <SearchableNativeSelect
+                        // Opções novas (optionsFor): monta de novo, para não ficar uma
+                        // escolha que já não existe na lista.
+                        key={
+                          field.optionsFor
+                            ? quickOptions(field, values)
+                                .map((option) => option.value)
+                                .join("\u0000")
+                            : undefined
+                        }
+                        id={fieldId(field.name)}
+                        name={field.name}
+                        label={field.label}
+                        options={quickOptions(field, values)}
+                        required={field.required ?? true}
+                        disabled={saving}
+                        invalid={Boolean(fieldErrors[field.name])}
+                        errorId={
+                          fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                        }
+                        placeholder={field.placeholder}
+                        defaultValue={String(
+                          field.defaultValue ??
+                            (field.placeholder || field.required === false
+                              ? ""
+                              : (quickOptions(field, values)[0]?.value ?? "")),
+                        )}
+                      />
+                    ) : (
+                      <QuickSelectField
+                        field={field}
+                        values={values}
+                        id={fieldId(field.name)}
+                        disabled={saving}
+                        invalid={Boolean(fieldErrors[field.name])}
+                        errorId={
+                          fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                        }
+                        onValueResolved={tracksValues ? syncSelectValue : undefined}
+                      />
+                    )
                   ) : field.type === "angola-identity" ? (
                     <AngolaIdentityField
-                      id={field.name}
+                      id={fieldId(field.name)}
                       name={field.name}
                       defaultValue={field.defaultValue != null ? String(field.defaultValue) : ""}
-                      disabled={false}
+                      required={field.required ?? true}
+                      disabled={saving}
                       ariaInvalid={Boolean(fieldErrors[field.name])}
-                      errorId={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                      errorId={fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined}
                       placeholder={field.placeholder ?? ""}
                       className="mt-1.5"
                     />
                   ) : (
                     <Input
-                      id={field.name}
+                      id={fieldId(field.name)}
                       name={field.name}
                       type={field.type ?? "text"}
                       {...(inferInputMode(field) ? { inputMode: inferInputMode(field) } : {})}
                       placeholder={field.placeholder}
                       required={field.required ?? true}
+                      disabled={saving}
                       aria-invalid={Boolean(fieldErrors[field.name])}
-                      aria-describedby={fieldErrors[field.name] ? `${field.name}-error` : undefined}
+                      aria-describedby={
+                        fieldErrors[field.name] ? `${fieldId(field.name)}-error` : undefined
+                      }
                       defaultValue={field.defaultValue}
                       className="mt-1.5"
-                      {...(field.suggestions?.length ? { list: `${field.name}-suggestions` } : {})}
+                      {...(field.suggestions?.length
+                        ? { list: `${fieldId(field.name)}-suggestions` }
+                        : {})}
                     />
                   )}
                   {fieldErrors[field.name] ? (
                     <p
-                      id={`${field.name}-error`}
+                      id={`${fieldId(field.name)}-error`}
                       role="alert"
                       className="mt-1 text-xs text-destructive"
                     >
@@ -334,7 +401,7 @@ export function QuickFormModal({
                     </p>
                   ) : null}
                   {field.suggestions?.length ? (
-                    <datalist id={`${field.name}-suggestions`}>
+                    <datalist id={`${fieldId(field.name)}-suggestions`}>
                       {field.suggestions.map((option) => (
                         <option key={option} value={option} />
                       ))}

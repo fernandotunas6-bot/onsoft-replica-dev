@@ -69,7 +69,12 @@ function personRow(person: Row, roles: string[]) {
   };
 }
 
-async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?: string) {
+async function personRoleMap(
+  db: AdminDb,
+  schoolId: string,
+  ids: string[],
+  requiresDeclaredRoles = false,
+) {
   const roles = new Map<string, Set<string>>();
   if (!ids.length) return roles;
   const [students, teachers, guardians, declared] = await Promise.all([
@@ -93,7 +98,7 @@ async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?
       throw publicDatabaseError(result.error, "Não foi possível verificar vínculos.");
   }
   // Evita devolver um filtro institucional incompleto quando falta a tabela.
-  if (declared.error && role && ROLE_DEPENDENT.has(role)) {
+  if (declared.error && requiresDeclaredRoles) {
     throw publicDatabaseError(
       declared.error,
       "Não foi possível consultar os vínculos institucionais.",
@@ -101,7 +106,7 @@ async function personRoleMap(db: AdminDb, schoolId: string, ids: string[], role?
   }
   if (
     declared.error &&
-    !/person_roles|42P01|42703|schema cache|PGRST/i.test(declared.error.message ?? "")
+    !["42P01", "42703", "PGRST204", "PGRST205"].includes(declared.error.code ?? "")
   ) {
     throw publicDatabaseError(
       declared.error,
@@ -180,7 +185,8 @@ export async function searchPeopleDirectoryPage(
       db,
       membership.schoolId,
       candidates.map((p) => String(p["id"])),
-      roleFilter,
+      Boolean(roleFilter && ROLE_DEPENDENT.has(roleFilter)) ||
+        (searchedRole && personInstitutionRoleOptions.some((role) => role.includes(term))),
     );
     return candidates
       .map((record) => ({
