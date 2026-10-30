@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import { receiptLikeTerm, receiptRegisterInputSchema } from "./receipt-register-filter";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
@@ -10,10 +10,6 @@ function nonEmptyIds(values: (string | null | undefined)[]): string[] {
 
 const MAX_STUDENT_MATCHES = 20;
 const MAX_INVOICES_FOR_STUDENT_SEARCH = 150;
-
-export function receiptLikeTerm(text: string): string {
-  return "%" + text.replace(/[%_\\]/g, (character) => "\\" + character) + "%";
-}
 
 /**
  * Resolve a pesquisa antes da paginação de recibos; filtrar nomes no cliente
@@ -105,26 +101,6 @@ async function matchingStudentInvoiceIds(
   }
   return nonEmptyIds((invoices.data ?? []).map((row) => row.id));
 }
-
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal(""));
-
-/** Consulta paginada dos recibos da escola autenticada. Nunca grava pagamentos. */
-export const receiptRegisterInputSchema = z
-  .object({
-    receiptNumber: z.string().trim().max(100).default(""),
-    invoiceNumber: z.string().trim().max(100).default(""),
-    studentQuery: z.string().trim().max(90).default(""),
-    status: z.enum(["all", "issued", "reversed"]).default("all"),
-    method: z.string().trim().max(40).default("all"),
-    from: day.default(""),
-    to: day.default(""),
-    page: z.number().int().min(1).max(100000).default(1),
-    pageSize: z.number().int().min(1).max(100).default(25),
-  })
-  .refine((row) => !row.from || !row.to || row.from <= row.to, {
-    message: "O início do período não pode ultrapassar o fim.",
-    path: ["to"],
-  });
 
 export const listReceiptRegister = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
