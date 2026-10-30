@@ -76,19 +76,48 @@ export async function classGroupDeletionImpact(
   };
 }
 
+/**
+ * Disciplinas activas que ainda prendem o professor. As de turmas arquivadas não
+ * contam: a turma deixou de funcionar e o período do professor fecha com o arquivo
+ * (20261030030000), embora `class_subjects` se mantenha para uma reactivação.
+ */
+export async function countTeacherActiveAssignments(
+  db: AdminDb,
+  schoolId: string,
+  teacherId: string,
+  fallback: string,
+) {
+  const { data, error } = await db
+    .from("class_subjects")
+    .select("class_group_id")
+    .eq("school_id", schoolId)
+    .eq("teacher_id", teacherId)
+    .eq("status", "active");
+  if (error) throw publicDatabaseError(error, fallback);
+  const rows = (data ?? []) as Array<{ class_group_id: string | null }>;
+  const groupIds = [...new Set(rows.map((row) => String(row.class_group_id)))];
+  if (!groupIds.length) return 0;
+  const { data: archived, error: groupError } = await db
+    .from("class_groups")
+    .select("id")
+    .eq("school_id", schoolId)
+    .eq("status", "archived")
+    .in("id", groupIds);
+  if (groupError) throw publicDatabaseError(groupError, fallback);
+  const archivedIds = new Set(((archived ?? []) as Array<{ id: string }>).map((g) => String(g.id)));
+  return rows.filter((row) => !archivedIds.has(String(row.class_group_id))).length;
+}
+
 /** Professor: desligar recusa-se com disciplinas activas atribuídas (deleteTeacher). */
 export async function teacherDeletionImpact(
   db: AdminDb,
   schoolId: string,
   teacherId: string,
 ): Promise<DeletionImpact> {
-  const subjects = await countRows(
-    db
-      .from("class_subjects")
-      .select("id", { count: "exact", head: true })
-      .eq("school_id", schoolId)
-      .eq("teacher_id", teacherId)
-      .eq("status", "active"),
+  const subjects = await countTeacherActiveAssignments(
+    db,
+    schoolId,
+    teacherId,
     "Não foi possível calcular o impacto no professor.",
   );
   return {
