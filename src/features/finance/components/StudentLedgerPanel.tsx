@@ -14,6 +14,7 @@ import { EntityListSkeleton } from "@/components/mobile/skeletons";
 import { usePersistedListFilters } from "@/lib/list-filters";
 import { useSchoolSettings } from "@/features/auth/use-school-settings";
 import { exportCsv } from "@/lib/export-csv";
+import { exportStudentLedgerExcel } from "../student-ledger-excel";
 import { kwanza } from "@/lib/currency";
 import { schoolTodayIso } from "@/lib/school-date";
 import { toast } from "@/lib/toast";
@@ -22,6 +23,8 @@ import { issueTuitionBatch, type TuitionBatchResult } from "../server";
 import { studentBalanceState } from "../student-ledger";
 
 const defaults = { q: "", turma: "", classe: "", curso: "", nivel: "", estado: "" };
+/** Selecção para relatórios; o limite operacional de emissão continua a ser de 60. */
+const MAX_REPORT_SELECTION = 5000;
 
 export function StudentLedgerPanel({ blocked }: { blocked: boolean }) {
   const { school, selectedYearId, selectedYearLabel } = useSchoolSettings();
@@ -30,6 +33,7 @@ export function StudentLedgerPanel({ blocked }: { blocked: boolean }) {
     <Ledger
       key={`${school?.id}:${selectedYearId}`}
       schoolId={school?.id ?? ""}
+      schoolName={school?.name ?? "Escola"}
       yearId={selectedYearId}
       yearLabel={selectedYearLabel}
       blocked={blocked}
@@ -39,11 +43,13 @@ export function StudentLedgerPanel({ blocked }: { blocked: boolean }) {
 
 function Ledger({
   schoolId,
+  schoolName,
   yearId,
   yearLabel,
   blocked,
 }: {
   schoolId: string;
+  schoolName: string;
   yearId: string | null;
   yearLabel: string;
   blocked: boolean;
@@ -63,6 +69,7 @@ function Ledger({
   const [selected, setSelected] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<TuitionBatchResult | null>(null);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const rows = useMemo(() => query.data ?? [], [query.data]);
   const filtered = useMemo(
     () =>
@@ -99,7 +106,10 @@ function Ledger({
       ).values(),
     ].sort((a, b) => a.label.localeCompare(b.label, "pt")),
   ];
-  const selectedRows = filtered.filter((row) => selected.includes(row.studentId));
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const selectedRows = filtered.filter((row) => selectedSet.has(row.studentId));
+  const reportRows = selectedRows.length > 0 ? selectedRows : filtered;
+  const allFilteredSelected = filtered.length > 0 && selectedRows.length === filtered.length;
   const selectedClass = selectedRows[0]?.classGroupId;
   const canIssue =
     !blocked &&
@@ -112,7 +122,7 @@ function Ledger({
   const currentPage = Math.min(page, pages);
   const visible = filtered.slice((currentPage - 1) * 25, currentPage * 25);
   const visibleIds = visible.map((row) => row.studentId);
-  const pageSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id));
+  const pageSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedSet.has(id));
   const pageSelection = [...new Set([...selected, ...visibleIds])];
   const selectedDebtors = selectedRows.filter((row) => row.outstanding > 0);
   const selectedDebt =
@@ -130,12 +140,12 @@ function Ledger({
     >
       <Checkbox
         aria-label={`Seleccionar ${row.name}`}
-        checked={selected.includes(row.studentId)}
-        disabled={!selected.includes(row.studentId) && selected.length >= 60}
+        checked={selectedSet.has(row.studentId)}
+        disabled={!selectedSet.has(row.studentId) && selected.length >= MAX_REPORT_SELECTION}
         onCheckedChange={(checked) =>
           setSelected((old) =>
             checked === true
-              ? old.includes(row.studentId) || old.length >= 60
+              ? old.includes(row.studentId) || old.length >= MAX_REPORT_SELECTION
                 ? old
                 : [...old, row.studentId]
               : old.filter((id) => id !== row.studentId),
@@ -220,122 +230,196 @@ function Ledger({
         />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-3 p-3 text-sm" aria-live="polite">
+          <div className="space-y-3 p-3 text-sm" aria-live="polite">
             <span>
               {filtered.length} alunos · Pago: {kwanza(totals.paid)} · Dívida:{" "}
               {kwanza(totals.outstanding)} · Vencida: {kwanza(totals.overdue)}
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!filtered.length}
-              onClick={() =>
-                exportCsv(
-                  "situacao-financeira-alunos",
-                  [
-                    { label: "Processo", value: (r: Row) => r.number },
-                    { label: "Aluno", value: (r: Row) => r.name },
-                    { label: "Nível", value: (r: Row) => r.levelName },
-                    { label: "Curso", value: (r: Row) => r.programName },
-                    { label: "Classe", value: (r: Row) => r.gradeName },
-                    { label: "Turma", value: (r: Row) => r.className },
-                    { label: "Facturado (Kz)", value: (r: Row) => r.billed },
-                    { label: "Pago (Kz)", value: (r: Row) => r.paid },
-                    { label: "Dívida (Kz)", value: (r: Row) => r.outstanding },
-                    { label: "Vencida (Kz)", value: (r: Row) => r.overdue },
-                    { label: "Situação", value: (r: Row) => studentBalanceState(r).label },
-                  ],
-                  filtered,
-                )
-              }
-            >
-              Exportar lista
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={
-                !visible.length || query.isFetching || (!pageSelected && pageSelection.length > 60)
-              }
-              onClick={() =>
-                setSelected((old) =>
-                  pageSelected
-                    ? old.filter((id) => !visibleIds.includes(id))
-                    : [...new Set([...old, ...visibleIds])],
-                )
-              }
-            >
-              {pageSelected ? "Desmarcar página" : "Seleccionar página"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!selectedDebtors.length || query.isFetching}
-              onClick={() =>
-                exportCsv(
-                  `cobrancas-seleccionadas-${schoolTodayIso()}`,
-                  [
-                    { label: "Ano lectivo", value: () => yearLabel },
-                    { label: "Data de conferência", value: () => schoolTodayIso() },
-                    { label: "Processo", value: (r: Row) => r.number },
-                    { label: "Aluno", value: (r: Row) => r.name },
-                    { label: "Nível", value: (r: Row) => r.levelName },
-                    { label: "Curso", value: (r: Row) => r.programName },
-                    { label: "Classe", value: (r: Row) => r.gradeName },
-                    { label: "Turma", value: (r: Row) => r.className },
-                    { label: "Dívida total (Kz)", value: (r: Row) => r.outstanding },
-                    { label: "Dívida vencida (Kz)", value: (r: Row) => r.overdue },
-                    { label: "Pago (Kz)", value: (r: Row) => r.paid },
-                    { label: "Matrícula", value: (r: Row) => (r.active ? "Activa" : "Inactiva") },
-                  ],
-                  selectedDebtors,
-                )
-              }
-            >
-              Exportar cobranças ({selectedDebtors.length})
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelected([])}
-              disabled={!selected.length}
-            >
-              Limpar selecção ({selectedRows.length})
-            </Button>
-            <QuickFormModal
-              title="Emitir propinas dos seleccionados"
-              description={`${selectedRows.length} alunos. Um lote por turma, até 60 alunos activos. As propinas já emitidas para o mês não se repetem.`}
-              submitLabel="Emitir propinas"
-              fields={[{ name: "vencimento", label: "Vencimento", type: "date" }]}
-              onSubmit={async (values) => {
-                if (!canIssue || !yearId || !selectedClass)
-                  throw new Error("Reveja a selecção antes de emitir.");
-                const response = await issueTuitionBatch({
-                  data: {
-                    classGroupId: selectedClass,
-                    academicYearId: yearId,
-                    studentIds: selectedRows.map((r) => r.studentId),
-                    dueOn: values.vencimento ?? "",
-                  },
-                });
-                setResult(response);
-                setSelected([]);
-                await queryClient.invalidateQueries({ queryKey: ["finance"] });
-                const message = `${response.issued.length} emitidas · ${response.skipped.length} já existentes · ${response.failed.length} com erro`;
-                if (response.failed.length) toast.warning(message);
-                else toast.success(message);
-              }}
-              trigger={(open) => (
-                <Button size="sm" disabled={!canIssue} onClick={open}>
-                  Emitir propinas ({selectedRows.length})
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <div
+                className="flex flex-wrap items-center gap-2"
+                role="group"
+                aria-label="Importação e exportação financeira"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!reportRows.length || query.isFetching}
+                  onClick={() =>
+                    exportCsv(
+                      "situacao-financeira-alunos",
+                      [
+                        { label: "Processo", value: (r: Row) => r.number },
+                        { label: "Aluno", value: (r: Row) => r.name },
+                        { label: "Nível", value: (r: Row) => r.levelName },
+                        { label: "Curso", value: (r: Row) => r.programName },
+                        { label: "Classe", value: (r: Row) => r.gradeName },
+                        { label: "Turma", value: (r: Row) => r.className },
+                        { label: "Facturado (Kz)", value: (r: Row) => r.billed },
+                        { label: "Pago (Kz)", value: (r: Row) => r.paid },
+                        { label: "Dívida (Kz)", value: (r: Row) => r.outstanding },
+                        { label: "Vencida (Kz)", value: (r: Row) => r.overdue },
+                        { label: "Situação", value: (r: Row) => studentBalanceState(r).label },
+                      ],
+                      reportRows,
+                    )
+                  }
+                >
+                  {selectedRows.length
+                    ? `CSV seleccionados (${selectedRows.length})`
+                    : "Exportar CSV filtrados"}
                 </Button>
-              )}
-            />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!filtered.length || query.isFetching || exportingExcel}
+                  onClick={() => {
+                    setExportingExcel(true);
+                    void exportStudentLedgerExcel(reportRows, {
+                      schoolName,
+                      academicYear: yearLabel,
+                      checkedOn: schoolTodayIso(),
+                    })
+                      .then(() => toast.success("Lista financeira exportada para Excel."))
+                      .catch((error: unknown) =>
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível exportar o Excel.",
+                        ),
+                      )
+                      .finally(() => setExportingExcel(false));
+                  }}
+                >
+                  {exportingExcel
+                    ? "A preparar Excel…"
+                    : selectedRows.length
+                      ? `Excel seleccionados (${selectedRows.length})`
+                      : "Exportar Excel filtrados"}
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/importar" search={{ tab: "novo", modulo: "pagamentos" }}>
+                    Importar pagamentos Excel
+                  </Link>
+                </Button>
+              </div>
+              <div
+                className="flex flex-wrap items-center gap-2 lg:justify-end"
+                role="group"
+                aria-label="Seleccionar estudantes"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !visible.length ||
+                    query.isFetching ||
+                    (!pageSelected && pageSelection.length > MAX_REPORT_SELECTION)
+                  }
+                  onClick={() =>
+                    setSelected((old) =>
+                      pageSelected
+                        ? old.filter((id) => !visibleIds.includes(id))
+                        : [...new Set([...old, ...visibleIds])],
+                    )
+                  }
+                >
+                  {pageSelected ? "Desmarcar página" : "Seleccionar página"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !filtered.length ||
+                    query.isFetching ||
+                    (!allFilteredSelected && filtered.length > MAX_REPORT_SELECTION)
+                  }
+                  onClick={() =>
+                    setSelected(allFilteredSelected ? [] : filtered.map((row) => row.studentId))
+                  }
+                >
+                  {allFilteredSelected
+                    ? "Desmarcar todos filtrados"
+                    : `Seleccionar todos filtrados (${filtered.length})`}
+                </Button>
+              </div>
+            </div>
+            <div
+              className="flex flex-wrap items-center gap-2 border-t border-border pt-3"
+              role="group"
+              aria-label="Cobranças e emissão de propinas"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!selectedDebtors.length || query.isFetching}
+                onClick={() =>
+                  exportCsv(
+                    `cobrancas-seleccionadas-${schoolTodayIso()}`,
+                    [
+                      { label: "Ano lectivo", value: () => yearLabel },
+                      { label: "Data de conferência", value: () => schoolTodayIso() },
+                      { label: "Processo", value: (r: Row) => r.number },
+                      { label: "Aluno", value: (r: Row) => r.name },
+                      { label: "Nível", value: (r: Row) => r.levelName },
+                      { label: "Curso", value: (r: Row) => r.programName },
+                      { label: "Classe", value: (r: Row) => r.gradeName },
+                      { label: "Turma", value: (r: Row) => r.className },
+                      { label: "Dívida total (Kz)", value: (r: Row) => r.outstanding },
+                      { label: "Dívida vencida (Kz)", value: (r: Row) => r.overdue },
+                      { label: "Pago (Kz)", value: (r: Row) => r.paid },
+                      { label: "Matrícula", value: (r: Row) => (r.active ? "Activa" : "Inactiva") },
+                    ],
+                    selectedDebtors,
+                  )
+                }
+              >
+                Exportar cobranças ({selectedDebtors.length})
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelected([])}
+                disabled={!selected.length}
+              >
+                Limpar selecção ({selectedRows.length})
+              </Button>
+              <QuickFormModal
+                title="Emitir propinas dos seleccionados"
+                description={`${selectedRows.length} alunos. Um lote por turma, até 60 alunos activos. As propinas já emitidas para o mês não se repetem.`}
+                submitLabel="Emitir propinas"
+                fields={[{ name: "vencimento", label: "Vencimento", type: "date" }]}
+                onSubmit={async (values) => {
+                  if (!canIssue || !yearId || !selectedClass)
+                    throw new Error("Reveja a selecção antes de emitir.");
+                  const response = await issueTuitionBatch({
+                    data: {
+                      classGroupId: selectedClass,
+                      academicYearId: yearId,
+                      studentIds: selectedRows.map((r) => r.studentId),
+                      dueOn: values.vencimento ?? "",
+                    },
+                  });
+                  setResult(response);
+                  setSelected([]);
+                  await queryClient.invalidateQueries({ queryKey: ["finance"] });
+                  const message = `${response.issued.length} emitidas · ${response.skipped.length} já existentes · ${response.failed.length} com erro`;
+                  if (response.failed.length) toast.warning(message);
+                  else toast.success(message);
+                }}
+                trigger={(open) => (
+                  <Button size="sm" disabled={!canIssue} onClick={open}>
+                    Emitir propinas ({selectedRows.length})
+                  </Button>
+                )}
+              />
+            </div>
           </div>
           <p className="px-3 pb-3 text-xs text-muted-foreground">
-            Seleccione até 60 alunos. Para emitir propinas, escolha alunos activos da mesma turma. A
-            exportação de cobranças inclui apenas os seleccionados com dívida e não envia mensagens.
-            Para receber, abra as facturas do aluno. Sem facturas não significa pago.
+            Pode seleccionar até 5 000 alunos para relatórios CSV/Excel, inclusive entre páginas.
+            Para emitir propinas, escolha no máximo 60 alunos activos da mesma turma. A exportação
+            de cobranças inclui apenas os seleccionados com dívida e não envia mensagens. Para
+            receber, abra as facturas do aluno. Sem facturas não significa pago.
           </p>
           {selectedDebtors.length ? (
             <p className="px-3 pb-3 text-sm" role="status">

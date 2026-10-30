@@ -1,0 +1,53 @@
+name: Finance integration conflict audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/finance-main-merge-audit.yml"
+permissions:
+  contents: read
+
+jobs:
+  inspect-merge:
+    if: github.event.pull_request.number == 424
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare finance work against current main, without writes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin feat/finance-excel-receipts-20261030
+          echo "Main at $(git rev-parse HEAD)"
+          echo "Finance at $(git rev-parse FETCH_HEAD)"
+          if git merge --no-commit --no-ff FETCH_HEAD; then
+            echo "RESULT: CLEAN MERGE INTO MAIN"
+            git diff --stat HEAD
+          else
+            echo "RESULT: CONFLICTS"
+            echo "Conflicted files:"
+            git diff --name-only --diff-filter=U
+            echo "Conflict count:"
+            git diff --name-only --diff-filter=U | wc -l
+            git status --short
+            python3 - <<'PY'
+          from pathlib import Path
+          paths = ["bun.lock", "docs/design/VISUAL_MASTER_STATUS.md", "src/features/finance/server.ts", "tests/security/rls-client-migration.test.ts"]
+          for name in paths:
+              text = Path(name).read_text(encoding="utf-8", errors="replace").splitlines()
+              indexes = [i for i, line in enumerate(text) if line.startswith("<<<<<<<") or line.startswith("=======") or line.startswith(">>>>>>>")]
+              shown = set()
+              print("===== FILE:", name, "markers:", len(indexes), "=====")
+              for mark in indexes[:18]:
+                  for i in range(max(0, mark-7), min(len(text), mark+10)):
+                      if i not in shown:
+                          print(str(i+1) + ": " + text[i][:280])
+                          shown.add(i)
+          PY
+          fi
+          git merge --abort || true
