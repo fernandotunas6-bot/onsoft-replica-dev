@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { IconChip } from "@/components/ui/icon-chip";
 import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/layout/AppShell";
-import { ConfirmActionModal } from "@/components/modals/ConfirmActionModal";
+import { ImpactConfirmModal } from "@/components/modals/ImpactConfirmModal";
 import {
   TurmaEditSubModal,
   TurmaAssignTeacherSubModal,
@@ -27,6 +27,7 @@ import {
 import {
   applyCurriculumToClassGroup,
   deleteClassGroup,
+  getClassGroupDeletionImpact,
   listPedagogicalWorkspace,
   listRooms,
   updateClassGroup,
@@ -369,7 +370,7 @@ function TurmaDetail() {
                   <RotateCcw className="size-3.5" /> Reactivar
                 </Button>
               ) : null}
-              <ConfirmActionModal
+              <ImpactConfirmModal
                 trigger={(openConfirm) =>
                   turma.status === "active" ? (
                     <Button
@@ -383,10 +384,12 @@ function TurmaDetail() {
                     </Button>
                   ) : null
                 }
-                eyebrow="Turma"
                 title="Desactivar esta turma?"
-                description={`"${turma.name}" será marcada como inactiva. ${turma.enrolled_count > 0 ? `Tem ${turma.enrolled_count} aluno(s) matriculado(s) — a operação será recusada até transferir ou anular essas matrículas.` : "Não tem matrículas activas."}`}
+                verb="Desactivar"
+                itemType="a turma"
+                itemName={turma.name}
                 confirmLabel="Desactivar turma"
+                loadImpact={() => getClassGroupDeletionImpact({ data: { id: turma.id } })}
                 onConfirm={async () => {
                   try {
                     await deleteClassGroup({ data: { id: turma.id } });
