@@ -14,6 +14,7 @@ describe("filtros do registo de recibos", () => {
     expect(receiptRegisterInputSchema.safeParse({ from: "2026-02-31" }).success).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ status: "deleted" }).success).toBe(false);
     expect(receiptRegisterInputSchema.safeParse({ method: "wire-magic" }).success).toBe(false);
+    expect(receiptRegisterInputSchema.safeParse({ paymentReference: "x".repeat(161) }).success).toBe(false);
   });
   it("tem paginação limitada e permite pesquisas por processo", () => {
     expect(receiptRegisterInputSchema.safeParse({ pageSize: 1001 }).success).toBe(false);
