@@ -318,9 +318,11 @@ export function ReceiptRegisterPanel() {
                         Imprimir / PDF
                       </Button>
                       {reversalControl(receipt)}
-                      <Button asChild size="sm" variant="ghost">
-                        <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }}>Ver fatura</Link>
-                      </Button>
+                      {receipt.invoiceId ? (
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }}>Ver fatura</Link>
+                        </Button>
+                      ) : null}
                     </div>
                   </li>
                 ))}
@@ -342,9 +344,13 @@ export function ReceiptRegisterPanel() {
                       <tr key={receipt.id} className="border-b border-border">
                         <td className="p-3 whitespace-nowrap font-medium">{receipt.receiptNumber}</td>
                         <td className="p-3">
-                          <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }} className="text-primary hover:underline">
-                            {receipt.invoiceNumber}
-                          </Link>
+                          {receipt.invoiceId ? (
+                            <Link to="/faturas/$invoiceId" params={{ invoiceId: receipt.invoiceId }} className="text-primary hover:underline">
+                              {receipt.invoiceNumber}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">Fatura indisponível</span>
+                          )}
                         </td>
                         <td className="p-3">{receipt.studentName}</td>
                         <td className="p-3 whitespace-nowrap">{receipt.paidOn.slice(0, 10)}</td>
