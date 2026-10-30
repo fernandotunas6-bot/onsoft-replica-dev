@@ -8,9 +8,9 @@ Não executar migrações de produção, liquidações reais ou deploy durante e
 
 ## Trabalho implementado
 
-- `StudentLedgerPanel`: conserva filtros (nome/processo, nível, curso, classe, turma e situação); acrescenta Excel de todos os filtrados ou apenas seleccionados e atalho ao importador de pagamentos.
+- `StudentLedgerPanel`: conserva filtros (nome/processo, nível, curso, classe, turma e situação); acrescenta Excel de todos os filtrados ou apenas seleccionados e atalho ao importador de pagamentos. Permite seleccionar todos os filtrados em várias páginas até 5 000 alunos para relatórios, preservando o limite de 60 apenas na emissão de propinas.
 - `student-ledger-excel.ts`: ficheiro XLSX com folhas **Alunos**, **Devedores** e **Resumo**; valores monetários numéricos em Kz, processos como texto, prevenção de fórmulas em células textuais e distinção entre **sem faturação** e **pago**.
-- `receipt-register-server.ts`: leitura por escola e utilizador autorizado, paginação 25, pesquisa por nome/processo do estudante, número parcial de recibo e número exacto da fatura, filtros de estado/método/datas e relação com estudantes. Não modifica pagamentos ou recibos.
+- `receipt-register-server.ts`: leitura por escola e utilizador autorizado, paginação 25, pesquisa por nome/processo do estudante, número parcial de recibo, número exacto de fatura e referência externa exacta de pagamento, filtros de estado/método/datas e relação com estudantes. Não modifica pagamentos ou recibos.
 - `ReceiptRegisterPanel.tsx`: tabela/cartões, consulta, ligação à fatura, exportação **da página actual** em CSV, **de todos os filtrados até 2 000 registos** em XLSX e impressão/PDF do recibo a partir do ID real e código de verificação. Recibos anulados têm estado e texto explícitos; anulação a partir da lista usa o estorno financeiro existente com motivo, RBAC e 2FA.
 - `receipt-register-filter.ts` e `receipt-register-excel.ts`: validação tipada, escape de wildcards SQL, Excel com folha Recibos e Resumo, totais separados para emitidos/anulados, e protecção contra fórmulas.
 - `print-overlays.ts`: documentos financeiros deixam de receber brasão, bandeira e dizeres da República nos campos de identidade do template; mantém-se a marca e contacto da escola.
@@ -36,12 +36,13 @@ Não executar migrações de produção, liquidações reais ou deploy durante e
 
 ## Plano de aceitação / CI
 
-1. Executar `npm run typecheck`, `npm run lint`, `npm test -- tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/documents/finance-print-identity.test.ts` e `npm run build`.
+1. Executar `bun run build`, `bun run typecheck`, `bun run lint`, `npm test -- tests/finance/student-ledger-excel.test.ts tests/finance/receipt-register-excel.test.ts tests/finance/receipt-register-filter.test.ts tests/documents/finance-print-identity.test.ts` e `npm run build`.
 2. Validar o importador em staging com dados fictícios e duas escolas distintas, com uma sessão de Tesouraria e outra de Secretaria.
 3. Validar múltiplos pagamentos parciais por fatura, recibos válidos e anulados, pesquisa, PDF, CSV e Excel com 100+ alunos.
 4. Ensaiar limites, acessibilidade, 360/768/1440px, Excel com acentos e números com zeros iniciais.
 5. Conferir exportação de recibos com 2 000 resultados, filtros por aluno e anulação com motivo; verificar que o PDF não usa símbolos oficiais da República.
-6. Confirmar que PR #386 está aprovada e integrada primeiro; rebase/merge controlado, não force push. Só publicar em produção quando testes e validações estiverem verdes.
+6. Validar selecção de mais de 60 alunos para exportação Excel sem poder emitir propinas acima do limite; pesquisa por referência de pagamento externa exacta.
+7. Confirmar que PR #386 está aprovada e integrada primeiro; rebase/merge controlado, não force push. Só publicar em produção quando testes e validações estiverem verdes.
 
 ## Estado de execução
 
