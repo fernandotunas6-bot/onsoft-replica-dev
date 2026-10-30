@@ -12,6 +12,7 @@ export const receiptRegisterInputSchema = z
   .object({
     receiptNumber: z.string().trim().max(100).default(""),
     invoiceNumber: z.string().trim().max(100).default(""),
+    paymentReference: z.string().trim().max(160).default(""),
     studentQuery: z.string().trim().max(90).default(""),
     status: z.string().refine((value) => ["all", "issued", "reversed"].includes(value), "Estado inválido.").default("all"),
     method: z.string().refine((value) => ["all", "cash", "bank_transfer", "card", "other"].includes(value), "Método inválido.").default("all"),
