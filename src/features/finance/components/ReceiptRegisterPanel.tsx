@@ -85,7 +85,7 @@ export function ReceiptRegisterPanel() {
                 : []),
             ],
           }],
-          term: officialReceiptBody({
+          term: receipt.status === "reversed" ? "Recibo anulado — não comprova liquidação." : officialReceiptBody({
             schoolName: school?.name ?? "Escola",
             studentName: receipt.studentName,
             invoiceNumber: receipt.invoiceNumber,
@@ -106,7 +106,7 @@ export function ReceiptRegisterPanel() {
       <div className="space-y-3">
         <ListFilterBar
           values={filters}
-          activeCount={Object.entries(filters).filter(([key, value]) => value && value !== "all").length}
+          activeCount={Object.entries(filters).filter(([, value]) => value && value !== "all").length}
           onChange={(key, value) => {
             setFilters((previous) => ({ ...previous, [key]: value }));
             setPage(1);
