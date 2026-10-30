@@ -64,21 +64,35 @@ export default {
     const requestId = acceptRequestId(request.headers.get(REQUEST_ID_HEADER)) ?? newRequestId();
     const store = { ctx: (ctx ?? {}) as ExecutionContext, requestId };
     const response = await requestContext.run(store, () => handle(request, env, ctx));
-    return withRequestId(response, requestId);
+    return withTraceHeaders(response, requestId, releaseOf(env));
   },
 };
 
-/** Devolve o ID ao browser: a referência que o suporte procura nos logs. */
-function withRequestId(response: Response, requestId: string): Response {
+/** Commit publicado (`SIGA_RELEASE_SHA`, posto por scripts/deploy-cf.mjs), ou nada. */
+function releaseOf(env: unknown): string | null {
+  // Nos Workers as `vars` chegam em `env`; com nodejs_compat também em process.env.
+  const value =
+    (env as { SIGA_RELEASE_SHA?: unknown } | null)?.SIGA_RELEASE_SHA ??
+    (typeof process === "undefined" ? undefined : process.env?.["SIGA_RELEASE_SHA"]);
+  return typeof value === "string" && /^[0-9a-f]{40}(?:-dirty)?$/.test(value) ? value : null;
+}
+
+/**
+ * Devolve o ID do pedido ao browser (a referência que o suporte procura nos logs) e a
+ * versão publicada, que a vigilância do deploy compara com a `main`.
+ */
+function withTraceHeaders(response: Response, requestId: string, release: string | null) {
   if (response.status === 101) return response;
+  const apply = (target: Response) => {
+    target.headers.set("x-request-id", requestId);
+    if (release) target.headers.set("x-siga-release", release);
+    return target;
+  };
   try {
-    response.headers.set("x-request-id", requestId);
-    return response;
+    return apply(response);
   } catch {
     // Cabeçalhos imutáveis (resposta vinda de fetch): copiar.
-    const copy = new Response(response.body, response);
-    copy.headers.set("x-request-id", requestId);
-    return copy;
+    return apply(new Response(response.body, response));
   }
 }
 
