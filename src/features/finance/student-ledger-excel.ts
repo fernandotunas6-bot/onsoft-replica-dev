@@ -25,7 +25,7 @@ export type StudentLedgerExcelOptions = {
 
 /** Preserva texto digitado por terceiros sem o transformar em fórmula do Excel. */
 export function safeExcelText(input: unknown): string {
-  const value = String(input ?? "").replace(/\u0000/g, "");
+  const value = String(input ?? "").split(String.fromCharCode(0)).join("");
   return /^[\s]*[=+\-@]/.test(value) ? "'" + value : value;
 }
 
