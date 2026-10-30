@@ -4,6 +4,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { loadSgaAdminClient, requireSgaWriterFor } from "@/integrations/supabase/sga-admin";
 import { publicDatabaseError } from "@/integrations/supabase/server-error";
 
+function nonEmptyIds(values: (string | null | undefined)[]): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal(""));
 
 /** Consulta paginada dos recibos da escola autenticada. Nunca grava pagamentos. */
@@ -81,16 +85,16 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
     const receiptRows = receipts ?? [];
     if (!receiptRows.length) return { ...empty, total: count ?? 0 };
 
-    const invoiceIds = [...new Set(receiptRows.map((row) => row.invoice_id).filter(Boolean))];
-    const { data: invoices, error: invoiceError } = await db
+    const invoiceIds = nonEmptyIds(receiptRows.map((row) => row.invoice_id));
+    const { data: invoices, error: invoiceError } = invoiceIds.length ? await db
       .from("finance_invoices")
       .select("id, invoice_number, contract_id")
       .eq("school_id", schoolId)
-      .in("id", invoiceIds);
+      .in("id", invoiceIds) : { data: [], error: null };
     if (invoiceError) throw publicDatabaseError(invoiceError, "Não foi possível ligar os recibos às faturas.");
     const invoiceMap = new Map((invoices ?? []).map((row) => [row.id, row]));
 
-    const contractIds = [...new Set((invoices ?? []).map((row) => row.contract_id).filter(Boolean))];
+    const contractIds = nonEmptyIds((invoices ?? []).map((row) => row.contract_id));
     const contracts = contractIds.length
       ? await db.from("finance_contracts")
           .select("id, enrollment_id")
@@ -98,7 +102,7 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
           .in("id", contractIds)
       : { data: [], error: null };
     if (contracts.error) throw publicDatabaseError(contracts.error, "Não foi possível consultar os contratos.");
-    const enrollmentIds = [...new Set((contracts.data ?? []).map((row) => row.enrollment_id).filter(Boolean))];
+    const enrollmentIds = nonEmptyIds((contracts.data ?? []).map((row) => row.enrollment_id));
     const enrollments = enrollmentIds.length
       ? await db.from("enrollments")
           .select("id, student_id")
@@ -106,7 +110,7 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
           .in("id", enrollmentIds)
       : { data: [], error: null };
     if (enrollments.error) throw publicDatabaseError(enrollments.error, "Não foi possível consultar as matrículas.");
-    const studentIds = [...new Set((enrollments.data ?? []).map((row) => row.student_id).filter(Boolean))];
+    const studentIds = nonEmptyIds((enrollments.data ?? []).map((row) => row.student_id));
     const students = studentIds.length
       ? await db.from("students")
           .select("id, person_id, student_number")
@@ -114,7 +118,7 @@ export const listReceiptRegister = createServerFn({ method: "GET" })
           .in("id", studentIds)
       : { data: [], error: null };
     if (students.error) throw publicDatabaseError(students.error, "Não foi possível consultar os alunos.");
-    const personIds = [...new Set((students.data ?? []).map((row) => row.person_id).filter(Boolean))];
+    const personIds = nonEmptyIds((students.data ?? []).map((row) => row.person_id));
     const people = personIds.length
       ? await db.from("people")
           .select("id, full_name")
