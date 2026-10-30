@@ -42,3 +42,16 @@ Legenda: **Feito** com prova automática · **Parcial** · **Por fazer** · **Bl
 1. Aplicar as cinco migrações na produção, por ordem: `20261024090000`, `20261024100000`, `20261024110000`, `20261025090000`, `20261025100000`. Todas correm em Postgres (PGlite) no CI, em `tests/sql/`, sobre tabelas com as colunas da produção; falta corrê-las num ramo do Supabase, porque as restrições e gatilhos que o repositório não captura só lá aparecem.
 2. Contabilista para validar o plano de contas e as regras de lançamento.
 3. AppyPay ou EMIS: confirmar se o contrato inclui QR dinâmico.
+
+## Actualização — confirmação de pagamentos, 28/10/2026
+
+- Leitura efectiva da função e índice de idempotência: confirmados; não foi
+  executado pagamento real nem alterado o esquema.
+- Confirmação manual, saldo dos recibos, planos parciais e falhas de impressão:
+  testados localmente; 5406 testes da suite passaram, 19 saltados.
+- Cartão de pagamento: ensaio Chromium em quatro larguras, API fictícia, sem
+  pedidos externos. Cabeçalho, alvos de 44 px, data, clipboard, bloqueio de envio
+  repetido e recibo de sucesso passaram.
+- Sessões reais/RLS sob JWTs reais, fornecedor e aparelhos: por validar.
+
+Evidência completa: `docs/agents/HANDOFF_PAYMENT_CONFIRMATION_2026-10-28.md`.
